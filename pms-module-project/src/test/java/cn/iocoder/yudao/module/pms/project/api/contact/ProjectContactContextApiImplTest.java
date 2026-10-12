@@ -23,7 +23,8 @@ class ProjectContactContextApiImplTest {
     private final ProjectAncestorQueryApi ancestors = mock(ProjectAncestorQueryApi.class);
     private final AuthorizationGrantApi grants = mock(AuthorizationGrantApi.class);
     private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService projectRoles = mock(cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService.class);
-    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(projects,members,scopes,ancestors,grants,mock(CustomerQueryApi.class),projectRoles);
+    private final ProjectPartyMapper parties=mock(ProjectPartyMapper.class);
+    private final ProjectContactContextApiImpl api = new ProjectContactContextApiImpl(projects,members,scopes,ancestors,grants,mock(CustomerQueryApi.class),projectRoles,parties);
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         var row = new ProjectMasterDO(); row.setId(7L); row.setTenantId(1L); row.setCustomerId(8L); row.setVersion(2L); row.setLifecycleStatus("ACTIVE");
@@ -60,5 +61,32 @@ class ProjectContactContextApiImplTest {
         var context = api.inspect(new ProjectContactContextApi.Query(1L,3L,7L));
         assertFalse(context.canManage()); assertTrue(context.canViewHistory());
         assertThrows(RuntimeException.class, () -> api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+    }
+
+    private ProjectPartyDO finalParty() {
+        var row=new ProjectPartyDO();row.setId(99L);row.setTenantId(1L);row.setProjectId(7L);
+        row.setPartyName("实际最终用户");row.setSourceRecordKey("51922");row.setStatus("ACTIVE");row.setDeleted(false);
+        when(parties.selectHeaderFinalCustomers(any())).thenReturn(List.of(row));
+        when(parties.selectSourceForUpdate(any())).thenReturn(row);return row;
+    }
+    @Test void historicalContactCanUseClosedProjectWithoutEnablingOrdinaryMaintenance() {
+        when(projectRoles.isTenantSuperAdmin(1L,3L)).thenReturn(true);finalParty();
+        projects.selectById(7L).setLifecycleStatus("NORMAL_CLOSED");
+        assertEquals("51922",api.lockHistoricalFinalCustomer(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)).sourceProjectKey());
+        assertThrows(RuntimeException.class,()->api.lockForWrite(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+        assertThrows(RuntimeException.class,()->api.lockHistoricalFinalCustomer(new ProjectContactContextApi.WriteQuery(1L,3L,7L,1L)));
+    }
+    @Test void finalCustomerUsesExactProjectPartyAndRefusesAmbiguityOrForeignTenant() {
+        when(projectRoles.isTenantSuperAdmin(1L,3L)).thenReturn(true);var row=finalParty();
+        assertEquals(99L,api.inspectFinalCustomer(new ProjectContactContextApi.Query(1L,3L,7L)).id());
+        when(parties.selectHeaderFinalCustomers(any())).thenReturn(List.of(row,row));
+        assertThrows(RuntimeException.class,()->api.inspectFinalCustomer(new ProjectContactContextApi.Query(1L,3L,7L)));
+        when(parties.selectHeaderFinalCustomers(any())).thenReturn(List.of(row));row.setTenantId(2L);
+        assertThrows(RuntimeException.class,()->api.lockHistoricalFinalCustomer(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+    }
+    @Test void finalCustomerHistoryDoesNotGrantManagementToAVisibleViewer() {
+        finalParty();
+        assertThrows(RuntimeException.class,()->api.lockHistoricalFinalCustomer(new ProjectContactContextApi.WriteQuery(1L,3L,7L,2L)));
+        verify(parties,never()).selectSourceForUpdate(any());
     }
 }

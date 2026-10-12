@@ -1,0 +1,330 @@
+{
+  "table": "com_payment_plan",
+  "status": "PROPOSAL_WITHDRAWN_BY_USER_NAMING_DECISION",
+  "existingBeforeThisTask": false,
+  "currentColumns": 26,
+  "proposedColumns": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "正式技术主键；原id由既有INT来源绑定关联"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "迁移租户，所有查询及引用保持租户隔离"
+    },
+    {
+      "COLUMN_NAME": "contract_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "精确正式合同关系；原合同号不能跨公司猜配"
+    },
+    {
+      "COLUMN_NAME": "project_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "关联迁移项目；共享合同计划沿正式项目合同关系供其他来源项目查询，不重复复制业务计划"
+    },
+    {
+      "COLUMN_NAME": "contract_no",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原contractNo完整保存"
+    },
+    {
+      "COLUMN_NAME": "batch_code",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原batchCode完整保存"
+    },
+    {
+      "COLUMN_NAME": "plan_name",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原basicDataName完整保存"
+    },
+    {
+      "COLUMN_NAME": "reference_event_name",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原referenceEventName完整保存"
+    },
+    {
+      "COLUMN_NAME": "event_planned_at",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原eventPlanHappenDate完整保存"
+    },
+    {
+      "COLUMN_NAME": "after_days",
+      "COLUMN_TYPE": "decimal(24,6)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原afterDaysNum完整十进制保存"
+    },
+    {
+      "COLUMN_NAME": "event_actual_finished_at",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原eventActualFinishDate历史业务日期，不生成当前完成事实"
+    },
+    {
+      "COLUMN_NAME": "marketing_feedback",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原marketingFeedback完整保存"
+    },
+    {
+      "COLUMN_NAME": "data_source",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原dataSource完整保存"
+    },
+    {
+      "COLUMN_NAME": "effective_from",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原effectiveFrom"
+    },
+    {
+      "COLUMN_NAME": "effective_to",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "原effectiveTo"
+    },
+    {
+      "COLUMN_NAME": "source_system",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "集成来源DPPMS，供既有幂等查询使用，不代替data_source业务类别"
+    },
+    {
+      "COLUMN_NAME": "source_record_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "原技术id的来源身份，用既有INT同步绑定复用；无另外legacy_record_id镜像"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "可核实账号关联SYS正式用户ID；无迁入账号的原服务操作者编码保留为历史审计字符串，不创建账号、不授予权限，待用户本次裁决"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "保留原创建时间，不以本次迁移时间覆盖；全历史原创建时间NULL记录另列待裁决，不编造"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "可核实账号关联SYS正式用户ID；本批CrmInterfaceUser、crmapp为原服务操作者，建议未关联时原码保留正式审计字段，不伪造账号"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "保留原更新时间；若原值NULL，建议用该记录原createTime初始化并列明原NULL，不使用当前运行时间"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "handling": "正式逻辑删除；原表无删除标志，沿既有历史实体创建规则初始化，不生成现平台审批状态"
+    }
+  ],
+  "withdrawnAuditMirrors": {
+    "source_created_at": "create_time",
+    "source_created_by": "creator",
+    "source_updated_at": "update_time",
+    "source_updated_by": "updater"
+  },
+  "originalFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "主键",
+      "target": "既有INT来源绑定 / source_record_key",
+      "handling": "原自增ID仅用于幂等及来源关系，不作新增业务属性或覆盖正式主键"
+    },
+    {
+      "COLUMN_NAME": "contractNo",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "合同号",
+      "target": "contract_no / contract_id",
+      "handling": "合同号原值，关联同租户且公司已按批准规则转换的精确正式合同；不按名称猜配"
+    },
+    {
+      "COLUMN_NAME": "batchCode",
+      "COLUMN_TYPE": "varchar(10)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "批次信息",
+      "target": "batch_code",
+      "handling": "完整原计划批次"
+    },
+    {
+      "COLUMN_NAME": "basicDataName",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "活动（款项名称）",
+      "target": "plan_name",
+      "handling": "完整原回款计划事件名称，不当成施工任务"
+    },
+    {
+      "COLUMN_NAME": "referenceEventName",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "参照事件名称",
+      "target": "reference_event_name",
+      "handling": "完整原参考事件名称"
+    },
+    {
+      "COLUMN_NAME": "eventPlanHappenDate",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "事件计划发生日期",
+      "target": "event_planned_at",
+      "handling": "完整原计划事件日期"
+    },
+    {
+      "COLUMN_NAME": "afterDaysNum",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "后推天数",
+      "target": "after_days",
+      "handling": "完整原间隔天数，允许来源小数；超精度阻断，不取整"
+    },
+    {
+      "COLUMN_NAME": "eventActualFinishDate",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "事件实际完成日期",
+      "target": "event_actual_finished_at",
+      "handling": "历史事件实际日期，不据此生成现平台施工、验收、审批或回款到账完成事实"
+    },
+    {
+      "COLUMN_NAME": "marketingFeedback",
+      "COLUMN_TYPE": "varchar(2000)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "销售反馈",
+      "target": "marketing_feedback",
+      "handling": "完整销售反馈，不塞备注或快照代替"
+    },
+    {
+      "COLUMN_NAME": "createBy",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "creator",
+      "handling": "可核实账号关联SYS正式用户ID；无迁入账号的原服务操作者编码保留为历史审计字符串，不创建账号、不授予权限，待用户本次裁决"
+    },
+    {
+      "COLUMN_NAME": "createTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "create_time",
+      "handling": "保留原创建时间，不以本次迁移时间覆盖；全历史原创建时间NULL记录另列待裁决，不编造"
+    },
+    {
+      "COLUMN_NAME": "updateBy",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "updater",
+      "handling": "可核实账号关联SYS正式用户ID；本批CrmInterfaceUser、crmapp为原服务操作者，建议未关联时原码保留正式审计字段，不伪造账号"
+    },
+    {
+      "COLUMN_NAME": "updateTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "update_time",
+      "handling": "保留原更新时间；若原值NULL，建议用该记录原createTime初始化并列明原NULL，不使用当前运行时间"
+    },
+    {
+      "COLUMN_NAME": "effectiveFrom",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "effective_from",
+      "handling": "完整原业务有效期开始；不激活新流程"
+    },
+    {
+      "COLUMN_NAME": "effectiveTo",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "effective_to",
+      "handling": "完整原业务有效期结束；不伪造当前完成状态"
+    },
+    {
+      "COLUMN_NAME": "dataSource",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "data_source",
+      "handling": "完整原业务来源类别；与source_system=DPPMS的集成来源含义区分"
+    }
+  ],
+  "priorBusinessEntityReview": {
+    "com_contract_receivable": "既有合同应收金额/收款统计历史；缺少计划事件、参考事件、间隔天数及实际事件日期；必填金额不得凭本原表伪造为零",
+    "crm_receivable_plan": "当前mini未装配相应业务模块；遗留菜单不能作为正式实体承接证据"
+  },
+  "evidence": {
+    "sourceColumns": 16,
+    "formalColumns": 26,
+    "sourceRows": 10,
+    "formalRows": 10,
+    "allTenantIncludingDeletedRows": 10,
+    "sourceNullUpdatedTime": 0,
+    "sourceWholeTable": {
+      "rows_count": 35501,
+      "null_create_time": 0,
+      "null_update_time": 0
+    },
+    "currentBusinessAndMirrorDifferences": {},
+    "formalAuditDateDifferences": {
+      "create_time": 10,
+      "update_time": 10
+    },
+    "unassociatedHistoricServiceActors": [
+      "CrmInterfaceUser",
+      "crmapp"
+    ]
+  },
+  "newPhysicalTablesProposed": 1,
+  "newPhysicalColumnsOnExistingTablesProposed": 0,
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "runtimeAcceptance": "NOT_RUN",
+  "replacedBy": "2026-10-09-dppms-contract-collection-plan-table-decision.md"
+}

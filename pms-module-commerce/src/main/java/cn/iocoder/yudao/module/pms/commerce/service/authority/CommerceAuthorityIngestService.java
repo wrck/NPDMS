@@ -177,6 +177,9 @@ public class CommerceAuthorityIngestService {
         for (CommerceSalesOrderFact fact : command.salesOrders()) {
             SalesOrderDO current = currentByKey.get(fact.sourceKey());
             if (current == null) {
+                if (fact.expectedRowVersion() != null) {
+                    throw failure(SOURCE_VERSION_CONFLICT, "ROW_VERSION_CONFLICT: salesOrder不存在: " + fact.sourceKey());
+                }
                 requireCreate(fact.expectedPreviousSourceVersion(), "salesOrder", fact.sourceKey());
                 SalesOrderDO row = base(new SalesOrderDO(), command.tenantId());
                 row.setId(IdWorker.getId());
@@ -195,13 +198,22 @@ public class CommerceAuthorityIngestService {
 
     private void applyExistingSalesOrder(CommerceAuthorityBatchCommand command, CommerceSalesOrderFact fact,
                                          SalesOrderDO current, BatchChanges changes) {
-        if (replayOrRequirePredecessor(current.getSourceVersion(), fact.sourceVersion(),
+        if (fact.expectedRowVersion() != null && !Objects.equals(fact.expectedRowVersion(), current.getVersion())) {
+            throw failure(SOURCE_VERSION_CONFLICT, "ROW_VERSION_CONFLICT: salesOrder expectedRowVersion不匹配: " + fact.sourceKey());
+        }
+        boolean replay=replayOrRequirePredecessor(current.getSourceVersion(), fact.sourceVersion(),
                 fact.expectedPreviousSourceVersion(), canonicalizer.orderPayload(current),
-                canonicalizer.orderPayload(fact), "salesOrder", fact.sourceKey())) {
+                canonicalizer.orderPayload(fact), "salesOrder", fact.sourceKey());
+        String actualSystem=orderSourceSystem(command.sourceSystem(),fact.sourceKey());
+        if (!Objects.equals(current.getSourceSystem(),command.sourceSystem())
+                && !Objects.equals(current.getSourceSystem(),actualSystem))
+            throw failure(OWNER_DATA_CORRUPTED,"销售订单ERP系统与来源身份不一致");
+        if (replay && Objects.equals(current.getSourceSystem(),actualSystem)) {
             return;
         }
         Long expectedVersion = current.getVersion();
-        copySalesOrder(current, command, fact);
+        if (replay) current.setSourceSystem(actualSystem);
+        else copySalesOrder(current, command, fact);
         touch(current);
         requireWrite(salesOrderMapper.updateOwnerByVersion(
                 new SalesOrderAuthorityUpdate(command.tenantId(), current, expectedVersion)), "销售订单Owner更新失败");
@@ -223,6 +235,9 @@ public class CommerceAuthorityIngestService {
             requireValidOrderOwner(command, order);
             SalesOrderLineDO current = currentByKey.get(fact.sourceKey());
             if (current == null) {
+                if (fact.expectedRowVersion() != null) {
+                    throw failure(SOURCE_VERSION_CONFLICT, "ROW_VERSION_CONFLICT: orderLine不存在: " + fact.sourceKey());
+                }
                 requireCreate(fact.expectedPreviousSourceVersion(), "orderLine", fact.sourceKey());
                 SalesOrderLineDO row = base(new SalesOrderLineDO(), command.tenantId());
                 row.setId(IdWorker.getId());
@@ -241,17 +256,26 @@ public class CommerceAuthorityIngestService {
 
     private void applyExistingOrderLine(CommerceAuthorityBatchCommand command, CommerceOrderLineFact fact,
                                         SalesOrderDO order, SalesOrderLineDO current, BatchChanges changes) {
+        if (fact.expectedRowVersion() != null && !Objects.equals(fact.expectedRowVersion(), current.getVersion())) {
+            throw failure(SOURCE_VERSION_CONFLICT, "ROW_VERSION_CONFLICT: orderLine expectedRowVersion不匹配: " + fact.sourceKey());
+        }
         String currentPayload = Objects.equals(current.getOrderId(), order.getId())
                 ? canonicalizer.linePayload(current, fact.salesOrderSourceKey())
                 : "OWNER_PARENT_MISMATCH";
-        if (replayOrRequirePredecessor(current.getSourceVersion(), fact.sourceVersion(),
+        boolean replay=replayOrRequirePredecessor(current.getSourceVersion(), fact.sourceVersion(),
                 fact.expectedPreviousSourceVersion(), currentPayload, canonicalizer.linePayload(fact),
-                "orderLine", fact.sourceKey())) {
+                "orderLine", fact.sourceKey());
+        String actualSystem=orderSourceSystem(command.sourceSystem(),fact.salesOrderSourceKey());
+        if (!Objects.equals(current.getSourceSystem(),command.sourceSystem())
+                && !Objects.equals(current.getSourceSystem(),actualSystem))
+            throw failure(OWNER_DATA_CORRUPTED,"订单行ERP系统与父订单来源身份不一致");
+        if (replay && Objects.equals(current.getSourceSystem(),actualSystem)) {
             return;
         }
         Integer expectedVersion = current.getVersion();
         boolean freezeScopes = requiresScopeConflict(current, fact);
-        copyOrderLine(current, command, fact, order);
+        if (replay) current.setSourceSystem(actualSystem);
+        else copyOrderLine(current, command, fact, order);
         touch(current);
         requireWrite(orderLineMapper.updateOwnerByVersion(
                 new OrderLineAuthorityUpdate(command.tenantId(), current, expectedVersion)), "订单行Owner更新失败");
@@ -291,7 +315,8 @@ public class CommerceAuthorityIngestService {
 
     private void requireValidOrderOwner(CommerceAuthorityBatchCommand command, SalesOrderDO order) {
         if (order == null || !Objects.equals(command.tenantId(), order.getTenantId())
-                || !Objects.equals(command.sourceSystem(), order.getSourceSystem())
+                || !Objects.equals(orderSourceSystem(command.sourceSystem(),order.getSourceKey()), order.getSourceSystem())
+                    && !Objects.equals(command.sourceSystem(),order.getSourceSystem())
                 || !CONFIRMED.equals(order.getAuthorityStatus())
                 || order.getCompanyCode() == null || order.getCompanyCode().isBlank()
                 || order.getOrderType() == null || order.getOrderType().isBlank()
@@ -395,7 +420,7 @@ public class CommerceAuthorityIngestService {
 
     private void copyOrderLine(SalesOrderLineDO row, CommerceAuthorityBatchCommand command,
                                CommerceOrderLineFact fact, SalesOrderDO order) {
-        row.setSourceSystem(command.sourceSystem());
+        row.setSourceSystem(orderSourceSystem(command.sourceSystem(),fact.salesOrderSourceKey()));
         row.setSourceKey(fact.sourceKey());
         row.setSourceVersion(fact.sourceVersion());
         // ERP header identity is obtained under the same Owner lock as the line write.
@@ -501,6 +526,7 @@ public class CommerceAuthorityIngestService {
             conflict.setLineNo(active.getLineNo());
             conflict.setProductCode(active.getProductCode());
             conflict.setAllocatedQty(active.getAllocatedQty());
+            conflict.setAllocationConfirmed(true);
             conflict.setScopeStatus("CONFLICT_FROZEN");
             conflict.setAllocationVersion(active.getAllocationVersion() + 1);
             conflict.setAllocationSource("ERP_AUTHORITY_CHANGE");
@@ -600,12 +626,22 @@ public class CommerceAuthorityIngestService {
     private void source(SalesOrderDO row, CommerceAuthorityBatchCommand command, String sourceKey,
                         String sourceVersion, CommerceSourceLifecycleStatus lifecycleStatus,
                         LocalDateTime sourceUpdatedAt) {
-        row.setSourceSystem(command.sourceSystem());
+        row.setSourceSystem(orderSourceSystem(command.sourceSystem(),sourceKey));
         row.setSourceKey(sourceKey);
         row.setSourceVersion(sourceVersion);
         row.setSourceLifecycleStatus(lifecycleStatus.name());
         row.setSourceUpdatedAt(sourceUpdatedAt);
         row.setSyncedAt(LocalDateTime.now(clock));
+    }
+
+    /** The approved DPPMS order identity carries the actual ERP system; the transport batch remains ERP. */
+    private String orderSourceSystem(String transportSystem,String sourceKey) {
+        if (!"ERP".equals(transportSystem) || sourceKey==null || !sourceKey.startsWith("DPPMS|")) return transportSystem;
+        String[] parts=sourceKey.split("\\|",-1);
+        if (parts.length!=5 || !Set.of("SAP","D365","SMS").contains(parts[1])
+                || parts[2].isBlank() || !Set.of("0","1").contains(parts[3]) || parts[4].isBlank())
+            throw failure(OWNER_DATA_CORRUPTED,"DPPMS销售订单ERP来源身份不完整");
+        return parts[1];
     }
 
     private AuthoritySourceQuery sourceQuery(CommerceAuthorityBatchCommand command, String sourceKey) {

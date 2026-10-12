@@ -3,16 +3,13 @@ package cn.iocoder.yudao.module.infra.service.file;
 import cn.hutool.core.util.StrUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.web.config.WebProperties;
-import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileConfigDO;
 import cn.iocoder.yudao.module.infra.dal.dataobject.file.FileDO;
 import cn.iocoder.yudao.module.infra.dal.mysql.file.FileMapper;
-import cn.iocoder.yudao.module.infra.framework.file.core.client.db.DBFileClientConfig;
 import cn.iocoder.yudao.module.infra.framework.file.core.utils.FilePathUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -20,7 +17,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -44,7 +40,8 @@ public class FileStorageReceiptAccessService {
             throw new IllegalArgumentException("FILE_STORAGE_RECEIPT_DB_ACCESS_INVALID");
         }
         FilePathUtils.validatePath(file.getPath());
-        String urlBase = receiptConfigDomain(file.getConfigId());
+        // The capability belongs to this application/Redis namespace, not the historical storage domain.
+        String urlBase = org.springframework.web.servlet.support.ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
         String token = newToken();
         LocalDateTime expiresAt = LocalDateTime.now().plusSeconds(expirationSeconds);
         var ticket = new ReceiptTicket(file.getId(), file.getConfigId(), file.getPath(), file.getName(),
@@ -70,39 +67,6 @@ public class FileStorageReceiptAccessService {
         byte[] content = fileConfigService.getFileClient(ticket.configId()).getContent(ticket.path());
         if (content == null || content.length != ticket.sizeBytes()) return null;
         return new ReceiptContent(ticket.name(), ticket.mediaType(), content);
-    }
-
-    private String receiptConfigDomain(Long configId) {
-        FileConfigDO config = fileConfigService.getFileConfig(configId);
-        if(config==null)throw new IllegalStateException("FILE_STORAGE_RECEIPT_CONFIG_INVALID");
-        if(config.getConfig() instanceof DBFileClientConfig database)return receiptDomain(database.getDomain(),configId);
-        if(config.getConfig() instanceof cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClientConfig local)
-            return receiptDomain(local.getDomain(),configId);
-        throw new IllegalStateException("FILE_STORAGE_RECEIPT_CONFIG_INVALID");
-    }
-
-    private String receiptDomain(String configuredDomain,Long configId) {
-        String normalized=normalizeDomain(configuredDomain);
-        String prefix=webProperties.getAdminApi().getPrefix();
-        if(prefix==null || prefix.isBlank())throw new IllegalStateException("FILE_STORAGE_RECEIPT_ADMIN_API_INVALID");
-        prefix=StrUtil.removeSuffix(prefix.startsWith("/")?prefix:"/"+prefix,"/");
-        String legacySuffix=prefix+"/infra/file/"+configId+"/get";
-        // Existing DB/local configuration domains may already name the legacy download route.
-        return normalized.endsWith(legacySuffix)?normalized.substring(0,normalized.length()-legacySuffix.length()):normalized;
-    }
-
-    private String normalizeDomain(String domain) {
-        try {
-            URI uri = URI.create(domain == null ? "" : domain.trim());
-            String scheme = uri.getScheme() == null ? null : uri.getScheme().toLowerCase(Locale.ROOT);
-            if (!("http".equals(scheme) || "https".equals(scheme)) || uri.getHost() == null
-                    || uri.getUserInfo() != null || uri.getRawQuery() != null || uri.getRawFragment() != null) {
-                throw new IllegalArgumentException("invalid receipt access domain");
-            }
-            return StrUtil.removeSuffix(uri.toString(), "/");
-        } catch (IllegalArgumentException invalid) {
-            throw new IllegalStateException("FILE_STORAGE_RECEIPT_DB_CONFIG_INVALID");
-        }
     }
 
     private String endpointPath() {

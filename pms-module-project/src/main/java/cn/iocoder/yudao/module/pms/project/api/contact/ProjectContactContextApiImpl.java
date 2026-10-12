@@ -34,6 +34,7 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     private final AuthorizationGrantApi grants;
     private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customers;
     private final cn.iocoder.yudao.module.pms.project.service.projectscope.ProjectTreeScopeService projectRoles;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper parties;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
@@ -62,6 +63,36 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public Context lockForWrite(WriteQuery write) {
+        return lockContext(write, false);
+    }
+
+    @Override
+    public FinalCustomer inspectFinalCustomer(Query query) {
+        inspect(query);
+        return finalCustomer(query, false);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public FinalCustomer lockHistoricalFinalCustomer(WriteQuery write) {
+        lockContext(write, true);
+        return finalCustomer(new Query(write.tenantId(), write.actorUserId(), write.projectId()), true);
+    }
+
+    private FinalCustomer finalCustomer(Query query, boolean lock) {
+        var rows=parties.selectHeaderFinalCustomers(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper.HeaderFinalCustomerQuery(query.tenantId(),query.projectId()));
+        if(rows.isEmpty()) return null;
+        if(rows.size()!=1) throw exception(PROJECT_VERSION_CONFLICT);
+        var party=rows.getFirst();
+        if(lock) party=parties.selectSourceForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper.PartySourceQuery(
+                query.tenantId(),"DPPMS","pm_project_header",party.getSourceRecordKey(),"FINAL_CUSTOMER"));
+        if(party==null || !Objects.equals(party.getTenantId(),query.tenantId()) || !Objects.equals(party.getProjectId(),query.projectId())
+                || Boolean.TRUE.equals(party.getDeleted()) || !"ACTIVE".equals(party.getStatus())
+                || party.getPartyName()==null || party.getPartyName().isBlank()) throw exception(PROJECT_VERSION_CONFLICT);
+        return new FinalCustomer(party.getId(),party.getProjectId(),party.getPartyName(),party.getSourceRecordKey());
+    }
+
+    private Context lockContext(WriteQuery write, boolean historical) {
         var query = new Query(write.tenantId(), write.actorUserId(), write.projectId());
         validate(query);
         var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorUserId(), query.projectId(), ProjectScopeApi.ACTION_MANAGE));
@@ -71,7 +102,8 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
         var project = requireProject(query, projects.selectByIdForUpdate(query.projectId()));
         if (write.expectedProjectVersion() == null || !Objects.equals(project.getVersion(), write.expectedProjectVersion())) throw exception(PROJECT_VERSION_CONFLICT);
         var result = context(query, project, scope.treeVersion());
-        if (!result.canManage()) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        if (historical ? !result.canViewHistory() || !Set.of("ACTIVE","NORMAL_CLOSED","EXCEPTION_CLOSED").contains(result.lifecycleStatus()) : !result.canManage())
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         return result;
     }
 
@@ -88,7 +120,7 @@ public class ProjectContactContextApiImpl implements ProjectContactContextApi {
                             || "PROJECT_AND_DESCENDANTS".equals(grant.scopeCode()));
         }
         return new Context(project.getId(), project.getCustomerId(), project.getVersion(), project.getLifecycleStatus(),
-                manager, manager);
+                manager && "ACTIVE".equals(project.getLifecycleStatus()), manager);
     }
 
     private void validate(Query query) {

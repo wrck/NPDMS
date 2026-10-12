@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractCollectionPlanMapper">
+    <sql id="identityScope">
+        SELECT * FROM com_contract_collection_plan WHERE tenant_id=#{query.tenantId} AND id=#{query.id}
+    </sql>
+    <select id="selectIdentity" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.associated.ContractCollectionPlanDO">
+        <include refid="identityScope"/>
+    </select>
+    <select id="selectIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.associated.ContractCollectionPlanDO">
+        <include refid="identityScope"/> FOR UPDATE
+    </select>
+    <select id="selectExactContractIds" resultType="java.lang.Long">
+        SELECT id FROM com_contract WHERE tenant_id=#{query.tenantId} AND deleted=0
+          AND CAST(contract_no AS BINARY)=CAST(#{query.contractNo} AS BINARY) ORDER BY id
+    </select>
+    <insert id="insertPlan">
+        INSERT INTO com_contract_collection_plan
+          (id,tenant_id,contract_id,contract_no,batch_code,collection_item_name,reference_event_name,
+           event_planned_at,after_days,event_actual_finished_at,marketing_feedback,data_source,effective_from,effective_to,
+           creator,create_time,updater,update_time,deleted)
+        VALUES (#{row.id},#{row.tenantId},#{row.contractId},#{row.contractNo},#{row.batchCode},#{row.collectionItemName},#{row.referenceEventName},
+           #{row.eventPlannedAt},#{row.afterDays},#{row.eventActualFinishedAt},#{row.marketingFeedback},#{row.dataSource},#{row.effectiveFrom},#{row.effectiveTo},
+           #{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted})
+    </insert>
+    <update id="updatePlan">
+        UPDATE com_contract_collection_plan SET contract_id=#{row.contractId},contract_no=#{row.contractNo},batch_code=#{row.batchCode},
+          collection_item_name=#{row.collectionItemName},reference_event_name=#{row.referenceEventName},event_planned_at=#{row.eventPlannedAt},
+          after_days=#{row.afterDays},event_actual_finished_at=#{row.eventActualFinishedAt},marketing_feedback=#{row.marketingFeedback},
+          data_source=#{row.dataSource},effective_from=#{row.effectiveFrom},effective_to=#{row.effectiveTo},
+          creator=#{row.creator},create_time=#{row.createTime},updater=#{row.updater},update_time=#{row.updateTime}
+        WHERE tenant_id=#{row.tenantId} AND id=#{row.id} AND deleted=0
+    </update>
+</mapper>

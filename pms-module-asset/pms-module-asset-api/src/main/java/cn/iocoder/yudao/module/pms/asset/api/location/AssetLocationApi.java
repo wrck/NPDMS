@@ -31,5 +31,7 @@ public interface AssetLocationApi {
     void validateSites(Collection<Long> siteIds);
 
     void effectEquipmentLocation(EquipmentLocationEffectiveCommand command);
+    /** Migration may fill an empty projection or replay its own installation, never replace another current location. */
+    void effectEquipmentLocationIfAbsent(EquipmentLocationEffectiveCommand command);
 
 }

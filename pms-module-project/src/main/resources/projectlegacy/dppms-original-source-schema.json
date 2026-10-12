@@ -1,0 +1,5666 @@
+{
+  "schemaVersion": 1,
+  "sourceSystem": "DPPMS",
+  "auditedAt": "2026-10-08T14:50:35.285301+00:00",
+  "tableCount": 52,
+  "columnCount": 770,
+  "excludedColumns": [
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "column": "licenseCode",
+      "reason": "Secret license material: raw value must not be read into migration payload or persisted in plaintext; protected business model awaits user decision."
+    }
+  ],
+  "tables": {
+    "fb_contract": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "contract_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "UNI",
+          "position": 1
+        },
+        {
+          "name": "contract_code",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "office_code",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "contract_type",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "customer_name",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "project_name",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "warranty",
+          "type": "varchar(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "marketCode",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "marketName",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "systemId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "systemName",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "remark",
+          "type": "varchar(4096)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        }
+      ]
+    },
+    "fb_items": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 1
+        },
+        {
+          "name": "item",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "describe_",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "itemname",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        }
+      ]
+    },
+    "fb_service": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 1
+        },
+        {
+          "name": "con_xb",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "grade",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "begin_date",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "end_date",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "warranty",
+          "type": "char(1)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "remark",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "isyb",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "state",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        }
+      ]
+    },
+    "fb_shipment": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "packlist_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "UNI",
+          "position": 1
+        },
+        {
+          "name": "con_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "packdate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "warrantyStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "warrantyEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "receiveName",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "emsNum",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "emsCompany",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        }
+      ]
+    },
+    "fb_shipment_barcode": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint(20)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "pack_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "item",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "com_barcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "rma_no",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "isRMA",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "item2",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 8
+        },
+        {
+          "name": "barcode2",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 9
+        },
+        {
+          "name": "orderNumber",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "lineNum",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "profitCenter",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "soleAgentSuffix",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "warrantyStartDate",
+          "type": "date",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "warrantyMonth",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "rmaBarcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "syncTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "uuid",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "UNI",
+          "position": 19
+        }
+      ]
+    },
+    "fb_shipment_barcode_relation": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "sn1",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "item1",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "sn2",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "item2",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 5
+        },
+        {
+          "name": "contract",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 6
+        },
+        {
+          "name": "createtime",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "updatetime",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        }
+      ]
+    },
+    "fb_soft_version": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "serial_number",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 1
+        },
+        {
+          "name": "conp",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "cpld",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "boot",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "pcb",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 5
+        }
+      ]
+    },
+    "fnd_act_hi_comment": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "objId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "procdefKey",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "taskKey",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "taskId",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 5
+        },
+        {
+          "name": "instId",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 6
+        },
+        {
+          "name": "assignee",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 7
+        },
+        {
+          "name": "assigneeTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "nextAssignee",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "nextAssigneeName",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "result",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "message",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        }
+      ]
+    },
+    "fnd_basic_data": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "dataTypeCode",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "basicDataId",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "basicDataName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "basicDataAttri1",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "sortId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        }
+      ]
+    },
+    "pm_cl_callback": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "instId",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "remark",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "applyState",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "applyBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "applyTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "createTime",
+          "type": "timestamp",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        }
+      ]
+    },
+    "pm_cl_callback_quesnaire": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "callBackId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "taskId",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "quesnaireId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "quesnaireVersion",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "quesnaireState",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        }
+      ]
+    },
+    "pm_cl_quesnaire_result_header": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11) unsigned",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "evaluationHeaderId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "quesnaireTemplateHeaderId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "quesMarkScore",
+          "type": "double",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "createdTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "createdPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "updatedTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "updatedPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "quesMarkResult",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "status",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 10
+        }
+      ]
+    },
+    "pm_cl_quesnaire_result_line": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11) unsigned",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "quesnaireTemplateHeaderId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "quesnaireTemplateLineId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "questionTemplateOptId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "questionAnswer",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "questionScore",
+          "type": "double",
+          "nullable": "NO",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "quesnaireResultHeaderId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 7
+        },
+        {
+          "name": "createdTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "createdPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updatedTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "updatedPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "quesTypeForCB",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "quesEvaResult",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        }
+      ]
+    },
+    "pm_cl_quesnaire_template_header": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) unsigned",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "questionnaireTemplateNum",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "questionnaireTemplateName",
+          "type": "varchar(200)",
+          "nullable": "NO",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "questionnaireScore",
+          "type": "double",
+          "nullable": "NO",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "questionnairePassScore",
+          "type": "double",
+          "nullable": "NO",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "questionnaireStatus",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "effectiveStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "effectiveEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "createdTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updatedTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "createdPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "updatedPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "quesType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 13
+        },
+        {
+          "name": "markIndexs",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        }
+      ]
+    },
+    "pm_cl_quesnaire_template_line": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11) unsigned",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "questionContent",
+          "type": "varchar(200)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "questionType",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "questionScore",
+          "type": "double",
+          "nullable": "NO",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "questionRemark",
+          "type": "varchar(200)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "questionNum",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "quesnaireTemplateHeaderId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 7
+        },
+        {
+          "name": "questionStatus",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "effectiveStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "effectiveEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "createdTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "updatedTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "createdPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "updatedPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "questionTypeForCB",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        }
+      ]
+    },
+    "pm_cl_quesnaire_template_options": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11) unsigned",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "questionId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "questionOptionNum",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "questionOptionsContent",
+          "type": "varchar(200)",
+          "nullable": "NO",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "questionOptionScore",
+          "type": "double",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "quesnaireTemplateHeaderId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "effectiveStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "effectiveEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "createdTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updatedTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "createdPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "updatedPerson",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "quesLineType",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        }
+      ]
+    },
+    "pm_order_data_from_erp": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "orderNumber",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "orderCreateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "customerRequireTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "customerCode",
+          "type": "varchar(55)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "customerName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "projectName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "orderComment",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "orderType",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 11
+        },
+        {
+          "name": "compCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "salesType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "source",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "syncTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        }
+      ]
+    },
+    "pm_order_line_from_erp": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "orderNumber",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "lineNum",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "itemCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "itemDesc",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "orderQuantity",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "openQuantity",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "bundleCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "warrantyMonth",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "lineType",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "compCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "profitCenter",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "realOrderExecNumber",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "source",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "syncTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        }
+      ]
+    },
+    "pm_pb_plan_from_sms": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "batchCode",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "basicDataName",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "referenceEventName",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "eventPlanHappenDate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "afterDaysNum",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "eventActualFinishDate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "marketingFeedback",
+          "type": "varchar(2000)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "dataSource",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        }
+      ]
+    },
+    "pm_project_contract": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "projectGroupCode",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        }
+      ]
+    },
+    "pm_project_group_relationship": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectGroupCode",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "mergeBranchMark",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "smsProjectCode",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 5
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        }
+      ]
+    },
+    "pm_project_header": {
+      "tableType": "VIEW",
+      "columns": [
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 1
+        },
+        {
+          "name": "projectType",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "projectName",
+          "type": "varchar(200)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "projectState",
+          "type": "varchar(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "isback",
+          "type": "varchar(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "column001",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "column002",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "column003",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "column004",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "column005",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "column006",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "column007",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "column008",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "column009",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "column010",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "column011",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "column012",
+          "type": "varchar(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "columno12_readonly",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "column013",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "column014",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "customerProjectName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 22
+        },
+        {
+          "name": "salesType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 23
+        },
+        {
+          "name": "majorProjectLevel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 24
+        },
+        {
+          "name": "compId",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 29
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 30
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 31
+        },
+        {
+          "name": "disabled",
+          "type": "bit(1)",
+          "nullable": "YES",
+          "key": "",
+          "position": 32
+        },
+        {
+          "name": "projectStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 33
+        },
+        {
+          "name": "projectRefreshTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 34
+        },
+        {
+          "name": "projectCloseTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 35
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 36
+        },
+        {
+          "name": "customConfig",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 37
+        }
+      ]
+    },
+    "pm_project_incident_table_from_itr": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "incidentId",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "ticketNo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "STATUS",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "statusName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "caseTopic",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "memo",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "principal",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "principalName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "accepter",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "accepterName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "processor",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "processorName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "supplied",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "questionType",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "questionLevel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "title",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "acceptTime",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "productType",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "productModel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "progress",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "questionReason",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 22
+        },
+        {
+          "name": "solutionType",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 23
+        },
+        {
+          "name": "solutions",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 24
+        },
+        {
+          "name": "rmaNo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "accidentNo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "caseType",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "reasonFstType",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        },
+        {
+          "name": "reasonSndType",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 29
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 30
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 31
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 32
+        },
+        {
+          "name": "bulletinNo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 33
+        },
+        {
+          "name": "bugNo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 34
+        },
+        {
+          "name": "productLine",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 35
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 36
+        },
+        {
+          "name": "url",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 37
+        }
+      ]
+    },
+    "pm_project_instruction": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "instructionsInfo",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "instructionsTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "instructionsUser",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "dataType",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "instructionsId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        }
+      ]
+    },
+    "pm_project_license_info_from_license": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "licenseCode",
+          "type": "varchar(256)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "sn",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "specModel",
+          "type": "varchar(256)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "contract",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "contractType",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "item",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "status",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        }
+      ]
+    },
+    "pm_project_maintenance": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "projectName",
+          "type": "varchar(200)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "projectType",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 5
+        },
+        {
+          "name": "projectExecutionState",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "officeCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 8
+        },
+        {
+          "name": "compId",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "type",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 10
+        },
+        {
+          "name": "category",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 11
+        },
+        {
+          "name": "subCategory",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 12
+        },
+        {
+          "name": "processTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 13
+        },
+        {
+          "name": "processDesc",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "processStep",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "remainProblem",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "transitHour",
+          "type": "float",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "processHour",
+          "type": "float",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "itemModel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "softVersion",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "enabledFeatures",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "customTos",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 22
+        },
+        {
+          "name": "customCcs",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 23
+        },
+        {
+          "name": "hasReport",
+          "type": "bit(1)",
+          "nullable": "NO",
+          "key": "",
+          "position": 24
+        },
+        {
+          "name": "quesnaireId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "deliverFileIds",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "warrantyStatus",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "industryName",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        },
+        {
+          "name": "userOffice",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 29
+        },
+        {
+          "name": "year",
+          "type": "int(4)",
+          "nullable": "YES",
+          "key": "",
+          "position": 30
+        },
+        {
+          "name": "quarter",
+          "type": "int(1)",
+          "nullable": "YES",
+          "key": "",
+          "position": 31
+        },
+        {
+          "name": "month",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 32
+        },
+        {
+          "name": "wsCount",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 33
+        },
+        {
+          "name": "wafCount",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 34
+        },
+        {
+          "name": "wsYearCount",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 35
+        },
+        {
+          "name": "wafYearCount",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 36
+        },
+        {
+          "name": "warrantyInfo",
+          "type": "varchar(4096)",
+          "nullable": "YES",
+          "key": "",
+          "position": 37
+        },
+        {
+          "name": "serviceInfo",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 38
+        },
+        {
+          "name": "remark",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 39
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 40
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 41
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 42
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 43
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 44
+        }
+      ]
+    },
+    "pm_project_member": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "projectType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "memberRole",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "memberCode",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 5
+        },
+        {
+          "name": "memberName",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "phoneNum",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "email",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "fromFlag",
+          "type": "varchar(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        }
+      ]
+    },
+    "pm_project_notification": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "notifySubject",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "notifyContent",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        }
+      ]
+    },
+    "pm_project_product_config_level_info_from_crm": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "projectCode",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 1
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "itemGroup",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "itemCode",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "parentCode",
+          "type": "varchar(1000)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "quantity",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "bomPaths",
+          "type": "varchar(1000)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "itemModel",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "itemDesc",
+          "type": "varchar(500)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "level",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "dataSource",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        }
+      ]
+    },
+    "pm_project_product_lease_line_from_crm": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "projectCode",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 1
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "productFirstName",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "productName",
+          "type": "varchar(128)",
+          "nullable": "NO",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "productSubCode",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "productSubModel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "productSubName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "num",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "memo",
+          "type": "mediumtext",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "leaseDuration",
+          "type": "decimal(16,2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "dataSource",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        }
+      ]
+    },
+    "pm_project_product_line": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "itemCode",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "itemName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "projectQuantity",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "orderQuantity",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "deliverQuantity",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "openQuantity",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "orderNumber",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "lineNum",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        }
+      ]
+    },
+    "pm_project_product_line_real": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(25)",
+          "nullable": "NO",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "productFirstName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "productName",
+          "type": "varchar(128)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "productSubCode",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "productSubModel",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "productSubName",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "num",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "memo",
+          "type": "mediumtext",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        }
+      ]
+    },
+    "pm_project_property_from_sms": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "projectName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "salesManCode",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "salesManName",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "marketCode",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "marketName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "systemId",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "systemName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "expendId",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "expendName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "industryId",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "industryName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "officeCode",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "officeName",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "serviceTypeName",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "channelName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "engineeFee",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "objId",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "applyType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "corporationCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 22
+        },
+        {
+          "name": "customerProjectName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 23
+        },
+        {
+          "name": "finalCustomerName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 24
+        },
+        {
+          "name": "agentName",
+          "type": "varchar(500)",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "projectMoney",
+          "type": "decimal(16,2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "submitTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "majorProjectLevel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        },
+        {
+          "name": "predBidDate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 29
+        },
+        {
+          "name": "linkmanName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 30
+        },
+        {
+          "name": "linkmanTel",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 31
+        },
+        {
+          "name": "dataSource",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 32
+        }
+      ]
+    },
+    "pm_project_related_party": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "partyRole",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "partyCode",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "partyName",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        }
+      ]
+    },
+    "pm_project_shipment": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "itemCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "itemModel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "itemName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "receiveName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "emsNum",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "emsCompany",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "packdate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 11
+        },
+        {
+          "name": "installAddress",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "chProjectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "chContractNo",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "transferProjectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "transferContractNo",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "transferFlag",
+          "type": "varchar(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        }
+      ]
+    },
+    "pm_project_soft_change_logs": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "changeVersion",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "changeRemark",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "latest",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        }
+      ]
+    },
+    "pm_project_soft_version": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "logId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "itemCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "barCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 6
+        },
+        {
+          "name": "conp",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 7
+        },
+        {
+          "name": "conpType",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "conpSeries",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "conpMark",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "conpBak",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "conpChange",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "cpld",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "cpldBak",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "cpldChange",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "boot",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "bootBak",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "bootChange",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "pcb",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "pcbBak",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "pcbChange",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "executeTime",
+          "type": "date",
+          "nullable": "YES",
+          "key": "",
+          "position": 22
+        },
+        {
+          "name": "datastate",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 23
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 24
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        }
+      ]
+    },
+    "pm_project_state": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectPlanState",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "projectplanTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "shipmentState",
+          "type": "varchar(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "shipmentTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "executionState",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "executionStateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "closeProcessState",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "closeProcessStateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        }
+      ]
+    },
+    "pm_project_supervision": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(45)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "projectName",
+          "type": "varchar(200)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "channel",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "officeCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 6
+        },
+        {
+          "name": "type",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "processTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "state",
+          "type": "bit(1)",
+          "nullable": "NO",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "isDelete",
+          "type": "bit(1)",
+          "nullable": "NO",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "quesnaireId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "deliverFileIds",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "remark",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        }
+      ]
+    },
+    "pm_project_task": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "taskId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "projectType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "taskTypeCode",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 5
+        },
+        {
+          "name": "taskTypeId",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "taskName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "eventPlanHappenDate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "eventPlanHappenDateENG",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "planStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "planEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "actualStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "eventActualFinishDate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "priority",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "progress",
+          "type": "int(3)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "progressDesc",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "status",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "parentId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "remark",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 22
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "key": "",
+          "position": 23
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 24
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "visibleFlag",
+          "type": "varchar(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "deliverFileIds",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        }
+      ]
+    },
+    "pm_project_weekly": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "weeklyId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "projectId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "currentTask",
+          "type": "varchar(100)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "taskStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "taskEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "taskDeviation",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "remark",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "weeklyStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "weeklyEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "weeklyState",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        }
+      ]
+    },
+    "pm_project_weekly_content": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "weeklyId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "optionDesc001",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "optionDesc002",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "optionType",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        }
+      ]
+    },
+    "pm_project_weekly_feedback": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "weeklyId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "feedback",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "feedbacker",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "feedbackTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        }
+      ]
+    },
+    "pm_subcontract_project_header": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "subcontractName",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "subcontractNo",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "contractNos",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "projectIds",
+          "type": "varchar(1024)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "type",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "state",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "callbackState",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "facilitatorId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 9
+        },
+        {
+          "name": "facilitatorName",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "bankInfo",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "bankAccount",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "officeCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 13
+        },
+        {
+          "name": "profitDepCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 14
+        },
+        {
+          "name": "isAccrued",
+          "type": "bit(1)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        },
+        {
+          "name": "isInvoiced",
+          "type": "bit(1)",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "subcontractAmount",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 17
+        },
+        {
+          "name": "reason",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "remark",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "effectiveFrom",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "effectiveTo",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "zrApproveTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 22
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 23
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 24
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "orgId",
+          "type": "int(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        }
+      ]
+    },
+    "pm_subcontract_project_payment": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "subcontractId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "MUL",
+          "position": 2
+        },
+        {
+          "name": "ratio",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "amount",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "confirmTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "paymentTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "remark",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "sseId",
+          "type": "bigint(20)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        }
+      ]
+    },
+    "pm_subcontract_project_price": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "subcontractId",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "engineeFee",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "objId",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "procType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "price",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "createTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "createBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "updateBy",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        }
+      ]
+    },
+    "view_shipment_ems_4_pm": {
+      "tableType": "VIEW",
+      "columns": [
+        {
+          "name": "contract_code",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 1
+        },
+        {
+          "name": "receiveName",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "emsNum",
+          "type": "text",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "packdate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "emsCompany",
+          "type": "mediumtext",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "packId",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        }
+      ]
+    },
+    "view_shipment_info_4_pm": {
+      "tableType": "VIEW",
+      "columns": [
+        {
+          "name": "contract_code",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 1
+        },
+        {
+          "name": "itemCode",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "itemModel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "itemName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "packId",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "itemCode2",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "itemModel2",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "itemName2",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "barcode2",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "profitCenter",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        }
+      ]
+    },
+    "view_warranty": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "newId",
+          "type": "bigint(20)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "id",
+          "type": "bigint(20)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 3
+        },
+        {
+          "name": "comBarCode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 4
+        },
+        {
+          "name": "old_warrantyEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "warrantyEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 6
+        },
+        {
+          "name": "old_diff",
+          "type": "int(7)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "diff",
+          "type": "int(7)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 8
+        },
+        {
+          "name": "warrantyStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "old_warrantyStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "item",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 11
+        },
+        {
+          "name": "describe_",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "itemName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "gradeName",
+          "type": "varchar(125)",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "gradeCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 15
+        },
+        {
+          "name": "packdate",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 16
+        },
+        {
+          "name": "contract_code",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 17
+        },
+        {
+          "name": "contract_type",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 18
+        },
+        {
+          "name": "contract_type_name",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 19
+        },
+        {
+          "name": "project_name",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 20
+        },
+        {
+          "name": "customer_name",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "key": "",
+          "position": 21
+        },
+        {
+          "name": "office_code",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 22
+        },
+        {
+          "name": "office_name",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 23
+        },
+        {
+          "name": "marketCode",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 24
+        },
+        {
+          "name": "marketName",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 25
+        },
+        {
+          "name": "systemId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 26
+        },
+        {
+          "name": "systemName",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "key": "",
+          "position": 27
+        },
+        {
+          "name": "warranty",
+          "type": "varchar(2)",
+          "nullable": "YES",
+          "key": "",
+          "position": 28
+        },
+        {
+          "name": "warrantyMonth",
+          "type": "double",
+          "nullable": "YES",
+          "key": "",
+          "position": 29
+        },
+        {
+          "name": "barcode2",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "key": "MUL",
+          "position": 30
+        },
+        {
+          "name": "item2",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "key": "",
+          "position": 31
+        },
+        {
+          "name": "syncTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 32
+        },
+        {
+          "name": "describe_2",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 33
+        },
+        {
+          "name": "itemName2",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 34
+        },
+        {
+          "name": "agentName",
+          "type": "varchar(500)",
+          "nullable": "YES",
+          "key": "",
+          "position": 35
+        },
+        {
+          "name": "finalCustomerName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 36
+        }
+      ]
+    },
+    "warranty_change_logs": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "username",
+          "type": "varchar(10)",
+          "nullable": "NO",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "updateType",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "warrantyStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "warrantyEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "warrantyTimes",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        }
+      ]
+    },
+    "warranty_info": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "PRI",
+          "position": 1
+        },
+        {
+          "name": "packlistId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "contractId",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "barCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "officeCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "projectName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "contractType",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "customerName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "itemCode",
+          "type": "varchar(8)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        },
+        {
+          "name": "itemName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 11
+        },
+        {
+          "name": "warrantyLevel",
+          "type": "varchar(8)",
+          "nullable": "YES",
+          "key": "",
+          "position": 12
+        },
+        {
+          "name": "warrantyStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 13
+        },
+        {
+          "name": "warrantyEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "key": "",
+          "position": 14
+        },
+        {
+          "name": "warrantyLimit",
+          "type": "int(11)",
+          "nullable": "YES",
+          "key": "",
+          "position": 15
+        }
+      ]
+    },
+    "pm_project_real_product_line_from_sms": {
+      "tableType": "BASE TABLE",
+      "columns": [
+        {
+          "name": "projectCode",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 1
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 2
+        },
+        {
+          "name": "productFirstName",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 3
+        },
+        {
+          "name": "productName",
+          "type": "varchar(128)",
+          "nullable": "NO",
+          "key": "",
+          "position": 4
+        },
+        {
+          "name": "productSubCode",
+          "type": "varchar(255)",
+          "nullable": "NO",
+          "key": "",
+          "position": 5
+        },
+        {
+          "name": "productSubModel",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 6
+        },
+        {
+          "name": "productSubName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "key": "",
+          "position": 7
+        },
+        {
+          "name": "num",
+          "type": "int(11)",
+          "nullable": "NO",
+          "key": "",
+          "position": 8
+        },
+        {
+          "name": "memo",
+          "type": "mediumtext",
+          "nullable": "YES",
+          "key": "",
+          "position": 9
+        },
+        {
+          "name": "dataSource",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "key": "",
+          "position": 10
+        }
+      ]
+    }
+  }
+}

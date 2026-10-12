@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.commerce.service.scope;
 
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeLineFactApi;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineFact;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.DeliveryScopeLineRef;
@@ -8,6 +9,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDe
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeSelectionQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
@@ -64,10 +66,8 @@ public class DeliveryScopeLineFactService implements DeliveryScopeLineFactApi {
         });
         List<Long> scopeIdList = List.copyOf(scopeIds);
         Map<Long, DeliveryScopeDO> scopes = scopeIdList.isEmpty() ? Map.of()
-                : scopeMapper.selectList(new LambdaQueryWrapperX<DeliveryScopeDO>()
-                        .in(DeliveryScopeDO::getId, scopeIdList)
-                        .eq(DeliveryScopeDO::getProjectId, projectId)
-                        .isNull(DeliveryScopeDO::getEffectiveTo)).stream()
+                : scopeMapper.selectConfirmedSelection(new DeliveryScopeSelectionQuery(
+                        TenantContextHolder.getRequiredTenantId(), projectId, scopeIdList)).stream()
                         .collect(Collectors.toMap(DeliveryScopeDO::getId, Function.identity()));
         if (scopes.size() != scopeIdList.size()) {
             throw exception(COMMERCE_SCOPE_LINE_INVALID);

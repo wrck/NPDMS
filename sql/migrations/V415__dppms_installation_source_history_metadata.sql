@@ -1,0 +1,2 @@
+-- Installation candidate metadata withdrawn by whole-table adjudication.
+-- The existing 32-column imp_eng_installation carries installed history; technical bindings belong to PLT/INT.

@@ -93,4 +93,17 @@ class ContractRelationCommandServiceTest {
 
         verifyNoInteractions(organizationScopeApi, contractMapper, relationMapper, operationAuditApi);
     }
+
+    @Test void historicalIdentityCannotBeReplayedAsCurrentRelationship() {
+        when(projectScopeApi.resolveCurrent(any())).thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(ContractAccessServiceTest.scope(1L,"001",0)));
+        var contract=new ContractDO();contract.setCompanyCode("001");when(contractMapper.selectByIdForUpdate(any())).thenReturn(contract);
+        var existing=new ProjectContractRelationDO();existing.setId(88L);existing.setStatus("HISTORICAL");
+        when(relationMapper.selectByIdentityForUpdate(any())).thenReturn(existing);
+        assertThrows(ServiceException.class,()->service.relate(new ContractRelationCommand(1L,7L,99L,100L,"RELATED","op","依据")));
+        verify(relationMapper,never()).insert(any(ProjectContractRelationDO.class));verifyNoInteractions(operationAuditApi);
+        assertEquals("HISTORICAL",existing.getStatus());
+        existing.setStatus("ACTIVE");
+        assertTrue(service.relate(new ContractRelationCommand(1L,7L,99L,100L,"RELATED","op","依据")).replayed());
+    }
 }

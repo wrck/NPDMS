@@ -196,6 +196,20 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
                 projectCommerceMapper.selectOrders(query), projectCommerceMapper.selectExecutionOrders(query));
     }
 
+    public PageResult<cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectContractRelationRow> getProjectContractRelations(
+            Long tenantId, Long userId, Long projectId, int offset, int limit) {
+        checkedOffset(offset); checkedLimit(limit);
+        if (projectId == null || projectId <= 0 || !currentProjectIds(tenantId, userId).contains(projectId))
+            throw inaccessible();
+        var companies = currentCompanyCodes(tenantId, userId, "project-contract-relations");
+        if (companies.isEmpty()) return PageResult.empty();
+        var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectContractRelationPageQuery(
+                tenantId, projectId, companies, offset, limit);
+        long count = projectRelationMapper.selectCountByProject(query);
+        return count == 0 ? PageResult.empty()
+                : new PageResult<>(projectRelationMapper.selectPageByProject(query), count);
+    }
+
     public record ProjectCommerceDetail(List<ContractDO> contracts, List<SalesOrderDO> orders,
         List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders) {}
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceNetworkVersionEventMapper">
+    <select id="selectLegacyWithdrawalForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareLegacyEventWithdrawalDO">
+        SELECT * FROM ast_device_network_version_event WHERE tenant_id=#{query.tenantId} AND id=#{query.eventId} FOR UPDATE
+    </select>
+    <delete id="withdrawLegacyEvent">
+        DELETE FROM ast_device_network_version_event
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.eventId} AND source_system='DPPMS'
+          AND source_event_key=#{query.sourceEventKey} AND source_device_key=#{query.sourceDeviceKey} AND deleted=0
+    </delete>
+    <select id="selectSourceIdentity" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceNetworkVersionEventDO">
+        SELECT * FROM ast_device_network_version_event
+        WHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem}
+          AND source_device_key=#{query.sourceDeviceKey} AND source_event_key=#{query.sourceEventKey}
+     FOR UPDATE
+    </select>
+</mapper>

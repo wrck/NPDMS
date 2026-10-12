@@ -156,14 +156,24 @@
         <el-tab-pane label="位置与变更轨迹" name="location" lazy>
           <DeviceLocationPanel :device-id="detail.summary.deviceId" />
         </el-tab-pane>
-        <el-tab-pane label="出厂信息" name="factory"
-          ><DeviceFactoryPanel :slice="detail.factory"
+        <el-tab-pane label="发货事实" name="shipments"
+          ><DeviceShipmentPanel :device-id="detail.summary.deviceId"
         /></el-tab-pane>
+        <el-tab-pane label="出厂信息" name="factory"
+          ><DeviceFactoryPanel :slice="detail.factory" :device-id="detail.summary.deviceId"
+        /></el-tab-pane>
+        <el-tab-pane label="主附SN关系" name="contractRelationships" lazy>
+          <DeviceContractRelationshipPanel :device-id="detail.summary.deviceId" />
+        </el-tab-pane>
         <el-tab-pane label="官网信息" name="official"
           ><DeviceOfficialInfoPanel :slice="detail.official"
         /></el-tab-pane>
         <el-tab-pane label="在网版本" name="network"
-          ><DeviceNetworkVersionPanel :slice="detail.networkVersion"
+          ><DeviceNetworkVersionPanel
+            :slice="detail.networkVersion"
+            :device-id="detail.summary.deviceId"
+            :project-id="detail.summary.projectId"
+            @updated="refreshSoftwareVersion"
         /></el-tab-pane>
         <el-tab-pane label="技术公告" name="notice"
           ><DeviceTechnicalNoticePanel :slice="detail.technicalNotice"
@@ -208,6 +218,8 @@ import DeviceOfficialInfoPanel from './components/DeviceOfficialInfoPanel.vue'
 import DeviceNetworkVersionPanel from './components/DeviceNetworkVersionPanel.vue'
 import DeviceTechnicalNoticePanel from './components/DeviceTechnicalNoticePanel.vue'
 import DeviceWarrantyPanel from './components/DeviceWarrantyPanel.vue'
+import DeviceShipmentPanel from './components/DeviceShipmentPanel.vue'
+import DeviceContractRelationshipPanel from './components/DeviceContractRelationshipPanel.vue'
 import DeviceConfigurationLogPanel from './components/DeviceConfigurationLogPanel.vue'
 import DeviceAssignmentHistoryDrawer from './components/DeviceAssignmentHistoryDrawer.vue'
 import DeviceCustomerRelationshipDrawer from './components/DeviceCustomerRelationshipDrawer.vue'
@@ -301,6 +313,15 @@ const remove = async (row: DeviceListVO) => {
 const refreshDetail = async () => {
   if (!detail.value) return
   await openDetail(detail.value.summary)
+}
+const refreshSoftwareVersion = async () => {
+  if (!detail.value) return
+  const deviceId = detail.value.summary.deviceId
+  const request = ++detailRequest
+  const data = await DeviceApi.getDevice(deviceId)
+  if (request !== detailRequest || detail.value?.summary.deviceId !== deviceId) return
+  detail.value = { ...data, archive: detail.value.archive }
+  await load()
 }
 const refreshAll = async () => {
   clearDetail()

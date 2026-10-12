@@ -20,7 +20,13 @@
           <el-table-column prop="id" label="批次" min-width="200" />
           <el-table-column label="分页" width="110"
             ><template #default="{ row }">{{
-              row.pageNumber ? `第 ${row.pageNumber} 页` : row.pagingJson ? '分页主运行' : '—'
+              row.pageNumber
+                ? `第 ${row.pageNumber} 页`
+                : isPagedRoot(row)
+                  ? '分页主运行'
+                  : row.pagingJson
+                    ? '流式分块'
+                    : '—'
             }}</template></el-table-column
           >
           <el-table-column label="类型" width="130"
@@ -98,17 +104,16 @@
           <el-descriptions-item label="结束时间">{{
             formatDate(selected.finishedAt) || '尚未结束'
           }}</el-descriptions-item>
-          <el-descriptions-item
-            :label="selected.pagingJson && !selected.pageNumber ? '已完成页行数' : '读取行数'"
-            >{{ selected.readCount ?? '尚未返回' }}</el-descriptions-item
-          >
+          <el-descriptions-item :label="isPagedRoot(selected) ? '已完成页行数' : '读取行数'">{{
+            selected.readCount ?? '尚未返回'
+          }}</el-descriptions-item>
           <el-descriptions-item label="处理结果">{{ summary }}</el-descriptions-item>
           <el-descriptions-item
             v-if="selected.parentRunId && !selected.pageNumber"
             label="重试来源"
           >
             <el-button link type="primary" @click="select({ id: selected.parentRunId } as api.Run)"
-              >查看上次运行及已成功分页</el-button
+              >查看上次运行</el-button
             >
           </el-descriptions-item>
           <el-descriptions-item v-if="selected.pageNumber" label="分页归属">
@@ -141,6 +146,16 @@
           class="my-3"
         />
         <el-button
+          v-if="
+            !selected.pageNumber &&
+            ['QUEUED', 'READING', 'VALIDATING', 'APPLYING'].includes(selected.status)
+          "
+          v-hasPermi="['pms:integration:execute']"
+          :loading="recovering"
+          @click="recoverSelected"
+          >核查中断运行</el-button
+        >
+        <el-button
           v-if="selected.status === 'FAILED' && !selected.pageNumber"
           v-hasPermi="['pms:integration:execute']"
           :loading="retrying"
@@ -148,7 +163,7 @@
           >创建关联重试</el-button
         >
       </ContentWrap>
-      <ContentWrap v-if="selected.pagingJson && !selected.pageNumber" title="分页批次">
+      <ContentWrap v-if="isPagedRoot(selected)" title="分页批次">
         <el-alert
           title="每页结果和来源证据独立保存；主运行失败时，已成功的页仍保留，关联重试从已提交游标继续。"
           type="info"
@@ -180,6 +195,13 @@
         />
       </ContentWrap>
       <ContentWrap v-else :title="selected.preview ? '预计变更' : '处理明细'">
+        <el-alert
+          v-if="changeTotal > 0 && (selected.readCount ?? 0) > changeTotal"
+          :title="`当前展示前 ${changeTotal} 条明细样本。完整读取及处理数量见运行结果，全部来源记录保存在迁移证据中。`"
+          type="info"
+          :closable="false"
+          class="mb-3"
+        />
         <el-table
           :data="changes"
           class="integration-table"
@@ -198,7 +220,11 @@
           <el-table-column prop="targetId" label="目标 ID" min-width="170" />
           <el-table-column label="名称" min-width="180"
             ><template #default="{ row }">{{
-              row.after?.name ?? row.after?.orderNo ?? row.before?.name ?? '—'
+              dictionaryDataLabel(row) ??
+              row.after?.name ??
+              row.after?.orderNo ??
+              row.before?.name ??
+              '—'
             }}</template></el-table-column
           >
           <el-table-column prop="message" label="说明" min-width="180" />
@@ -242,6 +268,7 @@ import * as api from '@/api/pms/integration'
 import { formatDate } from '@/utils/formatTime'
 import { useMediaQuery } from '@vueuse/core'
 import ChangeDetails from './ChangeDetails.vue'
+import { dictionaryDataLabel } from './changePresentation'
 const narrow = useMediaQuery('(max-width: 640px)')
 const detailChange = ref<api.Change>()
 const emit = defineEmits<{ selected: [id: api.Id]; back: [] }>()
@@ -249,14 +276,26 @@ const props = defineProps<{ runId?: api.Id }>()
 const loading = ref(false),
   error = ref(''),
   retrying = ref(false),
+  recovering = ref(false),
   rows = ref<api.Run[]>([]),
   total = ref(0)
 const selected = ref<api.Run>(),
   changes = ref<api.Change[]>([]),
   changeTotal = ref(0)
+const isPagedRoot = (run: api.Run) => {
+  if (!run.pagingJson || run.pageNumber) return false
+  try {
+    // Paged runs persist upperIds; streaming runs persist committedChunks and have no child runs.
+    return Array.isArray(JSON.parse(run.pagingJson).upperIds)
+  } catch {
+    return false
+  }
+}
 const runStatusLabel = (run: api.Run) =>
   run.status === 'FAILED' && run.pagingJson && !run.pageNumber
-    ? '分页停止（已成功页保留）'
+    ? isPagedRoot(run)
+      ? '分页停止（已成功页保留）'
+      : '分块停止（已提交块保留）'
     : api.runLabels[run.status] || run.status
 const childPages = ref<api.Run[]>([]),
   childTotal = ref(0)
@@ -287,7 +326,7 @@ const page = reactive({ pageNo: 1, pageSize: 20 }),
 let timer: ReturnType<typeof setTimeout> | undefined
 const loadChanges = async () => {
   if (!selected.value) return
-  if (selected.value.pagingJson && !selected.value.pageNumber) {
+  if (isPagedRoot(selected.value)) {
     const p = await api.getRuns({ ...childPage, parentRunId: selected.value.id })
     childPages.value = p.list.filter((r) => !!r.pageNumber)
     childTotal.value = p.total
@@ -328,6 +367,20 @@ const refreshSelected = async () => {
     error.value = '运行详情加载失败，请重试；不会重复提交任务。'
   } finally {
     loading.value = false
+  }
+}
+const recoverSelected = async () => {
+  if (!selected.value) return
+  recovering.value = true
+  error.value = ''
+  try {
+    const recovered = await api.recoverRun(selected.value.id)
+    await refreshSelected()
+    useMessage().success(recovered ? '已恢复中断回执，可创建关联重试' : '运行已结束，无需恢复')
+  } catch {
+    error.value = '中断核查未成功，请刷新状态后确认运行是否仍在执行。'
+  } finally {
+    recovering.value = false
   }
 }
 const watchRun = () => {

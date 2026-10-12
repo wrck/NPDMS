@@ -34,6 +34,15 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
      * 用户ID
      */
     private Long userId;
+    /** 成员区间的人员编码，不能当作当前工号。 */
+    private String memberCode;
+    /** 成员区间自身联系方式。 */
+    private String phoneNumber;
+    private String email;
+    /** 1项目信息，2手工成员资料；不表示账号类型。 */
+    private String registrationSource;
+    /** 未确认历史不参与当前授权、指派或任务资格。 */
+    private Boolean authorizationConfirmed = Boolean.TRUE;
     /**
      * 成员工号
      */
@@ -106,4 +115,6 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
      * 乐观锁版本列：暂不接 @Version 拦截器，并发由 uk + 行锁保障
      */
     private Integer version;
+    /** 既有物理删除时间；迁移全字段保护一并核对。 */
+    private LocalDateTime deletedTime;
 }

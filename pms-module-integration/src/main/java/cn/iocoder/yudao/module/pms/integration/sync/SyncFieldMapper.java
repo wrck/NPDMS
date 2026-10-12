@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.integration.sync;
 
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter;
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsWarrantyYearsConverter;
 import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -60,6 +62,8 @@ public class SyncFieldMapper {
     }
     static Object convert(Object value,String conversion) {
         return switch(conversion) {
+            case "DPPMS_WARRANTY_YEARS" -> DppmsWarrantyYearsConverter.fromSource(value);
+            case "DPPMS_COMPANY_CODE" -> DppmsCompanyCodeConverter.fromSource(value.toString());
             case "DIRECT","CONSTANT","REFERENCE" -> value;
             case "STRING" -> value.toString();
             case "TRIM" -> value.toString().trim();

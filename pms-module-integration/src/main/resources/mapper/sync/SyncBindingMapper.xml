@@ -1,6 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper">
+  <select id="selectIdentitySources" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
+    SELECT b.* FROM int_sync_binding b
+    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE
+    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE
+      AND t.source_system=#{query.sourceSystem} AND t.connection_id=#{query.connectionId}
+      AND t.adapter=#{query.adapter} AND b.source_object=#{query.sourceObject}
+    <choose>
+      <when test="query.sourceKeys != null and !query.sourceKeys.isEmpty()">
+        AND b.source_key IN
+        <foreach collection="query.sourceKeys" item="key" open="(" separator="," close=")">#{key}</foreach>
+      </when>
+      <otherwise>AND 1=0</otherwise>
+    </choose>
+    ORDER BY b.id
+  </select>
   <update id="updateLastRun">
     UPDATE int_sync_binding SET last_run_id=#{runId},updater='data_sync',update_time=#{updatedAt}
     WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE

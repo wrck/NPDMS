@@ -31,6 +31,8 @@ public class LegacyDetailNormalizer {
                 || input.sourceContractNo().length() > 128 || input.records().size() > 10000) fail("LEGACY_INPUT_INVALID");
         var counts = new TreeMap<String,Integer>();
         for (var d : catalog.domains()) counts.put(d.code(),0);
+        if (!input.domainCounts().containsKey("real-product-upstream")
+                && Objects.equals(input.domainCounts().get("real-products"),0)) counts.remove("real-product-upstream");
         if (!counts.keySet().equals(input.domainCounts().keySet())) fail("LEGACY_DOMAIN_COVERAGE_INCOMPLETE");
         var result = new ArrayList<Record>();
         var identities = new HashSet<String>();
@@ -41,6 +43,7 @@ public class LegacyDetailNormalizer {
             var fields = new HashSet<String>();
             for (var f : domain.fields()) fields.add(f.key());
             if (!fields.containsAll(item.values().keySet())) fail("LEGACY_FIELD_NOT_ALLOWED");
+            if (!fields.equals(item.values().keySet())) fail("LEGACY_FIELD_COVERAGE_INCOMPLETE");
             if (!"composite".equals(domain.keyField())
                     && !Objects.equals(item.sourceKey(), item.values().get(domain.keyField()))) fail("LEGACY_SOURCE_KEY_MISMATCH");
             if (item.values().containsKey("projectId") && !Objects.equals(item.values().get("projectId"),input.sourceProjectKey()))
@@ -69,10 +72,17 @@ public class LegacyDetailNormalizer {
         for (var item : result) if (item.parentDomain()!=null && !identities.contains(identity(item.parentDomain(),item.parentSourceKey())))
             fail("LEGACY_PARENT_NOT_IN_SNAPSHOT");
         result.sort(Comparator.comparing(Record::domain).thenComparing(Record::sourceKey));
-        var digest = new TreeMap<String,Object>();digest.put("sourceProjectKey",input.sourceProjectKey());
+        var digest = new TreeMap<String,Object>();digest.put("fieldCoverage","FULL_SOURCE_FIELDS_V1");
+        digest.put("sourceProjectKey",input.sourceProjectKey());
         digest.put("sourceContractNo",input.sourceContractNo());digest.put("counts",counts);
         digest.put("records",result.stream().map(Record::checksum).toList());
         return new Bundle(List.copyOf(result),Collections.unmodifiableMap(counts),sha(JsonUtils.toJsonString(digest)));
+    }
+    /** A source NULL is an explicit value; platform NON_NULL map serialization must not erase its key. */
+    public static String sourcePayloadJson(Map<String,String> values) {
+        var object=tools.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+        values.forEach((field,value)-> { if(value==null)object.putNull(field);else object.put(field,value); });
+        return JsonUtils.toJsonString(object);
     }
     private static String identity(String domain,String key) { return domain+"\u0000"+key; }
     public static String sha(String text) {

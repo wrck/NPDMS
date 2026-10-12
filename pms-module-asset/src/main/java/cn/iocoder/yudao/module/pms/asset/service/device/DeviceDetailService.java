@@ -9,6 +9,9 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceNetworkVersionM
 import cn.iocoder.yudao.module.pms.asset.domain.version.NetworkSoftwareVersion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionMapper;
+import cn.iocoder.yudao.module.pms.asset.domain.version.FactorySoftwareVersion;
+import cn.iocoder.yudao.module.pms.asset.service.warranty.DeviceWarrantyQueryService;
 
 @Service
 @RequiredArgsConstructor
@@ -17,6 +20,8 @@ public class DeviceDetailService {
     private final DeviceQueryApi deviceQueryApi;
     private final DeviceNetworkVersionMapper networkVersionMapper;
     private final DeviceOrganizationService organizationService;
+    private final DeviceFactoryVersionMapper factories;
+    private final DeviceWarrantyQueryService warranties;
 
     public DeviceDetailRespVO getDetail(Long deviceId) {
         DeviceSummaryDTO summary = deviceQueryApi.getDevice(deviceId);
@@ -25,16 +30,32 @@ public class DeviceDetailService {
         }
         return new DeviceDetailRespVO(
                 summary,
-                DeviceSourceSliceRespVO.notAvailable("MES"),
+                factory(summary),
                 DeviceSourceSliceRespVO.notAvailable("KNO"),
                 networkVersion(summary),
                 DeviceSourceSliceRespVO.notAvailable("KNO"),
-                DeviceSourceSliceRespVO.notAvailable("AST"),
+                warranty(summary),
                 DeviceSourceSliceRespVO.notAvailable("AST"),
                 organizationService.resolve(summary.tenantId(), java.util.List.of(new DeviceOrganizationService.Device(
                         deviceId,summary.projectId(),summary.contractNo()))).get(deviceId));
     }
 
+    private DeviceSourceSliceRespVO factory(DeviceSummaryDTO summary) {
+        var row=factories.selectByTenantAndSn(summary.tenantId(),summary.sn());
+        if (row==null) return DeviceSourceSliceRespVO.notAvailable("MES");
+        var data=new FactorySoftwareVersion(row.getConpVersion(),row.getConpType(),row.getConpSeries(),row.getConpMark(),
+                row.getBootVersion(),row.getCpldVersion(),row.getPcbVersion(),row.getCustomized(),row.getSourceSystem(),
+                row.getSourceKey(),row.getSourceVersion(),row.getSourceUpdatedAt(),row.getSyncedAt(),row.getSyncStatus());
+        return new DeviceSourceSliceRespVO(row.getSourceSystem(),row.getSourceKey(),row.getSourceVersion(),
+                row.getSourceUpdatedAt(),row.getSyncedAt(),row.getSyncStatus(),data);
+    }
+    private DeviceSourceSliceRespVO warranty(DeviceSummaryDTO summary) {
+        var result=warranties.get(summary.tenantId(),summary.deviceId(),1L,1L);
+        if (result.current()==null&&result.records().getList().isEmpty()) return DeviceSourceSliceRespVO.notAvailable("AST");
+        // The historical record is available without claiming that it is the current effective warranty.
+        Object data=result.current()!=null?result.current():result.records().getList().getFirst();
+        return new DeviceSourceSliceRespVO("AST",summary.sn(),null,null,null,"SUCCESS",data);
+    }
     private DeviceSourceSliceRespVO networkVersion(DeviceSummaryDTO summary) {
         DeviceNetworkVersionDO version = networkVersionMapper.selectByTenantAndSn(summary.tenantId(), summary.sn());
         if (version == null) {

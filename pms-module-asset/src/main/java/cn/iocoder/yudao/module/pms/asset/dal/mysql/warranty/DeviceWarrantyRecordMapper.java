@@ -7,9 +7,12 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyR
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.query.DeviceWarrantyRecordPageQuery;
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.query.DeviceWarrantySourceQuery;
 
 @Mapper
 public interface DeviceWarrantyRecordMapper extends BaseMapperX<DeviceWarrantyRecordDO> {
+    DeviceWarrantyRecordDO selectSourceIdentity(@Param("query") DeviceWarrantySourceQuery query);
 
     default PageResult<DeviceWarrantyRecordDO> selectPage(DeviceWarrantyRecordPageQuery query) {
         PageParam page = new PageParam();

@@ -15,7 +15,22 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
                                     CommerceSourceLifecycleStatus lifecycleStatus,
                                     LocalDateTime sourceUpdatedAt,
                                      String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth,
-                                     String customInfo) {
+                                     String customInfo, Integer expectedRowVersion) {
+
+    /** Optional caller row-version precondition; existing source imports omit it. */
+    public CommerceOrderLineFact(String sourceKey, String expectedPreviousSourceVersion,
+                                 String sourceVersion, String salesOrderSourceKey,
+                                 String lineCode, String productCode, String productDesc, String productModel,
+                                 BigDecimal orderQuantity, BigDecimal openQuantity, BigDecimal deliveredQuantity,
+                                 String unitCode, Integer unitScale, String quantityStatus,
+                                 CommerceSourceLifecycleStatus lifecycleStatus, LocalDateTime sourceUpdatedAt,
+                                 String lineType, String bundleCode, String profitCenter, String realExecutionNo,
+                                 Integer warrantyMonth, String customInfo) {
+        this(sourceKey, expectedPreviousSourceVersion, sourceVersion, salesOrderSourceKey,
+                lineCode, productCode, productDesc, productModel, orderQuantity, openQuantity, deliveredQuantity,
+                unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt,
+                lineType, bundleCode, profitCenter, realExecutionNo, warrantyMonth, customInfo, null);
+    }
 
     public CommerceOrderLineFact(String sourceKey, String expectedPreviousSourceVersion,
                                     String sourceVersion, String salesOrderSourceKey,
@@ -32,11 +47,14 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
     public CommerceOrderLineFact {
         sourceKey = text(sourceKey, 128, "sourceKey");
         expectedPreviousSourceVersion = expectedVersion(expectedPreviousSourceVersion);
+        if (expectedRowVersion != null && expectedRowVersion < 0) {
+            throw invalid("expectedRowVersion must be non-negative");
+        }
         sourceVersion = version(sourceVersion, "sourceVersion");
         salesOrderSourceKey = text(salesOrderSourceKey, 128, "salesOrderSourceKey");
         lineCode = text(lineCode, 32, "lineCode");
-        productCode = optionalText(productCode, 64, "productCode");
-        productDesc = optionalText(productDesc, 512, "productDesc");
+        productCode = originalOrderText(productCode, 64, "productCode",sourceKey);
+        productDesc = originalOrderText(productDesc, 512, "productDesc",sourceKey);
         productModel = optionalText(productModel, 64, "productModel");
         // customInfo 为来源自定义载荷原样透传：不截断、不参与Owner载荷裁决（见 AuthorityPayloadCanonicalizer）。
         customInfo = passthrough(customInfo);
@@ -55,9 +73,9 @@ public record CommerceOrderLineFact(String sourceKey, String expectedPreviousSou
             throw invalid("lifecycleStatus must not be null");
         }
         lineType = optionalText(lineType, 32, "lineType");
-        bundleCode = optionalText(bundleCode, 64, "bundleCode");
-        profitCenter = optionalText(profitCenter, 64, "profitCenter");
-        realExecutionNo = optionalText(realExecutionNo, 64, "realExecutionNo");
+        bundleCode = originalOrderText(bundleCode, 64, "bundleCode",sourceKey);
+        profitCenter = originalOrderText(profitCenter, 64, "profitCenter",sourceKey);
+        realExecutionNo = originalOrderText(realExecutionNo, 64, "realExecutionNo",sourceKey);
         if (warrantyMonth != null && warrantyMonth < 0) throw invalid("warrantyMonth must be non-negative");
         for (BigDecimal value : new BigDecimal[]{orderQuantity, openQuantity, deliveredQuantity}) {
             if (value != null && value.stripTrailingZeros().scale() > unitScale) {

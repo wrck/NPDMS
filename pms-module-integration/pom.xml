@@ -13,6 +13,16 @@
     <description>PMS 集成域：外部系统交换、字段映射、同步、重试、对账与监控</description>
 
     <dependencies>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-commerce-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-asset-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
         <!-- Version managed by the existing Spring Boot 4.1 BOM. -->
         <dependency>
             <groupId>org.springframework.batch</groupId>
@@ -35,6 +45,11 @@
         <dependency>
             <groupId>cn.iocoder.boot</groupId>
             <artifactId>pms-module-platform-api</artifactId>
+            <version>${revision}</version>
+        </dependency>
+        <dependency>
+            <groupId>cn.iocoder.boot</groupId>
+            <artifactId>pms-module-platform-support</artifactId>
             <version>${revision}</version>
         </dependency>
         <dependency>

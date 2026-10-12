@@ -125,14 +125,17 @@ export interface DeliveryScopeRespVO {
   productCode: string
   productDesc?: string
   allocatedQuantity: number
+  allocationConfirmed: boolean
+  deliveredQuantity?: number | null
+  openQuantity?: number | null
   scopeStatus: string
   allocationVersion: number
   allocationSource: string
   changeReason?: string
-  officeDepartmentId: number
-  officeDepartmentCode: string
-  officeDepartmentName: string
-  officeDepartmentVersion: number
+  departmentId: number
+  departmentCode: string
+  departmentName: string
+  departmentVersion: number
   effectiveFrom: string
   effectiveTo?: string
   version: number
@@ -336,6 +339,31 @@ export const adjustDeliveryScope = (
     data,
     headers: { 'If-Match': String(allocationVersion), 'Idempotency-Key': idempotencyKey }
   })
+
+export interface ProjectContractRelation {
+  id: string | number
+  projectId: string | number
+  contractId: string | number
+  contractNo: string
+  contractName?: string
+  companyCode?: string
+  companyName?: string
+  relationRole: string
+  status: string
+  effectiveFrom?: string | number[] | null
+  effectiveTo?: string | number[] | null
+  creator?: string | null
+  createTime?: string | number[] | null
+  updater?: string | null
+  updateTime?: string | number[] | null
+  version: number
+}
+
+export const getProjectContractRelations = (
+  projectId: string | number,
+  params: { pageNo: number; pageSize: number }
+): Promise<{ list: ProjectContractRelation[]; total: number }> =>
+  request.get({ url: `/api/v1/pms/contracts/project/${projectId}/relations`, params })
 
 export const releaseDeliveryScope = (
   id: number,

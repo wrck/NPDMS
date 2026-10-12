@@ -45,6 +45,16 @@ public class ProjectMasterDO extends BaseBusinessEntity {
      * 项目名称
      */
     private String projectName;
+    /** 项目自定义业务信息，完整保留原JSON内容，不拆解或丢弃原键。 */
+    private String customInfo;
+    /** 项目创建时冻结的订单创建时间，后续订单同步不反向更新。 */
+    private LocalDateTime orderCreateTime;
+    /** 项目业务有效性：true为失效/核销，不等同逻辑删除或生命周期阶段。 */
+    private Boolean disabled;
+    /** 项目有效期开始时间。 */
+    private LocalDateTime effectiveFrom;
+    /** 项目有效期结束时间。 */
+    private LocalDateTime effectiveTo;
     /**
      * 父项目ID（NULL=根项目）
      */

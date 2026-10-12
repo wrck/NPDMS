@@ -7,6 +7,17 @@
   >
     <template v-if="record">
       <p class="record-origin">{{ domain?.label }} · 来源编号 {{ record.sourceKey }}</p>
+      <p role="status">业务承接：{{ legacyNativeStatusText(record.nativeStatus) }}</p>
+      <p v-if="record.nativeStatus?.reason">{{ record.nativeStatus.reason }}</p>
+      <p v-if="record.nativeStatus?.targets.length">
+        已关联：{{
+          [
+            ...new Set(
+              record.nativeStatus.targets.map((t) => legacyNativeTargetLabel(t.targetTable))
+            )
+          ].join('、')
+        }}
+      </p>
       <div class="related-actions">
         <el-button v-if="record.parentDomain" @click="$emit('parent', record)"
           >查看上级记录</el-button
@@ -50,6 +61,8 @@ import {
   legacyChildren,
   legacyReferences,
   legacyValueText,
+  legacyNativeStatusText,
+  legacyNativeTargetLabel,
   type LegacyDomain,
   type LegacyRecord
 } from '@/api/pms/project/legacy-detail'

@@ -18,6 +18,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEvent
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeEvidenceQuery;
 import cn.iocoder.yudao.module.pms.project.api.commerce.ProjectOfficeFactApi;
 import cn.iocoder.yudao.module.pms.project.api.commerce.dto.ProjectFactOutcome;
 import cn.iocoder.yudao.module.pms.project.api.commerce.dto.ProjectOfficeFact;
@@ -61,7 +62,7 @@ public class DeliveryScopeCompatibilityService {
         if (tenantId == null || parentProjectId == null) {
             return List.of();
         }
-        List<DeliveryScopeDO> scopes = deliveryScopeMapper.selectActiveByProjectId(parentProjectId);
+        List<DeliveryScopeDO> scopes = deliveryScopeMapper.selectActiveByProjectId(new DeliveryScopeProjectQuery(tenantId, parentProjectId));
         long currentVersion = projectVersionService.current(tenantId, parentProjectId);
         if (expectedScopeVersion != null && !Objects.equals(expectedScopeVersion, currentVersion)) {
             throw new IllegalStateException("COM_SCOPE_VERSION_CONFLICT");
@@ -91,7 +92,7 @@ public class DeliveryScopeCompatibilityService {
                 .map(SplitScopePreviewCommand.Allocation::orderLineId).distinct().sorted().toList();
         Map<Long, SalesOrderLineDO> lines = linesById(orderLineMapper.selectByIds(
                 new SalesOrderLineIdsQuery(command.tenantId(), lineIds)));
-        List<DeliveryScopeDO> scopes = deliveryScopeMapper.selectActiveByProjectId(command.parentProjectId());
+        List<DeliveryScopeDO> scopes = deliveryScopeMapper.selectActiveByProjectId(new DeliveryScopeProjectQuery(command.tenantId(), command.parentProjectId()));
         long currentVersion = projectVersionService.current(command.tenantId(), command.parentProjectId());
         validateScopeVersion(command.expectedScopeVersion(), currentVersion, errors);
         validateQuantities(command.allocations(), lines, scopes, errors);
@@ -456,6 +457,7 @@ public class DeliveryScopeCompatibilityService {
         scope.setProductCode(line.getProductCode());
         scope.setProductDesc(line.getProductDesc());
         scope.setAllocatedQty(quantity);
+        scope.setAllocationConfirmed(true);
         scope.setScopeStatus("ACTIVE");
         scope.setAllocationVersion(scopeVersion);
         scope.setAllocationSource("PROJECT_SPLIT");
@@ -545,7 +547,7 @@ public class DeliveryScopeCompatibilityService {
 
     private SplitScopeApplyResult replayResult(SplitScopeApplyCommand command, CommerceOutboxEventDO replay) {
         List<SplitScopeApplyResult.AppliedScope> scopes = deliveryScopeMapper
-                .selectBySourceEvidencePrefix(command.tenantId(), evidencePrefix(command.idempotencyKey())).stream()
+                .selectBySourceEvidencePrefix(new DeliveryScopeEvidenceQuery(command.tenantId(), evidencePrefix(command.idempotencyKey()))).stream()
                 .filter(scope -> scope.getSourceEvidence() != null
                         && !scope.getSourceEvidence().endsWith(":REMAINDER"))
                 .map(scope -> new SplitScopeApplyResult.AppliedScope(

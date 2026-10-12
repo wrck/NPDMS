@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.integration.sync;
 
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,14 +33,16 @@ public final class DppmsOrderSyncTemplate {
         String parent=line?",EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode "
                 +"AND h.orderType=r.lineType AND h.orderNumber=r.orderNumber GROUP BY h.source,h.compCode,h.orderType,h.orderNumber "
                 +"HAVING MAX(h.syncTime) IS NOT NULL AND COUNT(DISTINCT JSON_ARRAY(h.orderCreateTime,h.customerRequireTime,h.customerCode,"
-                +"h.customerName,h.projectName,h.orderComment,h.salesType))=1) AS migrationParentExists":"";
+                +"h.customerName,h.projectName,h.orderComment,h.salesType,h.customInfo,h.contractNo,h.orderExecNumber))=1) AS migrationParentExists":"";
         String sql="SELECT r.*,g.migrationVersion,CASE WHEN g.payloadVariants > 1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue "+parent
                 +" FROM "+table+" r "
                 +"JOIN (SELECT "+groupKeys+",MAX(syncTime) AS migrationVersion,"
                 +"COUNT(DISTINCT JSON_ARRAY("+fields+")) AS payloadVariants "
                 +"FROM "+table+" GROUP BY "+groupKeys+") g ON "+join;
         List<SyncDefinition.Mapping> mappings=new ArrayList<>();
-        mappings.add(map("erpSource","source"));mappings.add(map("companyCode","compCode"));
+        mappings.add(map("erpSource","source"));
+        mappings.add(SyncDefinition.Mapping.builder().target("companyCode").source("compCode")
+                .conversion(DppmsCompanyCodeConverter.CONVERSION).build());
         mappings.add(map("orderNo","orderNumber"));mappings.add(map("orderType",type));
         mappings.add(map("sourceUpdatedAt","migrationVersion"));mappings.add(map("migrationIssue","migrationIssue"));
         if(line) {

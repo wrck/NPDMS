@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper">
+    <sql id="confirmedCurrent">
+        allocation_confirmed = b'1' AND effective_to IS NULL
+    </sql>
 
     <select id="selectCurrentVersionsForAcceptanceLock"
             resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeVersionLockRow">
@@ -9,7 +12,7 @@
         FROM com_delivery_scope
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
-          AND effective_to IS NULL
+          AND <include refid="confirmedCurrent"/>
           AND deleted = b'0'
         ORDER BY id ASC
         FOR UPDATE
@@ -22,7 +25,7 @@
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
           AND scope_status = 'ACTIVE'
-          AND effective_to IS NULL
+          AND <include refid="confirmedCurrent"/>
           AND deleted = b'0'
         ORDER BY order_line_id, id
         FOR UPDATE
@@ -33,7 +36,7 @@
         SELECT * FROM com_delivery_scope
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
-          AND effective_to IS NULL
+          AND <include refid="confirmedCurrent"/>
           AND deleted = b'0'
         ORDER BY order_line_id, id
     </select>
@@ -43,7 +46,7 @@
         SELECT * FROM com_delivery_scope
         WHERE tenant_id = #{query.tenantId}
           AND project_id = #{query.projectId}
-          AND effective_to IS NULL
+          AND <include refid="confirmedCurrent"/>
           AND deleted = b'0'
         ORDER BY order_line_id, id
         FOR UPDATE
@@ -54,12 +57,15 @@
         SELECT *
         FROM com_delivery_scope
         WHERE tenant_id = #{query.tenantId}
-          AND order_line_id IN
-          <foreach collection="query.orderLineIds" item="orderLineId" open="(" separator="," close=")">
-              #{orderLineId}
-          </foreach>
+          <choose>
+              <when test="query.orderLineIds != null and !query.orderLineIds.isEmpty()">
+                  AND order_line_id IN
+                  <foreach collection="query.orderLineIds" item="orderLineId" open="(" separator="," close=")">#{orderLineId}</foreach>
+              </when>
+              <otherwise>AND 1=0</otherwise>
+          </choose>
           AND scope_status = 'ACTIVE'
-          AND effective_to IS NULL
+          AND <include refid="confirmedCurrent"/>
           AND deleted = b'0'
         ORDER BY order_line_id, id
         FOR UPDATE
@@ -70,11 +76,14 @@
         SELECT *
         FROM com_delivery_scope
         WHERE tenant_id = #{query.tenantId}
-          AND order_line_id IN
-          <foreach collection="query.orderLineIds" item="orderLineId" open="(" separator="," close=")">
-              #{orderLineId}
-          </foreach>
-          AND effective_to IS NULL
+          <choose>
+              <when test="query.orderLineIds != null and !query.orderLineIds.isEmpty()">
+                  AND order_line_id IN
+                  <foreach collection="query.orderLineIds" item="orderLineId" open="(" separator="," close=")">#{orderLineId}</foreach>
+              </when>
+              <otherwise>AND 1=0</otherwise>
+          </choose>
+          AND <include refid="confirmedCurrent"/>
           AND deleted = b'0'
         ORDER BY order_line_id, id
         FOR UPDATE
@@ -86,17 +95,20 @@
         FROM com_delivery_scope
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.deliveryScopeId}
-          AND effective_to IS NULL
+          AND <include refid="confirmedCurrent"/>
           AND deleted = b'0'
         FOR UPDATE
     </select>
 
     <sql id="projectScopeFilters">
         tenant_id = #{query.tenantId}
-        AND project_id IN
-        <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">
-            #{projectId}
-        </foreach>
+        <choose>
+            <when test="query.projectIds != null and !query.projectIds.isEmpty()">
+                AND project_id IN
+                <foreach collection="query.projectIds" item="projectId" open="(" separator="," close=")">#{projectId}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
         AND deleted = b'0'
         <if test="query.projectId != null">
           AND project_id = #{query.projectId}

@@ -25,6 +25,16 @@ public class ProjectCreationAuthorizationService {
         assertHasPermission(actorId, ASSIGN_PERMISSION);
     }
 
+    /** Approved historical import exception; does not grant an organization or project scope. */
+    public void assertCanImportWithoutOrganization(Long actorId) {
+        if (!permissionApi.hasAnyRoles(actorId,
+                cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) {
+            throw exception(FORBIDDEN);
+        }
+        assertHasPermission(actorId, CREATE_PERMISSION);
+        assertHasPermission(actorId, "pms:integration:execute");
+    }
+
     private void assertHasPermission(Long actorId, String permission) {
         if (!permissionApi.hasAnyPermissions(actorId, permission)) {
             throw exception(FORBIDDEN);

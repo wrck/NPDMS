@@ -79,7 +79,7 @@ public class ProjectLegacyDetailService {
             row.setSnapshotId(snapshot.getId());row.setDomainCode(fact.domain());row.setSourceTable(fact.sourceTable());
             row.setSourceKey(fact.sourceKey());row.setParentDomain(fact.parentDomain());row.setParentSourceKey(fact.parentSourceKey());
             row.setSourceUpdatedAt(fact.sourceUpdatedAt());row.setChecksum(fact.checksum());
-            row.setPayloadJson(JsonUtils.toJsonString(fact.values()));row.setRedactedFieldsJson(JsonUtils.toJsonString(fact.redactedFields()));
+            row.setPayloadJson(LegacyDetailNormalizer.sourcePayloadJson(fact.values()));row.setRedactedFieldsJson(JsonUtils.toJsonString(fact.redactedFields()));
             mapper.appendRecord(row);
         }
         if (mapper.updateHead(new SourceHeadUpdate(actor.tenantId(),source.getId(),source.getVersion(),snapshot.getId()))!=1)

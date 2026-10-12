@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.system.dal.mysql.permission.RoleMigrationMapper">
+    <resultMap id="migrationRole" type="cn.iocoder.yudao.module.system.dal.dataobject.permission.RoleDO" autoMapping="true">
+        <id column="id" property="id"/>
+        <result column="data_scope_dept_ids" property="dataScopeDeptIds" javaType="java.util.Set"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler"/>
+    </resultMap>
+    <sql id="migrationInventory">
+        SELECT * FROM system_role
+        WHERE tenant_id = #{query.tenantId} AND deleted = FALSE
+        ORDER BY id
+    </sql>
+    <select id="selectListForMigration" resultMap="migrationRole">
+        <include refid="migrationInventory"/>
+    </select>
+    <select id="selectListForMigrationForUpdate" resultMap="migrationRole">
+        <include refid="migrationInventory"/> FOR UPDATE
+    </select>
+    <select id="selectListHistoricalAuditActorIds" resultType="java.lang.Long">
+        SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose>
+            <when test="query.userIds != null and !query.userIds.isEmpty()">
+                AND id IN
+                <foreach collection="query.userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        ORDER BY id
+    </select>
+    <insert id="insertHistoricalRole">
+        INSERT INTO system_role
+            (id, tenant_id, name, code, sort, status, type, data_scope, remark,
+             creator, create_time, updater, update_time, deleted)
+        VALUES (#{role.id}, #{role.tenantId}, #{role.name}, #{role.code}, #{role.sort},
+                #{role.status}, #{role.type}, #{role.dataScope}, #{role.remark},
+                #{audit.creator}, #{audit.createTime}, #{audit.updater}, #{audit.updateTime}, FALSE)
+    </insert>
+    <update id="updateHistoricalDefinition">
+        UPDATE system_role SET name=#{role.name}, sort=#{role.sort}, remark=#{role.remark},
+            creator=#{audit.creator}, create_time=#{audit.createTime}, updater=#{audit.updater}, update_time=#{audit.updateTime}
+        WHERE id=#{role.id} AND tenant_id=#{role.tenantId} AND code=#{role.code} AND deleted=FALSE
+    </update>
+    <update id="restoreHistoricalAudit">
+        UPDATE system_role
+        SET creator=#{correction.restoredCreator}, updater=#{correction.restoredUpdater}, update_time=#{correction.updateTime}
+        WHERE tenant_id=#{correction.tenantId} AND id=#{correction.roleId} AND code=#{correction.code}
+          AND update_time=#{correction.updateTime} AND deleted=FALSE
+        <choose>
+            <when test="correction.expectedCreator != null">AND creator=#{correction.expectedCreator}</when>
+            <otherwise>AND creator IS NULL</otherwise>
+        </choose>
+        <choose>
+            <when test="correction.expectedUpdater != null">AND updater=#{correction.expectedUpdater}</when>
+            <otherwise>AND updater IS NULL</otherwise>
+        </choose>
+    </update>
+</mapper>

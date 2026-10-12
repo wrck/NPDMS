@@ -5,8 +5,9 @@ import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import java.time.LocalDateTime;
 
-/** 产品信息只读副本：由集成同步按来源写入（generic-targets），资产域不承载其领域写入。 */
+/** CRM 同步目录；获批准的 DPPMS 导入仅补缺失产品，既有目录字段保持来源权威。 */
 @TableName("ast_product_official_info")
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -18,4 +19,10 @@ public class AssetProductOfficialDO extends BaseBusinessEntity {
     private String productDesc;
     private String technicalSpec;
     private String status;
+    private String sourceSystem;
+    private String sourceKey;
+    private String sourceVersion;
+    private LocalDateTime sourceUpdatedAt;
+    private LocalDateTime syncedAt;
+    private String syncStatus;
 }

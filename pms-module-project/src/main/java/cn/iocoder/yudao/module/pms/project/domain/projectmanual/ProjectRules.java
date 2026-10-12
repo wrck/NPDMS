@@ -204,6 +204,11 @@ public final class ProjectRules {
         update.setBusinessType(current.getBusinessType());
         update.setServiceLevelCode(current.getServiceLevelCode());
         update.setNotTrackReason(current.getNotTrackReason());
+        update.setCustomInfo(current.getCustomInfo());
+        update.setOrderCreateTime(current.getOrderCreateTime());
+        update.setDisabled(current.getDisabled());
+        update.setEffectiveFrom(current.getEffectiveFrom());
+        update.setEffectiveTo(current.getEffectiveTo());
         // 创建事实（BR-2 留痕，不可经更新接口改写）
         update.setCreationReason(current.getCreationReason());
         // 模板冻结绑定与流程引用（BR-4）

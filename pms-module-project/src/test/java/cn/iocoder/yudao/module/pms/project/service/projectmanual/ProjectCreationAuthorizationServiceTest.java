@@ -60,4 +60,17 @@ class ProjectCreationAuthorizationServiceTest {
 
         verify(permissionApi).hasAnyPermissions(7L, "pms:project:assign");
     }
+
+    @Test
+    void incompleteHistoricalOrganizationRequiresSuperAdminAndBothPermissions() {
+        assertThrows(ServiceException.class, () -> service.assertCanImportWithoutOrganization(7L));
+        when(permissionApi.hasAnyRoles(7L, "super_admin")).thenReturn(true);
+        assertThrows(ServiceException.class, () -> service.assertCanImportWithoutOrganization(7L));
+        when(permissionApi.hasAnyPermissions(7L, "pms:project:create")).thenReturn(true);
+        assertThrows(ServiceException.class, () -> service.assertCanImportWithoutOrganization(7L));
+        when(permissionApi.hasAnyPermissions(7L, "pms:integration:execute")).thenReturn(true);
+        service.assertCanImportWithoutOrganization(7L);
+        when(permissionApi.hasAnyRoles(7L, "super_admin")).thenReturn(false);
+        assertThrows(ServiceException.class, () -> service.assertCanImportWithoutOrganization(7L));
+    }
 }

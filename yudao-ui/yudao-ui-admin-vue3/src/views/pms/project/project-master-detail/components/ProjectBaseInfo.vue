@@ -14,13 +14,20 @@
       <el-alert v-if="error" :title="error" type="warning" :closable="false" />
       <p v-else-if="!canReadCommerce" class="empty-note">暂无商务资料查看权限。</p>
       <template v-else>
-        <div v-for="contract in commerce?.contracts || []" :key="contract.id" class="source-record">
+        <div v-for="contract in contracts" :key="contract.id" class="source-record">
           <div class="record-heading"><el-tag effect="plain">合同</el-tag><strong>{{ contract.contractNo }}</strong><span>{{ contract.contractName }}</span></div>
           <dl class="fact-grid">
             <div class="fact"><dt>签约公司</dt><dd>{{ contract.companyName || contract.companyCode || '—' }}</dd></div>
             <div class="fact"><dt>合同购货方</dt><dd>{{ contract.customerName || contract.customerCode || '—' }}</dd></div>
             <div class="fact"><dt>合同金额</dt><dd>{{ amount(contract.contractAmount, contract.currencyCode) }}</dd></div>
             <div class="fact"><dt>币种</dt><dd>{{ contract.currencyCode || '—' }}</dd></div>
+          </dl>
+          <dl v-for="relation in contractRelations.filter(item => String(item.contractId) === String(contract.id))" :key="relation.id" class="fact-grid relation-facts">
+            <div class="fact"><dt>关联状态</dt><dd>{{ relation.status === 'HISTORICAL' ? '历史关联' : relation.status === 'ACTIVE' ? '有效关联' : relation.status }}</dd></div>
+            <div class="fact"><dt>关联开始时间</dt><dd>{{ time(relation.effectiveFrom) }}</dd></div>
+            <div class="fact"><dt>关联结束时间</dt><dd>{{ time(relation.effectiveTo) }}</dd></div>
+            <div class="fact"><dt>创建时间</dt><dd>{{ time(relation.createTime) }}</dd></div>
+            <div class="fact"><dt>更新时间</dt><dd>{{ time(relation.updateTime) }}</dd></div>
           </dl>
         </div>
         <div v-for="order in commerce?.orders || []" :key="order.id" class="source-record">
@@ -44,7 +51,8 @@
             <div class="fact"><dt>执行单来源</dt><dd>{{ order.sourceSystem || '—' }}</dd></div>
           </dl>
         </div>
-        <p v-if="!loading && !error && !commerce?.contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
+        <p v-if="!loading && !error && !contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
+        <ProjectAssociatedDataPanel v-if="project.id" :project-id="project.id" title="回款计划" :kinds="['plans']" />
       </template>
     </section>
     <section class="fact-section">
@@ -60,12 +68,15 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import request from '@/config/axios'
 import { checkPermi } from '@/utils/permission'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import { getMemberPage, type MemberRecord } from '@/api/pms/project/unified-members'
+import { getProjectContractRelations, type ProjectContractRelation } from '@/api/pms/commerce'
+import ProjectAssociatedDataPanel from './ProjectAssociatedDataPanel.vue'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 interface CommerceOverview {
@@ -74,6 +85,17 @@ interface CommerceOverview {
   executionOrders: ({ id: number; executionNo: string } & Record<string, any>)[]
 }
 const commerce = ref<CommerceOverview>()
+const contractRelations = ref<ProjectContractRelation[]>([])
+const contracts = computed(() => {
+  const result = [...(commerce.value?.contracts || [])]
+  for (const relation of contractRelations.value) {
+    if (!result.some(contract => String(contract.id) === String(relation.contractId))) {
+      result.push({ id: relation.contractId, contractNo: relation.contractNo,
+        contractName: relation.contractName, companyCode: relation.companyCode, companyName: relation.companyName })
+    }
+  }
+  return result
+})
 const members = ref<MemberRecord[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -155,7 +177,7 @@ let requestId = 0
 const load = async () => {
   const id = props.project.id
   const current = ++requestId
-  commerce.value = undefined; members.value = []; error.value = ''; memberError.value = false
+  commerce.value = undefined; contractRelations.value = []; members.value = []; error.value = ''; memberError.value = false
   if (!id) return
   loading.value = true
   await Promise.all([
@@ -163,7 +185,14 @@ const load = async () => {
       if (!canReadCommerce.value) return
       try {
         const value = await request.get<CommerceOverview>({ url: `/api/v1/pms/contracts/project/${id}/overview` })
-        if (current === requestId) commerce.value = value
+        const relations: ProjectContractRelation[] = []
+        for (let pageNo = 1; ; pageNo++) {
+          if (current !== requestId) return
+          const page = await getProjectContractRelations(id, { pageNo, pageSize: 100 })
+          relations.push(...page.list)
+          if (relations.length >= page.total || !page.list.length) break
+        }
+        if (current === requestId) { commerce.value = value; contractRelations.value = relations }
       } catch { if (current === requestId) error.value = '商务资料加载失败，请重试。' }
     })(),
     (async () => {
@@ -202,6 +231,7 @@ dd { margin: 0; font-size: 14px; line-height: 22px; color: var(--el-text-color-p
 .record-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; font-size: 14px; }
 .record-heading span { color: var(--el-text-color-secondary); }
 .section-heading { display: flex; justify-content: space-between; align-items: baseline; }
+.relation-facts { margin-top: 22px; }
 .empty-note { margin: 0; font-size: 13px; color: var(--el-text-color-secondary); line-height: 22px; }
 @media (max-width: 600px) { .project-facts { padding: 0 4px; } .fact-grid { gap: 18px; } .source-record { padding: 16px; } }
 </style>

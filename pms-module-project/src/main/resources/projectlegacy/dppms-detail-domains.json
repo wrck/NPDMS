@@ -11,16 +11,16 @@
         "label": "原项目编号"
       },
       {
+        "key": "projectType",
+        "label": "原项目类型"
+      },
+      {
         "key": "projectCode",
         "label": "原项目编码"
       },
       {
         "key": "projectName",
         "label": "原项目名称"
-      },
-      {
-        "key": "projectType",
-        "label": "原项目类型"
       },
       {
         "key": "projectState",
@@ -33,6 +33,14 @@
       {
         "key": "column001",
         "label": "原办事处编码"
+      },
+      {
+        "key": "column002",
+        "label": "ERP客户编码"
+      },
+      {
+        "key": "column003",
+        "label": "ERP客户名称"
       },
       {
         "key": "column004",
@@ -53,6 +61,10 @@
       {
         "key": "column008",
         "label": "原不跟踪原因"
+      },
+      {
+        "key": "column009",
+        "label": "订单创建时间"
       },
       {
         "key": "column010",
@@ -95,22 +107,6 @@
         "label": "原公司编号"
       },
       {
-        "key": "projectStartTime",
-        "label": "原项目开始时间"
-      },
-      {
-        "key": "projectRefreshTime",
-        "label": "原项目刷新时间"
-      },
-      {
-        "key": "projectCloseTime",
-        "label": "原项目关闭时间"
-      },
-      {
-        "key": "disabled",
-        "label": "原停用标记"
-      },
-      {
         "key": "createTime",
         "label": "创建时间"
       },
@@ -133,6 +129,30 @@
       {
         "key": "effectiveTo",
         "label": "失效时间"
+      },
+      {
+        "key": "disabled",
+        "label": "原停用标记"
+      },
+      {
+        "key": "projectStartTime",
+        "label": "原项目开始时间"
+      },
+      {
+        "key": "projectRefreshTime",
+        "label": "原项目刷新时间"
+      },
+      {
+        "key": "projectCloseTime",
+        "label": "原项目关闭时间"
+      },
+      {
+        "key": "customInfo",
+        "label": "附加业务信息"
+      },
+      {
+        "key": "customConfig",
+        "label": "自定义配置"
       }
     ]
   },
@@ -294,12 +314,12 @@
         "label": "更新人"
       },
       {
-        "key": "effectiveFrom",
-        "label": "生效时间"
-      },
-      {
         "key": "effectiveTo",
         "label": "失效时间"
+      },
+      {
+        "key": "effectiveFrom",
+        "label": "生效时间"
       }
     ]
   },
@@ -586,6 +606,10 @@
         "label": "来源系统"
       },
       {
+        "key": "customInfo",
+        "label": "附加业务信息"
+      },
+      {
         "key": "syncTime",
         "label": "来源同步时间"
       }
@@ -655,6 +679,10 @@
         "label": "来源系统"
       },
       {
+        "key": "customInfo",
+        "label": "附加业务信息"
+      },
+      {
         "key": "syncTime",
         "label": "来源同步时间"
       }
@@ -715,8 +743,8 @@
   },
   {
     "code": "plans",
-    "label": "来源销售计划",
-    "group": "商务资料",
+    "label": "来源回款计划",
+    "group": "商务与回款",
     "sourceTable": "pm_pb_plan_from_sms",
     "keyField": "id",
     "fields": [
@@ -757,24 +785,20 @@
         "label": "销售反馈"
       },
       {
-        "key": "dataSource",
-        "label": "来源系统"
+        "key": "createBy",
+        "label": "创建人"
       },
       {
         "key": "createTime",
         "label": "创建时间"
       },
       {
-        "key": "createBy",
-        "label": "创建人"
+        "key": "updateBy",
+        "label": "更新人"
       },
       {
         "key": "updateTime",
         "label": "更新时间"
-      },
-      {
-        "key": "updateBy",
-        "label": "更新人"
       },
       {
         "key": "effectiveFrom",
@@ -783,6 +807,10 @@
       {
         "key": "effectiveTo",
         "label": "失效时间"
+      },
+      {
+        "key": "dataSource",
+        "label": "来源系统"
       }
     ]
   },
@@ -1123,6 +1151,10 @@
       {
         "key": "updateBy",
         "label": "更新人"
+      },
+      {
+        "key": "customInfo",
+        "label": "附加业务信息"
       }
     ]
   },
@@ -1210,10 +1242,6 @@
         "label": "备注"
       },
       {
-        "key": "visibleFlag",
-        "label": "原可见标记"
-      },
-      {
         "key": "createTime",
         "label": "创建时间"
       },
@@ -1236,6 +1264,18 @@
       {
         "key": "effectiveTo",
         "label": "失效时间"
+      },
+      {
+        "key": "visibleFlag",
+        "label": "原可见标记"
+      },
+      {
+        "key": "deliverFileIds",
+        "label": "上传的交付件"
+      },
+      {
+        "key": "customInfo",
+        "label": "附加业务信息"
       }
     ]
   },
@@ -1265,6 +1305,10 @@
       {
         "key": "projectType",
         "label": "原项目类型"
+      },
+      {
+        "key": "projectExecutionState",
+        "label": "项目实施状态"
       },
       {
         "key": "contractNo",
@@ -1327,12 +1371,24 @@
         "label": "已启用功能"
       },
       {
+        "key": "customTos",
+        "label": "自定义主送"
+      },
+      {
+        "key": "customCcs",
+        "label": "自定义抄送"
+      },
+      {
         "key": "hasReport",
         "label": "原报告标记"
       },
       {
         "key": "quesnaireId",
         "label": "问卷编号"
+      },
+      {
+        "key": "deliverFileIds",
+        "label": "交付件，fnd_files id"
       },
       {
         "key": "warrantyStatus",
@@ -1401,6 +1457,10 @@
       {
         "key": "updateBy",
         "label": "更新人"
+      },
+      {
+        "key": "customInfo",
+        "label": "附加业务信息"
       }
     ]
   },
@@ -1497,20 +1557,20 @@
         "label": "历史问卷状态"
       },
       {
-        "key": "createTime",
-        "label": "创建时间"
-      },
-      {
         "key": "createBy",
         "label": "创建人"
       },
       {
-        "key": "updateTime",
-        "label": "更新时间"
+        "key": "createTime",
+        "label": "创建时间"
       },
       {
         "key": "updateBy",
         "label": "更新人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
       },
       {
         "key": "effectiveFrom",
@@ -1737,6 +1797,14 @@
         "label": "服务商"
       },
       {
+        "key": "bankInfo",
+        "label": "服务商开户地址"
+      },
+      {
+        "key": "bankAccount",
+        "label": "服务商收款账户"
+      },
+      {
         "key": "officeCode",
         "label": "办事处编码"
       },
@@ -1765,36 +1833,40 @@
         "label": "备注"
       },
       {
-        "key": "zrApproveTime",
-        "label": "历史审批时间"
-      },
-      {
-        "key": "orgId",
-        "label": "原组织编号"
-      },
-      {
-        "key": "createTime",
-        "label": "创建时间"
-      },
-      {
-        "key": "createBy",
-        "label": "创建人"
-      },
-      {
-        "key": "updateTime",
-        "label": "更新时间"
-      },
-      {
-        "key": "updateBy",
-        "label": "更新人"
-      },
-      {
         "key": "effectiveFrom",
         "label": "生效时间"
       },
       {
         "key": "effectiveTo",
         "label": "失效时间"
+      },
+      {
+        "key": "zrApproveTime",
+        "label": "历史审批时间"
+      },
+      {
+        "key": "createBy",
+        "label": "创建人"
+      },
+      {
+        "key": "createTime",
+        "label": "创建时间"
+      },
+      {
+        "key": "updateBy",
+        "label": "更新人"
+      },
+      {
+        "key": "updateTime",
+        "label": "更新时间"
+      },
+      {
+        "key": "orgId",
+        "label": "原组织编号"
+      },
+      {
+        "key": "customInfo",
+        "label": "附加业务信息"
       }
     ]
   },
@@ -1852,6 +1924,10 @@
       {
         "key": "updateBy",
         "label": "更新人"
+      },
+      {
+        "key": "customInfo",
+        "label": "附加业务信息"
       }
     ]
   },
@@ -2062,6 +2138,14 @@
       {
         "key": "productLine",
         "label": "产品线"
+      },
+      {
+        "key": "customInfo",
+        "label": "附加业务信息"
+      },
+      {
+        "key": "url",
+        "label": "URL"
       }
     ]
   },
@@ -2542,6 +2626,10 @@
         "label": "问卷编号"
       },
       {
+        "key": "deliverFileIds",
+        "label": "交付件，fnd_files id"
+      },
+      {
         "key": "remark",
         "label": "备注"
       },
@@ -2583,12 +2671,12 @@
         "label": "运单号"
       },
       {
-        "key": "emsCompany",
-        "label": "承运商"
-      },
-      {
         "key": "packdate",
         "label": "发货日期"
+      },
+      {
+        "key": "emsCompany",
+        "label": "承运商"
       },
       {
         "key": "packId",
@@ -2608,14 +2696,6 @@
         "label": "合同号"
       },
       {
-        "key": "packId",
-        "label": "发货包编号"
-      },
-      {
-        "key": "barcode",
-        "label": "设备序列号"
-      },
-      {
         "key": "itemCode",
         "label": "产品编码"
       },
@@ -2628,8 +2708,12 @@
         "label": "产品名称"
       },
       {
-        "key": "barcode2",
-        "label": "子设备序列号"
+        "key": "barcode",
+        "label": "设备序列号"
+      },
+      {
+        "key": "packId",
+        "label": "发货包编号"
       },
       {
         "key": "itemCode2",
@@ -2642,6 +2726,10 @@
       {
         "key": "itemName2",
         "label": "子产品名称"
+      },
+      {
+        "key": "barcode2",
+        "label": "子设备序列号"
       },
       {
         "key": "profitCenter",
@@ -2665,10 +2753,6 @@
         "label": "来源发货编号"
       },
       {
-        "key": "contract_code",
-        "label": "合同号"
-      },
-      {
         "key": "barcode",
         "label": "设备序列号"
       },
@@ -2677,16 +2761,40 @@
         "label": "组合设备序列号"
       },
       {
+        "key": "old_warrantyEndTime",
+        "label": "原维保结束时间"
+      },
+      {
+        "key": "warrantyEndTime",
+        "label": "维保结束时间"
+      },
+      {
+        "key": "old_diff",
+        "label": "原剩余天数"
+      },
+      {
+        "key": "diff",
+        "label": "维保剩余天数"
+      },
+      {
+        "key": "warrantyStartTime",
+        "label": "维保开始时间"
+      },
+      {
+        "key": "old_warrantyStartTime",
+        "label": "原维保开始时间"
+      },
+      {
         "key": "item",
         "label": "产品编码"
       },
       {
-        "key": "itemName",
-        "label": "产品名称"
-      },
-      {
         "key": "describe_",
         "label": "产品描述"
+      },
+      {
+        "key": "itemName",
+        "label": "产品名称"
       },
       {
         "key": "gradeName",
@@ -2701,36 +2809,8 @@
         "label": "发货日期"
       },
       {
-        "key": "warranty",
-        "label": "维保内容"
-      },
-      {
-        "key": "warrantyMonth",
-        "label": "维保月数"
-      },
-      {
-        "key": "warrantyStartTime",
-        "label": "维保开始时间"
-      },
-      {
-        "key": "warrantyEndTime",
-        "label": "维保结束时间"
-      },
-      {
-        "key": "old_warrantyStartTime",
-        "label": "原维保开始时间"
-      },
-      {
-        "key": "old_warrantyEndTime",
-        "label": "原维保结束时间"
-      },
-      {
-        "key": "diff",
-        "label": "维保剩余天数"
-      },
-      {
-        "key": "old_diff",
-        "label": "原剩余天数"
+        "key": "contract_code",
+        "label": "合同号"
       },
       {
         "key": "contract_type",
@@ -2747,14 +2827,6 @@
       {
         "key": "customer_name",
         "label": "购货方"
-      },
-      {
-        "key": "finalCustomerName",
-        "label": "来源最终客户名称"
-      },
-      {
-        "key": "agentName",
-        "label": "代理商"
       },
       {
         "key": "office_code",
@@ -2781,12 +2853,24 @@
         "label": "系统部"
       },
       {
+        "key": "warranty",
+        "label": "维保内容"
+      },
+      {
+        "key": "warrantyMonth",
+        "label": "维保月数"
+      },
+      {
         "key": "barcode2",
         "label": "子设备序列号"
       },
       {
         "key": "item2",
         "label": "子产品编码"
+      },
+      {
+        "key": "syncTime",
+        "label": "来源同步时间"
       },
       {
         "key": "describe_2",
@@ -2797,8 +2881,12 @@
         "label": "子产品名称"
       },
       {
-        "key": "syncTime",
-        "label": "来源同步时间"
+        "key": "agentName",
+        "label": "代理商"
+      },
+      {
+        "key": "finalCustomerName",
+        "label": "来源最终客户名称"
       }
     ]
   },
@@ -2904,14 +2992,6 @@
         "label": "原模板状态"
       },
       {
-        "key": "quesType",
-        "label": "问卷类型"
-      },
-      {
-        "key": "markIndexs",
-        "label": "评分指标"
-      },
-      {
         "key": "effectiveStartTime",
         "label": "生效时间"
       },
@@ -2924,16 +3004,24 @@
         "label": "创建时间"
       },
       {
-        "key": "createdPerson",
-        "label": "创建人"
-      },
-      {
         "key": "updatedTime",
         "label": "更新时间"
       },
       {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
         "key": "updatedPerson",
         "label": "更新人"
+      },
+      {
+        "key": "quesType",
+        "label": "问卷类型"
+      },
+      {
+        "key": "markIndexs",
+        "label": "评分指标"
       }
     ]
   },
@@ -2953,28 +3041,24 @@
         "label": "题目内容"
       },
       {
-        "key": "questionNum",
-        "label": "题号"
+        "key": "questionType",
+        "label": "题目类型"
+      },
+      {
+        "key": "questionScore",
+        "label": "题目分数"
       },
       {
         "key": "questionRemark",
         "label": "题目说明"
       },
       {
+        "key": "questionNum",
+        "label": "题号"
+      },
+      {
         "key": "quesnaireTemplateHeaderId",
         "label": "原问卷模板编号"
-      },
-      {
-        "key": "questionType",
-        "label": "题目类型"
-      },
-      {
-        "key": "questionTypeForCB",
-        "label": "回访题目类型"
-      },
-      {
-        "key": "questionScore",
-        "label": "题目分数"
       },
       {
         "key": "questionStatus",
@@ -2993,16 +3077,20 @@
         "label": "创建时间"
       },
       {
-        "key": "createdPerson",
-        "label": "创建人"
-      },
-      {
         "key": "updatedTime",
         "label": "更新时间"
       },
       {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
         "key": "updatedPerson",
         "label": "更新人"
+      },
+      {
+        "key": "questionTypeForCB",
+        "label": "回访题目类型"
       }
     ]
   },
@@ -3018,28 +3106,24 @@
         "label": "原选项编号"
       },
       {
-        "key": "questionOptionsContent",
-        "label": "选项内容"
+        "key": "questionId",
+        "label": "原题目编号"
       },
       {
         "key": "questionOptionNum",
         "label": "选项序号"
       },
       {
+        "key": "questionOptionsContent",
+        "label": "选项内容"
+      },
+      {
         "key": "questionOptionScore",
         "label": "选项分数"
       },
       {
-        "key": "questionId",
-        "label": "原题目编号"
-      },
-      {
         "key": "quesnaireTemplateHeaderId",
         "label": "原问卷模板编号"
-      },
-      {
-        "key": "quesLineType",
-        "label": "原选项类型"
       },
       {
         "key": "effectiveStartTime",
@@ -3054,16 +3138,294 @@
         "label": "创建时间"
       },
       {
-        "key": "createdPerson",
-        "label": "创建人"
-      },
-      {
         "key": "updatedTime",
         "label": "更新时间"
       },
       {
+        "key": "createdPerson",
+        "label": "创建人"
+      },
+      {
         "key": "updatedPerson",
         "label": "更新人"
+      },
+      {
+        "key": "quesLineType",
+        "label": "原选项类型"
+      }
+    ]
+  },
+  {
+    "code": "shipment-packages",
+    "label": "来源装箱单",
+    "group": "发货与设备",
+    "sourceTable": "fb_shipment",
+    "keyField": "packlist_id",
+    "fields": [
+      {
+        "key": "packlist_id",
+        "label": "装箱单号"
+      },
+      {
+        "key": "con_id",
+        "label": "来源发货合同编号"
+      },
+      {
+        "key": "packdate",
+        "label": "发货时间"
+      },
+      {
+        "key": "warrantyStartTime",
+        "label": "保修开始时间"
+      },
+      {
+        "key": "warrantyEndTime",
+        "label": "保修结束时间"
+      },
+      {
+        "key": "receiveName",
+        "label": "收货人"
+      },
+      {
+        "key": "emsNum",
+        "label": "快递单号"
+      },
+      {
+        "key": "emsCompany",
+        "label": "物流公司编码"
+      }
+    ]
+  },
+  {
+    "code": "warranty-services",
+    "label": "来源维保服务事实",
+    "group": "设备与软件",
+    "sourceTable": "fb_service",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "id",
+        "label": "原记录编号"
+      },
+      {
+        "key": "con_xb",
+        "label": "维保合同号"
+      },
+      {
+        "key": "barcode",
+        "label": "来源设备序列号"
+      },
+      {
+        "key": "grade",
+        "label": "维保等级"
+      },
+      {
+        "key": "begin_date",
+        "label": "维保开始时间"
+      },
+      {
+        "key": "end_date",
+        "label": "维保结束时间"
+      },
+      {
+        "key": "warranty",
+        "label": "维保内容"
+      },
+      {
+        "key": "remark",
+        "label": "备注"
+      },
+      {
+        "key": "isyb",
+        "label": "原续保标记"
+      },
+      {
+        "key": "state",
+        "label": "原状态码"
+      }
+    ]
+  },
+  {
+    "code": "warranty-registrations",
+    "label": "来源维保登记",
+    "group": "设备与软件",
+    "sourceTable": "warranty_info",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "原记录编号"
+      },
+      {
+        "key": "packlistId",
+        "label": "原装箱单编号"
+      },
+      {
+        "key": "contractId",
+        "label": "原合同编号"
+      },
+      {
+        "key": "barCode",
+        "label": "来源设备序列号"
+      },
+      {
+        "key": "officeCode",
+        "label": "办事处编码"
+      },
+      {
+        "key": "projectName",
+        "label": "来源项目名称"
+      },
+      {
+        "key": "contractNo",
+        "label": "合同号"
+      },
+      {
+        "key": "contractType",
+        "label": "合同类型"
+      },
+      {
+        "key": "customerName",
+        "label": "客户名称"
+      },
+      {
+        "key": "itemCode",
+        "label": "物料编码"
+      },
+      {
+        "key": "itemName",
+        "label": "物料名称"
+      },
+      {
+        "key": "warrantyLevel",
+        "label": "维保等级"
+      },
+      {
+        "key": "warrantyStartTime",
+        "label": "维保开始时间"
+      },
+      {
+        "key": "warrantyEndTime",
+        "label": "维保结束时间"
+      },
+      {
+        "key": "warrantyLimit",
+        "label": "维保年限"
+      }
+    ]
+  },
+  {
+    "code": "warranty-changes",
+    "label": "来源维保变更记录",
+    "group": "设备与软件",
+    "sourceTable": "warranty_change_logs",
+    "keyField": "id",
+    "fields": [
+      {
+        "key": "id",
+        "label": "原记录编号"
+      },
+      {
+        "key": "username",
+        "label": "原操作人"
+      },
+      {
+        "key": "updateType",
+        "label": "原变更类型"
+      },
+      {
+        "key": "barcode",
+        "label": "来源设备序列号"
+      },
+      {
+        "key": "warrantyStartTime",
+        "label": "维保开始时间"
+      },
+      {
+        "key": "warrantyEndTime",
+        "label": "维保结束时间"
+      },
+      {
+        "key": "warrantyTimes",
+        "label": "维保期限"
+      },
+      {
+        "key": "updateTime",
+        "label": "原变更时间"
+      }
+    ]
+  },
+  {
+    "code": "shipment-materials",
+    "label": "来源发货物料信息",
+    "group": "设备与软件",
+    "sourceTable": "fb_items",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "id",
+        "label": "原物料行编号"
+      },
+      {
+        "key": "item",
+        "label": "物料编码"
+      },
+      {
+        "key": "describe_",
+        "label": "物料名称"
+      },
+      {
+        "key": "itemname",
+        "label": "物料型号"
+      }
+    ]
+  },
+  {
+    "code": "real-product-upstream",
+    "label": "真实产品上游清单",
+    "group": "商务资料",
+    "sourceTable": "pm_project_real_product_line_from_sms",
+    "keyField": "composite",
+    "fields": [
+      {
+        "key": "projectCode",
+        "label": "商务项目编码"
+      },
+      {
+        "key": "orderExecNumber",
+        "label": "执行单号"
+      },
+      {
+        "key": "productFirstName",
+        "label": "一级产品名称"
+      },
+      {
+        "key": "productName",
+        "label": "产品名称"
+      },
+      {
+        "key": "productSubCode",
+        "label": "子产品编码"
+      },
+      {
+        "key": "productSubModel",
+        "label": "子产品型号"
+      },
+      {
+        "key": "productSubName",
+        "label": "子产品名称"
+      },
+      {
+        "key": "num",
+        "label": "数量"
+      },
+      {
+        "key": "memo",
+        "label": "说明"
+      },
+      {
+        "key": "dataSource",
+        "label": "数据来源"
       }
     ]
   }

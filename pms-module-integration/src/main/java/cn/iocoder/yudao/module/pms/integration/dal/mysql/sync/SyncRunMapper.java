@@ -18,6 +18,11 @@ public interface SyncRunMapper extends BaseMapperX<SyncRunDO> {
         return selectOne(new LambdaQueryWrapperX<SyncRunDO>().eq(SyncRunDO::getTenantId,query.tenantId())
             .eq(SyncRunDO::getId,query.id()));
     }
+    default SyncRunDO selectStreamingState(SyncQueries.Id query) {
+        return selectOne(new LambdaQueryWrapperX<SyncRunDO>().eq(SyncRunDO::getTenantId,query.tenantId())
+            .eq(SyncRunDO::getId,query.id())
+            .select(SyncRunDO.class,field -> !java.util.Set.of("configSnapshot","evidenceJson").contains(field.getProperty())));
+    }
     default SyncRunDO selectRequest(SyncQueries.Request query) {
         return selectOne(new LambdaQueryWrapperX<SyncRunDO>().eq(SyncRunDO::getTenantId,query.tenantId())
             .eq(SyncRunDO::getTaskId,query.taskId()).eq(SyncRunDO::getRequestKey,query.requestKey()));

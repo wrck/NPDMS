@@ -28,6 +28,7 @@ public class NativeGeneratedFileService implements NativeGeneratedFileApi {
     private final FileAccessTicketService tickets;
     private final PermissionApi permissions;
     private final DeliveryOwnerAccess owners;
+    private final cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryDocumentOriginResolver origins;
 
     @Override @Transactional(rollbackFor=Exception.class)
     public RegisteredFile create(NativeGeneratedFileCommand command) {
@@ -71,11 +72,19 @@ public class NativeGeneratedFileService implements NativeGeneratedFileApi {
         var document=evidence.inspectDocument(TenantContextHolder.getRequiredTenantId(),material.getFileReferenceId());
         if(document==null || !document.available() || !Objects.equals(material.getFileArtifactId(),document.artifactId())
                 || !Objects.equals(material.getFileVersionNo(),document.versionNo()) || !Objects.equals(material.getFileSha256(),document.sha256())
-                || !ownerModule.equals(document.ownerContext()) || !entityType.equals(document.objectType()) || !entityId.toString().equals(document.objectId()))
+                || !matchesDocumentOwner(document,ownerModule,entityType,entityId,material))
             throw new BusinessContractException("DELIVERY_FILE_UNAVAILABLE","File unavailable");
         return tickets.create(new FileAccessTicketService.AccessCommand(TenantContextHolder.getRequiredTenantId(),SecurityFrameworkUtils.getLoginUserId(),
                 document.artifactId(),document.versionNo(),FileActionCodes.DOWNLOAD,document.ownerContext(),document.objectType(),document.objectId(),
                 document.purposeCode(),document.referenceKey())).getShortLivedUrl();
+    }
+
+    private boolean matchesDocumentOwner(FileEvidenceApi.Document document,String module,String type,Long id,DeliveryMaterialDO material) {
+        if(module.equals(document.ownerContext()) && type.equals(document.objectType()) && id.toString().equals(document.objectId())) return true;
+        var origin=origins.resolve(document);
+        return origin!=null && module.equals(origin.ownerModule()) && type.equals(origin.entityType())
+                && id.equals(origin.entityId()) && Objects.equals(material.getProjectId(),origin.projectId())
+                && Objects.equals(material.getTypeCode(),origin.sourceCode());
     }
 
     private boolean belongsTo(DeliveryMaterialDO material,String module,String type,Long id) {

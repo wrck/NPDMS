@@ -15,7 +15,7 @@
                   JOIN com_sales_order_line l ON l.tenant_id = s.tenant_id AND l.id = s.order_line_id AND l.deleted = 0
                   JOIN com_sales_order o ON o.tenant_id = l.tenant_id AND o.id = l.order_id AND o.deleted = 0
                   WHERE s.tenant_id = c.tenant_id AND s.project_id = #{query.projectId}
-                    AND s.deleted = 0 AND s.scope_status = 'ACTIVE' AND s.effective_to IS NULL
+                    AND s.deleted = 0 AND s.allocation_confirmed = 1 AND s.scope_status = 'ACTIVE' AND s.effective_to IS NULL
                     AND o.contract_no IS NOT NULL
                     AND CAST(o.contract_no AS BINARY) = CAST(c.contract_no AS BINARY)
                     AND CAST(o.company_code AS BINARY) = CAST(c.company_code AS BINARY))
@@ -27,7 +27,7 @@
                     AND oc.effective_from &lt;= CURRENT_TIMESTAMP
                     AND (oc.effective_to IS NULL OR oc.effective_to &gt; CURRENT_TIMESTAMP)
                   WHERE s2.tenant_id = c.tenant_id AND s2.project_id = #{query.projectId}
-                    AND s2.deleted = 0 AND s2.scope_status = 'ACTIVE' AND s2.effective_to IS NULL)
+                    AND s2.deleted = 0 AND s2.allocation_confirmed = 1 AND s2.scope_status = 'ACTIVE' AND s2.effective_to IS NULL)
           )
         ORDER BY c.contract_no, c.id
     </select>
@@ -57,7 +57,7 @@
           OR EXISTS (SELECT 1 FROM com_delivery_scope s3
                   JOIN com_sales_order_line l3 ON l3.tenant_id = s3.tenant_id AND l3.id = s3.order_line_id AND l3.deleted = 0
                   WHERE s3.tenant_id = o.tenant_id AND s3.project_id = #{query.projectId}
-                    AND s3.deleted = 0 AND s3.scope_status = 'ACTIVE' AND s3.effective_to IS NULL
+                    AND s3.deleted = 0 AND s3.allocation_confirmed = 1 AND s3.scope_status = 'ACTIVE' AND s3.effective_to IS NULL
                     AND l3.order_id = o.id)
           )
         ORDER BY o.order_create_time, o.id

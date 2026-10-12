@@ -1,0 +1,603 @@
+{
+  "status": "USER_ROLE_MAPPING_APPROVED_WITH_EXPLICIT_CODE_CONVERSION",
+  "sourceIdentityCount": 32,
+  "distinctTargetRoles": 28,
+  "newTargetRows": 25,
+  "existingTargetRows": 3,
+  "newColumns": [],
+  "newTables": [],
+  "rows": [
+    {
+      "sourceTable": "t_role",
+      "sourceId": 1,
+      "sourceName": "超级管理员",
+      "targetCode": "super_admin",
+      "targetName": "超级管理员",
+      "handling": "用户明确批准关联既有平台super_admin并授予平台超级管理员权限；取消独立历史管理员提案。",
+      "sort": 0,
+      "targetStatus": 0,
+      "sourceBusinessCode": "admin"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 2,
+      "sourceName": "普通用户",
+      "targetCode": "user",
+      "targetName": "普通用户",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 100,
+      "targetStatus": 0,
+      "sourceBusinessCode": "user"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 5,
+      "sourceName": "项目成员",
+      "targetCode": "projectMember",
+      "targetName": "项目成员",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 50,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectMember"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 6,
+      "sourceName": "项目管理员",
+      "targetCode": "projectAdmin",
+      "targetName": "项目管理员",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 20,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectAdmin"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 7,
+      "sourceName": "项目经理",
+      "targetCode": "PROJECT_MANAGER",
+      "targetName": "项目经理",
+      "handling": "复用既有PROJECT_MANAGER，不覆写角色定义/权限",
+      "sort": 45,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectManager"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 8,
+      "sourceName": "安服质量监督员",
+      "targetCode": "projectAFQC",
+      "targetName": "安服质量监督员",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 40,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectAFQC"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 9,
+      "sourceName": "研发质量监督员",
+      "targetCode": "projectYFQC",
+      "targetName": "研发质量监督员",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 40,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectYFQC"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 10,
+      "sourceName": "子项目管理员",
+      "targetCode": "projectSubAdmin",
+      "targetName": "子项目管理员",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 30,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectSubAdmin"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 11,
+      "sourceName": "项目区域负责人",
+      "targetCode": "projectAreaManager",
+      "targetName": "项目区域负责人",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 35,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectAreaManager"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 12,
+      "sourceName": "项目售前",
+      "targetCode": "projectPreSales",
+      "targetName": "项目售前",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 70,
+      "targetStatus": 0,
+      "sourceBusinessCode": "projectPreSales"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 13,
+      "sourceName": "用户管理员",
+      "targetCode": "userManager",
+      "targetName": "用户管理员",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 38,
+      "targetStatus": 0,
+      "sourceBusinessCode": "userManager"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 14,
+      "sourceName": "财务AP",
+      "targetCode": "financialAP",
+      "targetName": "财务AP",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 40,
+      "targetStatus": 0,
+      "sourceBusinessCode": "financialAP"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 15,
+      "sourceName": "数据查询角色",
+      "targetCode": "dataViewer",
+      "targetName": "数据查询角色",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 100,
+      "targetStatus": 0,
+      "sourceBusinessCode": "dataViewer"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceId": 16,
+      "sourceName": "项目转包结算人员",
+      "targetCode": "dispatchSettleStaff",
+      "targetName": "项目转包结算人员",
+      "handling": "以t_role原业务身份迁入；新增正式角色行，不新增字段",
+      "sort": 60,
+      "targetStatus": 0,
+      "sourceBusinessCode": "dispatchSettleStaff"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 1,
+      "sourceName": "管理员",
+      "targetCode": "admin",
+      "targetName": "管理员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_ADMIN",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 201,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "admin"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 3,
+      "sourceName": "普通用户",
+      "targetCode": "user",
+      "targetName": "普通用户",
+      "handling": "关联同义t_role/既有角色，不另建同义角色",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_COMMON",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 205,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "common"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 5,
+      "sourceName": "项目管理员",
+      "targetCode": "projectAdmin",
+      "targetName": "项目管理员",
+      "handling": "关联同义t_role/既有角色，不另建同义角色",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_PROJECT_ADMIN",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 209,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "projectAdmin"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 6,
+      "sourceName": "项目查阅员",
+      "targetCode": "projectViewer",
+      "targetName": "项目查阅员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_PROJECT_VIEWER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 213,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "projectViewer"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 9,
+      "sourceName": "办事处主任",
+      "targetCode": "areaLeader",
+      "targetName": "办事处主任",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_AREA_LEADER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 217,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "areaLeader"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 10,
+      "sourceName": "工程管理部主管",
+      "targetCode": "engineeManagerLeader",
+      "targetName": "工程管理部主管",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_ENGINEEMANAGER_LEADER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 221,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "engineeManagerLeader"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 11,
+      "sourceName": "服务经理",
+      "targetCode": "SERVICE_MANAGER",
+      "targetName": "服务经理",
+      "handling": "关联同义t_role/既有角色，不另建同义角色",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_SERVICEMANAGER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 225,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "serviceManager"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 12,
+      "sourceName": "项目经理",
+      "targetCode": "PROJECT_MANAGER",
+      "targetName": "项目经理",
+      "handling": "关联同义t_role/既有角色，不另建同义角色",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_PROGRAMMANAGER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 229,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "programManager"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 13,
+      "sourceName": "工程管理部",
+      "targetCode": "engineeManager",
+      "targetName": "工程管理部",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_ENGINEEMANAGER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 233,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "engineeManager"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 14,
+      "sourceName": "回访人员",
+      "targetCode": "callbackPer",
+      "targetName": "回访人员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_CALLBACKPER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 237,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "callbackPer"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 15,
+      "sourceName": "&aelig;&micro;&egrave;&macr;&auml;&ordm;&ordm;&aring;",
+      "targetCode": null,
+      "targetName": null,
+      "handling": "不迁入：用户明确裁决停用角色不迁入；其用户角色关联不形成正式授权。",
+      "sort": null,
+      "targetStatus": 1,
+      "excluded": true,
+      "integerRoleSymbol": "ROLE_SALESPEOPLE",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 241,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "salesPeople"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 16,
+      "sourceName": "财务人员",
+      "targetCode": "financialStaff",
+      "targetName": "财务人员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_FINANCIAL_STAFF",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 245,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "financialStaff"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 17,
+      "sourceName": "售前测试专员",
+      "targetCode": "presalesStaff",
+      "targetName": "售前测试专员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_PRESALES_STAFF",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 249,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "presalesStaff"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 18,
+      "sourceName": "技术公告管理员",
+      "targetCode": "probAdmin",
+      "targetName": "技术公告管理员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_PROB_ADMIN",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 253,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "probAdmin"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 19,
+      "sourceName": "技术支持人员",
+      "targetCode": "probSupporter",
+      "targetName": "技术支持人员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_PROB_SUPPORTER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 257,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "probSupporter"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 20,
+      "sourceName": "研发人员",
+      "targetCode": "probRD",
+      "targetName": "研发人员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_PROB_RD",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 261,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "probRD"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 21,
+      "sourceName": "项目维保回访专员",
+      "targetCode": "warrantyCallbacker",
+      "targetName": "项目维保回访专员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_WARRANTY_CALLBACKER",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 265,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "warrantyCallbacker"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceId": 22,
+      "sourceName": "产品组件管理员",
+      "targetCode": "componentAdmin",
+      "targetName": "产品组件管理员",
+      "handling": "按用户指示由角色常量语义转为小驼峰业务码；原角色独立身份按批准清单承接。",
+      "sort": null,
+      "targetStatus": 0,
+      "integerRoleSymbol": "ROLE_COMPONENT_ADMIN",
+      "integerRoleSymbolFile": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/src/com/dp/plat/util/MessageUtil.java",
+      "integerRoleSymbolLine": 269,
+      "sourceBusinessCode": null,
+      "sourceStringCodeStatus": "USER_AUTHORIZED_CONSTANT_SEMANTIC_TO_LOWER_CAMEL_CODE_CONVERSION_NOT_LITERAL_SOURCE_STRING",
+      "convertedBusinessCode": "componentAdmin"
+    }
+  ],
+  "mappingNotes": [
+    "用户明确批准t_role1超级管理员关联平台super_admin并授予平台超级管理员权限；不再使用独立code=admin。",
+    "停用角色不迁入，本源fnd_roles15及相关用户角色关联排除；完整列明来源及用户裁决理由。",
+    "t_role11项目区域负责人按已批准清单独立承接。",
+    "普通用户/项目管理员按同义t_role关联；PROJECT_MANAGER/SERVICE_MANAGER复用现有角色。",
+    "t_role sort=100-priority；独立fnd sort=100+来源ID；新增普通业务角色CUSTOM=2、SELF=5，不自动授予菜单按钮。",
+    "已有角色定义与权限不覆盖；超级管理员权限依据用户本次明确裁决授予。",
+    "编码转换依用户最新裁决执行：ROLE_PROJECT_VIEWER→projectViewer等小驼峰业务码；该转换结果不声称是旧源码原有字符串字面量。ROLE_*名称、整数ID及新编码三者分别记录。"
+  ],
+  "schemaWrites": 0,
+  "roleWrites": 0,
+  "userDecision": "按完整清单处理；超级管理员授予平台超级管理员权限；停用角色不迁入。",
+  "acceptedSourceIdentityCount": 31,
+  "excludedSourceIdentityCount": 1,
+  "withdrawnIdGeneratedCodes": [
+    {
+      "sourceId": 1,
+      "withdrawnCode": "DPPMS_FND_ROLE_1",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 6,
+      "withdrawnCode": "DPPMS_FND_ROLE_6",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 9,
+      "withdrawnCode": "DPPMS_FND_ROLE_9",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 10,
+      "withdrawnCode": "DPPMS_FND_ROLE_10",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 13,
+      "withdrawnCode": "DPPMS_FND_ROLE_13",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 14,
+      "withdrawnCode": "DPPMS_FND_ROLE_14",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 16,
+      "withdrawnCode": "DPPMS_FND_ROLE_16",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 17,
+      "withdrawnCode": "DPPMS_FND_ROLE_17",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 18,
+      "withdrawnCode": "DPPMS_FND_ROLE_18",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 19,
+      "withdrawnCode": "DPPMS_FND_ROLE_19",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 20,
+      "withdrawnCode": "DPPMS_FND_ROLE_20",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 21,
+      "withdrawnCode": "DPPMS_FND_ROLE_21",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    },
+    {
+      "sourceId": 22,
+      "withdrawnCode": "DPPMS_FND_ROLE_22",
+      "reason": "用户指出源码已有业务编码；撤回按ID构造的编码。"
+    }
+  ],
+  "userCodeCorrection": "用户明确：按常量名转换为对应编码，不直接使用常量名。按与t_role既有字符串一致的小驼峰业务码转换，独立角色用转换结果；既有批准角色关联不变。",
+  "withdrawnIntegerSymbolCodes": [
+    {
+      "sourceId": 1,
+      "withdrawnSymbolAsCode": "ROLE_ADMIN",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 6,
+      "withdrawnSymbolAsCode": "ROLE_PROJECT_VIEWER",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 9,
+      "withdrawnSymbolAsCode": "ROLE_AREA_LEADER",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 10,
+      "withdrawnSymbolAsCode": "ROLE_ENGINEEMANAGER_LEADER",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 13,
+      "withdrawnSymbolAsCode": "ROLE_ENGINEEMANAGER",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 14,
+      "withdrawnSymbolAsCode": "ROLE_CALLBACKPER",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 16,
+      "withdrawnSymbolAsCode": "ROLE_FINANCIAL_STAFF",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 17,
+      "withdrawnSymbolAsCode": "ROLE_PRESALES_STAFF",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 18,
+      "withdrawnSymbolAsCode": "ROLE_PROB_ADMIN",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 19,
+      "withdrawnSymbolAsCode": "ROLE_PROB_SUPPORTER",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 20,
+      "withdrawnSymbolAsCode": "ROLE_PROB_RD",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 21,
+      "withdrawnSymbolAsCode": "ROLE_WARRANTY_CALLBACKER",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    },
+    {
+      "sourceId": 22,
+      "withdrawnSymbolAsCode": "ROLE_COMPONENT_ADMIN",
+      "reason": "整数常量名称不是业务字符串值，用户明确纠正。"
+    }
+  ]
+}

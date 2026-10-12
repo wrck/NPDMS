@@ -27,10 +27,22 @@ public class ProjectMemberAssignmentRespVO {
     @Schema(description = "成员姓名")
     private String memberName;
 
+    @Schema(description = "成员区间的原人员编码")
+    private String memberCode;
+
+    @Schema(description = "成员区间自身的联系电话")
+    private String phoneNumber;
+
+    @Schema(description = "原登记来源：1项目信息，2手工成员")
+    private String registrationSource;
+
+    @Schema(description = "是否经Owner确认参与当前项目授权")
+    private Boolean authorizationConfirmed;
+
     @Schema(description = "System人员主档中的当前联系电话")
     private String mobile;
 
-    @Schema(description = "System人员主档中的当前邮箱")
+    @Schema(description = "历史成员使用区间邮箱，正常成员使用当前人员邮箱")
     private String email;
 
     @Schema(description = "成员角色（字典 pms_project_member_role）")

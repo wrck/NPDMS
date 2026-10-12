@@ -1,9 +1,12 @@
 package cn.iocoder.yudao.module.pms.commerce.controller.admin.authority;
 
+import cn.iocoder.yudao.framework.apilog.core.annotation.ApiAccessLog;
+import cn.iocoder.yudao.framework.common.exception.ErrorCode;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.util.TenantUtils;
+import cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException;
 import cn.iocoder.yudao.module.pms.commerce.api.authority.dto.*;
 import cn.iocoder.yudao.module.pms.commerce.controller.admin.authority.vo.CommerceAuthorityImportBatchReqVO;
 import cn.iocoder.yudao.module.pms.commerce.service.authority.CommerceAuthorityImportApplicationService;
@@ -23,6 +26,7 @@ import java.util.function.Supplier;
 import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
+import static cn.iocoder.yudao.module.pms.commerce.enums.ErrorCodeConstants.*;
 
 @RestController
 @RequestMapping("/api/v1/pms/commerce-authority/import-batches")
@@ -34,6 +38,7 @@ public class CommerceAuthorityImportController {
     private final Environment environment;
 
     @PostMapping
+    @ApiAccessLog(requestEnable=false,responseEnable=false)
     @PreAuthorize("@ss.hasPermission('pms:commerce:authority:write')")
     public CommonResult<CommerceAuthorityBatchResult> create(
             @RequestHeader("Idempotency-Key") @NotBlank @Size(max = 128) String operationId,
@@ -51,6 +56,27 @@ public class CommerceAuthorityImportController {
         });
     }
 
+    /** Domain failures remain explicit business rejections; arbitrary failures keep the global 500 handler. */
+    @ExceptionHandler(CommerceAuthorityIngestException.class)
+    public CommonResult<?> authorityIngestExceptionHandler(CommerceAuthorityIngestException failure) {
+        ErrorCode error = switch (failure.getCode()) {
+            case INVALID_REQUEST -> COMMERCE_AUTHORITY_INVALID_REQUEST;
+            case TENANT_CONTEXT_MISMATCH -> COMMERCE_AUTHORITY_TENANT_CONTEXT_MISMATCH;
+            case EVENT_PAYLOAD_CONFLICT -> COMMERCE_AUTHORITY_EVENT_PAYLOAD_CONFLICT;
+            case SOURCE_VERSION_CONFLICT -> COMMERCE_AUTHORITY_SOURCE_VERSION_CONFLICT;
+            case SOURCE_VERSION_PAYLOAD_CONFLICT -> COMMERCE_AUTHORITY_SOURCE_VERSION_PAYLOAD_CONFLICT;
+            case OWNER_DATA_CORRUPTED -> COMMERCE_AUTHORITY_OWNER_DATA_CORRUPTED;
+            case PROVIDER_UNAVAILABLE -> COMMERCE_AUTHORITY_PROVIDER_UNAVAILABLE;
+        };
+        String message = error.getMsg();
+        if (failure.getCode() == CommerceAuthorityIngestException.Code.SOURCE_VERSION_CONFLICT
+                && failure.getMessage() != null && failure.getMessage().startsWith("ROW_VERSION_CONFLICT:")) {
+            message = "SOURCE_VERSION_CONFLICT:ROW_VERSION_CONFLICT";
+        }
+        // Never copy exception text, source identities, custom payloads, or causes into the public response.
+        return CommonResult.error(error.getCode(), message);
+    }
+
     CommerceAuthorityBatchCommand toCommand(Long tenantId, String sourceSystem, String operationId,
                                              String correlationId, CommerceAuthorityImportBatchReqVO request) {
         List<CommerceContractFact> contracts = safe(request.contracts()).stream()
@@ -66,7 +92,7 @@ public class CommerceAuthorityImportController {
                         value.amount(), value.currencyCode(), value.lifecycleStatus(), value.sourceUpdatedAt(),
                         value.salesType(), value.sourceProjectName(), value.orderComment(),
                         value.orderCreateTime(), value.customerRequiredTime(), value.customInfo(),
-                        value.contractNo(), value.executionNo()))
+                        value.contractNo(), value.executionNo(), value.expectedRowVersion()))
                 .toList();
         List<CommerceOrderLineFact> lines = safe(request.salesOrderLines()).stream()
                 .map(value -> new CommerceOrderLineFact(value.sourceRecordKey(),
@@ -75,7 +101,7 @@ public class CommerceAuthorityImportController {
                         value.orderQuantity(), value.openQuantity(), value.deliveredQuantity(),
                         value.unitCode(), value.unitScale(), value.quantityStatus(), value.lifecycleStatus(),
                         value.sourceUpdatedAt(), value.lineType(), value.bundleCode(), value.profitCenter(),
-                        value.realExecutionNo(), value.warrantyMonth(), value.customInfo()))
+                        value.realExecutionNo(), value.warrantyMonth(), value.customInfo(), value.expectedRowVersion()))
                 .toList();
         List<CommerceOrderContractRelationFact> relations = safe(request.orderContractRelations()).stream()
                 .map(value -> new CommerceOrderContractRelationFact(value.salesOrderSourceKey(),

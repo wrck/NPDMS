@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ShipmentContractWarrantyCorrectionMapper">
+  <sql id="completeReferenceJson">
+    JSON_OBJECT(
+        'id', `id`,
+        'tenant_id', `tenant_id`,
+        'contract_id', `contract_id`,
+        'contract_no', `contract_no`,
+        'company_id', `company_id`,
+        'company_code', `company_code`,
+        'company_name', `company_name`,
+        'department_id', `department_id`,
+        'department_code', `department_code`,
+        'department_name', `department_name`,
+        'contract_type', `contract_type`,
+        'customer_name', `customer_name`,
+        'project_name', `project_name`,
+        'market_code', `market_code`,
+        'market_name', `market_name`,
+        'system_source_key', `system_source_key`,
+        'system_code', `system_code`,
+        'system_name', `system_name`,
+        'warranty_years', `warranty_years`,
+        'remark', `remark`,
+        'mapping_status', `mapping_status`,
+        'source_system', `source_system`,
+        'source_record_key', `source_record_key`,
+        'source_sync_time', `source_sync_time`,
+        'creator', `creator`,
+        'create_time', `create_time`,
+        'updater', `updater`,
+        'update_time', `update_time`,
+        'deleted', `deleted`)
+  </sql>
+  <sql id="completeReferenceFingerprint">
+    SHA2(<include refid="completeReferenceJson"/>, 256)
+  </sql>
+  <sql id="normalizedReferenceFingerprint">
+    SHA2(JSON_SET(<include refid="completeReferenceJson"/>, '$.warranty_years', NULL), 256)
+  </sql>
+  <sql id="currentReference">
+    SELECT id, warranty_years AS warrantyYears, deleted,
+      <include refid="completeReferenceFingerprint"/> AS fingerprint,
+      <include refid="normalizedReferenceFingerprint"/> AS normalizedFingerprint
+    FROM com_shipment_contract_reference
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.targetId}
+      AND source_system='DPPMS' AND source_record_key=#{query.sourceKey}
+  </sql>
+  <select id="selectCurrent" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ShipmentContractWarrantyCorrectionMapper$Current">
+    <include refid="currentReference"/>
+  </select>
+  <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ShipmentContractWarrantyCorrectionMapper$Current">
+    <include refid="currentReference"/> FOR UPDATE
+  </select>
+  <update id="normalizeEmptyYear">
+    UPDATE com_shipment_contract_reference SET warranty_years=NULL
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.targetId}
+      AND source_system='DPPMS' AND source_record_key=#{query.sourceKey}
+      AND deleted=0 AND warranty_years IS NOT NULL AND TRIM(warranty_years)=''
+  </update>
+</mapper>

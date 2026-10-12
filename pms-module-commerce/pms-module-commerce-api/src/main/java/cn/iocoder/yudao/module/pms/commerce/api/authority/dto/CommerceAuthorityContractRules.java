@@ -25,6 +25,14 @@ final class CommerceAuthorityContractRules {
         return value == null ? null : text(value, maxLength, field);
     }
 
+    /** Approved historical order attributes retain original whitespace and explicit empty values. */
+    static String originalOrderText(String value,int maxLength,String field,String sourceKey) {
+        if (!sourceKey.matches("DPPMS\\|(SAP|D365|SMS)\\|(01|02|03|04|001|002|003|004)\\|[01]\\|[^|]+(?:\\|[^|]+)?"))
+            return optionalText(value,maxLength,field);
+        if (value!=null && value.length()>maxLength) throw invalid(field+" must be at most "+maxLength+" characters");
+        return value;
+    }
+
     /** 原样透传字段（如customInfo）：空白归一为null，其余不裁剪、不截断、不校验。 */
     static String passthrough(String value) {
         return value == null || value.isBlank() ? null : value;

@@ -37,6 +37,7 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
                 .in(ProjectMemberAssignmentDO::getMemberRole,
                         cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES)
                 .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true)
                 .and(q -> q.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
                         .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
                 .and(q -> q.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
@@ -56,12 +57,14 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
         }
         if ("CURRENT".equals(query.getState())) {
             conditions.eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                    .eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true)
                     .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
                             .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.getEffectiveAt()))
                     .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
                             .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.getEffectiveAt()));
         } else {
             conditions.and(w -> w.ne(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                    .or().eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, false)
                     .or().le(ProjectMemberAssignmentDO::getEffectiveTo, query.getEffectiveAt()));
         }
         return selectPage(query.getPage(), conditions);
@@ -109,6 +112,7 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
         return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
                 .eq(ProjectMemberAssignmentDO::getProjectId, query.projectId())
                 .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true)
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
                         .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
@@ -121,6 +125,7 @@ public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMember
                 .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
                 .eq(ProjectMemberAssignmentDO::getUserId, query.userId())
                 .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true)
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
                         .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
                 .and(wrapper -> wrapper.isNull(ProjectMemberAssignmentDO::getEffectiveTo)

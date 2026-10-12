@@ -119,7 +119,7 @@ class ProjectCreationSourceLockTest {
         var anotherOrder = new SalesOrderDO(); anotherOrder.setId(22L); anotherOrder.setExecutionNo("EX-OTHER"); anotherOrder.setCompanyCode("C1");
         var anotherExecution = new CrmExecutionOrderDO(); anotherExecution.setId(33L); anotherExecution.setExecutionNo("EX-OTHER"); anotherExecution.setCompanyCode("C1"); anotherExecution.setSourceSystem("CRM");
         var relation = new cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ProjectContractRelationDO();
-        relation.setId(8L); relation.setProjectId(77L);
+        relation.setId(8L); relation.setProjectId(77L); relation.setStatus("ACTIVE");
         when(relationMapper.selectCurrentByContract(any())).thenReturn(List.of(relation));
         when(relationMapper.selectByIdentityForUpdate(any())).thenReturn(relation);
         when(orderMapper.selectCreationOrdersForUpdate(any())).thenReturn(List.of(order,anotherOrder));
@@ -133,5 +133,16 @@ class ProjectCreationSourceLockTest {
                 1L,3L,77L,7L,"C1",null,"EX1","CRM"));
         verify(executionOrderMapper,never()).updatePrimaryProjectIfUnbound(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.query.ExecutionPrimaryProjectUpdate(
                 1L,33L,77L,7L,"C1",null,"EX-OTHER","CRM"));
+    }
+
+    @Test void historicalIdentityCannotReplayCreationOrBindExecutionOrders() {
+        var historical=new cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ProjectContractRelationDO();
+        historical.setId(8L);historical.setProjectId(77L);historical.setStatus("HISTORICAL");
+        when(relationMapper.selectByIdentityForUpdate(any())).thenReturn(historical);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.bindProjectCommerceSource(
+                new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(1L,77L,1L,7L,"op",2L,fingerprint())));
+        verify(relationMapper,never()).insert(any(cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ProjectContractRelationDO.class));
+        verify(executionOrderMapper,never()).updatePrimaryProjectIfUnbound(any());verifyNoInteractions(operationAuditApi);
+        assertEquals("HISTORICAL",historical.getStatus());
     }
 }

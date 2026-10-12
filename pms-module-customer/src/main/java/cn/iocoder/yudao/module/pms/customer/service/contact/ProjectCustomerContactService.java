@@ -30,6 +30,7 @@ public class ProjectCustomerContactService {
     private final PlatformCommandExecutionApi commands;
     private final cn.iocoder.yudao.module.pms.customer.service.query.CustomerQueryService customerQuery;
     private final cn.iocoder.yudao.module.pms.customer.service.security.CustomerScopeContextService customerScopes;
+    private final ProjectContactRuleWakeup ruleWakeup;
 
     @Transactional(rollbackFor = Exception.class)
     public ProjectContactContextApi.Context associateCustomer(CustomerContactMasterService.Actor actor, Long projectId, Integer version, Long customerId) {
@@ -63,7 +64,17 @@ public class ProjectCustomerContactService {
 
     public PageResult<ProjectCustomerContactDO> page(CustomerContactMasterService.Actor actor, Long projectId, Integer status, String name, PageParam page) {
         var context = context(actor, projectId);
-        return contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId, context.canViewHistory() ? status : Integer.valueOf(0), name, page));
+        var result=contacts.selectPage(new ProjectContactPageQuery(actor.tenantId(), projectId, context.canViewHistory() ? status : Integer.valueOf(0), name, page));
+        if(result.getList().stream().anyMatch(row->row.getProjectPartyId()!=null)) {
+            var party=projects.inspectFinalCustomer(new ProjectContactContextApi.Query(actor.tenantId(),actor.userId(),projectId));
+            result.getList().forEach(row->{
+                if(row.getProjectPartyId()!=null) {
+                    row.setHistoricalReadonly(true);
+                    if(party!=null && Objects.equals(party.id(),row.getProjectPartyId())) row.setProjectPartyName(party.name());
+                }
+            });
+        }
+        return result;
     }
 
     public PageResult<CustomerContactMasterDO> sources(CustomerContactMasterService.Actor actor, Long projectId, String name, PageParam page) {
@@ -157,6 +168,7 @@ public class ProjectCustomerContactService {
     public void restore(CustomerContactMasterService.Actor actor, Long projectId, Long id, Integer projectVersion, Integer expectedVersion, int status) {
         var context = lock(actor, projectId, projectVersion, status == 0);
         var existing = contacts.selectIncludingDeletedForUpdate(new ProjectContactRowQuery(actor.tenantId(), projectId, id));
+        if(existing!=null && existing.getProjectPartyId()!=null) throw exception(CONTACT_VALUES_INVALID,"来源最终客户联系人为只读历史");
         if (existing == null || !Boolean.TRUE.equals(existing.getDeleted()) || !Objects.equals(existing.getVersion(), expectedVersion)) throw exception(CONTACT_VERSION_CONFLICT);
         if (!Objects.equals(existing.getCustomerId(), context.customerId())) throw exception(CONTACT_VALUES_INVALID, "联系人不属于项目当前客户");
         if (status == 0) requireSource(actor, context.customerId(), existing.getCustomerContactId());
@@ -195,6 +207,7 @@ public class ProjectCustomerContactService {
     private ProjectCustomerContactDO requireRow(CustomerContactMasterService.Actor actor, Long projectId, Long id, Integer version) {
         var row = contacts.selectForUpdate(new ProjectContactRowQuery(actor.tenantId(), projectId, id));
         if (row == null) throw exception(CONTACT_NOT_EXISTS);
+        if(row.getProjectPartyId()!=null) throw exception(CONTACT_VALUES_INVALID,"来源最终客户联系人为只读历史");
         if (version == null || !Objects.equals(row.getVersion(), version)) throw exception(CONTACT_VERSION_CONFLICT);
         return row;
     }
@@ -240,5 +253,6 @@ public class ProjectCustomerContactService {
         entry.setCustomerContactId(sourceId); entry.setProjectId(projectId); entry.setProjectRelationId(relationId); entry.setActionCode(action);
         entry.setBeforeValues(before == null ? null : JsonUtils.toJsonString(before)); entry.setAfterValues(after == null ? null : JsonUtils.toJsonString(after));
         entry.setOccurredAt(LocalDateTime.now()); history.insert(entry);
+        if (projectId != null) ruleWakeup.changed(actor.tenantId(), projectId, actor.userId());
     }
 }

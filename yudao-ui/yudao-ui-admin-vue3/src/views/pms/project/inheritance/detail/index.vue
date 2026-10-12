@@ -439,6 +439,7 @@
           <DeliveryModuleTable
             :config="deliveryModules['equipment']"
             :project-id="detail.id"
+            :project-context="scopeContext"
           />
         </div>
         <!-- Demo 1.1.1 序列号详情 / Demo 1.1.1.1 配置Log（配置驱动，消费设备域真实 API） -->

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMasterMigrationMapper">
+  <select id="selectIdentity" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+    SELECT * FROM proj_project WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND deleted=b'0'
+  </select>
+  <select id="selectIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+    SELECT * FROM proj_project WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND deleted=b'0' FOR UPDATE
+  </select>
+  <select id="selectExactCodeIds" resultType="java.lang.Long">
+    SELECT id FROM proj_project WHERE tenant_id=#{query.tenantId} AND project_code=#{query.projectCode}
+    ORDER BY id
+  </select>
+  <update id="initializeFormalIfMatch">
+    UPDATE proj_project SET
+      project_code=#{query.facts.projectCode}, project_name=#{query.facts.projectName},
+      company_id=#{query.facts.companyId}, company_code=#{query.facts.companyCode}, company_name=#{query.facts.companyName},
+      project_type=#{query.facts.projectType}, project_category=#{query.facts.projectCategory},
+      signing_method=#{query.facts.signingMethod}, implementation_mode=#{query.facts.implementationMode},
+      customer_project_name=#{query.facts.customerProjectName}, sales_type=#{query.facts.salesType},
+      major_project_level=#{query.facts.majorProjectLevel},
+      market_name=#{query.facts.marketName}, system_name=#{query.facts.systemName},
+      expend_name=#{query.facts.expendName}, industry_name=#{query.facts.industryName},
+      not_track_reason=#{query.facts.notTrackReason},
+      project_start_time=#{query.facts.projectStartTime}, project_refresh_time=#{query.facts.projectRefreshTime},
+      project_close_time=#{query.facts.projectCloseTime}, order_create_time=#{query.facts.orderCreateTime},
+      custom_info=#{query.facts.customInfo}, disabled=#{query.facts.disabled},
+      effective_from=#{query.facts.effectiveFrom}, effective_to=#{query.facts.effectiveTo},
+      creator=#{query.facts.creator}, create_time=#{query.facts.createTime},
+      updater=#{query.facts.updater}, update_time=#{query.facts.updateTime},
+      lifecycle_status=#{query.facts.lifecycleStatus}, current_stage=#{query.facts.currentStage},
+      closed_at=#{query.facts.closedAt}, version=version+1
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND version=#{query.expectedVersion}
+      AND lifecycle_status=#{query.expectedLifecycleStatus} AND current_stage=#{query.expectedCurrentStage}
+      AND deleted=b'0'
+  </update>
+  <insert id="insertHistoricalRoot">
+    INSERT INTO proj_project (
+      id,tenant_id,project_code,project_name,code_root_id,project_sequence,code_rule_version,
+      root_id,tree_path,tree_depth,tree_sort,department_id,department_code,department_name,
+      company_id,company_code,company_name,project_type,project_category,signing_method,implementation_mode,
+      customer_project_name,sales_type,major_project_level,market_name,system_name,expend_name,industry_name,
+      not_track_reason,project_start_time,project_refresh_time,project_close_time,order_create_time,custom_info,
+      disabled,effective_from,effective_to,creator,create_time,updater,update_time,
+      source_type,status,lifecycle_status,current_stage,closed_at,assignment_status,version,deleted
+    ) VALUES (
+      #{query.facts.id},#{query.facts.tenantId},#{query.facts.projectCode},#{query.facts.projectName},#{query.facts.id},0,'V1',
+      #{query.facts.id},'',0,0,#{query.departmentId},#{query.departmentCode},#{query.departmentName},
+      #{query.facts.companyId},#{query.facts.companyCode},#{query.facts.companyName},#{query.facts.projectType},
+      #{query.facts.projectCategory},#{query.facts.signingMethod},#{query.facts.implementationMode},
+      #{query.facts.customerProjectName},#{query.facts.salesType},#{query.facts.majorProjectLevel},#{query.facts.marketName},
+      #{query.facts.systemName},#{query.facts.expendName},#{query.facts.industryName},#{query.facts.notTrackReason},
+      #{query.facts.projectStartTime},#{query.facts.projectRefreshTime},#{query.facts.projectCloseTime},
+      #{query.facts.orderCreateTime},#{query.facts.customInfo},#{query.facts.disabled},#{query.facts.effectiveFrom},#{query.facts.effectiveTo},
+      #{query.facts.creator},#{query.facts.createTime},#{query.facts.updater},#{query.facts.updateTime},
+      'MIGRATION',#{query.facts.lifecycleStatus},#{query.facts.lifecycleStatus},#{query.facts.currentStage},
+      #{query.facts.closedAt},'UNASSIGNED',#{query.facts.version},b'0'
+    )
+  </insert>
+</mapper>

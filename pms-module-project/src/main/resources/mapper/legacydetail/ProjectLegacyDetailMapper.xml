@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper">
+  <select id="selectSource" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO">
+    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'
+      AND source_project_key=#{query.sourceProjectKey}
+  </select>
   <select id="selectSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO">
     SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'
       AND source_project_key=#{query.sourceProjectKey} FOR UPDATE
@@ -41,5 +45,13 @@
   <select id="selectRecords" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO">
     SELECT * FROM proj_legacy_detail_record WHERE <include refid="recordScope"/> ORDER BY source_key,id
     LIMIT #{query.offset},#{query.limit}
+  </select>
+  <select id="selectSourceLicenseRecords" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO">
+    SELECT r.* FROM proj_legacy_detail_record r
+    JOIN proj_legacy_detail_snapshot s ON s.id=r.snapshot_id AND s.tenant_id=r.tenant_id
+    WHERE r.tenant_id=#{query.tenantId} AND s.tenant_id=#{query.tenantId} AND s.source_id=#{query.sourceId}
+      AND r.domain_code='licenses'
+    <if test="query.afterId != null">AND r.id&gt;#{query.afterId}</if>
+    ORDER BY r.id LIMIT #{query.limit}
   </select>
 </mapper>

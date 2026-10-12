@@ -66,9 +66,14 @@
           <template #default="{ row }">{{ row.customerName || context?.customerName || selectedCustomerName }}</template>
         </el-table-column>
         <el-table-column prop="name" label="姓名" min-width="100" />
+        <el-table-column v-if="projectId" label="联系单位" min-width="180">
+          <template #default="{ row }">{{ row.projectPartyId ? `最终客户：${row.projectPartyName || '待关联'}` : (row.customerName || context?.customerName || '-') }}</template>
+        </el-table-column>
+        <el-table-column v-if="projectId" prop="contactCode" label="人员编码" min-width="100" />
         <el-table-column prop="department" label="部门" min-width="120" />
         <el-table-column prop="title" label="职务" min-width="120"><template #default="{ row }">{{ row.title }}</template></el-table-column>
         <el-table-column prop="mobile" label="手机" min-width="130" />
+        <el-table-column prop="phone" label="电话" min-width="130" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column prop="primaryFlag" label="主联系人" width="90">
           <template #default="{ row }">
@@ -79,10 +84,19 @@
         <el-table-column prop="status" label="状态" width="90">
           <template #default="{ row }"><dict-tag type="pms_contact_status" :value="row.status" /></template>
         </el-table-column>
+        <el-table-column v-if="projectId" label="生效时间" min-width="165">
+          <template #default="{ row }">{{ row.effectiveFrom == null ? '-' : formatDate(row.effectiveFrom) }}</template>
+        </el-table-column>
+        <el-table-column v-if="projectId" label="失效时间" min-width="165">
+          <template #default="{ row }">{{ row.effectiveTo == null ? '-' : formatDate(row.effectiveTo) }}</template>
+        </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
+            <span v-if="isHistorical(row)">只读历史</span>
+            <template v-else>
             <el-button v-if="projectId || checkPermi(['pms:customer-contact:update'])" link type="primary" :disabled="!canEdit" @click="open(row)">编辑</el-button>
             <el-button v-if="projectId || checkPermi(['pms:customer-contact:delete'])" link type="danger" :disabled="!canEdit" @click="remove(row)">删除</el-button>
+            </template>
           </template>
         </el-table-column>
         <template #empty>
@@ -167,6 +181,7 @@ import { useMessage } from '@/hooks/web/useMessage'
 import ContactFields from './ContactFields.vue'
 import ContactHistoryDialog from './ContactHistoryDialog.vue'
 import { getIntDictOptions } from '@/utils/dict'
+import { formatDate } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsCustomerContactsWorkbench' })
 const props = withDefaults(defineProps<{ projectId?: number; showCustomerFilter?: boolean; showSectionHeader?: boolean
@@ -182,6 +197,7 @@ const context = ref<ProjectContactContext>()
 const query = reactive({ pageNo: 1, pageSize: 10, customerId: undefined as number | undefined, name: '', status: undefined as number | undefined })
 const selectedCustomerName = ref('')
 const rows = ref<ContactVO[]>([]), total = ref(0)
+const isHistorical = (row: ContactVO) => !!row.projectPartyId || !!row.historicalReadonly
 const displayRows = computed(() => [...rows.value].sort((left, right) => {
   const leftPrimary = left.primaryFlag && left.status === 0 ? 1 : 0
   const rightPrimary = right.primaryFlag && right.status === 0 ? 1 : 0
@@ -220,7 +236,6 @@ const load = async () => {
       if (current !== sequence) return
       context.value = result
     }
-    if (props.projectId && !customerId.value) { rows.value = []; total.value = 0; return context.value }
     const page = props.projectId ? await ContactApi.getProjectPage(props.projectId, query)
       : await ContactApi.getMasterPage({ ...query, customerId: customerId.value })
     if (current !== sequence) return
@@ -295,6 +310,7 @@ const addSelectedSources = async () => {
   }
 }
 const open = (row?: ContactVO) => {
+  if (row && isHistorical(row)) return
   if (!canEdit.value || (props.projectId && !customerId.value)) return
   createMode.value = 'new'; sourceRows.clear()
   form.value = { name: '', department: '', title: '', mobile: '', phone: '', email: '', remark: '', primaryFlag: !!props.projectId && total.value === 0, status: 0, customerId: customerId.value, ...row }
@@ -327,6 +343,7 @@ const save = async () => {
   finally { saving.value = false }
 }
 const remove = async (row: ContactVO) => {
+  if (isHistorical(row)) return
   if (!canEdit.value) return
   if (row.primaryFlag && props.projectId) await message.confirm('删除当前主联系人并确认项目暂不设置主联系人？客户主档和历史快照将保留。')
   else await message.delConfirm()

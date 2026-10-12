@@ -144,6 +144,51 @@ class PlatformMigrationEvidenceMySqlTest {
     }
 
     @Test
+    void exactBatchPreviewReadsEveryShipmentTargetAndPreservesCompletedSourceFacts() {
+        var created = createBatch(prefix + "-many-target-preview", 1);
+        var source = appendSources(created.batchId(), 1).getFirst();
+        stage(created, 1);
+        var targets = java.util.stream.IntStream.range(0, 1001).mapToObj(index ->
+                new ExternalTargetMapping("AST", "SHIPMENT", "ast_device_shipment", 100L + index,
+                        "PRODUCT_FACT", index)).toList();
+        transactionTemplate.executeWithoutResult(status -> {
+            var claim = api.claimStagedBatch(claimCommand());
+            assertEquals(created.batchId(), claim.batch().batchId());
+            api.appendExternalMapping(new AppendExternalMappingCommand(TENANT_ID, created.batchId(),
+                    source.sourceRecordId(), SourceReconciliationType.MAPPED, targets,
+                    prefix + "-many-map", prefix + "-many-map"));
+            api.completeReconciliation(new CompleteReconciliationCommand(TENANT_ID, created.batchId(),
+                    claim.batch().version(), 1, 1, 0, 0, "rules-v1", prefix + "-many-complete", prefix + "-many-complete"));
+        });
+        var before = jdbcTemplate.queryForMap(
+                "SELECT * FROM plt_migration_source_record WHERE tenant_id=? AND id=?", TENANT_ID, source.sourceRecordId());
+        var request = new MigrationBatchPreviewCommand(TENANT_ID, "COM", "F-COM-001",
+                prefix + "-many-target-preview", "ERP", "orders",
+                List.of(new MigrationPreviewRecordRequest(source.sourcePk(), "b".repeat(64))));
+        var preview = api.previewBatch(request);
+        assertEquals(MigrationPreviewClassification.MAPPED, preview.items().getFirst().classification());
+        assertEquals(1, preview.mappedCount());
+        assertEquals(0, preview.ambiguousCount());
+        assertEquals(1001, preview.items().getFirst().targets().size());
+        assertEquals(targets.stream().map(ExternalTargetMapping::targetId).toList(),
+                preview.items().getFirst().targets().stream().map(MigrationPreviewTarget::targetId).toList());
+        assertEquals(targets.stream().map(ExternalTargetMapping::targetSequence).toList(),
+                preview.items().getFirst().targets().stream().map(MigrationPreviewTarget::targetSequence).toList());
+        var conflict = api.previewBatch(new MigrationBatchPreviewCommand(TENANT_ID, "COM", "F-COM-001",
+                request.releaseId(), "ERP", "orders",
+                List.of(new MigrationPreviewRecordRequest(source.sourcePk(), "c".repeat(64)))));
+        assertEquals(MigrationPreviewClassification.CHECKSUM_CONFLICT, conflict.items().getFirst().classification());
+        var absent = api.previewBatch(new MigrationBatchPreviewCommand(TENANT_ID, "COM", "F-COM-001",
+                prefix + "-unrelated-release", "ERP", "orders", request.records()));
+        assertEquals(MigrationPreviewClassification.NO_EXISTING_SOURCE, absent.items().getFirst().classification());
+        assertEquals(before, jdbcTemplate.queryForMap(
+                "SELECT * FROM plt_migration_source_record WHERE tenant_id=? AND id=?", TENANT_ID, source.sourceRecordId()));
+        assertEquals(1001L, jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM plt_external_key_mapping WHERE tenant_id=? AND batch_id=?",
+                Long.class, TENANT_ID, created.batchId()));
+    }
+
+    @Test
     void outerFailureRollsBackClaimClassificationAndPlatformFacts() {
         MigrationBatchFact created = createBatch(prefix + "-rollback", 1);
         MigrationSourceRecordFact source = appendSources(created.batchId(), 1).getFirst();
@@ -400,7 +445,8 @@ class PlatformMigrationEvidenceMySqlTest {
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
             PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class,
-            PlatformMigrationEvidenceApiImpl.class, PlatformMigrationEvidenceTransactionExecutor.class})
+            PlatformMigrationEvidenceApiImpl.class, PlatformMigrationEvidenceTransactionExecutor.class,
+            MigrationPreviewService.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean TransactionTemplate transactionTemplate(org.springframework.transaction.PlatformTransactionManager manager) {

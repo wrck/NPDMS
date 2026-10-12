@@ -1,0 +1,96 @@
+package cn.iocoder.yudao.module.pms.integration.sync;
+
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
+import cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.*;
+import cn.iocoder.yudao.module.pms.project.api.migration.ProjectMasterMigrationApi;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.*;
+import java.util.*;
+import static cn.iocoder.yudao.module.pms.integration.sync.DppmsProjectIdentitySyncTemplate.*;
+
+/** Tracks every original ID after canonical masters are migrated; never writes project facts. */
+@Component @RequiredArgsConstructor
+public class DppmsProjectIdentitySyncAdapter implements DataSyncAdapter {
+    private final ProjectMasterMigrationApi projects;
+    private final SyncTaskService tasks;
+    private final SyncRunMapper runs;
+    private final SyncBindingMapper bindings;
+    @Override public boolean supportsStreaming(){return true;}
+    @Override public boolean requiresAllBindings(){return false;}
+    @Override public boolean sharesTargetAcrossSources(){return true;}
+    @Override public void refreshCaches(){}
+    @Override public Descriptor descriptor(){return new Descriptor(ADAPTER,"DPPMS整表项目身份映射",
+            List.of(new ObjectDescriptor(OBJECT,"全部原项目ID到规范主档",COLUMNS.stream().map(c->new Field(c,c,"STRING",true)).toList(),
+                    "PROJ","Project","proj_project",false)),List.of("RETAIN"),List.of("UPSERT"),false,true);}
+    @Override @Transactional(isolation=Isolation.REPEATABLE_READ,readOnly=true)
+    public List<Change> preview(Batch batch){return execute(batch,false);}
+    @Override @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
+    public List<Change> apply(Batch batch){return execute(batch,true);}
+    private List<Change> execute(Batch batch,boolean apply){
+        long tenant=TenantContextHolder.getRequiredTenantId();
+        if(batch==null || batch.clearBeforeLoad() || batch.adoptExisting() || !"UPSERT".equals(batch.loadingMode())
+                || !"RETAIN".equals(batch.missingPolicy()) || batch.rows().size()>500)fail("身份任务禁止清空、接管或重绑");
+        String[] owner=batch.owner()==null?new String[0]:batch.owner().split(":");
+        if(owner.length!=3 || !"integration".equals(owner[0]) || !Long.toString(tenant).equals(owner[1]))fail("运行所有权无效");
+        var task=tasks.required(SyncFieldMapper.primaryKey(owner[2]));
+        var definition=JsonUtils.parseObject(task.getDefinition(),SyncDefinition.class);
+        var run=task.getActiveRunId()==null?null:runs.selectScoped(new SyncQueries.Id(tenant,task.getActiveRunId()));
+        if(!Objects.equals(task.getTenantId(),tenant) || !ADAPTER.equals(task.getAdapter()) || !"DPPMS".equals(task.getSourceSystem())
+                || definition==null || !"ONCE".equals(definition.mode()) || definition.resetMappingsBeforeLoad()
+                || run==null || !Objects.equals(run.getTenantId(),tenant) || !Objects.equals(run.getTaskId(),task.getId())
+                || !Objects.equals(run.getConfigVersion(),task.getVersion()) || !Objects.equals(run.getPreview(),!apply)
+                || !(apply?Set.of("READING","APPLYING"):Set.of("READING","VALIDATING")).contains(run.getStatus()))fail("运行或配置版本失效");
+        var previous=new HashMap<String,Binding>();
+        for(var binding:batch.bindings())if(!OBJECT.equals(binding.object()) || previous.put(binding.sourceKey(),binding)!=null)fail("原身份绑定重复");
+        var identities=new LinkedHashMap<String,Map<String,String>>();var canonicalKeys=new LinkedHashSet<String>();
+        for(var row:batch.rows()){
+            if(!OBJECT.equals(row.object()) || !row.fields().keySet().containsAll(COLUMNS) || row.fields().containsKey("_sourcePrimaryKey"))fail("原身份字段缺失");
+            var identity=new LinkedHashMap<String,String>();for(String c:COLUMNS)identity.put(c,text(row.fields().get(c)));
+            if(!Objects.equals(row.sourceKey(),identity.get("originalProjectId")) || identities.put(row.sourceKey(),identity)!=null
+                    || !Set.of("10","afss","afxx").contains(identity.get("projectType")) || identity.get("projectCode")==null)fail("原身份或类型无效");
+            long original=SyncFieldMapper.primaryKey(identity.get("originalProjectId")),canonical=SyncFieldMapper.primaryKey(identity.get("canonicalProjectId"));
+            if(original>canonical)fail("规范主档必须采用同类型同编码最大ID");
+            canonicalKeys.add(identity.get("canonicalProjectId"));
+        }
+        var canonical=new LinkedHashMap<String,Map<String,Object>>();
+        if(!canonicalKeys.isEmpty())for(var binding:bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",task.getConnectionId(),
+                DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectMasterSyncTemplate.OBJECT,List.copyOf(canonicalKeys)))){
+            DppmsProjectBindingApiImpl.masterBinding(binding,tenant,task.getConnectionId());
+            var saved=JsonUtils.parseMap(binding.getFieldsJson());var prior=canonical.putIfAbsent(binding.getSourceKey(),saved);
+            if(prior!=null && !JsonUtils.parseTree(JsonUtils.toJsonString(prior)).equals(JsonUtils.parseTree(binding.getFieldsJson())))fail("规范主档绑定存在差异");
+        }
+        if(!canonical.keySet().equals(canonicalKeys))fail("先迁入全部规范主档，再建立原ID映射");
+        var targets=new LinkedHashMap<Long,ProjectMasterMigrationApi.IdentityTarget>();var changes=new ArrayList<Change>();
+        for(var row:batch.rows()){
+            var identity=identities.get(row.sourceKey());var saved=canonical.get(identity.get("canonicalProjectId"));
+            var original=(Map<?,?>)saved.get("originalFields");var project=(Map<?,?>)saved.get("project");
+            if(!Objects.equals(identity.get("projectType"),text(original.get("projectType")))
+                    || !Objects.equals(identity.get("projectCode"),text(original.get("projectCode"))))fail("原项目类型或编码与规范主档不一致");
+            Long targetId=SyncFieldMapper.primaryKey(text(project.get("id")));
+            var target=new ProjectMasterMigrationApi.IdentityTarget(targetId,text(project.get("projectType")),text(project.get("projectCode")));
+            var priorTarget=targets.putIfAbsent(targetId,target);
+            if(priorTarget!=null && !priorTarget.equals(target))fail("正式主档身份多义");
+            var projectIdentity=Map.of("id",targetId,"tenantId",tenant,"projectType",target.projectType(),"projectCode",target.projectCode());
+            var after=Map.<String,Object>of("originalIdentity",identity,"project",projectIdentity);
+            var prior=previous.get(row.sourceKey());
+            if(row.targetId()!=null && prior==null || prior!=null && (!Objects.equals(prior.targetId(),row.targetId())
+                    || !Objects.equals(prior.targetId(),targetId)
+                    || !JsonUtils.parseTree(JsonUtils.toJsonString(prior.lastFields())).equals(JsonUtils.parseTree(JsonUtils.toJsonString(after)))))
+                fail("已绑定原身份或正式项目发生变化，禁止自动重绑");
+            changes.add(new Change(OBJECT,row.sourceKey(),targetId,"UNCHANGED",prior==null?Map.of():prior.lastFields(),after,
+                    "原ID关联规范正式主档；不覆盖业务字段、不产生授权"));
+        }
+        Long actor=SyncFieldMapper.primaryKey(run.getCreator());
+        var current=projects.inspectBindings(new ProjectMasterMigrationApi.IdentityInspection(tenant,actor,List.copyOf(targets.values())));
+        if(current.size()!=targets.size() || !current.stream().map(ProjectMasterMigrationApi.Facts::id).collect(java.util.stream.Collectors.toSet()).equals(targets.keySet()))
+            fail("正式Owner返回的当前项目范围不完整");
+        var verification=new ProjectMasterMigrationApi.BindingVerification(tenant,actor,current);
+        if(apply)projects.lockBindings(verification);else projects.verifyBindings(verification);
+        return List.copyOf(changes);
+    }
+    private static String text(Object v){return v==null || v instanceof tools.jackson.databind.JsonNode n && n.isNull()?null:v.toString();}
+    private static void fail(String message){throw new IllegalArgumentException(message);}
+}

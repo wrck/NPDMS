@@ -192,6 +192,28 @@ class ProjectRulesTest {
         return current;
     }
 
+    @org.junit.jupiter.api.Test
+    void ordinaryEditKeepsProjectCreationJsonDateAndValidityFacts() {
+        var current = new ProjectMasterDO();
+        current.setCustomInfo("{\"original\":true}");
+        current.setOrderCreateTime(java.time.LocalDateTime.of(2023, 1, 2, 3, 4, 5));
+        current.setDisabled(true);
+        current.setEffectiveFrom(java.time.LocalDateTime.of(2023, 1, 1, 0, 0));
+        current.setEffectiveTo(java.time.LocalDateTime.of(2024, 1, 1, 0, 0));
+        var edit = new ProjectMasterDO();
+        edit.setCustomInfo("{\"replacement\":true}");
+        edit.setOrderCreateTime(java.time.LocalDateTime.of(2025, 1, 1, 0, 0));
+        edit.setDisabled(false);
+        edit.setEffectiveFrom(java.time.LocalDateTime.of(2025, 1, 1, 0, 0));
+        edit.setEffectiveTo(java.time.LocalDateTime.of(2026, 1, 1, 0, 0));
+        ProjectRules.applyImmutableFields(edit, current);
+        assertEquals(current.getCustomInfo(), edit.getCustomInfo());
+        assertEquals(current.getOrderCreateTime(), edit.getOrderCreateTime());
+        assertEquals(current.getDisabled(), edit.getDisabled());
+        assertEquals(current.getEffectiveFrom(), edit.getEffectiveFrom());
+        assertEquals(current.getEffectiveTo(), edit.getEffectiveTo());
+    }
+
     private void assertNullSafe(Object value) {
         assertTrue(value == null, "期望保持库内空值");
     }

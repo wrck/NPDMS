@@ -44,7 +44,7 @@
             u.id AS user_id,
             u.username,
             u.nickname,
-            NULL AS employee_no,
+            u.employee_no,
             s.company_id,
             s.department_id,
             s.department_code,

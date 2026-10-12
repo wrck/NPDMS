@@ -78,6 +78,9 @@ public class ProjectCommerceSourceServiceImpl implements ProjectCommerceSourceAp
         ProjectContractIdentityLockQuery identity = new ProjectContractIdentityLockQuery(
                 command.tenantId(), command.projectId(), command.contractId(), "RELATED");
         ProjectContractRelationDO relation = relationMapper.selectByIdentityForUpdate(identity);
+        if (relation != null && (!"ACTIVE".equals(relation.getStatus()) || relation.getEffectiveTo() != null)) {
+            throw invalidParamException("已有历史或失效合同关系，不能作为项目创建绑定重放");
+        }
         boolean replay = relation != null;
         if (!replay) {
             relation = new ProjectContractRelationDO();

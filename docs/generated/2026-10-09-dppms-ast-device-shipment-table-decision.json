@@ -1,0 +1,645 @@
+{
+  "table": "ast_device_shipment",
+  "status": "USER_APPROVED_REUSE_NO_NEW_COLUMNS_IMPLEMENTATION_PENDING_RUNTIME_VERIFICATION",
+  "existingFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "发货记录编号",
+      "handling": "目标技术主键；原id仅作来源幂等身份，不覆盖目标主键"
+    },
+    {
+      "COLUMN_NAME": "device_sn",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "设备序列号",
+      "handling": "fb_shipment_barcode.barcode，主设备序列号"
+    },
+    {
+      "COLUMN_NAME": "shipment_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "发货时间",
+      "handling": "fb_shipment.packdate，原发货时间"
+    },
+    {
+      "COLUMN_NAME": "package_no",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "fb_shipment_barcode.pack_id / fb_shipment.packlist_id，装箱单号"
+    },
+    {
+      "COLUMN_NAME": "contract_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "合同编号",
+      "handling": "fb_contract.contract_code，经fb_shipment.con_id精确关联"
+    },
+    {
+      "COLUMN_NAME": "event_type",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "发货事件类型",
+      "handling": "沿既有同步定义；有rma_no时UNCLASSIFIED，否则SHIPMENT，不虚构已确认RMA替换"
+    },
+    {
+      "COLUMN_NAME": "warranty_start_date",
+      "COLUMN_TYPE": "date",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "发货约定维保开始日期",
+      "handling": "fb_shipment_barcode.warrantyStartDate，条码级保修开始日期"
+    },
+    {
+      "COLUMN_NAME": "warranty_months",
+      "COLUMN_TYPE": "int unsigned",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "发货约定维保月数",
+      "handling": "fb_shipment_barcode.warrantyMonth，原保修月数；负数不能写unsigned，遇到时阻断裁决"
+    },
+    {
+      "COLUMN_NAME": "rma_no",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "RMA编号",
+      "handling": "fb_shipment_barcode.rma_no，原RMA单号"
+    },
+    {
+      "COLUMN_NAME": "related_device_sn",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "关联设备序列号",
+      "handling": "既有已确认设备关系字段；rmaBarcode写rma_related_sn，不能据来源候选伪造已确认替换关系"
+    },
+    {
+      "COLUMN_NAME": "source_system",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "来源系统",
+      "handling": "DPPMS，正式记录来源标识"
+    },
+    {
+      "COLUMN_NAME": "source_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "来源键",
+      "handling": "fb_shipment_barcode.id，既有来源幂等身份"
+    },
+    {
+      "COLUMN_NAME": "source_version",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源版本",
+      "handling": "既有同步版本，不能混用业务时间"
+    },
+    {
+      "COLUMN_NAME": "source_updated_at",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源更新时间",
+      "handling": "fb_shipment_barcode.updateTime，唯一正式来源更新时间承接点"
+    },
+    {
+      "COLUMN_NAME": "synced_at",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "最近成功同步时间",
+      "handling": "既有本平台同步时钟，原syncTime另落sync_time"
+    },
+    {
+      "COLUMN_NAME": "sync_status",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "同步状态",
+      "handling": "既有同步结果；异常不可声明SUCCESS"
+    },
+    {
+      "COLUMN_NAME": "version",
+      "COLUMN_TYPE": "int unsigned",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "乐观锁版本",
+      "handling": "既有乐观锁版本，不写旧ID或源时间"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建人",
+      "handling": "现有写入Owner的审计；原条码表没有创建人字段"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建时间",
+      "handling": "现有本平台发货记录创建审计；原条码表没有创建时间字段"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新人",
+      "handling": "现有写入Owner的审计；原条码表没有更新人字段"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新时间",
+      "handling": "现有本平台记录更新审计；原updateTime另落source_updated_at"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "是否删除",
+      "handling": "现有逻辑删除，不从rma标志推断删除"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "租户编号",
+      "handling": "当前已授权迁移租户；不得跨租户关联"
+    },
+    {
+      "COLUMN_NAME": "legacy_package_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源装箱单键，未解析时仍保留",
+      "handling": "fb_shipment_barcode.pack_id；保留原装箱单身份，不将解析失败视为承接完成"
+    },
+    {
+      "COLUMN_NAME": "rma_related_sn",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源RMA关联SN候选，不生成替换关系",
+      "handling": "fb_shipment_barcode.rmaBarcode，来源RMA设备序列号候选"
+    },
+    {
+      "COLUMN_NAME": "rma_marked",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "来源RMA标识",
+      "handling": "沿既有同步SQL由rma_no是否存在生成，区别于原isRMA标志"
+    },
+    {
+      "COLUMN_NAME": "order_line_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "唯一解析的ERP订单行ID",
+      "handling": "由订单号、行号、产品码和公司关联唯一正式订单行；不唯一登记待关联，原订单/行号仍写正式字段"
+    },
+    {
+      "COLUMN_NAME": "source_payload",
+      "COLUMN_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源条码记录",
+      "handling": "仅作为既有来源证据；不能代替以下业务字段承接"
+    },
+    {
+      "COLUMN_NAME": "order_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源订单号",
+      "handling": "fb_shipment_barcode.orderNumber，销售订单号"
+    },
+    {
+      "COLUMN_NAME": "line_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源订单行号",
+      "handling": "fb_shipment_barcode.lineNum，订单行号，整数转字符串"
+    },
+    {
+      "COLUMN_NAME": "product_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源物料编码 item",
+      "handling": "fb_shipment_barcode.item，主产品编码；租户+编码关联正式产品目录"
+    },
+    {
+      "COLUMN_NAME": "secondary_sn",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源附加SN barcode2",
+      "handling": "fb_shipment_barcode.barcode2，副设备序列号"
+    },
+    {
+      "COLUMN_NAME": "secondary_item",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源附加物料 item2",
+      "handling": "fb_shipment_barcode.item2，副产品编码；租户+编码关联正式产品目录"
+    },
+    {
+      "COLUMN_NAME": "internal_serial_no",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源组合条码 com_barcode",
+      "handling": "fb_shipment_barcode.com_barcode，组合设备序列号"
+    },
+    {
+      "COLUMN_NAME": "is_rma",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源RMA标识 isRMA",
+      "handling": "fb_shipment_barcode.isRMA，保留原RMA标识，不覆盖rma_marked推导值"
+    },
+    {
+      "COLUMN_NAME": "profit_center",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源利润中心 profitCenter",
+      "handling": "fb_shipment_barcode.profitCenter，利润中心"
+    },
+    {
+      "COLUMN_NAME": "sole_agent_suffix",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源独家代理后缀 soleAgentSuffix",
+      "handling": "fb_shipment_barcode.soleAgentSuffix，总代订单号后缀"
+    },
+    {
+      "COLUMN_NAME": "sync_time",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源同步时间 syncTime",
+      "handling": "fb_shipment_barcode.syncTime，原系统同步时间"
+    },
+    {
+      "COLUMN_NAME": "uuid",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源UUID",
+      "handling": "fb_shipment_barcode.uuid，原UUID"
+    }
+  ],
+  "proposedWithdrawals": [
+    {
+      "COLUMN_NAME": "source_product_model",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "建议撤回：视图itemModel实际来自fb_items.itemname，应由正式产品目录及已裁决来源属性承接，不复制到发货表。"
+    },
+    {
+      "COLUMN_NAME": "source_product_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "建议撤回：视图itemName实际来自fb_items.describe_，同上。"
+    },
+    {
+      "COLUMN_NAME": "secondary_product_model",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "建议撤回：视图itemModel2实际来自副产品fb_items.itemname，关联副产品目录。"
+    },
+    {
+      "COLUMN_NAME": "secondary_product_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "建议撤回：视图itemName2实际来自副产品fb_items.describe_，关联副产品目录。"
+    },
+    {
+      "COLUMN_NAME": "source_updated_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "建议撤回：原updateTime复用既有source_updated_at；先核全部已有值并补正式字段，不能丢弃非NULL历史值。"
+    },
+    {
+      "COLUMN_NAME": "source_primary_material_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "建议撤回：fb_items.id只是技术自增ID，用户指定产品按租户+产品编码唯一关联；不建立以该ID为业务键的关联。"
+    },
+    {
+      "COLUMN_NAME": "source_secondary_material_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "建议撤回：同上；副产品同样以secondary_item关联目录。"
+    }
+  ],
+  "originalFields": {
+    "fb_shipment_barcode": [
+      {
+        "COLUMN_NAME": "id",
+        "COLUMN_TYPE": "bigint(20)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_COMMENT": "",
+        "handling": "source_key及同步绑定，不复制目标id"
+      },
+      {
+        "COLUMN_NAME": "pack_id",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "package_no、legacy_package_key；关联正式装箱单"
+      },
+      {
+        "COLUMN_NAME": "item",
+        "COLUMN_TYPE": "varchar(16)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "product_code及主产品目录"
+      },
+      {
+        "COLUMN_NAME": "barcode",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "device_sn"
+      },
+      {
+        "COLUMN_NAME": "com_barcode",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "internal_serial_no"
+      },
+      {
+        "COLUMN_NAME": "rma_no",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "rma_no"
+      },
+      {
+        "COLUMN_NAME": "isRMA",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "标注是RMA替换添加的记录",
+        "handling": "is_rma"
+      },
+      {
+        "COLUMN_NAME": "item2",
+        "COLUMN_TYPE": "varchar(16)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "母子公司发货物料编码对应关系",
+        "handling": "secondary_item及副产品目录"
+      },
+      {
+        "COLUMN_NAME": "barcode2",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "母子公司发货序列号对应关系",
+        "handling": "secondary_sn"
+      },
+      {
+        "COLUMN_NAME": "orderNumber",
+        "COLUMN_TYPE": "varchar(32)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "订单号",
+        "handling": "order_no及订单关联"
+      },
+      {
+        "COLUMN_NAME": "lineNum",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "订单行号",
+        "handling": "line_no及订单行关联"
+      },
+      {
+        "COLUMN_NAME": "profitCenter",
+        "COLUMN_TYPE": "varchar(32)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "利润中心",
+        "handling": "profit_center"
+      },
+      {
+        "COLUMN_NAME": "soleAgentSuffix",
+        "COLUMN_TYPE": "varchar(32)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "总代orderNumber后缀",
+        "handling": "sole_agent_suffix"
+      },
+      {
+        "COLUMN_NAME": "warrantyStartDate",
+        "COLUMN_TYPE": "date",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "维保开始时间，为空默认装箱单发货日期+90天",
+        "handling": "warranty_start_date"
+      },
+      {
+        "COLUMN_NAME": "warrantyMonth",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "维保月数",
+        "handling": "warranty_months"
+      },
+      {
+        "COLUMN_NAME": "rmaBarcode",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "RMA逆向序列号（维保替换的序列号）",
+        "handling": "rma_related_sn，不据候选自动制造替换关系"
+      },
+      {
+        "COLUMN_NAME": "updateTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "source_updated_at"
+      },
+      {
+        "COLUMN_NAME": "syncTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "sync_time"
+      },
+      {
+        "COLUMN_NAME": "uuid",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "uuid"
+      }
+    ],
+    "fb_shipment": [
+      {
+        "COLUMN_NAME": "packlist_id",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "发货package_no/legacy_package_key；正式com_shipment_package.package_no"
+      },
+      {
+        "COLUMN_NAME": "con_id",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "经fb_contract.contract_id精确关联发货contract_no；装箱单合同引用字段属G008另行整表裁决"
+      },
+      {
+        "COLUMN_NAME": "packdate",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "发货shipment_time及装箱单shipment_time"
+      },
+      {
+        "COLUMN_NAME": "warrantyStartTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "正式com_shipment_package.warranty_start_time，不冒充条码级保修开始日期"
+      },
+      {
+        "COLUMN_NAME": "warrantyEndTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "正式com_shipment_package.warranty_end_time"
+      },
+      {
+        "COLUMN_NAME": "receiveName",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "收件人",
+        "handling": "正式com_shipment_package.receiver_name"
+      },
+      {
+        "COLUMN_NAME": "emsNum",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "快递单号",
+        "handling": "正式com_shipment_package.express_no"
+      },
+      {
+        "COLUMN_NAME": "emsCompany",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "快递公司",
+        "handling": "正式com_shipment_package.carrier_name，精确解码承运商；新增承运商列属于G008待整表裁决，不默认批准"
+      }
+    ],
+    "view_shipment_info_4_pm": [
+      {
+        "COLUMN_NAME": "contract_code",
+        "COLUMN_TYPE": "varchar(25)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "正式contract_no"
+      },
+      {
+        "COLUMN_NAME": "itemCode",
+        "COLUMN_TYPE": "varchar(16)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "正式product_code及产品目录"
+      },
+      {
+        "COLUMN_NAME": "itemModel",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "主产品目录来源型号（fi.itemname）"
+      },
+      {
+        "COLUMN_NAME": "itemName",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "主产品目录来源名称/描述（fi.describe_）"
+      },
+      {
+        "COLUMN_NAME": "barcode",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "device_sn"
+      },
+      {
+        "COLUMN_NAME": "packId",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "package_no/legacy_package_key"
+      },
+      {
+        "COLUMN_NAME": "itemCode2",
+        "COLUMN_TYPE": "varchar(16)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "母子公司发货物料编码对应关系",
+        "handling": "secondary_item及副产品目录"
+      },
+      {
+        "COLUMN_NAME": "itemModel2",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "副产品目录来源型号（fi2.itemname）"
+      },
+      {
+        "COLUMN_NAME": "itemName2",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "副产品目录来源名称/描述（fi2.describe_）"
+      },
+      {
+        "COLUMN_NAME": "barcode2",
+        "COLUMN_TYPE": "varchar(50)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "母子公司发货序列号对应关系",
+        "handling": "secondary_sn"
+      },
+      {
+        "COLUMN_NAME": "profitCenter",
+        "COLUMN_TYPE": "varchar(32)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "利润中心",
+        "handling": "profit_center"
+      }
+    ],
+    "fb_items": [
+      {
+        "COLUMN_NAME": "id",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "用户已说明没有业务意义；不迁入产品业务键，旧技术ID列明排除原因"
+      },
+      {
+        "COLUMN_NAME": "item",
+        "COLUMN_TYPE": "varchar(25)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "正式产品目录product_code，租户+编码唯一关联"
+      },
+      {
+        "COLUMN_NAME": "describe_",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "目录完整来源名称/描述；已批准保留来源名称，物理承接字段整表另交用户确认"
+      },
+      {
+        "COLUMN_NAME": "itemname",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "目录完整来源型号；物理承接字段整表另交用户确认"
+      }
+    ]
+  },
+  "directoryPhysicalModelNotApproved": true,
+  "physicalCleanupBlockedUntilFormalCarryVerified": true,
+  "wholeTableNewColumnValues": "UNKNOWN: previous global aggregate timed out; cannot infer empty or authorize DROP",
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "userDecision": [
+    "所有source_*字段都去掉source_直接有实体字段进行承接，不要新增字段",
+    "按你建议的1,2,3进行处理"
+  ],
+  "codeAndSqlWithdrawn": true,
+  "physicalCleanupApplied": false
+}

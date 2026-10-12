@@ -779,3 +779,117 @@ SOL 通过新增 BPM `SolutionReviewBpmApi` 读取实际定义、发起和读取
 GET `/api/v1/pms/solution-reviews/policy?projectId=...` 只读预览服务器计算的审核级别与不可用原因。内部 `ProjectFieldRuleApi` 按项目冻结模板修订和规则 key 读取既有发布程序，只接受实体 FIELD/CONSTANT 条件，不从请求接收业务事实或重新编译历史规则。读接口校验当前主体与项目范围；提交用事务锁定项目版本的求值接口。返回配置是否存在、各规则三值结果及规则/项目事实快照。无配置与配置不完整分开处理，未知结果不按普通审批放行。
 
 未绑定模板的导入旧项目返回未配置并保留原 SOL 行为；存在部分模板引用而无法验证精确修订时仍返回不可用，不据损坏引用选择普通审核。读取服务在业务调用时解析原发布 Reader，避免发布校验器发现 SOL Provider 时产生初始化循环依赖。
+
+### 许可历史受控迁移（2026-10-11需求方整表批准）
+
+许可历史迁移（2026-10-11需求方16列整表批准）：POST `/api/v1/pms/projects/{projectId}/legacy-detail/license-previews` 和 `/license-imports`复用项目来源快照身份；请求仅包含来源引用和AES-256-GCM密文封装，不接收许可明文。需要既有迁移执行及项目管理权限，AST加入迁移事务完整保存正式许可实体及来源绑定；相同来源重放只读回原ID，源变化、后续目标变化或密文认证失败阻断。缺少唯一设备/合同关系保留NULL并返回待关联原因，不创建对象或激活许可。GET `/api/v1/pms/projects/{projectId}/associated-data/records?kind=licenses`复用项目查询权限及PROJECT_VIEW范围，只返回正式非秘密字段及已加密状态，不返回密文、MAC、密钥版本或原码。历史缓存重建ID的持续同步不启用。
+
+### 设备软件版本维护及具名历史（2026-10-10需求方整表批准）
+
+AST拥有软件当前值和正式历史。软件由项目人员维护或既有日志解析回填，与ITR无关；BOOT取Basic Bootloader。复用当前26列；正式历史31列和旧八项正式实体扩展，详见F-AST-001本次批准增量。历史仅追加，不开放修改或删除。
+
+GET `/api/v1/pms/devices/{deviceId}/software-version` 返回具名当前值、并发version、登记依据时间及服务端计算的canMaintain；需要既有`pms:device:query`及设备可见范围。POST其`/registrations`接收projectId、expectedVersion、requestKey及具名values，需要既有`pms:device:update`，AST事务中通过PROJ解析并锁定PROJECT_EDIT范围，再锁设备、复核实际归属和当前version。同键同设备/项目/操作者/内容返回原recordId；异内容拒绝。更新失败则初始记录、本次记录、当前值和设备投影全部回滚。首次已有当前值而无对应正式历史时保留真实CURRENT_BASELINE，原effective_from为空则recorded_at为空，不伪装历史发生时间。
+
+GET其`/history?pageNo=1&pageSize=20`返回正式记录、可见前记录具名值及旧八项扩展；页大小1—100，按recorded_at、id倒序。历史项目按服务端PROJECT_VIEW范围裁剪，当前设备可见不代表所有历史项目可见，空权限集合返回空。前记录跨租户/跨设备/不可见不得返回。旧迁入记录不推断previous_record_id，不改当前值；正式扩展只允许经验证的一次性迁移初始化，之后只读。
+
+既有日志接收/解析契约保持；AST采用日志接收时间与当前登记时间比较，迟到旧日志保留既有解析事实且不回退当前值。新日志仅更新实际解析出的字段，缺项保留当前值，并与手工维护使用同一锁顺序及当前/历史原子写入规则。parsed_fact_id必须来自既有真实解析事实，不能把旧logId或文件ID充当解析事实；旧软件资料只做一次性迁移。
+# 2026-10-11 DPPMS既有发货与订单行引用补正
+
+本任务已批准的发货、正式订单行和设备业务实体完整承接包括其正式引用；不新增物理字段或表。仅对不可变来源、成功绑定、当前完整目标字段和正式业务身份均可核实的记录，由迁移入口补齐引用。PROJ不直接查询或写入COM/AST表。
+
+内部COM的DppmsCommerceEntityResolveApi新增lockShipmentLines：按已经核实的成功绑定目标ID锁定正式订单行，核对租户、明确ERP来源、原公司码的既定转换、订单号、行号和原inventTransId。输入身份来自服务端完整来源及成功回执，不能接受客户端任意目标ID；任何不匹配阻断。
+
+内部AST的DppmsShipmentReferenceCorrectionApi提供preview/correct/verify：按来源发货键、SN、成功迁入设备及发货ID锁定正式记录，校验项目归属、最新发货及所有现有投影值。订单行引用仅可由NULL补齐；设备发货引用仅可由不存在的旧ID补正为同一最新事实，已存在但不同的引用阻断。预览保存发货39列和设备53列全部原值；写入前重新比较，任何后续修改阻断。只修改这两种引用，原业务值、历史审计和版本保持，事务失败整体回滚。重放复核完整执行后字段，不能仅凭回执返回成功。
+
+新增PROJ迁移入口位于现有 `/api/v1/pms/projects/{projectId}/legacy-detail` 下的 shipment-reference-previews / shipment-reference-corrections，均需要pms:integration:execute、pms:project:update以及既有项目可管理范围。请求只允许当前sourceId/snapshotId/checksum及原发货键；目标ID由成功回执和正式Owner核实，旧来源及回执不修改。执行形成独立幂等回执，不修改项目状态或当前分配/验收事实。请求/响应访问日志关闭，避免整行基线进入日志。
+
+
+# 2026-10-11 已批准的DPPMS成员历史预览
+
+POST `/api/v1/pms/projects/{projectId}/legacy-detail/member-history-previews`复用迁移/同步来源请求（sourceId、snapshotId、checksum）。需要pms:integration:execute及pms:project:update，并由PROJ核对项目管理权限、租户、当前完整来源快照与全部15原字段；请求与响应关闭内容日志。只返回原人员身份、当前正式绑定、有效区间、SYSTEM角色/适用公司资格结果以及现存同角色成员冲突，不创建账号或角色、不改授权或主责。
+
+用户已确认成员表29既有列＋member_code、phone_number、email、registration_source、authorization_confirmed五列。专用迁移Owner可核验ACTIVE及已批准的正常/异常闭环项目；普通成员动作的ACTIVE校验保持。当前成员/授权/任务资格消费者只使用authorization_confirmed=true且有效的记录，未确认历史可在历史页查看并保持只读。主责冲突与其他来源主体/角色继续待裁决；本接口成功不表示已完成成员迁入。完整整表裁决见docs/generated/2026-10-11-dppms-project-member-table-decision.md。
+
+POST `member-import-previews`返回项目版本、既有成员34列及其校验值，并核验原15字段和正式账号/角色/适用公司资格。POST `member-history-imports`接收source、expectedProjectVersion、existingMembersChecksum、已裁决的primaryServiceManagerCode/primaryProjectManagerCode和closeCurrentMemberIds，使用相同功能与项目管理授权。只允许结束已明确裁决的管理员当前主责区间并保留历史；替代人员必须通过普通Owner的相同资格规则。未确认历史不产生授权，9条最终客户人员单独等待CUS方案。
+
+初次迁入使用每来源项目固定、跨操作人共享的命令身份。变更请求或换来源快照不能创建第二套成员；持续同步尚未启用。成员、主责正式引用、来源绑定、回执及审计在同一事务提交；失败整体回滚。重放必须核对原15字段、不可变绑定、正式成员与已结束区间的全部字段及项目执行后事实，后续改变阻断。使用独立迁移参数保留原NULL审计，普通自动填充保持；NULL更新时间取原创建时间，两者原空则保持NULL。SYSTEM提供精确账号的真实工号，不从登录名截取。该历史入口不触发生命周期、任务、审批或规则完成事件。
+
+## 2026-10-12 已批准的全局字典类型迁移契约
+
+SYSTEM公共SystemDictionaryTypeMigrationApi的preview/apply仅承接既有system_dict_type的11列；INT通过受控运行和现有绑定调用，不访问SYSTEM业务表。`GET /api/v1/pms/integration/templates/dppms-dictionary-types`按原类型业务编码提供31个原定义及49个缺定义分组，后者以原编码暂作名称，不造中文。名称/编码沿正式字典唯一规则核验，权限同时要求迁移执行及普通系统字典创建；既有类型不接管，绑定后的全部11列或原材料有变化即阻断。
+
+原status管理标记及effectiveFrom/effectiveTo按需求方明确裁决不迁入，不写启停或备注。31个原定义保留历史时间及精确账号引用，NULL更新日期用原创建日期、NULL人员保留；49个缺定义分组使用实际迁入运行的操作者及时间，重放沿首次正式承接审计，不随新运行改写。显式历史插入避免框架补入管理员；全局模型无tenant_id，当前调用租户、操作者和运行仍须验证。失败与绑定/回执在同一事务回滚，不改角色、状态机或权限。
+
+## 2026-10-12 已批准的主SN与附加SN关系复用
+
+- 业务Owner：AST；既有实体为 `ast_device_relationship`，19列复用，无新增表列。原8列完整映射及日期规则见整表裁决。来源没有项目字段，实体和返回结果均不伪造项目归属。
+- 查询入口 `GET /api/v1/pms/device-source-relationships`：`projectId` 与 `deviceId` 必须且只能指定一个。项目入口先校验项目可见性，使用COM公共合同查询API取得精确合同号，并限定AST当前设备/有效项目设备关系；空权限、空合同返回空结果。设备入口先复用设备可见性Owner，再从正式设备解析SN，按该SN读取两侧关系及合同历史。
+- 迁移接入复用DataSyncAdapter、运行及绑定模型：`GET /api/v1/pms/integration/templates/dppms-device-relationships`提供完整原8列的受控模板。AST公共API的previewRelationships/applyRelationships返回逐原键的正式关系前后值，既有importRelationships保持兼容。运行操作者从当前成功校验的INT运行创建人解析，禁止猜配调度账号；基线仅ONCE/UPSERT/RETAIN，流式按块保留原空值及全字段绑定保护。未裁决的自关联不在来源SQL中默默过滤；已有关系审计差异阻断，限定存量纠正另按裁决执行。
+- AST迁入API只允许迁移执行权限、同租户和事务内调用；来源与绑定仍由迁移/同步功能保存。原日期严格解析并保留毫秒，空更新时间用原创建时间。存量业务或审计差异阻断，普通迁入不吸收人工修改。
+- 不生成装配、设备归属、当前附加SN缓存或其他授权。65046条存量审计须另行逐键预览裁决；360条自关联仍等待需求方裁决，禁止自关联约束保持。
+
+## 2026-10-12 已批准的最终客户联系人迁入契约
+
+POST `/api/v1/pms/projects/{projectId}/legacy-detail/final-customer-contact-previews`接收既有来源sourceId/snapshotId/checksum，返回项目版本、精确原项目FINAL_CUSTOMER相关方、原联系人数量与CUS现存关系的完整字段校验值。POST同路径下`final-customer-contact-imports`仅接收source、expectedProjectVersion、projectPartyId、existingContactsChecksum；需迁移执行、项目管理权限和同租户项目范围。请求/响应内容日志关闭。原表15字段须逐值验证不可变身份及行校验，不接受客户端任意联系人值。
+
+PROJ通过公开ProjectContactContextApi的inspectFinalCustomer/lockHistoricalFinalCustomer提供唯一、同项目、经DPPMS项目头来源绑定的最终客户相关方，不按名称认定购货方客户；专用迁入允许已批准的ACTIVE/正常闭环/异常闭环项目，普通联系人维护继续要求ACTIVE和既有管理授权。CUS公开FinalCustomerContactMigrationApi的preview/carry/verify拥有业务写入和完整目标保护，不跨模块访问表。
+
+正式项目联系人复用既有24列并仅新增5个已裁决业务字段；未精确关联客户主档的最终客户联系关系保留NULL引用，必须具备准确相关方且非主联系人。其历史区间、联系方式、原审计保存，原NULL更新时间用原创建时间、原NULL更新人不自动填充。正常维护不得修改、删除或恢复这类只读历史，不创建客户主档、账号/权限、主联系人或当前任务完成事实；普通来源引用、主联系人唯一性和启停规则保持。项目联系人查询返回明确最终客户单位、原编码、有效期和只读标记，客户敏感字段继续经既有Controller权限脱敏。
+
+初次迁入每原项目固定幂等身份；证据、正式实体和回执同事务，失败整体回滚。重放复核准确相关方、项目版本、完整正式字段及来源映射，后续变化阻断。持续联系人同步未启用。
+
+## 2026-10-12 已批准的项目合同关系迁入契约
+
+整表目标解析补充：ProjectContractRelationMigrationApi.resolveReferences以受信租户/执行人/迁移Owner和精确来源项目绑定引用＋合同号为输入，COM通过PROJ既有inspectBindings读取当前正式项目身份、版本及公司，再以正式公司＋合同号查询现有合同。返回逐来源的正式项目ID/当前版本/合同ID；缺失、多义、无管理权或公司范围为空即阻断，不新建主档，不从名称猜配，不用原组模型取代目标模型。INT默认模板不再要求逐行LOOKUP配置contractId/expectedProjectVersion；已有显式配置如保留，必须与Owner解析结果一致。apply仍按既有Owner复核项目绑定、当前版本、合同公司及17列，解析不是写入授权或不可变来源事实的替代。
+
+审计按需求方最新整表裁决：pm_project_contract主值、pm_project_group_relationship同名字段补缺，未选不同成员审计逐字段列排除原因；mergeBranchMark不迁入，新拆分使用正式主子项目功能。sys、异常数据处理仅在专用迁移审计字段保留原码，其他已迁用户写user_id，其他未关联人员阻断；无新账号或授权，不修改正常Yudao审计填充。
+
+GET `/api/v1/pms/integration/templates/dppms-project-contract-relations`需迁移配置权限，提供现有任务/运行功能使用的ONCE/UPSERT/RETAIN模板。完整读取pm_project_contract七列、组成员九列及组八列；来源复合键为合同关系ID＋组成员ID。未解析的桥保留并阻断，不能用过滤、去重、失效后缀猜配替代裁决；原桥独立属性仍待明确业务承接。
+
+INT公开适配器调用COM公开ProjectContractRelationMigrationApi的preview/apply；COM负责完整17列正式关系，新增表/列/扩展均为0。需迁移执行及合同关联权限，通过PROJ公开上下文Owner核验原项目绑定、准确编码、当前版本及管理权；合同按精确ID/号、项目公司和操作者既有公司授权核实。原非空审计账号由SYS公开历史身份API精确关联，NULL保持；原NULL更新时间用原创建时间。
+
+COM apply必须加入INT外层事务，所有本批来源、资格及完整正式前值在第一条写入前校验；绑定、正式关系及运行证据共同提交或回滚。既有关系只在另行裁决的完整reviewedBefore与当前17列完全相同时限定纠正，且不能以此改写来源、项目/合同/角色、有效结束日期或状态。只纠正原人员、创建/更新时间和开始日期，并递增并发版本；原成功办理审计记录保持。普通重放要求上次正式17列及完整原字段均未变，不提供忽略审计差异、复活失效关系或清空来源缺项的选项。
+
+现存24条及10条具体历史纠正另按完整预览保护；全历史重复关系、失效桥和桥表剩余业务属性继续等待裁决，不启用持续全量同步。
+
+2026-10-12需求方批准历史关系复用既有17列，并随后明确所有迁入数据进入正式业务展示区：HISTORICAL表示原历史项目合同关联，RELATED角色和原创建日期保持，原无结束日期则NULL。原-his桥经精确项目绑定承接历史性质，具体已批准的身份例外及缺组排除放在版本化任务SQL参数和migrationDecision LOOKUP配置中，不在Owner写原ID或日期名单；原26字段与配置证据不一致即阻断。相同租户、项目绑定与版本、执行及关联权限、精确合同公司和完整17列保护保持；不允许接管当前关系或改写当前/历史状态。GET `/api/v1/pms/contracts/project/{projectId}/relations`采用PageParam／PageResult、每页1～200条，复用合同查询权限并同时核验项目VIEW及合同公司范围，空公司范围返回空列表，按创建时间＋ID稳定排序。在同一正式合同展示区域返回当前及历史关系业务/审计、合同号/名称及公司，不返回技术绑定，不据历史关系授予当前合同访问权；正常关联和项目创建遇同身份历史关系明确拒绝当前重放。当前商务授权查询和唯一约束保持。
+
+2026-10-12需求方批准通用同类重复规则：相同原五字段、精确项目/完整桥和合同资格一致时，共用一条正式关系并承接最早原创建时间，每个原ID＋成员ID独立绑定，其他创建时间明确列明不独立迁入正式审计的原因。新来源模板从完整原表按实际组合索引精确计算duplicateGroupSize，必须读齐组后才合并，不采用时间差阈值，不跨不完整分页猜测、不新增物理列。旧冻结任务定义和回执保持；实际新增历史项目及afxx主体依然需要各自正式迁移绑定和审批边界。
+
+## 2026-10-12 已批准的基础字典项迁入契约
+
+GET `/api/v1/pms/integration/templates/dppms-dictionary-data`需迁移配置权限，提供ONCE/UPSERT/RETAIN模板，读取fnd_basic_data全部12列及532条，不在SQL中滤掉空ID114。SYSTEM公开SystemDictionaryDataMigrationApi的preview/apply复用system_dict_data全部14列，新增表/列/扩展均为0；INT只通过该API写入，来源、逐值回执及绑定沿用现有迁移功能。
+
+权限同时要求迁移执行及普通系统字典创建，核实运行租户、来源Owner、配置版本及操作者。正式字典类型必须唯一、编码精确且启用；真实数据库字符比较和业务键唯一规则保持。全部待写记录先核对，既有字典项不自动接管；成功绑定后的完整14列、全部原12列或历史审计变化阻断。SYSTEM写入与INT来源绑定/回执同事务，必须REPEATABLE_READ，失败整体回滚，不改普通字典维护行为或全局模型。
+
+原NULL排序取0，NULL创建时间用实际首次迁入时间，原NULL更新时间取创建时间，原NULL人员保持；重放保留首次初始化时间。仅原ID542的创建人system按独立裁决保留原编码，不生成账号或授权，其他人员精确关联既有SYS历史账号。原有效区间用于已批准的首次启停转换，结束项停用，不执行旧入口。basicDataAttri1/effectiveFrom/effectiveTo已明确不迁入，逐列列明缺同义字段及用户排除原因；来源证据不称为业务承接。
+
+ID114只在原分组23和全部业务/审计属性仍为空时显式返回SKIPPED及排除原因，不创建字典项或目标绑定；若后续出现业务值则阻断，不能自动沿旧排除裁决丢弃新事实。运行界面分别展示14个正式字段和12个原字段，跳过记录不显示虚构的正式字段。
+
+## 2026-10-12 已批准的主附SN限定历史审计纠正契约
+
+POST `/api/v1/pms/integration/runs/{id}/recover`复用既有中断恢复能力，要求`pms:integration:execute`，仅查询当前租户的指定主运行。沿用既有两分钟判定；当前适配器执行锁仍被占用、任务运行归属或配置版本改变时阻断。持有同一执行锁和事务后恢复批处理元数据，保存失败回执并解除该任务的运行归属，保留已提交分块、来源证据、绑定及断点；不启动调度、不处理其他运行、不写业务表。已经结束的主运行重复请求返回false，不覆盖其回执；不存在或跨租户请求拒绝。重试仍使用既有POST runs及retryOf，不绕过配置、来源和目标保护。
+
+GET `/api/v1/pms/integration/templates/dppms-device-relationship-audit-correction`沿用迁移配置权限、ONCE/UPSERT/RETAIN及流式分块，全部读取fb_shipment_barcode_relation八列。独立适配器不改变普通关系迁入的审计差异阻断规则。仅已裁决原键可经既有LOOKUP映射输入完整原字段、目标19列、旧绑定及旧成功回执的保护指纹；运行租户、配置版本、操作者、原连接/任务及成功状态必须准确匹配，原任务不得正在执行。
+
+INT只读取并锁定自己拥有的旧任务、回执、绑定；AST公开DppmsDeviceSourceRelationshipApi的previewAuditCorrection/applyAuditCorrection核验权限及完整19列后，只纠正原create_time/update_time并递增version。目标关系、ID、操作者、有效区间及原来源身份保持。整块先全部核对，再写入；AST必须加入INT事务，目标、纠正证据、绑定与断点共同提交或回滚，原回执及旧绑定保持。后续任一字段改变阻断，重放核对本纠正任务保存的完整19列，不再次递增版本。
+
+已裁决360条两侧SN及产品相同的原记录，必须准确原键和八列仍符合裁决，明确返回SKIPPED及排除原因，不创建关系、放宽自关联禁止或静默在SQL过滤。未裁决的新原键、已裁决原字段改变，均阻断。新增业务表、列及扩展均为0。
+
+## 2026-10-12 整表项目正式创建及来源身份契约
+
+项目任务读取pm_project，按原类型＋精确原编码采用最大projectId；所有原ID的关联经通用身份规划归入规范主档。SQL初始文本复制到既有Source.sql，可编辑和版本冻结；项目类型及验证项目ID使用参数，最终执行参数projectTypes=10。安服两类型的通用设计和Owner规则完整实施、测试，但本次不迁入数据。
+
+ProjectMasterMigrationApi.preview/apply复用既有项目字段。新来源仅在无目标、无上次结果且不接管既有项目时创建；完整归属复用正常创建权限及操作人公司/部门范围，精确解析正式目录。用户批准原公司或办事处NULL时保留NULL：仅既有super_admin且同时具备pms:integration:execute、pms:project:create的执行人可迁入，不生成范围或成员授权，不能猜配NULL或清空已有正式归属；非空原键缺目录及未知公司码仍阻断。创建独立根、保留原码及原历史审计，source_type=MIGRATION，不实例化当前模板、计划、任务或审批。原关闭日期缺失保持NULL；安服及用服状态采用已裁决的类型对应。普通创建和关闭行为保持。现存初次接管继续复核原证据及版本；已有绑定的整表项目按目标ID和完整上次结果保护，不要求先建立迁移快照表。新增表列为0。
+
+INT公开内部DppmsProjectBindingApi.resolve：Query仅含受信tenantId、来源连接ID、原项目键；只读本模块正式迁移绑定，核对DPPMS_PROJECT_MASTER、原37字段及正式项目事实中的ID、原类型/编码、目标编码，多个不一致绑定阻断。返回精确ProjectBinding引用，缺失不伪造。PROJ/COM只经公开API使用，不读取INT业务表。
+
+整表身份映射任务DPPMS_PROJECT_IDENTITY复用INT来源绑定，无新增表列。可编辑project-identities查询保留每个原ID、类型、原码及同类型同码的最大规范ID，主档先迁入。每个原ID绑定已迁入的规范正式项目，不以技术绑定承接业务属性；非规范主档属性不独立覆盖正式字段的原因沿已裁决整表清单记录。相同身份重放不得重绑，来源类型/编码或目标变更阻断。
+
+ProjectMasterMigrationApi.verifyBindings/lockBindings接收BindingVerification(tenantId,actorId,projects)，最多500个完整Facts且正式ID不重复；PROJ核验管理权限、租户、删除标记和全部正式主档事实。前者只读，后者必须参与INT事务并锁定正式项目，避免身份绑定提交前目标被修改；不初始化状态、不修改业务或权限。DppmsProjectBindingApi可解析身份别名，但必须再次核对规范主档完整绑定；缺失或相互矛盾的主档/别名阻断。
+
+身份映射另复用ProjectMasterMigrationApi.inspectBindings(IdentityInspection)：最多500个IdentityTarget(projectId,projectType,projectCode)，由PROJ核对精确身份、权限及租户并返回当前完整Facts，随后lockBindings保护本次读取的当前事实。已迁项目的正常成员、计划、审计及版本变化保留，不要求回到旧迁入版本。INT别名仅保存原身份四项及正式项目身份引用，不能保存这些当前Facts作为业务承接或覆盖原主档迁移回执。实际编码/类型或当前读取到提交间的变化仍阻断。
+
+新历史根在同一INT事务内复用正式ProjectTreeProjectionService.publish，按正常根创建规则发布treeVersion=1、唯一根节点及其自关联路径，使正式查看/管理可用。复用已有树版本/路径表，不增加字段，不将项目组变成父子关系；投影或事务事件失败须整块回滚主档与绑定。仅新建时初始化，既有根及重放不重建其有效投影，不实例化计划、阶段或任务。
+
+ProjectScopeMigrationContextApi.Query及ProjectContractRelationMigrationApi.Entry追加可空sourceConnectionId；已有调用不传时保持既有来源校验，通用INT任务传实际连接ID后必须经上述绑定API，不回退猜配。PROJ仍核验项目管理权、租户、删除、项目版本、正式类型/编码和办事处。COM原26字段原样保留，合同关系使用绑定的正式项目编码，允许已裁决尾号调整且不把原码覆盖成目标码。整个绑定查询和业务写入共享迁移事务；来源身份不作为业务数据承接点。

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceLogVersionProjectionMapper">
+    <update id="replaceCurrent">
+        UPDATE ast_device_network_version
+        SET conp_version=#{conpVersion}, conp_type=#{conpType}, conp_series=#{conpSeries}, conp_mark=#{conpMark},
+            boot_version=#{bootVersion}, cpld_version=#{cpldVersion}, pcb_version=#{pcbVersion}, customized=#{customized},
+            effective_from=#{effectiveFrom}, source_system=#{sourceSystem}, source_key=#{sourceKey},
+            source_version=#{sourceVersion}, source_updated_at=#{sourceUpdatedAt}, synced_at=#{syncedAt},
+            sync_status=#{syncStatus}, version=COALESCE(version,0)+1, update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{tenantId} AND id=#{id} AND deleted=b'0'
+    </update>
+    <update id="updateDeviceVersion">
+        UPDATE ast_device
+        SET conp_version=#{conpVersion}, conp_type=#{conpType}, conp_series=#{conpSeries}, conp_mark=#{conpMark},
+            update_time=CURRENT_TIMESTAMP(3)
+        WHERE tenant_id=#{tenantId} AND id=#{id} AND deleted=b'0'
+    </update>
+</mapper>

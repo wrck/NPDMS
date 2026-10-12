@@ -294,7 +294,8 @@ public class SyncRunService {
         var timing=new org.springframework.util.StopWatch();
         tx().executeWithoutResult(status->{
             timing.start("runLock");
-            var current=required(runId);
+            // Frozen config/evidence are loaded at run start, never rewritten with each progress checkpoint.
+            var current=streamingState(runId);
             var t=taskService.locked(task.getId());
             if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
                 throw new IllegalStateException("流式运行所有权或配置版本变化");
@@ -340,7 +341,7 @@ public class SyncRunService {
 
     private void advanceStreamingSource(Long runId,SyncDefinition d,SpringJdbcStreamingReader.StreamChunk chunk) {
         tx().executeWithoutResult(status->{
-            var current=required(runId);
+            var current=streamingState(runId);
             var t=taskService.locked(current.getTaskId());
             if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
                 throw new IllegalStateException("流式运行所有权或配置版本变化");
@@ -350,6 +351,12 @@ public class SyncRunService {
             current.setPagingJson(JsonUtils.toJsonString(state.nextSource())).setSourceUpper(chunk.upper())
                     .setStatus(current.getPreview()?"VALIDATING":"APPLYING");runs.updateById(current);
         });
+    }
+
+    private SyncRunDO streamingState(Long runId) {
+        var current=runs.selectStreamingState(new SyncQueries.Id(SyncTaskService.tenant(),runId));
+        if(current==null)throw new IllegalArgumentException("运行记录不存在");
+        return current;
     }
 
     private void executePaged(Long runId,SyncDefinition d) throws Exception {
@@ -432,6 +439,30 @@ public class SyncRunService {
             log.warn("Organization cache refresh pending for run {}: {}",runId,ex.getClass().getSimpleName());
         }
     }
+    /** Recover a specified root run without enabling schedules or touching other runs. */
+    public boolean recoverInterrupted(Long runId) {
+        var run=required(runId);
+        if(run.getPageNumber()!=null)throw new IllegalArgumentException("请从主运行恢复");
+        if(Set.of("SUCCESS","FAILED","PREVIEW_READY").contains(run.getStatus()))return false;
+        if(!Set.of("QUEUED","READING","VALIDATING","APPLYING").contains(run.getStatus()))
+            throw new IllegalArgumentException("运行状态不支持中断恢复");
+        var d=JsonUtils.parseObject(run.getConfigSnapshot(),SyncDefinition.class);
+        var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
+        if(!lock.tryLock())throw new SyncTaskConflictException("运行仍由执行进程占用，不能恢复");
+        try {
+            return tx().execute(status->{
+                var current=required(runId);
+                if(Set.of("SUCCESS","FAILED","PREVIEW_READY").contains(current.getStatus()))return false;
+                if(current.getStartedAt()==null || !current.getStartedAt().isBefore(LocalDateTime.now().minusMinutes(2)))
+                    throw new IllegalArgumentException("运行尚未达到既有中断恢复等待时间");
+                var task=taskService.locked(current.getTaskId());
+                if(!Objects.equals(task.getActiveRunId(),runId) || !Objects.equals(task.getVersion(),current.getConfigVersion()))
+                    throw new SyncTaskConflictException("运行归属或配置版本已变化，不能恢复");
+                recordInterruption(runId,d);
+                return true;
+            });
+        } finally {lock.unlock();}
+    }
     /** Framework recovery is only invoked while holding the same scope lock as all writers. */
     public void maintain() {
         for(var run:runs.selectMaintenance(new SyncQueries.Due(SyncTaskService.tenant(),LocalDateTime.now().minusMinutes(2)))) {
@@ -442,19 +473,21 @@ public class SyncRunService {
             try {
                 var current=required(run.getId());
                 if(Set.of("SUCCESS","FAILED","PREVIEW_READY").contains(current.getStatus()))continue;
-                launcher.getObject().recover(SyncTaskService.tenant(),run.getId());
-                tx().executeWithoutResult(s->{
-                    var r=required(run.getId());
-                    if(r.getEvidenceJson()!=null)evidenceService.complete(r.getId(),d,
-                            JsonUtils.parseArray(r.getEvidenceJson(),SyncEvidenceService.Evidence.class),
-                            validator.adapter(d).descriptor(),List.of(),true);
-                    r.setStatus("FAILED").setErrorMessage("运行进程中断，已核对业务提交状态；可创建关联重试")
-                            .setFinishedAt(LocalDateTime.now());runs.updateById(r);
-                    // Root runs own task scheduling. Child-page recovery calls failTask too, but its owner check is a no-op.
-                    failTask(r,d);
-                });
+                recordInterruption(run.getId(),d);
             } finally {lock.unlock();}
         }
+    }
+    private void recordInterruption(Long runId,SyncDefinition d) {
+        launcher.getObject().recover(SyncTaskService.tenant(),runId);
+        tx().executeWithoutResult(s->{
+            var r=required(runId);
+            if(r.getEvidenceJson()!=null)evidenceService.complete(r.getId(),d,
+                    JsonUtils.parseArray(r.getEvidenceJson(),SyncEvidenceService.Evidence.class),
+                    validator.adapter(d).descriptor(),List.of(),true);
+            r.setStatus("FAILED").setErrorMessage("运行进程中断，已核对业务提交状态；可创建关联重试")
+                    .setFinishedAt(LocalDateTime.now());runs.updateById(r);
+            failTask(r,d);
+        });
     }
     private void persistBindings(SyncTaskDO task,SyncDefinition d,List<DataSyncAdapter.Change> changes,Long runId,
                                  List<SyncBindingDO> bindingRows) {        boolean targetShared=validator.adapter(d).sharesTargetAcrossSources();

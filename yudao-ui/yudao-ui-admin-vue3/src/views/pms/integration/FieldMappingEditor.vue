@@ -136,6 +136,8 @@ const conversions = computed(() => [
   { value: 'DIRECT', label: '直接映射' },
   { value: 'STRING', label: '转为文本' },
   { value: 'TRIM', label: '去首尾空格' },
+  { value: 'DPPMS_COMPANY_CODE', label: 'DPPMS公司编码规范转换' },
+  { value: 'DPPMS_WARRANTY_YEARS', label: 'DPPMS合同保修年数（空值保留为NULL）' },
   { value: 'LONG', label: '转为整数' },
   { value: 'DECIMAL', label: '转为小数' },
   { value: 'BOOLEAN', label: '转为布尔' },

@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -23,13 +24,15 @@ class DeliveryScopeLineFactServiceTest {
     private final DeliveryScopeDetailMapper detailMapper = mock(DeliveryScopeDetailMapper.class);
     private final DeliveryScopeLineFactService service = new DeliveryScopeLineFactService();
     @BeforeEach void setup() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
         ReflectionTestUtils.setField(service, "scopeMapper", scopeMapper);
         ReflectionTestUtils.setField(service, "detailMapper", detailMapper);
     }
+    @AfterEach void cleanup() { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
 
     /** 范围行查询固定返回给定行（等价模拟 in/eq项目/isNull effectiveTo/@TableLogic 过滤后的结果行数）。 */
     private void scopeRowsReturn(DeliveryScopeDO... rows) {
-        doAnswer(inv -> List.of(rows)).when(scopeMapper).selectList(any());
+        doAnswer(inv -> List.of(rows)).when(scopeMapper).selectConfirmedSelection(any());
     }
 
     private void detailRowsReturn(DeliveryScopeDetailDO... rows) {
@@ -107,6 +110,7 @@ class DeliveryScopeLineFactServiceTest {
         scope.setId(id); scope.setProjectId(projectId);
         scope.setOrderNo("SO-" + id); scope.setLineNo("10"); scope.setProductCode("ITEM-" + id);
         scope.setProductDesc("订单行描述"); scope.setAllocatedQty(BigDecimal.TEN);
+        scope.setAllocationConfirmed(true);
         return scope;
     }
 

@@ -37,6 +37,40 @@ export interface LegacyRecord {
   checksum: string
   values: Record<string, string | null>
   redactedFields: string[]
+  nativeStatus?: LegacyNativeStatus
+}
+export interface LegacyNativeTarget {
+  targetContext: string
+  targetObjectType: string
+  targetTable: string
+  targetId: LegacyId
+  targetRole: string
+  targetSequence: number
+}
+export interface LegacyNativeStatus {
+  classification: string
+  reasonCode?: string
+  reason?: string
+  targets: LegacyNativeTarget[]
+}
+export interface LegacyNativeDomainSummary {
+  domain: string
+  label: string
+  sourceCount: number
+  mappedCount: number
+  retainedCount: number
+  pendingCount: number
+  targetTables: string[]
+  retentionReasons: Record<string, number>
+}
+export interface LegacyNativeReport {
+  sourceId: LegacyId
+  snapshotId: LegacyId
+  sourceCount: number
+  mappedCount: number
+  retainedCount: number
+  pendingCount: number
+  domains: LegacyNativeDomainSummary[]
 }
 export interface LegacyRecordsQuery {
   sourceId: LegacyId
@@ -56,6 +90,41 @@ export const getLegacyRecords = (
   params: LegacyRecordsQuery
 ): Promise<{ list: LegacyRecord[]; total: number }> =>
   request.get({ url: `${base(projectId)}/records`, params })
+export const getLegacyNativeReport = (
+  projectId: LegacyId,
+  params: { sourceId: LegacyId; snapshotId: LegacyId }
+): Promise<LegacyNativeReport> => request.get({ url: `${base(projectId)}/native-status`, params })
+export const getLegacyNativeRecordStatus = (
+  projectId: LegacyId,
+  params: LegacyRecordsQuery
+): Promise<Record<string, LegacyNativeStatus>> =>
+  request.get({ url: `${base(projectId)}/native-record-status`, params })
+export const legacyNativeStatusText = (status?: LegacyNativeStatus): string =>
+  status?.classification === 'MAPPED'
+    ? '已有目标记录'
+    : status?.classification === 'RETAINED'
+      ? '保留历史'
+      : status && status.classification !== 'NOT_MIGRATED'
+        ? '需核对'
+        : '待承接'
+export const legacyNativeTargetLabel = (table: string): string =>
+  (
+    ({
+      proj_project: '项目主档',
+      proj_project_party: '项目参与方',
+      com_contract: '合同',
+      com_sales_order: '销售订单',
+      com_sales_order_line: '销售订单行',
+      com_crm_execution_order: '执行单',
+      com_shipment_package: '发货包裹',
+      ast_device: '设备主档',
+      ast_device_shipment: '设备发货记录',
+      ast_device_project_relationship: '设备项目关系',
+      ast_device_network_version_event: '设备软件版本历史',
+      ast_device_warranty_record: '设备保修历史',
+      imp_eng_installation: '待核对安装地址'
+    }) as Record<string, string>
+  )[table] || '业务实体'
 
 // Historical BIT(1) bytes stay unchanged in evidence; render their numeric values visibly.
 export const legacyValueText = (value: string | null | undefined): string =>

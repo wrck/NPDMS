@@ -30,6 +30,11 @@ import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.*;
 @RequiredArgsConstructor
 public class AssetLocationApiImpl implements AssetLocationApi {
 
+    @Override
+    public void effectEquipmentLocationIfAbsent(EquipmentLocationEffectiveCommand command) {
+        deviceLocationEffectiveService.effectIfAbsentOrThrow(command);
+    }
+
     private static final String SOURCE_SYSTEM_PMS = "PMS";
 
     private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customerQueryApi;

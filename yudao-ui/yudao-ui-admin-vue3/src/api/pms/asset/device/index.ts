@@ -1,5 +1,67 @@
 import request from '@/config/axios'
 
+export interface SoftwareVersionValues {
+  conpVersion?: string | null
+  conpType?: string | null
+  conpSeries?: string | null
+  conpMark?: string | null
+  bootVersion?: string | null
+  cpldVersion?: string | null
+  pcbVersion?: string | null
+  customized?: boolean | null
+  releaseDate?: string | null
+  versionDesc?: string | null
+}
+export interface SoftwareVersionCurrent {
+  values: SoftwareVersionValues | null
+  version: number
+  recordedAt?: string | number | null
+  canMaintain: boolean
+}
+export interface SoftwareVersionHistory {
+  record: SoftwareVersionValues & {
+    id: number
+    projectId?: number | null
+    previousRecordId?: number | null
+    recordedAt?: string | number | null
+    dataSource: string
+    deviceSn?: string | null
+    contractNo?: string | null
+    productCode?: string | null
+    changeBatchId?: number | null
+    parsedFactId?: number | null
+    executeTime?: string | number | null
+    dataState?: number | null
+    customInfo?: string | null
+    creator?: string | null
+    createTime?: string | number | null
+    updater?: string | null
+    updateTime?: string | number | null
+  }
+  previous: SoftwareVersionValues | null
+  legacyAttributes: Record<string, string | number | null>
+}
+export const getSoftwareVersionCurrent = (deviceId: number) =>
+  request.get<SoftwareVersionCurrent>({ url: `/api/v1/pms/devices/${deviceId}/software-version` })
+export const getSoftwareVersionHistory = (deviceId: number, params: PageParam) =>
+  request.get<{ list: SoftwareVersionHistory[]; total: number }>({
+    url: `/api/v1/pms/devices/${deviceId}/software-version/history`,
+    params
+  })
+export const registerSoftwareVersion = (
+  deviceId: number,
+  data: {
+    projectId: number
+    expectedVersion: number
+    requestKey: string
+    values: SoftwareVersionValues
+  }
+) =>
+  request.post<{ recordId: number; replayed: boolean }>({
+    url: `/api/v1/pms/devices/${deviceId}/software-version/registrations`,
+    data
+  })
+
 export type DeviceSyncStatus = 'FRESH' | 'STALE' | 'FAILED' | 'PENDING_MAPPING' | 'NOT_AVAILABLE'
 
 export interface DevicePageReqVO extends PageParam {
@@ -145,6 +207,37 @@ export interface DeviceWarrantyVO {
 }
 
 export interface DeviceWarrantyRecordVO {
+  combinedDeviceSn?: string
+  productCode?: string
+  productName?: string
+  productDescription?: string
+  gradeName?: string
+  shipmentTime?: string
+  warrantyFlag?: string
+  sourceWarrantyStartTime?: string
+  sourceWarrantyEndTime?: string
+  originalWarrantyStartTime?: string
+  originalWarrantyEndTime?: string
+  remainingDaysAtSource?: number
+  originalRemainingDaysAtSource?: number
+  contractType?: string
+  contractTypeName?: string
+  projectName?: string
+  customerName?: string
+  finalCustomerName?: string
+  agentName?: string
+  officeCode?: string
+  officeName?: string
+  marketCode?: string
+  marketName?: string
+  systemCode?: string
+  systemName?: string
+  secondarySn?: string
+  secondaryItem?: string
+  secondaryProductName?: string
+  secondaryProductDescription?: string
+  sourceSyncTime?: string
+  sourceShipmentKey?: string
   id: number
   deviceSn: string
   warrantyStartDate?: string
@@ -251,4 +344,127 @@ export const assignCustomer = (
     url: `${baseUrl}/${id}/actions/assign-customer`,
     data,
     headers: { 'If-Match': String(expectedVersion), 'Idempotency-Key': idempotencyKey }
+  })
+
+export interface ProductCatalogLabel {
+  productCode: string
+  productName: string | null
+  productModel: string | null
+}
+export interface DeviceShipmentVO {
+  id: number | string
+  deviceSn: string
+  packageNo?: string
+  shipmentTime?: string
+  contractNo?: string
+  legacyPackageKey?: string
+  rmaRelatedSn?: string
+  rmaMarked?: number
+  orderNo?: string
+  lineNo?: string
+  productCode?: string
+  productModel?: string
+  productName?: string
+  secondaryProductModel?: string
+  secondaryProductName?: string
+  dppmsCatalogLabels?: ProductCatalogLabel[]
+  secondaryDppmsCatalogLabels?: ProductCatalogLabel[]
+  sourceUpdatedAt?: string
+  secondarySn?: string
+  secondaryItem?: string
+  internalSerialNo?: string
+  isRma?: number
+  profitCenter?: string
+  soleAgentSuffix?: string
+  syncTime?: string
+  uuid?: string
+  warrantyStartDate?: string
+  warrantyMonths?: number
+  rmaNo?: string
+}
+export const getDeviceShipments = (
+  deviceId: number,
+  params: { pageNo: number; pageSize: number }
+): Promise<{ list: DeviceShipmentVO[]; total: number }> =>
+  request.get({ url: '/pms/asset/devices/' + deviceId + '/shipments', params })
+
+export interface DeviceContractRelationship {
+  id: number | string
+  sourceDeviceSn: string
+  targetDeviceSn: string
+  sourceItem?: string | null
+  targetItem?: string | null
+  contractNo?: string | null
+  effectiveFrom?: string | number | null
+  effectiveTo?: string | number | null
+  createTime?: string | number | null
+  updateTime?: string | number | null
+}
+export const getDeviceContractRelationships = (
+  deviceId: number,
+  params: { pageNo: number; pageSize: number }
+): Promise<{ list: DeviceContractRelationship[]; total: number }> =>
+  request.get({ url: '/api/v1/pms/device-source-relationships', params: { ...params, deviceId } })
+
+export interface DeviceSourceSoftwareObservation {
+  sourceId: number | string
+  sourceProjectId: number | string
+  logId?: number | string
+  contractNo?: string
+  itemCode?: string
+  barCode?: string
+  conp?: string
+  conpType?: string
+  conpSeries?: string
+  conpMark?: string
+  conpBak?: string
+  conpChange?: number
+  cpld?: string
+  cpldBak?: string
+  cpldChange?: number
+  boot?: string
+  bootBak?: string
+  bootChange?: number
+  pcb?: string
+  pcbBak?: string
+  pcbChange?: number
+  executeTime?: string
+  datastate?: number
+  sourceCreatedAt?: string
+  sourceCreatedBy?: string
+  sourceUpdatedAt?: string
+  sourceUpdatedBy?: string
+  customInfo?: string
+}
+export interface DeviceSourceFactoryVersion {
+  deviceSn: string
+  conpVersion?: string
+  bootVersion?: string
+  cpldVersion?: string
+  pcbVersion?: string
+}
+export interface DeviceSourceVersionRecord<T> {
+  id: number | string
+  projectId: number | string
+  sourceProjectKey: string
+  sourceSystem: string
+  sourceKey: string
+  sourceVersion?: string
+  sourceReadAt?: string
+  sourceChecksum: string
+  values: T
+}
+export const getDeviceSourceSoftwareObservations = (deviceId: number, params: PageParam) =>
+  request.get<PageResult<DeviceSourceVersionRecord<DeviceSourceSoftwareObservation>[]>>({
+    url: '/api/v1/pms/devices/' + deviceId + '/source-software-observations',
+    params
+  })
+export const getDeviceSourceFactoryVersions = (deviceId: number, params: PageParam) =>
+  request.get<
+    PageResult<
+      { id: number | string; projectId: number | string; values: DeviceSourceFactoryVersion }[]
+    >
+  >({
+    url: '/api/v1/pms/devices/' + deviceId + '/source-factory-versions',
+    params
   })

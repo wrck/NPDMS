@@ -1,0 +1,598 @@
+{
+  "table": "com_sales_order",
+  "status": "USER_APPROVED_IMPLEMENTATION_IN_PROGRESS",
+  "existingFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "销售订单编号",
+      "DATETIME_PRECISION": null,
+      "handling": "正式订单技术主键；不写入原自增ID，原ID用于既有迁移/同步来源绑定"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "租户ID",
+      "DATETIME_PRECISION": null,
+      "handling": "迁移租户；公司、客户及订单行关联必须同租户"
+    },
+    {
+      "COLUMN_NAME": "source_system",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "来源系统",
+      "DATETIME_PRECISION": null,
+      "handling": "原source实际ERP系统SAP/D365/SMS直接复用source_system；ERP接收批次契约保持，Owner保存及查询统一实际ERP语义"
+    },
+    {
+      "COLUMN_NAME": "source_record_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "handling": "既有幂等身份DPPMS|ERP系统|转换后公司码|订单类型|订单号，保留ERP维度和完整来源证据"
+    },
+    {
+      "COLUMN_NAME": "source_version",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "handling": "沿既有同步版本机制，由原syncTime形成来源版本；不使用本次运行时间冒充来源版本"
+    },
+    {
+      "COLUMN_NAME": "company_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "公司ID",
+      "DATETIME_PRECISION": null,
+      "handling": "精确关联已有正式公司；未知公司码阻断"
+    },
+    {
+      "COLUMN_NAME": "company_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "公司编码",
+      "DATETIME_PRECISION": null,
+      "handling": "compCode按已裁决01→001、02→002、03→003、04→004转换"
+    },
+    {
+      "COLUMN_NAME": "company_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "公司名称",
+      "DATETIME_PRECISION": null,
+      "handling": "由精确关联的正式公司承接；原订单表没有公司名称，不编造"
+    },
+    {
+      "COLUMN_NAME": "order_type",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "订单类型编码",
+      "DATETIME_PRECISION": null,
+      "handling": "原orderType，沿既有0销售/1退货转换"
+    },
+    {
+      "COLUMN_NAME": "order_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "订单编号",
+      "DATETIME_PRECISION": null,
+      "handling": "原orderNumber业务订单号"
+    },
+    {
+      "COLUMN_NAME": "sales_type",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "销售类型编码",
+      "DATETIME_PRECISION": null,
+      "handling": "原salesType原值"
+    },
+    {
+      "COLUMN_NAME": "contract_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "主合同号(快照来源订单头contractNo,对应合同主档业务键)",
+      "DATETIME_PRECISION": null,
+      "handling": "原contractNo，关联必须由COM Owner按正式合同身份验证"
+    },
+    {
+      "COLUMN_NAME": "execution_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "主执行单号(快照来源订单头orderExecNumber)",
+      "DATETIME_PRECISION": null,
+      "handling": "原orderExecNumber，关联必须由COM Owner按正式执行单身份验证"
+    },
+    {
+      "COLUMN_NAME": "customer_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户ID",
+      "DATETIME_PRECISION": null,
+      "handling": "按原customerCode及转换后公司精确关联；缺少可核实客户绑定时待关联，不按名字猜配"
+    },
+    {
+      "COLUMN_NAME": "customer_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户编码",
+      "DATETIME_PRECISION": null,
+      "handling": "原customerCode直接承接"
+    },
+    {
+      "COLUMN_NAME": "customer_name",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户名称",
+      "DATETIME_PRECISION": null,
+      "handling": "原customerName直接承接；不以项目最终用户名称替代买方"
+    },
+    {
+      "COLUMN_NAME": "source_project_name",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源项目名称",
+      "DATETIME_PRECISION": null,
+      "handling": "原projectName复用既有source_project_name；用户未批准更名，既有列名保留，不新增列"
+    },
+    {
+      "COLUMN_NAME": "order_comment",
+      "COLUMN_TYPE": "varchar(2048)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "订单说明",
+      "DATETIME_PRECISION": null,
+      "handling": "原orderComment完整承接"
+    },
+    {
+      "COLUMN_NAME": "order_amount",
+      "COLUMN_TYPE": "decimal(20,2)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "handling": "原订单头没有金额，保持既有正式事实，不从任意订单行猜算"
+    },
+    {
+      "COLUMN_NAME": "currency_code",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "handling": "原订单头没有币种，保持既有正式事实，不填默认币种"
+    },
+    {
+      "COLUMN_NAME": "authority_status",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "handling": "复用既有COM权威接收状态，不据原订单伪造审批事实"
+    },
+    {
+      "COLUMN_NAME": "source_lifecycle_status",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "handling": "复用现有订单/退货语义转换；不生成现平台审批或任务"
+    },
+    {
+      "COLUMN_NAME": "order_create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "订单创建时间",
+      "DATETIME_PRECISION": 3,
+      "handling": "原orderCreateTime原值；既有DATETIME(3)，不再新增镜像日期"
+    },
+    {
+      "COLUMN_NAME": "customer_required_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户要求时间",
+      "DATETIME_PRECISION": 3,
+      "handling": "原customerRequireTime原值；既有DATETIME(3)，不再新增镜像日期"
+    },
+    {
+      "COLUMN_NAME": "custom_info",
+      "COLUMN_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源customInfo原样同步",
+      "DATETIME_PRECISION": null,
+      "handling": "原customInfo完整对象；本批10条均NULL，保留NULL。扩大迁移若不是合法JSON须列明并阻断，不丢弃"
+    },
+    {
+      "COLUMN_NAME": "source_sync_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源同步时间",
+      "DATETIME_PRECISION": 3,
+      "handling": "既有Owner接收同步时间，保持其正式语义，不和原syncTime混用"
+    },
+    {
+      "COLUMN_NAME": "source_updated_at",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": 3,
+      "handling": "原syncTime来源更新时间；既有DATETIME(3)。较旧来源版本不得覆盖较新正式事实，原版本由既有迁移/同步证据保留"
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "状态",
+      "DATETIME_PRECISION": null,
+      "handling": "既有商务启停状态由COM Owner维护，不能恢复逻辑删除旧订单"
+    },
+    {
+      "COLUMN_NAME": "version",
+      "COLUMN_TYPE": "int unsigned",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "乐观锁版本",
+      "DATETIME_PRECISION": null,
+      "handling": "既有乐观锁版本，维持Owner并发保护"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建人",
+      "DATETIME_PRECISION": null,
+      "handling": "保持正式Owner审计；原表没有创建人，不能拿客户、销售人员或无依据用户冒充"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建时间",
+      "DATETIME_PRECISION": 3,
+      "handling": "保持正式记录创建审计；orderCreateTime是业务订单日期，不能冒充原记录审计创建时间"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新人",
+      "DATETIME_PRECISION": null,
+      "handling": "保持正式Owner审计；原表没有更新人，不编造历史人员"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新时间",
+      "DATETIME_PRECISION": 3,
+      "handling": "保持正式Owner更新审计；原syncTime是来源版本时钟，不混成审计时间"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "删除标志：0否，1是",
+      "DATETIME_PRECISION": null,
+      "handling": "保持既有逻辑删除事实，旧01订单9条已删除，不复活、不重定向不可变历史"
+    }
+  ],
+  "originalFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "既有迁移/同步来源绑定",
+      "handling": "技术自增ID没有产品/订单业务含义；不新建legacy_record_id实体镜像"
+    },
+    {
+      "COLUMN_NAME": "orderNumber",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "order_no",
+      "handling": "保留原订单号"
+    },
+    {
+      "COLUMN_NAME": "contractNo",
+      "COLUMN_TYPE": "varchar(50)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "contract_no",
+      "handling": "保留原合同号并核实正式关联"
+    },
+    {
+      "COLUMN_NAME": "orderExecNumber",
+      "COLUMN_TYPE": "varchar(50)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "execution_no",
+      "handling": "保留原执行单号并核实正式关联"
+    },
+    {
+      "COLUMN_NAME": "orderCreateTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": 0,
+      "target": "order_create_time",
+      "handling": "原值、毫秒精度，不保存重复日期"
+    },
+    {
+      "COLUMN_NAME": "customerRequireTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": 0,
+      "target": "customer_required_time",
+      "handling": "原值、毫秒精度，不保存重复日期"
+    },
+    {
+      "COLUMN_NAME": "customerCode",
+      "COLUMN_TYPE": "varchar(55)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "customer_code / customer_id",
+      "handling": "原编码正式承接；ID仅精确匹配，不猜配"
+    },
+    {
+      "COLUMN_NAME": "customerName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "customer_name",
+      "handling": "原买方名称，不替代最终用户"
+    },
+    {
+      "COLUMN_NAME": "projectName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "source_project_name",
+      "handling": "复用既有字段；未批准列更名"
+    },
+    {
+      "COLUMN_NAME": "orderComment",
+      "COLUMN_TYPE": "varchar(2048)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "target": "order_comment",
+      "handling": "完整原值"
+    },
+    {
+      "COLUMN_NAME": "orderType",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "0 正常销售 1 退货",
+      "DATETIME_PRECISION": null,
+      "target": "order_type",
+      "handling": "沿既有0销售/1退货转换"
+    },
+    {
+      "COLUMN_NAME": "compCode",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "公司编码",
+      "DATETIME_PRECISION": null,
+      "target": "company_code / company_id",
+      "handling": "按已确认4项显式映射；原码差异在既有来源绑定/证据完整列明"
+    },
+    {
+      "COLUMN_NAME": "salesType",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "销售类型,01:正常合同，02:借转销，14:销售类借货",
+      "DATETIME_PRECISION": null,
+      "target": "sales_type",
+      "handling": "完整原值"
+    },
+    {
+      "COLUMN_NAME": "source",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "数据来源，默认:SAP,D365,总代借货:SMS",
+      "DATETIME_PRECISION": null,
+      "target": "source_system",
+      "handling": "用户指定使用既有source_system，直接保存SAP/D365/SMS，无erp_system新增列"
+    },
+    {
+      "COLUMN_NAME": "customInfo",
+      "COLUMN_TYPE": "json",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "自定义字段",
+      "DATETIME_PRECISION": null,
+      "target": "custom_info",
+      "handling": "完整对象，不用它包裹已经有正式字段的数据"
+    },
+    {
+      "COLUMN_NAME": "syncTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": 0,
+      "target": "source_updated_at / source_version",
+      "handling": "原来源版本时钟。不得把本次运行时间写成原值"
+    }
+  ],
+  "proposedCorrections": [
+    {
+      "COLUMN_NAME": "source_company_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "decision": "撤回",
+      "reason": "复用company_id/company_code及已确认转换，原码差异列明"
+    },
+    {
+      "COLUMN_NAME": "source_erp_system",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "decision": "撤回",
+      "reason": "原source实际ERP系统直接复用source_system，按用户裁决"
+    },
+    {
+      "COLUMN_NAME": "legacy_record_id",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": null,
+      "decision": "撤回",
+      "reason": "技术ID由既有来源绑定关联，不作为新增业务列"
+    },
+    {
+      "COLUMN_NAME": "source_order_create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": 3,
+      "decision": "撤回",
+      "reason": "正式order_create_time已有DATETIME(3)"
+    },
+    {
+      "COLUMN_NAME": "source_customer_required_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": 3,
+      "decision": "撤回",
+      "reason": "正式customer_required_time已有DATETIME(3)"
+    },
+    {
+      "COLUMN_NAME": "original_source_sync_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "DATETIME_PRECISION": 3,
+      "decision": "撤回",
+      "reason": "正式source_updated_at已有DATETIME(3)；原版本完整留在既有来源证据"
+    }
+  ],
+  "existingBusinessFieldRename": {
+    "from": "source_project_name",
+    "to": "project_name",
+    "status": "NOT_APPROVED_KEEP_EXISTING"
+  },
+  "pilotEvidence": {
+    "originalRows": 10,
+    "allOriginalColumnsRead": 16,
+    "activeOfficialOrders": 10,
+    "oldCompany01DeletedOrders": 9,
+    "orderDatesDifferent": {
+      "orderCreateTime": 0,
+      "customerRequireTime": 0,
+      "syncTime": 0
+    },
+    "allExistingDateColumnsPrecision": 3,
+    "businessMergeRequired": false
+  },
+  "referenceCounts": [
+    {
+      "table": "com_order_contract_relation",
+      "column": "order_id",
+      "counts": []
+    },
+    {
+      "table": "com_sales_order_line",
+      "column": "order_id",
+      "counts": [
+        {
+          "order_id": 2101599695683203166,
+          "count": 2
+        },
+        {
+          "order_id": 2101978967924757512,
+          "count": 8
+        },
+        {
+          "order_id": 2101978967924758334,
+          "count": 10
+        },
+        {
+          "order_id": 2101978967928950955,
+          "count": 2
+        },
+        {
+          "order_id": 2101978967928951415,
+          "count": 20
+        },
+        {
+          "order_id": 2101978967928951503,
+          "count": 38
+        },
+        {
+          "order_id": 2101978967928952343,
+          "count": 6
+        },
+        {
+          "order_id": 2101979006730457134,
+          "count": 6
+        },
+        {
+          "order_id": 2101979006730457188,
+          "count": 4
+        },
+        {
+          "order_id": 2101979006730457238,
+          "count": 9
+        }
+      ]
+    },
+    {
+      "table": "fcom001_v70_com_order_line",
+      "column": "order_id",
+      "counts": []
+    }
+  ],
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "implementation": "6个实体镜像字段及当前SQL新增定义已撤回；直接复用正式日期、公司和source_system。正在验证Owner接收、同步和查询，未纠正真实库或重新部署。",
+  "userDecision": "按1；source_erp_system使用source_system；不新增erp_system",
+  "allTenantGlobalPreservation": {
+    "allTenantIncludingDeletedRows": 101262,
+    "nonNullMirrors": {
+      "source_company_code": 10,
+      "source_erp_system": 10,
+      "legacy_record_id": 10,
+      "source_order_create_time": 10,
+      "source_customer_required_time": 10,
+      "original_source_sync_time": 10
+    },
+    "valueIssues": 0,
+    "actualSourceSystemNeedsOwnerCorrection": 10
+  },
+  "verification": {
+    "ownerAndSyncCurrentTests": 108,
+    "result": "PASS",
+    "coveredBehavior": [
+      "actual ERP system in existing source_system",
+      "original empty strings and whitespace",
+      "legacy raw-company identity reuse",
+      "unknown company rejection",
+      "decimal quantity precision",
+      "replay and conflicting history protection"
+    ],
+    "databaseMapperValidation": "NOT_RUN",
+    "runtimeAcceptance": "NOT_RUN",
+    "physicalColumnsRemoved": false,
+    "actualMySqlMapper": {
+      "result": "PASS",
+      "tests": 3,
+      "affectedRegressionTestsInSameRun": 47,
+      "fixtureStorage": "CONNECTION_LOCAL_TEMPORARY_TABLES",
+      "nativeBusinessRowsWritten": 0,
+      "nativeSchemaChanged": false,
+      "runtimeAcceptance": "NOT_RUN"
+    },
+    "frontendChangedFileLint": "PASS"
+  }
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.license.DeviceLicenseRecordMapper">
+    <select id="selectRecordForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.license.DeviceLicenseRecordDO">
+        SELECT * FROM ast_device_license_record WHERE tenant_id=#{query.tenantId} AND id=#{query.id} FOR UPDATE
+    </select>
+    <sql id="visible">
+        tenant_id=#{query.tenantId} AND deleted=0
+        <choose><when test="query.ids != null and !query.ids.isEmpty()">
+            AND id IN <foreach collection="query.ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+    </sql>
+    <select id="selectVisiblePage" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.license.DeviceLicenseRecordDO">
+        SELECT id,tenant_id,device_id,device_sn,contract_id,contract_no,contract_type,product_code,product_model,
+            license_status,creator,create_time,updater,update_time,deleted
+        FROM ast_device_license_record WHERE <include refid="visible"/>
+        ORDER BY id LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+    <select id="countVisible" resultType="long">
+        SELECT COUNT(*) FROM ast_device_license_record WHERE <include refid="visible"/>
+    </select>
+</mapper>

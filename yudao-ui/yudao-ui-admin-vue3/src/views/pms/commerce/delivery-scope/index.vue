@@ -64,16 +64,23 @@
         <el-table-column prop="orderNo" label="订单号" min-width="150" fixed="left" />
         <el-table-column prop="lineNo" label="行号" min-width="80" />
         <el-table-column prop="productCode" label="产品编码" min-width="130" />
-        <el-table-column prop="allocatedQuantity" label="分配数量" min-width="105" />
+        <el-table-column prop="allocatedQuantity" label="范围数量" min-width="105" />
+        <el-table-column label="分配确认" min-width="120">
+          <template #default="{ row }">{{ row.allocationConfirmed ? '已确认' : '未确认' }}</template>
+        </el-table-column>
+        <el-table-column prop="deliveredQuantity" label="来源已发货数量" min-width="140" />
+        <el-table-column prop="openQuantity" label="来源未交数量" min-width="130" />
         <el-table-column prop="scopeStatus" label="状态" min-width="110" />
         <el-table-column prop="allocationVersion" label="分配版本" min-width="100" />
         <el-table-column
-          prop="officeDepartmentName"
+          prop="departmentName"
           label="发生时办事处"
           min-width="170"
           show-overflow-tooltip
         />
-        <el-table-column prop="effectiveFrom" label="生效时间" min-width="170" />
+        <el-table-column prop="effectiveFrom" label="生效时间" min-width="170">
+          <template #default="{ row }">{{ formatDate(row.effectiveFrom) }}</template>
+        </el-table-column>
         <el-table-column label="明细主体" min-width="220" show-overflow-tooltip>
           <template #default="{ row }">{{ detailSubjects(row) }}</template>
         </el-table-column>
@@ -120,6 +127,7 @@
 
 <script setup lang="ts">
 import { ElMessageBox } from 'element-plus'
+import { formatDate } from '@/utils/formatTime'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useWindowSize } from '@vueuse/core'
 import { useRoute } from 'vue-router'
@@ -189,7 +197,7 @@ const reset = () => {
   query.includeHistory = false
   search()
 }
-const isCurrent = (row: DeliveryScopeRespVO) => !row.effectiveTo && row.scopeStatus !== 'RELEASED'
+const isCurrent = (row: DeliveryScopeRespVO) => row.allocationConfirmed === true && !row.effectiveTo && row.scopeStatus !== 'RELEASED'
 const detailSubjects = (row: DeliveryScopeRespVO) =>
   row.details
     .map((item) => item.serialNo || item.productCode || item.deviceTypeCode)

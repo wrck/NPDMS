@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 
 CATALOG = Path(__file__).resolve().parents[1] / 'pms-module-project/src/main/resources/projectlegacy/dppms-detail-domains.json'
+SOURCE_SCHEMA = CATALOG.with_name('dppms-original-source-schema.json')
 SECRET = re.compile(r'password|passwd|pwd\s*[:=]|secret|token|authorization\s*[:=]|bearer\s+|private[ _-]?key|密码|口令|私钥|密钥|BEGIN[^\r\n]*PRIVATE KEY|[a-z][a-z0-9+.-]*://[^\s/]+:[^\s/]+@', re.I)
 REDACTED = '[敏感内容已隐藏]'
 
@@ -32,6 +33,8 @@ def text(value):
     if isinstance(value, datetime):
         return value.isoformat(sep=' ', timespec='milliseconds')
     if isinstance(value, bytes):
+        if value in (b'\x00', b'\x01'):
+            return str(int.from_bytes(value, 'big'))
         value = value.decode('utf8', errors='strict')
     value = str(value)
     return REDACTED if SECRET.search(value) else value
@@ -40,13 +43,63 @@ def text(value):
 class DppmsDetailReader:
     """Fixed column and predicate allowlists; does not accept arbitrary source SQL."""
 
-    def __init__(self, connection, catalog=None):
+    def __init__(self, connection, catalog=None, schema_contract=None):
         self.connection = connection
         self.catalog = catalog or json.loads(CATALOG.read_text('utf8'))
         self.domains = {d['code']: d for d in self.catalog}
         self.rows = {}
+        self.schema_contract = schema_contract or json.loads(SOURCE_SCHEMA.read_text('utf8'))
+        self.schema_validated = False
+        self.validate_catalog_schema()
+
+    def validate_catalog_schema(self):
+        excluded = {(x['sourceTable'], x['column']) for x in self.schema_contract['excludedColumns']}
+        if len(self.domains) != len(self.catalog):
+            raise ValueError('SOURCE_CATALOG_DOMAIN_DUPLICATE')
+        for domain in self.catalog:
+            table = self.schema_contract['tables'].get(domain['sourceTable'])
+            if table is None:
+                raise ValueError('SOURCE_CATALOG_TABLE_UNAUDITED:' + domain['code'])
+            actual = [field['key'] for field in domain['fields']]
+            required = {column['name'] for column in table['columns']
+                        if (domain['sourceTable'], column['name']) not in excluded}
+            if len(set(actual)) != len(actual) or set(actual) != required:
+                raise ValueError('SOURCE_CATALOG_COLUMNS_INCOMPLETE:' + domain['code'])
+
+    def validate_source_schema(self):
+        if self.schema_validated:
+            return
+        expected = self.schema_contract['tables']
+        table_names = sorted(expected)
+        if len(table_names) != self.schema_contract['tableCount'] or sum(
+                len(table['columns']) for table in expected.values()) != self.schema_contract['columnCount']:
+            raise ValueError('SOURCE_SCHEMA_CONTRACT_INVALID')
+        sql = ('SELECT c.TABLE_NAME,c.ORDINAL_POSITION,c.COLUMN_NAME,c.COLUMN_TYPE,c.IS_NULLABLE,c.COLUMN_KEY,t.TABLE_TYPE '
+               'FROM information_schema.COLUMNS c JOIN information_schema.TABLES t '
+               'ON t.TABLE_SCHEMA=c.TABLE_SCHEMA AND t.TABLE_NAME=c.TABLE_NAME '
+               'WHERE c.TABLE_SCHEMA=DATABASE() AND c.TABLE_NAME IN ('
+               + ','.join(['%s'] * len(table_names)) + ') ORDER BY c.TABLE_NAME,c.ORDINAL_POSITION')
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql, table_names)
+            actual_rows = list(cursor.fetchall())
+        actual = {}
+        for row in actual_rows:
+            actual.setdefault(row['TABLE_NAME'], []).append(row)
+        if set(actual) != set(expected):
+            raise ValueError('SOURCE_SCHEMA_TABLE_DRIFT')
+        for table_name, table in expected.items():
+            observed = sorted(actual[table_name], key=lambda row: row['ORDINAL_POSITION'])
+            if [row['COLUMN_NAME'] for row in observed] != [column['name'] for column in table['columns']]:
+                raise ValueError('SOURCE_SCHEMA_COLUMN_DRIFT:' + table_name)
+            for row, column in zip(observed, table['columns']):
+                if (row['COLUMN_TYPE'] != column['type'] or row['IS_NULLABLE'] != column['nullable']
+                        or row['COLUMN_KEY'] != column['key'] or row['ORDINAL_POSITION'] != column['position']
+                        or row['TABLE_TYPE'] != table['tableType']):
+                    raise ValueError('SOURCE_SCHEMA_TYPE_OR_CONSTRAINT_DRIFT:' + table_name + '.' + column['name'])
+        self.schema_validated = True
 
     def select(self, code, predicate, params):
+        self.validate_source_schema()
         domain = self.domains[code]
         columns = ','.join('`' + f['key'] + '`' for f in domain['fields'])
         with self.connection.cursor() as cursor:
@@ -56,7 +109,9 @@ class DppmsDetailReader:
         return rows
 
     def select_in(self, code, field, values):
-        values = sorted(set(values), key=str)
+        if field not in {column['key'] for column in self.domains[code]['fields']}:
+            raise ValueError('SOURCE_SCOPE_FIELD_UNAUDITED:' + code)
+        values = sorted({value for value in values if value is not None and str(value).strip()}, key=str)
         if not values:
             self.rows[code] = []
             return []
@@ -67,6 +122,7 @@ class DppmsDetailReader:
         pid = str(selection['sourceProjectKey'])
         if not re.fullmatch(r'[1-9][0-9]*', pid):
             raise ValueError('INVALID_SOURCE_PROJECT_KEY')
+        self.validate_source_schema()
         root = self.select('project', '`projectId`=%s', (pid,))
         if len(root) != 1:
             raise ValueError('SOURCE_PROJECT_NOT_UNIQUE')
@@ -89,17 +145,17 @@ class DppmsDetailReader:
         lines = []
         for order in orders:
             # ERP line identity includes company and source; an order number alone is not unique.
-            lines.extend(self.select('order-lines', '`orderNumber`=%s AND `compCode`=%s AND `source`=%s',
-                                     (order['orderNumber'], order['compCode'], order['source'])))
+            lines.extend(self.select('order-lines', '`orderNumber`=%s AND `compCode`=%s AND `source`=%s AND `lineType`=%s',
+                                     (order['orderNumber'], order['compCode'], order['source'], order['orderType'])))
         self.rows['order-lines'] = lines
         direct = ['state', 'parties', 'members', 'products', 'installations', 'software-changes',
                   'software-versions', 'tasks', 'maintenance', 'callbacks', 'notifications',
                   'weekly', 'instructions', 'real-products', 'supervision']
         for code in direct:
             self.select(code, '`projectId`=%s', (pid,))
+        self.collect_real_product_upstream()
         self.select_in('plans', 'contractNo', contract_numbers)
-        for code in ['lease-products', 'configured-products']:
-            self.select(code, '`projectCode`=%s', (project_code,))
+        self.collect_project_code_children(pid, project_code)
         self.select('incidents', '`projectCode`=%s OR `contractNo` IN (' + ','.join(['%s'] * len(contract_numbers)) + ')',
                     [project_code, *sorted(contract_numbers)])
         self.select_in('licenses', 'contract', contract_numbers)
@@ -127,6 +183,8 @@ class DppmsDetailReader:
         shipments = self.select_in('shipment-facts', 'id', selection['sourceShipmentIds'])
         if len(shipments) != len(set(selection['sourceShipmentIds'])):
             raise ValueError('SOURCE_SHIPMENT_ID_NOT_FOUND')
+        if 'shipment-packages' in self.domains:
+            self.select_in('shipment-packages', 'packlist_id', [r['pack_id'] for r in shipments])
         for code in ['shipment-logistics', 'shipment-products', 'warranties']:
             self.select_in(code, 'contract_code', shipment_contracts(contract_numbers))
         normalized_contracts = {number.replace('-C', '') for number in contract_numbers}
@@ -134,7 +192,52 @@ class DppmsDetailReader:
         serials = {r[field] for r in shipments for field in ['barcode', 'barcode2'] if r.get(field)}
         serials |= {r['barcode'] for r in self.rows['installations'] if r.get('barcode')}
         self.select_in('factory-versions', 'serial_number', serials)
+        # Scope remains the exact approved raw shipment rows and this source project's installation rows.
+        # The current target device owner must not filter out older source business facts.
+        for code, field in [('warranty-services', 'barcode'), ('warranty-registrations', 'barCode'),
+                            ('warranty-changes', 'barcode')]:
+            self.select_in(code, field, serials)
+        material_codes = {r[field] for r in shipments for field in ['item', 'item2'] if r.get(field)}
+        self.select_in('shipment-materials', 'item', material_codes)
         return self.bundle(selection, batch_key, expected_checksum)
+
+    def collect_project_code_children(self, source_project_key, project_code):
+        # The original DAO uses the first project-code segment for these two lists.
+        # A shared segment cannot prove which split project owns a row.
+        if not isinstance(project_code, str) or not project_code.strip():
+            raise ValueError('SOURCE_ASSOCIATED_PROJECT_CODE_INVALID')
+        query_code = project_code.split('-', 1)[0]
+        if not query_code:
+            raise ValueError('SOURCE_ASSOCIATED_PROJECT_CODE_INVALID')
+        for code in ['lease-products', 'configured-products']:
+            self.select(code, '`projectCode`=%s AND BINARY `projectCode`=BINARY %s', (query_code, query_code))
+        if not any(self.rows[code] for code in ['lease-products', 'configured-products']):
+            return
+        self.validate_source_schema()
+        with self.connection.cursor() as cursor:
+            cursor.execute('SELECT `projectId`,`projectCode` FROM `pm_project_header` '
+                           "WHERE SUBSTRING_INDEX(`projectCode`,'-',1)=%s "
+                           "AND BINARY SUBSTRING_INDEX(`projectCode`,'-',1)=BINARY %s", (query_code, query_code))
+            candidates = list(cursor.fetchall())
+        if len(candidates) != 1 or str(candidates[0]['projectId']) != str(source_project_key):
+            raise ValueError('SOURCE_ASSOCIATED_PROJECT_LINK_NOT_UNIQUE')
+
+    def collect_real_product_upstream(self):
+        # Every original field is read; equality preserves case, empty strings and NULL.
+        fields = ['projectCode', 'orderExecNumber', 'productFirstName', 'productName',
+                  'productSubCode', 'productSubModel', 'productSubName', 'num', 'memo']
+        captured = {}
+        for row in self.rows['real-products']:
+            identity = tuple(row.get(field) for field in fields)
+            if identity in captured:
+                continue
+            predicate = ' AND '.join(('`' + field + '` <=> %s') if field == 'num'
+                                     else ('BINARY `' + field + '` <=> BINARY %s') for field in fields)
+            matches = self.select('real-product-upstream', predicate, identity)
+            if len(matches) != 1:
+                raise ValueError('SOURCE_REAL_PRODUCT_UPSTREAM_NOT_UNIQUE')
+            captured[identity] = matches[0]
+        self.rows['real-product-upstream'] = list(captured.values())
 
     def bundle(self, selection, batch_key, expected_checksum):
         records = []
@@ -177,7 +280,8 @@ class DppmsDetailReader:
             if code == 'approvals':
                 relation = ('callbacks' if values['procdefKey'] == 'CallBack' else 'subcontracts', 'objId', 'id')
             if code == 'order-lines':
-                parents = [r for r in records if r['domain'] == 'orders' and all(r['values'][field] == values[field] for field in ['orderNumber', 'compCode', 'source'])]
+                parents = [r for r in records if r['domain'] == 'orders' and all(r['values'][field] == values[field] for field in ['orderNumber', 'compCode', 'source'])
+                           and r['values'].get('orderType') == values.get('lineType')]
             elif relation:
                 parent_code, child_field, parent_field = relation
                 parents = [r for r in records if r['domain'] == parent_code and not (parent_code == code and r['sourceKey'] == record['sourceKey']) and r['values'].get(parent_field) == values.get(child_field)]

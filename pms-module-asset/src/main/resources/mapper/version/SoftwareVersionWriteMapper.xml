@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.version.SoftwareVersionWriteMapper">
+  <select id="selectDeviceForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+    SELECT * FROM ast_device
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.deviceId} AND deleted=0 FOR UPDATE
+  </select>
+  <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceNetworkVersionDO">
+    SELECT * FROM ast_device_network_version
+    WHERE tenant_id=#{tenantId} AND device_sn=#{deviceSn} AND deleted=0 FOR UPDATE
+  </select>
+  <update id="replaceCurrent">
+    UPDATE ast_device_network_version SET
+      conp_version=#{row.conpVersion}, conp_type=#{row.conpType}, conp_series=#{row.conpSeries}, conp_mark=#{row.conpMark},
+      boot_version=#{row.bootVersion}, cpld_version=#{row.cpldVersion}, pcb_version=#{row.pcbVersion},
+      customized=#{row.customized}, release_date=#{row.releaseDate}, version_desc=#{row.versionDesc},
+      effective_from=#{row.effectiveFrom}, source_system=#{row.sourceSystem}, source_key=#{row.sourceKey},
+      source_version=#{row.sourceVersion}, source_updated_at=#{row.sourceUpdatedAt}, synced_at=#{row.syncedAt},
+      sync_status=#{row.syncStatus}, updater=#{row.updater}, update_time=#{row.updateTime}, version=version+1
+    WHERE tenant_id=#{row.tenantId} AND id=#{row.id} AND deleted=0 AND version=#{row.version}
+  </update>
+  <update id="updateDeviceProjection">
+    UPDATE ast_device SET conp_version=#{row.conpVersion}, conp_type=#{row.conpType},
+      conp_series=#{row.conpSeries}, conp_mark=#{row.conpMark},
+      updater=#{row.updater}, update_time=#{row.updateTime}, version=version+1
+    WHERE tenant_id=#{row.tenantId} AND id=#{row.id} AND deleted=0 AND version=#{row.version}
+  </update>
+</mapper>

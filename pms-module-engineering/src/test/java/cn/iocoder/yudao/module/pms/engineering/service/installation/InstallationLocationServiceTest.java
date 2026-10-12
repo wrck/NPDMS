@@ -214,6 +214,21 @@ class InstallationLocationServiceTest {
         verify(assetLocationApi, never()).effectEquipmentLocation(any());
     }
 
+
+    @Test
+    void completedHistoryCannotEnterCurrentInstallationActionsOrBeDeleted() {
+        var history=installation(201L,8L,2,LocalDateTime.of(2020,1,2,3,4,5));
+        when(mapper.selectById(201L)).thenReturn(history);
+        var update=request("新地址");update.setId(201L);
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.startInstallation(201L));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.completeInstallation(201L));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.deleteInstallation(201L));
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.updateInstallation(update));
+        verify(mapper,never()).updateById(any(InstallationDO.class));
+        verify(mapper,never()).deleteById(anyLong());
+        verifyNoInteractions(assetLocationApi,locationFactService);
+    }
+
     private InstallationSaveReqVO request(String location) {
         InstallationSaveReqVO request = new InstallationSaveReqVO();
         request.setProjectId(1L);

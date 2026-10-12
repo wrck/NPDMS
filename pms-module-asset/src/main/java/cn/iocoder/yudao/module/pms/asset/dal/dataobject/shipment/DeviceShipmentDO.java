@@ -18,6 +18,22 @@ public class DeviceShipmentDO extends TenantBaseDO {
     @TableId
     private Long id;
     private String deviceSn;
+    private String legacyPackageKey;
+    private String rmaRelatedSn;
+    private Integer rmaMarked;
+    private String orderNo;
+    private String lineNo;
+    private Long orderLineId;
+    private String sourcePayload;
+    private String productCode;
+    private String secondarySn;
+    private String secondaryItem;
+    private String internalSerialNo;
+    private Integer isRma;
+    private String profitCenter;
+    private String soleAgentSuffix;
+    private LocalDateTime syncTime;
+    private String uuid;
     private LocalDateTime shipmentTime;
     private String packageNo;
     private String contractNo;

@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.system.dal.mysql.user;
 
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.system.dal.mysql.user.query.ActiveUserSelectionQuery;
+import cn.iocoder.yudao.module.system.dal.mysql.user.query.UserMobileLookupQuery;
+import cn.iocoder.yudao.module.system.dal.mysql.user.query.UserEmailLookupQuery;
 import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.system.controller.admin.user.vo.user.UserPageReqVO;
@@ -22,12 +24,18 @@ public interface AdminUserMapper extends BaseMapperX<AdminUserDO> {
         return selectOne(AdminUserDO::getUsername, username);
     }
 
-    default AdminUserDO selectByEmail(String email) {
-        return selectOne(AdminUserDO::getEmail, email);
+    default List<AdminUserDO> selectMobileLoginCandidates(UserMobileLookupQuery query) {
+        if (query.tenantId() == null || query.mobile() == null || query.mobile().isBlank()) return List.of();
+        return selectList(new LambdaQueryWrapperX<AdminUserDO>()
+                .eq(AdminUserDO::getTenantId, query.tenantId()).eq(AdminUserDO::getMobile, query.mobile())
+                .orderByAsc(AdminUserDO::getId));
     }
 
-    default AdminUserDO selectByMobile(String mobile) {
-        return selectOne(AdminUserDO::getMobile, mobile);
+    default List<AdminUserDO> selectEmailAccounts(UserEmailLookupQuery query) {
+        if (query.tenantId() == null || query.email() == null || query.email().isBlank()) return List.of();
+        return selectList(new LambdaQueryWrapperX<AdminUserDO>()
+                .eq(AdminUserDO::getTenantId, query.tenantId()).eq(AdminUserDO::getEmail, query.email())
+                .orderByAsc(AdminUserDO::getId));
     }
 
     default PageResult<AdminUserDO> selectPage(UserPageReqVO reqVO, Collection<Long> deptIds, Collection<Long> userIds) {

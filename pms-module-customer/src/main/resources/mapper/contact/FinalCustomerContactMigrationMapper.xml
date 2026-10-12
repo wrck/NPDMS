@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.FinalCustomerContactMigrationMapper">
+  <select id="selectProjectForUpdate" resultType="cn.iocoder.yudao.module.pms.customer.dal.dataobject.contact.ProjectCustomerContactDO">
+    SELECT * FROM cus_project_customer_contact_relation
+    WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} ORDER BY id FOR UPDATE
+  </select>
+  <insert id="insertHistorical">
+    INSERT INTO cus_project_customer_contact_relation
+    (id,project_id,customer_id,customer_contact_id,name,department,title,mobile,phone,email,primary_flag,primary_set_time,
+     status,remark,version,creator,create_time,updater,update_time,deleted,deleted_by,deleted_at,tenant_id,
+     project_party_id,contact_code,registration_source,effective_from,effective_to)
+    VALUES
+    (#{entry.values.id},#{entry.values.projectId},#{entry.values.customerId},#{entry.values.customerContactId},
+     #{entry.values.name},#{entry.values.department},#{entry.values.title},#{entry.values.mobile},#{entry.values.phone},#{entry.values.email},
+     #{entry.values.primaryFlag},#{entry.values.primarySetTime},#{entry.values.status},#{entry.values.remark},#{entry.values.version},
+     #{entry.values.creator},#{entry.values.createTime},#{entry.values.updater},#{entry.values.updateTime},#{entry.values.deleted},
+     #{entry.values.deletedBy},#{entry.values.deletedAt},#{entry.values.tenantId},#{entry.values.projectPartyId},#{entry.values.contactCode},
+     #{entry.values.registrationSource},#{entry.values.effectiveFrom},#{entry.values.effectiveTo})
+  </insert>
+</mapper>

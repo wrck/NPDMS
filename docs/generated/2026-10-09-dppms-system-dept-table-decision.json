@@ -1,0 +1,931 @@
+{
+  "status": "WHOLE_TABLE_USER_ADJUDICATED_NO_NEW_COLUMNS_NOT_APPLIED",
+  "existingColumns": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门id",
+      "handling": "正式Owner生成；来源id仅用于既有迁移绑定，不按数值碰巧相同关联。"
+    },
+    {
+      "COLUMN_NAME": "code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "统一部门编码",
+      "handling": "departmentNum原码；本批9个3112xx按明确3112→1621转换申请关联已有1621xx，见逐码表。租户内编码唯一。"
+    },
+    {
+      "COLUMN_NAME": "name",
+      "COLUMN_TYPE": "varchar(30)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "",
+      "COLUMN_COMMENT": "部门名称",
+      "handling": "新增28项取fnd.departmentName；已存在编码沿用正式名称；名称冲突单列。"
+    },
+    {
+      "COLUMN_NAME": "parent_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "0",
+      "COLUMN_COMMENT": "父部门id",
+      "handling": "用户已裁决：新建16前缀挂160000，31前缀挂310000，280700挂280000，999999根级；父ID经正式目录精确关联；已有记录不覆盖。"
+    },
+    {
+      "COLUMN_NAME": "sort",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "0",
+      "COLUMN_COMMENT": "显示顺序",
+      "handling": "新建使用既有默认0；已有排序保持。"
+    },
+    {
+      "COLUMN_NAME": "leader_user_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "负责人",
+      "handling": "fnd无负责人字段，新增NULL；不从EHR director或director2自动选人，既有负责人保持。"
+    },
+    {
+      "COLUMN_NAME": "phone",
+      "COLUMN_TYPE": "varchar(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "联系电话",
+      "handling": "原fnd无电话字段，新增NULL，既有保持。"
+    },
+    {
+      "COLUMN_NAME": "email",
+      "COLUMN_TYPE": "varchar(50)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "邮箱",
+      "handling": "原fnd无邮箱字段，新增NULL，既有保持。"
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门状态（0正常 1停用）",
+      "handling": "160700002、310500001按EHR保持停用；其余新增按fnd 1→启用0、0→停用1；已有记录不覆盖。"
+    },
+    {
+      "COLUMN_NAME": "version",
+      "COLUMN_TYPE": "int unsigned",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "0",
+      "COLUMN_COMMENT": "乐观锁版本",
+      "handling": "新增既有默认0，后续Owner乐观锁；已有版本不重置。"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "",
+      "COLUMN_COMMENT": "创建者",
+      "handling": "原fnd无创建人字段，新增NULL，已有审计保持。"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+      "COLUMN_COMMENT": "创建时间",
+      "handling": "新增原createTime，禁止使用本次运行时间。"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "",
+      "COLUMN_COMMENT": "更新者",
+      "handling": "原fnd无更新人字段，新增NULL，已有审计保持。"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+      "COLUMN_COMMENT": "更新时间",
+      "handling": "新建记录原NULL更新时间用原createTime初始化；不使用本次运行时间；既有审计不覆盖。"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "b'0'",
+      "COLUMN_COMMENT": "是否删除",
+      "handling": "新增FALSE；来源停用使用status，不当作删除；已有删除记录不自动复活。"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "0",
+      "COLUMN_COMMENT": "租户编号",
+      "handling": "授权迁移任务当前租户；不按原公司ID当租户。"
+    }
+  ],
+  "sourceColumns": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "handling": "既有同步绑定定位来源；没有业务编码意义，不另加source_id。"
+    },
+    {
+      "COLUMN_NAME": "departmentNum",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "handling": "正式code；编码转换只使用本表明确批准的逐码规则。"
+    },
+    {
+      "COLUMN_NAME": "departmentName",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "handling": "新增正式name；已有名称冲突保留原值证据并登记，不覆盖正式名称。"
+    },
+    {
+      "COLUMN_NAME": "isparam",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "0",
+      "COLUMN_COMMENT": "",
+      "handling": "不迁入：用户裁决不新增字段，既有16列无同义的旧选项可选标记。"
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "1",
+      "COLUMN_COMMENT": "",
+      "handling": "正式status转换；fnd/EHR启停冲突需明确主来源。"
+    },
+    {
+      "COLUMN_NAME": "createTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "handling": "新增正式create_time；不得替代effectiveFrom。"
+    },
+    {
+      "COLUMN_NAME": "effectiveFrom",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "handling": "不迁入：用户裁决不新增字段，原部门有效期与创建时间不等同。"
+    },
+    {
+      "COLUMN_NAME": "effectiveTo",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "handling": "不迁入：用户裁决不新增字段，现表无同义有效期结束字段，本轮原值全NULL。"
+    },
+    {
+      "COLUMN_NAME": "updateTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "handling": "本批全NULL；已批准按各自原createTime初始化正式非空update_time，不使用本次运行时间。"
+    }
+  ],
+  "departmentDecisions": [
+    {
+      "sourceCode": "160300",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "160300",
+      "sourceName": "企业网市场部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2015-05-20 15:40:05",
+      "effectiveFrom": "2015-05-20 15:40:05",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "160700002",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "160700002",
+      "sourceName": "上海金融分部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": "上海金融分部",
+      "ehrDisabled": "b'\\x01'",
+      "createTime": "2023-04-19 10:27:00",
+      "effectiveFrom": "2023-04-19 10:27:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "162028",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "162028",
+      "sourceName": "深圳办事处",
+      "sourceStatus": 0,
+      "sourceIsparam": 1,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2017-11-24 17:53:42",
+      "effectiveFrom": "2017-11-24 17:53:42",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "162029",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "162029",
+      "sourceName": "胶东办事处（旧）",
+      "sourceStatus": 0,
+      "sourceIsparam": 1,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-01-17 16:29:34",
+      "effectiveFrom": "2019-01-17 16:29:36",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "163120",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "163120",
+      "sourceName": "政府系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "政府系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 09:58:00",
+      "effectiveFrom": "2024-01-16 09:58:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "163140",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "163140",
+      "sourceName": "交通系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "交通系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 09:59:00",
+      "effectiveFrom": "2024-01-16 09:59:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "163220",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "163220",
+      "sourceName": "电力能源系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "电力能源系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 10:05:00",
+      "effectiveFrom": "2024-01-16 10:05:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "163230",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "163230",
+      "sourceName": "金融系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "金融系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 10:05:00",
+      "effectiveFrom": "2024-01-16 10:05:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "163240",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "163240",
+      "sourceName": "大企业系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "大企业系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 10:05:00",
+      "effectiveFrom": "2024-01-16 10:05:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "163320",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "163320",
+      "sourceName": "科教文卫系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "科教文卫系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 10:09:00",
+      "effectiveFrom": "2024-01-16 10:09:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "165030",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "165030",
+      "sourceName": "移动/广电系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "移动/广电系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 09:16:00",
+      "effectiveFrom": "2024-01-16 09:16:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "165040",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "165040",
+      "sourceName": "电信系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "电信系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 09:16:00",
+      "effectiveFrom": "2024-01-16 09:16:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "165050",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "165050",
+      "sourceName": "联通系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "联通系统部",
+      "ehrDisabled": null,
+      "createTime": "2024-01-16 09:16:00",
+      "effectiveFrom": "2024-01-16 09:16:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "167060",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "167060",
+      "sourceName": "战略合作部（新）",
+      "sourceStatus": 1,
+      "sourceIsparam": 1,
+      "ehrName": "战略合作部",
+      "ehrDisabled": null,
+      "createTime": "2015-05-20 15:40:05",
+      "effectiveFrom": "2015-05-20 15:40:05",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "280700",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "280700",
+      "sourceName": "应用交付与安全产品部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2015-05-20 15:40:08",
+      "effectiveFrom": "2015-05-20 15:40:08",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001",
+      "sourceName": "用服-企业网市场部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": "安全服务部",
+      "ehrDisabled": "b'\\x01'",
+      "createTime": "2015-05-20 15:40:10",
+      "effectiveFrom": "2015-05-20 15:40:10",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001001",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001001",
+      "sourceName": "用服-政府系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:37:31",
+      "effectiveFrom": "2019-05-09 11:37:31",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001002",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001002",
+      "sourceName": "用服-金融系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:37:43",
+      "effectiveFrom": "2019-05-09 11:37:43",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001003",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001003",
+      "sourceName": "用服-大企业系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:37:51",
+      "effectiveFrom": "2019-05-09 11:37:51",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001004",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001004",
+      "sourceName": "用服-电力能源系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:37:58",
+      "effectiveFrom": "2019-05-09 11:37:58",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001005",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001005",
+      "sourceName": "用服-财税综合系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:38:06",
+      "effectiveFrom": "2019-05-09 11:38:06",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001006",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001006",
+      "sourceName": "用服-科教文卫系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:38:14",
+      "effectiveFrom": "2019-05-09 11:38:14",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001007",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001007",
+      "sourceName": "用服-公安政法行业系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-06-04 18:28:00",
+      "effectiveFrom": "2019-06-04 18:28:00",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500001008",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500001008",
+      "sourceName": "用服-交通系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2026-01-15 10:11:58",
+      "effectiveFrom": "2026-01-15 10:11:58",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500002",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500002",
+      "sourceName": "用服-运营商市场部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2015-05-20 15:40:10",
+      "effectiveFrom": "2015-05-20 15:40:10",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500002001",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500002001",
+      "sourceName": "用服-移动系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:38:24",
+      "effectiveFrom": "2019-05-09 11:38:24",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "310500002002",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "310500002002",
+      "sourceName": "用服-联通/电信系统部",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2019-05-09 11:38:32",
+      "effectiveFrom": "2019-05-09 11:38:32",
+      "effectiveTo": null
+    },
+    {
+      "sourceCode": "311202",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162102",
+      "targetName": "深圳办",
+      "targetStatus": 0
+    },
+    {
+      "sourceCode": "311203",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162103",
+      "targetName": "宁波办",
+      "targetStatus": 0
+    },
+    {
+      "sourceCode": "311204",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162104",
+      "targetName": "佛山办",
+      "targetStatus": 1
+    },
+    {
+      "sourceCode": "311205",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162105",
+      "targetName": "东莞办",
+      "targetStatus": 1
+    },
+    {
+      "sourceCode": "311206",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162106",
+      "targetName": "海口办",
+      "targetStatus": 0
+    },
+    {
+      "sourceCode": "311207",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162107",
+      "targetName": "厦门办",
+      "targetStatus": 1
+    },
+    {
+      "sourceCode": "311208",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162108",
+      "targetName": "苏州办",
+      "targetStatus": 1
+    },
+    {
+      "sourceCode": "311209",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162109",
+      "targetName": "大连办",
+      "targetStatus": 1
+    },
+    {
+      "sourceCode": "311210",
+      "handling": "PROPOSED_EXPLICIT_ALIAS",
+      "targetCode": "162110",
+      "targetName": "银川办",
+      "targetStatus": 1
+    },
+    {
+      "sourceCode": "999999",
+      "handling": "PROPOSED_NEW_FORMAL_DEPARTMENT",
+      "targetCode": "999999",
+      "sourceName": "通用部门",
+      "sourceStatus": 1,
+      "sourceIsparam": 0,
+      "ehrName": null,
+      "ehrDisabled": null,
+      "createTime": "2015-05-20 15:40:10",
+      "effectiveFrom": "2015-05-20 15:40:10",
+      "effectiveTo": null
+    }
+  ],
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "schemaWrites": 0,
+  "sourceEvidence": "私有system-dept-whole-table-readonly-20261009.json、read-department-scope-aliases-20261009.json；原库只读查询、旧SQL与UserUtil核对。",
+  "ehrReferenceBoundary": "ehr_department本次用于核对差异；完整24列见本报告参考字段，不声明已完整迁入EHR部门属性。",
+  "approvedParentAndStructureDecision": {
+    "16PrefixParentCode": "160000",
+    "31PrefixParentCode": "310000",
+    "newColumns": false,
+    "unmappedAttributes": {
+      "isparam": "不迁入：用户裁决不新增字段，既有16列无同义的旧选项可选标记。",
+      "effectiveFrom": "不迁入：用户裁决不新增字段，原部门有效期与创建时间不等同。",
+      "effectiveTo": "不迁入：用户裁决不新增字段，现表无同义有效期结束字段，本轮原值全NULL。"
+    },
+    "otherParents": {
+      "280700": "280000",
+      "999999": "0"
+    }
+  },
+  "proposedNewColumnsStatus": "WITHDRAWN_BY_USER_NO_NEW_COLUMNS",
+  "approvedRemainingHandling": "沿整表其余建议，补28项、名称按fnd，NULL更新时间按原创建时间，160700002和310500001按EHR停用，其余按fnd，已有不覆盖，9项明确3112→1621转换。",
+  "withdrawnNewColumns": [
+    {
+      "column": "office_selectable",
+      "type": "BIT NULL",
+      "source": "fnd_department.isparam",
+      "meaning": "旧办事处选项目录可选标记，不授予权限"
+    },
+    {
+      "column": "effective_from",
+      "type": "DATETIME NULL",
+      "source": "fnd_department.effectiveFrom",
+      "meaning": "原部门有效期开始"
+    },
+    {
+      "column": "effective_to",
+      "type": "DATETIME NULL",
+      "source": "fnd_department.effectiveTo",
+      "meaning": "原部门有效期结束"
+    }
+  ],
+  "proposedNewColumns": [],
+  "implementationBoundary": {
+    "systemOwnerTransactionTests": 3,
+    "integrationTemplateTests": 2,
+    "integrationAdapterTests": 3,
+    "actualSourceRows": 28,
+    "allOriginalColumnsRead": 9,
+    "newColumns": 0,
+    "sourceWrites": 0,
+    "targetWrites": 0,
+    "deployment": "NOT_DEPLOYED"
+  },
+  "ehrReferenceColumns": [
+    {
+      "COLUMN_NAME": "depID",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门ID，关联外键",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "核实160700002/310500001两条启停冲突的EHR原外键；不按EHR数值ID冒充正式部门ID。"
+    },
+    {
+      "COLUMN_NAME": "depCode",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门编码",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "原业务编码精确核对两条冲突；正式新code仍取fnd.departmentNum。"
+    },
+    {
+      "COLUMN_NAME": "depName",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门名称",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "原名称差异核对；新增正式name按已定fnd主来源，不覆盖既有名称。"
+    },
+    {
+      "COLUMN_NAME": "depAbbr",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门简称",
+      "nonNullCountAcrossReadReferenceRows": 203,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "compID",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "公司ID，外键",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "adminID",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "上级ID",
+      "nonNullCountAcrossReadReferenceRows": 854,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depGrade",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门级别",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depType",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门类型",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depProperty",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "部门属性",
+      "nonNullCountAcrossReadReferenceRows": 0,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depCost",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "存在部门内分级计数用",
+      "nonNullCountAcrossReadReferenceRows": 864,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "director",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "主管",
+      "nonNullCountAcrossReadReferenceRows": 864,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "director2",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "分管领导",
+      "nonNullCountAcrossReadReferenceRows": 845,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depEmp",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "nonNullCountAcrossReadReferenceRows": 243,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depNum",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "",
+      "nonNullCountAcrossReadReferenceRows": 0,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "effectDate",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "生效时间",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "xOrder",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "排序",
+      "nonNullCountAcrossReadReferenceRows": 0,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "isDisabled",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "失效状态",
+      "nonNullCountAcrossReadReferenceRows": 246,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "两条明确冲突按已核实EHR停用值承接正式status；其他新记录按fnd，既有不覆盖。"
+    },
+    {
+      "COLUMN_NAME": "disabledDate",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "失效时间",
+      "nonNullCountAcrossReadReferenceRows": 246,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "remark",
+      "COLUMN_TYPE": "varchar(500)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "备注",
+      "nonNullCountAcrossReadReferenceRows": 0,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depCustom1",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "保留字段1",
+      "nonNullCountAcrossReadReferenceRows": 0,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depCustom2",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "保留字段2、部门秘书",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depCustom3",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "保留字段3",
+      "nonNullCountAcrossReadReferenceRows": 0,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depCustom4",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "保留字段4",
+      "nonNullCountAcrossReadReferenceRows": 865,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    },
+    {
+      "COLUMN_NAME": "depCustom5",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": null,
+      "COLUMN_COMMENT": "保留字段5",
+      "nonNullCountAcrossReadReferenceRows": 0,
+      "readReferenceRowCount": 865,
+      "handlingAndReason": "本轮EHR仅参考来源，未作为本批fnd目录业务来源；本字段未声明业务承接或丢弃，保留待EHR部门领域逐表裁决，不新增字段、不挤入无关正式列。"
+    }
+  ]
+}

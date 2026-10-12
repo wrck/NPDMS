@@ -73,4 +73,17 @@ describe('contact customer identity and title display', () => {
       expect(textOf(mounted.root)).not.toContain('客户联系人角色')
     } finally { mounted.app.unmount() }
   })
+  it('shows readonly final-customer history even without a buyer customer', async () => {
+    vi.mocked(ContactsApi.getProjectContext).mockResolvedValue({ project: { projectId: 7, customerId: null, canManage: false } } as any)
+    vi.mocked(ContactsApi.getProjectPage).mockResolvedValue({ list: [{ id: '992203099999', name: '董颖', projectPartyId: '99', projectPartyName: '实际最终用户', historicalReadonly: true, contactCode: '', phone: '13500802833', registrationSource: '2', effectiveFrom: '2023-04-14 14:55:02', status: 0, primaryFlag: false }], total: 1 } as any)
+    const mounted = mount(Contacts, { projectId: 7 }, components)
+    try {
+      await flush()
+      expect(ContactsApi.getProjectPage).toHaveBeenCalled()
+      expect(textOf(mounted.root)).toContain('实际最终用户')
+      expect(textOf(mounted.root)).toContain('13500802833')
+      expect(textOf(mounted.root)).toContain('只读历史')
+      expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
 })

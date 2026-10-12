@@ -17,6 +17,7 @@ import org.springframework.batch.infrastructure.support.transaction.Resourceless
 import org.springframework.beans.factory.ObjectProvider;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -97,6 +98,86 @@ class SyncRunMaintenanceTest {
         assertEquals(0,task.getRetryAttempt());
         verify(tasks,never()).updateById(any(SyncTaskDO.class));
         verify(batchLauncher).recover(1L,11L);
+    }
+
+    @Test
+    void specifiedInterruptedRunPreservesCommittedProgressAndNeverScansOtherRuns() {
+        var run=interrupted();
+        assertTrue(service.recoverInterrupted(10L));
+        assertEquals("FAILED",run.getStatus());
+        assertEquals(64000,run.getReadCount());
+        assertEquals("{\"UPDATED\":63642,\"SKIPPED\":358}",run.getSummaryJson());
+        assertEquals("{\"committedRows\":64000}",run.getPagingJson());
+        verify(runs,never()).selectMaintenance(any());
+        verify(batchLauncher).recover(1L,10L);
+        verify(lock).unlock();
+        verifyNoInteractions(bindings,jdbcStore,connections,reader,streamingReader,evidenceService);
+        assertFalse(service.recoverInterrupted(10L));
+        verify(batchLauncher,times(1)).recover(1L,10L);
+    }
+
+    @Test
+    void specifiedRecoveryRefusesAnActiveWriter() {
+        interrupted();when(lock.tryLock()).thenReturn(false);
+        assertThrows(SyncTaskConflictException.class,()->service.recoverInterrupted(10L));
+        verifyNoInteractions(batchLauncher);
+        verify(runs,never()).updateById(any(SyncRunDO.class));
+        verify(lock,never()).unlock();
+    }
+
+    @Test
+    void specifiedRecoveryRetainsExistingWaitAndConfigurationOwnership() {
+        var run=interrupted().setStartedAt(LocalDateTime.now());
+        assertThrows(IllegalArgumentException.class,()->service.recoverInterrupted(10L));
+        run.setStartedAt(LocalDateTime.now().minusMinutes(5));
+        when(taskService.locked(20L)).thenReturn(new SyncTaskDO().setId(20L).setActiveRunId(10L).setVersion(8));
+        assertThrows(SyncTaskConflictException.class,()->service.recoverInterrupted(10L));
+        when(taskService.locked(20L)).thenReturn(new SyncTaskDO().setId(20L).setActiveRunId(99L).setVersion(7));
+        assertThrows(SyncTaskConflictException.class,()->service.recoverInterrupted(10L));
+        verifyNoInteractions(batchLauncher);
+        verify(runs,never()).updateById(any(SyncRunDO.class));
+        verify(tasks,never()).updateById(any(SyncTaskDO.class));
+    }
+
+    @Test
+    void specifiedRecoveryDoesNotTouchOtherTenantOrChildRun() {
+        when(runs.selectScoped(any())).thenReturn(null);
+        assertThrows(IllegalArgumentException.class,()->service.recoverInterrupted(10L));
+        verify(runs).selectScoped(argThat(q->q.tenantId()==1L&&q.id()==10L));
+        interrupted().setPageNumber(2).setParentRunId(99L);
+        assertThrows(IllegalArgumentException.class,()->service.recoverInterrupted(10L));
+        verifyNoInteractions(batchLauncher,redisson);
+        verify(runs,never()).updateById(any(SyncRunDO.class));
+    }
+
+    @Test
+    void specifiedRecoveryKeepsEvidenceWhenFrameworkRecoveryFails() {
+        var run=interrupted();
+        doThrow(new IllegalStateException("framework unavailable")).when(batchLauncher).recover(1L,10L);
+        assertThrows(IllegalStateException.class,()->service.recoverInterrupted(10L));
+        assertEquals("APPLYING",run.getStatus());
+        verify(runs,never()).updateById(any(SyncRunDO.class));
+        verify(tasks,never()).updateById(any(SyncTaskDO.class));
+        verify(lock).unlock();
+    }
+
+    @Test
+    void manualRecoveryRequiresTheExistingExecutionPermission() throws Exception {
+        var method=cn.iocoder.yudao.module.pms.integration.controller.admin.sync.DataSyncController.class
+                .getMethod("recoverRun",Long.class);
+        assertEquals("@ss.hasPermission('pms:integration:execute')",
+                method.getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class).value());
+    }
+
+    private SyncRunDO interrupted() {
+        var run=new SyncRunDO().setId(10L).setTaskId(20L).setStatus("APPLYING").setConfigSnapshot(config())
+                .setConfigVersion(7).setStartedAt(LocalDateTime.now().minusMinutes(5))
+                .setPreview(false).setFullSnapshot(true).setReadCount(64000)
+                .setSummaryJson("{\"UPDATED\":63642,\"SKIPPED\":358}").setPagingJson("{\"committedRows\":64000}");
+        var task=new SyncTaskDO().setId(20L).setActiveRunId(10L).setVersion(7).setRetryAttempt(0);
+        when(runs.selectScoped(any())).thenReturn(run);
+        when(taskService.locked(20L)).thenReturn(task);
+        return run;
     }
 
     private static String config() {

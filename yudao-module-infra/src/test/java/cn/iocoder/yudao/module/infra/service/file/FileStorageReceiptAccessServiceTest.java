@@ -35,6 +35,8 @@ class FileStorageReceiptAccessServiceTest {
 
     @BeforeEach
     void setUp() {
+        var request=new org.springframework.mock.web.MockHttpServletRequest();request.setScheme("http");request.setServerName("127.0.0.1");request.setServerPort(59282);
+        org.springframework.web.context.request.RequestContextHolder.setRequestAttributes(new org.springframework.web.context.request.ServletRequestAttributes(request));
         var web = new WebProperties();
         web.setAdminApi(new WebProperties.Api("/admin-api", "**.controller.admin.**"));
         service = new FileStorageReceiptAccessService(redis, files, configs, web);
@@ -51,6 +53,8 @@ class FileStorageReceiptAccessServiceTest {
         when(values.get(anyString())).thenAnswer(invocation -> cache.get(invocation.getArgument(0)));
     }
 
+    @org.junit.jupiter.api.AfterEach void cleanup() {org.springframework.web.context.request.RequestContextHolder.resetRequestAttributes();}
+
     @Test
     void localReceiptTicketReadsRealBytesWithoutExposingStoragePath(@org.junit.jupiter.api.io.TempDir java.nio.file.Path directory) throws Exception {
         var localConfig=new cn.iocoder.yudao.module.infra.framework.file.core.client.local.LocalFileClientConfig();
@@ -62,7 +66,7 @@ class FileStorageReceiptAccessServiceTest {
         when(configs.getFileClient(51L)).thenReturn(local);when(files.selectById(501L)).thenReturn(file);
         String url=service.issue(file,120);
         assertFalse(url.contains(file.getPath()));assertFalse(url.contains(directory.toString()));
-        assertTrue(url.startsWith("https://files.example/base/admin-api/infra/file-storage-receipts/content?ticket="));
+        assertTrue(url.startsWith("http://127.0.0.1:59282/admin-api/infra/file-storage-receipts/content?ticket="));
         var content=service.read(token(url));assertArrayEquals(bytes,content.content());assertEquals("receipt.pdf",content.name());
         assertNull(service.read("A".repeat(43)));
         cache.replaceAll((key,value)->JsonUtils.toJsonString(new FileStorageReceiptAccessService.ReceiptTicket(
@@ -87,11 +91,11 @@ class FileStorageReceiptAccessServiceTest {
         verify(values).set(key.capture(), value.capture(), eq(Duration.ofSeconds(120)));
 
         URI uri = URI.create(url);
-        assertEquals("https://files.example/base/admin-api/infra/file-storage-receipts/content", uri.toString().substring(0, uri.toString().indexOf('?')));
+        assertEquals("http://127.0.0.1:59282/admin-api/infra/file-storage-receipts/content", uri.toString().substring(0, uri.toString().indexOf('?')));
         assertEquals("ticket=" + token, uri.getRawQuery());
         assertNotEquals(token, key.getValue());
         assertFalse(value.getValue().contains(token));
-        verify(configs).getFileConfig(51L);
+        verify(configs, never()).getFileConfig(51L);
         verify(configs, never()).getMasterFileClient();
     }
 

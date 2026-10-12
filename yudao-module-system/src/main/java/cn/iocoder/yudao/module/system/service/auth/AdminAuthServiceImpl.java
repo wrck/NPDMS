@@ -144,6 +144,10 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         if (user == null) {
             throw exception(USER_NOT_EXISTS);
         }
+        if (CommonStatusEnum.isDisable(user.getStatus())) {
+            createLoginLog(user.getId(), reqVO.getMobile(), LoginLogTypeEnum.LOGIN_MOBILE, LoginResultEnum.USER_DISABLED);
+            throw exception(AUTH_LOGIN_USER_DISABLED);
+        }
 
         // 创建 Token 令牌，记录登录日志
         return createTokenAfterLoginSuccess(user.getId(), reqVO.getMobile(), LoginLogTypeEnum.LOGIN_MOBILE);

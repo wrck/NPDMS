@@ -316,7 +316,7 @@ ALTER TABLE com_shipment_contract_reference
     MODIFY COLUMN `tenant_id` bigint NOT NULL COMMENT '租户ID',
     MODIFY COLUMN `update_time` datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '更新时间',
     MODIFY COLUMN `updater` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '更新人',
-    MODIFY COLUMN `warranty_flag` varchar(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '质保标志：0否，1是';
+    MODIFY COLUMN `warranty_years` int NULL COMMENT '合同保修年数，原空白或NULL表示未知；不代表当前保修状态';
 
 ALTER TABLE com_shipment_package
     MODIFY COLUMN `carrier_name` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '承运商名称',

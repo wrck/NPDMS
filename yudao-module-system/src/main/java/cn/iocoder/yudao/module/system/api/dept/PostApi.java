@@ -27,6 +27,9 @@ public interface PostApi {
 
     List<PostRespDTO> getPostList(Collection<Long> ids);
 
+    /** Exact business-code lookup in the current tenant; includes historical disabled posts. */
+    PostRespDTO getPostByCode(String code);
+
     default Map<Long, PostRespDTO> getPostMap(Collection<Long> ids) {
         if (CollUtil.isEmpty(ids)) {
             return MapUtil.empty();

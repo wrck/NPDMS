@@ -14,6 +14,8 @@ public interface ProjectLegacyDetailMapper {
     record RecordsPageQuery(Long tenantId,Long snapshotId,String domainCode,String sourceKey,
                             String parentDomain,String parentSourceKey,int offset,int limit) {}
     record SourceHeadUpdate(Long tenantId,Long id,Long expectedVersion,Long snapshotId) {}
+    record SourceLicenseRecordsQuery(Long tenantId,Long sourceId,Long afterId,int limit) {}
+    ProjectLegacySourceDO selectSource(@Param("query") SourceIdentityQuery query);
     ProjectLegacySourceDO selectSourceForUpdate(@Param("query") SourceIdentityQuery query);
     List<ProjectLegacySourceDO> selectProjectSources(@Param("query") ProjectSourcesQuery query);
     ProjectLegacySnapshotDO selectSnapshot(@Param("query") SnapshotQuery query);
@@ -24,4 +26,5 @@ public interface ProjectLegacyDetailMapper {
     int updateHead(@Param("query") SourceHeadUpdate query);
     long countRecords(@Param("query") RecordsPageQuery query);
     List<ProjectLegacyRecordDO> selectRecords(@Param("query") RecordsPageQuery query);
+    List<ProjectLegacyRecordDO> selectSourceLicenseRecords(@Param("query") SourceLicenseRecordsQuery query);
 }

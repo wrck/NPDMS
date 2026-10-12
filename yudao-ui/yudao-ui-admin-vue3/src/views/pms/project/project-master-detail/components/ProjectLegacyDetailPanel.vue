@@ -1,5 +1,7 @@
 <template>
   <ContentWrap class="legacy-detail" data-testid="project-legacy-detail" v-loading="loading">
+    <ProjectAssociatedDataPanel :project-id="projectId" />
+    <el-divider />
     <div class="panel-heading"
       ><h3>DPPMS 关联资料</h3><el-button @click="refresh++">刷新资料</el-button></div
     >
@@ -25,10 +27,37 @@
       >
       <el-alert
         title="以下为旧系统历史资料，原状态和人员关系按历史展示。"
+        description="业务承接正在复核，已有目标记录不代表承接完成。"
         type="info"
         :closable="false"
       />
       <p v-for="note in source.deferredDomains" :key="note" class="deferred-note">{{ note }}</p>
+      <p v-if="nativeReport" role="status" class="source-meta" data-testid="legacy-native-summary">
+        已有目标记录 {{ nativeReport.mappedCount }} 条 · 保留来源资料
+        {{ nativeReport.retainedCount }} 条
+        <span v-if="nativeReport.pendingCount"> · 待承接 {{ nativeReport.pendingCount }} 条</span>
+      </p>
+      <el-alert
+        v-if="nativeReportError"
+        title="业务承接状态加载失败，请刷新资料重试。"
+        type="error"
+        :closable="false"
+      />
+      <el-collapse v-if="nativeReport?.retainedCount" aria-label="保留历史的缺项">
+        <el-collapse-item title="查看保留历史的缺项及原因" name="retained">
+          <p
+            v-for="item in nativeReport.domains.filter((d) => d.retainedCount > 0)"
+            :key="item.domain"
+          >
+            {{ item.label }}（{{ item.retainedCount }} 条）：
+            {{
+              Object.entries(item.retentionReasons)
+                .map(([reason, count]) => `${reason}（${count}）`)
+                .join('；')
+            }}
+          </p>
+        </el-collapse-item>
+      </el-collapse>
       <div class="group-tabs" role="group" aria-label="关联资料类别">
         <button
           v-for="name in groups"
@@ -69,6 +98,12 @@
             ><el-button @click="recordRefresh++">重新加载</el-button></el-alert
           >
           <template v-else>
+            <el-alert
+              v-if="nativeRecordError"
+              title="业务承接状态暂不可用，历史资料仍可查看。"
+              type="warning"
+              :closable="false"
+            />
             <el-table
               :data="records"
               row-key="sourceKey"
@@ -81,6 +116,11 @@
                 min-width="130"
                 show-overflow-tooltip
               />
+              <el-table-column label="业务承接" min-width="120">
+                <template #default="{ row }">{{
+                  nativeRecordError ? '状态暂不可用' : legacyNativeStatusText(row.nativeStatus)
+                }}</template>
+              </el-table-column>
               <el-table-column
                 v-for="field in summaryFields"
                 :key="field.key"
@@ -125,12 +165,17 @@ import { computed, ref, watch } from 'vue'
 import {
   getLegacySources,
   getLegacyRecords,
+  getLegacyNativeReport,
+  getLegacyNativeRecordStatus,
+  legacyNativeStatusText,
   legacyValueText,
   type LegacyId,
   type LegacyRecord,
-  type LegacySource
+  type LegacySource,
+  type LegacyNativeReport
 } from '@/api/pms/project/legacy-detail'
 import ProjectLegacyRecordDetails from './ProjectLegacyRecordDetails.vue'
+import ProjectAssociatedDataPanel from './ProjectAssociatedDataPanel.vue'
 const props = defineProps<{ projectId: LegacyId }>()
 const sources = ref<LegacySource[]>([])
 const sourceId = ref<LegacyId>()
@@ -139,6 +184,8 @@ const source = computed(() =>
 )
 const loading = ref(false)
 const sourceError = ref(false)
+const nativeReport = ref<LegacyNativeReport>()
+const nativeReportError = ref(false)
 const refresh = ref(0)
 const group = ref('')
 const domainCode = ref('project')
@@ -169,6 +216,7 @@ const pageNo = ref(1)
 const pageSize = ref(20)
 const recordsLoading = ref(false)
 const recordError = ref(false)
+const nativeRecordError = ref(false)
 const recordRefresh = ref(0)
 const selected = ref<LegacyRecord>()
 const filter = ref<{ sourceKey?: string; parentDomain?: string; parentKey?: string }>({})
@@ -205,6 +253,24 @@ watch(source, () => {
   group.value = source.value?.domains[0]?.group || ''
   selectDomain('project')
 })
+watch(source, async (currentSource, _old, onCleanup) => {
+  let current = true
+  onCleanup(() => {
+    current = false
+  })
+  nativeReport.value = undefined
+  nativeReportError.value = false
+  if (!currentSource) return
+  try {
+    const report = await getLegacyNativeReport(props.projectId, {
+      sourceId: currentSource.id,
+      snapshotId: currentSource.snapshotId
+    })
+    if (current) nativeReport.value = report
+  } catch {
+    if (current) nativeReportError.value = true
+  }
+})
 watch(
   [source, domainCode, filter, pageNo, pageSize, recordRefresh],
   async (_new, _old, onCleanup) => {
@@ -217,6 +283,7 @@ watch(
     // Keep the immutable scope's count during pagination; a temporary zero clamps page two to page one.
     if (_new[0] !== _old?.[0] || _new[1] !== _old?.[1] || _new[2] !== _old?.[2]) total.value = 0
     recordError.value = false
+    nativeRecordError.value = false
     if (!currentSource) {
       total.value = 0
       recordsLoading.value = false
@@ -224,16 +291,27 @@ watch(
     }
     recordsLoading.value = true
     try {
-      const result = await getLegacyRecords(props.projectId, {
+      const query = {
         sourceId: currentSource.id,
         snapshotId: currentSource.snapshotId,
         domain: domainCode.value,
         ...filter.value,
         pageNo: pageNo.value,
         pageSize: pageSize.value
-      })
+      }
+      const [recordsResult, statusResult] = await Promise.allSettled([
+        getLegacyRecords(props.projectId, query),
+        getLegacyNativeRecordStatus(props.projectId, query)
+      ])
+      if (recordsResult.status === 'rejected') throw recordsResult.reason
+      const result = recordsResult.value
+      const statuses = statusResult.status === 'fulfilled' ? statusResult.value : {}
       if (current) {
-        records.value = result.list
+        nativeRecordError.value = statusResult.status === 'rejected'
+        records.value = result.list.map((row) => ({
+          ...row,
+          nativeStatus: statuses[row.sourceKey]
+        }))
         total.value = result.total
       }
     } catch {

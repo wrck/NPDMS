@@ -18,6 +18,7 @@ import java.util.List;
 
 @Mapper
 public interface DeviceMapper extends BaseMapperX<DeviceDO> {
+    DeviceDO selectLogDeviceForUpdate(@Param("query") cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogDeviceLockQuery query);
 
     java.util.Set<String> selectContractCandidates(@Param("query")
             cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.DeviceContractCandidateQuery query);

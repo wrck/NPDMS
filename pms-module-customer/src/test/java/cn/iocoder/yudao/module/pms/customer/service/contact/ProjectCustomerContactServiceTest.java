@@ -22,8 +22,9 @@ class ProjectCustomerContactServiceTest {
     private final ProjectCustomerContactMapper contacts = mock(ProjectCustomerContactMapper.class);
     private final ContactHistoryMapper history = mock(ContactHistoryMapper.class);
     private final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
+    private final ProjectContactRuleWakeup wakeup = mock(ProjectContactRuleWakeup.class);
     private final ProjectCustomerContactService service = new ProjectCustomerContactService(projects, sources, contacts,
-            history, commands, mock(CustomerQueryService.class), mock(CustomerScopeContextService.class));
+            history, commands, mock(CustomerQueryService.class), mock(CustomerScopeContextService.class), wakeup);
     private final CustomerContactMasterService.Actor actor = new CustomerContactMasterService.Actor(1L, 3L);
 
     @BeforeEach void context() {
@@ -52,6 +53,7 @@ class ProjectCustomerContactServiceTest {
         verify(sources, never()).updateById(any(CustomerContactMasterDO.class));
         verify(sources, never()).insert(any(CustomerContactMasterDO.class));
         verify(history).insert(argThat((ContactHistoryDO value) -> value.getProjectId().equals(7L) && value.getProjectRelationId().equals(10L)));
+        verify(wakeup).changed(1L, 7L, 3L);
     }
 
     private ProjectCustomerContactDO projectPrimary() {
@@ -198,5 +200,28 @@ class ProjectCustomerContactServiceTest {
         when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,8L,2L,"NORMAL_CLOSED",false,true));
         assertEquals(1L, service.history(actor,7L,page).getTotal());
         assertFalse(entry.getRestorable());
+    }
+    @Test void approvedFinalCustomerHistoryCannotBeEditedDeletedOrRestoredByNormalActions() {
+        var existing=row();existing.setProjectPartyId(99L);existing.setCustomerId(null);existing.setCustomerContactId(null);
+        when(contacts.selectForUpdate(any())).thenReturn(existing);
+        when(contacts.selectIncludingDeletedForUpdate(any())).thenReturn(existing);
+        assertThrows(ServiceException.class,()->service.update(actor,write(2)));
+        assertThrows(ServiceException.class,()->service.delete(actor,write(2)));
+        existing.setDeleted(true);
+        assertThrows(ServiceException.class,()->service.restore(actor,7L,10L,2,2,0));
+        verify(contacts,never()).updateById(any(ProjectCustomerContactDO.class));
+        verify(contacts,never()).deleteByVersion(any());verify(contacts,never()).restoreByVersion(any());
+        verifyNoInteractions(history,wakeup);
+        verify(sources,never()).updateById(any(CustomerContactMasterDO.class));
+        verify(sources,never()).insert(any(CustomerContactMasterDO.class));
+    }
+    @Test void finalCustomerHistoryDisplaysExactPartyWithoutRequiringABuyerCustomer() {
+        var existing=row();existing.setProjectPartyId(99L);existing.setCustomerId(null);existing.setCustomerContactId(null);
+        when(projects.inspect(any())).thenReturn(new ProjectContactContextApi.Context(7L,null,2L,"NORMAL_CLOSED",false,true));
+        when(projects.inspectFinalCustomer(any())).thenReturn(new ProjectContactContextApi.FinalCustomer(99L,7L,"实际最终用户","51922"));
+        when(contacts.selectPage(any())).thenReturn(new PageResult<>(List.of(existing),1L));
+        var actual=service.page(actor,7L,null,null,new cn.iocoder.yudao.framework.common.pojo.PageParam()).getList().getFirst();
+        assertTrue(actual.getHistoricalReadonly());assertEquals("实际最终用户",actual.getProjectPartyName());
+        verifyNoInteractions(sources,history,wakeup);
     }
 }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ProjectContractRelationMigrationMapper">
+    <sql id="identity">
+        SELECT id, tenant_id, project_id, contract_id, relation_role, source_system, source_table,
+               source_record_key, effective_from, effective_to, status, version,
+               creator, create_time, updater, update_time, deleted
+        FROM com_project_contract_relation
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
+          AND contract_id = #{query.contractId} AND relation_role = 'RELATED'
+    </sql>
+    <select id="selectIdentity" resultType="cn.iocoder.yudao.module.pms.commerce.api.migration.ProjectContractRelationMigrationApi$Relation">
+        <include refid="identity"/>
+    </select>
+    <select id="selectIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.api.migration.ProjectContractRelationMigrationApi$Relation">
+        <include refid="identity"/> FOR UPDATE
+    </select>
+    <insert id="insertHistorical">
+        INSERT INTO com_project_contract_relation
+        (id,tenant_id,project_id,contract_id,relation_role,source_system,source_table,source_record_key,
+         effective_from,effective_to,status,version,creator,create_time,updater,update_time,deleted)
+        VALUES (#{row.id},#{row.tenantId},#{row.projectId},#{row.contractId},#{row.relationRole},#{row.sourceSystem},
+                #{row.sourceTable},#{row.sourceRecordKey},#{row.effectiveFrom},#{row.effectiveTo},#{row.status},
+                #{row.version},#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted})
+    </insert>
+    <!-- Locked complete-row comparison precedes this limited write; explicit NULL bypasses MP audit fill. -->
+    <update id="correctHistorical">
+        UPDATE com_project_contract_relation
+        SET creator=#{write.after.creator}, create_time=#{write.after.createTime},
+            updater=#{write.after.updater}, update_time=#{write.after.updateTime},
+            effective_from=#{write.after.effectiveFrom}, version=#{write.after.version}
+        WHERE tenant_id=#{write.before.tenantId} AND id=#{write.before.id} AND version=#{write.before.version}
+          AND deleted=0
+    </update>
+</mapper>

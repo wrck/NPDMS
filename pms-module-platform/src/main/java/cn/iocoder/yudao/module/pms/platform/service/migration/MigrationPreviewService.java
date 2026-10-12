@@ -6,10 +6,14 @@ import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationPreviewCl
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationPreviewItem;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationPreviewResult;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationPreviewTarget;
+import cn.iocoder.yudao.module.pms.platform.api.migration.dto.MigrationBatchPreviewCommand;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.ExternalKeyMappingDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.ExternalKeyMappingMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationBatchIdentityQuery;
+import cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationSourceKeysQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationMappingSourceQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationSourceGlobalIdentityQuery;
 import lombok.RequiredArgsConstructor;
@@ -35,20 +39,37 @@ public class MigrationPreviewService {
 
     private final MigrationSourceRecordMapper sourceRecordMapper;
     private final ExternalKeyMappingMapper externalKeyMappingMapper;
+    private final MigrationBatchMapper batchMapper;
+
+    public MigrationPreviewResult previewBatch(MigrationBatchPreviewCommand command) {
+        requireTenant(command.tenantId());
+        var identity=new MigrationPreviewCommand(command.tenantId(),command.sourceSystem(),command.sourceTable(),command.records());
+        var batch=batchMapper.selectByIdentity(new MigrationBatchIdentityQuery(command.tenantId(),command.ownerContextCode(),
+                command.purposeCode(),command.releaseId(),command.sourceSystem(),command.sourceTable()));
+        var sources=batch == null ? List.<MigrationSourceRecordDO>of() : sourceRecordMapper.selectByKeys(
+                new MigrationSourceKeysQuery(command.tenantId(),batch.getId(),command.records().stream().map(r -> r.sourcePk()).distinct().toList()));
+        return previewRecords(identity,sources);
+    }
 
     public MigrationPreviewResult preview(MigrationPreviewCommand command) {
+        requireTenant(command.tenantId());
+        List<String> keys = command.records().stream().map(row -> row.sourcePk()).distinct().toList();
+        return previewRecords(command,sourceRecordMapper.selectListByGlobalIdentity(
+                new MigrationSourceGlobalIdentityQuery(command.tenantId(),command.sourceSystem(),command.sourceTable(),keys)));
+    }
+
+    private void requireTenant(Long tenantId) {
         Long runtimeTenantId = TenantContextHolder.getRequiredTenantId();
-        if (runtimeTenantId == null || !runtimeTenantId.equals(command.tenantId())) {
+        if (runtimeTenantId == null || !runtimeTenantId.equals(tenantId)) {
             throw new PlatformMigrationEvidenceException(TENANT_CONTEXT_MISMATCH,
                     "explicit tenant does not match trusted context");
         }
+    }
 
-        List<String> keys = command.records().stream().map(row -> row.sourcePk()).distinct().toList();
+    private MigrationPreviewResult previewRecords(MigrationPreviewCommand command,List<MigrationSourceRecordDO> sources) {
         // 同一身份可能跨多个批次出现过：取最大 sourceRecordId 作为最新事实。
         Map<String, MigrationSourceRecordDO> latestByKey = new HashMap<>();
-        for (MigrationSourceRecordDO row : sourceRecordMapper.selectListByGlobalIdentity(
-                new MigrationSourceGlobalIdentityQuery(command.tenantId(), command.sourceSystem(),
-                        command.sourceTable(), keys))) {
+        for (MigrationSourceRecordDO row : sources) {
             latestByKey.merge(row.getSourceRecordKey(), row,
                     (existing, candidate) -> candidate.getId() > existing.getId() ? candidate : existing);
         }
@@ -112,14 +133,17 @@ public class MigrationPreviewService {
         if (mapped.isEmpty()) {
             return MigrationPreviewClassification.RETAINED;
         }
-        // 按 targetRole 归并：同角色下出现多个不同目标即为歧义；跨角色的多目标（如主备）不算歧义。
-        Map<String, Set<String>> targetsByRole = new LinkedHashMap<>();
+        // 写入契约以角色和序号标识目标槽位；同角色不同序号允许关联多个原生业务目标。
+        // 同一槽位指向不同目标仍属歧义，不能因允许多目标而隐藏冲突。
+        record TargetSlot(String role, Integer sequence) {}
+        Map<TargetSlot, Set<String>> targetsBySlot = new LinkedHashMap<>();
         for (ExternalKeyMappingDO mapping : mapped) {
-            targetsByRole.computeIfAbsent(mapping.getTargetRole(), ignored -> new HashSet<>())
+            var slot = new TargetSlot(mapping.getTargetRole(), mapping.getTargetSequence());
+            targetsBySlot.computeIfAbsent(slot, ignored -> new HashSet<>())
                     .add(mapping.getTargetContext() + "/" + mapping.getTargetObjectType() + "/"
                             + mapping.getTargetTable() + "/" + mapping.getTargetId());
         }
-        boolean ambiguous = targetsByRole.values().stream().anyMatch(targets -> targets.size() > 1);
+        boolean ambiguous = targetsBySlot.values().stream().anyMatch(targets -> targets.size() > 1);
         return ambiguous ? MigrationPreviewClassification.AMBIGUOUS : MigrationPreviewClassification.MAPPED;
     }
 

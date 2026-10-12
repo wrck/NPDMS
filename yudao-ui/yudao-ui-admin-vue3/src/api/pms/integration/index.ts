@@ -139,8 +139,34 @@ export const getColumns = (id: Id, table: string) =>
 export const getAdapters = () => request.get<Adapter[]>({ url: base + '/adapters' })
 export const getEhrTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/ehr', params: { connectionId } })
+export const getDppmsCollectionPlanTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-collection-plans', params: { connectionId } })
 export const getDppmsOrderTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-orders', params: { connectionId } })
+export const getDppmsRoleTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-roles', params: { connectionId } })
+export const getDppmsUserTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-users', params: { connectionId } })
+export const getDppmsDepartmentTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-departments', params: { connectionId } })
+export const configureDppmsProductDefinition = (existingRevisionId?: Id) =>
+  request.post<Id>({
+    url: '/pms/product-catalog-properties/dppms-definition',
+    data: { existingRevisionId }
+  })
+export const getDppmsProductTemplate = (
+  connectionId: Id,
+  definitionRevisionId: Id,
+  productCodes: string[]
+) =>
+  request.post<Definition>({
+    url: base + '/templates/dppms-products',
+    data: { connectionId, definitionRevisionId, productCodes }
+  })
+export const getDppmsUserRoleTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-user-roles', params: { connectionId } })
+export const getDppmsUserScopeTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-user-scopes', params: { connectionId } })
 export const getDppmsExecutionOrderTemplate = (connectionId: Id) =>
   request.get<Definition>({
     url: base + '/templates/dppms-execution-orders',
@@ -213,6 +239,8 @@ export const getRuns = (params: {
   parentRunId?: Id
 }) => request.get<Page<Run>>({ url: base + '/runs', params })
 export const getRun = (id: Id) => request.get<Run>({ url: base + '/runs/' + id })
+export const recoverRun = (id: Id) =>
+  request.post<boolean>({ url: base + '/runs/' + id + '/recover' })
 export const getChanges = (id: Id, params = { pageNo: 1, pageSize: 20 }) =>
   request.get<Page<Change>>({ url: base + '/runs/' + id + '/changes', params })
 export const getBindings = (params: { pageNo: number; pageSize: number; taskId: Id }) =>

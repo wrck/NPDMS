@@ -1,0 +1,642 @@
+{
+  "status": "WHOLE_TABLE_AND_SOURCE_EXCLUSIONS_USER_ADJUDICATED_NOT_APPLIED",
+  "existingColumns": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "handling": "由正式Owner生成新ID，原来源ID复用现有同步绑定；不把不同表同数值ID当同一身份。"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "handling": "当前授权迁移任务租户。"
+    },
+    {
+      "COLUMN_NAME": "user_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "handling": "精确来源账号绑定，排除审计专用admin及不符合账号范围者。"
+    },
+    {
+      "COLUMN_NAME": "company_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "handling": "来源公司明确转换后关联正式公司；fnd独有账号按用户指定001、002。"
+    },
+    {
+      "COLUMN_NAME": "company_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "handling": "复用01→001、02→002、03→003、04→004规则，未知码阻断。"
+    },
+    {
+      "COLUMN_NAME": "company_name",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "handling": "取已关联正式公司名称；不根据部门反推公司。"
+    },
+    {
+      "COLUMN_NAME": "department_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "handling": "精确正式部门关联；28项补入system_dept、9项311202—311210精确转162102—162110已批准，不截断、不猜父级。没有来源部门时三项部门字段均NULL，仅保留明确公司角色资格。"
+    },
+    {
+      "COLUMN_NAME": "department_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "handling": "取关联部门正式编码，原码保留来源字段清单及绑定证据。"
+    },
+    {
+      "COLUMN_NAME": "department_name",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "handling": "取关联正式部门名称，旧名称差异完整列明。"
+    },
+    {
+      "COLUMN_NAME": "scope_role",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "handling": "复用已批准的目标角色业务编码；不生成新角色，不授予办事处全部项目访问权。"
+    },
+    {
+      "COLUMN_NAME": "is_primary",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "handling": "自身custom3/dpNo为主、areapower/custom5非主；7项多来源冲突按fnd为主、t不同范围非主补缺。"
+    },
+    {
+      "COLUMN_NAME": "effective_from",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "handling": "关系原effectiveFrom；没有关系日期时用原账号create_time，用户已批准，不使用本次运行时间。"
+    },
+    {
+      "COLUMN_NAME": "effective_to",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "handling": "有来源结束时间直接承接；来源没有结束时间保持NULL，不推测。"
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "handling": "原1有效→0启用、0无效→1停用；原账户停用不使候选选择生效。原角色关系无独立状态，不伪造来源状态。"
+    },
+    {
+      "COLUMN_NAME": "version",
+      "COLUMN_TYPE": "int unsigned",
+      "IS_NULLABLE": "NO",
+      "handling": "新增正式关系初始化0，后续沿既有乐观锁更新。"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "handling": "原创建人精确账号关联，来源无该字段或NULL保持NULL。"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "handling": "原关系createTime；没有关系日期时用原账号创建时间，用户已批准。"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "handling": "原更新人精确账号关联，来源无该字段或NULL保持NULL。"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "handling": "原关系updateTime；NULL用本条原createTime，用户已批准；来源原NULL留核对证据，不使用当前时间。"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "handling": "新增承接关系FALSE；不删除既有或来源缺失的授权事实。"
+    }
+  ],
+  "originalTables": {
+    "t_user_role": [
+      {
+        "COLUMN_NAME": "id",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "handlingAndReason": "既有来源身份及system_user_role迁移绑定；作为范围公司/角色关联依据，不另加来源列。"
+      },
+      {
+        "COLUMN_NAME": "user_id",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "handlingAndReason": "原t_user外键→精确DPPMS_USERS绑定→正式user_id；不根据冗余姓名合并。"
+      },
+      {
+        "COLUMN_NAME": "role_id",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "handlingAndReason": "原t_role外键→已裁决字符串角色编码→scope_role及system_user_role；先迁入角色关系，再承接范围。"
+      },
+      {
+        "COLUMN_NAME": "comp_id",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "原t_company外键，读取其compCode后按01→001等规则关联正式company_id/code/name；不得把数值ID当公司码。5条NULL公司仅角色关系，不授予公司范围。"
+      }
+    ],
+    "fnd_user_power": [
+      {
+        "COLUMN_NAME": "id",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "handlingAndReason": "既有来源身份绑定；一条关系按明确公司、部门和已关联角色展开，派生键确保重放，不新增来源ID列。"
+      },
+      {
+        "COLUMN_NAME": "fndUserId",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "账号关联以原外键为准，精确用户绑定→正式user_id；第470条不按冗余tbpublic关联。"
+      },
+      {
+        "COLUMN_NAME": "username",
+        "COLUMN_TYPE": "varchar(25)",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "冗余核对属性，不作为关联主键；来源差异列明，账号username由fnd_user_info承接。"
+      },
+      {
+        "COLUMN_NAME": "areapower",
+        "COLUMN_TYPE": "varchar(4096)",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "完整非空集合逐项→正式department_id/code/name，is_primary=false；109条选中账号空集合经用户明确不迁入，无附加授权事实。"
+      },
+      {
+        "COLUMN_NAME": "createTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "非空范围→create_time；空范围109条用户明确不迁入，并逐字段列出排除原因。"
+      },
+      {
+        "COLUMN_NAME": "createBy",
+        "COLUMN_TYPE": "varchar(25)",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "非空范围经用户来源绑定→creator；空范围109条用户明确不迁入。"
+      },
+      {
+        "COLUMN_NAME": "updateTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "非空范围→update_time；原NULL按各自createTime初始化；空范围109条用户明确不迁入（其中42条有值、67条NULL）。"
+      },
+      {
+        "COLUMN_NAME": "updateBy",
+        "COLUMN_TYPE": "varchar(25)",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "非空范围经用户来源绑定→updater；原NULL保持；空范围109条用户明确不迁入。"
+      },
+      {
+        "COLUMN_NAME": "effectiveFrom",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "非空范围→effective_from；空范围109条用户明确不迁入。"
+      },
+      {
+        "COLUMN_NAME": "effectiveTo",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "handlingAndReason": "非空范围→effective_to，原NULL保持；空范围109条用户明确不迁入，本批结束日期均NULL。"
+      }
+    ]
+  },
+  "selectedCounts": {
+    "selectedRoles": 792,
+    "selectedPowers": 866,
+    "roleNullCompanies": 5,
+    "roleCrossCompanyMinusOne": 0,
+    "powerNullDates": {
+      "createTime": 0,
+      "updateTime": 279,
+      "effectiveFrom": 0,
+      "effectiveTo": 866
+    },
+    "departmentScopeCodes": 146,
+    "unmatchedDepartmentCodes": [
+      "160300",
+      "160700002",
+      "162028",
+      "162029",
+      "163120",
+      "163140",
+      "163220",
+      "163230",
+      "163240",
+      "163320",
+      "165030",
+      "165040",
+      "165050",
+      "167060",
+      "280700",
+      "310500001",
+      "310500001001",
+      "310500001002",
+      "310500001003",
+      "310500001004",
+      "310500001005",
+      "310500001006",
+      "310500001007",
+      "310500001008",
+      "310500002",
+      "310500002001",
+      "310500002002",
+      "311202",
+      "311203",
+      "311204",
+      "311205",
+      "311206",
+      "311207",
+      "311208",
+      "311209",
+      "311210",
+      "999999"
+    ]
+  },
+  "unmatchedDepartments": [
+    {
+      "code": "160300",
+      "originalName": "企业网市场部"
+    },
+    {
+      "code": "160700002",
+      "originalName": "上海金融分部"
+    },
+    {
+      "code": "162028",
+      "originalName": "深圳办事处"
+    },
+    {
+      "code": "162029",
+      "originalName": "胶东办事处（旧）"
+    },
+    {
+      "code": "163120",
+      "originalName": "政府系统部"
+    },
+    {
+      "code": "163140",
+      "originalName": "交通系统部"
+    },
+    {
+      "code": "163220",
+      "originalName": "电力能源系统部"
+    },
+    {
+      "code": "163230",
+      "originalName": "金融系统部"
+    },
+    {
+      "code": "163240",
+      "originalName": "大企业系统部"
+    },
+    {
+      "code": "163320",
+      "originalName": "科教文卫系统部"
+    },
+    {
+      "code": "165030",
+      "originalName": "移动/广电系统部"
+    },
+    {
+      "code": "165040",
+      "originalName": "电信系统部"
+    },
+    {
+      "code": "165050",
+      "originalName": "联通系统部"
+    },
+    {
+      "code": "167060",
+      "originalName": "战略合作部（新）"
+    },
+    {
+      "code": "280700",
+      "originalName": "应用交付与安全产品部"
+    },
+    {
+      "code": "310500001",
+      "originalName": "用服-企业网市场部"
+    },
+    {
+      "code": "310500001001",
+      "originalName": "用服-政府系统部"
+    },
+    {
+      "code": "310500001002",
+      "originalName": "用服-金融系统部"
+    },
+    {
+      "code": "310500001003",
+      "originalName": "用服-大企业系统部"
+    },
+    {
+      "code": "310500001004",
+      "originalName": "用服-电力能源系统部"
+    },
+    {
+      "code": "310500001005",
+      "originalName": "用服-财税综合系统部"
+    },
+    {
+      "code": "310500001006",
+      "originalName": "用服-科教文卫系统部"
+    },
+    {
+      "code": "310500001007",
+      "originalName": "用服-公安政法行业系统部"
+    },
+    {
+      "code": "310500001008",
+      "originalName": "用服-交通系统部"
+    },
+    {
+      "code": "310500002",
+      "originalName": "用服-运营商市场部"
+    },
+    {
+      "code": "310500002001",
+      "originalName": "用服-移动系统部"
+    },
+    {
+      "code": "310500002002",
+      "originalName": "用服-联通/电信系统部"
+    },
+    {
+      "code": "311202",
+      "originalName": null
+    },
+    {
+      "code": "311203",
+      "originalName": null
+    },
+    {
+      "code": "311204",
+      "originalName": null
+    },
+    {
+      "code": "311205",
+      "originalName": null
+    },
+    {
+      "code": "311206",
+      "originalName": null
+    },
+    {
+      "code": "311207",
+      "originalName": null
+    },
+    {
+      "code": "311208",
+      "originalName": null
+    },
+    {
+      "code": "311209",
+      "originalName": null
+    },
+    {
+      "code": "311210",
+      "originalName": null
+    },
+    {
+      "code": "999999",
+      "originalName": "通用部门"
+    }
+  ],
+  "adjudicationsNeeded": [],
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "approvedDateAndPrimaryRules": "用户批准三项：无关系日期用原账号创建时间初始化起始/创建时间；原关系NULL更新时间用原创建时间初始化；custom3/dpNo主范围，areapower/custom5非主范围。",
+  "implementationBoundary": {
+    "ownerTransactionTests": 5,
+    "integrationAdapterTests": 7,
+    "integrationTemplateTests": 1,
+    "result": "ISOLATED_TESTS_AND_READ_ONLY_ACTUAL_SOURCE_PROJECTION",
+    "schemaChanges": 0,
+    "sourceWrites": 0,
+    "targetWrites": 0,
+    "deployment": "NOT_DEPLOYED",
+    "sourceProjection": {
+      "expandedScopeCount": 9492,
+      "uniqueExactHistoryCount": 9477,
+      "companyRoleOnlyScopeCount": 136,
+      "primaryScopeCount": 2886,
+      "expandedBySource": {
+        "fnd_user_info": 2250,
+        "fnd_user_power": 3826,
+        "t_user_info": 3416
+      },
+      "expandedByCompany": {
+        "001": 6492,
+        "002": 3000
+      },
+      "expandedByRole": {
+        "PROJECT_MANAGER": 4230,
+        "SERVICE_MANAGER": 785,
+        "admin": 136,
+        "areaLeader": 637,
+        "callbackPer": 16,
+        "componentAdmin": 4,
+        "dataViewer": 4,
+        "engineeManager": 55,
+        "engineeManagerLeader": 6,
+        "financialAP": 20,
+        "financialStaff": 36,
+        "presalesStaff": 54,
+        "probAdmin": 102,
+        "probRD": 296,
+        "probSupporter": 358,
+        "projectAFQC": 146,
+        "projectAdmin": 132,
+        "projectAreaManager": 104,
+        "projectMember": 982,
+        "projectPreSales": 24,
+        "projectSubAdmin": 52,
+        "projectViewer": 98,
+        "projectYFQC": 8,
+        "super_admin": 6,
+        "user": 1177,
+        "userManager": 6,
+        "warrantyCallbacker": 18
+      },
+      "excludedOrReferenceOnlySourceRows": 1329,
+      "excludedBySource": {
+        "fnd_user_info": 16,
+        "fnd_user_power": 124,
+        "t_user": 341,
+        "t_user_info": 19,
+        "t_user_role": 829
+      },
+      "originalSourceRowCount": 3275,
+      "plannedCanonicalUserCount": 1176,
+      "plannedMissingDepartmentCount": 28,
+      "sourceWrites": 0,
+      "targetWrites": 0,
+      "boundary": "Actual original rows and real adapter; user bindings and 28 missing-department IDs are simulated prerequisites, Owner is mocked, no formal grants applied"
+    },
+    "sourceProjectionBoundary": "3275真实原表记录；用户绑定及28个新部门ID模拟前置结果，SYSTEM Owner不执行；不是正式落库/授权验收。"
+  },
+  "approvedExclusions": [
+    {
+      "username": "konglinghui_supp",
+      "scope": "全部来源公司/部门范围",
+      "reason": "原roleIds为空；用户明确范围不迁入，不补角色。",
+      "accountHandling": "账号资料仍按已批准规则迁入。"
+    },
+    {
+      "sourceTable": "fnd_user_power",
+      "count": 109,
+      "scope": "选中账号areapower为空的完整10原字段",
+      "reason": "用户明确不迁入：空范围没有附加授权事实。",
+      "fieldCapacity": "42条有更新信息、67条更新信息NULL；109条有声明创建/开始日期，结束日期均NULL。",
+      "targetHandling": "不生成授权，也不写入custom_info。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceKeys": [
+        "1000186",
+        "1000188",
+        "1000189"
+      ],
+      "reason": "用户明确不迁入：无账号外键且不在已批准账号范围；测试/admin资料。",
+      "futureBoundary": "仅上述已核实三条；后续其他孤立资料登记待关联，不直接沿用排除结论。"
+    },
+    {
+      "usernames": [
+        "z04214",
+        "w04218",
+        "y04223",
+        "w04261",
+        "z04264"
+      ],
+      "scope": "缺少明确公司的范围",
+      "reason": "用户批准只迁入角色关系，不新增公司范围。"
+    }
+  ],
+  "currentDecisionStatus": "WHOLE_TABLE_AND_SOURCE_EXCLUSIONS_USER_ADJUDICATED_NOT_APPLIED",
+  "wholeSourceFieldBoundary": {
+    "sourceObjects": {
+      "t_user": {
+        "rows": 341,
+        "allOriginalNonCredentialColumns": [
+          "user_id",
+          "user_name",
+          "create_by",
+          "create_time",
+          "update_by",
+          "update_time",
+          "status",
+          "needChangePwd",
+          "loginErrorCount",
+          "isSysUser",
+          "userCustom1",
+          "userCustom2",
+          "userCustom3",
+          "userCustom4",
+          "userCustom5"
+        ],
+        "missingOriginalColumns": [],
+        "duplicateKeys": 0
+      },
+      "t_user_info": {
+        "rows": 345,
+        "allOriginalNonCredentialColumns": [
+          "id",
+          "workNo",
+          "realName",
+          "eName",
+          "compID",
+          "depID",
+          "jobID",
+          "reportTo",
+          "wfreportTo",
+          "empStatus",
+          "jobStatus",
+          "empType",
+          "sex",
+          "birthday",
+          "email",
+          "mobile",
+          "telphone",
+          "avatar",
+          "remark",
+          "state",
+          "user_id",
+          "custom1",
+          "custom2",
+          "custom3",
+          "custom4",
+          "custom5"
+        ],
+        "missingOriginalColumns": [],
+        "duplicateKeys": 0
+      },
+      "fnd_user_info": {
+        "rows": 880,
+        "allOriginalNonCredentialColumns": [
+          "id",
+          "username",
+          "email",
+          "dpNo",
+          "realName",
+          "roleIds",
+          "isemail",
+          "status",
+          "defaultPage",
+          "pwdoverdue",
+          "createBy",
+          "createTime",
+          "updateBy",
+          "updateTime",
+          "effectiveFrom",
+          "effectiveTo",
+          "customInfo"
+        ],
+        "missingOriginalColumns": [],
+        "duplicateKeys": 0
+      },
+      "t_user_role": {
+        "rows": 829,
+        "allOriginalNonCredentialColumns": [
+          "id",
+          "user_id",
+          "role_id",
+          "comp_id"
+        ],
+        "missingOriginalColumns": [],
+        "duplicateKeys": 0
+      },
+      "fnd_user_power": {
+        "rows": 880,
+        "allOriginalNonCredentialColumns": [
+          "id",
+          "fndUserId",
+          "username",
+          "areapower",
+          "createTime",
+          "createBy",
+          "updateTime",
+          "updateBy",
+          "effectiveFrom",
+          "effectiveTo"
+        ],
+        "missingOriginalColumns": [],
+        "duplicateKeys": 0
+      }
+    },
+    "accountFieldsOwner": "t_user、t_user_info、fnd_user_info全部原字段按system_users整表裁决承接，本对象精确复用；旧密码不读取。",
+    "nonCredentialOriginalColumnCount": 72,
+    "newColumns": 0
+  }
+}

@@ -19,7 +19,12 @@ export interface ServiceMemberScope {
   departmentId: number
   departmentCode: string
 }
-export interface MemberRecord extends ProjectMemberAssignmentVO {
+export interface MemberRecord extends Omit<ProjectMemberAssignmentVO, 'userId'> {
+  userId: number | null
+  memberCode?: string | null
+  phoneNumber?: string | null
+  registrationSource?: string | null
+  authorizationConfirmed?: boolean
   mobile?: string | null
   email?: string | null
   assignmentType?: string | null

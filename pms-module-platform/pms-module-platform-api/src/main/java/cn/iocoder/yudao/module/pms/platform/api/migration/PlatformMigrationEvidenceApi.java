@@ -5,6 +5,9 @@ import cn.iocoder.yudao.module.pms.platform.api.migration.dto.*;
 /** PLT迁移证据Owner公开合同。 */
 public interface PlatformMigrationEvidenceApi {
 
+    MigrationPreviewResult preview(MigrationPreviewCommand command);
+    MigrationPreviewResult previewBatch(MigrationBatchPreviewCommand command);
+
     MigrationBatchFact createImportBatch(CreateImportBatchCommand command);
 
     MigrationSourceRecordFact appendSourceRecord(AppendMigrationSourceRecordCommand command);

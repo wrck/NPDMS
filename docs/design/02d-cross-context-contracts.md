@@ -26,6 +26,9 @@
 | ImplementationQualityGateChanged | IMP-01、CLO-01 | Implementation Execution | Project/ACC | 阶段质量检查通过、整改中或阻断的门禁事实；不包含已退出的IMP-02安全检查 |
 | DeviceAssigned | EQP-01、EQP-03 | AST | Implementation Execution/Project | 设备当前最具体项目归属及生效版本 |
 | EquipmentLocationEffective | EXE-02、EQP-01 | AST | Implementation Execution/Project | IMP通过`AssetLocationApi`公开命令提交已确认安装/迁移/拆除事实；AST在调用方事务内幂等更新设备当前地点和版本历史，AST不反向读取IMP表 |
+| `DppmsInstallationRecordMigrationApi.preview/apply` | 已裁决历史迁移 / F-IMP-003 | IMP | PROJ / INT | 复用既有安装实体32列，完整21原字段与不可变目标基线逐项核对；有地址为状态2，原创建日期承接安装/生效日期；较新安装保持，旧记录截至其生效日期；通过PLT迁移绑定记录正式安装对象，未裁决串货/超长/空地址阻断 |
+| `AssetLocationApi.effectEquipmentLocationIfAbsent` | 已裁决历史迁移 / EQP-01 | AST | IMP | 只填空当前位置或重放同一有效安装；其他当前记录、已结束的位置或版本冲突阻断，保持既有位置Owner投影与事务 |
+| `SystemUserMigrationApi.getHistoricalIdentitiesByUsername` | 已裁决历史迁移 | SYSTEM | IMP | 在当前租户按账号字符串精确查询已迁入人员，空集合返回空，忽略数据库排序规则带来的大小写假匹配，不提供凭据 |
 | DeviceComponentRelationChanged | EXE-03、EQP-02、EQP-03 | AST | Implementation Execution/Cutover | 机框、槽位、板卡当前关系、生效区间、解析/人工绑定证据和关系版本 |
 | SatisfactionResultVersionChanged | ACC-02、SUB-03 | ACC | ACC来源投影/未来CLO和SUB | 发布不可变Result业务版本及当前事实版本，区分RECORDED和INVALIDATED；按冻结任务身份精确重验，乱序不得恢复失效结果或覆盖新当前来源，消费者不得修改答卷 |
 | ServiceHandoverCreated | ACC-06、SRV-01 | Acceptance & Closure | Service Operations | ACC-06完成并形成不可覆盖的服务交接快照；Service Operations只保存只读引用，不创建或改写交接事实 |
@@ -108,3 +111,7 @@ Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`�
 | `InstallationCompletionFactApi` | EXE-02、EXE-06 | Implementation Execution / F-IMP-003 | F-IMP-001 | 按稳定设备范围返回`COMPLETED/NOT_COMPLETED/STALE`、安装来源对象、业务版本、范围水位及`reopened`，并按期望版本锁定重验；不以位置投影或附件替代安装完成事实 |
 | `ConfigurationCompletionFactApi` | EXE-03、EXE-06 | Implementation Execution / F-IMP-004 | F-IMP-001 | 按稳定设备和批准模板/采集版本返回`COMPLETED/NOT_COMPLETED/STALE`、结果版本、范围水位及`reopened`，并锁定重验；采集任务受理、原始Log存在或解析尝试不等于配置完成 |
 | `JointDebuggingCompletionFactApi` | EXE-04、EXE-06 | Implementation Execution / F-IMP-005 | F-IMP-001 | 按项目/设备/联调项范围返回`COMPLETED/NOT_COMPLETED/STALE`、结果版本、范围水位及`reopened`，并锁定重验；问题未闭环或证据失效时失败关闭 |
+
+已裁决DPPMS合同年数纠正复用INT同步运行及来源证据，新增本地`ShipmentContractWarrantyCorrectionApi`由COM提供、INT消费：只允许明确目标的空白年数转NULL，完整29列指纹、租户和来源键核对，全部目标锁定验证后写入；COM的apply须加入同步分块事务，审计和其他28列保持。INT核实完整12原字段及原任务运行阶段，不直写COM表，不借纠正调整合同、公司或当前保修状态。重复运行仅接受完整原记录或完整纠正后记录；后续业务/审计变化阻断。正式同步模板统一使用`DPPMS_WARRANTY_YEARS_V1`整数/空值规则，非整数、负数及INT溢出阻断。
+
+2026-10-11批准的16列许可历史由AST持有。PROJ迁移应用调用AST `DppmsLicenseRecordApi.preview/apply/page`，仅传原非秘密业务属性、受控密文、当前租户/主体和正式关联ID；AST的preview/apply加入外层事务，PLT既有命令及迁移证据与正式实体全有或全无。查询通过PROJECT_VIEW重验范围，写入保留项目管理守卫，PROJ只读取自身来源材料及公开PLT绑定，不直接查AST业务表。COM `DppmsCommerceEntityResolveApi.resolveLicenseContracts`按租户、项目正式合同关系及完整合同号唯一匹配；缺失/多义返回NULL，不任选合同。AST按完整SN核实设备，不据迁入改变归属或当前许可。密文单独具名实体列承接，来源证据用于身份、幂等和后续变化保护，不代替正式业务保存；页面和公共回执不暴露许可秘密。

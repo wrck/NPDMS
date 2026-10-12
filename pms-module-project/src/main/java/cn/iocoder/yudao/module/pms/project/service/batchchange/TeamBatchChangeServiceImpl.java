@@ -308,7 +308,8 @@ public class TeamBatchChangeServiceImpl implements TeamBatchChangeService {
         LocalDateTime now = LocalDateTime.now();
         LambdaQueryWrapperX<ProjectMemberAssignmentDO> wrapper = new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
                 .eq(ProjectMemberAssignmentDO::getUserId, sourceUserId)
-                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE");
+                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .eq(ProjectMemberAssignmentDO::getAuthorizationConfirmed, true);
         wrapper.and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
                 .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, now));
         wrapper.and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveTo)

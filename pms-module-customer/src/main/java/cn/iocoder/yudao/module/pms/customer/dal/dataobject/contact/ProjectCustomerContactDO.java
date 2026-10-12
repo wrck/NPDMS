@@ -15,6 +15,13 @@ public class ProjectCustomerContactDO extends TenantBaseDO {
     private Long projectId;
     private Long customerId;
     private Long customerContactId;
+    private Long projectPartyId;
+    private String contactCode;
+    private String registrationSource;
+    private LocalDateTime effectiveFrom;
+    private LocalDateTime effectiveTo;
+    @TableField(exist = false) private String projectPartyName;
+    @TableField(exist = false) private Boolean historicalReadonly;
     private String name;
     @TableField(updateStrategy = FieldStrategy.ALWAYS) private String department;
     @TableField(updateStrategy = FieldStrategy.ALWAYS) private String title;

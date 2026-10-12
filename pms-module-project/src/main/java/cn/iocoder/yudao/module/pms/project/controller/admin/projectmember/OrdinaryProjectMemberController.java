@@ -45,6 +45,11 @@ public class OrdinaryProjectMemberController {
             var people = users.getUserMap(page.getList().stream().map(ProjectMemberAssignmentRespVO::getUserId)
                     .filter(java.util.Objects::nonNull).distinct().toList());
             page.getList().forEach(member -> {
+                if (member.getMemberCode() != null || member.getRegistrationSource() != null
+                        || Boolean.FALSE.equals(member.getAuthorizationConfirmed())) {
+                    member.setMobile(member.getPhoneNumber());
+                    return; // 原区间的NULL/空字符串也不能被当前联系方式覆盖。
+                }
                 var person = people.get(member.getUserId());
                 if (person != null) {
                     member.setMobile(person.getMobile());

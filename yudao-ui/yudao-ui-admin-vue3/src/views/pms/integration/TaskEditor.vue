@@ -60,6 +60,10 @@
         </el-form>
       </el-tab-pane>
       <el-tab-pane label="来源与字段映射" name="sources">
+        <ProductCatalogSetup
+          v-if="draft.definition.adapter === 'DPPMS_PRODUCT_CATALOG'"
+          v-model="draft.definition"
+        />
         <GenericMappingEditor
           v-if="draft.definition.adapter === 'TABLE_MAPPING'"
           ref="genericEditor"
@@ -259,6 +263,7 @@
   </el-dialog>
 </template>
 <script setup lang="ts">
+import ProductCatalogSetup from './ProductCatalogSetup.vue'
 import * as api from '@/api/pms/integration'
 import SourceEditor from './SourceEditor.vue'
 import GenericMappingEditor from './GenericMappingEditor.vue'
@@ -340,6 +345,24 @@ const changeAdapter = async () => {
     normalizePerformance()
     return
   }
+  if (selectedAdapter.value.key === 'DPPMS_PRODUCT_CATALOG') {
+    draft.value.name = 'DPPMS 产品目录及正式名称型号承接'
+    draft.value.definition = {
+      ...draft.value.definition,
+      sourceSystem: 'DPPMS',
+      mode: 'ONCE',
+      loadingMode: 'UPSERT',
+      missingPolicy: 'RETAIN',
+      clearBeforeLoad: false,
+      resetMappingsBeforeLoad: false,
+      readStrategy: 'STREAMING_CURSOR',
+      restartPolicy: 'RESTART_ALL',
+      sources: []
+    }
+    normalizePerformance()
+    section.value = 'sources'
+    return
+  }
   if (selectedAdapter.value.key === 'PAYMENT_PLAN_ACCEPTANCE') {
     draft.value.definition = await api.getPaymentAcceptanceTemplate(
       draft.value.definition.connectionId
@@ -351,10 +374,50 @@ const changeAdapter = async () => {
     )
     return
   }
+  if (selectedAdapter.value.key === 'DPPMS_CONTRACT_COLLECTION_PLAN') {
+    draft.value.definition = await api.getDppmsCollectionPlanTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'DPPMS 合同回款计划迁移'
+    normalizePerformance()
+    return
+  }
   if (selectedAdapter.value.key === 'DPPMS_ERP_ORDER') {
     draft.value.definition = await api.getDppmsOrderTemplate(draft.value.definition.connectionId)
     normalizePerformance()
     if (draft.value.name === 'EHR 公司与部门同步') draft.value.name = 'DPPMS 销售订单与订单行迁移'
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_ROLES') {
+    draft.value.definition = await api.getDppmsRoleTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'DPPMS 正式角色迁移'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_DEPARTMENTS') {
+    draft.value.definition = await api.getDppmsDepartmentTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = 'DPPMS 正式部门补齐'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_USERS') {
+    draft.value.definition = await api.getDppmsUserTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'DPPMS 正式用户迁移'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_USER_ROLES') {
+    draft.value.definition = await api.getDppmsUserRoleTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'DPPMS 正式用户角色关系迁移'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_USER_SCOPES') {
+    draft.value.definition = await api.getDppmsUserScopeTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = 'DPPMS 正式公司部门范围迁移'
+    normalizePerformance()
     return
   }
   draft.value.definition.loadingMode = selectedAdapter.value.loadingModes[0]

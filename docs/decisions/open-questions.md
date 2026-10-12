@@ -9,7 +9,182 @@
 - RESOLVED
 - REJECTED
 
+### Q-LEGACY-DEVICE-RELATION-TABLE-20261012-001 — 主附SN关系整表复用及自关联
+
+- Status: WHOLE_TABLE_APPROVED / SELF_RELATION_EXCLUSION_APPROVED
+- Evidence: [完整19既有列、8原字段、最新全量核查](../generated/2026-10-12-dppms-device-relationship-table-decision.md)。2026-10-12两表全量与此前指纹一致，65046业务值一致，360原自关联未被承接。
+- Decision: 2026-10-12需求方答复“整表按建议”，批准复用实际ast_device_relationship、不新增表列或扩展；create_time取原createtime、update_time的原NULL取本条原createtime，原无操作者不编造旧用户。65046限定存量纠正另提逐键预览，不据整表审批直接写入。
+- Separate exception: 需求方2026-10-12明确批准360条不迁入双设备关系，逐原ID列明“双方SN和产品相同，不构成主附设备关系事实”；保留原8字段及来源证据，禁止自关联约束保持。新迁移读取后明确SKIPPED，不在SQL静默过滤，新原ID或原字段变化阻断。
+- Owner: 需求方；不阻断不依赖该规则的独立已批准工作。
+
+### Q-LEGACY-DEVICE-RELATION-AUDIT-20261012-002 — 65046条存量日期限定纠正
+
+- Status: RESOLVED / LIMITED_CORRECTION_APPLIED / FULL_REPLAY_VERIFIED
+- Evidence: [逐键审计纠正方案](../generated/2026-10-12-dppms-device-relationship-audit-correction-decision.md)。65046条原8字段、同步绑定及成功回执完全匹配，完整19目标字段已冻结为本次保护预览；仅只读核对。
+- Question: 是否仅通过迁移/同步及AST Owner恢复该清单的create_time、update_time？原NULL更新时间用本条原创建时间，所有业务值及操作者保持，执行前全字段及版本变化阻断，既有回执不覆盖。
+- Boundary: 整表复用已经批准，不等于批准具体存量审计改写；360条自关联不在本清单。指定任务库65046条限定纠正已完成并逐条19列复核；旧绑定和回执保护通过，完整来源证据65406条。全量重放SUCCESS／UNCHANGED65046／SKIPPED360，19正式字段与执行后冻结值完全一致，未重复推进版本；真实非空迁移字段对照通过。普通设备详情非空关系仍依赖真实项目关联和授权，不扩大范围，不据此标为生产上线或其他历史领域完成。
+- Decision owner: 需求方；2026-10-12明确答复“仅这65046条按上述保护条件纠正”。独立限定适配器及AST Owner实现只改两项日期并推进版本，普通同步保护保持。正式写入结果另记录，不以代码或测试通过代表落库完成。
+
+### Q-LEGACY-CONTRACT-IDENTICAL-RELATIONS-20261012-003 — 完全相同原合同关系的全历史身份
+
+- Status: RESOLVED / APPROVED_18_FROZEN_GROUPS / RULE_IMPLEMENTED / SOURCE_ASSOCIATION_PENDING
+- Evidence: [既有17列与完整原表/桥表清单](../generated/2026-10-12-dppms-project-contract-relation-table-proposal.md)。原pm_project_contract存在18组39条，除id外6字段完全相同；另16组42条审计不同。当前原7字段已逐条与先前材料复核一致。
+- Question: 是否仅18组完全相同记录按同一正式项目＋合同共用一条正式关系，每个原ID独立迁移绑定，完整保存各原业务/审计，不增加重复授权？原ID展开项目时仍使用精确组成员身份；不能忽略桥表差异。
+- Decision: 2026-10-12需求方明确答复“仅18组完全相同记录按上述规则处理（建议）”。仅冻结18组39原ID，每个精确项目成员共用正式合同关系；6项原业务及审计全部同值承接，每个原ID＋成员ID独立绑定。相同创建时间下采用最小原ID仅稳定技术绑定，不据ID改变业务内容。新ID、原7字段变化、组缺行、桥差异、目标保护差异或现存接管均阻断，不扩展为通用去重规则。
+- Verification: 原表按全部18个精确合同＋组业务键重新读取39条，无额外原ID，全部7列一致。Q006裁决后LEFT JOIN仍39行；16组32行精确关联16个原项目，4行明确关联历史原36645，3行缺组获准SKIPPED，完整来源保留。最新28项相关测试及完整41模块打包通过；真实32行共用16个Owner输入，32个完整26字段及17目标字段回执独立保留，重放和差异保护通过。17个相关原项目均无正式迁移绑定，业务/结构写入0、未创建新迁移运行或切换服务；4行历史Owner规则已由Q007批准并实现，实际迁入仍等待原36645正式绑定。
+- Boundary: 第1、2组跨月关系的合并规则已由Q008统一批准，安服先行项目身份及范围见Q009；原桥表剩余业务属性及其他失效关系仍分别待裁决。本规则不批准追加历史项目迁入或接管现存关系，不新增表列，不删除原表/证据/回执。Q006只阻断缺关联7条，其他已授权独立工作继续。
+- Decision owner: 需求方。
+
+### Q-LEGACY-CONTRACT-DUPLICATE-TIMES-20261012-004 — 重复原关系的不同创建时间
+
+- Status: RESOLVED / GENERAL_SAME_FACT_DUPLICATE_RULE_APPROVED / SOURCE_PROJECT_MIGRATION_PENDING
+- Evidence: [16组42条完整7原字段清单](../generated/2026-10-12-dppms-project-contract-relation-table-proposal.md)。原81条重复记录重新读取与此前材料一致；16组42条仅createTime不同，除技术id外其余5字段完全相同。
+- Question: 是否仅第3～16组秒级重复（14组37条）共用一条正式关系，创建时间取最早原值、每个原ID保留独立绑定；其他创建时间明确列为“不独立迁入正式审计：重复登记时间，不构成不同关系事实”？原字段及来源证据完整保留，不能将未选时间称为正式业务已承接。
+- Decision: 2026-10-12需求方答复“仅14组秒级重复按上述规则处理（建议）”。仅冻结清单第3～16组37条共用正式关系，取各组最早createTime；各原ID独立绑定并保留完整原字段。其余23个createTime不独立迁入正式审计，原因“重复登记时间，不构成不同关系事实”。这不是按时间差自动合并的一般规则，新ID或原7字段变化必须阻断。
+- Implementation: 现有INT适配器按冻结37条完整原7字段、同组完整性及桥关系核验后，每个精确组成员只调用既有COM Owner一次；各原ID＋成员ID分别输出完整26原字段、同一正式17列和绑定。缺行/原值变化/目标保护不同/未批准现存接管均阻断，其他重复仍被COM唯一性校验拒绝。21项针对性测试及完整宿主机应用打包通过；Q005明确选择原20317后，来源实际为37个唯一身份、14个原项目，原7字段保持不变；未选择项目的旧40行材料作为失败保护保留。14个原项目仍无正式绑定，此批无业务或结构写入、未切换59282运行服务，不标为真实迁入完成。
+- Boundary: 第1、2组afxx跨月重复按Q008通用最早日期规则处理；原项目主体身份与本轮范围仍由Q009等待裁决，不能补造解绑/重新关联日期。无新增表列，不授权覆盖被修改的正式关系，也不直接授权扩大到全历史写入；正式项目绑定、合同公司资格、完整桥关系及17列保护仍必需。18组完全相同记录已由Q003独立批准，7条关联缺失由Q006处理。
+- Decision owner: 需求方。
+
+### Q-LEGACY-CONTRACT-DUPLICATE-PROJECT-20261012-005 — 第13组原项目编码多义
+
+- Status: RESOLVED / EXPLICIT_PROJECT_ID_APPROVED / RULE_IMPLEMENTED / SOURCE_QUERY_VERIFIED
+- Evidence: 第13组原20538、20539、20540，经原成员20223的projectCode=16200615060401N-0精确查询，pm_project_header存在7916、20317两条同码同名记录。全部原26关联字段及两个项目37列已读取；三处重复展开仅originalProjectId不同，不能构造不同成员ID或任选项目。
+- Question: 这三条原合同关系应关联原项目7916还是20317？建议选20317（2018-01-02 15:33:07新建、旧状态100正常闭环；7916为2015创建、旧状态20不予跟踪），但时间及状态只作为裁决参考，不能代替真实外键依据。
+- Decision: 2026-10-12需求方明确答复“三条关系关联原项目20317（建议）”。仅原关系20538/20539/20540＋成员20223精确关联原20317，来源LEFT JOIN仍完整读取原合同及组桥字段，丢失目标、改码或其他歧义继续阻断；不按更新时间普遍选取同码项目。
+- Verification: 来源完整26字段查询核实37个唯一身份、原7字段与冻结值一致；三处originalProjectId均20317，其余关联未按日期选主。21项测试及完整应用打包通过，包含真实37行归并为14个Owner输入、37个独立回执，23个未选创建时间明确排除；旧40行内7916的展开在适配器中仍被明确拒绝。源及目标业务写入0，14个原项目无正式绑定，实际关系写入待后续项目迁入，不伪称已完成全历史承接。
+- Boundary: 不去重其他来源行、不写正式关系、不调整两项目或其生命周期。正式项目迁移绑定仍必需，不自动扩大本批10项目写入范围；18组完全相同关系已由Q003单独批准，7条关联缺失另见Q006。无新表、列或扩展。具体来源查询与回归验证结果另记，不据批准宣称已实际迁入。
+- Decision owner: 需求方。
+
+### Q-LEGACY-CONTRACT-IDENTICAL-MISSING-PROJECT-20261012-006 — 获批合并记录的7条原项目关联缺失
+
+- Status: RESOLVED / HIS_PROJECT_36645_APPROVED / THREE_MISSING_GROUP_EXCLUSIONS_APPROVED / RULE_IMPLEMENTED
+- Evidence: [全部原7列、桥17列及缺项记录](../generated/2026-10-12-dppms-project-contract-relation-table-proposal.md)。完整LEFT JOIN读取39行，未过滤或丢弃缺项；原合同41325～41328指向成员37632、项目编码16200220110601N-0-his，原组存在但没有精确原项目。即使去掉-his也有36645、39370、39371三个同码同名原项目，不能自行选取或生成失效区间。42366～42368的原组prj_gp41755及成员均缺失，其他合同关系中的同合同号不构成这三条的项目关联证据。
+- Question: 这7条是否本轮暂缓并保留待关联，列明“-his失效成员未能明确关联项目”及“原组和成员缺失”，其余已批准规则继续？若本轮处理，请分别指定实际原项目ID及有效/失效事实；不得自动去掉-his或借其他组挂靠。
+- Decision: 2026-10-12需求方明确“-his都代表历史项目关联的合同关系”。据此确认历史关联业务含义，不因后缀排除记录，不去掉后缀后作为当前关系挂靠。该答复没有指定36645/39370/39371中的实际原项目、失效日期或另3条缺组归属，也没有批准暂缓/排除；这些部分继续等待具体裁决。
+- Follow-up evidence: 原组37771及原项目36645的createTime都为2020-11-13 07:39:10；本4条关系创建于2021-04-14 15:10:56，另外两个同码项目39370/39371分别在2021-04-15 14:53:57/15:14:26新建。建议明确4条关联36645，但不按日期自动选择。现有ContractRelationCommandService及ProjectContractRelationMigrationService只支持当前ACTIVE关系，后者拒绝非ACTIVE及非空effective_to；既有当前查询亦限定ACTIVE。历史关系Owner和查询确有缺口，未擅自新增状态、放宽Owner、修改唯一键或设置不存在的失效日期；实际历史整表映射须在主体明确后提交。
+- Final decision: 需求方随后明确“4条历史关系关联原项目36645”；仅原41325～41328＋成员37632采用原36645，不以通用REPLACE去除后缀。对于原42366～42368需求方回复“不存在的记录直接忽略”，按该问题限定为这3条缺组/成员关系不迁入，逐ID登记原因“原项目组及成员不存在，无法形成项目合同关联”，不扩展为其他孤立关系的一般排除规则。
+- Implementation: 来源LEFT JOIN仅对上述4个原ID及成员37632精确解析36645，原-his值完整读取；裁决规则保护目标36645，其他同码目标阻断。INT适配器对3个获准缺组ID逐项保护完整7原字段、全部空桥/项目列及id:0来源键，输出SKIPPED和26原字段；关联恢复、原值变化、已有目标/绑定或接管要求均阻断，不借排除删除既有业务。4条历史关系已由Q007批准并接入正式HISTORICAL迁移Owner；原36645正式绑定不存在时仍拒绝写入，没有绕过状态、授权或按当前关系写入。
+- Source verification: 查询实际仍39行/39个来源身份，17个原项目候选，无多义，4条均36645，仅已排除3条缺组/成员；39条原7字段与冻结值一致，17个原项目均无正式迁移绑定。业务/结构写入0；具体代码验证及打包见文末最新证据，不据来源查询完成宣称历史实体已承接。
+- Boundary: 不新增表列，不排除原7字段、不删除来源或旧回执；缺关联记录继续完整进入来源证据，写入必须阻断。Q003合并规则已经批准，不重复确认；本问题不授权扩大历史项目写入，不放宽正式Owner校验。
+- Decision owner: 需求方。
+
+### Q-LEGACY-CONTRACT-HISTORICAL-OWNER-20261012-007 — 历史项目合同关系的既有17列业务规则
+
+- Status: RESOLVED / WHOLE_TABLE_AND_HISTORY_RULES_APPROVED / CODE_AND_EMPTY_READ_VERIFIED / PROJECT_BINDING_PENDING
+- Decision: 2026-10-12需求方明确答复“17列复用及上述历史规则整表按建议”，批准HISTORICAL、原日期及NULL规则、正式迁移Owner与受控历史只读查询、当前绑定与授权隔离；没有批准扩大原项目实际迁入。
+- Evidence: [既有17列历史关系整表方案](../generated/2026-10-12-dppms-project-contract-relation-table-proposal.md)。Q006已明确4条历史关系及原36645。实际正常Owner、迁移Owner和当前查询仅支持ACTIVE；状态列虽为VARCHAR(32)，不能因物理列能存字符串而认定历史业务已实现。
+- Proposal: 不新增表、列、扩展或索引，复用com_project_contract_relation全部17列。建议status增加具名业务值HISTORICAL（历史项目合同关联，仅保存已存在的原关联，不代表本次解除合同）；relation_role仍RELATED，effective_from取原关系createTime；effective_to原无值保持NULL，不编造解除日期。历史审计和NULL规则沿已批准映射，每个原ID独立绑定；迁移Owner仅对明确来源和历史主体复用相同租户、权限、公司、项目绑定/版本及17列保护，写入正式历史关系，不运行当前办理或授权动作。当前关联查询仍只认ACTIVE；历史查询按原项目独立只读并受项目与合同公司权限限制，不使历史关系成为当前合同授权依据。普通关联/项目创建不能把已有历史关系当作当前重放，不修改历史，发生相同身份冲突则阻断；当前唯一键保持，不构造多个关系角色绕过唯一性。
+- Boundary: 新业务状态值及历史Owner/查询规则已批准；4条完整来源按获批历史规则承接，正式项目绑定不存在时仍阻断写入。Q003/Q006身份和排除不重复询问，本方案不授权扩大历史项目实际迁入。实际普通基础能力和历史只读须分别验证，不用迁移快照替代业务实体，不生成解绑或任务/审批完成事实。
+- Decision owner: 需求方。
+
+- Latest verification: 68项相关后端测试、6项真实MySQL临时表检查、3项前端组件测试及完整41模块宿主机打包通过。本任务59282／19082曾离线，按已有授权恢复，59191／48182未停止或改部署；按现存149条成员及其余完整保护表核对启动前后无变化。真实项目992203060198基础页面及历史查询返回code=0／空列表、无控制台错误，当前合同订单及2026-10-14结束日期保持。非空历史实际迁入依赖原项目36645正式绑定，该绑定仍不存在；不以测试或空页面成功宣称4条已落库。
+
+### Q-LEGACY-CONTRACT-DUPLICATE-POLICY-20261012-008 — 所有同类项目合同重复记录统一规则
+
+- Status: RESOLVED / GENERAL_RULE_APPROVED / RULE_IMPLEMENTED / AFXX_IDENTITY_PENDING
+- Decision: 2026-10-12需求方对两组跨月原ID44210、45535、45538及42247、45177明确回复“同一项目＋合同共用一条正式关系，正式创建时间取各组最早值，所有相同情况都使用同样的规则”。同类原记录不再限定18个完全相同组或14个秒级组，也不设时间差阈值。
+- Rule: 原合同号、项目组、创建人、更新时间、更新人相同，精确项目与完整桥及正式合同资格一致时，共用正式关系；原创建时间取最早，平时间用最小技术ID只稳定绑定；每个原ID＋成员ID独立绑定及完整来源保留。其他创建时间明确不独立迁入正式审计，原因“重复登记时间，不构成不同关系事实”。不同人员、更新事实、项目身份或桥属性不属于同类，继续阻断，不因同项目合同丢弃字段。
+- Completeness: 来源查询先从完整pm_project_contract按上述五项精确分组计算duplicateGroupSize，这是读取证明，不是新增物理列或正式业务字段。适配器必须读齐同组原ID后才能计算最早值；部分筛选、拆页或重复身份阻断，不能使用部分记录作完整关系。既有冻结配置及旧回执不改写，新模板通过原迁移功能使用。
+- Boundary: 不新增表、列、索引，不授权接管被修改关系或扩大原项目实际迁入。HISTORICAL仍沿Q007专用规则，不由重复规则产生解除日期、当前商务绑定或授权。
+- Decision owner: 需求方。
+
+### Q-LEGACY-CONTRACT-AFXX-SOURCE-PROJECT-20261012-009 — 两组跨月关系的真实安服先行主体
+
+- Status: SQL_RULE_AUDIT_IN_PROGRESS / INDIVIDUAL_ID_QUESTION_SUPERSEDED
+- Evidence: 原关系44210、45535、45538经成员43427的16030021090911N-0，在原pm_project唯一匹配42026（对外经贸大学2021年安全服务，afxx）；原42247、45177经成员41526的16201619041701N-0-his，去掉后缀仅用于候选核查，原pm_project存在同码同名40191／42902（国网四川省电力公司信通公司安全服务项目，afxx）。40191与原成员均于2021-06-09 13:45:42创建；42902于2021-10-28 13:54:22新建，不能用日期自行选主。真实pm_project_header视图只取projectType=10，来源缺关联并非原项目不存在。
+- Question: 是否登记原三条精确关联42026，并明确两条历史关系关联40191或其他项目；afxx本轮只保留身份与迁移方案，还是启动项目主表整表规划裁决？仅Q008合并规则不等于批准新项目类型及全历史实际写入。
+- Boundary: 完整37原字段和26关联字段保留。未回复前5条阻断，不自行转当前关系、不忽略、不按原组ID冒充项目ID。已批准通用合并、4条原36645历史及3条缺组排除继续独立实施；不重复确认。
+- Decision owner: 需求方。
+
+- Resolution 2026-10-12: 用户要求改用pm_project、约束类型，整表迁移而非10项目专用，并指示查项目列表SQL归纳关系，不逐ID裁决。本项旧逐ID问题已替代；完整原字段仍保留，多义规则继续追实际旧查询/失效/核销代码。整表身份唯一键另列Q011，未获批准不变更。
+
 ## 模板
+
+### Q-LEGACY-WHOLE-TABLE-TASK-20261012-010 — 完整整表任务与正式展示
+
+- Status: USER_DIRECTION_APPROVED / IMPLEMENTATION_IN_PROGRESS
+- Decision: 用户明确全部迁移任务均为整表规划，最终完整迁移；10项目只是前期验证。使用pm_project并增加类型约束，关联以旧项目列表及对应SQL为参照；不再逐项目裁决归属、不在同步实现中固定SQL/项目ID/分组名单；不新增项目历史专用块，全部迁入数据承接正式业务表和正式展示区。
+- Evidence: 实际83,550条37列、三类项目及全部85,472条组成员已只读核对。旧列表代码和实际数据不能支持“历史必有effectiveTo”的推断；该推断会丢失1,644个历史成员的匹配，明确拒绝。原同类型同码165组342条与正式租户＋编码唯一约束冲突。两个参数化查询实际覆盖83,550项目和86,780原合同关系；展开87,252条，保留多义关联。
+- Implementation: 新增历史合同专用组件已撤回，正式合同区域同时显示当前与迁入关系；原固定34组81行名单已撤回，明确例外转入带完整26字段保护的任务配置。两初始SQL移出Java拼接、使用pm_project、范围默认不限定项目，任务sql/parameters沿现有编辑及版本冻结；不改既有冻结任务、来源证据或回执。
+- Verification: 合同跨块归并已实现，70项后端、6项真实MySQL、2项真实来源查询、13项相关展示及41模块打包通过。59282已切换，其他服务保持；真实合同区展示原日期，产品清单独立进入普通业务入口，回款计划进入合同区；DPPMS关联资料入口撤回。非本批201原生联系人修改及CUS历史53保留，其他保护行保持。本轮迁移业务/结构写入0，未执行全表迁入。
+- Remaining: 全表新项目创建、三类型状态映射、同码身份及索引、各域整表迁移入口和其余正式展示仍需完成。Q009的逐ID提问已被用户要求“查项目列表SQL、归纳规则”替代，不再等待具体40191/42902答复；多义类别继续查实际旧调用，不按日期猜配。生产Flyway基线保持未完成。
+- Plan: [真实整表核对及纠正方案](../generated/2026-10-12-dppms-whole-table-task-correction.md)。无新增业务表/列；本轮整表核对业务写入0、结构写入0。
+- Decision owner: 需求方。
+
+### Q-LEGACY-PROJECT-CODE-NAMESPACE-20261012-011 — 整表同码身份与正式唯一键（原命名空间提案撤回）
+
+- Status: RESOLVED / MAX_SOURCE_PROJECT_ID_RULE_APPROVED / IMPLEMENTATION_IN_PROGRESS
+- Decision: 用户明确“同类型+同编码取最大projectId，迁移过程原项目编码不变”。撤回code_root_id命名空间唯一键方案；主档取同原类型、精确原编码下最大projectId记录。不按启停/有效期过滤后再选最大值，不改原编码。
+- Evidence: 原83,550条对应83,373个主档：10为80,170，afss为2,508，afxx为695。当前10个验证项目全部已是最大ID；归并后仍有12组编码跨类型重复、24个主档。源查询只读，正式结构及业务写入0。
+- Association: 子表原projectId必须经同类型同编码映射到规范主档；合同桥表按原组类型、去掉-his的编码取最大ID，-his的历史关系含义保持。所有原ID、原子表事实和已有不可变回执保留；先前个案原身份作为旧裁决证据，不再强制选择较小正式目标。Q009不再逐项目提问。
+- Follow-up decision: 用户明确跨类型12组特殊处理，按分组ID大小在冲突时末尾序号加一；拒绝改为tenant_id＋project_type＋project_code唯一键，现有编码全局唯一约束保持。原编码不变规则仅对此12组采用已批准例外；原库不修改、原码保留追溯。
+- Sorting resolved: 用户明确按规范projectId升序，较小保留原码，后续冲突尾号递增并跳过原表及正式库占用；重跑复用绑定编码。24主档的多组/无组不影响排序，不再按项目组ID猜配。
+- Date decision: 用户接受仅历史初始化允许原关闭日期NULL；NORMAL_CLOSED/EXCEPTION_CLOSED仍沿已批准映射，NULL不填本次时间或其他审计日期。普通业务关闭校验保持。已修改专用历史策略，实际写入尚未执行。
+- Verification: 新规范项目主档及合同查询2项真实原表测试通过。逐行相关MAX查询的慢查询失败保留；改为一次汇总类型＋原编码，派生表用完整二进制类型/编码组合精确关联，基本合同展开查询实测1.15秒。未改原库索引、未写正式业务。后续完整任务、新建项目及其他状态映射仍未完成。
+- Implementation: 通用规划及Owner已支持结构化跨类型尾号分配，原ID和原码保留；真实全表规划12处调整，最终仅类型10执行范围无跨类型调整。正式项目创建及绑定查询已补，不造模板或当前任务，尚未部署新增后端或实际全量写入。
+- Final scope: 用户明确三类型方案和设计完整实施，最终实际迁移仅用服售后。已批准用服30及安服10/31为ACTIVE/S0，安服32/40/50为ACTIVE/S4/S5/S6、100为NORMAL_CLOSED/S6；非闭环原关闭日期独立留project_close_time，不初始化closed_at，不生成完成事实。旧用服100/20/31/32裁决保持。
+
+### Q-LEGACY-PROJECT-AUDIT-CODES-20261012-012 — 整表项目未迁入审计账号
+
+- Status: RESOLVED / IMPLEMENTED_AND_DEPLOYED
+- Evidence: 原表及正式账号/迁移绑定已只读核对。用服规范主档6605处creator为sys（fnd原ID550，未在已批准账号范围），安服5处updater为jiangyating；实际迁移参数仅10，后者仅影响完整设计。
+- Proposal: 原编码精确保留到正式creator/updater，不新建账号、不授角色、范围或项目权限、不替换管理员，历史日期保持；其他人员经既有来源绑定及SYS身份精确关联。
+- Decision: 用户确认sys/jiangyating原编码保留正式审计字段。已核查Yudao DefaultDBFieldHandler：默认回填登录user_id的字符串，不是用户名；迁移显式保存原值及NULL，不改变全局回填规则。两个已批准同人重复账号的全部原ID均绑定同一正式用户，不按ID随意选人。
+
+### Q-LEGACY-PROJECT-IMPLEMENTATION-20261012-013 — 整表项目实施方式完整值域
+
+- Status: RESOLVED / IMPLEMENTED_AND_DEPLOYED / DICTIONARY_BROWSER_VERIFIED
+- Evidence: 原fnd_basic_data类型15明确0原厂直服、1原厂督导、2直服转包、3代理商/用户自服、4原厂集成；正式pms_implementation_method仅有0/1/3同义码。规范用服4有106条，2为0条，空字符串2918条，其他NULL已直接保持。
+- Decision: 用户要求原字段NULL/空串时取原同名Readonly字段。旧struts查询实际使用columno12_readonly，3243条可回退0/1，8400条保持NULL；原37列保留原值，正式字段用获准回退值。用户先指出2已失效，后明确“批准2,4都承接表”，以最新裁决为准，2/4均承接，撤回2的排除。
+- Implementation: 复用implementation_mode，2→DIRECT_SUBCONTRACT/直服转包，4→FACTORY_INTEGRATION/原厂集成；补既有字典，不新增表列。原2的effectiveTo为2015-12-28 10:20:32，沿已批准失效字典停用规则保留停用，不恢复为普通新增选项；4原有效，保持启用。V439种子不覆盖已有定义及审计，应用仍受生产基线约束。
+- Boundary: 0～4及Readonly回退已批准；未知值仍阻断，不默认成直服。当前规范用服2为0条、4为106条。
+- Verification: V439通过指定任务库既有Compose/Flyway隔离入口补齐两项；2106原字典行及旧回执保持。正式浏览器两项分别显示关闭／开启，重放临时克隆各插入0条。完整生产Flyway基线问题仍单独保留。
+- Plan: [完整整表约束提案](../generated/2026-10-12-dppms-whole-table-task-correction.md)。
+- Decision owner: 需求方。
+
+### Q-LEGACY-PROJECT-NULL-ORGANIZATION-20261012-014 — 整表项目原公司或办事处缺失
+
+- Status: RESOLVED / IMPLEMENTED_AND_DEPLOYED / WHOLE_TABLE_EXECUTION_PENDING
+- Evidence: 规范用服3748条原办事处NULL、8条原公司NULL；非空公司外键未找到目录的数量为0。
+- Decision: 用户采纳原NULL保留。仅既有super_admin且同时具备pms:integration:execute及pms:project:create的执行人可承接；不新增角色、范围、成员授权，普通创建及后续业务仍要求真实目录关系。
+- Protection: 非空原键缺目录、未知公司码仍阻断；不将已有正式归属清空，也不将原NULL猜配为执行人的公司或部门。新根复用正式表可空列，不增加物理字段。首次创建、重放和权限失败已经定向及会话临时表验证并部署；未执行真实整表写入。新根正常树投影正在补齐，验证完成前不声明全量可执行。
+
+### Q-LEGACY-PROJECT-CONTRACT-GROUP-20261012-015 — 原合同组8字段的独立资料
+
+- Status: RESOLVED / WHOLE_TABLE_RULE_APPROVED
+- Evidence: [全部8原字段、旧写链及整表建议](../generated/2026-10-12-dppms-project-contract-relation-table-proposal.md)。旧组承担合同共享桥接；平台项目组合有战略／客户／区域／计划／专项用途，并非同义业务。1941个非空组名均为“总代借货项目合同合并”。
+- Question: 是否仅用原组解析正式项目合同关系，原组名及四项独立组审计不迁入并逐列登记原因？技术ID和组编码保持来源追溯；类型复用正式项目类型及匹配约束。不建立项目组合或父子树，不新增表列或扩展。
+- Decision: 用户答复“按该整表规则处理”。批准projectGroupName、createTime、createBy、updateTime、updateBy不独立迁入，分别记录旧商务组说明或独立组审计无同义实体的原因；技术身份追溯、精确合同展开及项目类型约束保留。原26列合同／桥材料仍完整采集和保护，不裁剪来源证据，不混写正式合同关系审计。
+- Boundary: 组成员九字段仍单独规划，其他已批准的整表能力继续。该裁决不将技术证据称为组业务承接，不建立项目组合或父子树。
+- Decision owner: 需求方。
+
+### Q-LEGACY-PROJECT-CONTRACT-MEMBER-20261012-016 — 原合同组成员9字段完整承接
+
+- Status: BUSINESS_RULES_RESOLVED / FORMAL_MAPPING_IMPLEMENTATION_IN_PROGRESS
+- Evidence: [全部九列及整表建议](../generated/2026-10-12-dppms-project-contract-relation-table-proposal.md)。85,472原成员中4,132条商务编码不能由项目编码截断还原，4,832条无对应原执行单；规范项目22046有两个不同商务编码。拆分备注1条“上海节点”、2条空串。10条未匹配同类型同码原项目。
+- Question: 是否批准通过正式项目实体扩展commercial_project_codes（JSON字符串数组）和split_name_suffix（TEXT）承接两项商业属性，四项纯桥成员审计不独立迁入，并逐项记录原因？技术追溯、正式项目合同关系和已批准历史规则保持，无新增物理表列，不覆写项目名称或原customInfo。
+- Decision: 用户明确smsProjectCode是CRM执行单对应的原始项目编码，所有项目序号以其为依据；pm_project_group_relationship本身是旧项目合同关联主体。用户进一步明确：这不代表新系统以旧表为模型依据，承接必须根据新系统已有业务表规划。正式关联复用com_project_contract_relation，商务取值沿既有合同、订单、执行单关系核实；不移植旧组模型，不据旧序号规则修改正常项目编码分配。撤回commercial_project_codes、split_name_suffix两个项目扩展候选；未实施，也不将四项成员审计排除当作已批准。旧SQL用于证明来源关系及字段含义，不替代目标Owner、授权、唯一性和正式数据展示规则。
+- Separate exclusion: 用户批准10条无原项目身份的组成员不生成正式关系，并逐原ID记“原项目身份不存在，不能挂靠其他类型或同名项目”。完整九原字段及类型已记录project-group-member-business-readonly-20261012T215344.json，不扩展排除条件。
+- Audit decision: 用户批准合同关系审计为主、成员同名审计补缺；未选取的不同成员值明确列为“不独立迁入：同一正式关系只有一组审计，按裁决采用合同关系主值”。保留完整原字段及逐字段原因，不新增审计副本，不据更新时间伪造解除日期。既有已迁记录的17列及后续修改保护保持。
+- Split decision: 用户答复“不迁入拆分，这部分就是新系统的项目拆分主子项目功能”。原mergeBranchMark不迁入，不写正式名称、备注、扩展或快照；不据旧备注重建项目父子树。正式主子项目功能保持。
+- Boundary: 仅对应本源表，Q015原组裁决不代替本表；全部九原字段继续采集及保护。其他已批准整表任务继续。
+- Decision owner: 需求方。
+
+### Q-LEGACY-CONTRACT-UNLINKED-AUDITORS-20261012-017 — 正式合同关系审计原编码
+
+- Status: RESOLVED / IMPLEMENTATION_IN_PROGRESS
+- Evidence: project-contract-approved-audit-preflight-20261012T222512.json，按旧列表REPLACE历史标记及类型＋编码最大项目ID规则核对83,454条用服关系候选。sys共8,518处创建人和1,456处更新人；异常数据处理5处创建人，均没有正式平台账号。
+- Decision: 用户批准“保留原编码到正式审计字段”。仅sys、异常数据处理在正式creator/updater保留原码；已能关联用户的人员仍保存user_id，原NULL处理沿既有规则。不新建账号、不授权限、不替换为管理员。
+- Protection: 专用COM迁移Owner和INT适配器共用这两个明确代码的值域；其他未关联人员仍阻断。运行租户、操作者、执行/关联权限、项目管理权、合同公司资格及17列历史/并发保护保持，普通业务审计规则不改。
+
+### Q-LEGACY-CONTRACT-FORMAL-IDENTITY-20261012-018 — 同一正式关系的当前/历史及审计冲突
+
+- Status: RESOLVED / WHOLE_TABLE_RULE_APPROVED / IMPLEMENTATION_IN_PROGRESS
+- Evidence: contract-formal-identity-candidate-audit-20261012T225609.json。按原类型＋同编码最大projectId及旧查询REPLACE历史标记展开83,454条用服候选，得到83,153个项目＋合同候选身份；262组563条多来源，其中156组345条选取业务/审计同值，106组218条不同；95组195条同时有ACTIVE与HISTORICAL，其余11组同状态但审计值不同。以上为来源候选，不替代正式合同唯一匹配、绑定及Owner资格。
+- Existing model: com_project_contract_relation复用17列，唯一键仍为租户＋项目＋合同＋RELATED；不能为同一正式身份创建当前/历史副本或绕过唯一性。Q016合同审计主值/成员补缺只决定每行来源取值，不裁决多条合同原记录之间的冲突。
+- Proposal: 95组有确切当前成员时以当前来源的正式关系状态及审计承接，历史原ID独立绑定同一关系；未选历史状态及审计逐字段明确不独立迁入原因，不伪造解绑区间、不改变项目生命周期。只有历史来源仍HISTORICAL。其他同状态多来源以最早合同记录的创建人/创建时间、最晚非空来源更新时间及对应更新人承接，逐行仍沿合同为主/成员补缺；时间并列但人员不同阻断，不能按技术ID任选。原未选不同审计列明原因；无明确更新时间仍按已批准创建时间初始化。
+- Decision: 用户分别批准“采用当前来源优先规则”“采用最早创建、最近更新规则”。规则适用于整表同类候选，不逐项目裁决；未选状态/审计逐字段明确排除原因，保留来源和每个原ID独立绑定。时间并列且人员不同保持阻断。
+- Boundary: 不新增物理表/列/索引/扩展，不授权覆盖已迁关系或更改项目生命周期，不凭本规则执行全量关系迁入。已验证十项目不受这些源冲突影响；归并实现与其他独立整表任务继续。
 
 ### Q-XXXX
 
@@ -57,6 +232,7 @@
 - Resolution: 采用B。V1/V2不提供历史工单/工时的菜单、查询、导出、附件访问、领域对象、目标表或迁移映射；`pm_project_maintenance`继续`EXCLUDED/NO_MIGRATION`。真实来源未来只有进入已批准`AI-MIG-000`批次时才保存不可变来源载荷或受限归档证据。若需用户访问，必须独立批准Owner、模型、API、项目/租户数据范围、附件权限、导出审计和来源映射。
 - Decision owner: 需求方（当前范围）；真实迁移批次由业务Owner、数据Owner和迁移负责人共同确认
 - Decision date: 2026-08-15
+- Current-task exception: 本任务已获批的 `pm_project_maintenance` 44 字段正式维护服务历史承接，适用本文件后部“Q-P2-001 — 2026-10-08 本任务维保过程原表 44 字段的明确授权例外”；本段保留原范围裁决，不再作为该已批准批次的建设阻断或重复问询依据。
 
 ## Phase 3生产与发布门禁
 
@@ -769,6 +945,25 @@
 - Decision owner: 需求方及PROJ数据Owner
 - Decision date: 未关闭；2026-09-08登记
 
+### Q-LEGACY-CONTRACT-DUPLICATE-POLICY-20261012-008 — 所有同类项目合同重复记录统一规则
+
+- Status: RESOLVED / GENERAL_RULE_APPROVED / RULE_IMPLEMENTED / AFXX_IDENTITY_PENDING
+- Decision: 2026-10-12需求方对两组跨月原ID44210、45535、45538及42247、45177明确回复“同一项目＋合同共用一条正式关系，正式创建时间取各组最早值，所有相同情况都使用同样的规则”。同类原记录不再限定18个完全相同组或14个秒级组，也不设时间差阈值。
+- Rule: 原合同号、项目组、创建人、更新时间、更新人相同，精确项目与完整桥及正式合同资格一致时，共用正式关系；原创建时间取最早，平时间用最小技术ID只稳定绑定；每个原ID＋成员ID独立绑定及完整来源保留。其他创建时间明确不独立迁入正式审计，原因“重复登记时间，不构成不同关系事实”。不同人员、更新事实、项目身份或桥属性不属于同类，继续阻断，不因同项目合同丢弃字段。
+- Completeness: 来源查询先从完整pm_project_contract按上述五项精确分组计算duplicateGroupSize，这是读取证明，不是新增物理列或正式业务字段。适配器必须读齐同组原ID后才能计算最早值；部分筛选、拆页或重复身份阻断，不能使用部分记录作完整关系。既有冻结配置及旧回执不改写，新模板通过原迁移功能使用。
+- Boundary: 不新增表、列、索引，不授权接管被修改关系或扩大原项目实际迁入。HISTORICAL仍沿Q007专用规则，不由重复规则产生解除日期、当前商务绑定或授权。
+- Decision owner: 需求方。
+
+### Q-LEGACY-CONTRACT-AFXX-SOURCE-PROJECT-20261012-009 — 两组跨月关系的真实安服先行主体
+
+- Status: SQL_RULE_AUDIT_IN_PROGRESS / INDIVIDUAL_ID_QUESTION_SUPERSEDED
+- Evidence: 原关系44210、45535、45538经成员43427的16030021090911N-0，在原pm_project唯一匹配42026（对外经贸大学2021年安全服务，afxx）；原42247、45177经成员41526的16201619041701N-0-his，去掉后缀仅用于候选核查，原pm_project存在同码同名40191／42902（国网四川省电力公司信通公司安全服务项目，afxx）。40191与原成员均于2021-06-09 13:45:42创建；42902于2021-10-28 13:54:22新建，不能用日期自行选主。真实pm_project_header视图只取projectType=10，来源缺关联并非原项目不存在。
+- Question: 是否登记原三条精确关联42026，并明确两条历史关系关联40191或其他项目；afxx本轮只保留身份与迁移方案，还是启动项目主表整表规划裁决？仅Q008合并规则不等于批准新项目类型及全历史实际写入。
+- Boundary: 完整37原字段和26关联字段保留。未回复前5条阻断，不自行转当前关系、不忽略、不按原组ID冒充项目ID。已批准通用合并、4条原36645历史及3条缺组排除继续独立实施；不重复确认。
+- Decision owner: 需求方。
+
+- Resolution 2026-10-12: 用户要求改用pm_project、约束类型，整表迁移而非10项目专用，并指示查项目列表SQL归纳关系，不逐ID裁决。本项旧逐ID问题已替代；完整原字段仍保留，多义规则继续追实际旧查询/失效/核销代码。整表身份唯一键另列Q011，未获批准不变更。
+
 ## 模板与独立验收修订018的后续契约
 
 ### Q-TPLACC-001
@@ -1293,3 +1488,846 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Remaining execution boundary: 只用现有授权身份及公司＋办事处联合范围。不得扩大持久角色或组织范围，不绕过服务层权限；不足十项时报告实际合格数与最小现成身份需求。真实名单、原始业务快照及凭据不进入 Git。
 - Decision owner: 需求方。试迁授权已明确，不重复请求该授权。
 - Evidence: docs/generated/2026-10-06-project-creation-migration/README.md。
+
+## 2026-10-08 项目关联原始数据的业务实体承接裁决
+
+本节记录当前项目详情续作中的明确用户裁决及尚需裁决的原表业务承接契约。用户已要求：涉及承接的每张原表须逐列核对并列明映射；字段不能丢弃，迁移快照、绑定和审计证据不能代替业务实体承接。未决问题只阻止依赖该契约的业务写入，不阻止已明确的独立承接工作，也不授权改变旧状态、人员或完成事实。字段矩阵与运行证据归属 `docs/generated/`；真实来源值、序列号、凭据和裁决清单留在本任务私有证据中。
+
+当前已批准范围包括公司编码转换、本批 16 台设备归属、正式维护服务历史、现目录按租户＋产品编码补齐 5 个缺失产品并保留已有名称及来源旧名，以及额外第 2/3/4/8/9 域（项目合同关联、主子设备关系、基础数据、项目人员、项目状态与计划任务）和第 15 域加密许可历史。范围批准不等于已完成结构审查、业务写入或验收，也不自动批准先前拟新增的镜像表列；这些条目只保留具体既有实体/历史属性复用、Owner、精确关系和安全访问的实施审查，不再询问是否启动或是否正式承接。其他额外域仍按下列未批准条目逐项待裁决。
+
+### Q-P2-001 — 2026-10-08 本任务维保过程原表 44 字段的明确授权例外
+
+- Status: RESOLVED（本任务授权例外；2026-08-15 原决策及历史文字保留）
+- Scope: 本次已批准十个项目对应的 `pm_project_maintenance` 原表全部 44 字段。
+- Resolution: 用户本次明确“来源维保信息没有承接”以及“提到的内容必须有业务实体表进行承接，不得以任何理由进行丢弃，或者迁移中间快照表当做承接内容”。因此，本批维保过程记录须由正式业务实体承接原字段，并通过现有项目、租户和数据范围授权查询；旧排除结论不能阻止本次明确授权的范围。本例外不将历史维保状态或人员直接激活为当前流程，也不授权其他未裁决历史工单、工时、附件、审批域的产品语义。
+- Implementation boundary: 正式维护服务历史建设已明确批准，不再询问是否建设或是否把维保当作当前 ITR。44 字段仍须逐项核对既有 Owner、历史实体与属性的复用边界；现有新表/新列及迁移回执不自动证明结构必要性或完整业务验收。
+- Evidence: 本任务完整原表审计 `pm_project_maintenance` 44 字段与用户当前会话指令；原政策见本文件前部 Q-P2-001。
+- Decision owner: 需求方。Decision date: 2026-10-08。
+
+### Q-SYNC-COMPANY-20261008-001 — 公司编码的统一转换
+
+- Status: RESOLVED（用户明确裁决）
+- Resolution: DPPMS 来源公司编码统一采用 `01→001、02→002、03→003、04→004`。非空未知码阻断，不按项目合同猜测公司。订单与公司主档必填公司缺失时阻断；既有契约允许为空的合同引用事实继续保留 NULL，不据此生成公司范围主档。来源原码保留；既有同步任务只能通过正式配置服务前向更新，旧版本、运行配置快照和证据不可改写。
+- Blocking scope: 不再存在转换规则歧义；发布后实际配置升级和业务验证是实施事项，不能仅凭代码通过声明完成。
+- Decision owner: 需求方。Decision date: 2026-10-08。
+
+### Q-PROJECT-DEVICE-OWNER-20261008-001 — 本批 16 台设备的现有项目归属
+
+- Status: RESOLVED（用户明确裁决）
+- Resolution: 用户明确“全部转入各自来源项目”，仅适用于本任务私有 `native-followup-private/ownership-arbitration-v4.json` 所列 16 台设备及其逐项来源项目。通过既有正式项目指派动作执行，不直接更新归属表，不扩展为其他设备或一般自动转移规则。
+- Evidence: 执行及复核保留于本任务私有 `native-followup-private/ownership-execution-v4.json`；公开文档不记录真实 SN。
+- Decision owner: 需求方。Decision date: 2026-10-08。
+
+### Q-LEGACY-CONTRACT-20261008-001 — 原项目合同关联与附加合同头修订的业务实体
+
+- Status: APPROVED_SCOPE / IMPLEMENTATION_REVIEW_REQUIRED
+- Sources: `pm_project_contract` 7 字段；既有同步实际读取的 `sms_ofst_contract_head_sap` 39 字段。
+- Question: 原项目合同关联的 id、项目组码、创建/更新人和时间应由哪个业务关系实体承接？附加合同头同合同多行、批次和生效区间应如何在正式业务实体中保留原行身份和修订关系？
+- Evidence correction: 六个现存同步任务未读取 `pm_project_contract`。SMS39字段已有 `com_contract_receivable`正式映射契约；不得继续把主合同聚合投影之外25字段表述为没有既有业务目标。现表0行、正式导入及历史关系尚未实施；拟新增8来源别名列缺必要性依据。
+- Existing resolved mapping: `fb_contract` 原 12 字段已有 `com_shipment_contract_reference` 承接，十项目 120 项原值逐字段核对一致；contract_id 保存在 source_record_key，warranty 映射 warranty_flag。该结论不能冒用为上述两张来源表已承接。
+- Blocking scope: 仅上述未明确业务实体及原行修订关系；不阻断已有合同引用事实、订单和回款计划承接。
+- Decision owner: 需求方；不得在裁决前新增合同状态、审批或业务 Owner。
+
+- 2026-10-09 scope correction: 用户已选额外领域2/3/4/8/9，本域是否启动已裁决。复用既有实体/历史属性及具体关联继续核实；不再因未建设完整新镜像表把范围登记为未经批准。
+
+### Q-LEGACY-PRODUCT-ID-20261008-001 — 现有产品目录的业务身份
+
+- Status: RESOLVED（用户明确裁决，实施与验证未完成）
+- Resolution: 原自增id没有业务意义；复用现产品目录，业务唯一键为产品编码，支持租户时追加tenant_id。本批104编码中5个缺失已批准补齐ACTIVE；99个当前目录名称保留，30个不同旧名称及型号由正式目录来源/修订承接，不能在发货/维保实体反复复制整套目录。
+- Implementation boundary: 原ID全部NULL的事实仍列入原字段审计；不据此批准两个新发货物料ID业务列。目录补齐及历史名称关系需要正式目录Owner，不得以项目指派权限写全局目录。
+- Decision owner: 需求方。Decision date: 2026-10-09。
+
+### Q-LEGACY-DEVICE-RELATION-20261008-001 — 原主子设备关系行
+
+- Status: APPROVED_SCOPE / IMPLEMENTATION_REVIEW_REQUIRED
+- Sources: `fb_shipment_barcode_relation` 8 字段（id、sn1/item1、sn2/item2、contract、createtime/updatetime）。
+- Question: 原关系行如何在正式设备关系业务实体中保留双侧来源身份、合同和原时间，如何处理来源仅有编码而未形成可靠设备关联的行？
+- Blocking scope: 原关系行身份及关联规则；本批零条来源记录不能代替 schema 和承接契约。
+- Decision owner: 需求方。
+
+- 2026-10-09 scope correction: 用户已选额外领域2/3/4/8/9，本域是否启动已裁决。复用既有实体/历史属性及具体关联继续核实；不再因未建设完整新镜像表把范围登记为未经批准。
+
+- 2026-10-09 reuse evidence: 既有 `ast_device_relationship`及device-sn同步模板已映射全部8原字段；本批0源行不能替代非空验收。新建整套source relationship表的方案撤回，仍需保证不自动激活当前设备关系。
+
+- 2026-10-11 full-source verification: 原65406条、正式19列65046条。已承接六项原值及原创建时间→effective_from全部一致；差360条全部同SN且同产品，被既有模板sn1<>sn2过滤，排除原因尚未获用户裁决。正式create_time均非原时间，15706条原非空更新时间未落正式update_time，另49340条已承接原更新时间为NULL。先前“全部8字段映射”不代表正式历史审计完整承接。当前原型ast_device_source_relationship实际不存在，禁止以该原型作为既有正式业务表。完整只读审查：`docs/generated/2026-10-11-dppms-device-relationship-original-audit.md`；状态仍为WHOLE_TABLE_PLAN_PENDING，未调整结构或记录。
+
+### Q-LEGACY-APPROVAL-20261008-001 — 历史审批意见
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `fnd_act_hi_comment` 全部 12 字段。
+- Question: 旧流程、任务和业务对象键及评论内容，应由哪个正式历史审批实体承接，并采用什么精确对象关联和用户查询范围？
+- Blocking scope: 原审批事实的业务实体和对象关联。不得新建当前审批通过事实、重放流程或将旧评论当作新平台完成条件。
+- Decision owner: 需求方。
+
+### Q-LEGACY-DICTIONARY-20261008-001 — 来源基础数据原行
+
+- Status: APPROVED_SCOPE / IMPLEMENTATION_REVIEW_REQUIRED
+- Sources: `fnd_basic_data` 完整原表字段；当前矩阵含 10 个未映射字段及既有字典查用/视图派生字段。
+- Question: 除既有显示名称查用外，原基础数据记录、分组、状态和审计信息是否对应可验证的系统字典/主数据身份，全部原字段应落入哪个业务实体？
+- Blocking scope: 原记录业务身份和转换契约。显示文本已查出不能替代原字段承接，不臆造新取值域。
+- Decision owner: 需求方。
+
+- 2026-10-09 scope correction: 用户已选额外领域2/3/4/8/9，本域是否启动已裁决。复用既有实体/历史属性及具体关联继续核实；不再因未建设完整新镜像表把范围登记为未经批准。
+
+- 2026-10-11 raw-table verification: fnd_basic_data完整12列532条、80分组；fnd_basic_data_type完整10列31条，49个项分组无原类型定义。原类型status表示前台管理标记，不可直接映射新字典启停。109项附加属性、有效期及原NULL审计尚无获准承接规则；现system_dict_type/data实际11/14列、无tenant_id。完整审查`docs/generated/2026-10-11-dppms-basic-data-original-audit.md`，只读、无新增结构或字典值，WHOLE_TABLE_PLAN_PENDING。原字段未被默认排除，也未激活当前流程。
+
+- 2026-10-12 type-table decision: 用户要求system_dict_type“保留既有结构，我指定缺项处理”。保持11列，三个候选新增列停止；原管理标记及两个有效期承接点或排除、49个缺类型定义分组及审计初始化等待明确。已集中询问，不自行排除、不通过备注代替。system_dict_data整表裁决独立等待。完整清单见`docs/generated/2026-10-12-dppms-system-dictionary-table-proposal.md`。
+
+- 2026-10-12 type-table resolution: 用户明确原管理标记及两个有效期不迁入，批准49个缺定义分组用原编码作为type/name、实际迁入审计；31原定义保留真实名称、历史时间，NULL更新时间用原创建时间，NULL人员保持。正式迁移任务2109351154645135362执行2109351965311774721为SUCCESS/CREATED80，重放2109352251665297409为SUCCESS/UNCHANGED80。完整381条、11列结构、80绑定及其他受保护数据核对通过，真实字典管理页验证原01和补齐trackStatus。类型表已闭合；system_dict_data三个候选列、补值及ID114排除继续USER_DECISION_PENDING，未实施。
+
+- 2026-10-12 type-table resolution: 用户批准原status/effectiveFrom/effectiveTo不迁入，逐列记录“现结构无同义字段，用户明确保持11列并批准不迁入”。49个缺定义分组按原编码作为type/name并使用实际迁入审计；31个原定义保持真实名称及历史时间，NULL更新用原创建，NULL人员保持。类型表WHOLE_TABLE_APPROVED，开始SYSTEM Owner实施；数据表三个候选列、排序审计补值及ID114处理仍BLOCKED_BY_SPEC，不据此自动批准。
+
+### Q-LEGACY-CALLBACK-20261008-001 — 历史回访与问卷关联
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_cl_callback` 13 字段；`pm_cl_callback_quesnaire` 12 字段。
+- Question: 历史回访记录及其问卷关联由哪个正式业务实体承接，旧回访、客户、人员和答卷之间采用什么精确关联键？
+- Blocking scope: 两张原表的业务实体及关联契约。历史证据必须保留，但快照不能作为业务承接完成依据。
+- Decision owner: 需求方。
+
+### Q-LEGACY-QUESTIONNAIRE-20261008-001 — 原问卷模板、题目、选项与答卷
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_cl_quesnaire_result_header` 10、`pm_cl_quesnaire_result_line` 13、`pm_cl_quesnaire_template_header` 14、`pm_cl_quesnaire_template_line` 15、`pm_cl_quesnaire_template_options` 13 字段。
+- Question: 旧模板版本、题目、选项和答卷如何作为正式业务历史对象保存，并保持答案准确引用原题和原选项？是否及如何与新问卷实体建立明确关系？
+- Blocking scope: 原问卷模型和来源关联契约。不得直接生成新平台有效调查结果、重写批准模板或丢弃旧答案。
+- Decision owner: 需求方。
+
+### Q-LEGACY-PROJECT-GROUP-20261008-001 — 原项目组关系
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_project_group_relationship` 9 字段。
+- Question: 原项目组与项目的关系，应由哪个正式业务关系实体承接原身份、有效关系和审计字段？
+- Blocking scope: 原项目组关系模型。项目父子树与项目组合是独立模型，不能按组名称或层级猜测转换。
+- Decision owner: 需求方。
+
+### Q-LEGACY-MEMBER-20261008-001 — 历史项目人员
+
+- 2026-10-12 final contacts executed / PILOT_LOCAL_VERIFIED: 获准V436通过指定Compose/Flyway应用，现项目联系人29列；9条最终客户联系人经迁移功能和CUS Owner迁入，9 NEW＋9 REPLAY_COMPLETED。原全表17联系人及客户主档/联系人操作历史不变，全表26条；姓名、电话、空邮箱、原区间和NULL更新人完整承接，未造客户主档、主联系人、账号、授权或完成事件。9项目真实页面、普通主联系人编辑打开取消和闭环普通维护禁用验收通过；验收后145成员、项目状态、其余保护业务及原70行15列再次保持。62项后端（含7项MySQL临时表）、4项前端和41模块打包通过。整表报告已记录实际证据，本批9条不再待裁决；全历史和生产基线尚未关闭。
+
+- 2026-10-12 remaining primary decision: 用户批准其余7项目按原主责补建正式成员授权和主责引用。52564/53649/50370/52443/53546服务及主项目经理均z01010；53614服务z01010、主项目经理y06496、liujiazhen_supp协作；69300仅服务经理z01010，原项目经理未通过资格不授角色或项目经理授权。全部10项目主责方向已裁决，逐项目执行前须重新预览并保护来源/资格/项目版本/全部成员字段。9条最终客户人员仍待CUS整表规划，未授权新增表列或属性。
+- 2026-10-12 member pilot executed: 10项目经同一正式迁移Owner承接61条原成员，23条确认授权、38条未确认历史；6条管理员主责区间结束并保留历史。原84条除获准6条结束字段外保持，全表145条；10项目重复执行全部REPLAY_COMPLETED。原70行15列、生命周期和其他业务逐值保护通过。69300仅服务经理授权，未给原项目经理补角色或授权。合并证明为任务私有member-ten-project-final-proof-20261012.json；页面验收另在成员整表报告追加。
+- 2026-10-12 CUS final contacts BLOCKED_BY_SPEC: 已提交2026-10-12-dppms-final-customer-contact-table-decision.md，实际原9行与现CUS三表全部字段核实。现Owner按购货方客户创建主档，不能自动作为最终用户归属；候选复用24列项目联系人表并新增project_party_id/contact_code/registration_source/effective_from/effective_to五列，仅经核实最终客户相关方关系允许客户/主档引用为空，其余正式字段直接承接、原3联系事实保护。全部结构、条件约束、审计NULL处理待用户整表裁决，未实施、不伪造客户主档、不丢弃。
+- 2026-10-12 CUS final contacts adjudicated: 用户回复“整表按建议”，批准上述29列整表和有条件引用、原区间、审计NULL处理、非主联系人只读及不代替普通完成事实。改为IMPLEMENTING，未声明已迁入。原待答状态已解决，不重复确认5个新列。
+
+- 2026-10-11 primary decision: 用户批准51304/53487/51922按旧主责承接；服务经理均z01010，主项目经理分别z01010/l05678/y06496，其他合格项目经理为协作。执行时结束6条管理员当前区间并保留历史，原已结束TEAM区间不调整。专用迁移Owner须保护来源、资格、项目版本与成员全部34列；无当前主责的其余项目正式主责引用仍等待同调用第1项答复，不据资格核验自行写入。
+
+- 2026-10-11 whole-table decision: 用户确认proj_project_member_assignment既有29列＋5列整表方案，并允许专用迁移Owner对已闭环项目按同一账号/角色/适用公司规则核验后補建授权。普通ACTIVE入口不变；当前主责及成员冲突仍逐项裁决。9条最终客户联系人另按CUS整表审查。结构审批已解决，尚待真实写入、回滚/授权保护验证及冲突裁决。
+
+- Status: APPROVED_SCOPE / IMPLEMENTATION_REVIEW_REQUIRED
+- Sources: `pm_project_member` 15 字段；完整清单同时记录 `pm_project_related_party` 创建/更新人时间 4 字段的原生补承接进度。
+- Question: 原项目人员的角色文本、联系方式、来源用户身份与历史任期如何由正式业务实体承接？2026-10-11已批准有效成员经正式Owner核验承接项目授权、过期区间保留历史，当前成员或主责冲突另交裁决；不得凭来源角色授予系统角色。
+- Blocking scope: 原人员实体及历史关系的具体复用与实施契约，启动范围及有效成员授权方向已经批准；结构仍待整表裁决。`pm_project_related_party` 的 4 个来源审计字段同属已批准的完整字段审查范围，不因本问题排除；其存放位置须核对既有字段及正式历史属性，不能据范围批准认定新增 4 列方案已通过结构审查。过期或未通过Owner资格核验的人员不因此获得当前角色和项目权限。
+- Decision owner: 需求方。
+
+- 2026-10-09 scope correction: 用户已选额外领域2/3/4/8/9，本域是否启动已裁决。复用既有实体/历史属性及具体关联继续核实；不再因未建设完整新镜像表把范围登记为未经批准。
+
+### Q-LEGACY-STATE-TASK-20261008-001 — 原项目状态与计划任务
+
+- 2026-10-11 raw-table correction: pm_project_state实际9列、projectId唯一键，保存四类最新状态及更新时间，不是历史转换流水；pm_project_task实际28列129626条、本批37条，不能只按26个返回字段采集。本批原status均0但32条有实际完成日期；全源parentId等四列全NULL，不造WBS。现proj_project_task42列、执行记录25列、状态转换定义17列已完整核实；转换定义不是事件历史，废弃任务表不得承接新迁入。完整审查`docs/generated/2026-10-11-dppms-project-state-task-original-audit.md`；WHOLE_TABLE_PLAN_PENDING、未改结构或任务/生命周期事实。
+- 2026-10-12 owner/source verification: 本批37条全部28字段与先前材料一致；旧editProjectPlan按项目结束旧有效区间，再逐事件/合同新增计划。款项日期、工程日期及实际完成日期独立保存。现有sol_stage_plan_batch23列、sol_stage_plan_item17列、sol_construction_plan13列全部核实，现有阶段DATE起止不能同义替代原合同事件DATETIME。原实施90真实含义为“维护阶段”，四类状态有业务与后置配置来源，不能一概认定可重算或映射当前生命周期。本次无结构/业务写入，承接方案仍待逐表裁决。
+- 2026-10-12 existing-field verification: 51304、52443、53649原customInfo的实施状态、时间及比较标记已经随获准完整JSON进入proj_project.custom_info，逐值一致；但53649原pm_project_state实施时间比JSON早1秒，不能据已有JSON宣称所有原9字段已承接。其余旧状态属性、缓存时间及任务缺项仍待整表规划，不新增列或直接写生命周期。
+
+- Status: APPROVED_SCOPE / IMPLEMENTATION_REVIEW_REQUIRED
+- Sources: `pm_project_state` 9 字段；`pm_project_task` 28 字段。
+- Question: 旧项目状态历程、计划任务及其人员、完成文本和审计时间，分别由哪个正式历史业务实体承接，任务的原父子/依赖关系如何表达？
+- Blocking scope: 两域业务实体及来源关系。旧状态不得直接写当前生命周期或绕过状态机，旧任务完成不得直接满足新 Gate。
+- Decision owner: 需求方。
+
+- 2026-10-09 scope correction: 用户已选额外领域2/3/4/8/9，本域是否启动已裁决。复用既有实体/历史属性及具体关联继续核实；不再因未建设完整新镜像表把范围登记为未经批准。
+
+### Q-LEGACY-SUPERVISION-20261008-001 — 历史监理
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_project_supervision` 17 字段。
+- Question: 历史监理的业务记录、人员、意见与状态，应由哪个正式业务实体承接，如何与来源项目及旧对象关联？
+- Blocking scope: 历史监理业务实体契约，不据此新增当前审批节点。
+- Decision owner: 需求方。
+
+### Q-LEGACY-WEEKLY-20261008-001 — 历史周报内容与反馈
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_project_weekly` 14、`pm_project_weekly_content` 9、`pm_project_weekly_feedback` 5 字段。
+- Question: 周报头、内容和反馈应由哪个正式业务模型承接，原周期、父子关联、反馈人和原时间如何保留？
+- Blocking scope: 三表业务实体及精确关系；本批零记录不授权丢弃字段。
+- Decision owner: 需求方。
+
+### Q-LEGACY-INSTRUCTION-NOTIFICATION-20261008-001 — 历史指导与通知
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_project_instruction` 11 字段；`pm_project_notification` 6 字段。
+- Question: 指导/反馈与通知记录分别落入哪个正式历史业务实体，旧通知的对象、内容、人员和送达标记如何保留？
+- Blocking scope: 两域业务记录模型。保存旧通知事实不授权重新向人员发送，也不把送达当作业务完成。
+- Decision owner: 需求方。
+
+### Q-LEGACY-ITR-20261008-001 — 历史关联工单
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_project_incident_table_from_itr` 37 字段。
+- Question: 旧 ITR 关联工单的身份、类型、状态、处理信息及源项目关系，应由哪个正式业务实体承接，并保持什么历史只读访问范围？
+- Blocking scope: 本域实体与来源关系；不是 Q-P2-001 中本次维保过程 44 字段例外的自动扩展，不激活新工单流程。
+- Decision owner: 需求方。
+
+### Q-LEGACY-LICENSE-20261008-001 — 历史许可记录与敏感字段
+
+- Status: APPROVED_SCOPE / IMPLEMENTATION_REVIEW_REQUIRED（加密正式历史承接已批准；实施与验证未完成）
+- Sources: `pm_project_license_info_from_license` 8 字段。
+- Original question（保留历史）: 旧许可身份、许可范围和时间由哪个正式业务实体承接？如原字段属于 Secret，其受控引用、加密保存和访问契约如何确定？
+- Resolution: 用户已批准额外第 15 域以加密方式由正式许可历史业务实体承接；不再询问是否建设、是否保留或是否采用加密。该授权不能解释为普通迁移快照可读取许可明文，也不自动批准未审查的实体、列或密钥设施方案。
+- Implementation review boundary: 核对既有许可实体/历史属性的可复用字段及精确项目关系，落实业务 Owner、密文与密钥分离、受控读取和项目/租户授权契约。8 原字段仍须全部列明受控承接方式；不得暴露或持久化明文 Secret，不以脱敏快照替代正式承接。本条不宣称源码部署、密钥设施落实、真实迁入或验收已经完成。
+- Evidence: 本任务当前会话的第 15 域明确裁决；已批准范围汇总见 [V4纠正审查](../generated/2026-10-09-dppms-v4-carry-correction.md)。
+- Decision owner: 需求方。Decision date: 2026-10-09。
+
+### Q-LEGACY-SUBCONTRACT-20261008-001 — 历史分包、报价与付款
+
+- Status: OPEN / BLOCKED_BY_SPEC
+- Sources: `pm_subcontract_project_header` 28、`pm_subcontract_project_price` 13、`pm_subcontract_project_payment` 13 字段。
+- Question: 分包头、报价及付款分别由哪个正式业务实体承接，合同/供应商/人员身份、付款批次和原时间如何关联？旧付款事实与当前付款审批、余额的边界是什么？
+- Blocking scope: 三表业务模型和原关联契约。不把旧付款文本激活为当前已审批或已支付状态，不以历史快照代替承接。
+- Decision owner: 需求方。
+
+
+## 2026-10-09 V4承接复核及结构纠正
+
+### Q-LEGACY-V4-STRUCTURE-20261009-001 — 复用既有业务字段及历史属性边界
+
+- Status: IMPLEMENTATION_REVIEW_REQUIRED；已批准业务范围保持，不重新询问公司、归属、目录、维护建设、加密许可历史及额外2/3/4/8/9域是否启动。
+- Evidence: [V4纠正审查](../generated/2026-10-09-dppms-v4-carry-correction.md)、[799原字段清单](../generated/2026-10-09-dppms-v4-source-field-correction.json)、[114新增列及14新表](../generated/2026-10-09-dppms-v4-physical-change-review.json)。列表完整不等于全部字段语义和Owner审核完成。
+- Resolution: 已确认V417四列重复。用户批准撤回依赖并经全表/数据库依赖核查后前向清理；V418已成功，仅清理该四列，原成功Flyway历史不变。其他有数据列/表先保留，不能用快照或已映射回执作为业务承接。
+- Implementation corrections: 同10订单日期和2订单行的32项日期损坏已通过既有COM Owner补正；19原出厂记录中缺失的7条已进入既有正式实体；19包件已通过10个正式COM Owner命令补正承运商名称，原编码和来源名称保持不变。8条安装历史候选现已通过既有IMP Owner实际补齐，全部11补正命令重放无额外写入，原来源事实、安装行及当前设备事实保持。先前147字符专项技术键被平台128上限拒绝、Owner未执行且新增0的失败证据保留；修正键107字符，保留完整来源/快照/排序原键身份，不放宽平台限制或改结构。新正式页面消费者真实验收已通过，19承运商及8安装与Owner和业务表一致，原当前设备/安装保持。项目四属性已核正常旧写链为名称，现正式名称字段40/40同值，无补写缺口，重复来源列尚未授权清理。日期业务值与源/旧正确载荷一致，不需要再次业务裁决。
+- Blocking scope: 真正不同的历史属性及关联需具体模型核实；确定同义字段、已确证错误和必要的并发保护继续修复。禁止扩大当前流程、权限或生命周期。
+- Decision owner: 需求方。
+
+### Q-LEGACY-SOFTWARE-ATTRIBUTES-20261009-001 — 既有软件事件的八个真实缺失属性
+
+- Status: OPEN / BLOCKED_BY_SPEC（具体结构选择已向用户询问）
+- Sources: 四个备份版本conpBak/cpldBak/bootBak/pcbBak；四个变化标志conpChange/cpldChange/bootChange/pcbChange。原659行中635已有正式事件、24尚未对应，6变更批次有独立事实且原引用无孤儿。
+- Question: 复用既有事件，在系统正式业务扩展表保存8项、注册AST Owner/权限/读取接口；或先逐项审查8个正式业务列定义。不得先建完整28列镜像，不直接调用当前版本升级流程。
+- Blocking scope: 八属性及相应批次/历史关系的结构实施。现事件和当前版本继续保护；未核24记录不被静默丢弃。
+- Decision owner: 需求方。
+
+### Q-LEGACY-TRACKING-REASON-20261009-001 — 旧不跟踪原因与当前项目属性含义
+
+- Status: OPEN / BLOCKED_BY_SPEC（已提交具体裁决，其他独立纠正继续）。
+- Evidence: 本批P06原pm_project_header.column008非空，与projectState=20/isback=40配套；旧ProjectServiceImpl在不跟踪动作写原因并同时写20/40。当前项目ACTIVE/S0；ProjectRules明确冻结当前notTrackReason；普通update DTO不提供此字段。
+- Correction: 原“空字段可补齐”诊断撤回。客户项目名称另已核4有效值全一致、1空串按CRM规则归NULL，无补写缺口。
+- Question: 推荐在已批准正式项目状态历史范围内关联原原因承接；或由用户明确授权当前not_track_reason存旧原因、仍保持现状态。不能依据无状态触发器就推断业务含义相同。
+- Blocking scope: 仅该历史原因的具体业务承接位置及当前字段特许；不重新询问额外第9域是否启动。
+- Decision owner: 需求方。
+
+### Q-LEGACY-SOFTWARE-RECORD-NATURE-20261009-001 — 软件清单登记与升级执行事实
+
+- Status: OPEN / BLOCKED_BY_SPEC（具体来源业务性质已提交裁决）。
+- Evidence: 659×28来源实库与冻结数据一致。635现事件的来源身份及按既有空串归NULL、DATE至午夜转换的核心值相同，但其中600四标志全0、584版本全空。缺24分为22版本全空、1旧批次人工变更登记、1最新批次沿用；24观测实体原28字段已匹配，不等于正式业务闭环。
+- Original behavior: 旧表单发送整套设备清单，头部日期可赋给所有行；实体注释明确无更新时executeTime无实际意义，flag由输入/备份差异产生，无独立设备执行确认。Bak可为旧备份->旧当前沿用链。
+- Question: 推荐全部作为正式软件版本登记历史承接，复用既有历史及设备/批次关系，保留空值/链/原标志，不生成当前版本或升级完成事实；或由用户逐条裁定已执行记录，其余完整保留登记历史。
+- Blocking scope: 登记性质与正式版本事件/当前版本的Owner映射；不得伪传current=false强造事件，现apply路径会激活当前版本而不能调用。旧635历史不删除不覆盖。
+- Relation: 八属性具体存放方式仍由Q-LEGACY-SOFTWARE-ATTRIBUTES-20261009-001裁决，该结构选择不证明全部28字段或升级事实成立。
+- Decision owner: 需求方。
+
+### Q-LEGACY-PROJECT-DATES-20261009-001 — 原项目日期的事件含义与现生命周期
+
+- Status: OPEN / BLOCKED_BY_SPEC（具体事件语义已询问；已批准额外第9域不重复确认）。
+- Sources: `pm_project_header.projectStartTime/projectRefreshTime/projectCloseTime`；本批原值分别9/9/7非空，现正式对应日期10项目均NULL。
+- Evidence: 旧Project.java注释将启动时间关联项目经理派工，原项目关闭不证明新平台当前ACTIVE/S0项目关闭；原刷新时钟也不能默认当本系统当前编辑时钟。新增source日期列及原值保存不等于当前日期正确。
+- Question: 建议三类日期连同原状态、原人员及原事件含义由正式项目历史业务实体承接，当前生命周期保持原事实；或需求方逐项提供现业务字段裁决。具体复用/新增字段及Owner先核实后交用户审核，再实施结构，不自行新增三列或绕过冻结/状态机。
+- Blocking scope: 三原项目日期的业务归属与当前事件解释；32COM日期损坏纠正已实际完成，不依赖本问题。
+- Decision owner: 需求方。
+
+### Q-LEGACY-V4-FOUR-NAME-CLEANUP-20261009-001 — 四个重复来源名称列的受控清理
+
+- Status: SUPERSEDED_BY_INDIVIDUAL_DECISIONS（原四列合并询问未形成批准；2026-10-09 用户要求所有新增列和表逐项裁决，改由 C001–C004 分别记录）。
+- Sources: proj_project.source_market_name/source_system_name/source_expend_name/source_industry_name；正式复用market_name/system_name/expend_name/industry_name。
+- Evidence: 全136项目含tenant0并未过滤deleted，每列10非NULL和126NULL；40原文与canonical精确相同，无normalized-only差异、无canonicalNULL缺口、数据库依赖0。六个消费者及已有创建冻结边界已列。具体方案为`private/v4-project-four-source-name-cleanup-plan-20261008T235511034657Z.json`。
+- Question: 是否批准撤回重复读写，以明确DPPMS绑定与原事实相等保护维持API读取兼容及其余126项目来源NULL语义，再在执行前重新核全表零差异/依赖后应用独立前向清理？这四个有数据列不在已批准V417四列范围。
+- Blocking scope: 仅这四列的代码撤回及前向DROP；未经批准不改消费者、不迁出或删数据，不从现在名称伪造其他项目或跨期历史名称。旧来源、快照、回执和证据保留。既有32日期、7出厂、19承运商、8安装补正及页面验收不依赖本批准。
+- Decision owner: 需求方。
+
+### Q-LEGACY-INDIVIDUAL-STRUCTURES-20261009-001 — 全部新增列及表由需求方逐项裁决
+
+- Status: USER_RULE_CONFIRMED / INDIVIDUAL_ITEMS_PENDING。
+- User rule: “所有新增列和新增表由我逐个裁决”。
+- Evidence: [结构逐项裁决清单](../generated/2026-10-09-dppms-individual-structure-decisions.md)及其[机器清单](../generated/2026-10-09-dppms-individual-structure-decisions.json)。V4 本批 114 个既有表新增列、14 个新表模型、373 个新表内列，共 501 个独立编号；4 项已有具体清理建议，其余 497 项尚需逐项语义/既有实体复核，不因已登记或落库视为批准。
+- Resolution: 已批准业务范围继续有效；单项结构批准必须明确记录对象和处理方式，表批准不能代替列批准，合并询问和未回答不能产生授权。已有 V417 四列清理按先前明确批准完成，保留历史，不要求重批。后续新增结构同样先登记并逐项提交，不默认执行。
+- First table batch: G001，proj_project全部37新增列[一并审查](../generated/2026-10-09-dppms-proj-project-table-decision.md)。原C001单列询问撤回；C001–C004有具体受控清理建议，其余33列全部列明差异和待核事项，未因此批准保留新增结构、清理或另建历史表。G001 已收到用户裁决，详见整表清单；身份迁移先行，代码、最终 SQL 基线及真实承接仍待落实。
+- Blocking scope: 未取得单项裁决的结构新增/改造/清理保持待处理，现存数据和证据保留。只继续不依赖这些结构决定的独立工作；不猜测业务语义、不把中间快照充作业务承接。
+- Decision owner: 需求方。
+
+### Q-LEGACY-TABLE-BATCH-20261009-001 — 一个表的字段一起确认
+
+- Status: USER_RULE_CONFIRMED / FIRST_TABLE_DECIDED_IMPLEMENTATION_PENDING。
+- User clarification: “一个表的字段一起给我确认”。
+- Resolution: 将此前单列逐次询问改为按表提交；同一表全部新增字段及既有承接点、差异、建议、未明项一次呈现，各字段的用户结论及例外仍单独记录。C001单列未答询问撤回，不产生批准。
+- First table: [G001 proj_project 37列](../generated/2026-10-09-dppms-proj-project-table-decision.md)，四列有具体清理建议，其余33项待补齐各自审查；既有数据保留，不默认保留新列合理，不丢弃来源字段。未来新表同样将模型和所有字段放在同一份材料，不零散询问或推定批准。
+- Blocking scope: 仅未明确裁决的结构处理；不影响已明确批准的业务范围和不依赖该决定的独立审查。
+- Decision owner: 需求方。
+
+
+### Q-LEGACY-IDENTITY-SYNC-20261009-001 — 用户角色先行及全量可复用迁移
+
+- Status: USER_EXECUTION_RULE_CONFIRMED / TARGET_STRUCTURES_PENDING_REVIEW。
+- User decision: 先完成 fnd_user_info、fnd_user_power、fnd_roles 迁移，再关联项目创建/更新人；全部过程使用迁移和同步功能，供全量历史复用。
+- Authority: ADR-0002 与 platform-identity-access-migration.md；外部账号无伪造工号，服务范围不变成区域项目访问权，旧密码不迁入。
+- Evidence: 2026-10-09 原库只读确认 880 用户、880 范围、18 角色，39 原字段；当前 system_users 缺账号类型/工号，外部服务范围实体尚不存在。
+- Blocking scope: 未裁决新增结构不得实施；既有迁移链路复用、原字段审查、G001 已明确批准的独立纠正继续。
+- Decision owner: 需求方；按目标业务表整表提交字段，不零散询问。
+
+
+### Q-LEGACY-IDENTITY-COMBINED-20261009-002 — 七表联合规划及既有范围表复用
+
+- Status: USER_OWNER_CHOICES_CONFIRMED / FIELD_AND_CONFLICT_DECISIONS_PENDING。
+- User decisions: system_users结合t_role/t_user/t_user_info/t_user_role重新规划；角色以t_role核对；可服务范围使用system_user_company_department_scope，不新增pms_user_service_scope。
+- Supersedes: 前一版仅fnd三表的8列用户、3列角色及18列服务范围新表提案；均未批准或实施。
+- Evidence: 联合审查96原字段，旧创建链、公司角色与Shiro授权、EHR离职同步链已核。
+- Proposed table correction: scope_type区分AUTHORIZATION与SERVICE_COVERAGE；服务覆盖公司的三列和scope_role可空，原授权查询显式排除服务覆盖；整表待裁决，不因选用已有表默认批准加列/改约束。
+- Pending: 账号合并优先级和6条启停冲突、角色逐项映射/priority转换、人员资料与项目类型等缺口的正式Owner与字段。
+- Scope: 全部执行经既有迁移与同步及SYSTEM Owner；当前没有IAM结构、账号或权限写入。
+
+### Q-LEGACY-IDENTITY-RANGE-20261009-003 — 范围授权统一及跨公司集合
+
+- Status: USER_RANGE_MEANING_CONFIRMED / COMPANY_SET_AND_EXTERNAL_PROJECT_ACCESS_PENDING。
+- User decisions: “可服务范围”和“授权范围”是一个含义；fnd独有账号选择跨公司授权，具体公司范围由用户填写。
+- Supersedes: Q-LEGACY-IDENTITY-COMBINED-20261009-002 的 scope_type 与四列可空提案撤回，未实施；复用 system_user_company_department_scope。
+- Pending: 跨公司具体编码集合；外部账号是否能查看授权范围内未明确转派的项目。选择跨公司不等于授权所有公司，也不自动推导区域项目访问。
+- Blocking scope: 依赖上述两项的权限写入与查询语义修改；不影响原字段联合审查。现有范围、人员、角色、历史证据保持，未执行IAM写入。
+- Decision owner: 需求方；等待明确回复，未答不产生默认授权。
+
+### Q-LEGACY-IDENTITY-RANGE-20261009-003 后续裁决
+
+- Resolution: 用户填写fnd独有账号跨公司编码001、002，未授权其他公司；选择内部用户访问方式1、外部用户访问方式2，即内部可查看授权范围内项目，外部仍仅查看明确转派项目。scope_type提案维持撤回。
+- Boundary: 访问语义与公司集合已明确；账号合并、分类、角色关联及全部待批准字段仍待核实，未执行IAM写入。
+
+### Q-LEGACY-IDENTITY-ACCOUNT-CONFLICT-20261009-004 — 同人资料优先级及来源关联冲突
+
+- Status: BLOCKED_BY_SPEC / WAITING_USER。
+- Evidence: 当前原库显式非凭据列只读核对：19组t/fnd同登录名，6组启停不同；另两组fnd重复名均停用（c00733来源233/408、w02459来源118/119）；范围470外键473指向pms_tbpublic，冗余登录名tbpublic。旧密码值未读取。
+- Questions: 核实同一人的账号是否t_user/t_user_info优先、fnd补缺；重复账号是否合并并保留全部来源与范围；范围用户名矛盾是否以明确外键为准。admin/sse名称与身份差异另列，不从普通同人规则推导合并或平台管理员权限。
+- Blocking scope: 依赖上述冲突的账号与范围写入；字段审查及其他已明确独立工作继续。未答不产生默认处理。
+- Decision owner: 需求方。
+
+### Q-LEGACY-IDENTITY-ACCOUNT-CONFLICT-20261009-004 部分裁决
+
+- User decision: 经核实同一人的账号以fnd为主、t_*补缺；六个启停冲突按fnd状态。该规则不授权覆盖既有正式账号、不自动合并admin/sse的身份差异。
+- Pending: 两组重复fnd账号主记录及合并；范围470外键/冗余登录名冲突仍待回复。
+
+### Q-LEGACY-IDENTITY-ACCOUNT-CONFLICT-20261009-004 重复账号裁决
+
+- User decision: c00733（233、408）及w02459（118、119）逐组合并为停用账号，主资料取较新408及119；保留两个来源绑定和各自正式范围关系。
+- Pending: 范围470关联冲突；其他身份及结构裁决不由本项合并授权推导。
+
+### Q-LEGACY-IDENTITY-ACCOUNT-CONFLICT-20261009-004 范围关联裁决
+
+- User decision: 范围470以fndUserId=473外键为准，关联pms_tbpublic；冗余tbpublic仅列明差异并保留来源证据，不改绑另一用户。三项账号冲突询问均已答复，admin/sse身份及其余字段另待裁决。
+
+### Q-LEGACY-IDENTITY-ROLE-TABLE-20261009-005 — system_role整表字段与转换
+
+- Status: BLOCKED_BY_SPEC / WAITING_WHOLE_TABLE_ADJUDICATION。
+- Evidence: [完整整表审查](../generated/2026-10-09-dppms-system-role-table-decision.md)；结合t_role/fnd_roles全部22原列、现有15正式列，原库14/18条角色。现有角色创建默认data_scope=ALL，不能直接套用为历史角色授权。
+- Proposal: 复用15既有列；priority→sort=100-priority；新增default_page、effective_from、effective_to三列；新增迁入角色CUSTOM=2且初始SELF=5，不自动授予菜单按钮，项目范围使用既有用户公司部门关系；现有角色权限保持。全部待整表回复，未实施。
+- Separate pending: 具体角色语义关联、合并后的默认入口/有效期/审计差异、原角色15异常编码名称；本项字段批准不代替这些裁决。
+- Blocking scope: 未批准字段及相应转换、写入；可继续只读审查，不添加DDL或业务数据。
+- Decision owner: 需求方。
+
+### Q-LEGACY-IDENTITY-ROLE-TABLE-20261009-005 结构裁决
+
+- User decision: “保留既有结构，我指定缺失字段处理”。default_page/effective_from/effective_to三列新增提案撤回，未实施。
+- Pending: 原默认首页和有效期的正式承接表字段，或需求方明确排除理由；未指定不丢弃、不以备注/快照代替。排序与角色权限转换及具体身份映射尚未明确批准，本次仅确定不新增结构。
+- Blocking scope: 依赖缺失字段处理的角色迁移写入；原字段核对继续。等待用户答复，不默认处理。
+
+### Q-LEGACY-IDENTITY-ROLE-TABLE-20261009-005 缺失字段裁决
+
+- User decision: 默认首页、有效期不迁入。排除理由记录为用户明确裁决不迁入；无替代新列或备注承接，原来源证据保留。
+- Pending: [32项来源角色完整映射与转换](../generated/2026-10-09-dppms-role-identity-mapping-decision.md)，新角色行及既有角色关联不从同名自动推导权限。该提案没有结构变更，仍待需求方裁决。
+
+### Q-LEGACY-IDENTITY-ROLE-MAPPING-20261009-006 — 32项角色映射裁决
+
+- Status: USER_APPROVED_WITH_EXCEPTIONS / IMPLEMENTATION_PENDING。
+- User decision: 批准完整清单与转换，但t_role1超级管理员关联平台super_admin并授予平台超级管理员权限；停用角色不迁入。
+- Result: 接收31项来源身份，对应28正式角色（复用3、新增25条记录）；fnd_roles15停用角色及对应关系按用户裁决排除。没有结构新增，不把元数据角色误等同平台管理员；本项平台管理员授权来自用户明确例外。
+- Boundary: 当前尚未执行角色写入；用户身份和账号字段仍需整表确认，创建/更新人等依赖真实账号迁移。
+
+### Q-LEGACY-IDENTITY-ROLE-CODE-20261009-007 — 源码业务编码替代按ID编造编码
+
+- Status: USER_RULE_CONFIRMED / SOURCE_CODES_VERIFIED。
+- User correction: fnd_roles代码中都有对应编码，不得用ID随意编码。
+- Evidence: MessageUtil.java:201–269定义全部18个ROLE_*业务常量及其原表ID关联；32项映射清单已逐项加入源码编码和行号。
+- Resolution: 独立fnd角色使用实际源码常量编码；已批准的t_role同义合并和平台正式角色关联保持明确映射。DPPMS_FND_ROLE_<ID>提案撤回、未执行；ID只用于外键和来源绑定，不作为业务编码。
+- Exception: 源码ROLE_SALESPEOPLE对应15，但原表名称不同且停用，按用户停用不迁入裁决排除；不据此虚构销售或测试角色。
+
+### Q-LEGACY-IDENTITY-ROLE-CODE-20261009-007 第二次纠正
+
+- Status: BLOCKED_BY_SPEC / ACTUAL_STRING_VALUES_PENDING。
+- User clarification: 不要用代码字段命名作为角色编码，存在对应字符串值。MessageUtil的整数常量名不是字符串编码，上一条其作为编码的结论撤回，未执行写入。
+- Evidence: core/param/RoleConstant和PMS-springmvc/constant/RoleConstant有admin、user、projectAdmin、projectManager等真实字符串；仍需逐项证明与fnd角色关联，不能从相似变量名拼造其他值。
+- Question: 请求用户指明字符串定义文件或一个对应示例；独立源码与字段核对继续。
+- Blocking scope: 未证实字符串值的角色编码和相应关联写入；已明确语义/授权/停用排除裁决保留。
+
+### Q-LEGACY-IDENTITY-ROLE-CODE-20261009-007 业务编码转换裁决
+
+- Status: USER_CONVERSION_RULE_CONFIRMED / IMPLEMENTATION_PENDING。
+- User decision: “按常量名转换为对应的编码，不要直接使用常量名”。不再要求全部转换结果是旧源码字符串字面量；采用与t_role既有编码一致的小驼峰业务码，明确记录整数符号与转换值。
+- Resolution: 独立fnd角色如ROLE_PROJECT_VIEWER→projectViewer、ROLE_COMPONENT_ADMIN→componentAdmin；已批准平台角色/t_role关联保持原映射。完整18项转换与32项身份已同步；不以源码字段名直接填正式编码。
+- Boundary: 超级管理员授权、停用排除、其他语义和权限裁决继续有效；尚无角色写入。
+
+### Q-LEGACY-IDENTITY-USERS-TABLE-20261009-008 — 用户只新增工号
+
+- Status: EMPLOYEE_NO_COLUMN_APPROVED / OTHER_SOURCE_HANDLING_PENDING。
+- User decision: system_users只增加工号；employee_no VARCHAR(50) NULL，承接真实内部工号，不填外部人工用户名。其余七列新增提案撤回，没有结构实施。
+- Pending: 英文名/座机/邮件偏好/customInfo/账号有效期的正式承接或排除；旧认证/首页/无值字段排除、原状态2映射停用等待整表回复，不默认从不同意加列推导允许丢弃来源数据。
+
+### Q-LEGACY-IDENTITY-PROJECT-AUTHORIZATION-20261009-009 — 内外用户统一按项目授予
+
+- Status: USER_RULE_CONFIRMED / IMPLEMENTATION_PENDING。
+- User latest decision: “内部外部，可以授权范围不赋予对应的办事处权限，只按项目授予”。
+- Supersedes: 此前内部按区域查看全部项目、外部按转派查看的区分撤回；不新增account_type权限区分列。
+- Rule: 范围关系可用于人员资格及公司/部门候选约束；内外用户项目查看和操作均来自明确项目授权，空集合不能回退扩大成全部公司/办事处项目。功能/字段/租户约束继续生效；平台超级管理员角色沿既有明确裁决。
+- Boundary: 仅确认规则，尚未执行账号、角色、范围和项目权限写入。
+
+### Q-LEGACY-IDENTITY-USERS-TABLE-20261009-008 两列及账号属性最终裁决
+
+- Status: TWO_COLUMNS_AND_ACCOUNT_ATTRIBUTES_APPROVED / IMPLEMENTATION_IN_PROGRESS。
+- User decision: 新增employee_no、custom_info；英文名、座机、邮件偏好、账号有效期、旧首页与旧认证历史按列明业务属性存custom_info；完整保留原customInfo对象，旧密码不读取、不存JSON。
+- Exclusions: 用户明确批准全空生日及列明无业务值预留字段不迁入，逐字段列明原值核验与裁决原因；全历史扩展不能直接套用本批无值结论。
+- Status mapping: t独有原2锁定→正式停用，原锁定值同时存custom_info.legacyUserStatus；同人仍以fnd为主、t补缺。
+- Boundary: V419仅包含两个获准字段，候选查询使用工号；尚未执行DDL、账号或权限数据写入。人员任职、多公司资料、无账号资料和项目类型准入的Owner问题仍独立待裁决。
+
+### Q-LEGACY-IDENTITY-ROLE-AUDIT-20261009-010 — 原角色更新时间NULL
+
+- Status: USER_RULE_CONFIRMED / CODE_IMPLEMENTED_RUNTIME_PENDING。
+- User decision: 对原update_time为NULL的角色，以原create_time初始化正式update_time；原NULL在迁移证据列明，原空创建/更新人保持空值，不用本次运行时间或执行人替代。
+- Implementation: SYSTEM拥有正式角色写入，事务与同步绑定/证据一起提交；角色表不新增字段，不修改已存在的角色权限。实际Java模板已在原表只读核验31条、22原列，没有缺列。
+
+### Q-LEGACY-IDENTITY-USERS-EMPLOYMENT-20261009-011 — 任职和准入属性
+
+- Status: USER_RULE_CONFIRMED / IMPLEMENTATION_IN_PROGRESS。
+- User decision: empID、reportTo、wfreportTo、empStatus、jobStatus、empType、state及多公司任职作为custom_info.employmentAssignments业务属性；custom4作为projectTypeRestrictions，不变成项目访问授权。
+- Boundary: 主管/人员引用须真实核实，3条无账号资料登记待关联，不伪造账号；任职历史不自动激活当前EHR状态或审批。
+
+### Q-LEGACY-IDENTITY-ACCOUNT-ADOPTION-20261009-012 — 来源与现存账号身份
+
+- Status: BLOCKED_BY_SPEC / USER_ADJUDICATION_PENDING。
+- Evidence: 来源t/fnd admin名称分别为系统管理员/管理员，当前平台admin ID=1；来源sse名称分别为测试账号/sse；旧test t_user=999999名称测试账号，现存test ID=104名称测试号。
+- Question: 请求明确admin合并及关联当前账号、sse两来源合并、test关联现存账号；保留当前凭据和既有权限，不仅以用户名相同推定同一身份。
+- Blocking scope: 对应账号及依赖其身份的角色/项目审计写入；其余独立代码和原表核验继续。没有实际身份写入。
+
+### Q-LEGACY-IDENTITY-NULL-COMPANY-20261009-013 — 五条无公司普通角色关系
+
+- Status: BLOCKED_BY_SPEC / USER_ADJUDICATION_PENDING。
+- Evidence: t_user_role271~275的comp_id为NULL，账号z04214、w04218、y04223、w04261、z04264，角色均user。
+- Question: 建议正式system_user_role承接角色关系，保留原NULL来源证据，不生成未经指定的公司/办事处范围；或由需求方指定公司范围。
+- Blocking scope: 这五条关系的范围承接；不把NULL理解为全部公司，不自动授予项目访问权。
+
+## DPPMS-IAM-014 system_users历史更新时间（已裁决）
+
+用户批准：所选主账号原update_time/updateTime为空时，仅用原创建时间初始化；原NULL列入来源证据，不用运行时间。原表t_user45条、fnd_user_info252条为空；不能把这些原始行数当作最终主账号写入数。
+
+## DPPMS-IAM-015 system_users联系字段共用（BLOCKED_BY_SPEC）
+
+原表核对及已裁决优先级初步合并后，27组邮箱、11组手机号由不同账号共用。建议将冲突联系值承接到已批准custom_info的明确联系人属性，未裁决正式归属前不写入冲突正式email/mobile；现存联系人保持。待用户裁决，不降低唯一规则、不合并身份、不丢弃原值。完整清单见docs/generated/2026-10-09-dppms-user-contact-and-login-decision.md。
+
+## DPPMS-IAM-016 system_users历史登录名（BLOCKED_BY_SPEC）
+
+317个不同来源登录名不满足当前4~30位英文字母数字规则，实际含中文、下划线、2/3位账号及1条U+00A0尾字符。待裁决保留原名并批准输入兼容，或指定新名并保留明确别名；不得自动放宽认证接口、改名或修剪/合并不可见尾字符记录。
+
+## DPPMS-IAM-015 联系字段裁决更新
+
+Status: USER_APPROVED_MIGRATION_ONLY_SHARED_CONTACTS。用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。 此前JSON替代正式联系列的提案撤回。没有实际IAM写入。
+
+## DPPMS-IAM-016 / Q-LEGACY-IDENTITY-ACCOUNT-ADOPTION-20261009-012 账号范围更新
+
+Status: ACCOUNT_SCOPE_APPROVED / SELECTED_LOGIN_INPUT_PENDING。用户限定仅迁移首字母+工号、*_ss、*_supp；严格按原账号字符串筛选，不改名或修剪。原t_user329条、fnd_user_info866条，合并1176个账号、对应330条任职；304个选中账号的登录输入兼容仍待裁决。admin/sse/test账号迁入提案被最新范围裁决取代，旧admin历史审计关联另待指定。 原admin/sse/test资料迁入提案撤回；不把历史操作者关联当作迁入被排除的账号。
+
+## DPPMS-IAM-017 被排除账号的历史操作者
+
+Status: BLOCKED_BY_SPEC / WAITING_USER。99处选中账号审计引用旧admin；已询问是否仅以历史操作者身份关联当前admin ID1，保留当前资料、凭据和权限且不迁入旧角色或授权范围。未回答不关联。
+
+## DPPMS-IAM-018 已选中账号输入兼容
+
+Status: BLOCKED_BY_SPEC / WAITING_USER。304个*_ss/*_supp选中账号不符合当前输入规则；已询问是否保留原名并仅兼容账号字符规则，或只迁入历史身份暂不开放登录。迁移范围裁决本身不推导认证输入变更。
+
+## DPPMS-IAM-019 选中账号邮箱格式
+
+Status: BLOCKED_BY_SPEC / WAITING_USER。w30049（fnd117）邮箱缺少用户名，zhaoyangxi_supp（fnd862）邮箱尾部制表符。已请求指定正式邮箱或明确历史属性承接例外，以及确认制表符规范化。迁移允许重复不推导无效格式豁免；未回答不猜补、不丢弃。
+
+## DPPMS-IAM-020 工号关联姓名差异
+
+Status: BLOCKED_BY_SPEC / WAITING_USER。w00343（fnd王俊柯/EHR王俊珂）、j04650（fnd金燕铃/EHR金燕玲）、l02826（fnd及员工表乐征侨/EHR登录目录乐征桥），目录员工外键与工号已核实，尚不能擅自判定同人。已请求用户确认三组同人、姓名沿fnd且工号沿EHR外键，或逐项指定关联；未答不建立关联。完整差异见[公司与人员引用核对](../generated/2026-10-09-dppms-user-directory-reference-audit.md)。
+
+### DPPMS-IAM-020 用户裁决
+
+Status: USER_APPROVED_SAME_PERSON_EHR_NAME_AND_EMPLOYEE_NO。用户回复“同一人，用EHR的姓名和工号”。w00343→员工74、王俊珂、00343；j04650→员工4804、金燕玲、04650；l02826→员工2770、乐征侨、02826。正式nickname及employee_no以ehr_employee.name/workNo为准，保留实际登录目录外键与原姓名差异；不把冗余ehr_login.name当作员工主姓名。这三项例外不改变其他账号fnd主、t补缺规则或账号状态、联系方式及授权。尚无实际账号写入。
+
+### DPPMS-IAM-017/018/019及公司为空角色关系最终裁决
+
+状态：USER_APPROVED，覆盖同项旧待裁决记录。
+
+- 保留选中*_ss、*_supp原登录名；登录与账号维护输入兼容这些形式。注册规则不在此裁决范围。
+- 旧admin不迁入账号资料，仅将历史创建/更新人关联当前admin ID1；不导入旧角色或授权；目标缺失或绑定改变时阻断。
+- 用户明确例外：原值@dptech.com直接承接正式email，不置空、不改写、不用custom_info替代。普通新建/修改邮箱格式校验保持。
+- 正式email仅去除来源尾部制表符，原值完整留来源证据。
+- z04214、w04218、y04223、w04261、z04264迁入正式用户角色关系，原公司NULL留证据；不新增公司或办事处授权。
+
+## DPPMS-IAM-021 公司部门范围整表承接
+
+状态：BLOCKED_BY_SPEC。现有20列无结构新增；范围历史时间、主范围标记及37个部门码的承接与转换待需求方裁决。完整核验见docs/generated/2026-10-09-dppms-user-company-department-scope-table-decision.md。只继续不依赖这些问题的账号和角色工作，尚未写入本表。
+
+### DPPMS-IAM-021 历史时间与主范围裁决
+
+状态：上述三项USER_APPROVED；缺失部门的处理和实际主范围冲突仍待裁决。用户批准三项：无关系日期用原账号创建时间初始化起始/创建时间；原关系NULL更新时间用原创建时间初始化；custom3/dpNo主范围，areapower/custom5非主范围。
+
+## DPPMS-IAM-022 system_dept整表裁决
+
+状态：BLOCKED_BY_SPEC。用户选择提交system_dept整表后，已核对16既有列、9原fnd列及24个EHR参考列。28项拟补正式部门、9项3112→1621明确映射；缺失业务属性、启停/名称冲突、无来源层级须裁决。清单见docs/generated/2026-10-09-dppms-system-dept-table-decision.md。未进行DDL或正式写入。
+
+DPPMS-IAM-022裁决更新：16前缀父项160000，31前缀父项310000，不新增字段。原isparam及有效期如何处理、其余处理建议仍等待补确认；不自行排除。
+
+DPPMS-IAM-022最后裁决：isparam及部门有效期不迁入并列明原因，280700挂280000、999999根级；system_dept无新增字段。正式目录同步尚未实施。
+
+## DPPMS-IAM-023 用户主范围冲突
+
+状态：BLOCKED_BY_SPEC。7个账号t/fnd自身范围不同，逐项见docs/generated/2026-10-09-dppms-user-scope-primary-conflicts.md。等待主来源以及另一范围有效性裁决，不默认扩大授权。
+
+DPPMS-IAM-023裁决更新：用户回复“fnd为主、t补缺”，7项冲突以fnd自身范围为主、t不同范围作非主补充；状态和历史时间沿已确认规则，不新增公司或项目授权。
+
+## DPPMS-IAM-024 无角色账号范围裁决
+
+已裁决：konglinghui_supp范围不迁入；原角色为空，用户明确排除，不擅自生成角色或授权。账号资料仍按原账号迁移规则承接。
+
+## DPPMS-IAM-025 空附加范围及孤立资料裁决
+
+状态：USER_APPROVED_EXCLUSION。
+
+- fnd_user_power选中账号109条areapower为空，用户明确“不迁入：空范围没有附加授权事实”。完整10原字段及日期、操作者按此列明排除原因，不写入system_users.custom_info、不生成公司或区域授权。
+- t_user_info 1000186（test）、1000188/1000189（admin）没有user_id，用户明确不迁入，原因“无账号外键且不在已批准账号范围”。仅覆盖这三条已核实资料，其他未来孤立资料仍登记待关联，不自动排除或伪造账号。
+- DPPMS-IAM-021/022/023/024同项原待裁决记录均被后续用户结论覆盖：20个范围字段及16个部门字段无新增列，部门父项、9项精确编码转换、主范围和历史时间均已确认。
+- 验证边界：范围Owner5项、适配器7项、模板1项隔离检查通过；真实原表3275条只读展开9492条候选，用户绑定及28个新部门ID为模拟前置结果。正式账号、目录及范围迁移尚未执行，不能声明真实落库或授权验收完成。
+
+## DPPMS-PROJ-026 项目状态、类型及历史更新时间补充裁决
+
+状态：USER_APPROVED_IMPLEMENTATION_PENDING。
+
+- 原projectState=100由正式迁移Owner初始化为NORMAL_CLOSED、S6；原20初始化为EXCEPTION_CLOSED，正式原因保留“不予跟踪”。关闭时间使用原projectCloseTime；不新增状态，不生成当前任务、审批完成事实。
+- 原31/32只按可核实的历史项目人员关系承接指派，不能仅凭状态编造负责人。
+- projectType=10复用proj_project.project_type，并在现有pms_project_type字典补入“用服售后项目”。来源全表80320条均为10；不得猜成网络集成等细分类，不新增列。
+- 本批1条原updateTime为NULL，用同项目原createTime初始化正式update_time，原NULL列明；其他历史时间按原值。
+- 用户已分别回复“按上述状态对应迁入”和“两项按上述处理”。本记录不表示正式项目落库、DDL或运行验收完成。
+
+
+## DPPMS-AST-027 发货整表重复列撤回裁决
+
+状态：USER_APPROVED_IMPLEMENTATION_IN_PROGRESS。
+
+用户最终确认按整表建议1、2、3处理：主副产品技术ID不作为业务键，名称/型号由正式产品目录承接，发货更新时间复用source_updated_at；不新增列、不创建去前缀的重复字段。7列代码及当前SQL新增定义已撤回；全表值保护与运行纠正未完成，未删除真实库列。
+
+## DPPMS-PRODUCT-028 正式产品目录实体扩展裁决
+
+状态：USER_APPROVED_IMPLEMENTATION_IN_PROGRESS。
+
+用户确认“复用正式实体扩展承接”：正式目录21列不增加字段，既有CRM名称、描述、状态保留；缺失5个产品按已批准规则补齐并设可用。原fb_items四列完整核对，id为无业务意义技术键，按裁决不迁入；item按租户+产品编码关联，itemname/describe_以dppms_catalog_labels的productCode/productName/productModel明确业务属性写入既有plt_entity_extension_value。AST提供正式Owner、PLT管理扩展定义和值，INT迁移/同步维护来源绑定和运行过程。未经批准拟建的ast_product_source_record路径撤回，源码留存于任务私有纠正证据；没有新增物理表、列。代码正在实施，尚未执行真实目录迁移及页面验收。
+
+
+## DPPMS-COM-029 装箱单整表复用与承运商编码
+
+状态：BLOCKED_BY_SPEC。
+
+已核对com_shipment_package的19既有字段及3新增列、原fb_shipment8列、物流视图6列及fnd_basic_data12原列。建议撤回source_contract_key/source_carrier_name/carrier_code物理新增列，合同关系及名称复用正式字段，原承运商编码以既有正式实体扩展carrier_code业务属性承接。完整清单见docs/generated/2026-10-09-dppms-shipment-package-table-decision.md；等待用户整表裁决。其他基础词典业务属性仍登记在来源基础数据领域，不默认排除；未执行DDL或业务纠正。
+
+DPPMS-COM-029裁决更新：用户确认其余整表建议，并指定carrier_code为物理列，与carrier_name分别保存原编码和名称；不实施承运商编码实体扩展提案。source_contract_key/source_carrier_name两列代码和当前SQL新增定义撤回，原合同键由正式归属关系核对。物理重复列清理及真实业务验收尚未完成。
+
+
+### DPPMS-COM-030：com_sales_order 整表字段纠正
+
+- 状态：BLOCKED_BY_SPEC，等待用户整表裁决。
+- 完整审查：`docs/generated/2026-10-09-dppms-sales-order-table-decision.md`。
+- 建议撤回5个镜像列，source_erp_system更名正式erp_system，既有source_project_name更名project_name；原表16列与既有34列全部列明。9条旧01订单已经逻辑删除，不需业务合并，不复活或覆盖历史。
+
+
+DPPMS-COM-030 用户裁决更新：按第1项撤回5列，source_erp_system直接复用source_system，撤回第6个镜像列且不新增erp_system。项目名称更名未批准，保留既有source_project_name。正在实现及验证，无真实库写入。
+
+
+### DPPMS-COM-031：com_sales_order_line 整表裁决
+
+- 状态：BLOCKED_BY_SPEC。
+- 完整41个正式字段、4个新增列及16个原列见`docs/generated/2026-10-09-dppms-sales-order-line-table-decision.md`。建议撤回4镜像列、实际ERP系统复用source_system，无新增物理表/列；105原行全部原字段已读，2条原空bundleCode现为NULL，建议补入原空字符串，其余业务列精确相符，原缺单位依裁决保持NULL。
+
+
+DPPMS-COM-031 用户裁决更新：整表按建议；撤回4个镜像列、source_system保存实际ERP，source_updated_at保存原版本时钟，保留已有原公司码来源键与ID；原空组合码原样承接，单位可空。代码和当前SQL已纠正，正在验证，真实库尚未调整。
+
+### DPPMS-COM-032：com_crm_execution_order 整表纠正
+
+状态：USER_APPROVED_IMPLEMENTATION_IN_PROGRESS。用户回复“整表按建议”。60个既有字段承接原表32列，撤回legacy_record_id、source_company_code；原技术ID沿INT来源绑定，公司码沿已批准转换。3条channelName及1条customerProjectName原空字符串补入已有正式字段。系统部、拓展部键及CRM对象引用复用既有system_source_key、expend_source_key、source_object_id。公司与部门引用通过SYS正式接口精确匹配，停用历史部门不会据此获得授权；9项已批准部门别名之外不启用截断或父级替换。
+
+代码及当前SQL定义已纠正。122项COM/PROJ定向测试通过，另实际MySQL/XML验证及其受影响回归50项通过，其中3项为连接内临时表验证；真实业务行和表结构未改写。实际迁移、列清理、部署与浏览器验收未完成。
+
+### DPPMS-COM-033：回款计划实体整表与历史审计
+
+状态：BLOCKED_BY_SPEC。完整清单见`docs/generated/2026-10-09-dppms-payment-plan-table-decision.md`。当前com_payment_plan是本任务先前新增26列，建议独立正式计划实体保留22列，撤回4个重复审计镜像并复用正式审计字段；可核实原人员关联SYS用户，CrmInterfaceUser、crmapp原服务操作者字符串处理等待本次裁决。原表全部16列已查，35501条原记录创建/更新时间均非NULL；本批10条正式审计日期仍非原值，需纠正。既有合同应收金额统计不能通过伪造必填金额承接事件计划。等待用户整表裁决，未实施本表纠正。
+
+DPPMS-COM-033 命名裁决更新：用户最终指定`com_contract_collection_plan`；回款属于收款业务，撤回payment命名提案。当前21列结构建议去掉单项目绑定、将事件名称按event_name承接，字段及审计处理尚待整表裁决。完整清单见docs/generated/2026-10-09-dppms-contract-collection-plan-table-decision.md。已有10条数据及旧迁移凭据保留，未调整真实库。
+
+DPPMS-COM-033 既有链路及原表复核更新：用户明确`com_contract_receivable`是合同回款信息，不是计划，不作为计划候选；阶段/任务acceptance_time及PAYMENT_PLAN_ACCEPTANCE既有Owner已核实，应复用其日期消费。原basicDataName通过旧CRM/SMS的money_item_name取值，为回款款项名称，撤回未批准的event_name建议，改提collection_item_name。原afterDaysNum为int(11)，撤回无依据的小数类型建议。现待裁决方案为19列、撤回7列；原技术ID仅用既有INT绑定，原业务来源由data_source完整承接，不新增source_*镜像。无法唯一关联合同时允许正式计划contract_id为空并登记待关联，以及未迁入服务操作者原审计字符串处理，均等待用户同表裁决。全部16原列、19候选列、7撤回原因及全量统计见同一整表清单；未改业务代码、SQL或实库。
+
+DPPMS-COM-033 同步身份缺口：旧CRM任务删除重插并重置原表自增ID；合同号、批次、款项、参考事件及来源的组合有597组、1,253条重复。原id不是跨刷新稳定业务键，不能以组合唯一约束去重或自动重绑。历史基线内可复用既有INT绑定执行迁移，但扩大持续同步须取得稳定来源身份或明确裁决，仍为BLOCKED_BY_SPEC；现有隔离日期同步数据不计为本批历史计划迁入。
+
+DPPMS-COM-033 用户整表裁决：回复“19列及上述处理整表按建议”。19列结构、撤回7列、正式计划合同引用为空待关联、CrmInterfaceUser/crmapp原审计字符串处理均已批准，结构问题转USER_APPROVED_IMPLEMENTATION_IN_PROGRESS；持续同步稳定身份问题仍等待第二项回复。19列实体及COM Owner/Mapper/SQL已实现，Owner 8项行为测试通过；INT适配器/模板验证中，旧原生入口和查询替换、实际库纠正、部署及业务验收未完成，不宣称已迁入。
+
+DPPMS-COM-033 实施验证更新：批准19列已实现COM Owner、INT同步及事实核验、项目纠正凭据和正式查询；旧PaymentPlan直接写入已撤回。75项相关验证通过，原库只读模板保留全部35,501条和16原列。旧10条15项原业务/审计属性与原表无差异，三个原人员审计须先完成已批准SYS迁移；真实库切换、审计纠正、列清理及浏览器验收未执行。持续同步稳定身份仍为BLOCKED_BY_SPEC，等待用户第二项回复，不以测试通过宣称生产迁移完成。
+
+### DPPMS-PROD-034：原项目产品整表与正式订单行复用
+
+状态：BLOCKED_BY_SPEC。原表11列35.303万条，本批105条均唯一匹配正式订单行，合同/名称/数量全等值；既有实施分配范围无法承接原NULL项目数量。建议本任务新增的proj_project_product由21列整改为10列，仅关联正式项目和订单行，项目数量保留NULL，撤回12个技术/重复列；全表值和正式引用核验后才清理，来源ID用既有INT绑定，原单位复用可空正式字段。完整21/11/10列及处理见docs/generated/2026-10-09-dppms-project-product-table-decision.md；所有结构变更待用户整表裁决，未改实库。
+
+
+### DPPMS-IAM-035：用户历史任职缺少8项正式部门
+
+状态：BLOCKED_BY_SPEC。用户选择“补齐缺失目录，提交EHR完整字段确认”。8项、10账号；3项有fnd主记录、5项仅EHR。system_dept现16列保持不增列，EHR全部24原列及精确公司/父级已核对，t_department无本8项记录。父项、缺历史审计、主管关联、11项正式扩展属性及7项本批全NULL排除方案须同表裁决。清单docs/generated/2026-10-09-dppms-system-dept-eight-missing-table-decision.md。用户同步最新预览正确阻断，不清空部门、不任意按名称关联；8项尚未写入，账号迁入0。此前批准28部门已通过INT Owner正式同步SUCCESS并核对16列，task2108524501517955073/run2108524710973108226。
+
+DPPMS-COM-033 实际运行更新：获准SYS两列和项目五列已准备；保留原10条ID和数据将计划表更名com_contract_collection_plan，正式类型已调整、7旧列暂留待承接核验。后端59282新代码健康与真实认证/页面通过；计划审计、绑定、项目纠正及列清理未执行，用户前置仍因新增8项部门缺失等待IAM-035裁决。Flyway原历史未改变，校验对齐未完成。
+
+DPPMS-PROD-034 只读全量追查：已核实建档/合并/拆分/ERP刷新/展示；353030条中projectQuantity全部NULL仅描述本库，不否定独立项目数量；58条发货/未交数量不同于当前订单，417条对应1203技术来源候选但五项属性全部等值。原ID会被刷新重排，原10列提案不足且未批准，保持暂停。完整证据docs/generated/2026-10-09-dppms-project-product-purpose-audit.md。
+
+DPPMS-IAM-035 用户补裁决：保持system_dept结构不变、不新增列、不用扩展字段承接。11项部门实体扩展方案撤回；是否明确排除11项及本8项7项全NULL字段、父项、缺历史审计和主管关联，已同表补请回复。未将拒绝扩展等同批准丢弃。8项和用户仍未迁入。
+
+DPPMS-IAM-035 用户最终补裁决：“剩余按建议”。16列保持、11缺项及7项本批全NULL明确不迁入并逐列记原因；3项FND挂160000保留历史审计，5项EHR挂真实现有父级、采用实际迁入时间和操作者；原停用保持；主管director通过EHR员工→精确来源账号→SYS用户绑定关联leader_user_id，无绑定先待关联。转USER_APPROVED_IMPLEMENTATION_IN_PROGRESS，不使用实体扩展。采用独立EHR来源任务复用现有SYS部门Owner，原28项任务和不可变证据保持，尚无本8项业务写入。
+
+DPPMS-IAM-035 实际运行更新：8项任务2108538095265562625、运行2108538252883312642为SUCCESS/CREATED=8，全部16列与原24列及裁决逐项核对通过，没有扩展写入。用户账号1176已由正式迁移任务迁入；部门主管补关联预览2108540153620250625为UPDATED=8，尚未执行。保留原历史状态描述作为过程记录，不将其视作当前未裁决。
+
+### DPPMS-IAM-036：本次用户迁入生成了错误更新人
+
+状态：USER_APPROVED_CORRECTION_IN_PROGRESS。原运行2108539862736879617创建1176个账号，其中557个原NULL更新人被框架自动填成“1”。逐条核实其他业务、审计日期、绑定均符合批准值；用户明确“仅这557处按上述条件纠正”。独立纠正运行经INT和SYSTEM Owner核实原成功运行、17个非凭据原字段、原绑定及完整前值，只恢复这557处updater=NULL，保留原回执；任何人工变化整批阻断。没有新表或新列。详细范围、失败保护及30项已通过检查见docs/generated/2026-10-09-dppms-user-null-updater-correction.md；实际纠正尚未执行。
+
+DPPMS-PROD-034 用户追问与范围复核：用户指出项目产品与实施范围相似，默认全部订单、拆分/合并时保存分配数量。19列候选也未批准。正式实施范围42列及明细21列已只读核对，本批10个项目尚无分配记录；现成分配参与订单数量占用、版本与验收绑定。按业务主体优先复用COM范围，尚需明确默认覆盖与当前分配、历史数量的映射，不把旧清单自动变成当前分配动作。两版项目产品结构提案均暂停。
+
+DPPMS-IAM-035 实际主管补关联完成：运行2108549492405899265为SUCCESS / UPDATED=8，全部16列含主管及历史审计再次核对通过；无扩展、权限或范围写入。重复预览和业务页面验收尚待完成。
+
+DPPMS-IAM-036 审计纠正完成：首次恢复557处更新人后发现MySQL ON UPDATE同时修改日期，保留该回执；任务版本1、运行2108549172460195841在完整前值及明确原纠正运行时间窗保护下恢复同557处原历史日期。1176个新用户正式字段、JSON、岗位关系及审计值核对通过；重复预览2108549489075621889为UNCHANGED=557。32项受影响检查通过。普通用户任职引用补关联和业务页面验收尚未完成。大配置导致任务列表排序内存错误，正在修复分页查询，无新表或列。
+
+DPPMS-PROD-034 建议更新：用户要求给出是否合并的建议。建议统一到既有实施范围，避免项目订单数量维护双份；NULL默认全量与拆分显式数量应保留明确业务含义。全历史58条旧交付数量差异、53组重复和当前有效分配必须整表列明待裁决，不调用现行分配动作、不去重、不清理105条。业务归属确认问题已提交，尚未回复。
+
+DPPMS-PROD-034 业务归属已裁决：用户回复“合并到实施范围，提交整表方案”。独立proj_project_product提案撤回，正式承接核验前105条保留。com_delivery_scope现有42列＋候选4列、原11列映射及com_delivery_scope_detail现有21列完整清单已提交docs/generated/2026-10-09-dppms-delivery-scope-table-decision.md；结构未获批准，范围数据未写入。另核实3057条零订单数量及8232组多项目候选重叠，公司/ERP解析待完成，不能直接激活当前分配或去重。
+
+DPPMS-IAM-036 列表故障修复：任务分页仅排序ID再读定义，不让大JSON进入MySQL排序缓存；真实MySQL2项检查及完整运行包通过，后端59282已切换，真实浏览器任务两页26条可读。部门重复预览2108553120462053377为UNCHANGED=8；用户任职引用补关联预览2108553118025162754待逐条复核后执行。角色真实自动填充上下文5项事务检查通过，未发现同类审计问题，未改角色业务代码。
+
+DPPMS-PROD-034 三列裁决：用户要求已有实体列直接承接、新增列逐项列示。撤回order_quantity候选，复用正式order_qty；用户回复“三列按上述含义批准”，批准allocation_confirmed、delivered_quantity、open_quantity。现有8项条件可空及唯一槽位规则正在同表补裁决，未实施范围数据、SQL结构或列清理。明细21列拟不改、不伪造设备明细。
+
+DPPMS-PROD-034 数量、办事处与分配结果补裁决：用户明确“旧范围直接按项目办事处，全订单数据进行填充”，撤回allocated_qty及办事处四项可空方案，projectQuantity为空时写正式订单行完整数量，显式拆分数量按原值，办事处四项取正式项目事实。对scope_status、allocation_version、effective_from，用户回复“按正式分配时应该产生的结果进行填充”，撤回三项可空方案。已核实正式Owner assign生成ACTIVE、项目scope_version+1、实际执行时间，且同时占用订单量、记录分配事件、推进范围版本并绑定验收。此前批准旧范围allocation_confirmed=false、不占用当前订单分配量；只生成这三项还是转为真正当前分配，存在业务含义冲突，已提交明确二选一问题并等待回复，标记BLOCKED_BY_SPEC。两条实现路径均未写入范围业务数据，不自行改为true或绕过分配总量、唯一性及验收规则。
+
+DPPMS-PROD-034 分配效果最终补裁决：用户明确“仅填充三个字段，保留 false（建议）”。三字段按Owner生成规则填充，旧范围不占用当前数量，不调用assign触发分配或验收事件；原8项可空方案全部撤回。三个获准物理列及仅已确认分配生成当前唯一槽位的DDL已在指定任务库准备，现有18条范围全部原字段和审计值逐列不变、仍为confirmed=true，业务新增0；Flyway历史未修改。后续Owner迁入、消费者不计未确认数量及真实页面验收尚未完成，全历史零数量、身份重排及多来源关联仍独立登记，不擅自丢弃或启用持续刷新。
+
+### DPPMS-IAM-037：本次角色迁入自动填充了原NULL审计人员
+
+状态：CORRECTION_PLAN_IN_PROGRESS。角色同步task2108554583850524673/run2108559110330822657为SUCCESS，31条原角色迁入25个新角色及6条来源引用。实际落库核查发现13个新fnd角色的25处原NULL创建/更新人被框架填成当前管理员“1”；其他正式字段、历史日期、已有角色定义及角色菜单/用户角色/范围关系均未变化。原成功回执及原来源绑定保留，不普通重放覆盖现有审计差异。已在真实自动填充初始化顺序下复现（原测试注册顺序未实际激活RoleDO自动填充），显式SQL改读不可变原审计参数，修复后原5项事务检查通过。限原成功创建运行、13个完整前后值、同源绑定和全部11原列的独立INT/SYSTEM纠正路径正在准备，实际角色纠正0，待完成回归后提交用户裁决。没有新增角色表或列，不处理既有角色、不改定义或权限，原NULL与空字符串分别保护。
+
+DPPMS-IAM-036 任职引用补关联：193个账号的898个来源回执引用均按原员工外键及1527来源绑定精确核实，原1566行完整读取；执行2108554375892738049为SUCCESS，1176账号正式资料/JSON/岗位及历史审计再次核对通过，原22账号业务及权限关系不变。重复预览仍判676个来源关系UPDATED但无业务字段差异；已复现JsonNode小Long与持久化后Int类型差异，适配器将JSON按实际持久化形式规范化，13项受影响检查通过。未据假更新再次写账号，正在部署后验证幂等。
+
+DPPMS-IAM-037 纠正预览已就绪：SYSTEM事务9项及INT适配器4项通过，新增任务2108567804242235394/预览2108567804707803137为PREVIEW_READY，13条UPDATED；逐条核对仅creator/updater共25处从字符串1恢复NULL，所有其他字段和日期一致。完整角色清单docs/generated/2026-10-09-dppms-role-audit-correction-decision.md，纠正业务写入0，等待用户限定裁决。此前用户557处授权不适用于角色。后端59282已恢复，原角色运行及绑定保持。
+
+DPPMS-PROD-034 消费者保护完成增量：范围查询页面可读未确认记录；当前数量统计、当前调整/释放、ERP范围释放及验收锁仅处理allocation_confirmed=true。真实MySQL临时表3项通过，覆盖重复未确认范围、不占当前唯一槽位、空权限返回空、租户/历史/删除边界及ERP不释放未确认范围；相关76项既有检查通过。Vue组件运行2项验证原数量、正式办事处及操作入口隔离。完整打包通过，后端59282已恢复；Owner迁入尚未执行，原105条仍保留，真实旧范围页面验收待迁入后执行。
+
+DPPMS-IAM-037 已裁决并完成：用户明确批准限定13个角色25处纠正，执行2108568396289216514为SUCCESS/UPDATED13。实际核对25个新角色、31条原绑定及原15个角色全部正式字段，25处NULL和历史日期正确；角色菜单/用户角色/范围关系未变。重复预览2108568455621840898为UNCHANGED13，完整前后值一致。本问题的限定纠正已完成，不扩大到其他记录。
+
+DPPMS 用户角色关系承接完成增量：任务2108568095503093761、执行2108569008816984065为SUCCESS，1709条原表完整资格记录展开1932条来源授权，实际形成1927个正式账号角色组合（完全同组合的5个来源引用复用同一正式关系）；51项按已批准账号范围及停用角色排除，原37个关系逐字段保持。角色、菜单、迁入账号及公司部门范围未变，当前操作者的登录时间由既有认证逻辑正常推进。1932条来源绑定逐条核对；重复预览2108569187448197122为UNCHANGED1932/SKIPPED51。既有SYSTEM事务4项及INT适配器5项验证前提保持有效，没有重复执行无关检查。公司部门范围任务2108569376783273985/预览2108569376992989186已就绪，原3275条完整资格记录展开9492条候选及1329项排除；尚未执行范围授权，执行前核查实际自动填充与全部来源规则。
+
+DPPMS 公司部门范围审计保护：在实际框架自动填充环境中复现范围Mapper对DO原NULL操作者补管理员1，并令重放被历史保护正确阻断。生产范围尚未执行，未污染目标数据。历史审计SQL改读不可变Audit参数，保留显式原update_time；普通范围写入仍沿现有自动填充。SYSTEM5项事务及INT7项适配器/1项模板检查全部通过，涵盖真实自动填充对照、原NULL和日期、人工修改保护、失败回滚、跨租户及空集合不扩大授权。正在打包部署，本次不新增表/列，不放宽审计漂移规则。
+
+DPPMS 公司部门范围承接完成：执行2108571476367917057为SUCCESS/CREATED9492/SKIPPED1329；9492条来源资格对应9477条正式历史关系，15条完全相同历史引用复用同一正式关系。全部20列、原NULL审计、历史日期和绑定逐行核对；原41条正式关系及角色、角色菜单、用户角色不变。重复预览2108571647373885441为UNCHANGED9492/SKIPPED1329，完整关系前后值一致。办事处资格仍不替代项目授予，不据此扩大外部用户项目访问。
+
+DPPMS-COM-033 人员缺口裁决及正式执行：l01663在原t_user、fnd_user_info和当前system_users均不存在；用户批准仅原计划ID10725、14943、28926、31337的8处原编码保留正式creator/updater，不新增账号或授权。任务2108574253093683202以已审查配置显式限定这4条、2字段，其他未裁决、歧义或存在却未绑定账号仍阻断。执行2108576833605644289为SUCCESS/UPDATED10，19正式字段、16原字段、ID、历史时间和业务关系逐项核对；重复预览2108577146274230273为UNCHANGED10。10条计划位于4个项目，现有纠正入口追加COLLECTION_PLAN_V1证据并重复返回REPLAY_COMPLETED；原20批次、来源记录、外部映射、快照及计划业务数据逐字段保持。7旧列清理、浏览器项目详情及阶段/任务日期消费未完成；持续同步稳定来源身份仍为BLOCKED_BY_SPEC，不自动去重597组重复或重绑刷新后的原ID。
+
+DPPMS-COM-033 实际19列及页面验收更新：4项目10条计划的真实列表与详情15项业务属性全部核对通过，修正创建/更新时间的毫秒数字显示，并重验原日期和l01663编码。执行获准的7列清理及4项VARCHAR容量调整后实际表19列，撤回uk_source/idx_project两个依赖技术列的索引，保留正式合同索引；所有正式值、来源绑定、原快照和记录、原20批次及映射逐字段不变。清理后10项目正式接口19字段核对、真实页面刷新和重开详情通过；正式同步重复预览2108586172005396481为PREVIEW_READY/UNCHANGED10，正式业务行及绑定保持。当前SQL直接是最终19列，不增加删除迁移，Flyway历史未改；阶段/任务日期消费、持续同步身份及基线校验对齐仍待处理。
+
+## DPPMS-MAINT-001 维保服务过程的四类原业务主体
+
+状态：BLOCKED_BY_SPEC。只读原表293430条、44列及当前业务表55列完整清单见docs/generated/2026-10-09-dppms-maintenance-business-subject-decision.md。旧代码明确10售后项目181525条、20售前项目12122条、30非业务38480条、40自定义61303条；售前全部匹配独立售前项目头，非业务和自定义projectId=-1不能当正式项目引用。售后仅85条未匹配原项目头，不将其他三类合算为孤立售后项目。用户先前已批准项目维保服务记录业务实体，但四类全历史的业务主体与领域承接尚未明确；建议保留全部正式服务过程、按原主体区分，等待用户决定是否统一服务记录或分域规划，再提交所有物理字段一起裁决。未批准结构不执行；不依赖此问题的回款、项目及实施范围承接继续。更新时间254109条NULL、创建人1条NULL、1处原项目名称差异及原问卷/交付件引用均列明，不自行覆盖或丢弃。
+
+DPPMS 项目详情整改遗留故障：真实页面触发ProjectPartyMapper.selectCurrent生成SQL读取未获准且实库不存在的source_created_at/by、source_updated_at/by，导致项目详情500。撤回ProjectPartyDO这4个镜像属性及本任务新增、无调用方的ProjectPartySourceService/Record/Mapper/XML和镜像专用测试；不补业务表字段，不改既有参与方或历史数据。连接级真实MySQL测试2项覆盖既有正式审计列、当前关系、过期/删除及跨租户，最终客户9项、项目迁移13项、计划纠正5项通过；完整打包并恢复59282后，真实认证下项目详情接口成功，浏览器显示实际项目名称。来源参与方历史审计的正式同步仍待实施，不能把撤回镜像依赖视为已完成承接。
+
+
+## DPPMS-MAINT-001 — 2026-10-10 用户最新裁决
+
+状态：USER_DEFERRED。用户纠正 pm_project_maintenance 为维护记录，并明确“该项暂不迁入”；此前维保服务记录建议撤回。本轮不再新增或补写维护记录，不将来源证据或旧迁移成功回执作为本轮正式承接完成。已引入17条全部55列只读核对未变化，清单见 docs/generated/2026-10-09-dppms-maintenance-business-subject-decision.md；处置仍为 BLOCKED_BY_SPEC，等待用户选择保留或有保护条件的撤回，未删除数据或改变原不可变回执。真正保修/维保来源及其他批准工作继续。
+
+
+## DPPMS-MAINT-001 — 已执行“仅保留裁决和迁移方案”
+
+用户明确不保留本轮维护记录实现。核实17条全部55列未变化、无业务数据库依赖后，已撤回本任务引入的17条及 proj_project_maintenance_record 表、DO/Mapper/Service/XML、正式资料入口及当前V414定义。原来源记录、快照、旧迁移批次/来源载荷/映射前后比对不变；当前状态为USER_DEFERRED，不再据旧MAPPED回执宣称承接完成。仅保留裁决及未来迁移方案，未来重启仍须整表裁决。相关25项检查及完整打包通过；本任务后端59282恢复，真实页面核验继续。未改写Flyway历史，整体基线对齐仍待处理。
+
+## DPPMS-PROJ-038 主档迁移预览后的实际修改
+
+状态：ADJUDICATED。正式主档模板、INT适配器及PROJ初始化Owner相关54项检查和宿主机打包通过，无新增物理表、列。预览2108608417834668034为PREVIEW_READY/UPDATED10；后续版本复核发现来源51922、目标992203060198的project_end_date从2027-03-31变为2026-10-14，version12→13，updater及update_time随业务动作变化，其他列不变。未执行旧预览，未接管后续修改；完整输入、旧预览及当前基线已记录。用户明确“保留新结束日期，重新预览后迁入10个项目”，仅此项目初次接管版本改用13；仍按既有裁决承接原审计人和历史时间。Owner不写project_end_date，执行前继续逐字段与新基线比较。来源修订、其他业务或运行时变化不在本裁决授权内；本次也不批准任何新字段。
+
+
+## DPPMS-SCOPE-039 历史零数量范围
+
+状态：BLOCKED_BY_SPEC。本批105条均为正数量，不阻断已批准迁入；全历史3057条旧项目产品orderQuantity为0，正式com_delivery_scope.chk_scope_quantity要求allocated_qty>0。已向用户提交同表裁决：是否仅allocation_confirmed=false允许0，已确认分配仍>0；或保持约束暂缓零数量行并列明原因。回复前保持原约束，零/负数量不落库，不伪造为1，不丢弃来源，不触发实际分配或验收。无新增表/列，负数量未获裁决。
+
+
+## DPPMS-SCOPE-039 用户裁决
+
+状态：ADJUDICATED。用户明确“保持现有约束，allocated_qty按项目数量、订单数量进行优先级填充”。项目数量优先，NULL时取正式订单数量；不满足allocated_qty>0的零数量行不写入、不改为1，作为待处理列明。保留既有数据库和已确认分配的正数量约束，未批准零/负数量例外。本批105条均正数量，继续迁入。
+
+## DPPMS-SCOPE-040 历史范围与正式分配版本唯一键
+
+状态：BLOCKED_BY_SPEC。实际MySQL验证确认uk_scope_version仍约束tenant_id/order_line_id/project_id/allocation_version，包含allocation_confirmed=false。现已批准的旧范围填充项目当前版本+1、保留false且不推进当前分配，会占用后续正式分配的相同版本唯一键，并阻断历史重复行。已提交整表约束补裁决：建议用MySQL函数唯一索引仅对已确认分配保持原四项版本唯一性，历史false以既有source_evidence核验来源身份；不新增可见业务列，保留正数量、当前槽位以及已确认分配的全部版本唯一性。未回复前不改变此索引，不迁入105条范围，不去重、不改变版本生成规则；其他已批准整改继续。隔离测试只修改连接级临时克隆，不修改真实表或放松其约束。
+
+
+## DPPMS-FACTORY-041 全历史同设备多版本
+
+状态：BLOCKED_BY_SPEC。原fb_soft_version全部5列、本批19行及正式23列已复核一致；全历史165801行，392个序列号重复，其中288个有不同版本组合。原表无主键、时间或顺序，不能任意选最新或去重覆盖正式唯一设备主档。本任务新增19列历史记录表尚未获整表裁决，不据旧回执认定结构批准。完整字段及计数见docs/generated/2026-10-10-dppms-factory-version-table-audit.md。多版本业务模型/当前版本选择待提交完整承接方案后由用户裁决；未改原表、目标、代码或回执。本批既有正确版本不重写。
+
+
+## DPPMS-SCOPE-040 用户裁决
+
+状态：ADJUDICATED / PILOT_VERIFIED。用户明确批准版本唯一键仅约束allocation_confirmed=true；false仍逐条核验source_evidence，保留重复行、不占分配槽位。采用函数唯一索引，无新增业务列；正数量、当前槽位、已确认分配含关闭历史的原四项版本唯一性保持。此前两个同义问题的答复均一致，仅执行一次。105条正式范围已通过Owner迁入、105条再次预览UNCHANGED及10命令重放验证；原18条范围、明细和当前范围水位不变。真实浏览器显示正式数量及未确认标记，历史重开且无调整/释放入口。2026-10-10重复产品表、DO/Mapper及当前SQL定义已在完整承接与依赖核查后退出，删除后105条预览及10命令重放仍通过，详见同表报告新增验收段。全历史稳定身份和整体Flyway基线对齐仍未完成，不宣称上线完成。
+
+## DPPMS-FACTORY-041 保留规则裁决
+
+状态：RETENTION_RULE_ADJUDICATED / TABLE_STRUCTURE_BLOCKED_BY_SPEC。用户明确“完整保留正式版本记录，冲突不自动覆盖主档（建议）”。392组重复、288组异值均不能据返回顺序去重或认定最新；现有正确主档不重写。本次仅确定保留规则，不批准新表/列或现有19列记录表。项目关联只读核对发现19条中7条缺当前正式设备/合同发货查询链，不能直接删除项目引用后宣称页面完整。整表结构和关联的候选方案须提交用户裁决，未明确前不变更结构、不扩写、不丢弃记录或原始证据。
+
+同表13列及六列撤回方案已获用户裁决“13列及上述处理整表按建议”：docs/generated/2026-10-10-dppms-factory-version-record-table-decision.md。实际19条已完成13列结构整理，五业务列同名化，project_id可空且只表示可核实的旧项目关联。全部原值、旧绑定、ID/审计及整张23列主档逐项保护；5个有数据项目的新迁移对账和重放、10个正式项目页及真实浏览器通过，7条缺少当前设备的记录仍可查询。没有新增业务列。全历史持续同步身份规则和Flyway基线对齐仍未完成。
+
+## DPPMS-INSTALLATION-042 旧设备地址的业务归属
+
+- Status: 整表结构、安装状态、日期及本批当前位置处理已裁决；BLOCKED_BY_SPEC 仅限全历史串货关系、空地址及超长值。
+- Evidence: docs/generated/2026-10-10-dppms-installation-original-purpose-audit.md；948台各一个原地址，948正式设备和当前项目全部匹配。其中20台当前已完成安装地址与来源不同，928台没有当前设备位置。原表没有地址更新日期、安装状态或完成日期。
+- Decision: 后续裁决取代最初仅保留关联的方案：复用既有imp_eng_installation原32列；有地址采用状态2，原createTime填install_time/effective_from，NULL更新时间用原创建时间，NULL更新人保持。保留20个较新位置，较早记录effective_to取较新安装生效时间；928个空位置通过AST位置Owner补齐。
+- Question: 用户已批准复用既有imp_eng_installation原32列及全部21原字段整表方案（docs/generated/2026-10-10-dppms-existing-installation-table-decision.md），例外明确有安装地址表示已安装，status复用2且保持不可空。原NULL更新时间用原创建时间初始化，updater保持NULL。用户进一步明确“有创建时间，存在的记录都是有效记录”，撤回NULL生效日期及修改生成条件建议；已提交原createTime初始化安装/生效时间、20条较早历史按较新安装时间结束并保留较新位置、928个空位置是否通过正式Owner补齐的裁决。20条创建时间均早于当前安装生效时间，详见受控installation-creation-time-current-conflict-review-20261010.json。新增表/列均为0；答复前不执行安装或位置整改。全历史串货、空地址和超长值仍待独立裁决。
+- Boundary: 不新增表、列；不生成当前任务或审批完成事实。只经正式迁移/同步及IMP/AST Owner落实已裁决事实；保留原库、不可变来源证据和旧运行回执。预览后当前记录变化必须阻断。撤回任务新增来源事实表及21个镜像列须在完整正式承接、保护、重放和依赖核查后执行。
+
+
+2026-10-10补充裁决：用户批准“保留20个较新位置，补齐928个空位置”。原createTime用于install_time/effective_from；有地址按既有状态2，20条较早记录effective_to取现有较新安装effective_from，928条通过AST位置Owner填空。原NULL更新时间以原创建时间初始化，NULL更新人保持。既有32列和当前位置唯一约束不改，不再新增地址历史实体。当前实施中，正式承接与重放验收后清理任务新增来源事实表及21个镜像列；全历史串货、空地址及超长字段仍待裁决。
+
+2026-10-10本批验收完成：948条正式安装保留ID/历史审计，20个较新位置保持、928个空位置补齐；298条其他安装及原位置历史不变。已核查撤回21列及来源事实表，最终复用32列。清理后全948正式查询、普通安装分页、UNCHANGED预览、6个REPLAY_COMPLETED及真实页面重开通过。上方旧Question所述日期/位置事项已答复，不再申请。全历史特殊值、首次迁入及整体Flyway基线仍未完成。详见docs/generated/2026-10-10-dppms-existing-installation-table-decision.md。
+
+## DPPMS-REAL-PRODUCT-043 项目真实产品清单整表结构
+
+2026-10-10整表裁决：ADJUDICATED / PILOT_VERIFIED。用户批准“19列及上述处理整表按建议”，唯一新增data_source，清单商务编码复用project_code，3项技术镜像撤回。审计用实际迁入人员/时间，51条零及2条负数量原样保留。整表问题已解决，19列/正式Owner/本批10个空结果/重放及浏览器验收完成；持续刷新身份、数量更新和删除规则及整体Flyway基线仍待独立处理。
+
+原核查：pm_project_product_line_real全部12列、7848条；上游全部10列、9992条；7848条均唯一精确匹配上游，清单商务编码与旧项目主表编码全部不同。本批10项目为0条。原库及未形成项目关系的上游行不丢弃。
+
+## DPPMS-WARRANTY-SOURCE-044 来源契约与真实原表不一致
+
+状态：BLOCKED_BY_SPEC。2026-10-10按当前配置只读核查，原契约登记的view_warranty（36列）不存在；实际view_warranty_source有31列，缺少newId、agentName、finalCustomerName、itemName2、describe_2。不能把展示/派生字段伪称原列，也不能静默丢弃字段或自动替换来源。已询问用户指定真实来源，或批准按实际原表重新追查这5项来源并提交保修整表裁决。完整源表采集继续失败关闭；不修改既有不可变证据。真实产品两张已批准原表可以独立核查并继续其结构、Owner及本批空结果验收。
+
+## DPPMS-LEASE-PRODUCT-045 项目租赁产品整表结构
+
+状态：BLOCKED_BY_SPEC / WHOLE_TABLE_DECISION_PENDING。完整11原列、当前22列及最终19列候选见docs/generated/2026-10-10-dppms-lease-product-table-decision.md。原表454条，本批10项目0条，当前目标全表为空；建议不增加物理列，source_project_code更名project_code，撤回3项技术镜像，lease_duration纠正为DECIMAL(16,2)租赁月数、data_source纠正为VARCHAR(25)。完整原业务字段、25组重复行的31条额外原记录逐条承接，不只保存旧页面最大执行单结果；无原审计建议使用实际迁入人员和时间。已向用户提交同表19列及全部处理，答复前不改变结构或写入；无键行持续刷新身份、同一基础项目编码的多项目关联另行裁决。
+
+## DPPMS-PRODUCT-CONFIGURATION-046 项目产品配置层级整表结构
+
+状态：BLOCKED_BY_SPEC / WHOLE_TABLE_DECISION_PENDING。全部11原列、当前22列、19列候选及层级核对见docs/generated/2026-10-10-dppms-product-configuration-table-decision.md。实际736条，本批10项目0条，目标全表为空。建议不增加物理列，source_project_code更名project_code，撤回3项技术镜像，item_group纠正为INT、data_source纠正为VARCHAR(25)；无原审计用实际迁入人员/时间。旧3项派生路径从正式字段计算；10个缺父路径节点原样保留并列明，不补造父节点。已提交同表19列及全部处理，回复前不改变结构或写入；持续刷新及基础编码多项目关联另行裁决。
+
+2026-10-10最新裁决：044用户要求“原表不变，按原来的材料证明继续推进”，保留原36列契约和既有不可变来源材料，不切换库、不替换为31列视图；承接方案继续按原材料核对。当前连接缺表的运行事实仍列明，新完整采集不能跳过校验。045用户指定productFirstName→productCategory、productName→productType，明细三项使用product_code/product_model/product_name；原建议product_group_name撤回，19列其余处理沿整表方案。046用户批准19列及全部处理。045/046状态均为WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS，不再重复申请整表批准。
+## 2026-10-10 软件登记及批次整表复核
+
+### DPPMS-SOFTWARE-RECORD-047 — 软件清单登记实体与全部原字段
+
+- Status: NORMAL_RECORD_WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS；批次与限定纠正另受各自裁决约束。
+- Evidence: [既有历史表32列、全部28原字段及12列候选](../generated/2026-10-10-dppms-existing-software-history-table-decision.md)。V414观察表于2026-10-09创建；既有V110软件事件表于2026-09-17创建。用户要求优先复用既有版本历史表，原观察表30列方案停止实施。完整旧保存过程及1570643行统计证明未变化清单不能等同升级完成；现存635历史和425主档保护。
+- Decision: 最新回复“按原来的裁决建议，新增12列”，替代此前保持结构的回复，批准原44列整表方案及审计/日期规则。新增12列、保留custom_info、source_log_key更名change_batch_id并转BIGINT、source_data_state更名data_state；现有版本和审计正式字段直接复用，不更新当前主档或设备投影。
+- Question: 结构不再重复确认。635条既有历史纠正和观察表撤回另经具体预览裁决；正式批次结构仍待048裁决。
+- 最新用途核查: 用户指出当前软件更新没有写入本表；重新核实635条全为本任务DPPMS迁入，当前代码虽有apply实现但无生产业务入口调用。V110是来源事件模型，不能称为当前软件更新功能使用的现成历史表。见[来源核查](../generated/2026-10-10-dppms-software-history-provenance-audit.md)。已批准12列裁决保留；软件结构/数据切换暂停，历史登记承接与当前版本更新闭环的实施边界待用户明确。
+- 最新裁决: 用户要求“先补齐功能，再承接历史”，明确ast_device_network_version_event不能作为正常业务权威表。本表退出承接目标，原44列方案停止；原12列批准不自动适用于另一张表。用户进一步明确软件版本与ITR无关，由项目人员手工维护或上传日志自动回填，BOOT取Basic Bootloader；版本来源已裁决，不再重复询问。
+- Blocking scope: 635条现存历史纠正、观察表撤回及未裁决批次处理；已批准结构和Owner独立实施继续。
+- 当前阻断范围: 本候选结构和写入停止；正式表及字段方案尚需重新整表确认；635条纠正、观察表撤回及V414批次处理仍待具体裁决。用户要求只有正式明确缺失后才实施，不凭推测建设。
+- 跨工作区补充核查: 主工作区已有上传日志解析回填及解析历史，DeviceArchivedLogParsingService调用DeviceLogParsedFactService，写ast_device_log_parsed_fact并更新ast_device_network_version和ast_device，不调用来源事件Owner。本任务旧工作树缺少后续代码，不能认定整个平台没有功能。指定库只读核查解析事实50条、DEVICE_LOG当前版本14条，软件写入0。后续解析回传源码及V410在主工作区未提交，本任务不复制未交接代码另建Owner。既有功能复用，手工维护及原28字段映射仍先核实明确缺口，证据见上述来源报告补充及existing-log-version-function-readonly-20261010.json。
+- 正常业务时间规则已裁决: 用户明确“按上述时间规则，保留较新版本”。采用人工登记/日志接收时间判断，旧日志保留解析历史而不回退较新当前值；后续新日志只回填其确实解析字段，缺项保留现值。不再重复询问此规则，不将此批准解释为新表/列批准。
+- 正常手工维护整表用途最新裁决: 用户要求软件历史使用具名实体列，档案before_snapshot/after_snapshot方案撤回；旧软件历史仅一次性迁移，不持续同步，之后维护和升级由系统操作产生。用户明确Bak为变更前版本备份、Change为是否变更，不再将其业务含义标为未知。
+- 整表讨论追溯: 用户质疑已有previous_record_id仍重复保留Bak/Change；39列整表未批准，现修订为[当前版本26列直接复用＋正式历史31列＋8项正式扩展候选](../generated/2026-10-10-dppms-software-version-maintenance-table-decision.md)。建议V414观察表物理整理为ast_device_software_version_record，复用/整理22列、撤回12镜像、8旧业务列转既有正式实体扩展、候选新增9列；正常操作只通过具名前记录比较，不重复写八项。指定原表659行最新只读核对有8行四组Bak均含版本串、原Change与直接比较结果不同，旧页面实际拼接链，不能重算覆盖。扩展用途/配置及全部31列结构、9新增、索引、初始记录仍待裁决，产品扩展批准不自动适用。业务写入0；048批次和635事件纠正不据此获准。
+- 最新正式裁决: 用户已回复“31列及旧八项扩展整表按建议”，批准31列、全部九项新增、八扩展及整表处理/索引/初始记录规则，状态WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS，不再重复确认。当前26列保持；软件结构和功能开始实现，真实数据尚未写入。原批次048、635事件具体纠正及提供方跨工作区交接仍独立处理。
+- Decision owner: 需求方。
+
+### DPPMS-SOFTWARE-BATCH-048 — 软件变更批次整表
+
+- Status: WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS。
+- Evidence: [9原字段、23当前列及11列候选](../generated/2026-10-10-dppms-software-batch-table-decision.md)。原16874批次，本批6条；全历史logId无孤儿且无跨项目关系。
+- Decision: 用户批准11列及整表处理；原9列完整映射，原NULL操作者保持NULL，NULL更新时间取原创建时间，撤回12个技术/审计镜像，不激活当前升级/任务。
+- Implementation boundary: 现有6条逐值核查，完整承接后才清理；有后续修改阻断，635条事件纠正不包含在本次批准中。
+- Decision owner: 需求方。
+
+2026-10-10最新正式裁决：用户批准“11列及上述处理整表批准”；本问题状态为WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS。原9列完整映射、原NULL操作者、NULL更新时间取原创建时间、12镜像撤回及6条逐值保护均按已批方案实施。635事件纠正仍未批准。
+
+### DPPMS-SHIPMENT-CONTRACT-YEARS-049 — 合同保修年数与0/1标志的单位冲突
+
+- Status: ADJUDICATED / LOCAL_VERIFIED。
+- Evidence: [29既有列、12原字段及全量单位统计](../generated/2026-10-10-dppms-shipment-contract-reference-table-decision.md)、[保修36字段复用核查](../generated/2026-10-10-dppms-warranty-formal-reuse-audit.md)。原warranty用于×12计算月份，现引用表warranty_flag定义为0/1，却保存了原0～10年值；同值不构成同义承接。
+- Question: 是否保持29列，仅将warranty_flag改为warranty_years、VARCHAR→INT NULL并同步修改既有迁移/同步映射；或指定原年数的其他正式实体字段？原空白/NULL处理、现存120638引用及来源数量差1均按整表方案受控核对，不绕过后续变化保护。
+- Decision: 用户回复“接受建议”，批准整表29列、原空白/NULL转NULL、warranty_years整数年数及同批映射切换，不新增表或列。120638正式引用已逐键匹配；多出1条来源全空合同键/号且无业务值，完整列明无法形成合同引用的原因。2条目标空白通过迁移/同步及COM Owner纠正，其他28列和审计保护。
+- Verified scope: 本任务59282已切换；120638行正式29列warranty_years为INT NULL，2条空白通过限定COM Owner及迁移/同步纠正。预览2108801389591171074 UPDATED=2；执行2108801440837177346 SUCCESS UPDATED=2；重放2108801493274365953与最终INT类型重放2108801809084485634均SUCCESS UNCHANGED=2。6个现有任务版本受控切换、仍暂停；其余28字段/审计/索引/来源证据/Flyway执行历史保持。早先SQL解析失败回执完整保留，修复后真实租户拦截器/MySQL验证通过。
+- Remaining scope: 其他保修日期、等级及过期日差整表方案仍待裁决；生产历史SQL基线与既有Flyway校验对齐尚未处理，不能将本地验收称为生产上线完成。原缓存计算日仅从已知公式推断，不能当已找到生成链。
+- Decision owner: 需求方。
+
+
+### DPPMS-EQUIPMENT-ASSOCIATION-050 — 保持设备清单逻辑并补齐迁入范围明细
+
+- Status: ADJUDICATED / LOCAL_VERIFIED。
+- Evidence: [既有范围明细21列、正常产品明细Owner与具体补关系方案及实际结果](../generated/2026-10-10-dppms-equipment-association-repair-decision.md)。纠正前本批105条已关联正式订单行但明细为0，原页面只从details关联数量/订单；该只读问题基线保留。现已新增105条配套明细，总明细134条。原多订单项目12条范围按产品汇总9行、同产品两个订单及数量正确。
+- Decision: 用户要求原页面逻辑不变，仅补迁移关联；本轮前端加载器及列调整已撤回，其他页面改动保留。此前逐范围显示的38条验收不得当作当前方案已完成。
+- 补充裁决: 用户明确此前已批准pm_project_product_line按全量实施范围承接；漏写配套明细是实现遗漏，不重复申请批准。沿正常无SN产品数量明细规则补齐105条false范围，21既有列复用，不产生当前分配或验收动作。
+- Verified scope: COM Owner及既有迁移入口已补105条21列明细，123条父范围和29条旧明细保持；105条重放UNCHANGED、10回执REPLAY_COMPLETED。31项定向测试及完整后端包通过；任务59282更新，原页面单订单两页32产品、多订单9产品及详情重新打开均核验数量一致。原来源和旧回执保护，不新增结构、不制造SN、不覆盖原页面逻辑。
+- Remaining scope: 原设备首批200条读取限制及范围外产品行混入已在后续修复中解决；全历史稳定身份及实际发货引用缺口仍未完成。详见051及原验收报告的后续核查段，不能以105条明细补齐宣称全部设备关联完成。
+- Decision owner: 需求方。
+
+### DPPMS-EQUIPMENT-BUNDLE-051 — 设备清单产品边界及发货引用缺口
+
+- Status: DISPLAY_ADJUDICATED / LOCAL_VERIFIED；REFERENCE_CORRECTION_PENDING。显示口径不再BLOCKED_BY_SPEC；发货及设备引用缺口已查明，实际补正尚未执行。
+- Evidence: [后续原表、正式关系、旧查询及实际页面核查](../generated/2026-10-10-dppms-equipment-association-repair-decision.md#设备台数与组合产品的后续核查)。992203060189的32组/699台分页已修复并真实逐行验收，原汇总规则保持。992203060198原产品和订单均仅2行，共4＋16；另5类20台来自原发货和正式设备，不在原产品清单中，无独立原订单数量。原关系表按合同0条，“已确认组合内设备”的定性撤回；来源组合序列号原值保留。
+- Decision: 用户明确“按实施范围订单产品显示（建议）”。仅范围明细建立产品组，设备只补这些组的身份和台数，不再追加范围外产品行；数量仍取范围明细和订单行，不复制父产品量，也不从设备台数推导项目量。真实页面992203060198仅2行，4/4/0/4与16/16/0/16正确，序列号详情仍40台。
+- Known mapping defects: 40条发货order_line_id为空；原INT行标识可与同订单D365、公司001下的原/正式inventTransId逐一核对，候选对应正式第1行24、第2行16。11台旧设备shipment_record_id非空却指向不存在的旧记录，29台引用一致。仅形成只读候选，未把候选称为正式Owner预览、执行或迁入。
+- Boundary: 分页及显示修复无业务写入、DDL、重启；引用补正必须经迁移/同步及Owner，保持原字段、历史证据和后续变化保护。已批准范围和105条明细不重复裁决；显示问题已关闭，不以它阻断独立的引用补正。
+- Decision owner: 需求方。
+
+
+### 2026-10-10 软件日志正式材料依赖：V398
+
+RESOLVED（2026-10-11）：用户批准仅应用既有V398的version BIGINT NOT NULL DEFAULT 0。Compose/Flyway成功执行，原35列及236条材料逐值一致，369条既有回执保持，新增version全为0。完整方案及实际核验：docs/generated/2026-10-10-software-log-material-schema-decision.md。
+
+## 2026-10-11：旧软件事件整表处理
+
+状态：RESOLVED / LOCAL_VERIFIED。635条旧DPPMS事件全部已经由正式历史承接，其中590条与自身不可变迁入材料的版本字段不一致。用户批准限定撤回635条，明确保留custom_info，仅清理source_log_key/source_data_state。635条已通过迁移入口及AST Owner撤回，最终30列保留custom_info；当前主档、原来源、不可变证据、旧回执及绑定保持。44项Owner测试、13项带登录上下文MySQL测试、完整包及真实页面读回通过；清理后5次撤回重放与5次原承接重放通过，659×31＋5272扩展及6×11批次字段独立核验一致。完整32列与实际结果见[整表裁决](../generated/2026-10-11-dppms-obsolete-software-event-decision.md)。生产历史基线对齐仍未完成。
+
+## 2026-10-11：ast_device_warranty_record整表收敛
+
+状态：BLOCKED_BY_SPEC / WHOLE_TABLE_DECISION_PENDING。已重新核对既有19列、V4追加31列、全149条记录、当前31条投影及完整原36列118条材料。代理商和syncTime均通过精确成功绑定/发货身份匹配已有正式字段118/118，消除此前候选歧义。建议19物理列保持，两个独立原区间日期用正式DATETIME扩展；两个计算基准不明确的缓存日差仅提出不迁入候选，未经用户批准不删除。等级/旧合同类型名称建议真实原码/名称复用既有字典。完整50列、原36列、各撤回原因及保护条件见[整表方案](../generated/2026-10-11-dppms-warranty-record-table-decision.md)。没有代码、DDL或业务写入，不阻断已批准装箱单等独立工作。
+
+2026-10-11装箱单已批准整改执行：com_shipment_package保留19既有列＋carrier_code，共20列，撤回source_contract_key/source_carrier_name。原表19×8字段、正式合同关系/承运商及全156368行20个保留字段/审计核验一致；10个项目经既有迁移及COM Owner核验，清理后10次重放通过。没有覆盖正式业务值，原索引/Flyway历史保持。详见[整表执行结果](../generated/2026-10-09-dppms-shipment-package-table-decision.md)。
+
+## 2026-10-11：项目阶段读取的来源依赖交接
+
+状态：HANDOFF_PENDING，既有规则含义已由来源任务正式确认，不属于新业务语义猜测。项目992203060190的有效计划使用PROJECT_CONTACT_EXISTS，但本任务包缺少主工作区已实现的联系人规则增量，阶段列表因unregistered predicate失败；正确实例接口正常。未改冻结计划、状态或校验。具体最小接收范围及验证见[依赖交接方案](../generated/2026-10-11-project-stage-contact-dependency-handoff.md)。来源代码未提交，按npdms-change-delivery技能等待正式交接或用户批准本次选择性接收；此前日志特例不自动扩大。不阻断其他已批准迁移，保修整表问题仍独立待裁决。
+
+2026-10-11联系人交接裁决：用户明确授权按清单选择性复用，覆盖此次先合master顺序，HANDOFF_AUTHORIZED。17个最小文件已接入；来源安装功能的无关增量排除。92项联系人事实、权限边界、事务回滚、发布及计划规则测试通过，待完整打包及真实阶段读取验收；冻结计划与来源工作区不修改。
+
+2026-10-11维保整表裁决：用户明确维保信息由发货和保修期限计算，不独立同步，并进一步选择“现存记录及结构暂保留”。此前原区间扩展及149行结构整理建议停止，不删除118派生记录、不清理31镜像、不创建扩展。新迁移将原view_warranty材料列为DERIVED_WARRANTY_NOT_INDEPENDENTLY_MIGRATED，业务承接仅通过正式计算输入；既有成功回执、绑定、149条历史和31条当前投影保持。旧视图输入中的独立服务权利覆盖仍需原表整表方案，不能用计算结果不迁替代输入承接。完整36列清单及限定撤回只读预览保留于上述整表文档。
+
+### DPPMS-LICENSE-RECORD-20261011 — 许可历史正式实体整表结构
+
+状态：WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS。用户明确回复“16列及上述处理整表批准”，批准ast_device_license_record及8原列完整映射，见[整表方案](../generated/2026-10-11-dppms-license-record-table-decision.md)。AST Owner代码、受控加密、迁移/同步入口和安全查询正在验证，尚未执行真实许可迁入。旧缓存刷新会清空重建自增ID，本轮历史迁入，持续刷新身份另行裁决；不据旧状态激活许可、不创建虚假对象，缺少当前设备/合同关系保留NULL及原业务值并登记。
+
+密钥配置：此前私有DPAPI文件在当前Windows上下文通过Python及.NET均无法解封。没有覆盖或替换旧文件，没有读取真实许可码。已向需求方询问首次承接是否生成独立受控密钥，或指定原密钥的可用配置；真实加密采集和迁入等待答复。
+
+实施进展：20项定向Java、4项真实MySQL临时表及4项Python测试通过，完整包完成；通过Compose/Flyway应用V433（V426已有其他业务回执，未使用），实际ast_device_license_record只有批准16列且0行，既有业务及回执保持。后端尚未切换，许可码未采集；真实迁入及浏览器验收仍等待密钥答复，不标为完成。
+
+2026-10-11设备引用与联系人依赖关闭：上述050/051的当前批次引用补正已实际完成，40条发货order_line_id和11台失效shipment_record_id通过迁移及Owner纠正，一次NEW、两次REPLAY_COMPLETED，其他字段及审计保护；范围页导航携带真实项目及两种版本，真实浏览器读取2条范围4/16、false、ACTIVE、版本1。联系人17文件已完整打包部署并通过真实阶段读取，S0 DONE、S1 ACTIVE、联系人任务DONE，两条联系人及冻结计划保持。此前“REFERENCE_CORRECTION_PENDING”和“待完整打包及真实阶段读取”作为实施前记录保留，当前本批均LOCAL_VERIFIED；全历史身份与生产基线仍未完成。
+
+2026-10-11许可查询部署：最新21项定向测试通过，后端59282已切换测试过的许可查询包，licenseQueryOnly=true。项目992203060189真实浏览器进入许可历史，接口total=0、空列表正常，正式表仍0行；此前“后端尚未切换”是部署前记录，现已被本段更新。没有配置密钥、读取许可码或执行许可迁入，153条带数据验收继续等待密钥配置回复。
+
+2026-10-11生产迁移链只读校验：完整SQL/migrations的Compose/Flyway validate实际失败，15项校验和差异、9项目录内版本未执行，35条回执脚本名不在当前目录（含重复/改名，不能视为35个缺失版本）。全回执保持，没有repair/migrate/clean或业务写入；[完整分类及对齐边界](../generated/2026-10-11-dppms-production-migration-baseline-readonly.md)。单项V433成功不代表生产基线完成；先核对执行原文、结构及交接，不直接覆盖已裁决SQL或修回执。
+
+2026-10-11合同关系独立核查：已核实pm_project_contract全部7列、86780条及本批10条，既有com_project_contract_relation实际17列、10条。原组为拆分/合并共享合同的关联键；当前关系的管理员及2026迁入审计未承接原历史。全量有34组重复（16组原审计不同）、缺组8条、缺成员9条，未去重或挂靠。仓库未跟踪ProjectContractHistoryDO不对应实际业务表，不能当作已有承接；现有项目组合用途也不能猜配。状态WHOLE_TABLE_PLAN_PENDING，缺项承接及审计转换在整表裁决前BLOCKED_BY_SPEC；[原字段、17既有列及明确边界](../generated/2026-10-11-dppms-contract-relation-original-audit.md)。未新增结构或写入，不阻断独立已批准工作，许可继续等待密钥答复。
+
+2026-10-12合同关系整表提案：实际正式全表24条、本批10条；复用全部17列、新增表列/扩展0，原pm_project_contract全部7列逐项映射。用户已裁决“整表按上述处理（建议）”：原NULL创建/更新人保持NULL、原NULL更新时间用原创建时间，允许放宽两个既有审计人员非空约束，本批RELATED/ACTIVE及原创建时间作为effective_from，当前授权、外键、日期与唯一键保持。WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS；本批10条具体纠正另交受保护预览，尚未写入。旧组1941个名称均为“总代借货项目合同合并”；mergeBranchMark为拆分名称备注，不是状态。两个原组表全部17字段已列明，剩余业务属性/各自审计、34组重复及-his失效关系继续BLOCKED_BY_SPEC，不默认排除、不将技术桥当作完整业务承接。整表方案及本批日期规则见[17列提案](../generated/2026-10-12-dppms-project-contract-relation-table-proposal.md)。
+
+2026-10-11项目人员独立核查：原15列435342条，本批70条；正式成员29列7条、项目联系人24列3条及主档/历史均已核实。53条有账号候选，8条销售（六个账号原t/fnd均不存在）及9条空编码最终客户人员无账号；不伪造账号、不将来源1/2当内部/外部、不调用当前指派或首联系人动作。联系方式、登记来源、联系人区间和原NULL时间的整表承接方式尚未明确，BLOCKED_BY_SPEC / WHOLE_TABLE_PLAN_PENDING；[完整15原字段、29既有列、真实缺口与Owner边界](../generated/2026-10-11-dppms-project-member-original-audit.md)。当前成员、三条联系人、状态和权限均保持，没有新表列或业务写入；许可仍等待密钥答复。
+
+2026-10-11许可密钥与本批承接关闭：用户批准独立受控密钥、旧文件保留；DPAPI CurrentUser及限定ACL已应用，59282加载后通过迁移功能/AST Owner承接153条×16列，10 NEW及10 REPLAY_COMPLETED、原8列内存密文核验、受保护数据和来源不变。真实项目189许可页两页各20条、总40条及安全详情已验收。状态PILOT_LOCAL_VERIFIED，原0行/等待密钥是此前记录；全历史475468条、缓存刷新身份、生产Flyway基线及部署密钥保管恢复尚未完成，不宣称生产就绪。完整证据及缺关联登记见许可整表方案和任务私有license-pilot-final-proof-20261011.json。
+
+2026-10-12项目合同关系限定纠正关闭：用户另行批准仅10条按原表、办理回执、绑定、项目版本及全17列保护条件纠正。任务2109363204544983041，执行2109365741029355522 SUCCESS/UPDATED10，重放2109365797644070913 SUCCESS/UNCHANGED10；五项历史字段及版本准确，另14条完整关系、原26字段、项目版本和10条不可变办理回执保持。17列无新增，仅两审计列允许原NULL；V437遗漏原注释已用V438恢复，已执行回执不改写。19项后端/真实MySQL、7项展示、完整打包和真实浏览器通过，本批PILOT_LOCAL_VERIFIED。34组全历史重复、-his失效桥和桥主体自身属性仍BLOCKED_BY_SPEC，生产基线未完成；[具体执行证据](../generated/2026-10-12-dppms-project-contract-relation-correction-decision.md)。
+
+2026-10-12字典项整表补裁决：用户明确system_dict_data“保留既有结构，我指定缺项处理”。保持既有14列，停止attribute1/effective_from/effective_to三个物理新增候选；109条非空basicDataAttri1及两个原有效期未获承接或排除裁决，继续BLOCKED_BY_SPEC。已同表补问既有承接点或明确排除、33条NULL排序初始化、129条NULL创建时间/NULL更新时间处理及原ID114无业务值排除，等待回复，不新增字段、不写入字典项、不以快照当业务承接；[14列和完整12原字段](../generated/2026-10-12-dppms-system-dictionary-table-proposal.md)。类型表80条已独立承接并重放验证，不受字典项等待影响。
+
+2026-10-12字典项剩余裁决解决：用户明确“三属性不迁入，其余按建议”，并批准仅ID542创建人system保留原编码至正式creator。system_dict_data保持14列，无新增表/列/扩展；basicDataAttri1/effectiveFrom/effectiveTo不迁入，逐列记“既有结构无同义字段，按用户裁决不承接”，原证据不当业务承接。空ID114明确排除；其余531条按原排序、键值、标签及审计规划，32个NULL排序取0、128个NULL创建时间取实际迁入时间，原NULL更新日期取创建时间，NULL人员保持；7条已结束有效期初始化停用，旧入口不执行。WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS，真实原12列及正式14列已重新读取，现1575条不接管；上述等待裁决是此前状态，当前进入实现及验证。
+
+2026-10-12字典项执行关闭：任务2109371486114320385，预览2109371486424698881，执行2109371785830895618 SUCCESS/CREATED531/SKIPPED1，重放2109371924867878913 SUCCESS/UNCHANGED531/SKIPPED1。原1575条14列、类型381条11列及原532条12列保持，正式总2106条；ID542原system准确保存creator，原NULL人员和历史日期保持，128条初始化审计重放不改变。14项后端/真实MySQL、9项展示、41模块打包及真实字典页和迁移字段对照通过，无字典DDL。状态LOCAL_VERIFIED；[完整整表映射及执行证据](../generated/2026-10-12-dppms-system-dictionary-table-proposal.md)。同期另一个项目新增两条正常成员有独立业务审计，原145条保持，不撤回并行操作。生产基线和其余历史领域仍未完成。
+
+2026-10-12主附设备关系具体待裁决：65046条原8列、现19列、绑定及成功回执的逐键预览已提交需求方，仅拟恢复原创建/更新时间并推进版本，操作者及关系业务值保持；逐块全字段/原表/回执/绑定保护，任何改变阻断回滚，不改旧回执。[具体纠正清单](../generated/2026-10-12-dppms-device-relationship-audit-correction-decision.md)。360条两侧SN及产品相同的自关联另问是否不迁入双设备关系并列明原因，未裁决前不跳过、不放宽自关联禁止。USER_DECISION_PENDING / BLOCKED_BY_SPEC，仅继续独立已授权工作。

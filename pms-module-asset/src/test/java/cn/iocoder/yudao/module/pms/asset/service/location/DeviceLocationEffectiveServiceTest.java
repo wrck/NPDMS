@@ -121,6 +121,57 @@ class DeviceLocationEffectiveServiceTest {
         return device;
     }
 
+    @Test void historicalFillCannotCloseOrReplaceAnotherCurrentLocation() {
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device());
+        var current=location("SN-8",null,null);current.setInstallationId(999L);
+        when(locationMapper.selectCurrent(any())).thenReturn(current);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED","snapshot",command().effectiveFrom());
+        assertThrows(ServiceException.class,()->service.effectIfAbsentOrThrow(input));
+        verify(locationMapper,never()).closeCurrent(any(),any(),any());
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
+        verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
+    @Test void historicalFillUsesNormalProjectionOwnerOnlyWhenEmpty() {
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device());
+        when(deviceMapper.updateLocationProjection(any())).thenReturn(1);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED","snapshot",command().effectiveFrom());
+        service.effectIfAbsentOrThrow(input);
+        verify(locationMapper).insert(argThat((DeviceLocationDO value)->value.getInstallationId().equals(201L)
+                && value.getEffectiveFrom().equals(input.effectiveFrom())));
+        verify(deviceMapper).updateLocationProjection(any());
+    }
+
+    @Test void historicalFillReplaysItsOwnCurrentLocationWithoutWrites() {
+        var device=device();var current=location("SN-8",null,null);current.setId(300L);current.setResolutionStatus("UNRESOLVED");
+        device.setLocationRecordId(300L);device.setLocationSnapshot(current.getLocationSnapshot());device.setLocationEffectiveFrom(current.getEffectiveFrom());
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device);
+        when(locationMapper.selectCurrent(any())).thenReturn(current);
+        when(locationMapper.selectByTenantAndInstallation(1L,201L)).thenReturn(current);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED","snapshot",command().effectiveFrom());
+        service.effectIfAbsentOrThrow(input);
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
+        verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
+    @Test void historicalFillCannotReplayAnAlreadyEndedLocationAsCurrent() {
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device());
+        var ended=location("SN-8",null,null);ended.setEffectiveTo(command().effectiveFrom().plusDays(1));
+        when(locationMapper.selectByTenantAndInstallation(1L,201L)).thenReturn(ended);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED","snapshot",command().effectiveFrom());
+        assertThrows(ServiceException.class,()->service.effectIfAbsentOrThrow(input));
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));
+        verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
+    @Test void historicalFillCannotOverwriteAnUnlinkedExistingProjection() {
+        var device=device();device.setLocationSnapshot("existing projection");
+        when(deviceMapper.selectByTenantAndIdForUpdate(1L,8L)).thenReturn(device);
+        var input=new EquipmentLocationEffectiveCommand(8L,201L,null,null,"原地址","UNRESOLVED","snapshot",command().effectiveFrom());
+        assertThrows(ServiceException.class,()->service.effectIfAbsentOrThrow(input));
+        verify(locationMapper,never()).insert(any(DeviceLocationDO.class));verify(deviceMapper,never()).updateLocationProjection(any());
+    }
+
     private DeviceLocationDO location(String deviceSn, Long siteId, Long siteLocationId) {
         DeviceLocationDO location = new DeviceLocationDO();
         location.setTenantId(1L);

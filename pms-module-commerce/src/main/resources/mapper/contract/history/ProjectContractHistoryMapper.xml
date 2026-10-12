@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.history.ProjectContractHistoryMapper">
+    <select id="selectSourceRevisionForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.history.ProjectContractHistoryDO">
+        SELECT * FROM com_project_contract_history WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND source_system='DPPMS' AND source_row_id=#{query.sourceRowId} AND source_revision_hash=#{query.sourceRevisionHash} FOR UPDATE
+    </select>
+    <select id="selectProjectPage" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.history.ProjectContractHistoryDO">
+        SELECT * FROM com_project_contract_history WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=0
+        ORDER BY source_row_id,source_revision_hash,id LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+    <select id="countProject" resultType="long">SELECT COUNT(*) FROM com_project_contract_history WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=0</select>
+    <select id="selectExactCurrentContractIds" resultType="java.lang.Long">
+        SELECT DISTINCT c.id FROM com_contract c
+        JOIN com_project_contract_relation r ON r.tenant_id=c.tenant_id AND r.contract_id=c.id
+        WHERE c.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId}
+          AND CAST(c.contract_no AS BINARY)=CAST(#{query.contractNo} AS BINARY)
+          AND c.deleted=0 AND r.deleted=0 AND r.status='ACTIVE'
+          AND (r.effective_from IS NULL OR r.effective_from &lt;=#{query.at})
+          AND (r.effective_to IS NULL OR r.effective_to &gt;#{query.at})
+    </select>
+</mapper>

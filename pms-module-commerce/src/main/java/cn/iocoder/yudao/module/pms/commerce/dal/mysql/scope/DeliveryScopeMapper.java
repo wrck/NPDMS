@@ -9,36 +9,53 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeO
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeVersionLockRow;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeEvidenceQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeSelectionQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
-import java.util.Collection;
 import java.util.List;
 
 @Mapper
 public interface DeliveryScopeMapper extends BaseMapperX<DeliveryScopeDO> {
-    default List<DeliveryScopeDO> selectActiveByOrderLineIds(Collection<Long> orderLineIds) {
-        if (orderLineIds == null || orderLineIds.isEmpty()) {
+    default List<DeliveryScopeDO> selectConfirmedSelection(DeliveryScopeSelectionQuery query) {
+        if (query.scopeIds() == null || query.scopeIds().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<DeliveryScopeDO>()
+                .eq(DeliveryScopeDO::getTenantId, query.tenantId())
+                .eq(DeliveryScopeDO::getProjectId, query.projectId())
+                .in(DeliveryScopeDO::getId, query.scopeIds())
+                .eq(DeliveryScopeDO::getAllocationConfirmed, true)
+                .isNull(DeliveryScopeDO::getEffectiveTo));
+    }
+
+    default List<DeliveryScopeDO> selectActiveByOrderLineIds(DeliveryScopeOrderLineQuery query) {
+        if (query.orderLineIds() == null || query.orderLineIds().isEmpty()) {
             return List.of();
         }
         return selectList(new LambdaQueryWrapperX<DeliveryScopeDO>()
-                .in(DeliveryScopeDO::getOrderLineId, orderLineIds)
+                .eq(DeliveryScopeDO::getTenantId, query.tenantId())
+                .in(DeliveryScopeDO::getOrderLineId, query.orderLineIds())
+                .eq(DeliveryScopeDO::getAllocationConfirmed, true)
                 .eq(DeliveryScopeDO::getScopeStatus, "ACTIVE")
                 .isNull(DeliveryScopeDO::getEffectiveTo));
     }
 
-    default List<DeliveryScopeDO> selectActiveByProjectId(Long projectId) {
+    default List<DeliveryScopeDO> selectActiveByProjectId(DeliveryScopeProjectQuery query) {
         return selectList(new LambdaQueryWrapperX<DeliveryScopeDO>()
-                .eq(DeliveryScopeDO::getProjectId, projectId)
+                .eq(DeliveryScopeDO::getTenantId, query.tenantId())
+                .eq(DeliveryScopeDO::getProjectId, query.projectId())
+                .eq(DeliveryScopeDO::getAllocationConfirmed, true)
                 .eq(DeliveryScopeDO::getScopeStatus, "ACTIVE")
                 .isNull(DeliveryScopeDO::getEffectiveTo)
                 .orderByAsc(DeliveryScopeDO::getOrderLineId, DeliveryScopeDO::getId));
     }
 
-    default List<DeliveryScopeDO> selectBySourceEvidencePrefix(Long tenantId, String sourceEvidencePrefix) {
+    default List<DeliveryScopeDO> selectBySourceEvidencePrefix(DeliveryScopeEvidenceQuery query) {
+        if (query.sourceEvidencePrefix() == null || query.sourceEvidencePrefix().isEmpty()) return List.of();
         return selectList(new LambdaQueryWrapperX<DeliveryScopeDO>()
-                .eq(DeliveryScopeDO::getTenantId, tenantId)
-                .likeRight(DeliveryScopeDO::getSourceEvidence, sourceEvidencePrefix)
+                .eq(DeliveryScopeDO::getTenantId, query.tenantId())
+                .eq(DeliveryScopeDO::getAllocationConfirmed, true)
+                .likeRight(DeliveryScopeDO::getSourceEvidence, query.sourceEvidencePrefix())
                 .orderByAsc(DeliveryScopeDO::getId));
     }
 
@@ -46,6 +63,7 @@ public interface DeliveryScopeMapper extends BaseMapperX<DeliveryScopeDO> {
         return selectOne(new LambdaQueryWrapperX<DeliveryScopeDO>()
                 .eq(DeliveryScopeDO::getTenantId, query.tenantId())
                 .eq(DeliveryScopeDO::getId, query.deliveryScopeId())
+                .eq(DeliveryScopeDO::getAllocationConfirmed, true)
                 .isNull(DeliveryScopeDO::getEffectiveTo));
     }
 

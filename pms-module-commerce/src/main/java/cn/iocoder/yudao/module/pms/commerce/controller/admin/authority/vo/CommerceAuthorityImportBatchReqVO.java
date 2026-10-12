@@ -56,7 +56,22 @@ public record CommerceAuthorityImportBatchReqVO(
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
             @NotNull LocalDateTime sourceUpdatedAt,
             String salesType, String sourceProjectName, String orderComment, LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime,
-            String customInfo, @Size(max = 64) String contractNo, @Size(max = 64) String executionNo) {
+            String customInfo, @Size(max = 64) String contractNo, @Size(max = 64) String executionNo,
+            @PositiveOrZero Long expectedRowVersion) {
+        /** Optional caller row-version precondition; omitted by existing source imports. */
+        public SalesOrderRecord(String sourceRecordKey, String expectedPreviousSourceVersion,
+                                String sourceVersion, String companyCode, String orderNo, String orderType,
+                                String customerCode, String customerName, BigDecimal amount, String currencyCode,
+                                CommerceSourceLifecycleStatus lifecycleStatus, LocalDateTime sourceUpdatedAt,
+                                String salesType, String sourceProjectName, String orderComment,
+                                LocalDateTime orderCreateTime, LocalDateTime customerRequiredTime,
+                                String customInfo, String contractNo, String executionNo) {
+            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, companyCode, orderNo, orderType,
+                    customerCode, customerName, amount, currencyCode, lifecycleStatus, sourceUpdatedAt,
+                    salesType, sourceProjectName, orderComment, orderCreateTime, customerRequiredTime,
+                    customInfo, contractNo, executionNo, null);
+        }
+
         public SalesOrderRecord(
             String sourceRecordKey,
             String expectedPreviousSourceVersion,
@@ -93,7 +108,21 @@ public record CommerceAuthorityImportBatchReqVO(
             @NotNull CommerceSourceLifecycleStatus lifecycleStatus,
             @NotNull LocalDateTime sourceUpdatedAt,
             String lineType, String bundleCode, String profitCenter, String realExecutionNo, Integer warrantyMonth,
-            String customInfo) {
+            String customInfo, @PositiveOrZero Integer expectedRowVersion) {
+        /** Optional caller row-version precondition; existing source imports omit it. */
+        public SalesOrderLineRecord(String sourceRecordKey, String expectedPreviousSourceVersion,
+                                    String sourceVersion, String orderSourceRecordKey, String lineNo,
+                                    String productCode, String productDesc, String productModel,
+                                    BigDecimal orderQuantity, BigDecimal openQuantity, BigDecimal deliveredQuantity,
+                                    String unitCode, Integer unitScale, String quantityStatus,
+                                    CommerceSourceLifecycleStatus lifecycleStatus, LocalDateTime sourceUpdatedAt,
+                                    String lineType, String bundleCode, String profitCenter, String realExecutionNo,
+                                    Integer warrantyMonth, String customInfo) {
+            this(sourceRecordKey, expectedPreviousSourceVersion, sourceVersion, orderSourceRecordKey, lineNo,
+                    productCode, productDesc, productModel, orderQuantity, openQuantity, deliveredQuantity,
+                    unitCode, unitScale, quantityStatus, lifecycleStatus, sourceUpdatedAt,
+                    lineType, bundleCode, profitCenter, realExecutionNo, warrantyMonth, customInfo, null);
+        }
         @AssertTrue(message = "确认数量必须提供计量单位")
         public boolean isConfirmedUnitPresent() {
             return !"CONFIRMED".equals(quantityStatus) || unitCode != null && !unitCode.isBlank();

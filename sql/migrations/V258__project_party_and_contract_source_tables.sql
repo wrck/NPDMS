@@ -149,7 +149,7 @@ CREATE TABLE com_shipment_contract_reference (
     system_department_id BIGINT NULL COMMENT '发货合同归属系统部门对应的平台共享部门主档ID',
     system_department_code VARCHAR(64) NULL COMMENT '解析后的系统部门编码',
     system_department_name VARCHAR(128) NULL COMMENT '解析后的系统部门名称',
-    warranty_flag VARCHAR(8) NULL COMMENT '质保标志：0否，1是，空值表示来源未知',
+    warranty_years INT NULL COMMENT '合同保修年数，原空白或NULL表示未知；不代表当前保修状态',
     remark VARCHAR(4096) NULL COMMENT '发货合同归属的备注',
     mapping_status VARCHAR(32) NOT NULL DEFAULT 'PENDING_MAPPING' COMMENT '跨系统关联解析状态，如待映射、已映射或存在冲突',
     source_system VARCHAR(32) NOT NULL COMMENT '来源系统编码，用于同步幂等和数据血缘追踪',

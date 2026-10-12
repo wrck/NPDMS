@@ -92,6 +92,82 @@ public class DataSyncController {
     public CommonResult<SyncDefinition> orderTemplate(@RequestParam Long connectionId){
         connections.required(connectionId);return success(DppmsOrderSyncTemplate.create(connectionId));
     }
+    @PostMapping("/templates/dppms-products")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> productTemplate(@RequestBody ProductTemplate request) {
+        connections.required(request.connectionId());
+        return success(DppmsProductCatalogSyncTemplate.create(request.connectionId(), request.definitionRevisionId(), request.productCodes()));
+    }
+    public record ProductTemplate(Long connectionId, Long definitionRevisionId, List<String> productCodes) {}
+    @GetMapping("/templates/dppms-roles")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> roleTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsRoleSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-ehr-departments")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> missingDepartmentTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsEhrDepartmentCompletionTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-project-master")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> projectMasterTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsProjectMasterSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-project-identities")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> projectIdentityTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsProjectIdentitySyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-collection-plans")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> collectionPlanTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsContractCollectionPlanSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-device-relationships")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> deviceRelationshipTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsDeviceRelationshipSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-device-relationship-audit-correction")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> deviceRelationshipAuditCorrection(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsDeviceRelationshipAuditCorrectionTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-dictionary-data")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> dictionaryData(@RequestParam Long connectionId){return success(DppmsDictionaryDataSyncTemplate.create(connectionId));}
+
+    @GetMapping("/templates/dppms-dictionary-types")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> dictionaryTypeTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsDictionaryTypeSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-project-contract-relations")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> projectContractRelationTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsProjectContractRelationSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-users")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> userTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsUserSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-departments")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> departmentTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsDepartmentSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-user-roles")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> userRoleTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsUserRoleSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-user-scopes")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> userScopeTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsUserScopeSyncTemplate.create(connectionId));
+    }
     @GetMapping("/templates/dppms-execution-orders")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> executionOrderTemplate(@RequestParam Long connectionId){
@@ -145,6 +221,9 @@ public class DataSyncController {
     public CommonResult<SyncRunDO> run(@PathVariable Long id){
         var r=runner.required(id);r.setResultJson(null);r.setEvidenceJson(null);return success(r);
     }
+    @PostMapping("/runs/{id}/recover")
+    @PreAuthorize("@ss.hasPermission('pms:integration:execute')")
+    public CommonResult<Boolean> recoverRun(@PathVariable Long id){return success(runner.recoverInterrupted(id));}
     @GetMapping("/runs/{id}/changes")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<PageResult<DataSyncAdapter.Change>> changes(@PathVariable Long id,@Valid SyncQueries.Page q){

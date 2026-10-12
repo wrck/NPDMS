@@ -13,6 +13,14 @@ import java.util.List;
 
 @Mapper
 public interface ContractMapper extends BaseMapperX<ContractDO> {
+    default List<ContractDO> selectMigrationIdentity(cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ContractMigrationIdentityQuery query) {
+        if(query==null || query.tenantId()==null || query.companyCode()==null || query.companyCode().isBlank()
+                || query.contractNo()==null || query.contractNo().isBlank()) return List.of();
+        return selectList(new cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX<ContractDO>()
+                .select(ContractDO::getId,ContractDO::getTenantId,ContractDO::getCompanyCode,ContractDO::getContractNo,ContractDO::getDeleted)
+                .eq(ContractDO::getTenantId,query.tenantId()).eq(ContractDO::getCompanyCode,query.companyCode())
+                .eq(ContractDO::getContractNo,query.contractNo()));
+    }
     List<String> selectOrganizationVisibleContractNumbers(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationScopeQuery query);
     List<cn.iocoder.yudao.module.pms.commerce.api.scope.ContractDeviceVisibilityApi.Organization> selectDeviceOrganizations(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractOrganizationListQuery query);
     List<String> selectVisibleDeviceContractNumbers(@Param("query") cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.DeviceContractScopeQuery query);

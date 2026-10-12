@@ -27,7 +27,7 @@ class GenericSyncEngineTest {
             columns.put("id","BIGINT PRIMARY KEY");columns.put("tenant_id","BIGINT NOT NULL");columns.put("deleted","BOOLEAN DEFAULT FALSE");
             columns.put("creator","VARCHAR(64)");columns.put("updater","VARCHAR(64)");columns.put("create_time","TIMESTAMP");columns.put("update_time","TIMESTAMP");columns.put("version","INT DEFAULT 0");
             var fields=new HashSet<>(table.columns());fields.addAll(table.insertDefaults().keySet());
-            for(var field:fields) columns.put(field,field.endsWith("_id")?"BIGINT":field.contains("time")||field.endsWith("_at")?"TIMESTAMP":field.endsWith("_date")?"DATE":Set.of("warranty_months","rma_marked").contains(field)?"INT":"VARCHAR(100000)");
+            for(var field:fields) columns.put(field,field.endsWith("_id")?"BIGINT":field.contains("time")||field.endsWith("_at")?"TIMESTAMP":field.endsWith("_date")?"DATE":Set.of("warranty_months","warranty_years","rma_marked").contains(field)?"INT":"VARCHAR(100000)");
             var defs=new ArrayList<>(columns.entrySet().stream().map(e->"`"+e.getKey()+"` "+e.getValue()).toList());
             if(table.writable())for(var key:table.keys())defs.add("UNIQUE(tenant_id,"+String.join(",",key)+")");
             jdbc.execute("CREATE TABLE "+table.table()+" ("+String.join(",",defs)+")");
@@ -59,6 +59,27 @@ class GenericSyncEngineTest {
     int count(String table){return jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class);}
     Map<String,Object> barcode(String sn){return Map.of("barcode",sn,"item","ITEM-1","pack_id","PACK-1","shipment_time","2026-09-20T12:00:00","contract_no","C-1","event_type","SHIPMENT","rma_marked",0);}
 
+    @Test void contractYearsAreNumericAndEmptySourceClearsOnlyThatField() {
+        var d=definition(0);
+        apply(d,row(d,"YEAR-C",Map.of("contract_code","C","warranty","3 ","customer_name","original")));
+        assertEquals(3,jdbc.queryForObject("SELECT warranty_years FROM com_shipment_contract_reference",Integer.class));
+        var preview=engine.bind(d).preview(batch(row(d,"YEAR-C",Map.of("contract_code","C","warranty","  "))));
+        assertEquals("UPDATED",preview.getFirst().action());
+        assertEquals(3,jdbc.queryForObject("SELECT warranty_years FROM com_shipment_contract_reference",Integer.class));
+        apply(d,row(d,"YEAR-C",Map.of("contract_code","C","warranty","  ")));
+        assertNull(jdbc.queryForObject("SELECT warranty_years FROM com_shipment_contract_reference",Integer.class));
+        assertEquals("original",jdbc.queryForObject("SELECT customer_name FROM com_shipment_contract_reference",String.class));
+        assertEquals("UNCHANGED",apply(d,row(d,"YEAR-C",Map.of("contract_code","C"))).getFirst().action());
+        apply(d,row(d,"YEAR-C",Map.of("contract_code","C","warranty","0 ")));
+        assertEquals(0,jdbc.queryForObject("SELECT warranty_years FROM com_shipment_contract_reference",Integer.class));
+    }
+    @Test void invalidContractYearsDoNotCreateOrPartiallyUpdateReferences() {
+        var d=definition(0);
+        for(String value:List.of("-1","3.5","1e1","2147483648")) {
+            assertEquals("ISSUE",apply(d,row(d,"BAD-YEAR",Map.of("contract_code","C","warranty",value))).getFirst().action());
+            assertEquals(0,count("com_shipment_contract_reference"));
+        }
+    }
     @Test void templatesPassGenericValidationAndKeepDistinctTaskIdentities() {
         var validator=new SyncDefinitionValidator(List.of());ReflectionTestUtils.setField(validator,"genericEngine",engine);
         assertEquals(7,templates.size());Set<String> identities=new HashSet<>();
@@ -124,7 +145,7 @@ class GenericSyncEngineTest {
         assertThrows(RuntimeException.class,()->apply(d,good,bad));assertEquals(0,count("com_shipment_package"));
     }
     @Test void contractGenerationLeavesUnknownAuthorityValuesAndDoesNotOverwriteErpFields() {
-        var d=definition(3);var source=row(d,"1",Map.of("company_code","001","contract_no","C1","customer_name","Customer","project_name","Project"));
+        var d=definition(3);var source=row(d,"1",Map.of("company_code","01","contract_no","C1","customer_name","Customer","project_name","Project"));
         apply(d,source);assertEquals(1,count("com_contract"));
         assertNull(jdbc.queryForObject("SELECT source_lifecycle_status FROM com_contract",String.class));
         assertEquals("PENDING_AUTHORITY",jdbc.queryForObject("SELECT authority_status FROM com_contract",String.class));
@@ -140,6 +161,57 @@ class GenericSyncEngineTest {
     @Test void sourceContractWithoutCompanyStillPersistsSourceFact() {
         var d=definition(0);assertEquals("CREATED",apply(d,row(d,"1",Map.of("contract_code","C1"))).getFirst().action());
         assertEquals(1,count("com_shipment_contract_reference"));assertEquals(0,count("com_contract"));
+    }
+    @Test void approvedCompanyRuleResolvesCanonicalCompanyAndKeepsSourceValue() {
+        var d=definition(0);
+        for(int company=1;company<=4;company++) {
+            String raw="0"+company, canonical="00"+company;
+            jdbc.update("INSERT INTO system_company(id,tenant_id,code) VALUES(?,1,?)",company,canonical);
+            var original=row(d,"C"+company,Map.of("contract_code","C"+company,"company_code",raw));
+            var result=apply(d,original).getFirst();
+            assertEquals("CREATED",result.action());
+            assertEquals(canonical,jdbc.queryForObject("SELECT company_code FROM com_shipment_contract_reference WHERE source_record_key=?",String.class,"C"+company));
+            assertEquals((long)company,jdbc.queryForObject("SELECT company_id FROM com_shipment_contract_reference WHERE source_record_key=?",Long.class,"C"+company));
+            assertEquals(raw,original.fields().get("company_code"));
+        }
+    }
+    @Test void companyConvertedUpdateOnlyLookupLinksExactContractWithoutChangingFacts() {
+        var base=definition(0);var first=base.sources().getFirst();var step=first.targets().stream()
+                .filter(target->"com_shipment_contract_reference".equals(target.table())).findFirst().orElseThrow();
+        var mappings=new ArrayList<SyncDefinition.Mapping>();
+        mappings.add(SyncDefinition.Mapping.builder().source("$SOURCE_KEY").target("source_record_key").conversion("STRING").build());
+        mappings.add(SyncDefinition.Mapping.builder().source("$SOURCE_SYSTEM").target("source_system").conversion("DIRECT").build());
+        mappings.add(SyncDefinition.Mapping.builder().source("company_code").target("company_code").conversion("DPPMS_COMPANY_CODE").build());
+        var lookup=new GenericTargetStep.Lookup("com_contract",Map.of("contract_no","@contract_code","company_code","company_code"),Map.of("contract_id","id"),"SKIP_STEP");
+        var link=new GenericTargetStep("shipmentContractLink",step.table(),step.keys(),"UPDATE_ONLY","IGNORE",List.of("contract_id"),"company_code",null,null,mappings,List.of(lookup));
+        var d=base.toBuilder().sources(List.of(first.toBuilder().targets(List.of(link)).build())).build();
+        jdbc.update("INSERT INTO com_contract(id,tenant_id,contract_no,company_code) VALUES(10,1,'C1','001'),(20,1,'C1','002')");
+        jdbc.update("INSERT INTO com_shipment_contract_reference(id,tenant_id,source_system,source_record_key,company_code,customer_name) VALUES(30,1,'DPPMS','REF','002','Historical customer')");
+        var source=row(d,"REF",Map.of("contract_code","C1","company_code","02","normalized_company_code","02"));
+        assertEquals("UPDATED",apply(d,source).getFirst().action());
+        assertEquals(20L,jdbc.queryForObject("SELECT contract_id FROM com_shipment_contract_reference WHERE id=30",Long.class));
+        assertEquals("Historical customer",jdbc.queryForObject("SELECT customer_name FROM com_shipment_contract_reference WHERE id=30",String.class));
+        assertEquals("02",source.fields().get("company_code"));
+        var persisted=jdbc.queryForMap("SELECT * FROM com_shipment_contract_reference WHERE id=30");
+        var rejected=apply(d,row(d,"REF",Map.of("contract_code","C1","company_code","05"))).getFirst();
+        assertEquals("ISSUE",rejected.action());assertNull(rejected.targetId());
+        assertTrue(rejected.message().contains("DPPMS_COMPANY_CODE_UNMAPPED"));
+        assertEquals(persisted,jdbc.queryForMap("SELECT * FROM com_shipment_contract_reference WHERE id=30"));
+        assertEquals(1,count("com_shipment_contract_reference"));assertEquals(2,count("com_contract"));
+    }
+    @Test void unknownCompanyCannotWriteEitherMasterOrReference() {
+        for(var raw:List.of("05","A")) {
+            var d=definition(0);
+            var failure=assertThrows(IllegalArgumentException.class,()->apply(d,row(d,raw,Map.of("contract_code","C-"+raw,"company_code",raw))));
+            assertTrue(failure.getMessage().contains("DPPMS_COMPANY_CODE_UNMAPPED"));
+        }
+        assertEquals(0,count("com_contract"));assertEquals(0,count("com_shipment_contract_reference"));
+    }
+    @Test void serializedTemplatePreservesTheOptionalNullCompanyRule() {
+        var encoded=cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(definition(0));
+        var definition=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(encoded,SyncDefinition.class);
+        assertEquals("CREATED",apply(definition,row(definition,"NULL-COMPANY",Map.of("contract_code","C-NULL"))).getFirst().action());
+        assertEquals(0,count("com_contract"));assertEquals(1,count("com_shipment_contract_reference"));
     }
     @Test void rejectProtectedFieldsAndUnregisteredTargets() {
         var d=definition(1);var step=d.sources().getFirst().targets().getFirst();
@@ -164,7 +236,7 @@ class GenericSyncEngineTest {
     @Test void contractSourceQueryDeduplicatesAndUsesLatestNonemptySupplementWithoutCrossCompanyGuessing() {
         jdbc.execute("CREATE TABLE pm_order_data_from_erp(id BIGINT,compCode VARCHAR(40),contractNo VARCHAR(40),customerCode VARCHAR(40),customerName VARCHAR(40))");
         jdbc.execute("CREATE TABLE fb_contract(contract_id BIGINT,contract_code VARCHAR(40),project_name VARCHAR(40),marketCode VARCHAR(40),marketName VARCHAR(40),office_code VARCHAR(40),systemName VARCHAR(40))");
-        jdbc.execute("CREATE TABLE sms_ofst_contract_head_sap(id BIGINT,contract_num VARCHAR(40),update_time TIMESTAMP,currency_name VARCHAR(40),contract_create_date TIMESTAMP,project_name VARCHAR(40),projectCode VARCHAR(40),marketCode VARCHAR(40),maketing_department_name VARCHAR(40),officeCode VARCHAR(40),office_name VARCHAR(40),industryId VARCHAR(40),industry_name VARCHAR(40),usernamec VARCHAR(40),marketing_representative_name VARCHAR(40),usernamec2 VARCHAR(40))");
+        jdbc.execute("CREATE TABLE sms_ofst_contract_head_sap(id BIGINT,contract_num VARCHAR(40),update_time TIMESTAMP,currency_name VARCHAR(40),contract_money_amount DECIMAL(20,2),contract_create_date TIMESTAMP,project_name VARCHAR(40),projectCode VARCHAR(40),marketCode VARCHAR(40),maketing_department_name VARCHAR(40),officeCode VARCHAR(40),office_name VARCHAR(40),industryId VARCHAR(40),industry_name VARCHAR(40),usernamec VARCHAR(40),marketing_representative_name VARCHAR(40),usernamec2 VARCHAR(40))");
         jdbc.update("INSERT INTO pm_order_data_from_erp VALUES(1,'A','C1','CUS','Customer'),(2,'A','C1','CUS','Customer'),(3,'A','C2','CUS','Customer'),(4,'B','C2','CUS','Customer')");
         jdbc.update("INSERT INTO sms_ofst_contract_head_sap(id,contract_num,update_time,project_name,projectCode) VALUES(1,'C1','2026-09-01','Receipt','PRJ'),(2,'C2','2026-09-01','Ambiguous','NO')");
         jdbc.update("INSERT INTO fb_contract(contract_id,contract_code,project_name) VALUES(1,'C1','Old'),(2,'C1','Shipment'),(3,'C1',NULL)");
@@ -203,8 +275,8 @@ class GenericSyncEngineTest {
     }
 
     @Test void ambiguousOptionalLookupPreservesSourceFactWithoutGuessing() {
-        jdbc.update("INSERT INTO system_company(id,tenant_id,code) VALUES(1,1,'A'),(2,1,'A')");
-        var d=definition(0);var change=apply(d,row(d,"1",Map.of("contract_code","C1","company_code","A"))).getFirst();
+        jdbc.update("INSERT INTO system_company(id,tenant_id,code) VALUES(1,1,'001'),(2,1,'001')");
+        var d=definition(0);var change=apply(d,row(d,"1",Map.of("contract_code","C1","company_code","01"))).getFirst();
         assertEquals("CREATED",change.action());assertTrue(change.message().contains("关联不唯一"));
         assertNull(jdbc.queryForObject("SELECT company_id FROM com_shipment_contract_reference",Long.class));
     }

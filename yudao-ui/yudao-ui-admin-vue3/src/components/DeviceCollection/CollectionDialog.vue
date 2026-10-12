@@ -387,7 +387,7 @@ const observationSummary = (row: Api.SemanticResult) => {
   if (!rows.length) return '—'
   return `${rows.filter((item) => item.status === 'OBSERVED').length}/${rows.length} 命中`
 }
-const semanticCommand = (row: Api.SemanticResult, obs: Api.SemanticObservation) =>
+const semanticCommand = (_row: Api.SemanticResult, obs: Api.SemanticObservation) =>
   semanticCommandLines.value[obs.commandIndex - 1] || `命令 #${obs.commandIndex}`
 const semanticStateText = (state: string) =>
   ({ SUCCEEDED: '解析成功', FAILED: '解析失败', CANCELLED: '已取消' })[state] ?? '解析中'

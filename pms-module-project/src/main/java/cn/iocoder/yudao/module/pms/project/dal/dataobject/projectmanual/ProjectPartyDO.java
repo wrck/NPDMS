@@ -12,6 +12,10 @@ public class ProjectPartyDO extends TenantBaseDO {
     private String partyRole;
     private String partyCode;
     private String partyName;
+    private String sourceSystem;
+    private String sourceTable;
+    private String sourceRecordKey;
+    private Integer version;
     private String status;
     private java.time.LocalDateTime effectiveFrom;
     private java.time.LocalDateTime effectiveTo;

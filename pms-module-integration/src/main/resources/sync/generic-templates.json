@@ -107,7 +107,7 @@
                 "contract_type",
                 "customer_name",
                 "project_name",
-                "warranty_flag",
+                "warranty_years",
                 "market_code",
                 "market_name",
                 "system_source_key",
@@ -153,9 +153,9 @@
                   "conversion": "DIRECT"
                 },
                 {
-                  "target": "warranty_flag",
+                  "target": "warranty_years",
                   "source": "warranty",
-                  "conversion": "STRING"
+                  "conversion": "DPPMS_WARRANTY_YEARS"
                 },
                 {
                   "target": "market_code",
@@ -856,7 +856,7 @@
         "columns": ["itemCode","itemModel","itemDesc","remark","statecode","updateTime"], "filters": [],
         "sourceKey": "itemCode", "updatedAt": "updateTime", "mappings": [], "issueField": null, "primaryTarget": "product",
         "targets": [{
-          "name": "product", "table": "ast_product_official_info", "keys": ["source_system","source_key"], "mode": "UPSERT", "nullPolicy": "IGNORE",
+          "name": "product", "table": "ast_product_official_info", "keys": ["product_code"], "mode": "UPSERT", "nullPolicy": "IGNORE",
           "updateColumns": ["product_model","product_name","product_desc","technical_spec","source_version","source_updated_at","synced_at","sync_status","status"],
           "whenField": null, "newerBy": "source_updated_at",
           "mappings": [

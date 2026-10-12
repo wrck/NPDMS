@@ -8,7 +8,7 @@
         <el-button v-if="config.create" type="primary" size="small" @click="openCreate">
           <Icon icon="ep:plus" /> 新增
         </el-button>
-        <el-button v-if="config.path" link type="primary" @click="goPage(config.path)">
+        <el-button v-if="config.path" link type="primary" :disabled="config.path === '/customer-asset/delivery-scopes' && !projectContext" @click="goPage(config.path)">
           前往完整页面
         </el-button>
       </div>
@@ -132,6 +132,7 @@ import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
+import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 
 defineOptions({ name: 'DeliveryModuleTable' })
 
@@ -176,7 +177,7 @@ export interface DeliveryModuleConfig {
   canDelete?: (row: any) => boolean
 }
 
-const props = defineProps<{ config: DeliveryModuleConfig; projectId: number }>()
+const props = defineProps<{ config: DeliveryModuleConfig; projectId: number; projectContext?: ProjectRouteContext }>()
 
 const router = useRouter()
 const loading = ref(false)
@@ -338,7 +339,13 @@ const openDetail = (row: any) => {
   detailVisible.value = true
 }
 
-const goPage = (path: string) => router.push(path)
+const goPage = (path: string) => {
+  if (path === '/customer-asset/delivery-scopes') {
+    if (!props.projectContext) return
+    return router.push({ path, query: { ...props.projectContext } })
+  }
+  return router.push(path)
+}
 </script>
 
 <style lang="scss" scoped>

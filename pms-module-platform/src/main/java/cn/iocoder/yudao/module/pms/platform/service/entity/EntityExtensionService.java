@@ -65,7 +65,11 @@ public class EntityExtensionService implements EntityExtensionApi {
         row.setEntityId(entity.entityId());
         row.setRevisionId(command.target().revisionId() == null ? 0L : command.target().revisionId());
         row.setDefinitionRevisionId(definition.id());
-        row.setValuesJson(JsonUtils.toJsonString(fields));
+        // The shared NON_NULL mapper must preserve explicit unknown business attributes.
+        Map<String,Object> storedFields = new LinkedHashMap<>(fields);
+        storedFields.replaceAll((key, value) -> value == null
+                ? tools.jackson.databind.node.JsonNodeFactory.instance.nullNode() : value);
+        row.setValuesJson(JsonUtils.toJsonString(storedFields));
         row.setUpdater(command.actor().userId().toString());
         if (old == null) {
             row.setId(IdWorker.getId());

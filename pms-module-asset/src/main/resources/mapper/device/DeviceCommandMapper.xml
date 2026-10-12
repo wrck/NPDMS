@@ -7,11 +7,17 @@
         SELECT id,
                sn,
                version,
+               site_id,
+               site_location_id,
+               location_resolution_status,
+               location_snapshot,
+               location_effective_from,
+               location_record_id,
                tenant_id
         FROM ast_device
         WHERE tenant_id = #{tenantId}
           AND id = #{id}
-          AND deleted = b'0'
+          AND deleted = 0
         FOR UPDATE
     </select>
 

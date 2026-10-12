@@ -13,6 +13,24 @@ import org.apache.ibatis.annotations.Mapper;
 @Mapper
 public interface InstallationMapper extends ProjectScopedCodeMapper<InstallationDO> {
 
+    int carryHistoricalRecord(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationHistoricalCarryUpdate query);
+    InstallationDO selectCurrentRecordForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationCurrentRecordQuery query);
+
+    InstallationDO selectSourceCodeForUpdate(@org.apache.ibatis.annotations.Param("query")
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationSourceCodeQuery query);
+
+    default PageResult<InstallationDO> selectFormalHistoryPage(
+            cn.iocoder.yudao.module.pms.engineering.dal.mysql.installation.query.InstallationSourceHistoryPageQuery query) {
+        if(query.visibleProjectIds()==null || query.visibleProjectIds().isEmpty())return new PageResult<>(java.util.List.of(),0L);
+        var page=new cn.iocoder.yudao.framework.common.pojo.PageParam();page.setPageNo(query.pageNo());page.setPageSize(query.pageSize());
+        return selectPage(page,new LambdaQueryWrapperX<InstallationDO>().eq(InstallationDO::getTenantId,query.tenantId())
+                .in(InstallationDO::getProjectId,query.visibleProjectIds())
+                .eqIfPresent(InstallationDO::getProjectId,query.projectId()).eqIfPresent(InstallationDO::getEquipmentId,query.equipmentId()).likeRight(InstallationDO::getCode,"DPPMS-")
+                .orderByDesc(InstallationDO::getId));
+    }
+
     default PageResult<InstallationDO> selectPage(InstallationPageReqVO reqVO) {
         return selectPage(reqVO, new LambdaQueryWrapperX<InstallationDO>()
                 .eqIfPresent(InstallationDO::getProjectId, reqVO.getProjectId())
@@ -28,7 +46,6 @@ public interface InstallationMapper extends ProjectScopedCodeMapper<Installation
                 .eq(InstallationDO::getEquipmentId, equipmentId)
                 .eq(InstallationDO::getStatus, 2)
                 .isNull(InstallationDO::getEffectiveTo)
-                .orderByDesc(InstallationDO::getEffectiveFrom)
-                .last("LIMIT 1"));
+                .orderByDesc(InstallationDO::getEffectiveFrom));
     }
 }

@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.integration.sync;
 
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -10,8 +12,15 @@ public final class DppmsExecutionOrderSyncTemplate {
 
     public static SyncDefinition create(Long connectionId) {
         List<SyncDefinition.Mapping> mappings = new ArrayList<>();
-        for (String[] pair : FIELDS) mappings.add(SyncDefinition.Mapping.builder()
-                .target(pair[0]).source(pair[1]).conversion("DIRECT").build());
+        for (String[] pair : FIELDS) {
+            var mapping = SyncDefinition.Mapping.builder().target(pair[0]).source(pair[1]);
+            if ("companyCode".equals(pair[0])) {
+                mapping.conversion(DppmsCompanyCodeConverter.CONVERSION);
+            } else {
+                mapping.conversion("DIRECT");
+            }
+            mappings.add(mapping.build());
+        }
         List<String> columns = new ArrayList<>(List.of("id"));
         for (String[] pair : FIELDS) columns.add(pair[1]);
         var source = SyncDefinition.Source.builder().object("EXECUTION_ORDER")

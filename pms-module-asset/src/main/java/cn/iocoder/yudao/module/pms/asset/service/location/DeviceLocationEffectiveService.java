@@ -82,6 +82,31 @@ public class DeviceLocationEffectiveService {
         return true;
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    public void effectIfAbsentOrThrow(EquipmentLocationEffectiveCommand command) {
+        validateCommand(command);
+        validateLocation(command);
+        Long tenantId=TenantContextHolder.getRequiredTenantId();
+        DeviceDO device=deviceMapper.selectByTenantAndIdForUpdate(tenantId,command.equipmentId());
+        if(device==null)throw exception(AST_EQUIPMENT_NOT_EXISTS);
+        var current=locationMapper.selectCurrent(new cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.CurrentDeviceLocationQuery(
+                tenantId,device.getSn()));
+        if(current!=null && !Objects.equals(current.getInstallationId(),command.installationId()))
+            throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
+        if(current==null && (device.getLocationRecordId()!=null || device.getSiteId()!=null || device.getSiteLocationId()!=null
+                || device.getLocationEffectiveFrom()!=null || device.getLocationSnapshot()!=null))
+            throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
+        if(current!=null && (!Objects.equals(device.getLocationRecordId(),current.getId())
+                || !Objects.equals(device.getSiteId(),current.getSiteId()) || !Objects.equals(device.getSiteLocationId(),current.getSiteLocationId())
+                || !Objects.equals(device.getLocationEffectiveFrom(),current.getEffectiveFrom())
+                || !Objects.equals(device.getLocationSnapshot(),current.getLocationSnapshot())))
+            throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
+        var existing=locationMapper.selectByTenantAndInstallation(tenantId,command.installationId());
+        if(existing!=null && (existing.getEffectiveTo()!=null || current==null || !Objects.equals(existing.getId(),current.getId())))
+            throw exception(AST_EQUIPMENT_LOCATION_CONFLICT);
+        if(!effect(command))throw exception(AST_EQUIPMENT_NOT_EXISTS);
+    }
+
     private void validateCommand(EquipmentLocationEffectiveCommand command) {
         if (command == null || command.equipmentId() == null || command.installationId() == null
                 || command.effectiveFrom() == null || command.resolutionStatus() == null) {

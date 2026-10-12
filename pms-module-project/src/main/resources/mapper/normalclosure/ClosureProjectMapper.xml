@@ -16,6 +16,7 @@
     <select id="selectPrimaryServiceManagersForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO">
         SELECT * FROM proj_project_member_assignment WHERE tenant_id=#{query.tenantId}
           AND project_id=#{query.projectId} AND deleted=b'0' AND status='ACTIVE'
+          AND authorization_confirmed=b'1'
           AND member_role IN
           <foreach collection="query.serviceRoleCodes" item="roleCode" open="(" separator="," close=")">#{roleCode}</foreach>
           AND (assignment_type='PRIMARY' OR assignment_type IS NULL)

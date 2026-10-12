@@ -31,6 +31,9 @@ public interface ErrorCodeConstants {
 
     // ========== 设备版本历史 1_015_002_000 ==========
     ErrorCode AST_EQUIPMENT_VERSION_NOT_EXISTS = new ErrorCode(1_015_002_000, "设备版本记录不存在");
+    ErrorCode AST_SOFTWARE_VERSION_INVALID = new ErrorCode(1_015_002_001, "软件版本登记参数无效");
+    ErrorCode AST_SOFTWARE_VERSION_CONFLICT = new ErrorCode(1_015_002_002, "软件版本已变化或请求内容冲突，请刷新后重试");
+    ErrorCode AST_SOFTWARE_VERSION_FORBIDDEN = new ErrorCode(1_015_002_003, "设备不在当前项目软件维护范围");
 
     // ========== 设备配置日志 1_015_003_000 ==========
     ErrorCode AST_EQUIPMENT_CONFIG_LOG_NOT_EXISTS = new ErrorCode(1_015_003_000, "设备配置日志不存在");

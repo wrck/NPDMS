@@ -94,9 +94,11 @@ class ProjectLegacyDetailMySqlTest {
         var counts = new TreeMap<String, Integer>();
         catalog.domains().forEach(d -> counts.put(d.code(), 0));
         counts.put("project", 1);
+        var values=new LinkedHashMap<String,String>();
+        catalog.require("project").fields().forEach(field->values.put(field.key(),null));
+        values.put("projectId",sourceKey);values.put("projectName",name);
         return new LegacyDetailInput(batch, sourceKey, CONTRACT, LocalDateTime.now(), expected, counts,
-                List.of(new LegacyDetailInput.SourceRecord("project", sourceKey, null, null, null,
-                        Map.of("projectId", sourceKey, "projectName", name))));
+                List.of(new LegacyDetailInput.SourceRecord("project", sourceKey, null, null, null, values)));
     }
 
     @Test

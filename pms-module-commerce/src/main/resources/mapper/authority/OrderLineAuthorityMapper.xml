@@ -3,23 +3,32 @@
 <mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.OrderLineAuthorityMapper">
     <select id="selectBySourceForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO">
         SELECT * FROM com_sales_order_line
-        WHERE tenant_id = #{tenantId} AND source_system = #{sourceSystem}
+        WHERE tenant_id = #{tenantId}
+          AND (source_system = #{sourceSystem} OR
+            (#{sourceSystem} = 'ERP' AND source_system IN ('SAP','D365','SMS')
+             AND source_record_key LIKE CONCAT('DPPMS|',source_system,'|%')))
           AND source_record_key = #{sourceKey} AND deleted = b'0'
         FOR UPDATE
     </select>
     <select id="selectBySourcesForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO">
         SELECT * FROM com_sales_order_line
-        WHERE tenant_id = #{tenantId} AND source_system = #{sourceSystem} AND deleted = b'0'
-          AND source_record_key IN
-        <foreach collection="sourceKeys" item="sourceKey" open="(" separator="," close=")">
-            #{sourceKey}
-        </foreach>
+        WHERE tenant_id = #{tenantId} AND deleted = b'0'
+          AND (source_system = #{sourceSystem} OR
+            (#{sourceSystem} = 'ERP' AND source_system IN ('SAP','D365','SMS')
+             AND source_record_key LIKE CONCAT('DPPMS|',source_system,'|%')))
+        <choose>
+            <when test="sourceKeys != null and !sourceKeys.isEmpty()">
+                AND source_record_key IN
+                <foreach collection="sourceKeys" item="sourceKey" open="(" separator="," close=")">#{sourceKey}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
         ORDER BY source_record_key
         FOR UPDATE
     </select>
     <update id="updateOwnerByVersion">
         UPDATE com_sales_order_line
-        SET order_id = #{row.orderId}, company_code = #{row.companyCode},
+        SET source_system = #{row.sourceSystem}, order_id = #{row.orderId}, company_code = #{row.companyCode},
             order_type = #{row.orderType}, order_no = #{row.orderNo},
             line_no = #{row.lineCode}, product_code = #{row.productCode},
             product_model = #{row.productModel}, product_desc = #{row.productDesc},

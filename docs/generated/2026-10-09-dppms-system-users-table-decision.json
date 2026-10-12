@@ -1,0 +1,985 @@
+{
+  "status": "USER_EMPLOYEE_NO_AND_CUSTOM_INFO_APPROVED_OWNER_GAPS_PENDING",
+  "existingTable": "system_users",
+  "existingColumns": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "用户ID",
+      "proposedHandling": "正式用户主键，全部来源身份用既有迁移绑定关联，不直接套用旧ID。"
+    },
+    {
+      "COLUMN_NAME": "username",
+      "COLUMN_TYPE": "varchar(30)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "用户账号",
+      "proposedHandling": "用户限定仅迁移首字母+工号、*_ss、*_supp；严格按原账号字符串筛选，不改名或修剪。原t_user329条、fnd_user_info866条，合并1176个账号、对应330条任职；304个选中账号的登录输入兼容仍待裁决。admin/sse/test账号迁入提案被最新范围裁决取代，旧admin历史审计关联另待指定。"
+    },
+    {
+      "COLUMN_NAME": "password",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "密码",
+      "proposedHandling": "旧值不读取、不迁入；受控认证激活，不使用共享默认密码。"
+    },
+    {
+      "COLUMN_NAME": "nickname",
+      "COLUMN_TYPE": "varchar(30)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "用户昵称",
+      "proposedHandling": "同人fnd.realName优先、t_user_info.realName补缺，已核最大5/10字符，足够。 明确例外：w00343、j04650、l02826由EHR员工表承接姓名和工号。"
+    },
+    {
+      "COLUMN_NAME": "remark",
+      "COLUMN_TYPE": "varchar(500)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "备注",
+      "proposedHandling": "仅已有同义备注；不压入无法匹配的字段。"
+    },
+    {
+      "COLUMN_NAME": "dept_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "部门ID",
+      "proposedHandling": "按原部门编码/正式绑定解析主部门；多公司任职事实不压成单一部门。"
+    },
+    {
+      "COLUMN_NAME": "post_ids",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "岗位编号数组",
+      "proposedHandling": "EHR岗位与system_post业务编码精确关联，未匹配不造伪岗位。"
+    },
+    {
+      "COLUMN_NAME": "email",
+      "COLUMN_TYPE": "varchar(50)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "用户邮箱",
+      "proposedHandling": "同人fnd优先、t_*补缺；复用既有容量及格式规则。用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。"
+    },
+    {
+      "COLUMN_NAME": "mobile",
+      "COLUMN_TYPE": "varchar(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "手机号码",
+      "proposedHandling": "来源手机号仅按已核实规则去多余ASCII空格；保留原值证据，不截断或猜补。用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。"
+    },
+    {
+      "COLUMN_NAME": "sex",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "用户性别",
+      "proposedHandling": "按原性别定义转换，不混用t_user_info的0女与EHR的2女。"
+    },
+    {
+      "COLUMN_NAME": "avatar",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "头像地址",
+      "proposedHandling": "复用正式头像字段，源本批全NULL，不造头像。"
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "帐号状态（0正常 1停用）",
+      "proposedHandling": "用户批准同人fnd为主、t补缺；原1→启用0、0→停用1；t独有原2→停用1，custom_info保存原锁定值；未知状态阻断。"
+    },
+    {
+      "COLUMN_NAME": "login_ip",
+      "COLUMN_TYPE": "varchar(50)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "最后登录IP",
+      "proposedHandling": "没有对应历史登录事实，不伪造。"
+    },
+    {
+      "COLUMN_NAME": "login_date",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "最后登录时间",
+      "proposedHandling": "没有对应历史登录事实，不把迁移时间当登录。"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "创建者",
+      "proposedHandling": "来源账号身份关联正式用户，自引用及互相引用在批次内解析；原NULL/空值保留。被范围排除的旧admin仍有99处选中账号审计引用，正式操作者映射待用户裁决。"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建时间",
+      "proposedHandling": "主账号原历史时间；本次运行另记审计。"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "更新者",
+      "proposedHandling": "同creator身份关联；不得替换成迁移执行人。旧admin历史身份关联待裁决。"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新时间",
+      "proposedHandling": "主账号原更新时间；用户批准原值NULL时仅用原创建时间初始化，原NULL列入来源证据，不用运行时间。"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "是否删除",
+      "proposedHandling": "停用不推导逻辑删除。"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "租户编号",
+      "proposedHandling": "既有租户隔离，身份与工号匹配不跨租户。"
+    }
+  ],
+  "newColumns": [
+    {
+      "column": "employee_no",
+      "definition": "VARCHAR(50) NULL",
+      "meaning": "真实内部工号；外部手工workNo=username不写本字段，原身份仍经来源绑定关联。"
+    },
+    {
+      "column": "custom_info",
+      "definition": "JSON NULL",
+      "meaning": "账号扩展业务属性；完整保存原customInfo对象，并以独立明确属性承接用户逐项批准的其他账号字段。旧认证历史不控制新凭据。"
+    }
+  ],
+  "sourceFields": [
+    {
+      "sourceTable": "t_user",
+      "sourceField": "user_id",
+      "sourceType": "int(11)",
+      "businessTarget": "现有来源身份绑定→正式对象ID",
+      "handlingAndReason": "来源系统＋表/对象＋来源主键；不得将不同表同数值ID视为同一对象。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "user_name",
+      "sourceType": "varchar(25)",
+      "businessTarget": "system_users.username",
+      "handlingAndReason": "仅首字母+工号、*_ss、*_supp按原字符串迁入；登录/维护兼容已批准，不改名、不修剪。旧admin仅审计关联当前admin ID1，不迁入资料/角色/范围。",
+      "status": "USER_APPROVED_ACCOUNT_SCOPE_AND_LOGIN_INPUT",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "password",
+      "sourceType": "varchar(100)",
+      "businessTarget": "排除旧凭据；使用受控认证/激活",
+      "handlingAndReason": "已有身份规则明确旧MD5类凭据不迁入，读取列、证据和日志均排除。排除原因明列，不将旧凭据保存到JSON。",
+      "status": "EXCLUDED_BY_CONFIRMED_CREDENTIAL_RULE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "create_by",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "create_time",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "保留原历史时间，不用本次运行时间覆盖。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "update_by",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "update_time",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "用户批准所选主账号原更新时间NULL时用原创建时间初始化；原NULL保留来源证据，其他历史时间不变。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "status",
+      "sourceType": "smallint(1)",
+      "businessTarget": "system_users.status",
+      "handlingAndReason": "用户批准fnd优先；原1→0启用、0→1停用；t独有锁定2→停用1，原值保存在custom_info.legacyUserStatus；未知值阻断。",
+      "status": "USER_APPROVED_STATUS_CONVERSION",
+      "userDecision": "同人fnd为主、t补缺；t独有状态2转停用，原值存custom_info.legacyUserStatus。"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "needChangePwd",
+      "sourceType": "bit(1)",
+      "businessTarget": "system_users.custom_info.mustChangePassword",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "loginErrorCount",
+      "sourceType": "int(1)",
+      "businessTarget": "system_users.custom_info.loginErrorCount",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "isSysUser",
+      "sourceType": "smallint(1)",
+      "businessTarget": "公司角色授权的来源范围判定",
+      "handlingAndReason": "旧Shiro中非0绕过公司过滤，是跨公司授权标记；不等于SERVICE账号。2条-1角色来自该类账号，不能默认授予新平台超级管理员。",
+      "status": "AUTHORIZATION_ADJUDICATION_PENDING",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom1",
+      "sourceType": "varchar(50)",
+      "businessTarget": "不迁入",
+      "handlingAndReason": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "全空生日及无业务值预留字段不迁入，并列明原因。"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom2",
+      "sourceType": "varchar(50)",
+      "businessTarget": "不迁入",
+      "handlingAndReason": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "全空生日及无业务值预留字段不迁入，并列明原因。"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom3",
+      "sourceType": "varchar(50)",
+      "businessTarget": "工号/账号别名的来源关联",
+      "handlingAndReason": "EHR创建链填workNo；手工外部创建链填username。原341非空，联合人员目录分类，不新增user_custom_3。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom4",
+      "sourceType": "int(11)",
+      "businessTarget": "人员目录与旧流程身份映射",
+      "handlingAndReason": "原340非零；EHR创建链填empID，手工创建填账号ID。是不同来源身份，不能无条件当员工ID或新任务办理人。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom5",
+      "sourceType": "int(11)",
+      "businessTarget": "不迁入",
+      "handlingAndReason": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "全空生日及无业务值预留字段不迁入，并列明原因。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "businessTarget": "人员/账号公司上下文的来源身份绑定",
+      "handlingAndReason": "旧代码以人员记录ID参与旧流程身份，不等于新system_users.id；保留身份映射，不重新激活旧工作流。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "workNo",
+      "sourceType": "varchar(25)",
+      "businessTarget": "system_users.employee_no（真实内部工号）；外部账号别名/身份绑定",
+      "handlingAndReason": "旧手工创建外部账号会把用户名填入workNo，不能把这类值当内部工号。",
+      "status": "USER_APPROVED_EMPLOYEE_NO_REFERENCE_VERIFICATION_REQUIRED",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "realName",
+      "sourceType": "varchar(50)",
+      "businessTarget": "system_users.nickname",
+      "handlingAndReason": "账号及公司上下文核实后复用；同一人以fnd资料为主、t_*补缺，不任意取第一行。身份差异与当前正式资料冲突单列，不未经授权覆盖现存账号。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "eName",
+      "sourceType": "varchar(50)",
+      "businessTarget": "system_users.custom_info.englishName",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "compID",
+      "sourceType": "int(11)",
+      "businessTarget": "system_user_company_department_scope.company_id/code/name",
+      "handlingAndReason": "保留用户所属公司事实，经实际来源公司解析及01→001等显式规则；不是t_user_role的授权公司替代值。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "depID",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.dept_id；system_user_company_department_scope.department_id/code/name",
+      "handlingAndReason": "通过来源部门目录和EHR同步绑定解析，不复用旧ID，不由部门猜公司；主部门选取与多公司资料冲突需明确。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "jobID",
+      "sourceType": "int(11)",
+      "businessTarget": "system_post / system_user_post（条件性复用）",
+      "handlingAndReason": "先核EHR岗位与正式岗位的业务编码/含义；无对应不创建伪岗位，不把jobStatus混成岗位角色。",
+      "status": "OWNER_REFERENCE_MATCH_PENDING",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "reportTo",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.custom_info.employmentAssignments[].reportingEmployeeReference",
+      "handlingAndReason": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "按明确业务属性承接；多公司用任职数组，主管保存可核实人员引用，不自动激活流程。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "wfreportTo",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.custom_info.employmentAssignments[].functionalReportingEmployeeReference",
+      "handlingAndReason": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "按明确业务属性承接；多公司用任职数组，主管保存可核实人员引用，不自动激活流程。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "empStatus",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.custom_info.employmentAssignments[].employeeStatus",
+      "handlingAndReason": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "按明确业务属性承接；多公司用任职数组，主管保存可核实人员引用，不自动激活流程。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "jobStatus",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.custom_info.employmentAssignments[].positionStatus",
+      "handlingAndReason": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "按明确业务属性承接；多公司用任职数组，主管保存可核实人员引用，不自动激活流程。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "empType",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.custom_info.employmentAssignments[].employeeType",
+      "handlingAndReason": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "按明确业务属性承接；多公司用任职数组，主管保存可核实人员引用，不自动激活流程。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "sex",
+      "sourceType": "smallint(1)",
+      "businessTarget": "system_users.sex",
+      "handlingAndReason": "按现有性别枚举转换，旧1男/0女，不直接套EHR的1男/2女。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "birthday",
+      "sourceType": "date",
+      "businessTarget": "不迁入",
+      "handlingAndReason": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "全空生日及无业务值预留字段不迁入，并列明原因。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "email",
+      "sourceType": "varchar(50)",
+      "businessTarget": "system_users.email",
+      "handlingAndReason": "用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。",
+      "status": "USER_APPROVED_MIGRATION_ONLY_SHARED_CONTACTS",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "mobile",
+      "sourceType": "varchar(50)",
+      "businessTarget": "system_users.mobile",
+      "handlingAndReason": "用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。",
+      "status": "USER_APPROVED_MIGRATION_ONLY_SHARED_CONTACTS",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "telphone",
+      "sourceType": "varchar(50)",
+      "businessTarget": "system_users.custom_info.officePhone",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "avatar",
+      "sourceType": "varchar(500)",
+      "businessTarget": "system_users.avatar",
+      "handlingAndReason": "账号及公司上下文核实后复用；同一人以fnd资料为主、t_*补缺，不任意取第一行。身份差异与当前正式资料冲突单列，不未经授权覆盖现存账号。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "remark",
+      "sourceType": "varchar(100)",
+      "businessTarget": "system_users.remark",
+      "handlingAndReason": "账号及公司上下文核实后复用；同一人以fnd资料为主、t_*补缺，不任意取第一行。身份差异与当前正式资料冲突单列，不未经授权覆盖现存账号。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "state",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.custom_info.employmentAssignments[].historicalEmploymentState",
+      "handlingAndReason": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "按明确业务属性承接；多公司用任职数组，主管保存可核实人员引用，不自动激活流程。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "user_id",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.id",
+      "handlingAndReason": "经t_user来源绑定关联；明确一人可有多公司资料，三条无账号关联不造用户名/账号。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom1",
+      "sourceType": "int(11)",
+      "businessTarget": "不迁入",
+      "handlingAndReason": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "全空生日及无业务值预留字段不迁入，并列明原因。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom2",
+      "sourceType": "int(11)",
+      "businessTarget": "不迁入",
+      "handlingAndReason": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "全空生日及无业务值预留字段不迁入，并列明原因。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom3",
+      "sourceType": "varchar(50)",
+      "businessTarget": "system_user_company_department_scope.department_code / 正式部门上下文",
+      "handlingAndReason": "旧创建链明确是二级办事处编码，不必等于实际主部门；原341非空，同一公司配对保存，不新增custom3镜像。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom4",
+      "sourceType": "varchar(50)",
+      "businessTarget": "system_users.custom_info.employmentAssignments[].projectTypeRestrictions",
+      "handlingAndReason": "完整承接原项目类型准入值及已核实转换，历史限制不授予办事处或具体项目访问权；未知类型不得猜配。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "项目类型准入作为明确业务属性保存，不能变成项目访问授权。"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom5",
+      "sourceType": "varchar(4096)",
+      "businessTarget": "system_user_company_department_scope 部门范围",
+      "handlingAndReason": "原341非空；与该条userinfo明确公司组合，去空去重/别名映射，不能跨公司套用。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "id",
+      "sourceType": "int(8)",
+      "businessTarget": "现有来源身份绑定→正式对象ID",
+      "handlingAndReason": "来源系统＋表/对象＋来源主键；不得将不同表同数值ID视为同一对象。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "username",
+      "sourceType": "varchar(128)",
+      "businessTarget": "system_users.username",
+      "handlingAndReason": "仅首字母+工号、*_ss、*_supp按原字符串迁入；登录/维护兼容已批准，不改名、不修剪。旧admin仅审计关联当前admin ID1，不迁入资料/角色/范围。",
+      "status": "USER_APPROVED_ACCOUNT_SCOPE_AND_LOGIN_INPUT",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "password",
+      "sourceType": "varchar(32)",
+      "businessTarget": "排除旧凭据；使用受控认证/激活",
+      "handlingAndReason": "已有身份规则明确旧MD5类凭据不迁入，读取列、证据和日志均排除。排除原因明列，不将旧凭据保存到JSON。",
+      "status": "EXCLUDED_BY_CONFIRMED_CREDENTIAL_RULE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "email",
+      "sourceType": "varchar(128)",
+      "businessTarget": "system_users.email",
+      "handlingAndReason": "用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。",
+      "status": "USER_APPROVED_MIGRATION_ONLY_SHARED_CONTACTS",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "dpNo",
+      "sourceType": "varchar(25)",
+      "businessTarget": "system_user_company_department_scope.department_id/code/name",
+      "handlingAndReason": "自身部门加入可服务/范围集合；不是工号，没有公司事实时不伪配公司。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "realName",
+      "sourceType": "varchar(128)",
+      "businessTarget": "system_users.nickname",
+      "handlingAndReason": "fnd独有账号按外部账号；与t_user同义字段冲突须依据用户裁决，不能覆盖当前人员事实。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "roleIds",
+      "sourceType": "varchar(64)",
+      "businessTarget": "system_user_role / system_user_company_department_scope 的语义角色",
+      "handlingAndReason": "按已裁决32项角色映射及fnd常量语义字符串编码关联system_user_role；停用角色不迁入，明确超级管理员例外；不据旧菜单关系授予其他菜单按钮。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "isemail",
+      "sourceType": "int(11)",
+      "businessTarget": "system_users.custom_info.emailNotificationEnabled",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "status",
+      "sourceType": "int(1)",
+      "businessTarget": "system_users.status",
+      "handlingAndReason": "用户批准fnd优先；原1→0启用、0→1停用；t独有锁定2→停用1，原值保存在custom_info.legacyUserStatus；未知值阻断。",
+      "status": "USER_APPROVED_STATUS_CONVERSION",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "defaultPage",
+      "sourceType": "varchar(255)",
+      "businessTarget": "system_users.custom_info.defaultPage",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "pwdoverdue",
+      "sourceType": "datetime",
+      "businessTarget": "system_users.custom_info.passwordExpireTime",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "createBy",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "保留原历史时间，不用本次运行时间覆盖。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "用户批准所选主账号原更新时间NULL时用原创建时间初始化；原NULL保留来源证据，其他历史时间不变。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "effectiveFrom",
+      "sourceType": "datetime",
+      "businessTarget": "system_users.custom_info.effectiveFrom",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "effectiveTo",
+      "sourceType": "datetime",
+      "businessTarget": "system_users.custom_info.effectiveTo",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "customInfo",
+      "sourceType": "json",
+      "businessTarget": "system_users.custom_info.customInfo",
+      "handlingAndReason": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。",
+      "status": "USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。"
+    }
+  ],
+  "proposedExclusionsWaitingUser": [],
+  "remainingOwnerQuestions": [
+    "原部门/岗位未匹配项通过各既有业务目录审查后关联；未落库不能声明完成。"
+  ],
+  "sourceCapacityProof": [
+    {
+      "name_max": 5,
+      "english_name_max": 14,
+      "email_max": 28,
+      "mobile_max": 13,
+      "telephone_max": 13,
+      "avatar_max": null,
+      "remark_max": 6,
+      "multiple_mobile_rows": "0"
+    }
+  ],
+  "mobileNormalizationProof": [
+    {
+      "sourceInfoId": 1000060,
+      "sourceUserId": 1000060,
+      "rawLength": 12,
+      "nonDigitPositions": [
+        12
+      ],
+      "nonDigitUnicode": [
+        "U+0020"
+      ],
+      "whitespaceNormalizedLength": 11,
+      "isValidDomesticMobileAfterWhitespaceNormalization": true
+    },
+    {
+      "sourceInfoId": 1000064,
+      "sourceUserId": 1000064,
+      "rawLength": 12,
+      "nonDigitPositions": [
+        12
+      ],
+      "nonDigitUnicode": [
+        "U+0020"
+      ],
+      "whitespaceNormalizedLength": 11,
+      "isValidDomesticMobileAfterWhitespaceNormalization": true
+    },
+    {
+      "sourceInfoId": 1000072,
+      "sourceUserId": 1000072,
+      "rawLength": 12,
+      "nonDigitPositions": [
+        12
+      ],
+      "nonDigitUnicode": [
+        "U+0020"
+      ],
+      "whitespaceNormalizedLength": 11,
+      "isValidDomesticMobileAfterWhitespaceNormalization": true
+    },
+    {
+      "sourceInfoId": 1000117,
+      "sourceUserId": 1000117,
+      "rawLength": 13,
+      "nonDigitPositions": [
+        4,
+        9
+      ],
+      "nonDigitUnicode": [
+        "U+0020",
+        "U+0020"
+      ],
+      "whitespaceNormalizedLength": 11,
+      "isValidDomesticMobileAfterWhitespaceNormalization": true
+    }
+  ],
+  "credentialBoundary": "旧密码不读取、不迁入；本轮没有账号/密码/权限写入。",
+  "writes": {
+    "schema": 0,
+    "users": 0,
+    "permissions": 0
+  },
+  "userDecision": "仅新增employee_no、custom_info；列明的其他账号字段保存到custom_info；全空生日与无业务值预留字段不迁入；t独有状态2转停用，原锁定值同时保存在custom_info。内外均按具体项目授权。",
+  "withdrawnNewColumns": [
+    {
+      "column": "account_type",
+      "definition": "TINYINT NULL",
+      "meaning": "内部1、外部2；仅有真实EHR身份才归内部，不把isSysUser当账号类型。现存未分类账号不擅自赋值。"
+    },
+    {
+      "column": "english_name",
+      "definition": "VARCHAR(100) NULL",
+      "meaning": "t_user_info.eName，原98条非空，当前无英文名字段。"
+    },
+    {
+      "column": "office_phone",
+      "definition": "VARCHAR(50) NULL",
+      "meaning": "t_user_info.telphone，原9条非空；不和mobile混写。"
+    },
+    {
+      "column": "email_notification_enabled",
+      "definition": "BIT(1) NULL",
+      "meaning": "fnd_user_info.isemail邮件通知偏好；不认定邮箱已验证。"
+    },
+    {
+      "column": "effective_from",
+      "definition": "DATETIME(3) NULL",
+      "meaning": "账号有效期开始，不等同账号创建时间；t_*无值不伪造。"
+    },
+    {
+      "column": "effective_to",
+      "definition": "DATETIME(3) NULL",
+      "meaning": "账号有效期结束，不等同更新时间；原464条有值，其他保持NULL。"
+    }
+  ],
+  "approvedJsonAttributes": [
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "customInfo",
+      "property": "customInfo"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "eName",
+      "property": "englishName"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "telphone",
+      "property": "officePhone"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "isemail",
+      "property": "emailNotificationEnabled"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "effectiveFrom",
+      "property": "effectiveFrom"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "effectiveTo",
+      "property": "effectiveTo"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "defaultPage",
+      "property": "defaultPage"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "pwdoverdue",
+      "property": "passwordExpireTime"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "needChangePwd",
+      "property": "mustChangePassword"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "loginErrorCount",
+      "property": "loginErrorCount"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "status",
+      "property": "legacyUserStatus",
+      "condition": "保留原账号状态，特别是原锁定2"
+    }
+  ],
+  "codeChangesNotDeployed": [
+    "AdminUserDO.employeeNo/customInfo",
+    "候选查询u.employee_no",
+    "V419仅两个获准字段；未执行DDL"
+  ],
+  "employmentJsonDecision": "用户批准任职与项目类型限制进入custom_info，多公司按任职数组保存，另3条无账号人员资料登记待关联、不伪造账号。",
+  "historicalNullUpdateTimeDecision": "用户批准主账号原update_time/updateTime为NULL时用原创建时间初始化；原NULL列入来源证据，不使用运行时间。原表t_user45条、fnd_user_info252条为空，最终按主记录裁决选择。",
+  "implementationEvidence": {
+    "targetOwner": "SystemUserMigrationApi",
+    "syncTemplate": "DPPMS_USERS",
+    "schemaAdditionsOnly": [
+      "employee_no",
+      "custom_info"
+    ],
+    "originalSourceColumns": 60,
+    "readOriginalColumns": 58,
+    "excludedCredentialColumns": [
+      "t_user.password",
+      "fnd_user_info.password"
+    ],
+    "sourceCounts": {
+      "t_user": 341,
+      "t_user_info": 345,
+      "fnd_user_info": 880
+    },
+    "isolatedOwnerTests": {
+      "passed": 14,
+      "scope": "H2 transactions and pure planning; not actual MySQL or browser acceptance"
+    },
+    "isolatedJsonTests": {
+      "passed": 4
+    },
+    "targetWrites": 0,
+    "pending": [
+      "User adapter and identity adjudications",
+      "Flyway baseline alignment",
+      "Actual migration and browser acceptance"
+    ],
+    "isolatedAffectedTests": {
+      "passed": 33,
+      "scope": "User Owner, ordinary contact checks, dependency regressions, extraction template and literal source scope; no real IAM writes"
+    },
+    "exportedJavaSourceQueryVerification": {
+      "originalColumns": 60,
+      "readColumns": 58,
+      "missingColumns": [],
+      "excludedCredentialColumns": [
+        "t_user.password",
+        "fnd_user_info.password"
+      ],
+      "sourceWrites": 0,
+      "targetWrites": 0
+    },
+    "employmentIdentityCorrection": "t_user_info原表没有empID；账号/EHR经核实的人员键独立传入，不要求虚构原列，不复用旧账号数值ID。原schema适配的4项JSON测试通过。"
+  },
+  "latestAccountScopeDecision": "用户限定仅迁移首字母+工号、*_ss、*_supp，保留原字符串；t329条、fnd866条及330条任职合并1176个账号。登录/账号维护兼容已批准；旧admin仅99处历史审计引用关联当前admin ID1，不迁入资料、角色或范围。",
+  "contactDuplicateDecision": "用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。",
+  "latestScopeEvidence": "2026-10-09-dppms-user-selected-scope-decision.json",
+  "approvedEhrIdentityExceptions": [
+    {
+      "username": "w00343",
+      "sourceFndUserId": 145,
+      "sourceEhrEmployeeId": 74,
+      "nickname": "王俊珂",
+      "employeeNo": "00343",
+      "originalFndName": "王俊柯"
+    },
+    {
+      "username": "j04650",
+      "sourceFndUserId": 443,
+      "sourceEhrEmployeeId": 4804,
+      "nickname": "金燕玲",
+      "employeeNo": "04650",
+      "originalFndName": "金燕铃"
+    },
+    {
+      "username": "l02826",
+      "sourceFndUserId": 170,
+      "sourceEhrEmployeeId": 2770,
+      "nickname": "乐征侨",
+      "employeeNo": "02826",
+      "originalFndName": "乐征侨",
+      "originalLoginDirectoryName": "乐征桥"
+    }
+  ],
+  "ehrIdentityExceptionDecision": "用户确认三组同人，nickname及employee_no取实际ehr_employee.name/workNo，经ehr_login员工外键核实；其余账号fnd主、t补缺规则保持。原名字差异保留来源证据，不能用登录目录冗余姓名覆盖员工表姓名。",
+  "approvedRemainingUserDecisions": {
+    "historicalLoginInput": "保留选中*_ss、*_supp原登录名；登录与账号维护输入兼容这些形式。注册规则不在此裁决范围。",
+    "excludedAdminAuditOnly": "旧admin不迁入账号资料，仅将历史创建/更新人关联当前admin ID1；不导入旧角色或授权；目标缺失或绑定改变时阻断。",
+    "w30049Email": "用户明确例外：原值@dptech.com直接承接正式email，不置空、不改写、不用custom_info替代。普通新建/修改邮箱格式校验保持。",
+    "zhaoyangxiSuppEmail": "正式email仅去除来源尾部制表符，原值完整留来源证据。",
+    "nullCompanyRoleRelations": "z04214、w04218、y04223、w04261、z04264迁入正式用户角色关系，原公司NULL留证据；不新增公司或办事处授权。"
+  },
+  "currentDecisionStatus": "USER_FIELDS_LOGIN_AUDIT_AND_NULL_COMPANY_ROLES_APPROVED_NOT_DEPLOYED",
+  "currentValidationBoundary": {
+    "canonicalAccounts": 1176,
+    "sourceIdentities": 1525,
+    "verifiedEmployeeNumbers": 823,
+    "auditOnlyAdminBindings": 2,
+    "actualSourceRoleAssignments": {
+      "t": 792,
+      "fnd": 1140
+    },
+    "databaseWrites": 0,
+    "deployment": "NOT_DEPLOYED"
+  },
+  "approvedOrphanExclusions": {
+    "sourceTable": "t_user_info",
+    "sourceKeys": [
+      "1000186",
+      "1000188",
+      "1000189"
+    ],
+    "reason": "用户明确不迁入：无账号外键且不在已批准账号范围；测试/admin资料。",
+    "futureBoundary": "仅上述已核实三条；后续其他孤立资料登记待关联，不直接沿用排除结论。"
+  }
+}

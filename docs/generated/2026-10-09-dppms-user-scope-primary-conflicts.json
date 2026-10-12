@@ -1,0 +1,99 @@
+{
+  "status": "USER_ADJUDICATED_FND_PRIMARY_T_SUPPLEMENTS_NOT_APPLIED",
+  "conflicts": [
+    {
+      "username": "c01034",
+      "tSourceReferences": [
+        "247"
+      ],
+      "tOwnOffices": [
+        "323000"
+      ],
+      "fndSourceId": "539",
+      "fndOwnOffice": "280500",
+      "tSourceAccountStatus": 1,
+      "fndSourceAccountStatus": 1
+    },
+    {
+      "username": "c02791",
+      "tSourceReferences": [
+        "2717"
+      ],
+      "tOwnOffices": [
+        "160904"
+      ],
+      "fndSourceId": "185",
+      "fndOwnOffice": "310200",
+      "tSourceAccountStatus": 1,
+      "fndSourceAccountStatus": 0
+    },
+    {
+      "username": "h05735",
+      "tSourceReferences": [
+        "5995"
+      ],
+      "tOwnOffices": [
+        "020200"
+      ],
+      "fndSourceId": "619",
+      "fndOwnOffice": "020000",
+      "tSourceAccountStatus": 0,
+      "fndSourceAccountStatus": 1
+    },
+    {
+      "username": "l00506",
+      "tSourceReferences": [
+        "128"
+      ],
+      "tOwnOffices": [
+        "323000"
+      ],
+      "fndSourceId": "216",
+      "fndOwnOffice": "162023",
+      "tSourceAccountStatus": 1,
+      "fndSourceAccountStatus": 0
+    },
+    {
+      "username": "l05984",
+      "tSourceReferences": [
+        "6275"
+      ],
+      "tOwnOffices": [
+        "020200"
+      ],
+      "fndSourceId": "640",
+      "fndOwnOffice": "020000",
+      "tSourceAccountStatus": 0,
+      "fndSourceAccountStatus": 1
+    },
+    {
+      "username": "w04099",
+      "tSourceReferences": [
+        "4199"
+      ],
+      "tOwnOffices": [
+        "020200"
+      ],
+      "fndSourceId": "789",
+      "fndOwnOffice": "020000",
+      "tSourceAccountStatus": 1,
+      "fndSourceAccountStatus": 1
+    },
+    {
+      "username": "x00591",
+      "tSourceReferences": [
+        "153"
+      ],
+      "tOwnOffices": [
+        "020200"
+      ],
+      "fndSourceId": "352",
+      "fndOwnOffice": "020000",
+      "tSourceAccountStatus": 1,
+      "fndSourceAccountStatus": 0
+    }
+  ],
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "decision": "fnd为主、t补缺；7项fnd自身范围主，t不同范围非主保留，状态/历史时间沿已批准转换。无新增公司范围、无办事处全部项目授权。"
+}

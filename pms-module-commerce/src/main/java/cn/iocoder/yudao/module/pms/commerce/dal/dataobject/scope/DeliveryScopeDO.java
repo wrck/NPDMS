@@ -34,6 +34,11 @@ public class DeliveryScopeDO extends BaseBusinessEntity {
     private String productCode;
     private String productDesc;
     private BigDecimal allocatedQty;
+    /** Whether this scope has been confirmed to consume order allocation capacity. */
+    private Boolean allocationConfirmed;
+    /** Historical order delivery figures carried by this project's scope; not acceptance facts. */
+    private BigDecimal deliveredQuantity;
+    private BigDecimal openQuantity;
     private String scopeStatus;
     private Long allocationVersion;
     private String allocationSource;

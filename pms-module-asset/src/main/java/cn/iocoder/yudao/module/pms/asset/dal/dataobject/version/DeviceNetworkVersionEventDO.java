@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @TableName("ast_device_network_version_event")
 @Data
@@ -26,11 +27,16 @@ public class DeviceNetworkVersionEventDO extends TenantBaseDO {
     private String cpldVersion;
     private String pcbVersion;
     private Boolean customized;
+    private LocalDate releaseDate;
+    private String versionDesc;
     private LocalDateTime eventTime;
     private LocalDateTime receivedTime;
+    private String changeReason;
+    private String changedBy;
     private Boolean revoked;
     private String mappingStatus;
     private String sourceSystem;
     private String sourceVersion;
+    private String customInfo;
     private String syncStatus;
 }

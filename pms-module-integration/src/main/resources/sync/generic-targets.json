@@ -22,7 +22,7 @@
       "system_source_key",
       "system_code",
       "system_name",
-      "warranty_flag",
+      "warranty_years",
       "remark",
       "mapping_status",
       "source_system",
@@ -46,7 +46,7 @@
       "system_source_key",
       "system_code",
       "system_name",
-      "warranty_flag",
+      "warranty_years",
       "remark",
       "source_sync_time"
     ],
@@ -373,7 +373,7 @@
     "updateColumns": [
       "product_model", "product_name", "product_desc", "technical_spec", "source_version", "source_updated_at", "synced_at", "sync_status", "status"
     ],
-    "keys": [["source_system", "source_key"]],
+    "keys": [["product_code"]],
     "insertDefaults": {},
     "ownerColumn": "source_system",
     "tenantColumn": "tenant_id",

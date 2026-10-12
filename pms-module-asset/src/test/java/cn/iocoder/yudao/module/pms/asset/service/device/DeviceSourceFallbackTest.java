@@ -22,7 +22,13 @@ class DeviceSourceFallbackTest {
     void shouldKeepLastSuccessfulNetworkVersionWhenCurrentSyncFailed() {
         DeviceQueryApi deviceQueryApi = mock(DeviceQueryApi.class);
         DeviceNetworkVersionMapper versionMapper = mock(DeviceNetworkVersionMapper.class);
-        DeviceDetailService service = new DeviceDetailService(deviceQueryApi, versionMapper, org.mockito.Mockito.mock(DeviceOrganizationService.class));
+        var warrantyQuery=org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.service.warranty.DeviceWarrantyQueryService.class);
+        org.mockito.Mockito.when(warrantyQuery.get(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.asset.service.warranty.DeviceWarrantyResult(null,cn.iocoder.yudao.framework.common.pojo.PageResult.empty()));
+        DeviceDetailService service = new DeviceDetailService(deviceQueryApi, versionMapper, org.mockito.Mockito.mock(DeviceOrganizationService.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionMapper.class),
+                warrantyQuery);
         when(deviceQueryApi.getDevice(8L)).thenReturn(summary());
         DeviceNetworkVersionDO version = new DeviceNetworkVersionDO();
         version.setDeviceSn("SN-8");

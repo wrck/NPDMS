@@ -5,7 +5,7 @@ import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.*;
 import cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.*;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.quartz.CronExpression;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,12 +13,16 @@ import java.time.*;
 import java.util.*;
 
 @Service
-@RequiredArgsConstructor
 public class SyncTaskService {
     private final SyncTaskMapper tasks;
     private final SyncBindingMapper bindings;
     private final SyncConnectionService connections;
     private final SyncDefinitionValidator validator;
+    // Adapter construction depends on this service; resolve the adapter registry after construction.
+    public SyncTaskService(SyncTaskMapper tasks, SyncBindingMapper bindings, SyncConnectionService connections,
+                           @Lazy SyncDefinitionValidator validator) {
+        this.tasks=tasks;this.bindings=bindings;this.connections=connections;this.validator=validator;
+    }
     public record Save(Long id,Integer expectedVersion,String name,SyncDefinition definition) {}
     public record View(Long id,String name,SyncDefinition definition,Integer version,Integer validatedVersion,
                        Boolean enabled,Long activeRunId,LocalDateTime checkpoint,LocalDateTime nextRunAt,LocalDateTime nextFullAt) {}
@@ -35,8 +39,10 @@ public class SyncTaskService {
             var current=required(command.id());
             if(!Objects.equals(current.getVersion(),command.expectedVersion()))
                 return new ConfigurationCheck(false,current.getId(),current.getName(),"配置版本冲突，请重新打开任务");
-            var previous=definition(current);
-            boolean needsHistory=validator.adapter(previous).requiresAllBindings()
+            var previous=approvedProductKeyTransition(definition(current),d);
+            // The desired definition is validated above. Historical generic definitions can contain
+            // adjudicated, retired columns; deciding binding scope must not revalidate that old catalog.
+            boolean needsHistory=(!"TABLE_MAPPING".equals(previous.adapter()) && validator.adapter(previous).requiresAllBindings())
                     ||d.sources().stream().anyMatch(SyncDefinition.Source::syncPrimaryKey);
             List<SyncBindingDO> mapped=needsHistory?bindings.selectTask(new SyncQueries.Task(tenant(),current.getId())):List.of();
             boolean hasMapped=needsHistory?!mapped.isEmpty():bindings.hasTaskBindings(new SyncQueries.Task(tenant(),current.getId()));
@@ -114,6 +120,30 @@ public class SyncTaskService {
             if(time==null)throw new IllegalArgumentException("Cron 无下一次执行时间");
             return LocalDateTime.ofInstant(time.toInstant(),ZoneId.of("Asia/Shanghai"));
         }catch(java.text.ParseException ex){throw new IllegalArgumentException("Cron 无效");}
+    }
+    /** Only the approved product-key upgrade is equivalent to the established target identity.
+     * The old definition and its run snapshots stay unchanged; arbitrary pipeline changes still fail. */
+    private static SyncDefinition approvedProductKeyTransition(SyncDefinition previous,SyncDefinition desired) {
+        if(!"TABLE_MAPPING".equals(previous.adapter()) || !"TABLE_MAPPING".equals(desired.adapter()))return previous;
+        var sources=new ArrayList<SyncDefinition.Source>();boolean changed=false;
+        for(var source:previous.sources()) {
+            var nextSource=desired.sources().stream().filter(s->Objects.equals(s.object(),source.object())).findFirst().orElse(null);
+            if(source.targets()==null || nextSource==null || nextSource.targets()==null){sources.add(source);continue;}
+            var targets=new ArrayList<cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetStep>();
+            for(var step:source.targets()) {
+                var next=nextSource.targets().stream().filter(t->Objects.equals(t.name(),step.name())).findFirst().orElse(null);
+                boolean legacy="ast_product_official_info".equals(step.table()) && step.keys()!=null
+                        && step.keys().size()==2 && new HashSet<>(step.keys()).equals(Set.of("source_system","source_key"));
+                var upgraded=legacy?new cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetStep(
+                        step.name(),step.table(),List.of("product_code"),step.mode(),step.nullPolicy(),step.updateColumns(),
+                        step.whenField(),step.newerBy(),step.tieBreaker(),step.mappings(),step.lookups()):step;
+                boolean exactSourceCode=step.mappings()!=null && step.mappings().stream().anyMatch(m->
+                        "product_code".equals(m.target()) && Objects.equals(source.sourceKey(),m.source()) && "TRIM".equals(m.conversion()));
+                if(legacy && exactSourceCode && upgraded.equals(next)){targets.add(upgraded);changed=true;}else targets.add(step);
+            }
+            sources.add(source.toBuilder().targets(targets).build());
+        }
+        return changed?previous.toBuilder().sources(sources).build():previous;
     }
     private static List<String> identities(SyncDefinition d) {
         return d.sources().stream().map(s->s.object()+":"+s.sourceObject()+":"+s.sourceKey()+ (s.targets()==null?"":":"+JsonUtils.toJsonString(s.targets().stream().map(t->List.of(t.name(),t.table(),t.keys())).toList()))).sorted().toList();

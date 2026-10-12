@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.ErpOrderSyncMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.ErpOrderSyncQuery;
 import cn.iocoder.yudao.module.pms.commerce.service.authority.AuthorityPayloadCanonicalizer;
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -93,8 +94,9 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         Map<String, SalesOrderDO> orders = new HashMap<>();
         Map<String, String> orderBusiness = new HashMap<>();
         if(hasOrderRows||hasLineRows) for (var r : mapper.selectOrders(query)) {
-            orders.put(r.getSourceKey(), r);
-            orderBusiness.put(r.getCompanyCode() + "|" + r.getOrderType() + "|" + r.getOrderNo(), r.getSourceKey());
+            if (orders.put(r.getSourceKey(), r)!=null) throw new IllegalStateException("DPPMS_ORDER_SOURCE_IDENTITY_AMBIGUOUS");
+            String previous=orderBusiness.put(r.getCompanyCode() + "|" + r.getOrderType() + "|" + r.getOrderNo(), r.getSourceKey());
+            if (previous!=null && !previous.equals(r.getSourceKey())) throw new IllegalStateException("DPPMS_ORDER_BUSINESS_IDENTITY_AMBIGUOUS");
         }
         Map<String, SalesOrderLineDO> lines = new HashMap<>();
         if(hasLineRows) for (var r : mapper.selectLines(query)) lines.put(r.getSourceKey(), r);
@@ -110,10 +112,21 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                 String issue = text(row, "migrationIssue");
                 if (issue != null) { changes.add(issue(row, issue)); continue; }
                 String source = required(row, "erpSource"), company = required(row, "companyCode");
+                if (DppmsCompanyCodeConverter.mappingValues().containsKey(company)) company=DppmsCompanyCodeConverter.fromSource(company);
+                else if (!DppmsCompanyCodeConverter.mappingValues().containsValue(company))
+                    throw new IllegalArgumentException("DPPMS_COMPANY_CODE_UNMAPPED: "+company);
                 String type = required(row, "orderType"), number = required(row, "orderNo");
                 if (!Set.of("SAP", "D365", "SMS").contains(source) || !Set.of("0", "1").contains(type))
                     throw new IllegalArgumentException("未知ERP来源或订单类型");
                 String parentKey = "DPPMS|" + source + "|" + company + "|" + type + "|" + number;
+                String occupied=orderBusiness.get(company+"|"+type+"|"+number);
+                if (occupied!=null && !occupied.equals(parentKey)) {
+                    if (!sameDppmsOrderIdentity(occupied,source,company,type,number)) {
+                        changes.add(conflict(row,"订单业务键已由其他来源身份占用"));continue;
+                    }
+                    // Reuse the approved company's existing Owner identity, including its historic raw-company key.
+                    parentKey=occupied;
+                }
                 LocalDateTime time = time(row, "sourceUpdatedAt");
                 if (time == null) throw new IllegalArgumentException("缺失来源版本时间");
                 String version = time.toString();
@@ -125,18 +138,17 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                 if ("ORDER".equals(row.object())) {
                     targetKey = parentKey;
                     SalesOrderDO old = orders.get(targetKey);
-                    String occupied = orderBusiness.get(company + "|" + type + "|" + number);
-                    if (occupied != null && !occupied.equals(targetKey)) {
-                        changes.add(conflict(row, "订单业务键已由其他来源身份占用")); continue;
-                    }
                     if (old != null && Boolean.TRUE.equals(old.getDeleted())) {
                         changes.add(conflict(row, "目标订单已删除，不能重新创建")); continue;
                     }
+                    if (old!=null && !"ERP".equals(old.getSourceSystem()) && !source.equals(old.getSourceSystem())) {
+                        changes.add(conflict(row,"目标订单ERP系统与来源身份不一致"));continue;
+                    }
                     var fact = new CommerceSalesOrderFact(targetKey, old == null ? null : old.getSourceVersion(),
-                            version, company, number, type, text(row, "customerCode"), text(row, "customerName"),
-                            null, null, lifecycle, time, text(row, "salesType"), text(row, "sourceProjectName"),
-                            text(row, "orderComment"), time(row, "orderCreateTime"), time(row, "customerRequiredTime"),
-                            text(row, "customInfo"), text(row, "contractNo"), text(row, "executionNo"));
+                            version, company, number, type, text(row, "customerCode"), originalText(row, "customerName"),
+                            null, null, lifecycle, time, text(row, "salesType"), originalText(row, "sourceProjectName"),
+                            originalText(row, "orderComment"), time(row, "orderCreateTime"), time(row, "customerRequiredTime"),
+                            originalText(row, "customInfo"), text(row, "contractNo"), text(row, "executionNo"));
                     var previous = incomingOrders.get(targetKey);
                     if (previous != null && !canonicalizer.orderPayload(previous).equals(canonicalizer.orderPayload(fact))) {
                         throw new IllegalArgumentException("同一批次订单主档字段冲突");
@@ -144,6 +156,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                     action = decision(old == null ? null : old.getSourceVersion(), version,
                             old == null ? null : old.getSourceUpdatedAt(), time,
                             old == null ? null : canonicalizer.orderPayload(old), canonicalizer.orderPayload(fact));
+                    if ("UNCHANGED".equals(action) && !source.equals(old.getSourceSystem())) action="UPDATED";
                     id = old == null ? null : old.getId();
                     if (!"UNCHANGED".equals(action)) incomingOrders.put(targetKey, fact);
                 } else if ("LINE".equals(row.object())) {
@@ -159,21 +172,29 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                     if (old != null && Boolean.TRUE.equals(old.getDeleted())) {
                         changes.add(conflict(row, "目标订单行已删除，不能重新创建")); continue;
                     }
+                    if (old!=null && !"ERP".equals(old.getSourceSystem()) && !source.equals(old.getSourceSystem())) {
+                        changes.add(conflict(row,"目标订单行ERP系统与来源身份不一致"));continue;
+                    }
                     BigDecimal qty = decimal(row, "orderQuantity"), open = decimal(row, "openQuantity");
+                    BigDecimal delivered=qty==null||open==null?null:qty.subtract(open);
+                    int scale=0;
+                    for (BigDecimal value:new BigDecimal[]{qty,open,delivered})
+                        if (value!=null) scale=Math.max(scale,Math.max(0,value.stripTrailingZeros().scale()));
                     String unit = text(row, "unitCode");
                     var fact = new CommerceOrderLineFact(targetKey, old == null ? null : old.getSourceVersion(),
-                            version, parentKey, lineNo, text(row, "productCode"), text(row, "productDesc"), null,
-                            qty, open, qty == null || open == null ? null : qty.subtract(open), unit, 0,
+                            version, parentKey, lineNo, originalText(row, "productCode"), originalText(row, "productDesc"), null,
+                            qty, open, delivered, unit, scale,
                             unit == null || qty == null ? "PENDING_AUTHORITY" : "CONFIRMED", lifecycle, time,
-                            type, text(row, "bundleCode"), text(row, "profitCenter"), text(row, "realExecutionNo"),
+                            type, originalText(row, "bundleCode"), originalText(row, "profitCenter"), originalText(row, "realExecutionNo"),
                             decimal(row, "warrantyMonth") == null ? null : decimal(row, "warrantyMonth").intValueExact(),
-                            text(row, "customInfo"));
+                            originalText(row, "customInfo"));
                     var previous = incomingLines.get(targetKey);
                     if (previous != null && !canonicalizer.linePayload(previous).equals(canonicalizer.linePayload(fact)))
                         throw new IllegalArgumentException("同一批次订单行字段冲突");
                     action = decision(old == null ? null : old.getSourceVersion(), version,
                             old == null ? null : old.getSourceUpdatedAt(), time,
                             old == null ? null : canonicalizer.linePayload(old, parentKey), canonicalizer.linePayload(fact));
+                    if ("UNCHANGED".equals(action) && !source.equals(old.getSourceSystem())) action="UPDATED";
                     id = old == null ? null : old.getId();
                     if (!"UNCHANGED".equals(action)) incomingLines.put(targetKey, fact);
                 } else throw new IllegalArgumentException("未知订单迁移对象");
@@ -210,6 +231,17 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
     }
     private static Change issue(Row r, String message) {
         return new Change(r.object(), r.sourceKey(), null, "ISSUE", Map.of(), r.fields(), message);
+    }
+    private static boolean sameDppmsOrderIdentity(String key,String source,String company,String type,String number) {
+        String[] parts=key.split("\\|",-1);
+        if (parts.length!=5 || !"DPPMS".equals(parts[0]) || !source.equals(parts[1])
+                || !type.equals(parts[3]) || !number.equals(parts[4])) return false;
+        if (company.equals(parts[2])) return true;
+        try { return company.equals(DppmsCompanyCodeConverter.fromSource(parts[2])); }
+        catch (IllegalArgumentException unknownCompany) { return false; }
+    }
+    private static String originalText(Row row,String field) {
+        Object value=row.fields().get(field);return value==null?null:value.toString();
     }
     private static Change conflict(Row r, String message) {
         return new Change(r.object(), r.sourceKey(), null, "CONFLICT", Map.of(), r.fields(), message);

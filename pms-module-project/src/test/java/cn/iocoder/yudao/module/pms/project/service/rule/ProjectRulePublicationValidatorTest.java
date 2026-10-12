@@ -363,6 +363,17 @@ class ProjectRulePublicationValidatorTest {
         return condition(JsonUtils.parseTree(expression));
     }
 
+    @Test void projectContactConditionRequiresIndependentContactPageCompletion() {
+        var doc = document(condition("{\"predicate\":\"PROJECT_CONTACT_EXISTS\",\"parameters\":{}}"));
+        var task = new TemplateDesignerDocument.TaskNode(); task.setNodeKey("task:contacts"); task.setCompletionRuleKey("rule");
+        var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("PAGE");
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/customer-asset/customer-contact\"}")); task.setWorkBinding(binding);
+        doc.setTasks(List.of(task)); assertTrue(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/other\"}")); assertFalse(validator.validate(doc).isEmpty());
+        binding.setParameters(JsonUtils.parseTree("{\"routePath\":\"/customer-asset/customer-contact\"}"));
+        task.setCompletionRuleKey(null); task.setAdmissionRuleKey("rule"); assertFalse(validator.validate(doc).isEmpty());
+    }
+
     @Test void relativeWaitValidatesVersionSourcesAndEveryConsumerWithoutPublishingASecondRule() {
         var doc = document(condition(RelativeTimeConditionTest.waitRule("NODE_COMPLETED", "PT1H", "task:survey")));
         var stage = new TemplateDesignerDocument.StageNode(); stage.setNodeKey("stage:prep"); stage.setAdmissionRuleKey("rule");

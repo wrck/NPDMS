@@ -92,7 +92,7 @@ const search = async (value: string, append = false) => {
 }
 const more = () => search(keyword, true)
 onMounted(async () => {
-  if (!props.member) return
+  if (!props.member || props.member.userId == null) return
   if (!candidateReady.value) return
   const request = ++sequence
   searching.value = true

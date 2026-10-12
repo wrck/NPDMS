@@ -76,7 +76,9 @@ public class DeviceController {
     private final DeviceConfigurationLogQueryService configurationLogQueryService;
     private final DeviceConfigurationLogDownloadService configurationLogDownloadService;
     private final DeviceAccessScopeService accessScopeService;
+    private final cn.iocoder.yudao.module.pms.asset.dal.mysql.shipment.DeviceShipmentMapper shipmentMapper;
     private final cn.iocoder.yudao.module.pms.asset.service.device.DeviceOrganizationService organizationService;
+    private final cn.iocoder.yudao.module.pms.asset.service.device.DeviceShipmentProductQueryService shipmentProducts;
 
     @GetMapping("/page")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
@@ -104,6 +106,17 @@ public class DeviceController {
         return success(deviceDetailService.getDetail(id));
     }
 
+    @GetMapping("/{id}/shipments")
+    @PreAuthorize("@ss.hasPermission('pms:device:query')")
+    public CommonResult<PageResult<cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceShipmentRespVO>> shipments(
+            @PathVariable Long id,@RequestParam(defaultValue="1") int pageNo,@RequestParam(defaultValue="20") int pageSize) {
+        assertDeviceVisible(id);
+        if (pageNo<1||pageSize<1||pageSize>100) throw new IllegalArgumentException("发货分页参数无效");
+        var summary=deviceDetailService.getDetail(id).summary();
+        var page=shipmentMapper.selectPage(new cn.iocoder.yudao.module.pms.asset.dal.mysql.shipment.query.DeviceShipmentPageQuery(
+                currentTenantId(),summary.sn(),pageNo,pageSize));
+        return success(shipmentProducts.withDirectoryLabels(currentTenantId(),page));
+    }
     @GetMapping("/{id}/assignment-history")
     @PreAuthorize("@ss.hasPermission('pms:device:query')")
     public CommonResult<PageResult<DeviceProjectRelationshipDO>> getAssignmentHistory(

@@ -56,6 +56,29 @@ class ContractAccessServiceTest {
         assertEquals(Set.of("C-1"), service.getVisibleContractNumbers(1L, 7L));
     }
 
+    @Test void historicalProjectReadRequiresBothProjectAndCompanyScope() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of(scope(1L,"001",0)));
+        var query=new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectContractRelationPageQuery(1L,10L,List.of("001"),20,20);
+        var row=new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectContractRelationRow();row.setId(30L);row.setStatus("HISTORICAL");
+        when(projectRelationMapper.selectCountByProject(query)).thenReturn(1L);
+        when(projectRelationMapper.selectPageByProject(query)).thenReturn(List.of(row));
+        var page=service.getProjectContractRelations(1L,7L,10L,20,20);
+        assertEquals(1L,page.getTotal());assertEquals(List.of(row),page.getList());
+        verify(projectRelationMapper,never()).selectCurrentByContract(any());verifyNoInteractions(contractMapper,orderMapper);
+    }
+    @Test void historicalQueryFailsClosedAndNeverUsesHistoryAsAuthorization() {
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of());
+        assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,()->service.getProjectContractRelations(1L,7L,10L,0,20));
+        verifyNoInteractions(projectRelationMapper);
+        when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(10L));
+        when(organizationScopeApi.getActiveScopes(7L)).thenReturn(List.of());
+        assertEquals(0L,service.getProjectContractRelations(1L,7L,10L,0,20).getTotal());verifyNoInteractions(projectRelationMapper);
+        when(organizationScopeApi.getActiveScopes(7L)).thenThrow(new IllegalStateException("down"));
+        assertEquals(0L,service.getProjectContractRelations(1L,7L,10L,0,20).getTotal());verifyNoInteractions(projectRelationMapper);
+        assertThrows(IllegalArgumentException.class,()->service.getProjectContractRelations(1L,7L,10L,0,201));
+    }
+
     @Test
     void deviceContractScopeWithoutAuthorizationDoesNotReadContracts() {
         assertTrue(service.getVisibleContractNumbers(1L, 7L).isEmpty());

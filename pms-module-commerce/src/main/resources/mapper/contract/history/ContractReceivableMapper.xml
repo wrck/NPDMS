@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.history.ContractReceivableMapper">
+    <select id="selectSourceRevisionForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.history.ContractReceivableDO">
+        SELECT * FROM com_contract_receivable WHERE tenant_id=#{query.tenantId}
+          AND source_system='DPPMS' AND source_row_id=#{query.sourceRowId} AND source_revision_hash=#{query.sourceRevisionHash} FOR UPDATE
+    </select>
+    <select id="selectProjectPage" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.history.ContractReceivableDO">
+        SELECT r.* FROM com_contract_receivable r WHERE r.tenant_id=#{query.tenantId} AND r.deleted=0 AND r.source_system='DPPMS'
+          AND EXISTS (SELECT 1 FROM com_project_contract_history h WHERE h.tenant_id=r.tenant_id
+              AND h.project_id=#{query.projectId} AND h.deleted=0 AND h.source_system='DPPMS'
+              AND CAST(h.contract_no AS BINARY)=CAST(r.contract_no AS BINARY))
+        ORDER BY r.source_row_id,r.source_revision_hash,r.id LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+    <select id="countProject" resultType="long">SELECT COUNT(*) FROM com_contract_receivable r WHERE r.tenant_id=#{query.tenantId} AND r.deleted=0 AND r.source_system='DPPMS'
+          AND EXISTS (SELECT 1 FROM com_project_contract_history h WHERE h.tenant_id=r.tenant_id
+              AND h.project_id=#{query.projectId} AND h.deleted=0 AND h.source_system='DPPMS'
+              AND CAST(h.contract_no AS BINARY)=CAST(r.contract_no AS BINARY))</select>
+</mapper>

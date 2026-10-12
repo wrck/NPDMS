@@ -17,6 +17,13 @@ export interface CustomerContactVO {
 }
 
 export interface ContactVO extends CustomerContactVO {
+  projectPartyId?: number | string | null
+  projectPartyName?: string
+  contactCode?: string | null
+  registrationSource?: string | null
+  effectiveFrom?: string | number | null
+  effectiveTo?: string | number | null
+  historicalReadonly?: boolean
   customerName?: string
   projectId?: number
   customerContactId?: number

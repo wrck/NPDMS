@@ -72,6 +72,41 @@ class CommerceAuthorityIngestServiceTest {
                 && "V1".equals(row.getSourceVersion()) && row.getTenantId() == 1L));
     }
 
+    @Test void dppmsOrdersUseTheActualErpInTheExistingSourceSystemColumn() {
+        when(salesOrderMapper.insertBatch(anyCollection(),eq(1000))).thenReturn(true);
+        for (String source:List.of("SAP","D365","SMS")) {
+            String key="DPPMS|"+source+"|001|0|ORDER";
+            var fact=new CommerceSalesOrderFact(key,null,"V1","001","ORDER","0","CU-1","Customer",
+                    new BigDecimal("100"),"CNY",CommerceSourceLifecycleStatus.ACTIVE,time());
+            service.ingest(batch("actual-"+source,"batch-"+source,List.of(),List.of(fact),List.of()));
+        }
+        verify(salesOrderMapper,times(3)).insertBatch(argThat(rows->{
+            var row=rows.iterator().next();return row.getSourceKey().startsWith("DPPMS|"+row.getSourceSystem()+"|")
+                    && List.of("SAP","D365","SMS").contains(row.getSourceSystem());
+        }),eq(1000));
+    }
+    @Test void unchangedDppmsOrderCorrectsOnlyTheErpCategoryAndReplaysWithoutRewriting() {
+        String key="DPPMS|D365|001|0|ORDER";
+        var current=orderRow(key,"V1");current.setCompanyCode("001");current.setOrderNo("ORDER");current.setOrderType("0");
+        var fact=new CommerceSalesOrderFact(key,"V1","V1","001","ORDER","0","CU-1","Customer",
+                new BigDecimal("100"),"CNY",CommerceSourceLifecycleStatus.ACTIVE,time());
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        when(salesOrderMapper.updateOwnerByVersion(any())).thenReturn(1);
+        service.ingest(batch("correct-source","correct-batch",List.of(),List.of(fact),List.of()));
+        assertEquals("D365",current.getSourceSystem());assertEquals(201L,current.getId());assertEquals("V1",current.getSourceVersion());
+        service.ingest(batch("replay-source","replay-batch",List.of(),List.of(fact),List.of()));
+        verify(salesOrderMapper,times(1)).updateOwnerByVersion(any());verify(salesOrderMapper,never()).insertBatch(anyCollection(),anyInt());
+    }
+    @Test void lineCanUseAnExistingActualErpParentWithoutCreatingAnotherOrder() {
+        String key="DPPMS|D365|001|0|ORDER";
+        var parent=orderRow(key,"V1");parent.setSourceSystem("D365");parent.setCompanyCode("001");parent.setOrderNo("ORDER");parent.setOrderType("0");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.insertBatch(anyCollection(),eq(1000))).thenReturn(true);
+        service.ingest(batch("line-actual-parent","line-actual-batch",List.of(),List.of(),List.of(line(key+"|10",null,"V1",key,"3"))));
+        verify(orderLineMapper).insertBatch(argThat(rows->rows.iterator().next().getOrderId().equals(201L)),eq(1000));
+        verify(salesOrderMapper,never()).insertBatch(anyCollection(),anyInt());
+    }
+
     @Test
     void acceptsObjectReplayWithoutOwnerWrite() {
         ContractDO current = contractRow("C-1", "V2", "ACME");
@@ -239,6 +274,236 @@ class CommerceAuthorityIngestServiceTest {
     }
 
     @Test
+    void staleCallerRowVersionRejectsUnchangedSourceTokenWithoutOverwritingTheConcurrentNote() {
+        var current = orderRowWithChain("O-1", "V1");
+        current.setVersion(7L);
+        current.setOrderComment("Concurrent Owner note");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        var incoming = guardedOrder(orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1"), 6L);
+
+        var error = assertThrows(CommerceAuthorityIngestException.class, () -> service.ingest(
+                batch("EV-ROW-STALE", "B-ROW-STALE", List.of(), List.of(incoming), List.of())));
+
+        assertEquals(SOURCE_VERSION_CONFLICT, error.getCode());
+        assertTrue(error.getMessage().startsWith("ROW_VERSION_CONFLICT:"));
+        assertEquals("Concurrent Owner note", current.getOrderComment());
+        assertEquals("V1", current.getSourceVersion());
+        assertEquals(7L, current.getVersion());
+        assertNull(commandApi.facts);
+        verify(salesOrderMapper, never()).updateOwnerByVersion(any());
+        verify(salesOrderMapper, never()).insertBatch(anyCollection(), anyInt());
+    }
+
+    @Test
+    void staleCallerRowVersionCannotPassSameSourceVersionObjectReplay() {
+        var current = orderRowWithChain("O-1", "V1");
+        current.setVersion(7L);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        var incoming = guardedOrder(orderWithChain("O-1", "V1", "V1", "CT-1", "EX-1"), 6L);
+
+        var error = assertThrows(CommerceAuthorityIngestException.class, () -> service.ingest(
+                batch("EV-ROW-REPLAY", "B-ROW-REPLAY", List.of(), List.of(incoming), List.of())));
+
+        assertEquals(SOURCE_VERSION_CONFLICT, error.getCode());
+        assertTrue(error.getMessage().startsWith("ROW_VERSION_CONFLICT:"));
+        verify(salesOrderMapper, never()).updateOwnerByVersion(any());
+    }
+
+    @Test
+    void matchingCallerRowVersionCorrectsDatesAndKeepsTheCurrentOwnerNote() {
+        var current = orderRowWithChain("O-1", "V1");
+        current.setVersion(7L);
+        current.setOrderComment("Current Owner note");
+        current.setOrderCreateTime(LocalDateTime.of(1970, 1, 1, 8, 0));
+        current.setCustomerRequiredTime(current.getOrderCreateTime());
+        current.setSourceUpdatedAt(current.getOrderCreateTime());
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        when(salesOrderMapper.updateOwnerByVersion(any())).thenReturn(1);
+        var incoming = new CommerceSalesOrderFact("O-1", "V1", "V2", "ACME", "ON-1", "NORMAL",
+                "CU-1", "Customer", new BigDecimal("100"), "CNY", CommerceSourceLifecycleStatus.ACTIVE,
+                time(), "01", "源项目名", current.getOrderComment(), time(), time(), null, "CT-1", "EX-1", 7L);
+
+        var result = service.ingest(batch("EV-ROW-CORRECT", "B-ROW-CORRECT", List.of(), List.of(incoming), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        assertEquals(time(), current.getOrderCreateTime());
+        assertEquals(time(), current.getCustomerRequiredTime());
+        assertEquals(time(), current.getSourceUpdatedAt());
+        assertEquals("Current Owner note", current.getOrderComment());
+        verify(salesOrderMapper).updateOwnerByVersion(argThat(update ->
+                update.expectedVersion() == 7L && "V2".equals(update.row().getSourceVersion())));
+    }
+
+    @Test
+    void omittedCallerRowVersionKeepsTheExistingSourcePredecessorContract() {
+        var current = orderRowWithChain("O-1", "V1");
+        current.setVersion(7L);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        when(salesOrderMapper.updateOwnerByVersion(any())).thenReturn(1);
+        var incoming = orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1");
+        assertNull(incoming.expectedRowVersion());
+
+        var result = service.ingest(batch("EV-ROW-LEGACY", "B-ROW-LEGACY", List.of(), List.of(incoming), List.of()));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(salesOrderMapper).updateOwnerByVersion(argThat(update -> update.expectedVersion() == 7L));
+    }
+
+    @Test
+    void callerRowVersionPreconditionCannotCreateAMissingCorrectionTarget() {
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of());
+        var incoming = guardedOrder(orderWithChain("O-1", null, "V1", "CT-1", "EX-1"), 0L);
+
+        var error = assertThrows(CommerceAuthorityIngestException.class, () -> service.ingest(
+                batch("EV-ROW-MISSING", "B-ROW-MISSING", List.of(), List.of(incoming), List.of())));
+
+        assertEquals(SOURCE_VERSION_CONFLICT, error.getCode());
+        assertTrue(error.getMessage().startsWith("ROW_VERSION_CONFLICT:"));
+        verify(salesOrderMapper, never()).insertBatch(anyCollection(), anyInt());
+        verify(salesOrderMapper, never()).updateOwnerByVersion(any());
+    }
+
+    @Test
+    void callerRowVersionIsExcludedFromTheCanonicalSourcePayloadAndBatchDigest() {
+        var original = orderWithChain("O-1", "V1", "V2", "CT-1", "EX-1");
+        var canonicalizer = new AuthorityPayloadCanonicalizer();
+        for (var guarded : List.of(guardedOrder(original, 7L), guardedOrder(original, 8L))) {
+            assertEquals(canonicalizer.orderPayload(original), canonicalizer.orderPayload(guarded));
+            assertEquals(canonicalizer.batchDigest(batch("EV-ROW-DIGEST", "B-ROW-DIGEST", List.of(), List.of(original), List.of())),
+                    canonicalizer.batchDigest(batch("EV-ROW-DIGEST", "B-ROW-DIGEST", List.of(), List.of(guarded), List.of())));
+        }
+    }
+
+    @Test
+    void staleLineCallerRowVersionRejectsSameSourceTokenAndPreservesConcurrentProductAndQuantity() {
+        var parent = orderRow("O-1", "V1");
+        var current = lineRowWithPayload(parent.getId(), "L-1", "V1", "17");
+        current.setVersion(7);current.setProductCode("Concurrent Product");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        var incoming = guardedLine(line("L-1", "V1", "V2", "O-1", "10"), 6);
+
+        var error = assertThrows(CommerceAuthorityIngestException.class, () -> service.ingest(
+                batch("EV-L-ROW-STALE", "B-L-ROW-STALE", List.of(), List.of(), List.of(incoming))));
+
+        assertEquals(SOURCE_VERSION_CONFLICT, error.getCode());
+        assertTrue(error.getMessage().startsWith("ROW_VERSION_CONFLICT:"));
+        assertEquals("Concurrent Product", current.getProductCode());
+        assertEquals(new BigDecimal("17"), current.getQuantity());
+        assertEquals("V1", current.getSourceVersion());assertEquals(7, current.getVersion());
+        assertNull(commandApi.facts);
+        verify(orderLineMapper, never()).updateOwnerByVersion(any());
+        verify(orderLineMapper, never()).insertBatch(anyCollection(), anyInt());
+        verifyNoInteractions(scopeImpactMapper);
+    }
+
+    @Test
+    void staleLineCallerRowVersionCannotPassSameSourceVersionObjectReplay() {
+        var parent = orderRow("O-1", "V1");
+        var current = lineRowWithPayload(parent.getId(), "L-1", "V1", "10");current.setVersion(7);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        var incoming = guardedLine(line("L-1", "V1", "V1", "O-1", "10"), 6);
+
+        var error = assertThrows(CommerceAuthorityIngestException.class, () -> service.ingest(
+                batch("EV-L-ROW-REPLAY", "B-L-ROW-REPLAY", List.of(), List.of(), List.of(incoming))));
+
+        assertEquals(SOURCE_VERSION_CONFLICT, error.getCode());
+        assertTrue(error.getMessage().startsWith("ROW_VERSION_CONFLICT:"));
+        assertEquals("ITEM-1", current.getProductCode());assertEquals(new BigDecimal("10"), current.getQuantity());
+        verify(orderLineMapper, never()).updateOwnerByVersion(any());verifyNoInteractions(scopeImpactMapper);
+    }
+
+    @Test
+    void matchingLineCallerRowVersionCorrectsOnlySourceDateAndPreservesCurrentFacts() {
+        var parent = orderRow("O-1", "V1");
+        var current = lineRowWithPayload(parent.getId(), "L-1", "V1", "17");current.setVersion(7);
+        current.setProductCode("Current Product");current.setProductDesc("Current Description");
+        current.setProductModel("Current Model");current.setCustomInfo("{\"current\":true}");
+        current.setBundleCode("Current Bundle");current.setProfitCenter("Current Profit");
+        current.setRealExecutionNo("Current Execution");current.setWarrantyMonth(6);current.setLineType("0");
+        current.setSourceUpdatedAt(LocalDateTime.of(1970, 1, 1, 8, 0));
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        when(orderLineMapper.updateOwnerByVersion(any())).thenReturn(1);
+        var incoming = new CommerceOrderLineFact("L-1", "V1", "V2", "O-1", current.getLineCode(),
+                current.getProductCode(), current.getProductDesc(), current.getProductModel(),
+                current.getQuantity(), current.getOpenQty(), current.getDeliveredQty(), current.getUnitCode(),
+                current.getUnitScale(), current.getQuantityStatus(), CommerceSourceLifecycleStatus.ACTIVE,
+                time(), current.getLineType(), current.getBundleCode(), current.getProfitCenter(),
+                current.getRealExecutionNo(), current.getWarrantyMonth(), current.getCustomInfo(), 7);
+
+        var result = service.ingest(batch("EV-L-ROW-CORRECT", "B-L-ROW-CORRECT", List.of(), List.of(), List.of(incoming)));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        assertEquals(time(), current.getSourceUpdatedAt());assertEquals("Current Product", current.getProductCode());
+        assertEquals("Current Description", current.getProductDesc());assertEquals("Current Model", current.getProductModel());
+        assertEquals(new BigDecimal("17"), current.getQuantity());assertEquals(new BigDecimal("17"), current.getOpenQty());
+        assertEquals(BigDecimal.ZERO, current.getDeliveredQty());assertEquals("{\"current\":true}", current.getCustomInfo());
+        assertEquals("Current Bundle", current.getBundleCode());assertEquals("Current Profit", current.getProfitCenter());
+        assertEquals("Current Execution", current.getRealExecutionNo());assertEquals(6, current.getWarrantyMonth());
+        assertEquals(parent.getCompanyCode(), current.getCompanyCode());assertEquals(parent.getOrderNo(), current.getOrderNo());
+        verify(orderLineMapper).updateOwnerByVersion(argThat(update ->
+                update.expectedVersion() == 7 && "V2".equals(update.row().getSourceVersion())));
+        verifyNoInteractions(scopeImpactMapper);
+    }
+
+    @Test
+    void matchingLineCallerRowVersionAcceptsBusinessReplayWithoutWriting() {
+        var parent = orderRow("O-1", "V1");
+        var current = lineRowWithPayload(parent.getId(), "L-1", "V1", "10");current.setVersion(7);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        var incoming = guardedLine(line("L-1", "V1", "V1", "O-1", "10"), 7);
+
+        var result = service.ingest(batch("EV-L-ROW-SAME", "B-L-ROW-SAME", List.of(), List.of(), List.of(incoming)));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED_NO_CHANGE, result.decision());
+        verify(orderLineMapper, never()).updateOwnerByVersion(any());verifyNoInteractions(scopeImpactMapper);
+    }
+
+    @Test
+    void omittedLineCallerRowVersionKeepsTheExistingSourcePredecessorContract() {
+        var parent = orderRow("O-1", "V1");
+        var current = lineRowWithPayload(parent.getId(), "L-1", "V1", "10");current.setVersion(7);
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(current));
+        when(orderLineMapper.updateOwnerByVersion(any())).thenReturn(1);
+        var incoming = line("L-1", "V1", "V2", "O-1", "10");assertNull(incoming.expectedRowVersion());
+
+        var result = service.ingest(batch("EV-L-ROW-LEGACY", "B-L-ROW-LEGACY", List.of(), List.of(), List.of(incoming)));
+
+        assertEquals(CommerceAuthorityBatchResult.Decision.ACCEPTED, result.decision());
+        verify(orderLineMapper).updateOwnerByVersion(argThat(update -> update.expectedVersion() == 7));
+    }
+
+    @Test
+    void lineCallerRowVersionPreconditionCannotCreateAMissingCorrectionTarget() {
+        var parent = orderRow("O-1", "V1");
+        when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
+        when(orderLineMapper.selectBySourcesForUpdate(any())).thenReturn(List.of());
+        var incoming = guardedLine(line("L-1", null, "V1", "O-1", "10"), 0);
+
+        var error = assertThrows(CommerceAuthorityIngestException.class, () -> service.ingest(
+                batch("EV-L-ROW-MISSING", "B-L-ROW-MISSING", List.of(), List.of(), List.of(incoming))));
+
+        assertEquals(SOURCE_VERSION_CONFLICT, error.getCode());
+        assertTrue(error.getMessage().startsWith("ROW_VERSION_CONFLICT:"));
+        verify(orderLineMapper, never()).insertBatch(anyCollection(), anyInt());
+        verify(orderLineMapper, never()).updateOwnerByVersion(any());verifyNoInteractions(scopeImpactMapper);
+    }
+
+    @Test
+    void lineCallerRowVersionIsExcludedFromCanonicalSourcePayloadAndBatchDigest() {
+        var original = line("L-1", "V1", "V2", "O-1", "10");var canonicalizer = new AuthorityPayloadCanonicalizer();
+        for (var guarded : List.of(guardedLine(original, 7), guardedLine(original, 8))) {
+            assertEquals(canonicalizer.linePayload(original), canonicalizer.linePayload(guarded));
+            assertEquals(canonicalizer.batchDigest(batch("EV-L-ROW-DIGEST", "B-L-ROW-DIGEST", List.of(), List.of(), List.of(original))),
+                    canonicalizer.batchDigest(batch("EV-L-ROW-DIGEST", "B-L-ROW-DIGEST", List.of(), List.of(), List.of(guarded))));
+        }
+    }
+
+    @Test
     void createsOrderLinesWithOneParentLockOneLineLockAndOneBatchInsert() {
         SalesOrderDO parent = orderRow("O-1", "V1");
         when(salesOrderMapper.selectBySourcesForUpdate(any())).thenReturn(List.of(parent));
@@ -322,6 +587,29 @@ class CommerceAuthorityIngestServiceTest {
                 "CU-1", "Customer", new BigDecimal("100"), "CNY",
                 CommerceSourceLifecycleStatus.ACTIVE, time(),
                 "01", "源项目名", null, time(), time(), null, contractNo, executionNo);
+    }
+
+    private CommerceSalesOrderFact guardedOrder(CommerceSalesOrderFact fact, Long expectedRowVersion) {
+        return new CommerceSalesOrderFact(fact.sourceKey(), fact.expectedPreviousSourceVersion(), fact.sourceVersion(),
+                fact.companyCode(), fact.orderNo(), fact.orderType(), fact.customerCode(), fact.customerName(),
+                fact.amount(), fact.currencyCode(), fact.lifecycleStatus(), fact.sourceUpdatedAt(), fact.salesType(),
+                fact.sourceProjectName(), fact.orderComment(), fact.orderCreateTime(), fact.customerRequiredTime(),
+                fact.customInfo(), fact.contractNo(), fact.executionNo(), expectedRowVersion);
+    }
+
+    private CommerceOrderLineFact guardedLine(CommerceOrderLineFact fact, Integer expectedRowVersion) {
+        return new CommerceOrderLineFact(fact.sourceKey(), fact.expectedPreviousSourceVersion(), fact.sourceVersion(),
+                fact.salesOrderSourceKey(), fact.lineCode(), fact.productCode(), fact.productDesc(), fact.productModel(),
+                fact.orderQuantity(), fact.openQuantity(), fact.deliveredQuantity(), fact.unitCode(), fact.unitScale(),
+                fact.quantityStatus(), fact.lifecycleStatus(), fact.sourceUpdatedAt(), fact.lineType(), fact.bundleCode(),
+                fact.profitCenter(), fact.realExecutionNo(), fact.warrantyMonth(), fact.customInfo(), expectedRowVersion);
+    }
+
+    private SalesOrderLineDO lineRowWithPayload(Long orderId, String key, String version, String quantity) {
+        var fact = line(key, null, version, "O-1", quantity);var row = lineRow(orderId, key, version, quantity);
+        row.setOpenQty(fact.openQuantity());row.setDeliveredQty(fact.deliveredQuantity());
+        row.setUnitScale(fact.unitScale());row.setQuantityStatus(fact.quantityStatus());
+        return row;
     }
 
     private CommerceOrderLineFact line(String key, String previous, String version,

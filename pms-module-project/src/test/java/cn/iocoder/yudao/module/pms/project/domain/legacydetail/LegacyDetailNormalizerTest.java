@@ -24,9 +24,37 @@ class LegacyDetailNormalizerTest {
                 LocalDateTime.of(2026, 10, 8, 10, 0), null, counts, rows);
     }
 
+    private LegacyDetailInput.SourceRecord record(String domain,String key,String parentDomain,String parentKey,
+            String updated,Map<String,String> attributes) {
+        var values=new LinkedHashMap<String,String>();
+        catalog.require(domain).fields().forEach(field->values.put(field.key(),null));values.putAll(attributes);
+        return new LegacyDetailInput.SourceRecord(domain,key,parentDomain,parentKey,updated,values);
+    }
+
     private LegacyDetailInput.SourceRecord project(String remark) {
-        return new LegacyDetailInput.SourceRecord("project", "101", null, null, null,
+        return record("project", "101", null, null, null,
                 Map.of("projectId", "101", "projectName", remark));
+    }
+
+    @Test void rejectsPartialOriginalFieldsIncludingAnOmittedNullField() {
+        var partial=new LegacyDetailInput.SourceRecord("project","101",null,null,null,Map.of("projectId","101","projectName","Synthetic"));
+        assertThrows(ServiceException.class,()->normalizer.normalize(input(List.of(partial))));
+        var full=project("Synthetic");var omitted=new LinkedHashMap<>(full.values());
+        assertNull(omitted.remove("customConfig"));
+        var missingNull=new LegacyDetailInput.SourceRecord("project","101",null,null,null,omitted);
+        assertThrows(ServiceException.class,()->normalizer.normalize(input(List.of(missingNull))));
+    }
+
+    @Test void explicitNullFieldsSurviveSourcePayloadEncodingAndAreAccepted() {
+        var full=project("Synthetic");
+        var encoded=LegacyDetailNormalizer.sourcePayloadJson(full.values());
+        var decoded=JsonUtils.parseObject(encoded,new tools.jackson.core.type.TypeReference<Map<String,String>>(){});
+        assertEquals(full.values().keySet(),decoded.keySet());
+        assertTrue(decoded.containsKey("customConfig"));assertNull(decoded.get("customConfig"));
+        var incoming=new LegacyDetailInput.SourceRecord("project","101",null,null,null,decoded);
+        var normalized=normalizer.normalize(input(List.of(incoming))).records().getFirst();
+        assertEquals(full.values().keySet(),normalized.values().keySet());
+        assertNull(normalized.values().get("customConfig"));assertEquals("Synthetic",normalized.values().get("projectName"));
     }
 
     @Test void rejectsMissingRootBeforePersistence() {
@@ -57,10 +85,10 @@ class LegacyDetailNormalizerTest {
     }
 
     @Test void rejectsUnknownFieldsAndAnotherProjectsRecords() {
-        var hidden = new LegacyDetailInput.SourceRecord("project", "101", null, null, null,
+        var hidden = record("project", "101", null, null, null,
                 Map.of("projectId", "101", "devicePassword", "synthetic-only"));
         assertThrows(ServiceException.class, () -> normalizer.normalize(input(List.of(hidden))));
-        var other = new LegacyDetailInput.SourceRecord("members", "9", null, null, null,
+        var other = record("members", "9", null, null, null,
                 Map.of("id", "9", "projectId", "102"));
         assertThrows(ServiceException.class, () -> normalizer.normalize(input(List.of(project(""), other))));
     }
@@ -68,7 +96,7 @@ class LegacyDetailNormalizerTest {
     @Test void rejectsDuplicateKeysMissingParentsAndInaccurateCounts() {
         var root = project("");
         assertThrows(ServiceException.class, () -> normalizer.normalize(input(List.of(root, root))));
-        var child = new LegacyDetailInput.SourceRecord("software-versions", "2", "software-changes", "3", null,
+        var child = record("software-versions", "2", "software-changes", "3", null,
                 Map.of("id", "2", "projectId", "101", "logId", "3"));
         assertThrows(ServiceException.class, () -> normalizer.normalize(input(List.of(root, child))));
         var original = input(List.of(root));
@@ -80,7 +108,7 @@ class LegacyDetailNormalizerTest {
     }
 
     @Test void digestIsIndependentOfInputOrderAndChangesWithHistoryContent() {
-        var member = new LegacyDetailInput.SourceRecord("members", "9", "project", "101", "2026-10-07",
+        var member = record("members", "9", "project", "101", "2026-10-07",
                 Map.of("id", "9", "projectId", "101", "memberName", "Synthetic Member"));
         var a = normalizer.normalize(input(List.of(project("first"), member)));
         var b = normalizer.normalize(input(List.of(member, project("first"))));

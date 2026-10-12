@@ -62,6 +62,47 @@ class CommerceAuthorityImportControllerTest {
     }
 
     @Test
+    void mapsOptionalCallerRowVersionWithoutChangingTrustedIdentityOrBusinessPayload() {
+        var controller = new CommerceAuthorityImportController(
+                mock(CommerceAuthorityImportApplicationService.class), mock(Environment.class));
+        var time = LocalDateTime.of(2026, 8, 29, 12, 0);
+        var order = new CommerceAuthorityImportBatchReqVO.SalesOrderRecord(
+                "O-1", "V1", "V2", "DPTECH-DEMO", "SO-1", "NORMAL", null, null, null, null,
+                CommerceSourceLifecycleStatus.ACTIVE, time, null, null, "Current note", time, time, null, null, null, 7L);
+        var request = new CommerceAuthorityImportBatchReqVO("batch-guarded", "wm", time,
+                List.of(), List.of(order), List.of(), List.of());
+
+        var command = controller.toCommand(1L, "ERP", "op-guarded", "corr-guarded", request);
+
+        assertEquals(7L, command.salesOrders().getFirst().expectedRowVersion());
+        assertEquals("Current note", command.salesOrders().getFirst().orderComment());
+        assertEquals(1L, command.tenantId());
+        assertEquals("ERP", command.sourceSystem());
+    }
+
+    @Test
+    void mapsOptionalLineCallerRowVersionWithoutAllowingClientParentCompanyIdentity() {
+        var controller = new CommerceAuthorityImportController(
+                mock(CommerceAuthorityImportApplicationService.class), mock(Environment.class));
+        var time = LocalDateTime.of(2026, 8, 29, 12, 0);
+        var line = new CommerceAuthorityImportBatchReqVO.SalesOrderLineRecord(
+                "L-1", "V1", "V2", "O-1", "10", "Current Product", "Current Description", null,
+                BigDecimal.TEN, BigDecimal.TEN, BigDecimal.ZERO, "PCS", 0, "CONFIRMED",
+                CommerceSourceLifecycleStatus.ACTIVE, time, null, null, null, null, null, null, 7);
+        var request = new CommerceAuthorityImportBatchReqVO("batch-line-guarded", "wm", time,
+                List.of(), List.of(), List.of(line), List.of());
+
+        var command = controller.toCommand(1L, "ERP", "op-line-guarded", "corr-line-guarded", request);
+
+        assertEquals(7, command.orderLines().getFirst().expectedRowVersion());
+        assertEquals("Current Product", command.orderLines().getFirst().productCode());
+        assertEquals("O-1", command.orderLines().getFirst().salesOrderSourceKey());
+        assertEquals(1L, command.tenantId());assertEquals("ERP", command.sourceSystem());
+        assertFalse(Arrays.stream(CommerceAuthorityImportBatchReqVO.SalesOrderLineRecord.class.getRecordComponents())
+                .map(RecordComponent::getName).toList().contains("companyCode"));
+    }
+
+    @Test
     void shouldRejectEmptyBatchAtControllerValidationBoundary() {
         try (var factory = Validation.buildDefaultValidatorFactory()) {
             var violations = factory.getValidator().validate(

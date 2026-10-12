@@ -43,8 +43,11 @@ class ProjectLegacyDetailServiceTest {
     LegacyDetailInput input(String remark, String expected) {
         var counts = new LinkedHashMap<String, Integer>();
         catalog.domains().forEach(d -> counts.put(d.code(), 0)); counts.put("project", 1);
+        var values=new LinkedHashMap<String,String>();
+        catalog.require("project").fields().forEach(field->values.put(field.key(),null));
+        values.put("projectId","101");values.put("projectName",remark);
         return new LegacyDetailInput("synthetic-batch", "101", "SYNTHETIC-CONTRACT", LocalDateTime.of(2026, 10, 8, 10, 0), expected,
-                counts, List.of(new LegacyDetailInput.SourceRecord("project", "101", null, null, null, Map.of("projectId", "101", "projectName", remark))));
+                counts, List.of(new LegacyDetailInput.SourceRecord("project", "101", null, null, null, values)));
     }
     ProjectLegacySourceDO source() {
         var source = new ProjectLegacySourceDO(); source.setId(11L); source.setProjectId(99L);
@@ -69,9 +72,48 @@ class ProjectLegacyDetailServiceTest {
         contract(); when(mapper.updateHead(any())).thenReturn(1);
         var result = service.ingest(99L, input("history", null), actor);
         assertEquals("IMPORTED", result.decision()); assertEquals(1, result.records());
-        verify(mapper).insertSource(any()); verify(mapper).appendSnapshot(any()); verify(mapper).appendRecord(any());
+        verify(mapper).insertSource(any()); verify(mapper).appendSnapshot(any());
+        verify(mapper).appendRecord(argThat(row->{
+            var values=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(row.getPayloadJson(),
+                    new tools.jackson.core.type.TypeReference<Map<String,String>>(){});
+            return values.keySet().equals(input("history",null).records().getFirst().values().keySet())
+                    &&values.containsKey("customConfig")&&values.get("customConfig")==null&&"history".equals(values.get("projectName"));
+        }));
         verify(mapper).updateHead(argThat(q -> q.expectedVersion() == 0L && q.tenantId() == 1L));
         verify(projects).getProjectForManage(99L, actor); verifyNoMoreInteractions(projects);
+    }
+    @Test void freshFullCaptureAppendsAfterALegacyPartialSnapshotAndThenRemainsUnchanged() {
+        contract();var source=source();when(mapper.selectSourceForUpdate(any())).thenReturn(source);
+        var fresh=input("history",null);var full=normalizer.normalize(fresh);
+        // Historical encoding omitted NULL content and had no full-field coverage marker.
+        var legacyDigest=new java.util.TreeMap<String,Object>();
+        legacyDigest.put("sourceProjectKey",fresh.sourceProjectKey());legacyDigest.put("sourceContractNo",fresh.sourceContractNo());
+        legacyDigest.put("counts",full.counts());legacyDigest.put("records",full.records().stream().map(LegacyDetailNormalizer.Record::checksum).toList());
+        String legacyChecksum=LegacyDetailNormalizer.sha(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(legacyDigest));
+        assertNotEquals(legacyChecksum,full.checksum());
+        String legacyPayload=cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(fresh.records().getFirst().values());
+        assertFalse(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(legacyPayload,
+                new tools.jackson.core.type.TypeReference<Map<String,String>>(){}).containsKey("customConfig"));
+        var historical=snapshot(legacyChecksum);historical.setBatchKey("legacy-partial-batch");
+        historical.setDomainCountsJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(full.counts()));
+        var head=new java.util.concurrent.atomic.AtomicReference<ProjectLegacySnapshotDO>(historical);
+        when(mapper.selectSnapshot(any())).thenAnswer(call->head.get());
+        doAnswer(call->{head.set(call.getArgument(0));return 1;}).when(mapper).appendSnapshot(any());
+        when(mapper.updateHead(any())).thenReturn(1);
+        var imported=service.ingest(99L,input("history",legacyChecksum),actor);
+        assertEquals("IMPORTED",imported.decision());assertEquals(full.checksum(),imported.checksum());
+        assertNotEquals(historical.getId(),imported.snapshotId());assertEquals(legacyChecksum,historical.getChecksum());
+        var saved=org.mockito.ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO.class);
+        verify(mapper).appendRecord(saved.capture());
+        var values=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(saved.getValue().getPayloadJson(),
+                new tools.jackson.core.type.TypeReference<Map<String,String>>(){});
+        assertEquals(fresh.records().getFirst().values(),values);assertTrue(values.containsKey("customConfig"));assertNull(values.get("customConfig"));
+        source.setCurrentSnapshotId(imported.snapshotId());source.setVersion(source.getVersion()+1);
+        var second=new LegacyDetailInput("second-full-batch",fresh.sourceProjectKey(),fresh.sourceContractNo(),
+                fresh.sourceReadAt(),imported.checksum(),fresh.domainCounts(),fresh.records());
+        var unchanged=service.ingest(99L,second,actor);
+        assertEquals("UNCHANGED",unchanged.decision());assertEquals(imported.snapshotId(),unchanged.snapshotId());
+        verify(mapper,times(1)).appendSnapshot(any());verify(mapper,times(1)).appendRecord(any());verify(mapper,times(1)).updateHead(any());
     }
     @Test void refusesBindingTheSameLegacyProjectToAnotherRuntimeProject() {
         contract(); var source = source(); source.setProjectId(100L);

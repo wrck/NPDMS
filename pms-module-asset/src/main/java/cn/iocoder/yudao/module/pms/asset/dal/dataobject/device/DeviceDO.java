@@ -15,6 +15,9 @@ import java.time.LocalDateTime;
 public class DeviceDO extends BaseBusinessEntity {
 
     private String sn;
+    private String internalSerialNo;
+    private String secondarySn;
+    private String secondaryItem;
     private String name;
     private String productCode;
     private String productModel;

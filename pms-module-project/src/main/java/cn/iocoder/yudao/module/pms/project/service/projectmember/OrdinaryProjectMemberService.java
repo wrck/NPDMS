@@ -189,15 +189,7 @@ public class OrdinaryProjectMemberService {
 
     private ActiveUserSelectionApi.Query selection(ProjectMasterDO project, String role, ServiceScope scope,
             int pageNo, int pageSize, String keyword, Set<Long> userIds) {
-        String systemRole = switch (role) {
-            case TEAM_MEMBER, PROJECT_MANAGER -> PROJECT_MANAGER;
-            case SALES_REPRESENTATIVE -> SALES_REPRESENTATIVE;
-            case SERVICE_MANAGER -> SERVICE_MANAGER;
-            default -> throw exception(PROJECT_MEMBER_ROLE_INVALID);
-        };
-        var qualification = PROJECT_MANAGER.equals(role)
-                ? new ActiveUserSelectionApi.Qualification(project.getCompanyId(), null, null, PROJECT_MANAGER) : null;
-        return new ActiveUserSelectionApi.Query(pageNo, pageSize, keyword, userIds, systemRole, qualification);
+        return ProjectMemberQualification.query(project, role, pageNo, pageSize, keyword, userIds);
     }
 
     private static boolean managerRole(String role) {
@@ -403,7 +395,8 @@ public class OrdinaryProjectMemberService {
         }
     }
     private static boolean current(ProjectMemberAssignmentDO member, LocalDateTime now) {
-        return "ACTIVE".equals(member.getStatus()) && (member.getEffectiveFrom() == null || !member.getEffectiveFrom().isAfter(now))
+        return Boolean.TRUE.equals(member.getAuthorizationConfirmed()) && "ACTIVE".equals(member.getStatus())
+                && (member.getEffectiveFrom() == null || !member.getEffectiveFrom().isAfter(now))
                 && (member.getEffectiveTo() == null || member.getEffectiveTo().isAfter(now));
     }
     private static Result result(ProjectMasterDO project, ProjectMemberAssignmentDO member, boolean changed) {

@@ -1,0 +1,804 @@
+{
+  "table": "com_crm_execution_order",
+  "status": "USER_APPROVED_IMPLEMENTATION_IN_PROGRESS",
+  "newPhysicalTableOrColumn": false,
+  "existingFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "执行单编号",
+      "handling": "正式执行单技术主键；原id通过既有来源绑定关联"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "租户ID",
+      "handling": "迁移租户，关系和查询保持同租户"
+    },
+    {
+      "COLUMN_NAME": "source_system",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "来源系统",
+      "handling": "原dataSource直接承接"
+    },
+    {
+      "COLUMN_NAME": "execution_no",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "执行单编号",
+      "handling": "原orderExecNumber直接承接"
+    },
+    {
+      "COLUMN_NAME": "project_code",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目编码",
+      "handling": "原projectCode直接承接"
+    },
+    {
+      "COLUMN_NAME": "project_name",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目名称",
+      "handling": "原projectName直接承接"
+    },
+    {
+      "COLUMN_NAME": "primary_project_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "主项目ID",
+      "handling": "精确关联来源项目；当前项目关系冲突列明，不跨项目猜配"
+    },
+    {
+      "COLUMN_NAME": "sales_rep_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "销售代表编码",
+      "handling": "原salesManCode直接承接"
+    },
+    {
+      "COLUMN_NAME": "sales_rep_name",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "销售代表名称",
+      "handling": "原salesManName直接承接"
+    },
+    {
+      "COLUMN_NAME": "sales_rep_phone",
+      "COLUMN_TYPE": "varchar(300)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "销售代表电话",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "market_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "市场部编码",
+      "handling": "原marketCode直接承接"
+    },
+    {
+      "COLUMN_NAME": "market_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "市场部名称",
+      "handling": "原marketName直接承接"
+    },
+    {
+      "COLUMN_NAME": "system_source_key",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "系统部来源键",
+      "handling": "原systemId直接承接"
+    },
+    {
+      "COLUMN_NAME": "system_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "系统部编码",
+      "handling": "原systemId保存既有system_source_key，不臆造正式系统部编码"
+    },
+    {
+      "COLUMN_NAME": "system_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "系统部名称",
+      "handling": "原systemName直接承接"
+    },
+    {
+      "COLUMN_NAME": "expend_source_key",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "拓展部来源键",
+      "handling": "原expendId直接承接"
+    },
+    {
+      "COLUMN_NAME": "expend_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "拓展部编码",
+      "handling": "原expendId保存既有expend_source_key，不臆造正式拓展部编码"
+    },
+    {
+      "COLUMN_NAME": "expend_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "拓展部名称",
+      "handling": "原expendName直接承接"
+    },
+    {
+      "COLUMN_NAME": "industry_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "行业编码",
+      "handling": "原industryId直接承接"
+    },
+    {
+      "COLUMN_NAME": "industry_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "行业名称",
+      "handling": "原industryName直接承接"
+    },
+    {
+      "COLUMN_NAME": "department_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "办事处ID",
+      "handling": "按正式部门编码及已批准别名精确关联；本批10条当前为空，列为待关联"
+    },
+    {
+      "COLUMN_NAME": "department_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "办事处编码",
+      "handling": "原officeCode直接承接"
+    },
+    {
+      "COLUMN_NAME": "department_name",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "办事处名称",
+      "handling": "原officeName直接承接"
+    },
+    {
+      "COLUMN_NAME": "service_type_name",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "服务类型名称",
+      "handling": "原serviceTypeName直接承接"
+    },
+    {
+      "COLUMN_NAME": "channel_name",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "渠道名称",
+      "handling": "原channelName直接承接"
+    },
+    {
+      "COLUMN_NAME": "engineering_fee_raw",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "工程费用原始",
+      "handling": "原engineeFee直接承接"
+    },
+    {
+      "COLUMN_NAME": "engineering_fee",
+      "COLUMN_TYPE": "decimal(20,4)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "工程费用",
+      "handling": "合法原engineeFee金额按既有DECIMAL(20,4)解析，与engineering_fee_raw同时保留"
+    },
+    {
+      "COLUMN_NAME": "source_object_id",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源对象ID",
+      "handling": "原objId直接承接"
+    },
+    {
+      "COLUMN_NAME": "apply_type",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "申请类型编码",
+      "handling": "原applyType直接承接"
+    },
+    {
+      "COLUMN_NAME": "company_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "公司ID",
+      "handling": "按已批准转换后公司编码精确关联正式公司，本批10条当前为空，列为待关联"
+    },
+    {
+      "COLUMN_NAME": "company_code",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "公司编码",
+      "handling": "原corporationCode直接承接"
+    },
+    {
+      "COLUMN_NAME": "company_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "公司名称",
+      "handling": "从精确正式公司关系读取；原表没有公司名称，不伪造来源名称"
+    },
+    {
+      "COLUMN_NAME": "customer_project_name",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户项目名称",
+      "handling": "原customerProjectName直接承接"
+    },
+    {
+      "COLUMN_NAME": "final_customer_name",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "最终客户名称",
+      "handling": "原finalCustomerName直接承接"
+    },
+    {
+      "COLUMN_NAME": "agent_name",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "代理商名称",
+      "handling": "原agentName直接承接"
+    },
+    {
+      "COLUMN_NAME": "project_manager_code",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目负责人编码",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "project_manager_name",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目负责人名称",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "decision_path",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "决策路径",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "required_in_date",
+      "COLUMN_TYPE": "date",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "要求入场日期",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "receiver_name",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "收件人名称",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "receiver_contact",
+      "COLUMN_TYPE": "varchar(300)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "收件人联系人",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "receiver_address",
+      "COLUMN_TYPE": "varchar(1024)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "收件人地址",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "loan_reason",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "借用原因",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "project_type",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目类型编码",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "major_project_level",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "重大项目级别",
+      "handling": "原majorProjectLevel直接承接"
+    },
+    {
+      "COLUMN_NAME": "project_amount",
+      "COLUMN_TYPE": "decimal(20,4)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目金额",
+      "handling": "原projectMoney直接承接"
+    },
+    {
+      "COLUMN_NAME": "af_project_amount",
+      "COLUMN_TYPE": "decimal(20,4)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "安服项目金额",
+      "handling": "本原表没有对应来源值，保留已有正式业务事实，不推测填充或覆盖"
+    },
+    {
+      "COLUMN_NAME": "submit_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "提交时间",
+      "handling": "原submitTime直接承接"
+    },
+    {
+      "COLUMN_NAME": "predicted_bid_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "预计中标时间",
+      "handling": "原predBidDate直接承接"
+    },
+    {
+      "COLUMN_NAME": "contact_name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "联系人名称",
+      "handling": "原linkmanName直接承接"
+    },
+    {
+      "COLUMN_NAME": "contact_phone",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "联系人电话",
+      "handling": "原linkmanTel直接承接"
+    },
+    {
+      "COLUMN_NAME": "af_evidence_status",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "安服证据状态：CONFIRMED已确认，UNKNOWN未知",
+      "handling": "保持既有UNKNOWN/CONFIRMED Owner语义，不从普通项目金额推断安服证据"
+    },
+    {
+      "COLUMN_NAME": "source_sync_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源同步时间",
+      "handling": "沿既有Owner同步接收时间；原表没有同步时间列，不伪造历史时钟"
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "状态",
+      "handling": "保持既有正式启停事实；不从原项目状态臆造执行单状态"
+    },
+    {
+      "COLUMN_NAME": "version",
+      "COLUMN_TYPE": "int unsigned",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "乐观锁版本",
+      "handling": "既有乐观锁并发控制"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建人",
+      "handling": "沿正式Owner审计；原表没有创建人"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建时间",
+      "handling": "沿正式Owner记录创建审计；不把submitTime当原记录审计时间"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新人",
+      "handling": "沿正式Owner审计；原表没有更新人"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新时间",
+      "handling": "沿正式Owner更新审计；原表没有更新时间"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "删除标志：0否，1是",
+      "handling": "保持逻辑删除历史，不复活旧记录"
+    }
+  ],
+  "proposedWithdrawals": [
+    {
+      "field": "legacy_record_id",
+      "handling": "原技术ID保留既有INT来源绑定；完成所有关联/调用依赖核查后撤回重复业务列"
+    },
+    {
+      "field": "source_company_code",
+      "handling": "复用company_id/company_code和已批准转换；原码仅保留已有来源证据，不造重复实体字段"
+    }
+  ],
+  "originalFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "",
+      "target": "既有迁移/同步来源绑定",
+      "handling": "原自增ID是技术身份，沿既有INT来源绑定关联正式执行单，不新增legacy_record_id业务列",
+      "pilotValueDifferences": null
+    },
+    {
+      "COLUMN_NAME": "orderExecNumber",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "execution_no",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "projectCode",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "project_code",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "projectName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "project_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "salesManCode",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "sales_rep_code",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "salesManName",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "sales_rep_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "marketCode",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "market_code",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "marketName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "market_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "systemId",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "system_source_key",
+      "handling": "既有正式字段就是系统部原键；不把字典ID臆造为system_code",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "systemName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "system_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "expendId",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "expend_source_key",
+      "handling": "既有正式字段就是拓展部原键；不把字典ID臆造为expend_code",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "expendName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "expend_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "industryId",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "industry_code",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "industryName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "industry_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "officeCode",
+      "COLUMN_TYPE": "varchar(15)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "department_code / department_id",
+      "handling": "原办事处编码保存到正式编码列；按已批准精确部门及别名规则关联ID，不截断或按父级扩大授权",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "officeName",
+      "COLUMN_TYPE": "varchar(15)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "department_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "serviceTypeName",
+      "COLUMN_TYPE": "varchar(10)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "service_type_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "channelName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "出货代理商名称",
+      "target": "channel_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 3
+    },
+    {
+      "COLUMN_NAME": "engineeFee",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "工程服务费",
+      "target": "engineering_fee_raw / engineering_fee",
+      "handling": "原字符串直接保存到既有raw字段；合法金额另解析到既有金额列，不能只保存解析结果；非法或超精度值列明阻断",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "objId",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "参数1",
+      "target": "source_object_id",
+      "handling": "既有字段保存CRM来源业务对象引用，区别于原表自增ID，不撤销或编造对象关系",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "applyType",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "参数2",
+      "target": "apply_type",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "corporationCode",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "公司编码",
+      "target": "company_code / company_id",
+      "handling": "沿已批准01→001、02→002、03→003、04→004；未知阻断；公司ID仅从正式公司按编码精确关联",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "customerProjectName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户项目名称",
+      "target": "customer_project_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 1
+    },
+    {
+      "COLUMN_NAME": "finalCustomerName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "最终客户名称",
+      "target": "final_customer_name",
+      "handling": "产品实际最终用户；沿已裁决含义承接，不拿代理商或订单买方替代",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "agentName",
+      "COLUMN_TYPE": "varchar(500)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "代理商名称",
+      "target": "agent_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "projectMoney",
+      "COLUMN_TYPE": "decimal(16,2)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "出货价",
+      "target": "project_amount",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "submitTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目创建时间",
+      "target": "submit_time",
+      "handling": "原业务时间直接承接，不把它冒充执行单审计创建时间",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "majorProjectLevel",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "重大项目级别",
+      "target": "major_project_level",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "predBidDate",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "项目投标时间",
+      "target": "predicted_bid_time",
+      "handling": "复用既有预计投标/中标业务日期，保留原值，不新增镜像日期",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "linkmanName",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户联系人",
+      "target": "contact_name",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "linkmanTel",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "客户联系方式",
+      "target": "contact_phone",
+      "handling": "原值直接复用正式字段，保留原NULL、空字符串及合法内容；冲突先列明，不覆盖现存不同业务事实",
+      "pilotValueDifferences": 0
+    },
+    {
+      "COLUMN_NAME": "dataSource",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "source_system",
+      "handling": "原实际SMS/SAP/D365来源类别，直接复用既有正式字段，不新增ERP镜像",
+      "pilotValueDifferences": 0
+    }
+  ],
+  "evidence": {
+    "originalRows": 10,
+    "uniqueFormalMatches": 10,
+    "mappedBusinessValueDifferences": {
+      "orderExecNumber": 0,
+      "projectCode": 0,
+      "projectName": 0,
+      "salesManCode": 0,
+      "salesManName": 0,
+      "marketCode": 0,
+      "marketName": 0,
+      "systemId": 0,
+      "systemName": 0,
+      "expendId": 0,
+      "expendName": 0,
+      "industryId": 0,
+      "industryName": 0,
+      "officeCode": 0,
+      "officeName": 0,
+      "serviceTypeName": 0,
+      "channelName": 3,
+      "engineeFee": 0,
+      "objId": 0,
+      "applyType": 0,
+      "corporationCode": 0,
+      "customerProjectName": 1,
+      "finalCustomerName": 0,
+      "agentName": 0,
+      "projectMoney": 0,
+      "submitTime": 0,
+      "majorProjectLevel": 0,
+      "predBidDate": 0,
+      "linkmanName": 0,
+      "linkmanTel": 0,
+      "dataSource": 0
+    },
+    "originalEmptyStringCounts": {
+      "channelName": 3,
+      "customerProjectName": 1
+    },
+    "numericEngineeringFeeDifferences": 0,
+    "companyIdUnlinked": 10,
+    "departmentIdUnlinked": 10,
+    "globalPreservation": {
+      "allTenantIncludingDeletedRows": 83487,
+      "nonNullMirrors": {
+        "legacy_record_id": 10,
+        "source_company_code": 10
+      },
+      "companyValueIssues": 0
+    }
+  },
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "runtimeAcceptance": "NOT_RUN",
+  "userDecision": "整表按建议",
+  "implementation": {
+    "newPhysicalColumns": 0,
+    "twoMirrorsWithdrawnFromCodeAndSql": true,
+    "originalEmptyStringsPreserved": true,
+    "exactOrganizationReferences": "SYS_API_ONLY",
+    "databaseCorrection": "NOT_RUN",
+    "runtimeAcceptance": "NOT_RUN"
+  },
+  "verification": {
+    "actualMySqlMapper": {
+      "result": "PASS",
+      "tests": 3,
+      "affectedRegressionTestsInSameRun": 47,
+      "fixtureStorage": "CONNECTION_LOCAL_TEMPORARY_TABLES",
+      "nativeBusinessRowsWritten": 0,
+      "nativeSchemaChanged": false,
+      "runtimeAcceptance": "NOT_RUN"
+    },
+    "frontendChangedFileLint": "PASS",
+    "commerceAndProjectPriorTargetedTests": 122
+  }
+}

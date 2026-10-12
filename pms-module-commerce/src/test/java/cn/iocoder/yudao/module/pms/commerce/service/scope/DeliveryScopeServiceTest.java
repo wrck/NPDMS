@@ -11,6 +11,8 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEvent
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.OrderLineMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeEvidenceQuery;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,7 +48,7 @@ class DeliveryScopeServiceTest {
     @Test
     void shouldPreviewExactAndPartialAllocation() {
         when(orderLineMapper.selectBatchIds(anyCollection())).thenReturn(List.of(line(10L, "10")));
-        when(deliveryScopeMapper.selectActiveByProjectId(100L))
+        when(deliveryScopeMapper.selectActiveByProjectId(new DeliveryScopeProjectQuery(1L,100L)))
                 .thenReturn(List.of(scope(10L, "10", 2L)));
 
         SplitScopeApplyResult result = service.previewSplit(preview(2L,
@@ -61,7 +63,7 @@ class DeliveryScopeServiceTest {
     @Test
     void shouldRejectOverAllocationAndStaleVersion() {
         when(orderLineMapper.selectBatchIds(anyCollection())).thenReturn(List.of(line(10L, "10")));
-        when(deliveryScopeMapper.selectActiveByProjectId(100L))
+        when(deliveryScopeMapper.selectActiveByProjectId(new DeliveryScopeProjectQuery(1L,100L)))
                 .thenReturn(List.of(scope(10L, "4", 3L)));
 
         SplitScopeApplyResult result = service.previewSplit(preview(2L,
@@ -75,7 +77,7 @@ class DeliveryScopeServiceTest {
     @Test
     void shouldRejectFractionalQuantityForIntegerUnit() {
         when(orderLineMapper.selectBatchIds(anyCollection())).thenReturn(List.of(line(10L, "10")));
-        when(deliveryScopeMapper.selectActiveByProjectId(100L))
+        when(deliveryScopeMapper.selectActiveByProjectId(new DeliveryScopeProjectQuery(1L,100L)))
                 .thenReturn(List.of(scope(10L, "10", 1L)));
 
         SplitScopeApplyResult result = service.previewSplit(preview(1L,
@@ -164,7 +166,7 @@ class DeliveryScopeServiceTest {
         replayedScope.setId(700L);
         replayedScope.setProjectId(101L);
         replayedScope.setSourceEvidence("F-PROJ-002:idem-1:A");
-        when(deliveryScopeMapper.selectBySourceEvidencePrefix(1L, "F-PROJ-002:idem-1:"))
+        when(deliveryScopeMapper.selectBySourceEvidencePrefix(new DeliveryScopeEvidenceQuery(1L, "F-PROJ-002:idem-1:")))
                 .thenReturn(List.of(replayedScope));
         SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 0L, 0L, "idem-1",
                 Map.of("A", 101L), Map.of("A", 0L), List.of(new SplitScopeApplyCommand.Allocation(

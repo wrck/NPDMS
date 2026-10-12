@@ -139,7 +139,7 @@
       />
       <SchedulePlanningTable
         :items="batch.items"
-        :tasks="batch.tasks"
+        :tasks="batch.tasks || []"
         :plan="batch"
         :editable="editable"
         :navigation-disabled="dirty || acting"
@@ -570,7 +570,7 @@ const openSubmit = async () => {
           .map((person) => [person.userId, person])
       ).values()
     ]
-    if (approvers.value.length === 1) approverId.value = approvers.value[0].userId
+    if (approvers.value.length === 1) approverId.value = approvers.value[0].userId ?? undefined
     else if (!approvers.value.length)
       approverError.value = '本项目尚无有效服务经理，请先在项目成员中完成指派。'
   } catch {

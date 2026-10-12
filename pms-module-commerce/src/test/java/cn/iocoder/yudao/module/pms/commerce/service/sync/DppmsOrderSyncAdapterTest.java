@@ -21,7 +21,7 @@ class DppmsOrderSyncAdapterTest {
     private final ErpOrderSyncMapper mapper=mock(ErpOrderSyncMapper.class);
     private final CommerceAuthorityIngestApi authority=mock(CommerceAuthorityIngestApi.class);
     private final DppmsOrderSyncAdapter adapter=new DppmsOrderSyncAdapter(mapper,authority,new AuthorityPayloadCanonicalizer());
-    private static final String ORDER_KEY="DPPMS|D365|01|1|R-1";
+    private static final String ORDER_KEY="DPPMS|D365|001|1|R-1";
     @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
@@ -40,6 +40,23 @@ class DppmsOrderSyncAdapterTest {
         assertTrue(names.contains("executionNo"));
     }
 
+    @Test void acceptedProductAndCustomFieldsReachTheAuthorityFacts() {
+        when(authority.ingestBatch(any())).thenAnswer(inv->{
+            CommerceAuthorityBatchCommand command=inv.getArgument(0);
+            assertEquals("Head original custom",command.salesOrders().getFirst().customInfo());
+            var line=command.orderLines().getFirst();
+            assertEquals("PRODUCT-A",line.productCode());assertEquals("Original product description",line.productDesc());
+            assertEquals("Line original custom",line.customInfo());
+            when(mapper.selectOrders(any())).thenReturn(List.of(order()));
+            var stored=new SalesOrderLineDO();stored.setId(102L);stored.setSourceKey(ORDER_KEY+"|10");
+            when(mapper.selectLines(any())).thenReturn(List.of(stored));
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        var headFields=new LinkedHashMap<>(row("ORDER","1").fields());headFields.put("customInfo","Head original custom");
+        var lineFields=new LinkedHashMap<>(row("LINE","2").fields());lineFields.putAll(Map.of("productCode","PRODUCT-A","productDesc","Original product description","customInfo","Line original custom"));
+        var changes=adapter.apply(batch(new Row("ORDER","1",headFields,null),new Row("LINE","2",lineFields,null)));
+        assertEquals(List.of(101L,102L),changes.stream().map(Change::targetId).toList());
+    }
     @Test void previewGroupsIdenticalHeadsAndDoesNotWrite() {
         var changes=adapter.preview(batch(row("LINE","3"),row("ORDER","1"),row("ORDER","2")));
         assertEquals(3,changes.size());
@@ -159,6 +176,7 @@ class DppmsOrderSyncAdapterTest {
     @Test void opaqueLineRevisionUsesSourceTimeAndPreservesOwner() {
         var parent=order();when(mapper.selectOrders(any())).thenReturn(List.of(parent));
         var line=new SalesOrderLineDO();line.setId(102L);line.setOrderId(101L);line.setTenantId(1L);
+        line.setSourceSystem("ERP");
         line.setSourceKey(ORDER_KEY+"|10");line.setSourceVersion("migration-line-revision-1");
         line.setSourceUpdatedAt(LocalDateTime.of(2026,9,13,10,0));
         when(mapper.selectLines(any())).thenReturn(List.of(line));
@@ -172,16 +190,88 @@ class DppmsOrderSyncAdapterTest {
         verify(authority).ingestBatch(any());
     }
 
+    @Test void historicalErpCategoryIsCorrectedThroughTheOwnerEvenForAnUnchangedSourceVersion() {
+        var stored=order();when(mapper.selectOrders(any())).thenReturn(List.of(stored));
+        when(authority.ingestBatch(any())).thenAnswer(invocation->{
+            var command=invocation.getArgument(0,CommerceAuthorityBatchCommand.class);
+            assertEquals("ERP",command.sourceSystem());assertEquals(ORDER_KEY,command.salesOrders().getFirst().sourceKey());
+            stored.setSourceSystem("D365");return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        assertEquals("UPDATED",adapter.apply(batch(row("ORDER","1"))).getFirst().action());
+        assertEquals("UNCHANGED",adapter.apply(batch(row("ORDER","1"))).getFirst().action());
+        verify(authority,times(1)).ingestBatch(any());
+    }
+    @Test void wrongActualErpSystemCannotBeAdoptedByTheSameSourceKey() {
+        var stored=order();stored.setSourceSystem("SMS");when(mapper.selectOrders(any())).thenReturn(List.of(stored));
+        assertEquals("CONFLICT",adapter.apply(batch(row("ORDER","1"))).getFirst().action());verifyNoInteractions(authority);
+    }
+    @Test void preservedRawCompanyOwnerKeyIsReusedByBothHeaderAndLineAfterCompanyConversion() {
+        String oldKey="DPPMS|D365|01|1|R-1";var parent=order();parent.setSourceKey(oldKey);
+        when(mapper.selectOrders(any())).thenReturn(List.of(parent));
+        when(authority.ingestBatch(any())).thenAnswer(invocation->{
+            var command=invocation.getArgument(0,CommerceAuthorityBatchCommand.class);
+            assertEquals(oldKey,command.salesOrders().getFirst().sourceKey());
+            assertEquals("001",command.salesOrders().getFirst().companyCode());
+            assertEquals(oldKey,command.orderLines().getFirst().salesOrderSourceKey());
+            assertEquals(oldKey+"|10",command.orderLines().getFirst().sourceKey());
+            var line=new SalesOrderLineDO();line.setId(102L);line.setSourceKey(oldKey+"|10");
+            when(mapper.selectLines(any())).thenReturn(List.of(line));
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        var changes=adapter.apply(batch(row("ORDER","1"),row("LINE","2")));
+        assertEquals(List.of(101L,102L),changes.stream().map(Change::targetId).toList());
+        assertEquals(List.of(oldKey,oldKey+"|10"),changes.stream().map(c->c.after().get("_targetSourceKey")).toList());
+    }
+    @Test void unknownCompanyBlocksBeforeAnyOwnerWrite() {
+        var fields=new LinkedHashMap<>(row("ORDER","1").fields());fields.put("companyCode","05");
+        var result=adapter.apply(batch(new Row("ORDER","1",fields,null))).getFirst();
+        assertEquals("ISSUE",result.action());assertTrue(result.message().contains("DPPMS_COMPANY_CODE_UNMAPPED"));verifyNoInteractions(authority);
+    }
+    @Test void originalDescriptionAndEmptyBundleReachTheOwnerWithoutTrimmingOrDropping() {
+        var fields=new LinkedHashMap<>(row("LINE","2").fields());fields.put("productDesc"," Description ");fields.put("bundleCode","");
+        when(authority.ingestBatch(any())).thenAnswer(invocation->{
+            var command=invocation.getArgument(0,CommerceAuthorityBatchCommand.class);var fact=command.orderLines().getFirst();
+            assertEquals(" Description ",fact.productDesc());assertEquals("",fact.bundleCode());
+            when(mapper.selectOrders(any())).thenReturn(List.of(order()));
+            var line=new SalesOrderLineDO();line.setId(102L);line.setSourceKey(ORDER_KEY+"|10");when(mapper.selectLines(any())).thenReturn(List.of(line));
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        adapter.apply(batch(row("ORDER","1"),new Row("LINE","2",fields,null)));
+    }
+    @Test void originalDecimalQuantitiesRetainTheirPrecisionWithoutInventingAUnit() {
+        var fields=new LinkedHashMap<>(row("LINE","2").fields());fields.put("orderQuantity","-4.125");fields.put("openQuantity","-1.05");
+        when(mapper.selectOrders(any())).thenReturn(List.of(order()));
+        when(authority.ingestBatch(any())).thenAnswer(invocation->{
+            var command=invocation.getArgument(0,CommerceAuthorityBatchCommand.class);var fact=command.orderLines().getFirst();
+            assertEquals(new BigDecimal("-4.125"),fact.orderQuantity());assertEquals(new BigDecimal("-3.075"),fact.deliveredQuantity());
+            assertEquals(3,fact.unitScale());assertNull(fact.unitCode());assertEquals("PENDING_AUTHORITY",fact.quantityStatus());
+            var line=new SalesOrderLineDO();line.setId(102L);line.setSourceKey(ORDER_KEY+"|10");when(mapper.selectLines(any())).thenReturn(List.of(line));
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        assertEquals("CREATED",adapter.apply(batch(new Row("LINE","2",fields,null))).getFirst().action());
+    }
+    @Test void approvedDppmsOriginalTextDoesNotRelaxOtherSourcesOrFieldLengthValidation() {
+        var at=LocalDateTime.of(2020,1,2,3,4);
+        assertThrows(cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException.class,()->
+                new CommerceOrderLineFact("OTHER-LINE",null,"V1","OTHER-ORDER","1","PRODUCT"," Description ",null,
+                        BigDecimal.ONE,BigDecimal.ZERO,BigDecimal.ONE,null,0,"PENDING_AUTHORITY",CommerceSourceLifecycleStatus.ACTIVE,
+                        at,"0","",null,null,null,null));
+        assertThrows(cn.iocoder.yudao.module.pms.commerce.api.authority.CommerceAuthorityIngestException.class,()->
+                new CommerceOrderLineFact(ORDER_KEY+"|1",null,"V1",ORDER_KEY,"1","PRODUCT","x".repeat(513),null,
+                        BigDecimal.ONE,BigDecimal.ZERO,BigDecimal.ONE,null,0,"PENDING_AUTHORITY",CommerceSourceLifecycleStatus.ACTIVE,
+                        at,"0","",null,null,null,null));
+    }
+
     private static Batch batch(Row... rows) { return new Batch("integration:1:99",List.of(rows),List.of(),true,"RETAIN",false,"UPSERT",false); }
     private static Row row(String object,String id) {
-        Map<String,Object> fields=new LinkedHashMap<>(Map.of("erpSource","D365","companyCode","01","orderType","1",
+        Map<String,Object> fields=new LinkedHashMap<>(Map.of("erpSource","D365","companyCode","001","orderType","1",
                 "orderNo","R-1","sourceUpdatedAt","2026-09-14T10:00:00"));
         if("LINE".equals(object))fields.putAll(Map.of("lineNo","10","orderQuantity",-4,"openQuantity",-1));
         return new Row(object,id,fields,null);
     }
     private static SalesOrderDO order() {
         var r=new SalesOrderDO();r.setId(101L);r.setTenantId(1L);r.setSourceKey(ORDER_KEY);
-        r.setSourceSystem("ERP");r.setCompanyCode("01");r.setOrderType("1");r.setOrderNo("R-1");
+        r.setSourceSystem("ERP");r.setCompanyCode("001");r.setOrderType("1");r.setOrderNo("R-1");
         r.setSourceVersion("2026-09-14T10:00");r.setSourceUpdatedAt(LocalDateTime.of(2026,9,14,10,0));
         r.setSourceLifecycleStatus("RETURNED");r.setAuthorityStatus("CONFIRMED");return r;
     }

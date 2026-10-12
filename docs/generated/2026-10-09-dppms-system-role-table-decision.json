@@ -1,0 +1,816 @@
+{
+  "status": "USER_KEEP_EXISTING_STRUCTURE_MISSING_FIELDS_PENDING",
+  "existingTable": "system_role",
+  "sourceTables": [
+    "t_role",
+    "fnd_roles"
+  ],
+  "sourceColumnCount": 22,
+  "sourceRowCounts": {
+    "t_role": 14,
+    "fnd_roles": 18
+  },
+  "newTable": false,
+  "existingColumns": [
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "PRI",
+      "COLUMN_COMMENT": "角色ID",
+      "proposedHandling": "复用正式角色ID；来源主键通过既有迁移/同步绑定，不直接套用旧ID。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "name",
+      "COLUMN_TYPE": "varchar(30)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "角色名称",
+      "proposedHandling": "依32项已批准清单复用同义角色；独立新角色以t定义为主、fnd补缺，关联现存角色不改其名称或权限。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "code",
+      "COLUMN_TYPE": "varchar(100)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "角色权限字符串",
+      "proposedHandling": "t_role使用原字符串值；fnd按用户裁决将常量语义转换为lowerCamel业务编码，不直接使用ID或常量名。明确别名按32项角色映射关联既有角色。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "sort",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "显示顺序",
+      "proposedHandling": "已批准t_role用100-priority，独立fnd角色用100+原ID保持显示顺序；ID只参与排序，不用于角色编码。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "data_scope",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "数据范围（1：全部数据权限 2：自定数据权限 3：本部门数据权限 4：本部门及以下数据权限）",
+      "proposedHandling": "已批准新角色SELF=5，不自动授予菜单按钮；内外用户仅按具体项目授权，公司/部门范围只供资格候选。现存角色全部权限保留，平台超级管理员按用户明确例外关联。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "data_scope_dept_ids",
+      "COLUMN_TYPE": "varchar(500)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "数据范围(指定部门数组)",
+      "proposedHandling": "复用现有字段；不将不同用户的公司/部门范围合并成全角色部门集合。新增角色SELF不配置泛化部门集合。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "角色状态（0正常 1停用）",
+      "proposedHandling": "只迁入有效来源角色（原1→正式启用0）；停用fnd15由用户明确裁决不迁入，不激活当前停用角色。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "type",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "角色类型",
+      "proposedHandling": "新增普通角色CUSTOM=2；t_role1按用户明确裁决关联平台super_admin并授予相应权限，其余普通角色不推定超级管理员。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "remark",
+      "COLUMN_TYPE": "varchar(500)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "备注",
+      "proposedHandling": "复用remark；同一角色的多来源冲突列明，不默认覆盖。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "创建者",
+      "proposedHandling": "复用正式用户关联；身份迁移后回填，不伪造来源操作者。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "创建时间",
+      "proposedHandling": "原历史创建时间。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "更新者",
+      "proposedHandling": "复用正式用户关联；身份迁移后回填，不伪造来源操作者。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "更新时间",
+      "proposedHandling": "原更新时间；NULL按用户裁决用原创建时间初始化，原NULL列入来源证据，不用运行时间。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "是否删除",
+      "proposedHandling": "复用既有逻辑删除字段，不从原停用推导删除。"
+    },
+    {
+      "TABLE_NAME": "system_role",
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_KEY": "",
+      "COLUMN_COMMENT": "租户编号",
+      "proposedHandling": "复用租户边界。"
+    }
+  ],
+  "sourceFields": [
+    {
+      "sourceTable": "t_role",
+      "sourceField": "role_id",
+      "sourceType": "int(11)",
+      "businessTarget": "system_role.id 的来源绑定",
+      "handlingAndReason": "14角色独立来源ID，不能和fnd_roles同数字ID归并。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "role_name",
+      "sourceType": "varchar(100)",
+      "businessTarget": "system_role.code",
+      "handlingAndReason": "以t_role为基础；现有角色同义匹配须显式映射，不以源码英文code直接命中新平台super_admin。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "role_name_zn",
+      "sourceType": "varchar(100)",
+      "businessTarget": "system_role.name",
+      "handlingAndReason": "以t_role为基础；现有角色同义匹配须显式映射，不以源码英文code直接命中新平台super_admin。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "home_page",
+      "sourceType": "varchar(100)",
+      "businessTarget": "不迁入；用户明确裁决",
+      "handlingAndReason": "用户明确选择不迁入，保持system_role既有结构；不新增替代列，不写入备注或快照充作业务承接。原始来源证据保留。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "不迁入"
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "priority",
+      "sourceType": "int(11)",
+      "businessTarget": "system_role.sort",
+      "handlingAndReason": "已批准t_role用100-priority，独立fnd角色用100+原ID保持显示顺序；ID只参与排序，不用于角色编码。",
+      "status": "USER_APPROVED_CONVERSION",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "status",
+      "sourceType": "smallint(1)",
+      "businessTarget": "system_role.status",
+      "handlingAndReason": "只迁入有效来源角色（原1→正式启用0）；停用fnd15由用户明确裁决不迁入，不激活当前停用角色。",
+      "status": "USER_APPROVED_ACTIVE_ONLY",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "create_by",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "create_time",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "保留原历史时间，不用本次运行时间覆盖。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "update_by",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "update_time",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "保留原历史时间，不用本次运行时间覆盖。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "t_role",
+      "sourceField": "remark",
+      "sourceType": "varchar(255)",
+      "businessTarget": "system_role.remark",
+      "handlingAndReason": "以t_role为基础；现有角色同义匹配须显式映射，不以源码英文code直接命中新平台super_admin。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "id",
+      "sourceType": "int(6)",
+      "businessTarget": "现有来源身份绑定→正式对象ID",
+      "handlingAndReason": "来源系统＋表/对象＋来源主键；不得将不同表同数值ID视为同一对象。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "roleName",
+      "sourceType": "varchar(64)",
+      "businessTarget": "system_role.name / 明确的业务角色语义映射",
+      "handlingAndReason": "与t_role中文完全同名仅普通用户、项目管理员、项目经理3项；同名不证明授权范围一致，其他15项不静默丢弃。",
+      "status": "ROLE_SEMANTIC_MAPPING_PENDING",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "defaultPage",
+      "sourceType": "varchar(255)",
+      "businessTarget": "不迁入；用户明确裁决",
+      "handlingAndReason": "用户明确选择不迁入，保持system_role既有结构；不新增替代列，不写入备注或快照充作业务承接。原始来源证据保留。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "不迁入"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "status",
+      "sourceType": "int(1)",
+      "businessTarget": "system_role.status",
+      "handlingAndReason": "只迁入有效来源角色（原1→正式启用0）；停用fnd15由用户明确裁决不迁入，不激活当前停用角色。",
+      "status": "USER_APPROVED_ACTIVE_ONLY",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "effectiveFrom",
+      "sourceType": "datetime",
+      "businessTarget": "不迁入；用户明确裁决",
+      "handlingAndReason": "用户明确选择不迁入，保持system_role既有结构；不新增替代列，不写入备注或快照充作业务承接。原始来源证据保留。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "不迁入"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "effectiveTo",
+      "sourceType": "datetime",
+      "businessTarget": "不迁入；用户明确裁决",
+      "handlingAndReason": "用户明确选择不迁入，保持system_role既有结构；不新增替代列，不写入备注或快照充作业务承接。原始来源证据保留。",
+      "status": "EXCLUDED_BY_USER_DECISION",
+      "userDecision": "不迁入"
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "createBy",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "保留原历史时间，不用本次运行时间覆盖。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(25)",
+      "businessTarget": "creator/updater",
+      "handlingAndReason": "账号迁移后按明确来源身份关联正式用户；空原值不伪造操作者；本次运行另记操作者。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "businessTarget": "create_time/update_time",
+      "handlingAndReason": "保留原历史时间，不用本次运行时间覆盖。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "sourceField": "roleRemark",
+      "sourceType": "varchar(200)",
+      "businessTarget": "system_role.remark",
+      "handlingAndReason": "角色同义合并时差异列为冲突，不能覆盖t_role主定义。",
+      "status": "EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "userDecision": null
+    }
+  ],
+  "sourceRoleDefinitions": {
+    "t_role": [
+      {
+        "role_id": 1,
+        "role_name": "admin",
+        "role_name_zn": "超级管理员",
+        "home_page": "/pm/user.html",
+        "priority": 100,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2017-02-07 17:47:39",
+        "update_by": "",
+        "update_time": "2020-07-09 19:18:43",
+        "remark": ""
+      },
+      {
+        "role_id": 2,
+        "role_name": "user",
+        "role_name_zn": "普通用户",
+        "home_page": "/workflow/workbench.html",
+        "priority": 0,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2017-02-07 17:47:50",
+        "update_by": "",
+        "update_time": "2022-09-27 15:12:50",
+        "remark": ""
+      },
+      {
+        "role_id": 5,
+        "role_name": "projectMember",
+        "role_name_zn": "项目成员",
+        "home_page": "/pm/project.html",
+        "priority": 50,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2020-03-18 15:08:35",
+        "update_by": "",
+        "update_time": "2020-04-22 10:50:30",
+        "remark": ""
+      },
+      {
+        "role_id": 6,
+        "role_name": "projectAdmin",
+        "role_name_zn": "项目管理员",
+        "home_page": "/pm/project.html",
+        "priority": 80,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2020-03-18 15:09:21",
+        "update_by": "",
+        "update_time": "2020-05-09 15:23:46",
+        "remark": ""
+      },
+      {
+        "role_id": 7,
+        "role_name": "projectManager",
+        "role_name_zn": "项目经理",
+        "home_page": "/pm/project.html",
+        "priority": 55,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2020-04-17 18:09:40",
+        "update_by": "",
+        "update_time": "2020-04-17 18:09:54",
+        "remark": ""
+      },
+      {
+        "role_id": 8,
+        "role_name": "projectAFQC",
+        "role_name_zn": "安服质量监督员",
+        "home_page": "/workflow/workbench.html",
+        "priority": 60,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2020-04-27 16:18:08",
+        "update_by": "",
+        "update_time": "2020-04-27 16:18:18",
+        "remark": ""
+      },
+      {
+        "role_id": 9,
+        "role_name": "projectYFQC",
+        "role_name_zn": "研发质量监督员",
+        "home_page": "/workflow/workbench.html",
+        "priority": 60,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2020-04-27 16:18:55",
+        "update_by": "",
+        "update_time": "2020-05-19 09:57:20",
+        "remark": ""
+      },
+      {
+        "role_id": 10,
+        "role_name": "projectSubAdmin",
+        "role_name_zn": "子项目管理员",
+        "home_page": "/pm/project.html",
+        "priority": 70,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2020-05-09 15:23:15",
+        "update_by": "",
+        "update_time": "2020-05-09 15:24:21",
+        "remark": "所有项目的管理员"
+      },
+      {
+        "role_id": 11,
+        "role_name": "projectAreaManager",
+        "role_name_zn": "项目区域负责人",
+        "home_page": "/pm/project.html",
+        "priority": 65,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2020-05-19 09:56:32",
+        "update_by": "",
+        "update_time": "2020-05-19 09:56:56",
+        "remark": ""
+      },
+      {
+        "role_id": 12,
+        "role_name": "projectPreSales",
+        "role_name_zn": "项目售前",
+        "home_page": "/pm/project.html",
+        "priority": 30,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2021-02-05 18:08:40",
+        "update_by": "",
+        "update_time": null,
+        "remark": ""
+      },
+      {
+        "role_id": 13,
+        "role_name": "userManager",
+        "role_name_zn": "用户管理员",
+        "home_page": "/pm/user.html",
+        "priority": 62,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2021-09-18 08:59:19",
+        "update_by": "",
+        "update_time": "2021-09-18 09:49:45",
+        "remark": ""
+      },
+      {
+        "role_id": 14,
+        "role_name": "financialAP",
+        "role_name_zn": "财务AP",
+        "home_page": "/workflow/workbench.html",
+        "priority": 60,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2022-07-07 11:13:16",
+        "update_by": "",
+        "update_time": null,
+        "remark": "财务AP"
+      },
+      {
+        "role_id": 15,
+        "role_name": "dataViewer",
+        "role_name_zn": "数据查询角色",
+        "home_page": "/data.html",
+        "priority": 0,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2023-06-28 10:48:05",
+        "update_by": "",
+        "update_time": "2023-06-28 10:48:23",
+        "remark": "数据查询角色"
+      },
+      {
+        "role_id": 16,
+        "role_name": "dispatchSettleStaff",
+        "role_name_zn": "项目转包结算人员",
+        "home_page": "/pm/dispatch.html",
+        "priority": 40,
+        "status": 1,
+        "create_by": "",
+        "create_time": "2024-08-01 10:19:25",
+        "update_by": "",
+        "update_time": null,
+        "remark": "项目转包结算人员"
+      }
+    ],
+    "fnd_roles": [
+      {
+        "id": 1,
+        "roleName": "管理员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-03-11 14:29:48",
+        "effectiveTo": null,
+        "createBy": "admin",
+        "createTime": "2015-03-11 14:29:57",
+        "updateBy": null,
+        "updateTime": "2024-04-08 09:59:52",
+        "roleRemark": ""
+      },
+      {
+        "id": 3,
+        "roleName": "普通用户",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-03-24 11:22:04",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2015-03-24 11:22:04",
+        "updateBy": null,
+        "updateTime": "2015-06-05 11:48:56",
+        "roleRemark": ""
+      },
+      {
+        "id": 5,
+        "roleName": "项目管理员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2022-12-07 11:20:33",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2022-12-07 11:20:33",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": "项目管理员"
+      },
+      {
+        "id": 6,
+        "roleName": "项目查阅员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2022-12-07 11:20:33",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2022-12-07 11:20:33",
+        "updateBy": null,
+        "updateTime": "2022-12-07 11:26:26",
+        "roleRemark": "项目查阅员"
+      },
+      {
+        "id": 9,
+        "roleName": "办事处主任",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-03-24 11:22:04",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2015-03-24 11:22:04",
+        "updateBy": null,
+        "updateTime": "2015-06-05 11:48:56",
+        "roleRemark": "办事处主任，项目转包时申请审批"
+      },
+      {
+        "id": 10,
+        "roleName": "工程管理部主管",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-03-24 11:22:04",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2015-03-24 11:22:04",
+        "updateBy": null,
+        "updateTime": "2015-06-05 11:48:56",
+        "roleRemark": "工程管理部主管，项目转包是申请审批"
+      },
+      {
+        "id": 11,
+        "roleName": "服务经理",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-05-19 10:14:50",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2015-05-19 10:14:50",
+        "updateBy": null,
+        "updateTime": "2015-06-13 10:51:16",
+        "roleRemark": "办事处服务经理"
+      },
+      {
+        "id": 12,
+        "roleName": "项目经理",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-05-26 16:28:51",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2015-05-26 16:28:51",
+        "updateBy": null,
+        "updateTime": "2015-06-13 10:51:37",
+        "roleRemark": ""
+      },
+      {
+        "id": 13,
+        "roleName": "工程管理部",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-05-26 16:29:13",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2015-05-26 16:29:13",
+        "updateBy": null,
+        "updateTime": "2015-06-13 10:52:08",
+        "roleRemark": ""
+      },
+      {
+        "id": 14,
+        "roleName": "回访人员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2015-05-30 15:36:01",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2015-05-30 15:36:01",
+        "updateBy": null,
+        "updateTime": "2015-06-01 11:42:57",
+        "roleRemark": ""
+      },
+      {
+        "id": 15,
+        "roleName": "&aelig;&micro;&egrave;&macr;&auml;&ordm;&ordm;&aring;",
+        "defaultPage": "module/Welcome1.action",
+        "status": 0,
+        "effectiveFrom": "2015-06-29 19:25:20",
+        "effectiveTo": "2015-07-31 13:42:40",
+        "createBy": null,
+        "createTime": "2015-06-29 19:25:20",
+        "updateBy": null,
+        "updateTime": "2015-07-31 13:42:42",
+        "roleRemark": "test"
+      },
+      {
+        "id": 16,
+        "roleName": "财务人员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2016-01-05 17:18:04",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2016-01-05 17:18:04",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": "财务人员下载完工证明所用"
+      },
+      {
+        "id": 17,
+        "roleName": "售前测试专员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2017-02-07 15:23:38",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2017-02-07 15:23:38",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": ""
+      },
+      {
+        "id": 18,
+        "roleName": "技术公告管理员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2017-02-08 09:08:38",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2017-02-08 09:08:38",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": "技术公告管理员"
+      },
+      {
+        "id": 19,
+        "roleName": "技术支持人员",
+        "defaultPage": "module/prob_list.action",
+        "status": 1,
+        "effectiveFrom": "2017-02-08 09:08:38",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2017-02-08 09:08:38",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": "技术公告技术支持人员"
+      },
+      {
+        "id": 20,
+        "roleName": "研发人员",
+        "defaultPage": "module/prob_list.action",
+        "status": 1,
+        "effectiveFrom": "2017-04-14 17:53:59",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2017-04-14 17:53:59",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": "技术公告模块研发人员发布公告以及编辑公告"
+      },
+      {
+        "id": 21,
+        "roleName": "项目维保回访专员",
+        "defaultPage": "module/Welcome1.action",
+        "status": 1,
+        "effectiveFrom": "2021-08-03 08:42:36",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2021-08-03 08:42:36",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": ""
+      },
+      {
+        "id": 22,
+        "roleName": "产品组件管理员",
+        "defaultPage": "module/component_list.action",
+        "status": 1,
+        "effectiveFrom": "2023-09-06 15:11:54",
+        "effectiveTo": null,
+        "createBy": null,
+        "createTime": "2023-09-06 15:11:35",
+        "updateBy": null,
+        "updateTime": null,
+        "roleRemark": null
+      }
+    ]
+  },
+  "pendingSeparately": [
+    "账号来源绑定与admin/test/sse身份裁决尚未完成；角色审计操作者依赖先迁入真实账号。",
+    "实际Flyway基线和数据库切换尚未完成；未执行角色或权限数据写入。"
+  ],
+  "defaultAllEvidence": "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/permission/RoleServiceImpl.java:66",
+  "writes": {
+    "schema": 0,
+    "roles": 0,
+    "permissions": 0
+  },
+  "userDecision": "保留既有结构，我指定缺失字段处理",
+  "withdrawnNewColumns": [
+    {
+      "column": "default_page",
+      "definition": "VARCHAR(255) NULL",
+      "businessMeaning": "角色默认入口；承接t_role.home_page和未合并fnd角色defaultPage，保存旧值，不将旧URL自动激活为新平台路由。"
+    },
+    {
+      "column": "effective_from",
+      "definition": "DATETIME(3) NULL",
+      "businessMeaning": "来源角色有效期开始；t_role无对应值，不伪造开始日期。"
+    },
+    {
+      "column": "effective_to",
+      "definition": "DATETIME(3) NULL",
+      "businessMeaning": "来源角色有效期结束；NULL保留开放结束期。"
+    }
+  ],
+  "newColumns": [],
+  "conversionAndPermissionApproval": "32项映射及排序、CUSTOM=2/SELF=5已经用户批准；t_role1明确关联平台超级管理员并授予对应权限；停用fnd15不迁入；内外普通用户的公司/办事处范围不授予具体项目权限。",
+  "userMissingFieldDecision": "不迁入角色默认首页、有效期；原因：用户明确裁决不迁入，system_role保持既有结构。原始来源证据保留。",
+  "historicalNullUpdateTimeDecision": "用户批准仅对原update_time为NULL的角色用原create_time初始化；原NULL列入来源证据，原空操作者仍为空，不伪造运行人或当前时间。",
+  "implementationEvidence": {
+    "targetOwner": "SystemRoleMigrationApi",
+    "syncAdapter": "DPPMS_ROLES",
+    "noAddedRoleColumnsOrTables": true,
+    "sourceRowsReadUsingActualJavaTemplate": 31,
+    "originalSourceColumns": 22,
+    "missingOriginalOrMappedColumns": [],
+    "targetWrites": 0,
+    "affectedTestsPassed": 24,
+    "testBoundary": "Source contract / pure plans / H2 transactional SQL; no actual role/IAM writes or MySQL concurrency acceptance"
+  }
+}

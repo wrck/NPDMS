@@ -25,6 +25,9 @@ import cn.iocoder.yudao.module.system.dal.dataobject.dept.UserPostDO;
 import cn.iocoder.yudao.module.system.dal.dataobject.user.AdminUserDO;
 import cn.iocoder.yudao.module.system.dal.mysql.dept.UserPostMapper;
 import cn.iocoder.yudao.module.system.dal.mysql.user.AdminUserMapper;
+import cn.iocoder.yudao.module.system.dal.mysql.user.query.UserMobileLookupQuery;
+import cn.iocoder.yudao.module.system.dal.mysql.user.query.UserEmailLookupQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.system.mq.producer.user.AdminUserProducer;
 import cn.iocoder.yudao.module.system.service.dept.DeptService;
 import cn.iocoder.yudao.module.system.service.dept.PostService;
@@ -196,8 +199,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     public void updateUserProfile(Long id, UserProfileUpdateReqVO reqVO) {
         // 1. 校验正确性
         AdminUserDO oldUser = validateUserExists(id);
-        validateEmailUnique(id, reqVO.getEmail());
-        validateMobileUnique(id, reqVO.getMobile());
+        if (!Objects.equals(oldUser.getEmail(), reqVO.getEmail())) validateEmailUnique(id, reqVO.getEmail());
+        if (!Objects.equals(oldUser.getMobile(), reqVO.getMobile())) validateMobileUnique(id, reqVO.getMobile());
 
         // 2. 执行更新
         userMapper.updateById(BeanUtils.toBean(reqVO, AdminUserDO.class).setId(id));
@@ -303,7 +306,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public AdminUserDO getUserByMobile(String mobile) {
-        return userMapper.selectByMobile(mobile);
+        var candidates = userMapper.selectMobileLoginCandidates(
+                new UserMobileLookupQuery(TenantContextHolder.getRequiredTenantId(), mobile));
+        if (candidates.size() > 1) throw exception(USER_MOBILE_AMBIGUOUS);
+        return candidates.isEmpty() ? null : candidates.getFirst();
     }
 
     @Override
@@ -407,10 +413,9 @@ public class AdminUserServiceImpl implements AdminUserService {
             AdminUserDO user = validateUserExists(id);
             // 校验用户名唯一
             validateUsernameUnique(id, username);
-            // 校验手机号唯一
-            validateMobileUnique(id, mobile);
-            // 校验邮箱唯一
-            validateEmailUnique(id, email);
+            // 仅迁移允许历史联系值共用；日常写入仍校验新值唯一，原值保持时不扩大共用。
+            if (user == null || !Objects.equals(user.getEmail(), email)) validateEmailUnique(id, email);
+            if (user == null || !Objects.equals(user.getMobile(), mobile)) validateMobileUnique(id, mobile);
             // 校验部门处于开启状态
             deptService.validateDeptList(CollectionUtils.singleton(deptId));
             // 校验岗位处于开启状态
@@ -451,38 +456,16 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @VisibleForTesting
     void validateEmailUnique(Long id, String email) {
-        if (StrUtil.isBlank(email)) {
-            return;
-        }
-        AdminUserDO user = userMapper.selectByEmail(email);
-        if (user == null) {
-            return;
-        }
-        // 如果 id 为空，说明不用比较是否为相同 id 的用户
-        if (id == null) {
-            throw exception(USER_EMAIL_EXISTS);
-        }
-        if (!user.getId().equals(id)) {
-            throw exception(USER_EMAIL_EXISTS);
-        }
+        if (StrUtil.isBlank(email)) return;
+        var candidates = userMapper.selectEmailAccounts(new UserEmailLookupQuery(TenantContextHolder.getRequiredTenantId(), email));
+        if (candidates.stream().anyMatch(user -> !Objects.equals(id, user.getId()))) throw exception(USER_EMAIL_EXISTS);
     }
 
     @VisibleForTesting
     void validateMobileUnique(Long id, String mobile) {
-        if (StrUtil.isBlank(mobile)) {
-            return;
-        }
-        AdminUserDO user = userMapper.selectByMobile(mobile);
-        if (user == null) {
-            return;
-        }
-        // 如果 id 为空，说明不用比较是否为相同 id 的用户
-        if (id == null) {
-            throw exception(USER_MOBILE_EXISTS);
-        }
-        if (!user.getId().equals(id)) {
-            throw exception(USER_MOBILE_EXISTS);
-        }
+        if (StrUtil.isBlank(mobile)) return;
+        var candidates = userMapper.selectMobileLoginCandidates(new UserMobileLookupQuery(TenantContextHolder.getRequiredTenantId(), mobile));
+        if (candidates.stream().anyMatch(user -> !Objects.equals(id, user.getId()))) throw exception(USER_MOBILE_EXISTS);
     }
 
     /**

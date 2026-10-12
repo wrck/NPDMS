@@ -436,6 +436,7 @@ public class CommerceDeliveryScopeCommandService {
         scope.setProductCode(line.getProductCode());
         scope.setProductDesc(line.getProductDesc());
         scope.setAllocatedQty(quantity);
+        scope.setAllocationConfirmed(true);
         scope.setScopeStatus("ACTIVE");
         scope.setAllocationVersion(version);
         scope.setAllocationSource(source);

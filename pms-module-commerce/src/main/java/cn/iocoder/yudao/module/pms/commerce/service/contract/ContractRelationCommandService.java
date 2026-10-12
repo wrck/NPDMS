@@ -60,6 +60,10 @@ public class ContractRelationCommandService {
                 command.tenantId(), command.projectId(), command.contractId(), role);
         ProjectContractRelationDO existing = relationMapper.selectByIdentityForUpdate(identity);
         if (existing != null) {
+            if (!"ACTIVE".equals(existing.getStatus()) || existing.getEffectiveTo() != null) {
+                throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.invalidParamException(
+                        "已有历史或失效合同关系，不能作为当前关联重放");
+            }
             return new ContractRelationResult(existing.getId(), true);
         }
         ProjectContractRelationDO relation = new ProjectContractRelationDO();

@@ -208,11 +208,13 @@
           @changed="handleContactsChanged"
         />
 
-        <ProjectLegacyDetailPanel v-if="detail?.id && visitedTabs.has('legacy-detail')" v-show="activeTab === 'legacy-detail'" :project-id="detail.id" />
+        <div v-if="detail?.id && visitedTabs.has('product-lists')" v-show="activeTab === 'product-lists'" class="min-w-0" data-testid="project-pane-product-lists">
+          <ContentWrap><ProjectAssociatedDataPanel :project-id="detail.id" title="产品清单" :kinds="['real-products', 'lease-products', 'configured-products']" /></ContentWrap>
+        </div>
 
         <!-- ============ 项目概览：设备清单（与 pms-inheritance/project-detail 同一配置驱动表格） ============ -->
         <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
-          <DeliveryModuleTable :config="deliveryModules['equipment']" :project-id="detail.id" />
+          <DeliveryModuleTable :config="deliveryModules['equipment']" :project-id="detail.id" :project-context="scopeContext" />
         </div>
         <!-- 序列号详情（DemoV2 1.1.1 十八列明细：设备列表 + 档案位置关联 + 在网版本/维保逐台补齐） -->
         <div v-if="detail?.id && visitedTabs.has('sn-result')" v-show="activeTab === 'sn-result'" class="min-w-0" data-testid="project-pane-sn-result">
@@ -249,17 +251,9 @@
           </div>
         </template>
 
-        <!-- ============ 项目概览：实施范围（设计稿【待确认】占位结构） ============ -->
-        <ContentWrap v-show="activeTab === 'scope'">
-          <div class="panel-header">
-            <span class="panel-title"><Icon icon="ep:location" /> 实施范围</span>
-            <el-tag type="warning" size="small">待确认</el-tag>
-          </div>
-          <el-empty description="实施范围数据结构与确认流程未在已读规格中定义" :image-size="80" />
-          <p class="pending-hint">
-            【待确认】实施范围的数据结构与确认流程以对应 Feature Spec 为准，本区为占位结构。
-          </p>
-        </ContentWrap>
+        <div v-if="detail?.id && visitedTabs.has('scope')" v-show="activeTab === 'scope'" class="min-w-0" data-testid="project-pane-scope">
+          <ProjectDeliveryScopePanel :key="`scope-${detail.id}`" :project-context="scopeContext" />
+        </div>
 
         <ProjectAttributePanel
           v-if="detail?.id && activeTab === 'attributes'"
@@ -533,7 +527,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
-import ProjectLegacyDetailPanel from './components/ProjectLegacyDetailPanel.vue'
+import ProjectAssociatedDataPanel from './components/ProjectAssociatedDataPanel.vue'
 import * as RiskApi from '@/api/pms/project/project-risk'
 import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
 import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
@@ -580,6 +574,8 @@ import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import * as DeviceApi from '@/api/pms/asset/device'
 import { getDeliveryScopePage, getSalesOrderLinePage } from '@/api/pms/commerce'
+import ProjectDeliveryScopePanel from '@/views/pms/commerce/delivery-scope/index.vue'
+import type { ProjectRouteContext } from '@/views/pms/commerce/commerceInteraction'
 import { checkPermi } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
@@ -592,6 +588,12 @@ const router = useRouter()
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
 const instances = ref<ProjectInstancesVO | null>(null)
+const scopeVersion = ref<number>()
+const scopeContext = computed<ProjectRouteContext | undefined>(() => {
+  const project = detail.value
+  if (!project?.id || project.version === undefined || scopeVersion.value === undefined) return undefined
+  return { projectId: project.id, projectVersion: project.version, projectScopeVersion: scopeVersion.value }
+})
 // 身份卡右侧进度/任务/风险统计（设计稿 hstat）；进度与任务由新链实例视图计算，风险走 /pms/project-risk
 // 注意：/pms/project-panoramic 面向旧链 pms_project，ID 空间与本页主数据不同，不能混用
 const riskCount = ref<number>()
@@ -636,7 +638,7 @@ const requestedTab = (
     'stage-status',
     'stage',
     'customer',
-    'legacy-detail',
+    'product-lists',
     'equipment',
     'sn-result',
     'config-log',
@@ -660,14 +662,14 @@ const visitedTabs = ref(new Set([requestedTab]))
 const overviewSteps: { key: string; label: string; icon: string; pending?: boolean; permission?: string[] }[] = [
   { key: 'base', label: '基本信息', icon: 'ep:document' },
   { key: 'customer', label: '客户信息', icon: 'ep:office-building' },
-  { key: 'legacy-detail', label: 'DPPMS 关联资料', icon: 'ep:collection', permission: ['pms:project:query'] },
+  { key: 'product-lists', label: '产品清单', icon: 'ep:collection', permission: ['pms:project:query'] },
   { key: 'tree', label: '项目树', icon: 'ep:share' },
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'tasks', label: '项目任务', icon: 'ep:list' },
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' },
-  { key: 'scope', label: '实施范围', icon: 'ep:location', pending: true }
+  { key: 'scope', label: '实施范围', icon: 'ep:location', permission: ['pms:commerce:scope:query'] }
   // 属性判定/匹配历史/生命周期实例三项按需求方 2026-09-30 要求从概览导航隐藏；对应内容面板保留，深链回退基本信息
 ]
 
@@ -676,6 +678,16 @@ const dimLabel = (value?: string | null, dict?: DICT_TYPE) =>
 const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 
 // ============ 交付模块表格（与 pms-inheritance/project-detail 同一 DeliveryModuleTable） ============
+const loadEquipmentPages = async <T,>(loadPage: (pageNo: number) => Promise<{ list: T[]; total: number }>) => {
+  const list: T[] = []
+  for (let pageNo = 1; ; pageNo++) {
+    const page = await loadPage(pageNo)
+    const rows = page.list || []
+    list.push(...rows)
+    if (!rows.length || list.length >= page.total) return { list }
+  }
+}
+
 // 设备清单 = 产品清单信息：交付范围明细（序列号级→项目数量、订单行引用）× ERP 订单行（订单号/发货/未发货数量）
 // × 产品设备清单 ast_device（产品身份/设备台数）按产品聚合。交付范围明细与订单行均不带产品编码，
 // 产品身份经 ast_device 按序列号解析；订单行数量按 订单号+行号 归集到产品。逐台明细见「序列号详情」页签
@@ -685,8 +697,8 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
     icon: 'ep:cpu',
     load: async (pid, pageNo, pageSize) => {
       const [scopeRes, devicePage] = await Promise.all([
-        getDeliveryScopePage({ projectId: pid, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
-        DeviceApi.getDevicePage({ projectId: pid, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
+        loadEquipmentPages<any>((pageNo) => getDeliveryScopePage({ projectId: pid, pageNo, pageSize: 200, includeHistory: false })).catch(() => ({ list: [] })),
+        loadEquipmentPages((pageNo) => DeviceApi.getDevicePage({ projectId: pid, pageNo, pageSize: 200 })).catch(() => ({ list: [] }))
       ])
       // 产品身份解析：ast_device 按序列号 → 产品编码/型号/名称
       const snProduct = new Map<string, { productCode: string; productModel: string; productName: string }>()
@@ -726,7 +738,8 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
       }
       for (const d of devicePage.list || []) {
         const key = String(d.productCode ?? '').trim() || String(d.productModel ?? '').trim() || '—'
-        const cur = ensure(key)
+        const cur = grouped.get(key)
+        if (!cur) continue
         if (!cur.productModel) cur.productModel = String(d.productModel ?? '').trim()
         if (!cur.productName) cur.productName = String(d.productName ?? '').trim()
         cur.deviceCount += 1
@@ -737,7 +750,7 @@ const deliveryModules: Record<string, DeliveryModuleConfig> = {
       const lineQty = new Map<string, { deliveredQty: number; openQty: number }>()
       await Promise.all(
         [...orderNos].map((orderNo) =>
-          getSalesOrderLinePage({ orderNo, pageNo: 1, pageSize: 200 })
+          loadEquipmentPages<any>((pageNo) => getSalesOrderLinePage({ orderNo, pageNo, pageSize: 200 }))
             .then((res: any) => {
               for (const l of res.list || []) {
                 lineQty.set(`${String(l.orderNo).trim()}|${String(l.lineNo).trim()}`, {
@@ -964,10 +977,21 @@ const loadRiskCount = async () => {
     riskCount.value = undefined
   }
 }
+const loadScopeVersion = async () => {
+  const id = Number(route.query.projectId)
+  scopeVersion.value = undefined
+  if (!id || !checkPermi(['pms:commerce:scope:query'])) return
+  try {
+    const scope = await ProjectsApi.queryTree(id, { queryType: 'LOCATE', pageSize: 1 })
+    if (id === Number(route.query.projectId)) scopeVersion.value = scope.updating ? undefined : scope.treeVersion
+  } catch {
+    scopeVersion.value = undefined
+  }
+}
 const loadAll = async () => {
   loading.value = true
   try {
-    await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadRiskCount()])
+    await Promise.all([loadDetail(), loadInstances(), loadPrimaryContact(), loadRiskCount(), loadScopeVersion()])
     stageTreeToken.value++
     // 深链直达阶段和任务页签时实例尚未就绪，首帧补选必然空转；
     // 在实例加载完成后回填默认选中，避免中栏空白、侧栏完成条件以空 stageCode 请求门禁报错

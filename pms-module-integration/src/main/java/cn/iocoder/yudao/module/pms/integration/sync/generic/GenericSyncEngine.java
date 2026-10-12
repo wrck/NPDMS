@@ -1,5 +1,8 @@
 package cn.iocoder.yudao.module.pms.integration.sync.generic;
 
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter;
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsWarrantyYearsConverter;
+
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
@@ -18,7 +21,7 @@ import java.util.*;
 public class GenericSyncEngine {
     public static final String KEY = "TABLE_MAPPING";
     private static final Set<String> MODES = Set.of("UPSERT","INSERT_ONLY","INSERT_IGNORE","UPDATE_ONLY");
-    private static final Set<String> CONVERSIONS = Set.of("DIRECT","STRING","TRIM","LONG","DECIMAL","BOOLEAN","DATETIME","DATE","ENUM","LOOKUP","CONSTANT","JSON");
+    private static final Set<String> CONVERSIONS = Set.of("DIRECT","STRING","TRIM","LONG","DECIMAL","BOOLEAN","DATETIME","DATE","ENUM","LOOKUP","CONSTANT","JSON","DPPMS_COMPANY_CODE","DPPMS_WARRANTY_YEARS");
     private final GenericTargetCatalog catalog;
     private final GenericSyncJdbcStore store;
     private final org.springframework.context.ApplicationEventPublisher events;
@@ -51,6 +54,9 @@ public class GenericSyncEngine {
                 for(var mapping:step.mappings()) {
                     if (!table.columns().contains(mapping.target()) || !mapped.add(mapping.target()) || table.insertDefaults().containsKey(mapping.target())) throw new IllegalArgumentException("目标字段未开放、重复或由系统初始化: "+mapping.target());
                     if(!CONVERSIONS.contains(mapping.conversion())) throw new IllegalArgumentException("字段转换无效");
+                    if (DppmsWarrantyYearsConverter.CONVERSION.equals(mapping.conversion())
+                            && !("com_shipment_contract_reference".equals(step.table()) && "warranty_years".equals(mapping.target())))
+                        throw new IllegalArgumentException("合同年数转换仅可用于正式保修年数字段");
                     if(!"CONSTANT".equals(mapping.conversion())) reference(mapping.source(),names);
                     if(Set.of("ENUM","LOOKUP").contains(mapping.conversion()) && mapping.values()==null) throw new IllegalArgumentException("缺少字典映射");
                 }
@@ -176,7 +182,10 @@ public class GenericSyncEngine {
                                     && greater(values.get(step.tieBreaker()),old.get(step.tieBreaker()));
                             for(var col:step.updateColumns()) {
                                 Object value=values.get(col);
-                                if(newer && (value!=null || "OVERWRITE".equals(step.nullPolicy())) && !equal(old.get(col),value))delta.put(col,value);
+                                // The adjudicated year conversion makes NULL authoritative only for this field.
+                                boolean emptyYear = step.mappings().stream().anyMatch(m -> col.equals(m.target())
+                                        && DppmsWarrantyYearsConverter.CONVERSION.equals(m.conversion()));
+                                if(newer && (value!=null || "OVERWRITE".equals(step.nullPolicy()) || emptyYear) && !equal(old.get(col),value))delta.put(col,value);
                             }
                             if(table.immutable()) {
                                 for(var pair:values.entrySet()) if((table.immutableIgnoreColumns()==null || !table.immutableIgnoreColumns().contains(pair.getKey())) && !equal(old.get(pair.getKey()),pair.getValue()))throw new Conflict("不可变历史与来源不一致: "+step.table()+"."+pair.getKey());
@@ -352,7 +361,9 @@ public class GenericSyncEngine {
             if(!mapping.values().containsKey(key)&&"ENUM".equals(mapping.conversion()))throw new IllegalArgumentException("枚举未定义: "+mapping.target());
             return mapping.values().get(key);
         }
+        if (DppmsWarrantyYearsConverter.CONVERSION.equals(mapping.conversion())) return DppmsWarrantyYearsConverter.fromSource(value);
         if(value==null)return null;
+        if ("DPPMS_COMPANY_CODE".equals(mapping.conversion())) return DppmsCompanyCodeConverter.fromSource(value.toString());
         try {return switch(mapping.conversion()) {
             case "DIRECT","CONSTANT" -> value;
             case "STRING" -> value.toString();case "TRIM" -> value.toString().trim();

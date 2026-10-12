@@ -93,6 +93,21 @@ public class ContractController {
         });
     }
 
+    @GetMapping("/project/{projectId}/relations")
+    @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
+    public CommonResult<PageResult<cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectContractRelationRespVO>> projectRelations(
+            @PathVariable @Min(1) Long projectId,
+            @Valid cn.iocoder.yudao.framework.common.pojo.PageParam pageParam) {
+        return withTenant(() -> {
+            long offset = (long) (pageParam.getPageNo() - 1) * pageParam.getPageSize();
+            if (offset > Integer.MAX_VALUE) throw cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.invalidParamException("分页范围过大");
+            var page = accessService.getProjectContractRelations(currentTenantId(), currentUserId(),
+                    projectId, (int) offset, pageParam.getPageSize());
+            return success(new PageResult<>(page.getList().stream().map(
+                    cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectContractRelationRespVO::from).toList(), page.getTotal()));
+        });
+    }
+
     @GetMapping("/{id}/creation-source")
     @PreAuthorize("@ss.hasPermission('pms:commerce:contract:query')")
     public CommonResult<cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ContractCreationSourceRespVO> creationSource(

@@ -167,6 +167,14 @@ class OrdinaryProjectMemberServiceTest {
         verifyNoInteractions(users); verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
     }
 
+    @Test void unconfirmedHistoryCannotBeEditedAsAnOrdinaryCurrentMember() {
+        var previous = member("TEAM_MEMBER"); previous.setAuthorizationConfirmed(false);
+        when(memberMapper.selectById(10L)).thenReturn(previous);
+        assertThrows(ServiceException.class, () -> service.mutate(command(Action.UPDATE, 10L, "TEAM_MEMBER", "变更", "", 0), actor()));
+        verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
+        verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
+    }
+
     @Test void replayReturnsSavedResultWithoutRevalidatingUserOrWriting() {
         var saved = new Result(100L, 1L, 90L, 40L, "TEAM_MEMBER", LocalDateTime.now(), null, true);
         doReturn(new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED, saved))

@@ -1,0 +1,701 @@
+{
+  "id": "G001",
+  "table": "proj_project",
+  "status": "USER_DECISIONS_RECORDED_IMPLEMENTATION_AND_RUNTIME_VALIDATION_PENDING",
+  "fieldCount": 37,
+  "fieldRows": [
+    {
+      "displayNo": 1,
+      "fieldDecisionId": "C001",
+      "column": "source_market_name",
+      "originalFields": [
+        "pm_project_header.column004"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 14,
+        "definition": "source_market_name VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "proj_project.market_name",
+      "differenceAndEvidence": "旧正常写链保存名称、代码另列；全表136行中本列10个非NULL原文与正式列一致、126NULL，数据库依赖0。",
+      "recommendation": "建议仅本列撤回重复依赖并受控前向清理；原NULL、正式值及不可变证据保持，执行前必须重核。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 2,
+      "fieldDecisionId": "C002",
+      "column": "source_system_name",
+      "originalFields": [
+        "pm_project_header.column005"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 15,
+        "definition": "source_system_name VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "proj_project.system_name",
+      "differenceAndEvidence": "旧正常写链保存名称、代码另列；全表136行中本列10个非NULL原文与正式列一致、126NULL，数据库依赖0。",
+      "recommendation": "建议仅本列撤回重复依赖并受控前向清理；原NULL、正式值及不可变证据保持，执行前必须重核。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 3,
+      "fieldDecisionId": "C003",
+      "column": "source_expend_name",
+      "originalFields": [
+        "pm_project_header.column006"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 16,
+        "definition": "source_expend_name VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "proj_project.expend_name",
+      "differenceAndEvidence": "旧正常写链保存名称、代码另列；全表136行中本列10个非NULL原文与正式列一致、126NULL，数据库依赖0。",
+      "recommendation": "建议仅本列撤回重复依赖并受控前向清理；原NULL、正式值及不可变证据保持，执行前必须重核。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 4,
+      "fieldDecisionId": "C004",
+      "column": "source_industry_name",
+      "originalFields": [
+        "pm_project_header.column007"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 17,
+        "definition": "source_industry_name VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "proj_project.industry_name",
+      "differenceAndEvidence": "旧正常写链保存名称、代码另列；全表136行中本列10个非NULL原文与正式列一致、126NULL，数据库依赖0。",
+      "recommendation": "建议仅本列撤回重复依赖并受控前向清理；原NULL、正式值及不可变证据保持，执行前必须重核。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 5,
+      "fieldDecisionId": "C064",
+      "column": "erp_customer_code",
+      "originalFields": [
+        "pm_project_header.column002"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V412__dppms_native_detail_field_completion.sql",
+        "line": 147,
+        "definition": "erp_customer_code VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "customer_code/customer_id；现有客户来源身份或项目客户关系",
+      "differenceAndEvidence": "原ERP客户码与当前直接客户码10/10不同，不能覆盖当前客户。",
+      "recommendation": "待精确身份关联复核；不批准该新增列保留或清理。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 6,
+      "fieldDecisionId": "C065",
+      "column": "erp_customer_name",
+      "originalFields": [
+        "pm_project_header.column003"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V412__dppms_native_detail_field_completion.sql",
+        "line": 147,
+        "definition": "erp_customer_name VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "customer_name；订单客户或项目客户关系",
+      "differenceAndEvidence": "只有3/10名称相同，名称相同不能代替客户身份一致。",
+      "recommendation": "与ERP客户码一起核实正式客户关系，暂不改结构。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 7,
+      "fieldDecisionId": "C066",
+      "column": "source_custom_info",
+      "originalFields": [
+        "pm_project_header.customInfo"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V412__dppms_native_detail_field_completion.sql",
+        "line": 147,
+        "definition": "source_custom_info JSON NULL"
+      },
+      "existingBusinessPath": "待逐键核对正式业务属性/关系",
+      "differenceAndEvidence": "10个JSON对象尚未完成内部键值语义审查；整个JSON原样保存不等于有效字段承接。",
+      "recommendation": "完整列出JSON键及其映射后，再补充本表裁决。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "新增正式 custom_info JSON，完整保存 customInfo，不拆键。"
+    },
+    {
+      "displayNo": 8,
+      "fieldDecisionId": "C067",
+      "column": "source_order_create_time",
+      "originalFields": [
+        "pm_project_header.column009"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V412__dppms_native_detail_field_completion.sql",
+        "line": 147,
+        "definition": "source_order_create_time DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "com_sales_order.order_create_time，经正式订单关系读取",
+      "differenceAndEvidence": "原项目列是订单日期上下文；项目该列与正式订单的对应值尚未逐项证实。",
+      "recommendation": "优先复用订单Owner；核关联和差异后再裁决该新增列，不重做已完成32项日期纠正。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "新增正式 order_create_time，保存项目创建时 column009 的历史值，不改变其他订单同步逻辑。"
+    },
+    {
+      "displayNo": 9,
+      "fieldDecisionId": "C082",
+      "column": "source_back_reason",
+      "originalFields": [
+        "pm_project_header.column014"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 24,
+        "definition": "source_back_reason TEXT NULL"
+      },
+      "existingBusinessPath": "待核既有回退/治理历史",
+      "differenceAndEvidence": "本批全NULL；无值不能证明该字段没有业务作用，也不能当作不跟踪原因。",
+      "recommendation": "保留现有数据；核旧回退动作和正式历史位置，暂不新增或清理。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "删除新增 source_back_reason，不保留对应新增列。"
+    },
+    {
+      "displayNo": 10,
+      "fieldDecisionId": "C083",
+      "column": "source_back_state",
+      "originalFields": [
+        "pm_project_header.isback"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 12,
+        "definition": "source_back_state VARCHAR(11) NULL"
+      },
+      "existingBusinessPath": "待核正式项目状态/回退历史",
+      "differenceAndEvidence": "旧回退节点及不跟踪选择与当前生命周期不同；不是退款状态。",
+      "recommendation": "与原状态、原因组成完整历史事实；具体实体/列定义尚未批准。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "删除新增 source_back_state，不保留对应新增列。"
+    },
+    {
+      "displayNo": 11,
+      "fieldDecisionId": "C084",
+      "column": "source_company_id",
+      "originalFields": [
+        "pm_project_header.compId"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 28,
+        "definition": "source_company_id INT NULL"
+      },
+      "existingBusinessPath": "company_id/company_code，经来源公司身份解析",
+      "differenceAndEvidence": "原compId是旧主键，不是目标company_id，也不是可直接套转换规则的公司编码。",
+      "recommendation": "先旧公司ID→原公司码，再01→001、02→002、03→003、04→004解析现公司；未知码阻断。关系验证后裁决列必要性。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "复用正式 company_id/company_code；通过 t_company 来源身份解析，再按 01→001、02→002、03→003、04→004 转换，未知码阻断。"
+    },
+    {
+      "displayNo": 12,
+      "fieldDecisionId": "C085",
+      "column": "source_created_at",
+      "originalFields": [
+        "pm_project_header.createTime"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 29,
+        "definition": "source_created_at DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "现create_time；另核既有来源审计/业务历史Owner",
+      "differenceAndEvidence": "10非空旧创建时间与本系统入库审计时钟不同。",
+      "recommendation": "保留旧时间，不覆盖当前审计；正式历史位置核实后裁决。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "复用正式 create_time，保持历史迁移时间。"
+    },
+    {
+      "displayNo": 13,
+      "fieldDecisionId": "C086",
+      "column": "source_created_by",
+      "originalFields": [
+        "pm_project_header.createBy"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 30,
+        "definition": "source_created_by VARCHAR(45) NULL"
+      },
+      "existingBusinessPath": "现creator；另核来源人员身份及历史Owner",
+      "differenceAndEvidence": "9非空旧人员编码，不等于当前操作者或账号。",
+      "recommendation": "保留来源人员身份，不虚构账号或授予权限；核正式历史位置。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "先通过迁移与同步完成人员角色迁移，再关联正式 creator。"
+    },
+    {
+      "displayNo": 14,
+      "fieldDecisionId": "C087",
+      "column": "source_custom_config",
+      "originalFields": [
+        "pm_project_header.customConfig"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 39,
+        "definition": "source_custom_config JSON NULL"
+      },
+      "existingBusinessPath": "待核正式配置模型",
+      "differenceAndEvidence": "本批10条均NULL；不能推定与模板或闭环策略含义相同。",
+      "recommendation": "先核旧配置用途；不批准新增JSON容器，也不据NULL丢弃字段。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 15,
+      "fieldDecisionId": "C088",
+      "column": "source_customer_project_name",
+      "originalFields": [
+        "pm_project_header.customerProjectName"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 25,
+        "definition": "source_customer_project_name VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "customer_project_name",
+      "differenceAndEvidence": "4个有效值精确一致；1空串按既有规则归NULL，10/10转换后一致。",
+      "recommendation": "优先复用既有字段；清理前还须全表差异、依赖及原空串兼容审查，本轮不授权DROP。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 16,
+      "fieldDecisionId": "C089",
+      "column": "source_delivery_project_type",
+      "originalFields": [
+        "pm_project_header.column010"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 19,
+        "definition": "source_delivery_project_type VARCHAR(10) NULL"
+      },
+      "existingBusinessPath": "project_type/project_category/business_type候选",
+      "differenceAndEvidence": "旧列经fnd_basic_data解析分类；本批与现project_type直接值0/10相同。",
+      "recommendation": "先核旧字典及既有转换，不以原码新增列代替分类映射。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 17,
+      "fieldDecisionId": "C090",
+      "column": "source_disabled",
+      "originalFields": [
+        "pm_project_header.disabled"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 35,
+        "definition": "source_disabled BIT(1) NULL"
+      },
+      "existingBusinessPath": "待核正式来源记录有效性/历史Owner",
+      "differenceAndEvidence": "旧有效性不是现deleted、ACTIVE或关闭状态。",
+      "recommendation": "保持当前生命周期和删除标记；核正式历史位置，不自动映射。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "新增正式 disabled；保持旧含义，1/true 无效、0/false 有效；只沿既有核销/失效动作更新，不新增流程。"
+    },
+    {
+      "displayNo": 18,
+      "fieldDecisionId": "C091",
+      "column": "source_effective_from",
+      "originalFields": [
+        "pm_project_header.effectiveFrom"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 33,
+        "definition": "source_effective_from DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "待核正式来源业务记录的有效期",
+      "differenceAndEvidence": "10非空；来源有效期不是项目启动或人员任期。",
+      "recommendation": "与effectiveTo、disabled联合核业务含义和既有版本Owner。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "新增正式 effective_from，保留项目有效期。"
+    },
+    {
+      "displayNo": 19,
+      "fieldDecisionId": "C092",
+      "column": "source_effective_to",
+      "originalFields": [
+        "pm_project_header.effectiveTo"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 34,
+        "definition": "source_effective_to DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "待核正式来源业务记录的有效期",
+      "differenceAndEvidence": "本批全NULL；不是现关闭时间。",
+      "recommendation": "与来源有效期一并核实，保留NULL，不自动生成结束事实。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "新增正式 effective_to，保留项目有效期。"
+    },
+    {
+      "displayNo": 20,
+      "fieldDecisionId": "C093",
+      "column": "source_final_customer_name",
+      "originalFields": [
+        "pm_project_header.column013"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 23,
+        "definition": "source_final_customer_name VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "proj_project_party角色/名称或COM final_customer_name候选",
+      "differenceAndEvidence": "10非空最终客户名称，不等于直接客户；完整身份和角色关联待核。",
+      "recommendation": "优先复用正式相关方/最终客户模型；不覆盖直接客户，不臆造角色。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "复用 proj_project_party 的 FINAL_CUSTOMER，表示产品实际最终用户，与 COM final_customer_name 语义一致。"
+    },
+    {
+      "displayNo": 21,
+      "fieldDecisionId": "C094",
+      "column": "source_implementation_mode",
+      "originalFields": [
+        "pm_project_header.column012"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 21,
+        "definition": "source_implementation_mode VARCHAR(2) NULL"
+      },
+      "existingBusinessPath": "implementation_mode；既有属性Owner及纠正历史",
+      "differenceAndEvidence": "10非空，与现值直接比较0/10相同；原字典转换未证明。",
+      "recommendation": "先核转换规则，禁止照搬原值或绕过冻结属性。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 22,
+      "fieldDecisionId": "C095",
+      "column": "source_implementation_readonly",
+      "originalFields": [
+        "pm_project_header.columno12_readonly"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 22,
+        "definition": "source_implementation_readonly INT NULL"
+      },
+      "existingBusinessPath": "既有CRM属性来源控制/实施方式取值候选",
+      "differenceAndEvidence": "原-1可编辑、其他值只读；旧查询还把它用于实施方式回退取值，不能当新布尔属性。",
+      "recommendation": "先核旧控制和回退规则；暂不批准保留为独立业务列或删除。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 23,
+      "fieldDecisionId": "C096",
+      "column": "source_major_project_level",
+      "originalFields": [
+        "pm_project_header.majorProjectLevel"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 27,
+        "definition": "source_major_project_level VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "major_project_level；CRM属性Owner",
+      "differenceAndEvidence": "本批10/10同值，已有正式承接点；独立历史差异尚未证明。",
+      "recommendation": "优先复用正式字段；全表、Owner历史和依赖审查后再提交清理。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 24,
+      "fieldDecisionId": "C097",
+      "column": "source_not_track_reason",
+      "originalFields": [
+        "pm_project_header.column008"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 18,
+        "definition": "source_not_track_reason VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "not_track_reason候选；正式旧状态历史更需核实",
+      "differenceAndEvidence": "P06原原因非空，但现项目ACTIVE/S0；旧20/40状态配套，当前字段被冻结。",
+      "recommendation": "待业务裁决：推荐随旧状态历史承接；不直接补当前字段。未批准历史新表/列。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 25,
+      "fieldDecisionId": "C098",
+      "column": "source_office_code",
+      "originalFields": [
+        "pm_project_header.column001"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 13,
+        "definition": "source_office_code VARCHAR(255) NULL"
+      },
+      "existingBusinessPath": "department_code/department_id及组织关系候选",
+      "differenceAndEvidence": "本批10/10同值；旧办事处与现主责部门的角色含义仍须核准。",
+      "recommendation": "核组织身份、角色和转换后复用；不能仅凭同值删历史上下文。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 26,
+      "fieldDecisionId": "C099",
+      "column": "source_project_close_time",
+      "originalFields": [
+        "pm_project_header.projectCloseTime"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 38,
+        "definition": "source_project_close_time DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "project_close_time/closed_at；现生命周期Owner",
+      "differenceAndEvidence": "7个旧关闭日期，当前项目日期均NULL；旧关闭不证明现流程完成。",
+      "recommendation": "待与旧状态/事件语义一起裁决，优先正式历史；不制造现关闭。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 27,
+      "fieldDecisionId": "C100",
+      "column": "source_project_code",
+      "originalFields": [
+        "pm_project_header.projectCode"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 9,
+        "definition": "source_project_code VARCHAR(45) NULL"
+      },
+      "existingBusinessPath": "project_code；正式来源业务编码关系候选",
+      "differenceAndEvidence": "现项目编码生成后冻结，旧商业编码可能不同；不能覆盖。",
+      "recommendation": "核既有来源业务编码关联；既有技术主键关系不能替代商业编码。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "复用正式 project_code，旧项目编码为准；冻结编码差异须通过正式迁移 Owner 纠正，普通编辑仍保持冻结规则。"
+    },
+    {
+      "displayNo": 28,
+      "fieldDecisionId": "C101",
+      "column": "source_project_key",
+      "originalFields": [
+        "pm_project_header.projectId"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 7,
+        "definition": "source_project_key VARCHAR(128) NULL"
+      },
+      "existingBusinessPath": "既有项目来源身份绑定；目标原生id",
+      "differenceAndEvidence": "projectId为旧技术主键，不能写成目标主键或当新增业务属性。",
+      "recommendation": "优先复用既有来源身份关系；核消费者和现值后裁决新增列必要性。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 29,
+      "fieldDecisionId": "C102",
+      "column": "source_project_name",
+      "originalFields": [
+        "pm_project_header.projectName"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 10,
+        "definition": "source_project_name VARCHAR(200) NULL"
+      },
+      "existingBusinessPath": "project_name；既有名称编辑/审计Owner",
+      "differenceAndEvidence": "本批10/10相同；未证明独立历史差异。",
+      "recommendation": "优先复用正式名称；先核改名历史、全表差异和依赖，再提交清理。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 30,
+      "fieldDecisionId": "C103",
+      "column": "source_project_refresh_time",
+      "originalFields": [
+        "pm_project_header.projectRefreshTime"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 37,
+        "definition": "source_project_refresh_time DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "project_refresh_time；PROJ Owner候选",
+      "differenceAndEvidence": "9个旧刷新日期，当前对应列全NULL；旧刷新时钟不等于本系统编辑时间。",
+      "recommendation": "待旧事件解释与正式历史位置裁决，不直接覆盖现日期。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 31,
+      "fieldDecisionId": "C104",
+      "column": "source_project_start_time",
+      "originalFields": [
+        "pm_project_header.projectStartTime"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 36,
+        "definition": "source_project_start_time DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "project_start_time；指派/启动Owner候选",
+      "differenceAndEvidence": "9个旧启动日期，旧注释关联经理派工；不能直接推为新流程启动。",
+      "recommendation": "待旧事件解释与正式历史位置裁决，不绕过指派/启动规则。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 32,
+      "fieldDecisionId": "C105",
+      "column": "source_project_state",
+      "originalFields": [
+        "pm_project_header.projectState"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 11,
+        "definition": "source_project_state VARCHAR(11) NULL"
+      },
+      "existingBusinessPath": "status/current_stage/lifecycle_status；状态机Owner",
+      "differenceAndEvidence": "旧项目状态与当前阶段/生命周期不是同一编码体系。",
+      "recommendation": "按已批准历史状态范围核正式历史承接；不直写当前状态。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "旧状态 100 正常闭环、20 不予跟踪、31 已指派服务经理、32 已指派项目经理；复用合法正式状态/历史 Owner，不绕过状态机，不臆造当前任务完成。"
+    },
+    {
+      "displayNo": 33,
+      "fieldDecisionId": "C106",
+      "column": "source_project_type",
+      "originalFields": [
+        "pm_project_header.projectType"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 8,
+        "definition": "source_project_type VARCHAR(45) NULL"
+      },
+      "existingBusinessPath": "project_type/project_category候选",
+      "differenceAndEvidence": "旧10/afss/afxx等值不能默认为当前类型/阶段编码。",
+      "recommendation": "核原字典和既有分类转换后裁决映射，暂不认可镜像列。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "复用正式 project_type。"
+    },
+    {
+      "displayNo": 34,
+      "fieldDecisionId": "C107",
+      "column": "source_sales_type",
+      "originalFields": [
+        "pm_project_header.salesType"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 26,
+        "definition": "source_sales_type VARCHAR(25) NULL"
+      },
+      "existingBusinessPath": "sales_type；既有属性Owner",
+      "differenceAndEvidence": "本批10/10同值，旧定义含01/02/14；已有正式字段。",
+      "recommendation": "优先复用正式值域/转换；清理前核历史与全表依赖，本轮不DROP。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 35,
+      "fieldDecisionId": "C108",
+      "column": "source_signing_method",
+      "originalFields": [
+        "pm_project_header.column011"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 20,
+        "definition": "source_signing_method VARCHAR(10) NULL"
+      },
+      "existingBusinessPath": "signing_method/project_category候选",
+      "differenceAndEvidence": "旧列注释为项目分类，10值与signing_method直接比较0/10相同。",
+      "recommendation": "先核真实业务含义和分类字典，不据新列名猜成签约方式。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。"
+    },
+    {
+      "displayNo": 36,
+      "fieldDecisionId": "C109",
+      "column": "source_updated_at",
+      "originalFields": [
+        "pm_project_header.updateTime"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 31,
+        "definition": "source_updated_at DATETIME(3) NULL"
+      },
+      "existingBusinessPath": "现update_time；另核来源业务修订Owner",
+      "differenceAndEvidence": "9非空旧更新时钟，不是现系统编辑时钟。",
+      "recommendation": "完整保留原时间，核正式修订历史位置，不覆盖当前审计。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "复用正式 update_time，保持历史迁移时间。"
+    },
+    {
+      "displayNo": 37,
+      "fieldDecisionId": "C110",
+      "column": "source_updated_by",
+      "originalFields": [
+        "pm_project_header.updateBy"
+      ],
+      "ddl": {
+        "path": "sql/migrations/V414__dppms_native_source_business_records.sql",
+        "line": 32,
+        "definition": "source_updated_by VARCHAR(45) NULL"
+      },
+      "existingBusinessPath": "现updater；另核来源人员及正式历史Owner",
+      "differenceAndEvidence": "9非空旧人员编码，不等于当前操作者。",
+      "recommendation": "核来源人员身份和历史位置，不生成当前账号或权限。",
+      "submissionStatus": "用户已裁决；具体映射落实和验证未完成",
+      "userDecision": "先通过迁移与同步完成人员角色迁移，再关联正式 updater。"
+    }
+  ],
+  "specificImplementationProposalIds": [
+    "C001",
+    "C002",
+    "C003",
+    "C004"
+  ],
+  "remainingFields": "其余33项全部列明，仅提交复用/历史方向及尚缺核实事项；不是新增列保留或清理批准。",
+  "singleColumnQuestionWithdrawn": true,
+  "newColumnsOrTablesProposedForImmediateCreation": 0,
+  "ddlOrBusinessWrites": 0,
+  "userGeneralDecision": "有既有正式字段直接复用；候选字段去掉 source_ 前缀后按业务语义承接；无法匹配的新增列删除；已有正式字段的重复列在正式字段承接后删除。",
+  "currentSqlDecision": "用户明确要求当前 SQL/migrations 也直接清理，禁止追加冗余字段再用后续迁移删除；原执行脚本和审计只读留存，当前脚本整理为最终定义，实际开发库基线与校验对齐尚未执行。",
+  "executionContract": "整个过程使用既有迁移与同步功能，复用结果与过程并支持扩大到全部历史数据；业务写入仅经 Owner，脚本只作只读审查或测试驱动，不直接承接业务数据。",
+  "supplementalUserDecisions": {
+    "projectState100": {"lifecycleStatus": "NORMAL_CLOSED", "currentStage": "S6", "closedAt": "pm_project_header.projectCloseTime"},
+    "projectState20": {"lifecycleStatus": "EXCEPTION_CLOSED", "reason": "不予跟踪", "closedAt": "pm_project_header.projectCloseTime"},
+    "projectState31And32": "仅按已核实的历史项目人员关系承接指派，不凭状态编造负责人或任务完成",
+    "projectType": {"targetField": "proj_project.project_type", "value": "10", "dictionaryType": "pms_project_type", "label": "用服售后项目", "newColumn": false},
+    "nullUpdateTime": "使用同一项目原createTime初始化正式update_time，保留原NULL证据",
+    "currentTasksOrApprovalsCompletedByMigration": false,
+    "status": "APPROVED_NOT_APPLIED"
+  },
+  "identityPrerequisite": [
+    "fnd_user_info",
+    "fnd_user_power",
+    "fnd_roles"
+  ]
+}

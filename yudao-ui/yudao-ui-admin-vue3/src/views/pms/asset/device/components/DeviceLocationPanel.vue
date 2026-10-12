@@ -4,12 +4,15 @@
       v-if="detail"
       title="当前位置"
       :fields="[
-        { label: '设备', value: `${detail.sn} ${detail.name}` },
+        { label: '设备', value: [detail.sn, detail.name].filter(Boolean).join(' ') },
         { label: '解析状态', value: detail.locationResolutionStatus || 'UNRESOLVED' },
         { label: '站点', value: detail.siteId },
         { label: '站点位置', value: detail.siteLocationId },
-        { label: '生效时间', value: detail.locationEffectiveFrom },
-        { label: '来源安装记录', value: detail.locationRecordId },
+        {
+          label: '生效时间',
+          value: formatSourceDate(detail.locationEffectiveFrom, 'effectiveFrom')
+        },
+        { label: '位置记录', value: detail.locationRecordId },
         { label: '发生时位置快照', value: detail.locationSnapshot, multiline: true }
       ]"
     />
@@ -23,14 +26,17 @@
       :key="item.id"
       :title="`位置变更记录 ${index + 1}`"
       :fields="[
-        { label: '变更时间', value: item.createTime },
+        { label: '变更时间', value: formatSourceDate(item.createTime, 'createTime') },
         { label: '变更类型', value: item.changeType },
         { label: '变更说明', value: item.changeDescription, multiline: true }
       ]"
     />
   </div>
+  <DeviceInstallationSourceHistoryPanel :device-id="deviceId" />
 </template>
 <script setup lang="ts">
+import DeviceInstallationSourceHistoryPanel from './DeviceInstallationSourceHistoryPanel.vue'
+import { formatSourceDate } from '@/utils/formatSourceDate'
 import { ref, watch } from 'vue'
 import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'

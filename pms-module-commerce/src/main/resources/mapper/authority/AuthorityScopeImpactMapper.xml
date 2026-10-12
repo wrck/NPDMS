@@ -4,7 +4,7 @@
     <select id="selectActiveScopesForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO">
         SELECT * FROM com_delivery_scope
         WHERE tenant_id = #{tenantId} AND order_line_id = #{orderLineId}
-          AND scope_status = 'ACTIVE' AND effective_to IS NULL AND deleted = b'0'
+          AND allocation_confirmed = b'1' AND scope_status = 'ACTIVE' AND effective_to IS NULL AND deleted = b'0'
         ORDER BY project_id, id
         FOR UPDATE
     </select>
@@ -44,7 +44,7 @@
         SET scope_status = 'RELEASED', effective_to = #{effectiveTo}, version = version + 1,
             updater = '0', update_time = #{updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{scopeId} AND version = #{expectedVersion}
-          AND scope_status = 'ACTIVE' AND effective_to IS NULL AND deleted = b'0'
+          AND allocation_confirmed = b'1' AND scope_status = 'ACTIVE' AND effective_to IS NULL AND deleted = b'0'
     </update>
 
     <insert id="insertProjectVersion" parameterType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO">

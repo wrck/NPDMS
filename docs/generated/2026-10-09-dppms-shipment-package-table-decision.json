@@ -1,0 +1,415 @@
+{
+  "table": "com_shipment_package",
+  "status": "APPLIED_AND_VERIFIED",
+  "verifiedResult": {
+    "date": "2026-10-11",
+    "finalPhysicalColumns": 20,
+    "keptApprovedCarrierCode": true,
+    "removedColumns": ["source_contract_key", "source_carrier_name"],
+    "protectedRows": 156368,
+    "rawSourceRowsVerified": 19,
+    "rawSourceColumnsVerified": 8,
+    "ownerMigrationRuns": 10,
+    "successfulReplaysAfterCleanup": 10,
+    "retainedBusinessAndAuditValuesUnchanged": true,
+    "indexesAndFlywayReceiptsUnchanged": true,
+    "realBrowserCarrierCodeAndNameVerified": true,
+    "productionMigrationBaselineAligned": false
+  },
+  "existingFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "主键ID",
+      "handling": "目标技术主键，不把原packlist_id写为目标ID"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "租户ID",
+      "handling": "当前迁移租户，合同归属和装箱单必须同租户"
+    },
+    {
+      "COLUMN_NAME": "shipment_contract_ref_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "发货合同归属ID",
+      "handling": "经正式com_shipment_contract_reference关联；原con_id由该记录的既有source_record_key及INT绑定精确回溯，不重复加合同原键列"
+    },
+    {
+      "COLUMN_NAME": "package_no",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "装箱单编号",
+      "handling": "fb_shipment.packlist_id，正式装箱单业务编号"
+    },
+    {
+      "COLUMN_NAME": "shipment_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "发货时间",
+      "handling": "原packdate原值，毫秒精度不截断"
+    },
+    {
+      "COLUMN_NAME": "warranty_start_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "质保开始时间",
+      "handling": "原warrantyStartTime原值，不替代条码级保修日期"
+    },
+    {
+      "COLUMN_NAME": "warranty_end_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "质保结束时间",
+      "handling": "原warrantyEndTime原值；先核查既有结束不得早于开始约束，违反时阻断，不删值或造日期"
+    },
+    {
+      "COLUMN_NAME": "receiver_name",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "收件人名称",
+      "handling": "原receiveName原样承接"
+    },
+    {
+      "COLUMN_NAME": "express_no",
+      "COLUMN_TYPE": "varchar(512)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "快递编号",
+      "handling": "原emsNum原样承接"
+    },
+    {
+      "COLUMN_NAME": "carrier_name",
+      "COLUMN_TYPE": "varchar(256)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "承运商名称",
+      "handling": "原视图按emsCompany精确关联fnd_basic_data(dataTypeCode=01,basicDataId)，用basicDataName；缺项沿原视图返回原码，不猜名称，列明未解码"
+    },
+    {
+      "COLUMN_NAME": "mapping_status",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "映射状态",
+      "handling": "沿已有合同归属映射事实，无精确关联不能标为MAPPED"
+    },
+    {
+      "COLUMN_NAME": "source_system",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "来源系统",
+      "handling": "既有来源身份DPPMS，非重复业务镜像"
+    },
+    {
+      "COLUMN_NAME": "source_record_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "来源记录稳定唯一键",
+      "handling": "既有装箱单幂等键packlist_id，非目标主键"
+    },
+    {
+      "COLUMN_NAME": "source_sync_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "来源同步时间",
+      "handling": "既有平台同步时间；原表无来源同步/创建日期，不伪造历史时间"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建人",
+      "handling": "迁移执行正式账号，原表没有创建人；不编造原操作者"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "创建时间",
+      "handling": "本平台正式记录创建时间，原表没有创建时间，不声称原历史审计"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新人",
+      "handling": "迁移执行正式账号，原表没有更新人"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "更新时间",
+      "handling": "本平台正式记录维护时间，原表没有更新时间；重跑无变化不重写"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "tinyint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "删除标志：0否，1是",
+      "handling": "现有逻辑删除字段；不自动复活已删除正式记录"
+    }
+  ],
+  "proposedWithdrawals": [
+    {
+      "COLUMN_NAME": "source_contract_key",
+      "COLUMN_TYPE": "varchar(128)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "撤回：复用shipment_contract_ref_id精确关系；19/19本批原con_id与正式归属记录来源键一致；全表关系核对完成后清理，不能仅按本批推断全表"
+    },
+    {
+      "COLUMN_NAME": "source_carrier_name",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "撤回：承运商名称复用carrier_name，不保存重复名称列"
+    }
+  ],
+  "originalFields": {
+    "fb_shipment": [
+      {
+        "COLUMN_NAME": "packlist_id",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "package_no及现有来源幂等身份"
+      },
+      {
+        "COLUMN_NAME": "con_id",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "shipment_contract_ref_id精确关系及归属记录既有来源键，不丢弃合同关联"
+      },
+      {
+        "COLUMN_NAME": "packdate",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "shipment_time"
+      },
+      {
+        "COLUMN_NAME": "warrantyStartTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "warranty_start_time"
+      },
+      {
+        "COLUMN_NAME": "warrantyEndTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "warranty_end_time"
+      },
+      {
+        "COLUMN_NAME": "receiveName",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "收件人",
+        "handling": "receiver_name"
+      },
+      {
+        "COLUMN_NAME": "emsNum",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "快递单号",
+        "handling": "express_no"
+      },
+      {
+        "COLUMN_NAME": "emsCompany",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "快递公司",
+        "handling": "carrier_code物理业务列完整保存原编码；carrier_name完整保存精确解码名称，不以名称代替编码"
+      }
+    ],
+    "view_shipment_ems_4_pm": [
+      {
+        "COLUMN_NAME": "contract_code",
+        "COLUMN_TYPE": "varchar(25)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "正式发货合同归属/合同主档contract_no，经原con_id精确关联"
+      },
+      {
+        "COLUMN_NAME": "receiveName",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "收件人",
+        "handling": "receiver_name（同一原表字段，不再加镜像）"
+      },
+      {
+        "COLUMN_NAME": "emsNum",
+        "COLUMN_TYPE": "text",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "快递单号",
+        "handling": "express_no（同上）"
+      },
+      {
+        "COLUMN_NAME": "packdate",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "shipment_time（同上）"
+      },
+      {
+        "COLUMN_NAME": "emsCompany",
+        "COLUMN_TYPE": "mediumtext",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "carrier_name，来源词典/原码回退规则如上"
+      },
+      {
+        "COLUMN_NAME": "packId",
+        "COLUMN_TYPE": "varchar(64)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "package_no（同一原packlist_id）"
+      }
+    ],
+    "fnd_basic_data": [
+      {
+        "COLUMN_NAME": "id",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "NO",
+        "COLUMN_COMMENT": "",
+        "handling": "词典技术主键，关联词条证据；完整基础数据主档另按已选择第4域整表裁决，不复制进装箱单"
+      },
+      {
+        "COLUMN_NAME": "dataTypeCode",
+        "COLUMN_TYPE": "varchar(45)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原承运商类型01，精确解码限定，不当作公司码转换"
+      },
+      {
+        "COLUMN_NAME": "basicDataId",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原emsCompany编码；本表已批准carrier_code物理业务列正式承接"
+      },
+      {
+        "COLUMN_NAME": "basicDataName",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "本表carrier_name完整承接名称"
+      },
+      {
+        "COLUMN_NAME": "basicDataAttri1",
+        "COLUMN_TYPE": "varchar(255)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "字段属性1",
+        "handling": "原词条附加属性已读原表，完整基础数据领域待整表确认；不冒充承运商名称，不丢弃"
+      },
+      {
+        "COLUMN_NAME": "sortId",
+        "COLUMN_TYPE": "int(11)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "查询排序字段数值越大越在前",
+        "handling": "原词典排序，完整基础数据领域待整表确认，不写装箱单排序"
+      },
+      {
+        "COLUMN_NAME": "createTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原词条创建时间，完整基础数据领域待整表确认，不冒充发货日期或装箱单审计"
+      },
+      {
+        "COLUMN_NAME": "createBy",
+        "COLUMN_TYPE": "varchar(45)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原词条创建人，完整基础数据领域待整表确认，不冒充收货人"
+      },
+      {
+        "COLUMN_NAME": "updateTime",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原词条更新时间，完整基础数据领域待整表确认，不冒充发货更新时间"
+      },
+      {
+        "COLUMN_NAME": "updateBy",
+        "COLUMN_TYPE": "varchar(45)",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原词条更新人，完整基础数据领域待整表确认，不冒充装箱单更新人"
+      },
+      {
+        "COLUMN_NAME": "effectiveFrom",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原词条有效起始，完整基础数据领域待整表确认，不改写质保起始"
+      },
+      {
+        "COLUMN_NAME": "effectiveTo",
+        "COLUMN_TYPE": "datetime",
+        "IS_NULLABLE": "YES",
+        "COLUMN_COMMENT": "",
+        "handling": "原词条有效结束，完整基础数据领域待整表确认，不改写质保结束"
+      }
+    ]
+  },
+  "currentFacts": {
+    "selectedProjects": 10,
+    "selectedPackageKeys": 19,
+    "originalPackageRows": 19,
+    "originalViewRows": 19,
+    "formalPackageRows": 19,
+    "referenceOriginalContractExact": 19,
+    "carrierCodes": [
+      "0",
+      "12",
+      "2",
+      "7"
+    ]
+  },
+  "globalWithdrawalPreservation": "Not yet verified; do not DROP based on this pilot",
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "userDecision": "其余整表按建议；carrier_code新增物理列，跟carrier_name一样",
+  "approvedAddedFields": [
+    {
+      "COLUMN_NAME": "carrier_code",
+      "COLUMN_TYPE": "varchar(256)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "handling": "用户批准物理列carrier_code VARCHAR(256) NULL；原fb_shipment.emsCompany编码原样承接，与carrier_name名称分别保存"
+    }
+  ],
+  "supersededProposal": "carrier_code实体扩展提案未实施，用户指定物理列",
+  "codeAndSqlCorrectionApplied": true,
+  "physicalDuplicateColumnsRemoved": false,
+  "globalDuplicatePreservation": {
+    "statistics": {
+      "rows": 156368,
+      "sourceContractKeyNonNull": 19,
+      "contractRelationshipExact": 19,
+      "sourceCarrierNameNonNull": 19,
+      "carrierNameExact": 19,
+      "carrierCodeNonNull": 19
+    },
+    "issues": [],
+    "dependencyCounts": {
+      "indexes": 0,
+      "keys": 0,
+      "currentSyncTasks": 0,
+      "triggers": 0,
+      "views": 0
+    },
+    "physicalCleanupPerformed": false
+  },
+  "verification": {
+    "backendTargetedTests": 30,
+    "result": "PASS",
+    "frontendRuntimeAcceptance": "NOT_RUN",
+    "databaseCorrection": "NOT_APPLIED"
+  }
+}

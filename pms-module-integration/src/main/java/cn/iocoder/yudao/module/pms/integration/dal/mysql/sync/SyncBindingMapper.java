@@ -19,6 +19,7 @@ public interface SyncBindingMapper extends BaseMapperX<SyncBindingDO> {
             .eq(SyncBindingDO::getObjectKey,query.object()).in(SyncBindingDO::getSourceKey,query.sourceKeys()));
     }
     int deleteAdapterBindings(SyncQueries.AdapterScope query);
+    List<SyncBindingDO> selectIdentitySources(@org.apache.ibatis.annotations.Param("query") SyncQueries.IdentitySources query);
     int deleteTaskBindings(SyncQueries.Task query);
     int updateLastRun(SyncQueries.BindingRun query);
     default SyncBindingDO selectScoped(SyncQueries.Id query) {

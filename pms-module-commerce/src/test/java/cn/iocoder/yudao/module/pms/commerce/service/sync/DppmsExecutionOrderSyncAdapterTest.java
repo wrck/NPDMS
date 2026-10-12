@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExe
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper;
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter.Batch;
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter.Row;
+import cn.iocoder.yudao.module.pms.commerce.service.migration.DppmsExecutionOrganizationReferences;
 import org.junit.jupiter.api.*;
 
 import java.util.*;
@@ -15,9 +16,11 @@ import static org.mockito.Mockito.*;
 
 class DppmsExecutionOrderSyncAdapterTest {
     private final CrmExecutionOrderMapper mapper = mock(CrmExecutionOrderMapper.class);
-    private final DppmsExecutionOrderSyncAdapter adapter = new DppmsExecutionOrderSyncAdapter(mapper);
+    private final DppmsExecutionOrganizationReferences organizations=mock(DppmsExecutionOrganizationReferences.class);
+    private final DppmsExecutionOrderSyncAdapter adapter = new DppmsExecutionOrderSyncAdapter(mapper,organizations);
 
-    @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); when(mapper.selectIncoming(any())).thenReturn(List.of()); }
+    @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); when(mapper.selectIncoming(any())).thenReturn(List.of());
+        when(organizations.load()).thenReturn(new DppmsExecutionOrganizationReferences.Directory(Map.of(),Map.of())); }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
     @Test void previewsARegularHeaderWithoutWriting() {
@@ -86,6 +89,7 @@ class DppmsExecutionOrderSyncAdapterTest {
         var old = new CrmExecutionOrderDO();
         old.setId(42L); old.setVersion(7L); old.setSourceSystem("CRM"); old.setExecutionNo("EX-1");
         old.setProjectName("旧名称");
+        old.setStatus("DISABLED");old.setAfEvidenceStatus("CONFIRMED");old.setPrimaryProjectId(88L);
         when(mapper.selectIncoming(any())).thenReturn(List.of(old));
         doAnswer(invocation -> {
             Collection<CrmExecutionOrderDO> rows = invocation.getArgument(0);
@@ -93,6 +97,8 @@ class DppmsExecutionOrderSyncAdapterTest {
             var target = rows.iterator().next();
             assertEquals(42L, target.getId()); assertEquals(7, target.getVersion());
             assertEquals("新名称", target.getProjectName());
+            assertEquals("DISABLED",target.getStatus());assertEquals("CONFIRMED",target.getAfEvidenceStatus());
+            assertEquals(88L,target.getPrimaryProjectId());
             return true;
         }).when(mapper).updateBatch(anyCollection(), eq(1000));
         var change = adapter.apply(batch(row("1", "新名称"))).getFirst();
@@ -105,6 +111,34 @@ class DppmsExecutionOrderSyncAdapterTest {
         doThrow(new IllegalStateException("batch failed"))
                 .when(mapper).insertBatch(anyCollection(), eq(1000));
         assertThrows(IllegalStateException.class, () -> adapter.apply(batch(row("1", "项目一"))));
+    }
+
+    @Test void originalBlankAndWhitespaceReachFormalFields() {
+        var fields=new LinkedHashMap<>(row("1","  历史项目\n").fields());
+        fields.put("channelName","");fields.put("customerProjectName","");
+        doAnswer(call -> {
+            Collection<CrmExecutionOrderDO> rows=call.getArgument(0);
+            var actual=rows.iterator().next();assertEquals("",actual.getChannelName());
+            assertEquals("",actual.getCustomerProjectName());assertEquals("  历史项目\n",actual.getProjectName());
+            actual.setId(42L);return true;
+        }).when(mapper).insertBatch(anyCollection(),eq(1000));
+        assertEquals("CREATED",adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst().action());
+    }
+
+    @Test void falseBatchResultMustRollBackInsteadOfReportingUpdated() {
+        var old=new CrmExecutionOrderDO();old.setId(42L);old.setSourceSystem("CRM");old.setExecutionNo("EX-1");
+        when(mapper.selectIncoming(any())).thenReturn(List.of(old));
+        when(mapper.updateBatch(anyCollection(),eq(1000))).thenReturn(false);
+        assertThrows(IllegalStateException.class,()->adapter.apply(batch(row("1","新名称"))));
+    }
+
+    @Test void unknownCompanyAndOverPrecisionMoneyNeverWrite() {
+        var fields=new LinkedHashMap<>(row("1","项目").fields());fields.put("companyCode","99");
+        assertEquals("ISSUE",adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst().action());
+        fields.remove("companyCode");fields.put("engineeringFeeRaw","0.12345");
+        assertEquals("ISSUE",adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst().action());
+        verify(mapper,never()).insertBatch(anyCollection(),anyInt());
+        verify(mapper,never()).updateBatch(anyCollection(),anyInt());
     }
 
     private static Row row(String id, String projectName) {

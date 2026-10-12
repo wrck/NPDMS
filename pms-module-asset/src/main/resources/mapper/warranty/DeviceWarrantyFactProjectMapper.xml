@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyFactProjectMapper">
+    <select id="selectProjectRelationForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyFactProjectDO">
+        SELECT * FROM ast_device_warranty_fact_project WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND fact_type=#{query.factType} AND fact_id=#{query.factId} FOR UPDATE
+    </select>
+</mapper>

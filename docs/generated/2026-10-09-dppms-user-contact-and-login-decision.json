@@ -1,0 +1,4118 @@
+{
+  "status": "CONTACTS_RESOLVED_MIGRATION_ONLY_DUPLICATES_SELECTED_LOGIN_INPUT_PENDING",
+  "targetTable": "system_users",
+  "writes": 0,
+  "contactConflicts": {
+    "email": [
+      {
+        "accounts": [
+          "admin",
+          "j01441"
+        ]
+      },
+      {
+        "accounts": [
+          "ap",
+          "pms_tbpublic",
+          "sse",
+          "sys",
+          "test",
+          "test_supp",
+          "test_supp1",
+          "test_supp2",
+          "test_supp3",
+          "w02611"
+        ]
+      },
+      {
+        "accounts": [
+          "b05761",
+          "白凯"
+        ]
+      },
+      {
+        "accounts": [
+          "bjysy_supp",
+          "ouyangzhaofeng_supp"
+        ]
+      },
+      {
+        "accounts": [
+          "c03683",
+          "c3683"
+        ]
+      },
+      {
+        "accounts": [
+          "d00537",
+          "testpublic"
+        ]
+      },
+      {
+        "accounts": [
+          "d02112",
+          "z02112"
+        ]
+      },
+      {
+        "accounts": [
+          "g04303",
+          "g04304"
+        ]
+      },
+      {
+        "accounts": [
+          "guohuiqing_supp",
+          "tycw_supp"
+        ]
+      },
+      {
+        "accounts": [
+          "h01564",
+          "胡慧东"
+        ]
+      },
+      {
+        "accounts": [
+          "h06486",
+          "y06486"
+        ]
+      },
+      {
+        "accounts": [
+          "i05079",
+          "l05079",
+          "p05079"
+        ]
+      },
+      {
+        "accounts": [
+          "j06309",
+          "jiangyating"
+        ]
+      },
+      {
+        "accounts": [
+          "l00450",
+          "梁红玉"
+        ]
+      },
+      {
+        "accounts": [
+          "lifan_supp",
+          "lifanb_supp"
+        ]
+      },
+      {
+        "accounts": [
+          "liuqi",
+          "liuqi_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "m04489",
+          "mengjunliang"
+        ]
+      },
+      {
+        "accounts": [
+          "p01537",
+          "w04649"
+        ]
+      },
+      {
+        "accounts": [
+          "sdrk_supp",
+          "yinhailong_supp"
+        ]
+      },
+      {
+        "accounts": [
+          "t03048",
+          "y03048"
+        ]
+      },
+      {
+        "accounts": [
+          "w02098",
+          "w02787"
+        ]
+      },
+      {
+        "accounts": [
+          "xialangguo_ss",
+          "xialangguo_ss "
+        ]
+      },
+      {
+        "accounts": [
+          "y04046",
+          "杨少毅"
+        ]
+      },
+      {
+        "accounts": [
+          "y05387",
+          "y05431"
+        ]
+      },
+      {
+        "accounts": [
+          "yangxingwen",
+          "yangxingwen_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "z03746",
+          "赵炯粟"
+        ]
+      },
+      {
+        "accounts": [
+          "zhengjienan",
+          "zhengjienan_ss"
+        ]
+      }
+    ],
+    "mobile": [
+      {
+        "accounts": [
+          "g05890",
+          "gaoxiang_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "g06053",
+          "zhuzexuan_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "j06309",
+          "jiangyating"
+        ]
+      },
+      {
+        "accounts": [
+          "l05586",
+          "liuying_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "liuqi",
+          "liuqi_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "m04489",
+          "mengjunliang"
+        ]
+      },
+      {
+        "accounts": [
+          "xialangguo_ss",
+          "xialangguo_ss "
+        ]
+      },
+      {
+        "accounts": [
+          "yangxingwen",
+          "yangxingwen_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "z04838",
+          "zhenghao_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "z06174",
+          "zhangguangyu_ss"
+        ]
+      },
+      {
+        "accounts": [
+          "zhengjienan",
+          "zhengjienan_ss"
+        ]
+      }
+    ]
+  },
+  "loginContract": "现有AuthLoginReqVO/UserSaveReqVO仅允许4~30位英文字母及数字；当前来源存在中文、下划线、短账号及不可见尾字符。未经裁决不改写旧账号，也不放宽当前认证接口。",
+  "unsupportedLoginNames": [
+    {
+      "username": "anxingcheng_ss",
+      "visibleUsername": "anxingcheng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000126,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "ap",
+      "visibleUsername": "ap",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000140,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "baoweiliang_ss",
+      "visibleUsername": "baoweiliang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000192,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "baseline_supp",
+      "visibleUsername": "baseline_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 518,
+          "name": "北京贝莱伟业",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "bjysy_supp",
+      "visibleUsername": "bjysy_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 565,
+          "name": "北京亿数云",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "caiyunfei_ss",
+      "visibleUsername": "caiyunfei_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000059,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "caofengxun_supp",
+      "visibleUsername": "caofengxun_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 717,
+          "name": "曹封勋",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "caoxuesong_ss",
+      "visibleUsername": "caoxuesong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000022,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenchen_supp",
+      "visibleUsername": "chenchen_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 856,
+          "name": "陈晨",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chendinghong_supp",
+      "visibleUsername": "chendinghong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 680,
+          "name": "陈定红",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "chenggang_supp",
+      "visibleUsername": "chenggang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 719,
+          "name": "程刚",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenghaoyu_ss",
+      "visibleUsername": "chenghaoyu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000114,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chengliming_ss",
+      "visibleUsername": "chengliming_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000214,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chengpenghong_ss",
+      "visibleUsername": "chengpenghong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000146,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chengwantao_ss",
+      "visibleUsername": "chengwantao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000213,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenjiayan_ss",
+      "visibleUsername": "chenjiayan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000203,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenjingyu_ss",
+      "visibleUsername": "chenjingyu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000188,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "chennaiqing_supp",
+      "visibleUsername": "chennaiqing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 598,
+          "name": "陈乃青",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "chenpeng_supp",
+      "visibleUsername": "chenpeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 599,
+          "name": "陈鹏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenqianbing_supp",
+      "visibleUsername": "chenqianbing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 833,
+          "name": "陈乾炳",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chensijie_ss",
+      "visibleUsername": "chensijie_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000016,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "chenwanbin_ss",
+      "visibleUsername": "chenwanbin_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000137,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenwanxin_ss",
+      "visibleUsername": "chenwanxin_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000196,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenyichao_ss",
+      "visibleUsername": "chenyichao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000124,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenyiyuan_supp",
+      "visibleUsername": "chenyiyuan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 720,
+          "name": "陈依媛",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenyongxiang_supp",
+      "visibleUsername": "chenyongxiang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 696,
+          "name": "陈永祥",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenyu_ss",
+      "visibleUsername": "chenyu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000156,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenyuhang_supp",
+      "visibleUsername": "chenyuhang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 868,
+          "name": "陈预航",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "chenzhe_supp",
+      "visibleUsername": "chenzhe_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 689,
+          "name": "陈哲",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "cuichengshu_ss",
+      "visibleUsername": "cuichengshu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000193,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "cuihaofan_supp",
+      "visibleUsername": "cuihaofan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 737,
+          "name": "崔浩帆",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "cuihaolei_supp",
+      "visibleUsername": "cuihaolei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 866,
+          "name": "崔皓雷",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "dbyh_supp",
+      "visibleUsername": "dbyh_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 516,
+          "name": "洛阳鼎邦源华",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "dcl_supp",
+      "visibleUsername": "dcl_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 510,
+          "name": "杭州德昌隆",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "dinghe_supp",
+      "visibleUsername": "dinghe_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 707,
+          "name": "丁赫",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "dingwei_supp",
+      "visibleUsername": "dingwei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 803,
+          "name": "丁伟",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "dingxu_supp",
+      "visibleUsername": "dingxu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 743,
+          "name": "丁旭",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "dongchangyin_supp",
+      "visibleUsername": "dongchangyin_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 536,
+          "name": "董常胤",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "dongfulin_supp",
+      "visibleUsername": "dongfulin_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 861,
+          "name": "董福临",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "fanchenglv_ss",
+      "visibleUsername": "fanchenglv_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000096,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "fangsensen_supp",
+      "visibleUsername": "fangsensen_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 855,
+          "name": "方森森",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "fengchengkuan_ss",
+      "visibleUsername": "fengchengkuan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000061,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "fenghaopeng_ss",
+      "visibleUsername": "fenghaopeng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000174,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "fhtree_supp",
+      "visibleUsername": "fhtree_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 523,
+          "name": "徐州绯红树",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "fuhongchen_ss",
+      "visibleUsername": "fuhongchen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000049,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "fuyu_ss",
+      "visibleUsername": "fuyu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000168,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "gangyunfei_supp",
+      "visibleUsername": "gangyunfei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 748,
+          "name": "刚云飞",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "ganjialu_supp",
+      "visibleUsername": "ganjialu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 529,
+          "name": "甘佳露",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "gaoxiang_ss",
+      "visibleUsername": "gaoxiang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000181,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "gaoxinglong_supp",
+      "visibleUsername": "gaoxinglong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 801,
+          "name": "高兴隆",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "gengzhao_supp",
+      "visibleUsername": "gengzhao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 709,
+          "name": "耿昭",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "gesiming_supp",
+      "visibleUsername": "gesiming_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 712,
+          "name": "葛思明",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "gongruixiang_ss",
+      "visibleUsername": "gongruixiang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000191,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "guobingbing_supp",
+      "visibleUsername": "guobingbing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 853,
+          "name": "郭兵兵",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "guohuiqing_supp",
+      "visibleUsername": "guohuiqing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 362,
+          "name": "郭辉青",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "guolirong_supp",
+      "visibleUsername": "guolirong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 797,
+          "name": "郭力荣",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "guoshaoming_ss",
+      "visibleUsername": "guoshaoming_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000207,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "guqiuwu_supp",
+      "visibleUsername": "guqiuwu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 670,
+          "name": "顾秋武",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "hanminghong_supp",
+      "visibleUsername": "hanminghong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 708,
+          "name": "韩明宏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "hanwenhai_supp",
+      "visibleUsername": "hanwenhai_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 693,
+          "name": "韩文海",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "haoyu_ss",
+      "visibleUsername": "haoyu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000063,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "hechenglei_supp",
+      "visibleUsername": "hechenglei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 755,
+          "name": "何成磊",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "houwei_supp",
+      "visibleUsername": "houwei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 882,
+          "name": "侯伟",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huangbingliang_ss",
+      "visibleUsername": "huangbingliang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000077,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huangjiaxing_ss",
+      "visibleUsername": "huangjiaxing_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000173,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huangjunjie_supp",
+      "visibleUsername": "huangjunjie_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 820,
+          "name": "黄俊杰",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huangqiang_supp",
+      "visibleUsername": "huangqiang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 540,
+          "name": "黄强",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "huangxiaohui_ss",
+      "visibleUsername": "huangxiaohui_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000094,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huangxin_ss",
+      "visibleUsername": "huangxin_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000086,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huangyanhui_supp",
+      "visibleUsername": "huangyanhui_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 716,
+          "name": "黄衍辉",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "huangzhen_supp",
+      "visibleUsername": "huangzhen_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 710,
+          "name": "黄振",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huhao_supp",
+      "visibleUsername": "huhao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 733,
+          "name": "胡皓",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huoliangwei_supp",
+      "visibleUsername": "huoliangwei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 863,
+          "name": "霍良伟",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huoruibing_supp",
+      "visibleUsername": "huoruibing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 783,
+          "name": "霍瑞兵",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "husiting_ss",
+      "visibleUsername": "husiting_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000058,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "hutengfei_supp",
+      "visibleUsername": "hutengfei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 543,
+          "name": "胡腾飞",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "huyue_supp",
+      "visibleUsername": "huyue_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 703,
+          "name": "扈悦",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "huzhenhui_supp",
+      "visibleUsername": "huzhenhui_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 845,
+          "name": "胡振辉",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "jiabaotong_supp",
+      "visibleUsername": "jiabaotong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 714,
+          "name": "贾宝通",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "jianghan_supp",
+      "visibleUsername": "jianghan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 690,
+          "name": "姜涵",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "jianghuaiguo_supp",
+      "visibleUsername": "jianghuaiguo_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 615,
+          "name": "江怀国",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "jiangxuemei_ss",
+      "visibleUsername": "jiangxuemei_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000021,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "jiasihao_supp",
+      "visibleUsername": "jiasihao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 728,
+          "name": "贾巳灏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "jikun_ss",
+      "visibleUsername": "jikun_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000020,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "jingsuliang_supp",
+      "visibleUsername": "jingsuliang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 652,
+          "name": "景苏梁",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "konglinghui_supp",
+      "visibleUsername": "konglinghui_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 883,
+          "name": "孔令辉",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lanxian_supp",
+      "visibleUsername": "lanxian_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 328,
+          "name": "兰贤",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "leichengbo_ss",
+      "visibleUsername": "leichengbo_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000116,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "leizhanpeng_supp",
+      "visibleUsername": "leizhanpeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 715,
+          "name": "雷展鹏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liangguangsong_ss",
+      "visibleUsername": "liangguangsong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000002,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "lianghaopeng_supp",
+      "visibleUsername": "lianghaopeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 813,
+          "name": "梁豪鹏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liangrihao_supp",
+      "visibleUsername": "liangrihao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 808,
+          "name": "梁日浩",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liaozhou_ss",
+      "visibleUsername": "liaozhou_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000186,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lichangkang_supp",
+      "visibleUsername": "lichangkang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 812,
+          "name": "李常康",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lichen_supp",
+      "visibleUsername": "lichen_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 691,
+          "name": "李晨",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "lichenchen_ss",
+      "visibleUsername": "lichenchen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000197,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lifan_supp",
+      "visibleUsername": "lifan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 617,
+          "name": "李帆",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "lifanb_supp",
+      "visibleUsername": "lifanb_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 673,
+          "name": "李帆",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "lifeilong_supp",
+      "visibleUsername": "lifeilong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 810,
+          "name": "李飞龙",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liguoqiang_ss",
+      "visibleUsername": "liguoqiang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000149,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "limengnan_supp",
+      "visibleUsername": "limengnan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 685,
+          "name": "李梦男",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "linchunhai_supp",
+      "visibleUsername": "linchunhai_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 701,
+          "name": "林春海",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "linhaoyuan_ss",
+      "visibleUsername": "linhaoyuan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000025,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "linkeyu_supp",
+      "visibleUsername": "linkeyu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 699,
+          "name": "蔺柯宇",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "linqiang_supp",
+      "visibleUsername": "linqiang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 782,
+          "name": "林强",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "linxijie_ss",
+      "visibleUsername": "linxijie_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000018,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "linzhipeng_supp",
+      "visibleUsername": "linzhipeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 736,
+          "name": "林志鹏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "litao_supp",
+      "visibleUsername": "litao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 541,
+          "name": "李涛",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liubingtong_ss",
+      "visibleUsername": "liubingtong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000182,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liudawei_ss",
+      "visibleUsername": "liudawei_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000202,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liudebang_supp",
+      "visibleUsername": "liudebang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 545,
+          "name": "刘德邦",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liuhaibo_ss",
+      "visibleUsername": "liuhaibo_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000008,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liuhu_supp",
+      "visibleUsername": "liuhu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 651,
+          "name": "刘虎",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liujiazhen_supp",
+      "visibleUsername": "liujiazhen_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 590,
+          "name": "刘佳真",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liujie_ss",
+      "visibleUsername": "liujie_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000211,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liujun_ss",
+      "visibleUsername": "liujun_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000138,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liujunzhuo_supp",
+      "visibleUsername": "liujunzhuo_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 795,
+          "name": "刘君焯",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liuliangliang_ss",
+      "visibleUsername": "liuliangliang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000180,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liuliping_ss",
+      "visibleUsername": "liuliping_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000072,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liuqi_ss",
+      "visibleUsername": "liuqi_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000080,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liuqian_ss",
+      "visibleUsername": "liuqian_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000106,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liuweiwei_supp",
+      "visibleUsername": "liuweiwei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 768,
+          "name": "刘威威",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liuxing_supp",
+      "visibleUsername": "liuxing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 794,
+          "name": "刘兴",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liuxue_supp",
+      "visibleUsername": "liuxue_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 798,
+          "name": "刘雪",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liuying_ss",
+      "visibleUsername": "liuying_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000003,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liuyingzheng_supp",
+      "visibleUsername": "liuyingzheng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 726,
+          "name": "刘瀛正",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liuyong_ss",
+      "visibleUsername": "liuyong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000005,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liuzhuming_ss",
+      "visibleUsername": "liuzhuming_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000011,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lixiao_ss",
+      "visibleUsername": "lixiao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000176,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liyadian_ss",
+      "visibleUsername": "liyadian_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000029,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liyafan_ss",
+      "visibleUsername": "liyafan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000105,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "liyaxian_supp",
+      "visibleUsername": "liyaxian_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 756,
+          "name": "李娅娴",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "liyongping_ss",
+      "visibleUsername": "liyongping_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000212,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lizhao_ss",
+      "visibleUsername": "lizhao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000019,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lizhengpeng_supp",
+      "visibleUsername": "lizhengpeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 781,
+          "name": "李正鹏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lizhipeng_supp",
+      "visibleUsername": "lizhipeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 800,
+          "name": "李志鹏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lnss_supp",
+      "visibleUsername": "lnss_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 512,
+          "name": "辽宁三色",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "longxiaozhu_ss",
+      "visibleUsername": "longxiaozhu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000127,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "luojing_ss",
+      "visibleUsername": "luojing_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000054,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "luoquanzhe_supp",
+      "visibleUsername": "luoquanzhe_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 829,
+          "name": "罗权柘",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "luosidang_ss",
+      "visibleUsername": "luosidang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000167,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "luotengfei_ss",
+      "visibleUsername": "luotengfei_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000169,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "luoyueyun_ss",
+      "visibleUsername": "luoyueyun_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000009,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "luozhi_supp",
+      "visibleUsername": "luozhi_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 807,
+          "name": "罗智",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "lupengpeng_supp",
+      "visibleUsername": "lupengpeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 727,
+          "name": "鲁鹏鹏",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "lvjiacheng_supp",
+      "visibleUsername": "lvjiacheng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 793,
+          "name": "吕嘉诚",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "machao_ss",
+      "visibleUsername": "machao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000122,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "maibenjian_ss",
+      "visibleUsername": "maibenjian_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000208,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "maijiahui_ss",
+      "visibleUsername": "maijiahui_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000178,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "mawenzhe_supp",
+      "visibleUsername": "mawenzhe_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 838,
+          "name": "马文哲",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "mengyutao_supp",
+      "visibleUsername": "mengyutao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 818,
+          "name": "孟玉涛",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "miaochangyang_supp",
+      "visibleUsername": "miaochangyang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 711,
+          "name": "苗畅洋",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "miaotian_ss",
+      "visibleUsername": "miaotian_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000119,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "niushuren_supp",
+      "visibleUsername": "niushuren_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 834,
+          "name": "牛树仁",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "njck_supp",
+      "visibleUsername": "njck_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 522,
+          "name": "南京川康",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "njsc_supp",
+      "visibleUsername": "njsc_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 525,
+          "name": "南京索诚",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "njyn_supp",
+      "visibleUsername": "njyn_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 524,
+          "name": "南京耀诺",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "ouyangzhaofeng_supp",
+      "visibleUsername": "ouyangzhaofeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 704,
+          "name": "欧阳兆逢",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "panchaozhong_ss",
+      "visibleUsername": "panchaozhong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000131,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "pengjunjie_ss",
+      "visibleUsername": "pengjunjie_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000015,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "pms_tbpublic",
+      "visibleUsername": "pms_tbpublic",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 473,
+          "name": "技术公告Public",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "puyuhang_ss",
+      "visibleUsername": "puyuhang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000069,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "qiaojingbo_ss",
+      "visibleUsername": "qiaojingbo_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000028,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "qiubaohui_ss",
+      "visibleUsername": "qiubaohui_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000093,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "qiurenwu_ss",
+      "visibleUsername": "qiurenwu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000166,
+          "name": null,
+          "status": 2
+        }
+      ]
+    },
+    {
+      "username": "qiuzhenlu_supp",
+      "visibleUsername": "qiuzhenlu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 809,
+          "name": "邱振禄",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "raojie_ss",
+      "visibleUsername": "raojie_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000035,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "renchangchao_supp",
+      "visibleUsername": "renchangchao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 653,
+          "name": "任长超",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "ruanhao_supp",
+      "visibleUsername": "ruanhao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 804,
+          "name": "阮昊",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "sczrxx_supp",
+      "visibleUsername": "sczrxx_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 519,
+          "name": "四川智仁信息",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "sdrk_supp",
+      "visibleUsername": "sdrk_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 515,
+          "name": "山东锐科",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "shaoxinchao_supp",
+      "visibleUsername": "shaoxinchao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 597,
+          "name": "邵新超",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "songjian_ss",
+      "visibleUsername": "songjian_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000130,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "songrui_ss",
+      "visibleUsername": "songrui_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000160,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "sse",
+      "visibleUsername": "sse",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000000,
+          "name": null,
+          "status": 1
+        },
+        {
+          "table": "fnd_user_info",
+          "id": 785,
+          "name": "sse",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "suibensen_ss",
+      "visibleUsername": "suibensen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000216,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "sunchaoran_supp",
+      "visibleUsername": "sunchaoran_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 873,
+          "name": "孙超然",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "sunchengwu_supp",
+      "visibleUsername": "sunchengwu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 857,
+          "name": "孙成武",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "sunhaoran_ss",
+      "visibleUsername": "sunhaoran_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000201,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "sunruimin_supp",
+      "visibleUsername": "sunruimin_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 790,
+          "name": "孙睿敏",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "sunzhikui_ss",
+      "visibleUsername": "sunzhikui_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000103,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "suzhengxiong_supp",
+      "visibleUsername": "suzhengxiong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 859,
+          "name": "苏正雄",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "sys",
+      "visibleUsername": "sys",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 550,
+          "name": "系统",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "szbb_supp",
+      "visibleUsername": "szbb_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 517,
+          "name": "北京神州邦邦",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "taiqihang_supp",
+      "visibleUsername": "taiqihang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 738,
+          "name": "台啟杭",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "tangchengyang_ss",
+      "visibleUsername": "tangchengyang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000199,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "tangjiaming_ss",
+      "visibleUsername": "tangjiaming_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000017,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "tangle_ss",
+      "visibleUsername": "tangle_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000139,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "tangxueke_ss",
+      "visibleUsername": "tangxueke_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000152,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "tanjiawei_ss",
+      "visibleUsername": "tanjiawei_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000123,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "tanpengcheng_ss",
+      "visibleUsername": "tanpengcheng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000013,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "tanyang_supp",
+      "visibleUsername": "tanyang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 849,
+          "name": "谭洋",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "tengfarong_supp",
+      "visibleUsername": "tengfarong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 721,
+          "name": "滕发荣",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "test_supp",
+      "visibleUsername": "test_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 506,
+          "name": "测试外协",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "test_supp1",
+      "visibleUsername": "test_supp1",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 509,
+          "name": "测试外协",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "test_supp2",
+      "visibleUsername": "test_supp2",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 508,
+          "name": "测试外协",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "test_supp3",
+      "visibleUsername": "test_supp3",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 535,
+          "name": "测试3",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "tianguo_ss",
+      "visibleUsername": "tianguo_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000087,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "tianjunhui_supp",
+      "visibleUsername": "tianjunhui_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 718,
+          "name": "田军辉",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "tianlifu_supp",
+      "visibleUsername": "tianlifu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 546,
+          "name": "田力夫",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "tycw_supp",
+      "visibleUsername": "tycw_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 513,
+          "name": "太原沧维",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "wangchengyu_supp",
+      "visibleUsername": "wangchengyu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 616,
+          "name": "王成宇",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "wangchenxu_supp",
+      "visibleUsername": "wangchenxu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 729,
+          "name": "汪晨旭",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangchenyang_supp",
+      "visibleUsername": "wangchenyang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 775,
+          "name": "汪晨阳",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wanghao_supp",
+      "visibleUsername": "wanghao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 697,
+          "name": "王昊",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangkang_supp",
+      "visibleUsername": "wangkang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 698,
+          "name": "王康",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wanglei_supp",
+      "visibleUsername": "wanglei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 744,
+          "name": "王蕾",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangqinzheng_ss",
+      "visibleUsername": "wangqinzheng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000004,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangruixiang_ss",
+      "visibleUsername": "wangruixiang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000023,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangxiaoyi_ss",
+      "visibleUsername": "wangxiaoyi_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000066,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangxinglu_ss",
+      "visibleUsername": "wangxinglu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000125,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangxinwei_supp",
+      "visibleUsername": "wangxinwei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 840,
+          "name": "王欣炜",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangxiutao_supp",
+      "visibleUsername": "wangxiutao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 695,
+          "name": "王秀涛",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangxuan_supp",
+      "visibleUsername": "wangxuan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 796,
+          "name": "王轩",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangxuesong_ss",
+      "visibleUsername": "wangxuesong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000007,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangxuhui_ss",
+      "visibleUsername": "wangxuhui_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000042,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangye_supp",
+      "visibleUsername": "wangye_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 659,
+          "name": "王烨",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangyib_ss",
+      "visibleUsername": "wangyib_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000200,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wangzhiheng_ss",
+      "visibleUsername": "wangzhiheng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000060,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "wangzhipeng_ss",
+      "visibleUsername": "wangzhipeng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000189,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "weichunting_ss",
+      "visibleUsername": "weichunting_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000097,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wengencong_supp",
+      "visibleUsername": "wengencong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 884,
+          "name": "翁恩聪",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wudexin_ss",
+      "visibleUsername": "wudexin_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000210,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wuhao_ss",
+      "visibleUsername": "wuhao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000108,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wujiang_supp",
+      "visibleUsername": "wujiang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 821,
+          "name": "吴疆",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wujingwen_ss",
+      "visibleUsername": "wujingwen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000115,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "wuzhiwen_ss",
+      "visibleUsername": "wuzhiwen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000039,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "wuzhongqi_supp",
+      "visibleUsername": "wuzhongqi_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 700,
+          "name": "吴忠琦",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xiaheting_ss",
+      "visibleUsername": "xiaheting_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000024,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xialangguo_ss",
+      "visibleUsername": "xialangguo_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000070,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "xialangguo_ss ",
+      "visibleUsername": "xialangguo_ss\\xa0",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000067,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "xiaokun_supp",
+      "visibleUsername": "xiaokun_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 713,
+          "name": "肖锟",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xiaoqinwen_ss",
+      "visibleUsername": "xiaoqinwen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000074,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xiaoyuanyuan_ss",
+      "visibleUsername": "xiaoyuanyuan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000032,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "xiatongsen_supp",
+      "visibleUsername": "xiatongsen_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 881,
+          "name": "夏通森",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xieqianzhu_ss",
+      "visibleUsername": "xieqianzhu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000100,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xingfubao_ss",
+      "visibleUsername": "xingfubao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000194,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xiongqiang_ss",
+      "visibleUsername": "xiongqiang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000095,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xizhe_supp",
+      "visibleUsername": "xizhe_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 844,
+          "name": "席哲",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "xufan_ss",
+      "visibleUsername": "xufan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000026,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "xuqiang_supp",
+      "visibleUsername": "xuqiang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 816,
+          "name": "徐强",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xushang_supp",
+      "visibleUsername": "xushang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 657,
+          "name": "徐尚",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "xuxiangqian_ss",
+      "visibleUsername": "xuxiangqian_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000101,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "xuzhenkui_supp",
+      "visibleUsername": "xuzhenkui_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 848,
+          "name": "许振奎",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yangchen_ss",
+      "visibleUsername": "yangchen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000050,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "yangdanni_ss",
+      "visibleUsername": "yangdanni_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000040,
+          "name": null,
+          "status": 2
+        }
+      ]
+    },
+    {
+      "username": "yangde_supp",
+      "visibleUsername": "yangde_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 767,
+          "name": "杨德",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yangkai_supp",
+      "visibleUsername": "yangkai_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 544,
+          "name": "杨凯",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "yangkaitian_supp",
+      "visibleUsername": "yangkaitian_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 815,
+          "name": "杨凯添",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "yangqingsong_ss",
+      "visibleUsername": "yangqingsong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000071,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yangshubo_supp",
+      "visibleUsername": "yangshubo_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 705,
+          "name": "杨淑波",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yangsujin_supp",
+      "visibleUsername": "yangsujin_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 806,
+          "name": "杨肃锦",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yangxing_supp",
+      "visibleUsername": "yangxing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 773,
+          "name": "杨兴",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yangxingwen_ss",
+      "visibleUsername": "yangxingwen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000076,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "yangyun_supp",
+      "visibleUsername": "yangyun_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 805,
+          "name": "杨云",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yangzeng_supp",
+      "visibleUsername": "yangzeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 553,
+          "name": "杨增",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yanxinrui_supp",
+      "visibleUsername": "yanxinrui_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 537,
+          "name": "严鑫睿",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yanzuo_supp",
+      "visibleUsername": "yanzuo_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 843,
+          "name": "晏座",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "yejinliang_ss",
+      "visibleUsername": "yejinliang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000036,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yewenshuo_supp",
+      "visibleUsername": "yewenshuo_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 692,
+          "name": "叶纹槊",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yezhihao_ss",
+      "visibleUsername": "yezhihao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000043,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yinhailong_supp",
+      "visibleUsername": "yinhailong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 706,
+          "name": "尹海龙",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "ysy_supp",
+      "visibleUsername": "ysy_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 514,
+          "name": "山东亿数元",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "yuqinqin_ss",
+      "visibleUsername": "yuqinqin_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000164,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zcrh_supp",
+      "visibleUsername": "zcrh_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 521,
+          "name": "四川智诚瑞合",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zdkj_supp",
+      "visibleUsername": "zdkj_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 520,
+          "name": "成都泽达",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zengjian_supp",
+      "visibleUsername": "zengjian_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 811,
+          "name": "曾健",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zengzhipeng_ss",
+      "visibleUsername": "zengzhipeng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000185,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhangdongsheng_ss",
+      "visibleUsername": "zhangdongsheng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000155,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhangguangyu_ss",
+      "visibleUsername": "zhangguangyu_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000179,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhanghongfei_ss",
+      "visibleUsername": "zhanghongfei_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000099,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhanghuidong_ss",
+      "visibleUsername": "zhanghuidong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000170,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhangjin_ss",
+      "visibleUsername": "zhangjin_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000132,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhangjufeng_supp",
+      "visibleUsername": "zhangjufeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 758,
+          "name": "张举峰",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhanglele_supp",
+      "visibleUsername": "zhanglele_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 694,
+          "name": "张乐乐",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhangnan_supp",
+      "visibleUsername": "zhangnan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 841,
+          "name": "张楠",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhangxizhen_ss",
+      "visibleUsername": "zhangxizhen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000102,
+          "name": null,
+          "status": 2
+        }
+      ]
+    },
+    {
+      "username": "zhangyongbing_supp",
+      "visibleUsername": "zhangyongbing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 702,
+          "name": "张永冰",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhangyulong_supp",
+      "visibleUsername": "zhangyulong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 589,
+          "name": "张雨龙",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhangzhengxing_supp",
+      "visibleUsername": "zhangzhengxing_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 799,
+          "name": "张正兴",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhaofangfang_ss",
+      "visibleUsername": "zhaofangfang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000038,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhaohongyu_supp",
+      "visibleUsername": "zhaohongyu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 872,
+          "name": "赵鸿宇",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhaoyangxi_supp",
+      "visibleUsername": "zhaoyangxi_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 862,
+          "name": "赵洋希",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhaozidu_supp",
+      "visibleUsername": "zhaozidu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 875,
+          "name": "赵子都",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhenghao_ss",
+      "visibleUsername": "zhenghao_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000117,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhengjiaqi_ss",
+      "visibleUsername": "zhengjiaqi_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000056,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhengjienan_ss",
+      "visibleUsername": "zhengjienan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000051,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhengjieyuan_supp",
+      "visibleUsername": "zhengjieyuan_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 854,
+          "name": "郑杰元",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhengkang_supp",
+      "visibleUsername": "zhengkang_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 792,
+          "name": "郑康",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhengtao_supp",
+      "visibleUsername": "zhengtao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 874,
+          "name": "郑涛",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhengzhiwen_ss",
+      "visibleUsername": "zhengzhiwen_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000010,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhonghaotian_supp",
+      "visibleUsername": "zhonghaotian_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 658,
+          "name": "钟皓天",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhouchao_supp",
+      "visibleUsername": "zhouchao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 822,
+          "name": "周超",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhouduqun_ss",
+      "visibleUsername": "zhouduqun_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000204,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhouguangmin_supp",
+      "visibleUsername": "zhouguangmin_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 814,
+          "name": "周广民",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhoujun_ss",
+      "visibleUsername": "zhoujun_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000177,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhouqitao_supp",
+      "visibleUsername": "zhouqitao_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 600,
+          "name": "周祺滔",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhoutangfu_supp",
+      "visibleUsername": "zhoutangfu_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 751,
+          "name": "周唐福",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhouxinwei_supp",
+      "visibleUsername": "zhouxinwei_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 865,
+          "name": "周欣伟",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhouzisong_supp",
+      "visibleUsername": "zhouzisong_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 864,
+          "name": "周子淞",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhujiangfeng_supp",
+      "visibleUsername": "zhujiangfeng_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 754,
+          "name": "朱江峰",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhujie_supp",
+      "visibleUsername": "zhujie_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 542,
+          "name": "朱杰",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhuxiaolong_ss",
+      "visibleUsername": "zhuxiaolong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000052,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhuyunrong_ss",
+      "visibleUsername": "zhuyunrong_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000104,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhuyuwei_ss",
+      "visibleUsername": "zhuyuwei_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000144,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zhuzexuan_ss",
+      "visibleUsername": "zhuzexuan_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000027,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zhuziyang_ss",
+      "visibleUsername": "zhuziyang_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000215,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zoujin_supp",
+      "visibleUsername": "zoujin_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 802,
+          "name": "邹锦",
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zoukaiping_ss",
+      "visibleUsername": "zoukaiping_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000064,
+          "name": null,
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "zoupeng_ss",
+      "visibleUsername": "zoupeng_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000190,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zousonghe_ss",
+      "visibleUsername": "zousonghe_ss",
+      "sourceRecords": [
+        {
+          "table": "t_user",
+          "id": 1000037,
+          "name": null,
+          "status": 1
+        }
+      ]
+    },
+    {
+      "username": "zycx_supp",
+      "visibleUsername": "zycx_supp",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 511,
+          "name": "长春中宇创新",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "杨少毅",
+      "visibleUsername": "\\u6768\\u5c11\\u6bc5",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 390,
+          "name": "y04046",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "梁红玉",
+      "visibleUsername": "\\u6881\\u7ea2\\u7389",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 228,
+          "name": "梁红玉",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "白凯",
+      "visibleUsername": "\\u767d\\u51ef",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 847,
+          "name": "b05761",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "胡慧东",
+      "visibleUsername": "\\u80e1\\u6167\\u4e1c",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 490,
+          "name": "h01564",
+          "status": 0
+        }
+      ]
+    },
+    {
+      "username": "赵炯粟",
+      "visibleUsername": "\\u8d75\\u70af\\u7c9f",
+      "sourceRecords": [
+        {
+          "table": "fnd_user_info",
+          "id": 309,
+          "name": "z03746",
+          "status": 0
+        }
+      ]
+    }
+  ],
+  "multiCompanyProfileConflicts": [
+    {
+      "sourceUserId": 969,
+      "profileIds": [
+        969,
+        1000190
+      ],
+      "differingFields": [
+        "mobile",
+        "telphone",
+        "sex",
+        "remark",
+        "workNo",
+        "compID",
+        "depID",
+        "jobID"
+      ]
+    },
+    {
+      "sourceUserId": null,
+      "profileIds": [
+        1000186,
+        1000188,
+        1000189
+      ],
+      "differingFields": [
+        "realName",
+        "workNo"
+      ]
+    }
+  ],
+  "proposedContactHandling": "保留各来源账号；存在重复联系值的账号将原值保存到已批准custom_info的明确联系人属性，待指定正式归属前不写入受唯一规则约束的email/mobile；现存正式联系人不清空、不覆盖。需用户批准此字段例外。",
+  "noAutomaticIdentityMerge": true,
+  "previousProposalStatus": "WITHDRAWN_DUPLICATE_CONTACT_JSON_SUBSTITUTION",
+  "approvedContactHandling": "用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。",
+  "latestAccountScopeDecision": "用户限定仅迁移首字母+工号、*_ss、*_supp，保留原字符串；t329条、fnd866条及330条任职合并1176个账号。登录/账号维护兼容已批准；旧admin仅99处历史审计引用关联当前admin ID1，不迁入资料、角色或范围。",
+  "originalEvidenceScope": "Below conflict groups and unsupported login names are the original full-source audit, not the selected migration scope. Preserve as source evidence; current scope is in selected-scope-decision.",
+  "approvedRemainingUserDecisions": {
+    "historicalLoginInput": "保留选中*_ss、*_supp原登录名；登录与账号维护输入兼容这些形式。注册规则不在此裁决范围。",
+    "excludedAdminAuditOnly": "旧admin不迁入账号资料，仅将历史创建/更新人关联当前admin ID1；不导入旧角色或授权；目标缺失或绑定改变时阻断。",
+    "w30049Email": "用户明确例外：原值@dptech.com直接承接正式email，不置空、不改写、不用custom_info替代。普通新建/修改邮箱格式校验保持。",
+    "zhaoyangxiSuppEmail": "正式email仅去除来源尾部制表符，原值完整留来源证据。",
+    "nullCompanyRoleRelations": "z04214、w04218、y04223、w04261、z04264迁入正式用户角色关系，原公司NULL留证据；不新增公司或办事处授权。"
+  },
+  "currentDecisionStatus": "USER_FIELDS_LOGIN_AUDIT_AND_NULL_COMPANY_ROLES_APPROVED_NOT_DEPLOYED",
+  "currentValidationBoundary": {
+    "canonicalAccounts": 1176,
+    "sourceIdentities": 1525,
+    "verifiedEmployeeNumbers": 823,
+    "auditOnlyAdminBindings": 2,
+    "actualSourceRoleAssignments": {
+      "t": 792,
+      "fnd": 1140
+    },
+    "databaseWrites": 0,
+    "deployment": "NOT_DEPLOYED"
+  }
+}

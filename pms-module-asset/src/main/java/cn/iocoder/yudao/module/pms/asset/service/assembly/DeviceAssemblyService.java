@@ -36,6 +36,7 @@ public class DeviceAssemblyService {
     @Transactional(rollbackFor = Exception.class)
     public void apply(ApplyDeviceAssemblyCommand command) {
         validate(command);
+        assemblyMapper.acquireGraph(new cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.query.DeviceAssemblyTenantLockQuery(command.tenantId()));
         DeviceAssemblySourceQuery sourceQuery = new DeviceAssemblySourceQuery(
                 command.tenantId(), command.sourceSystem(), command.sourceKey());
         if (assemblyMapper.existsBySource(sourceQuery)) {

@@ -19,6 +19,17 @@ import static cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrati
 public class PlatformMigrationEvidenceApiImpl implements PlatformMigrationEvidenceApi {
 
     private final PlatformMigrationEvidenceTransactionExecutor executor;
+    private final MigrationPreviewService previewService;
+
+    @Override
+    public MigrationPreviewResult preview(MigrationPreviewCommand command) {
+        return invoke(command == null ? null : command.tenantId(), () -> previewService.preview(command));
+    }
+
+    @Override
+    public MigrationPreviewResult previewBatch(MigrationBatchPreviewCommand command) {
+        return invoke(command == null ? null : command.tenantId(), () -> previewService.previewBatch(command));
+    }
 
     @Override
     public MigrationBatchFact createImportBatch(CreateImportBatchCommand command) {

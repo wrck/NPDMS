@@ -7,6 +7,8 @@ import Panel from './ProjectLegacyDetailPanel.vue'
 import {
   getLegacySources,
   getLegacyRecords,
+  getLegacyNativeReport,
+  getLegacyNativeRecordStatus,
   type LegacyDomain,
   type LegacySource
 } from '@/api/pms/project/legacy-detail'
@@ -15,7 +17,9 @@ vi.mock('@/config/axios', () => ({ default: {} }))
 vi.mock('@/api/pms/project/legacy-detail', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/api/pms/project/legacy-detail')>()),
   getLegacySources: vi.fn(),
-  getLegacyRecords: vi.fn()
+  getLegacyRecords: vi.fn(),
+  getLegacyNativeReport: vi.fn(),
+  getLegacyNativeRecordStatus: vi.fn()
 }))
 const domains: LegacyDomain[] = [
   {
@@ -72,10 +76,76 @@ const order = {
 }
 let wrapper: ReturnType<typeof mount> | undefined
 beforeEach(() => {
+  vi.mocked(getLegacyNativeReport).mockReset().mockResolvedValue({
+    sourceId: source.id,
+    snapshotId: source.snapshotId,
+    sourceCount: 3,
+    mappedCount: 0,
+    retainedCount: 0,
+    pendingCount: 3,
+    domains: []
+  })
+  vi.mocked(getLegacyNativeRecordStatus).mockReset().mockResolvedValue({})
   vi.mocked(getLegacySources).mockReset().mockResolvedValue([source])
   vi.mocked(getLegacyRecords)
     .mockReset()
     .mockResolvedValue({ list: [order], total: 1 })
+})
+
+it('shows retained reasons and the native business targets without changing historical fields', async () => {
+  vi.mocked(getLegacyNativeReport).mockResolvedValue({
+    sourceId: source.id,
+    snapshotId: source.snapshotId,
+    sourceCount: 3,
+    mappedCount: 1,
+    retainedCount: 2,
+    pendingCount: 0,
+    domains: []
+  })
+  vi.mocked(getLegacyNativeRecordStatus).mockResolvedValue({
+    '11': {
+      classification: 'MAPPED',
+      targets: [
+        {
+          targetContext: 'COM',
+          targetObjectType: 'SalesOrder',
+          targetTable: 'com_sales_order',
+          targetId: '123',
+          targetRole: 'ORDER',
+          targetSequence: 0
+        }
+      ]
+    }
+  })
+  wrapper = render()
+  await flushPromises()
+  expect(wrapper.text()).toContain('已有目标记录 1 条')
+  expect(wrapper.text()).toContain('保留来源资料 2 条')
+  await wrapper
+    .findAll('button')
+    .find((b) => b.text() === '商务资料')!
+    .trigger('click')
+  await flushPromises()
+  expect(wrapper.text()).toContain('SYNTHETIC-ORDER')
+  const action = wrapper.findAll('button').find((b) => b.text().includes('查看详情'))!
+  await action.trigger('click')
+  await flushPromises()
+  expect(document.body.textContent).toContain('已关联：销售订单')
+})
+
+it('does not report a completed migration when loading native evidence fails', async () => {
+  vi.mocked(getLegacyNativeRecordStatus).mockRejectedValue(new Error('Evidence unavailable'))
+  wrapper = render()
+  await flushPromises()
+  expect(wrapper.text()).toContain('业务承接状态暂不可用')
+  expect(wrapper.text()).toContain('状态暂不可用')
+  expect(wrapper.text()).not.toContain('已有目标记录 1 条')
+  await wrapper
+    .findAll('button')
+    .find((b) => b.text() === '商务资料')!
+    .trigger('click')
+  await flushPromises()
+  expect(wrapper.text()).toContain('SYNTHETIC-ORDER')
 })
 afterEach(() => {
   wrapper?.unmount()

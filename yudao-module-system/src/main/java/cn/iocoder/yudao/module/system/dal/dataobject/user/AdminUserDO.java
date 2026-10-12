@@ -38,6 +38,14 @@ public class AdminUserDO extends TenantBaseDO {
      */
     private String username;
     /**
+     * 真实员工工号；外部账号的登录名不作为工号。
+     */
+    private String employeeNo;
+    /**
+     * 账号扩展业务属性，保存完整 JSON 对象；旧限制键不直接转为当前权限。
+     */
+    private String customInfo;
+    /**
      * 加密后的密码
      *
      * 因为目前使用 {@link BCryptPasswordEncoder} 加密器，所以无需自己处理 salt 盐

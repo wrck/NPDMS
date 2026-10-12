@@ -299,7 +299,7 @@ class DeliveryMaterialWithdrawalPersistenceTest {
             var api=mock(FileAccessTicketService.class);var result=new cn.iocoder.yudao.module.pms.platform.controller.admin.file.vo.FileAccessTicketRespVO(701L,"https://fixture.invalid/internal",java.time.LocalDateTime.now().plusSeconds(60));when(api.create(any())).thenReturn(result);return api;
         }
         @Bean NativeGeneratedFileService nativeDownloads(DeliveryMaterialMapper materials,FileEvidenceApi evidence,FileAccessTicketService tickets,DeliveryOwnerAccess owners) {
-            return new NativeGeneratedFileService(mock(cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry.class),mock(cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService.class),mock(DeliveryMaterialService.class),materials,evidence,tickets,mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class),owners);
+            return new NativeGeneratedFileService(mock(cn.iocoder.yudao.module.pms.platform.service.file.FileBusinessObjectPolicyRegistry.class),mock(cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService.class),mock(DeliveryMaterialService.class),materials,evidence,tickets,mock(cn.iocoder.yudao.module.system.api.permission.PermissionApi.class),owners,mock(DeliveryDocumentOriginResolver.class));
         }
         @Bean PlatformDeliveryMaterialApi materialApi(DeliveryMaterialMapper m,DeliveryMaterialWithdrawalService s){return new PlatformDeliveryMaterialApiImpl(mock(DeliveryMaterialService.class),m,s);}
     }

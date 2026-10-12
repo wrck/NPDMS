@@ -26,10 +26,12 @@
       <el-table-column label="人员" min-width="110"><template #default="{ row }">
         {{ row.memberName || '姓名未记录' }}
       </template></el-table-column>
+      <el-table-column label="人员编码" min-width="100"><template #default="{ row }">{{ row.memberCode || row.employeeNo || '—' }}</template></el-table-column>
       <el-table-column label="角色" min-width="95"><template #default="{ row }">{{ roleLabel(row.memberRole) }}</template></el-table-column>
       <el-table-column label="联系电话" min-width="125"><template #default="{ row }">{{ row.mobile || '—' }}</template></el-table-column>
       <el-table-column label="邮箱" min-width="155" show-overflow-tooltip><template #default="{ row }">{{ row.email || '—' }}</template></el-table-column>
       <el-table-column label="主责" width="70" align="center"><template #default="{ row }">{{ primaryLabel(row) }}</template></el-table-column>
+      <el-table-column label="授权" width="100"><template #default="{ row }">{{ row.authorizationConfirmed === false ? '未确认授权' : '已确认' }}</template></el-table-column>
       <el-table-column label="生效时间" min-width="155"><template #default="{ row }">{{ time(row.effectiveFrom) }}</template></el-table-column>
       <el-table-column label="失效时间" min-width="155"><template #default="{ row }">{{ time(row.effectiveTo) }}</template></el-table-column>
       <el-table-column label="操作" width="140" fixed="right"><template #default="{ row }">
@@ -96,13 +98,14 @@ const dialogWidth = computed(() => mobile.value ? '96%' : '680px')
 const editable = computed(() => props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
 const removalSubmission = createSubmissionIdempotencyState()
 let sequence = 0
-const canMaintain = (row: Members.MemberRecord) => Members.memberRoleOptions.some(role =>
+const canMaintain = (row: Members.MemberRecord) => row.authorizationConfirmed !== false && row.userId != null && Members.memberRoleOptions.some(role =>
   role.value === Members.logicalMemberRole(row.memberRole) && checkPermi([role.permission]))
-const isCurrent = (row: Members.MemberRecord) => row.status === 'ACTIVE'
+const isCurrent = (row: Members.MemberRecord) => row.authorizationConfirmed !== false && row.status === 'ACTIVE'
   && (!row.effectiveFrom || new Date(row.effectiveFrom).getTime() <= Date.now())
   && (!row.effectiveTo || new Date(row.effectiveTo).getTime() > Date.now())
 const time = (value?: Date | null) => value ? formatDate(value) : '—'
 const primaryLabel = (row: Members.MemberRecord) => {
+  if (row.authorizationConfirmed === false) return '—'
   if (row.memberRole === memberRoles.PROJECT_MANAGER) return isCurrent(row)
     ? (String(row.userId) === String(managers.value?.primaryUserId) ? '是' : '否') : '—'
   return Members.logicalMemberRole(row.memberRole) === memberRoles.SERVICE_MANAGER

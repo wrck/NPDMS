@@ -1,0 +1,679 @@
+{
+  "table": "com_contract_collection_plan",
+  "status": "USER_APPROVED_IMPLEMENTATION_IN_PROGRESS",
+  "existingBeforeThisTask": false,
+  "currentColumns": 26,
+  "proposedColumns": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "正式技术主键；已有10条记录保留ID，原自增ID仅由既有INT绑定关联",
+      "handling": "正式技术主键；已有10条记录保留ID，原自增ID仅由既有INT绑定关联"
+    },
+    {
+      "COLUMN_NAME": "tenant_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "当前迁移租户；查询、写入、合同和绑定均隔离",
+      "handling": "当前迁移租户；查询、写入、合同和绑定均隔离"
+    },
+    {
+      "COLUMN_NAME": "contract_id",
+      "COLUMN_TYPE": "bigint",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "精确正式合同引用；无法唯一匹配时完整计划先保留，引用为空且登记待关联，不按名称或跨公司猜配",
+      "handling": "精确正式合同引用；无法唯一匹配时完整计划先保留，引用为空且登记待关联，不按名称或跨公司猜配"
+    },
+    {
+      "COLUMN_NAME": "contract_no",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原合同号；原列varchar(25)，不裁剪、不按当前项目代码替代",
+      "handling": "原合同号；原列varchar(25)，不裁剪、不按当前项目代码替代"
+    },
+    {
+      "COLUMN_NAME": "batch_code",
+      "COLUMN_TYPE": "varchar(32)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原计划批次；原列varchar(10)",
+      "handling": "原计划批次；原列varchar(10)"
+    },
+    {
+      "COLUMN_NAME": "collection_item_name",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "回款款项名称，如初验款、终验款；原money_item_name，不命名为计划事件",
+      "handling": "回款款项名称，如初验款、终验款；原money_item_name，不命名为计划事件"
+    },
+    {
+      "COLUMN_NAME": "reference_event_name",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原参考事件，如初验、终验、到货验收；与回款款项分开",
+      "handling": "原参考事件，如初验、终验、到货验收；与回款款项分开"
+    },
+    {
+      "COLUMN_NAME": "event_planned_at",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原事件计划发生日期；可经既有Owner供适用阶段/任务的计划验收日期取值，NULL保持NULL",
+      "handling": "原事件计划发生日期；可经既有Owner供适用阶段/任务的计划验收日期取值，NULL保持NULL"
+    },
+    {
+      "COLUMN_NAME": "after_days",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原后推天数，原int(11)；原样保留整数、0、NULL，不增加小数精度或自动算回款到期日",
+      "handling": "原后推天数，原int(11)；原样保留整数、0、NULL，不增加小数精度或自动算回款到期日"
+    },
+    {
+      "COLUMN_NAME": "event_actual_finished_at",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原事件实际完成日期；不作为回款到账日期或当前验收完成凭据",
+      "handling": "原事件实际完成日期；不作为回款到账日期或当前验收完成凭据"
+    },
+    {
+      "COLUMN_NAME": "marketing_feedback",
+      "COLUMN_TYPE": "varchar(2000)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "完整销售反馈，按原列容量保存",
+      "handling": "完整销售反馈，按原列容量保存"
+    },
+    {
+      "COLUMN_NAME": "data_source",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "实际业务来源CRM/SMS，原值保存；本全表为CRM，不另设DPPMS来源镜像",
+      "handling": "实际业务来源CRM/SMS，原值保存；本全表为CRM，不另设DPPMS来源镜像"
+    },
+    {
+      "COLUMN_NAME": "effective_from",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原记录有效期开始，原样保留",
+      "handling": "原记录有效期开始，原样保留"
+    },
+    {
+      "COLUMN_NAME": "effective_to",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原记录有效期结束，NULL保持NULL，不自动转换为当前流程状态",
+      "handling": "原记录有效期结束，NULL保持NULL，不自动转换为当前流程状态"
+    },
+    {
+      "COLUMN_NAME": "creator",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "可核实人员关联已迁入SYS用户；CrmInterfaceUser/crmapp无账号时建议保留原审计字符串，待本表裁决",
+      "handling": "可核实人员关联已迁入SYS用户；CrmInterfaceUser/crmapp无账号时建议保留原审计字符串，待本表裁决"
+    },
+    {
+      "COLUMN_NAME": "create_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "原创建时间，本全表无NULL；不使用迁移时刻。扩大数据时遇NULL阻断并登记，不编造",
+      "handling": "原创建时间，本全表无NULL；不使用迁移时刻。扩大数据时遇NULL阻断并登记，不编造"
+    },
+    {
+      "COLUMN_NAME": "updater",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "原更新人按同一审计规则处理；不凭服务操作者原码创建账号或授权",
+      "handling": "原更新人按同一审计规则处理；不凭服务操作者原码创建账号或授权"
+    },
+    {
+      "COLUMN_NAME": "update_time",
+      "COLUMN_TYPE": "datetime(3)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "原更新时间，本全表无NULL；不使用运行时间。未来来源NULL的处理另行裁决",
+      "handling": "原更新时间，本全表无NULL；不使用运行时间。未来来源NULL的处理另行裁决"
+    },
+    {
+      "COLUMN_NAME": "deleted",
+      "COLUMN_TYPE": "bit(1)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "正式逻辑删除，新历史记录初始为0；不以有效期或日期推断完成、审批或到账状态",
+      "handling": "正式逻辑删除，新历史记录初始为0；不以有效期或日期推断完成、审批或到账状态"
+    }
+  ],
+  "originalFields": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_COMMENT": "主键",
+      "target": "int_sync_binding.source_key → target_id（不新增业务来源ID列）",
+      "handling": "正式技术主键；已有10条记录保留ID，原自增ID仅由既有INT绑定关联；旧系统刷新会删除重插并重置ID，不能宣称该ID跨刷新稳定，需按下面的同步保护边界处理",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "contractNo",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "合同号",
+      "target": "contract_no / contract_id",
+      "handling": "原合同号；原列varchar(25)，不裁剪、不按当前项目代码替代",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "batchCode",
+      "COLUMN_TYPE": "varchar(10)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "批次信息",
+      "target": "batch_code",
+      "handling": "原计划批次；原列varchar(10)",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "basicDataName",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "活动（款项名称）",
+      "target": "collection_item_name",
+      "handling": "回款款项名称，如初验款、终验款；原money_item_name，不命名为计划事件",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "referenceEventName",
+      "COLUMN_TYPE": "varchar(20)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "参照事件名称",
+      "target": "reference_event_name",
+      "handling": "原参考事件，如初验、终验、到货验收；与回款款项分开",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "eventPlanHappenDate",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "事件计划发生日期",
+      "target": "event_planned_at",
+      "handling": "原事件计划发生日期；可经既有Owner供适用阶段/任务的计划验收日期取值，NULL保持NULL",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "afterDaysNum",
+      "COLUMN_TYPE": "int(11)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "后推天数",
+      "target": "after_days",
+      "handling": "原后推天数，原int(11)；原样保留整数、0、NULL，不增加小数精度或自动算回款到期日",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "eventActualFinishDate",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "事件实际完成日期",
+      "target": "event_actual_finished_at",
+      "handling": "原事件实际完成日期；不作为回款到账日期或当前验收完成凭据",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "marketingFeedback",
+      "COLUMN_TYPE": "varchar(2000)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "销售反馈",
+      "target": "marketing_feedback",
+      "handling": "完整销售反馈，按原列容量保存",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "createBy",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "creator",
+      "handling": "可核实人员关联已迁入SYS用户；CrmInterfaceUser/crmapp无账号时建议保留原审计字符串，待本表裁决",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "createTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "create_time",
+      "handling": "原创建时间，本全表无NULL；不使用迁移时刻。扩大数据时遇NULL阻断并登记，不编造",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "updateBy",
+      "COLUMN_TYPE": "varchar(45)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "updater",
+      "handling": "原更新人按同一审计规则处理；不凭服务操作者原码创建账号或授权",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "updateTime",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "update_time",
+      "handling": "原更新时间，本全表无NULL；不使用运行时间。未来来源NULL的处理另行裁决",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "effectiveFrom",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "effective_from",
+      "handling": "原记录有效期开始，原样保留",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "effectiveTo",
+      "COLUMN_TYPE": "datetime",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "effective_to",
+      "handling": "原记录有效期结束，NULL保持NULL，不自动转换为当前流程状态",
+      "decision": "USER_APPROVED"
+    },
+    {
+      "COLUMN_NAME": "dataSource",
+      "COLUMN_TYPE": "varchar(25)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_COMMENT": "",
+      "target": "data_source",
+      "handling": "实际业务来源CRM/SMS，原值保存；本全表为CRM，不另设DPPMS来源镜像",
+      "decision": "USER_APPROVED"
+    }
+  ],
+  "priorBusinessEntityReview": {
+    "com_contract_receivable": "用户明确为合同回款信息，不是计划，排除为计划承接候选，不追加计划字段",
+    "proj_project_stage.acceptance_time": "既有正式阶段计划验收日期消费点",
+    "proj_project_task.acceptance_time": "既有正式任务计划验收日期消费点",
+    "proj_payment_acceptance_binding": "当前节点来源绑定，不替代完整合同计划"
+  },
+  "evidence": {
+    "sourceColumns": 16,
+    "formalColumns": 26,
+    "sourceRows": 10,
+    "formalRows": 10,
+    "allTenantIncludingDeletedRows": 10,
+    "sourceNullUpdatedTime": 0,
+    "sourceWholeTable": {
+      "rows_count": 35501,
+      "null_create_time": 0,
+      "null_update_time": 0
+    },
+    "currentBusinessAndMirrorDifferences": {},
+    "formalAuditDateDifferences": {
+      "create_time": 10,
+      "update_time": 10
+    },
+    "unassociatedHistoricServiceActors": [
+      "CrmInterfaceUser",
+      "crmapp"
+    ]
+  },
+  "newPhysicalTablesProposed": 1,
+  "newPhysicalColumnsOnExistingTablesProposed": 0,
+  "sourceWrites": 0,
+  "targetWrites": 0,
+  "runtimeAcceptance": "NOT_RUN",
+  "userDecision": "19列及上述处理整表按建议",
+  "previousProposalWithdrawn": true,
+  "withdrawnColumns": {
+    "project_id": "原计划归属合同，不绑定首次迁移项目；通过既有正式项目—合同关系查询",
+    "source_created_at": "复用create_time，先保护并纠正原历史值",
+    "source_created_by": "复用creator，按本表审计裁决处理",
+    "source_updated_at": "复用update_time，先保护并纠正原历史值",
+    "source_updated_by": "复用updater，按本表审计裁决处理",
+    "source_system": "删除DPPMS技术来源镜像；原业务来源由data_source承接，连接及来源对象由INT绑定记录",
+    "source_record_key": "原技术id移到既有INT绑定关联，不新增record_key别名"
+  },
+  "proposalReplacements": {
+    "21ColumnProposal": "SUPERSEDED_UNAPPROVED",
+    "event_name": "collection_item_name：原basicDataName是款项名称",
+    "after_days_decimal": "after_days INT：原列int(11)"
+  },
+  "rawTableProfile": {
+    "sourceSchema": [
+      {
+        "Field": "id",
+        "Type": "int(11)",
+        "Collation": null,
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": "auto_increment",
+        "Privileges": "select,insert,update,references",
+        "Comment": "主键"
+      },
+      {
+        "Field": "contractNo",
+        "Type": "varchar(25)",
+        "Collation": "utf8_general_ci",
+        "Null": "YES",
+        "Key": "MUL",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "合同号"
+      },
+      {
+        "Field": "batchCode",
+        "Type": "varchar(10)",
+        "Collation": "utf8_general_ci",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "批次信息"
+      },
+      {
+        "Field": "basicDataName",
+        "Type": "varchar(20)",
+        "Collation": "utf8_general_ci",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "活动（款项名称）"
+      },
+      {
+        "Field": "referenceEventName",
+        "Type": "varchar(20)",
+        "Collation": "utf8_general_ci",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "参照事件名称"
+      },
+      {
+        "Field": "eventPlanHappenDate",
+        "Type": "datetime",
+        "Collation": null,
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "事件计划发生日期"
+      },
+      {
+        "Field": "afterDaysNum",
+        "Type": "int(11)",
+        "Collation": null,
+        "Null": "YES",
+        "Key": "",
+        "Default": "0",
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "后推天数"
+      },
+      {
+        "Field": "eventActualFinishDate",
+        "Type": "datetime",
+        "Collation": null,
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "事件实际完成日期"
+      },
+      {
+        "Field": "marketingFeedback",
+        "Type": "varchar(2000)",
+        "Collation": "utf8mb4_general_ci",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": "销售反馈"
+      },
+      {
+        "Field": "createBy",
+        "Type": "varchar(45)",
+        "Collation": "utf8_general_ci",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": ""
+      },
+      {
+        "Field": "createTime",
+        "Type": "datetime",
+        "Collation": null,
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": ""
+      },
+      {
+        "Field": "updateBy",
+        "Type": "varchar(45)",
+        "Collation": "utf8_general_ci",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": ""
+      },
+      {
+        "Field": "updateTime",
+        "Type": "datetime",
+        "Collation": null,
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": ""
+      },
+      {
+        "Field": "effectiveFrom",
+        "Type": "datetime",
+        "Collation": null,
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": ""
+      },
+      {
+        "Field": "effectiveTo",
+        "Type": "datetime",
+        "Collation": null,
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": ""
+      },
+      {
+        "Field": "dataSource",
+        "Type": "varchar(25)",
+        "Collation": "utf8_general_ci",
+        "Null": "YES",
+        "Key": "",
+        "Default": "SMS",
+        "Extra": "",
+        "Privileges": "select,insert,update,references",
+        "Comment": ""
+      }
+    ],
+    "textProfiles": {
+      "contractNo": {
+        "total": 35501,
+        "nulls": "0",
+        "empties": "0",
+        "max_length": 14
+      },
+      "batchCode": {
+        "total": 35501,
+        "nulls": "0",
+        "empties": "0",
+        "max_length": 1
+      },
+      "basicDataName": {
+        "total": 35501,
+        "nulls": "25",
+        "empties": "0",
+        "max_length": 3
+      },
+      "referenceEventName": {
+        "total": 35501,
+        "nulls": "12",
+        "empties": "0",
+        "max_length": 4
+      },
+      "marketingFeedback": {
+        "total": 35501,
+        "nulls": "32370",
+        "empties": "0",
+        "max_length": 255
+      },
+      "createBy": {
+        "total": 35501,
+        "nulls": "0",
+        "empties": "0",
+        "max_length": 8
+      },
+      "updateBy": {
+        "total": 35501,
+        "nulls": "0",
+        "empties": "0",
+        "max_length": 16
+      },
+      "dataSource": {
+        "total": 35501,
+        "nulls": "0",
+        "empties": "0",
+        "max_length": 3
+      }
+    },
+    "afterDaysProfile": {
+      "minimum": 0,
+      "maximum": 3870,
+      "nulls": "0",
+      "negatives": "0"
+    },
+    "sources": [
+      {
+        "dataSource": "CRM",
+        "rows_count": 35501
+      }
+    ],
+    "collectionItems": [
+      {
+        "basicDataName": null,
+        "rows_count": 25
+      },
+      {
+        "basicDataName": "初验款",
+        "rows_count": 4791
+      },
+      {
+        "basicDataName": "到货款",
+        "rows_count": 16530
+      },
+      {
+        "basicDataName": "终验款",
+        "rows_count": 9583
+      },
+      {
+        "basicDataName": "质保款",
+        "rows_count": 1363
+      },
+      {
+        "basicDataName": "预付",
+        "rows_count": 3209
+      }
+    ],
+    "referenceEvents": [
+      {
+        "referenceEventName": null,
+        "rows_count": 12
+      },
+      {
+        "referenceEventName": "初验",
+        "rows_count": 4792
+      },
+      {
+        "referenceEventName": "到货验收",
+        "rows_count": 16533
+      },
+      {
+        "referenceEventName": "合同签订",
+        "rows_count": 3221
+      },
+      {
+        "referenceEventName": "终验",
+        "rows_count": 9607
+      },
+      {
+        "referenceEventName": "质保期满",
+        "rows_count": 1336
+      }
+    ],
+    "dateProfile": {
+      "null_created": "0",
+      "null_updated": "0",
+      "null_start": "0",
+      "null_end": "35501"
+    },
+    "candidateBusinessKeyDuplicates": {
+      "duplicate_groups": 597,
+      "duplicate_rows": "1253"
+    },
+    "sourceWrites": 0,
+    "targetWrites": 0
+  },
+  "ddlApplied": false,
+  "businessCodeImplemented": true,
+  "approvalQuestion": "整表结构、撤回7列、合同待关联及服务操作者审计字符串处理已批准；持续同步身份裁决问题仍等待回复",
+  "synchronizationIdentityLimit": "原计划同步删除重插并重置自增ID，业务候选键有597组重复；不得盲目跨刷新按ID重绑，持续同步稳定身份策略尚未确认",
+  "implementationBoundary": "19列Owner、INT适配器/模板/事实核验、项目纠正入口及正式计划查询已实现；旧直接写入撤回；未部署、未改实库",
+  "ownerTests": {
+    "tests": 8,
+    "passed": 8,
+    "nativeBusinessWrites": 0,
+    "schemaApplied": false
+  },
+  "integrationTests": {
+    "adapter": 8,
+    "proof": 4,
+    "sourceReadOnly": 1,
+    "passed": 13,
+    "originalSourceRowsPreserved": 35501
+  },
+  "relatedVerification": {
+    "uniqueTestsPassed": 75,
+    "owner": 8,
+    "actualMySqlTemporaryMapper": 4,
+    "commerceMigrationAndScope": 28,
+    "projectMigration": 13,
+    "projectAssociated": 4,
+    "projectReconciliation": 5,
+    "integration": 13,
+    "persistentBusinessWrites": 0
+  },
+  "pilotTransition": {
+    "oldRows": 10,
+    "rawRows": 10,
+    "businessFieldDifferences": 0,
+    "foreignKeysToOldTable": 0,
+    "requiresApprovedSysUserMigration": true,
+    "ddlApplied": false
+  }
+}

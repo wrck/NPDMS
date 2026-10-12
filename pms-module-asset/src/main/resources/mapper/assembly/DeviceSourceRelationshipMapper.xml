@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.assembly.DeviceSourceRelationshipMapper">
+    <select id="selectSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.assembly.DeviceSourceRelationshipDO">
+        SELECT * FROM ast_device_relationship
+        WHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem} AND source_key=#{query.sourceKey}
+        FOR UPDATE
+    </select>
+    <sql id="conditions">
+        FROM ast_device_relationship r
+        WHERE r.tenant_id=#{query.tenantId} AND r.deleted=b'0' AND r.relationship_type='EXTRA_SN'
+        <if test="query.deviceSn != null">
+            AND (CAST(r.source_device_sn AS BINARY)=CAST(#{query.deviceSn} AS BINARY)
+              OR CAST(r.target_device_sn AS BINARY)=CAST(#{query.deviceSn} AS BINARY))
+        </if>
+        <choose>
+            <when test="query.projectId != null">
+                <choose>
+                    <when test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+                        AND CAST(r.contract_no AS BINARY) IN
+                        <foreach collection="query.contractNumbers" item="contractNo" open="(" separator="," close=")">CAST(#{contractNo} AS BINARY)</foreach>
+                    </when>
+                    <otherwise>AND 1=0</otherwise>
+                </choose>
+                AND EXISTS (
+                    SELECT 1 FROM ast_device d WHERE d.tenant_id=r.tenant_id AND d.deleted=b'0'
+                      AND (CAST(d.sn AS BINARY)=CAST(r.source_device_sn AS BINARY)
+                        OR CAST(d.sn AS BINARY)=CAST(r.target_device_sn AS BINARY))
+                      AND (d.project_id=#{query.projectId} OR EXISTS (
+                        SELECT 1 FROM ast_device_project_relationship pr
+                        WHERE pr.tenant_id=d.tenant_id AND pr.device_sn=d.sn AND pr.deleted=b'0'
+                          AND pr.project_id=#{query.projectId} AND pr.effective_from &lt;=CURRENT_TIMESTAMP(3)
+                          AND (pr.effective_to IS NULL OR pr.effective_to&gt;CURRENT_TIMESTAMP(3))
+                      ))
+                )
+            </when>
+            <when test="query.deviceSn != null"/>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+    </sql>
+    <select id="selectRelationshipPage" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.assembly.DeviceSourceRelationshipDO">
+        SELECT r.* <include refid="conditions"/>
+        ORDER BY r.id DESC LIMIT #{query.offset},#{query.limit}
+    </select>
+    <select id="countRelationships" resultType="long">
+        SELECT COUNT(*) <include refid="conditions"/>
+    </select>
+    <insert id="insertHistorical">
+        INSERT INTO ast_device_relationship
+          (id,tenant_id,source_device_sn,target_device_sn,source_item,target_item,relationship_type,contract_no,
+           effective_from,effective_to,source_system,source_key,source_version,version,
+           creator,create_time,updater,update_time,deleted)
+        VALUES
+          (#{command.row.id},#{command.row.tenantId},#{command.row.sourceDeviceSn},#{command.row.targetDeviceSn},
+           #{command.row.sourceItem},#{command.row.targetItem},#{command.row.relationshipType},#{command.row.contractNo},
+           #{command.row.effectiveFrom},#{command.row.effectiveTo},#{command.row.sourceSystem},#{command.row.sourceKey},
+           #{command.row.sourceVersion},#{command.row.version},#{command.row.creator},#{command.row.createTime},
+           #{command.row.updater},#{command.row.updateTime},#{command.row.deleted})
+    </insert>
+    <update id="correctHistoricalAudit">
+        UPDATE ast_device_relationship
+        SET create_time=#{command.createTime},update_time=#{command.updateTime},version=version+1
+        WHERE tenant_id=#{command.tenantId} AND id=#{command.id} AND version=#{command.expectedVersion}
+          AND deleted=b'0' AND source_system='DPPMS' AND relationship_type='EXTRA_SN'
+    </update>
+</mapper>

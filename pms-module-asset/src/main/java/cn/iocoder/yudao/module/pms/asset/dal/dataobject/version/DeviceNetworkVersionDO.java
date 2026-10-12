@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @TableName("ast_device_network_version")
@@ -25,6 +26,8 @@ public class DeviceNetworkVersionDO extends TenantBaseDO {
     private String cpldVersion;
     private String pcbVersion;
     private Boolean customized;
+    private LocalDate releaseDate;
+    private String versionDesc;
     private LocalDateTime effectiveFrom;
     private String sourceSystem;
     private String sourceKey;

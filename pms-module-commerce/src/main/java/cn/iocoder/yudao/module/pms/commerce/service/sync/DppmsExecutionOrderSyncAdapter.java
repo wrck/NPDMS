@@ -5,6 +5,8 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExe
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.query.CrmExecutionOrderSyncQuery;
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
+import cn.iocoder.yudao.module.pms.commerce.service.migration.DppmsExecutionOrganizationReferences;
+import cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,6 +21,7 @@ import java.util.*;
 public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
     public static final String KEY = "DPPMS_CRM_EXECUTION_ORDER";
     private final CrmExecutionOrderMapper mapper;
+    private final DppmsExecutionOrganizationReferences organizationReferences;
 
     @Override public Descriptor descriptor() {
         List<Field> fields = new ArrayList<>();
@@ -47,8 +50,10 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
             if ("CREATED".equals(candidate.action())) created.add(candidate.row());
             else if ("UPDATED".equals(candidate.action())) updated.add(candidate.row());
         }
-        if (!created.isEmpty()) mapper.insertBatch(created, 1000);
-        if (!updated.isEmpty()) mapper.updateBatch(updated, 1000);
+        if (!created.isEmpty() && !mapper.insertBatch(created, 1000))
+            throw new IllegalStateException("DPPMS_EXECUTION_CREATE_FAILED");
+        if (!updated.isEmpty() && !mapper.updateBatch(updated, 1000))
+            throw new IllegalStateException("DPPMS_EXECUTION_CONCURRENT_CHANGE");
         for (Candidate candidate : plan.candidates()) {
             ids.put(candidate.key(), candidate.row().getId());
         }
@@ -64,6 +69,7 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         if (batch.rows().stream().anyMatch(r -> !"EXECUTION_ORDER".equals(r.object())))
             throw new IllegalArgumentException("未知项目执行单同步对象");
         long tenantId = TenantContextHolder.getRequiredTenantId();
+        var directory=organizationReferences.load();
         Map<String, Set<String>> numbersBySystem = new LinkedHashMap<>();
         for (Row row : batch.rows()) {
             String system = text(row, "sourceSystem"), number = text(row, "executionNo");
@@ -85,6 +91,7 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         for (Row source : batch.rows()) {
             try {
                 CrmExecutionOrderDO row = convert(source, tenantId);
+                directory.associate(row);
                 String businessKey = key(row.getSourceSystem(), row.getExecutionNo());
                 CrmExecutionOrderDO old = existing.get(businessKey);
                 if (old != null && Boolean.TRUE.equals(old.getDeleted())) {
@@ -93,9 +100,19 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
                 }
                 Map<String,Object> payload = payload(row);
                 Candidate previous = candidates.get(businessKey);
-                String action = old == null ? "CREATED" : payload(old).equals(payload) ? "UNCHANGED" : "UPDATED";
-                if (old != null) { row.setId(old.getId()); row.setVersion(old.getVersion()); }
-                row.setSourceSyncTime(LocalDateTime.now()); row.setStatus("ACTIVE");
+                if (old != null && (old.getCompanyId()!=null && !Objects.equals(old.getCompanyId(),row.getCompanyId())
+                        || old.getDepartmentId()!=null && !Objects.equals(old.getDepartmentId(),row.getDepartmentId())))
+                    throw new IllegalArgumentException("DPPMS_EXECUTION_ORGANIZATION_REFERENCE_CONFLICT");
+                String action = old == null ? "CREATED" : payload(old).equals(payload)
+                        && Objects.equals(old.getCompanyId(),row.getCompanyId())
+                        && Objects.equals(old.getDepartmentId(),row.getDepartmentId())
+                        && Objects.equals(old.getCompanyName(),row.getCompanyName()) ? "UNCHANGED" : "UPDATED";
+                if (old != null) {
+                    row.setId(old.getId()); row.setVersion(old.getVersion());
+                    row.setStatus(old.getStatus());row.setAfEvidenceStatus(old.getAfEvidenceStatus());
+                    row.setPrimaryProjectId(old.getPrimaryProjectId());
+                } else row.setStatus("ACTIVE");
+                row.setSourceSyncTime(LocalDateTime.now());
                 // The source table keeps historical revisions under different ids. Rows are read by ascending id,
                 // therefore the last revision in a page is the authoritative value for the shared business key.
                 if (!"UNCHANGED".equals(action) || previous != null)
@@ -123,7 +140,10 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         r.setServiceTypeName(text(source,"serviceTypeName")); r.setChannelName(text(source,"channelName"));
         r.setEngineeringFeeRaw(text(source,"engineeringFeeRaw")); r.setEngineeringFee(decimal(source,"engineeringFeeRaw"));
         r.setSourceObjectId(text(source,"sourceObjectId")); r.setApplyType(text(source,"applyType"));
-        r.setCompanyCode(text(source,"companyCode")); r.setCustomerProjectName(text(source,"customerProjectName"));
+        String company=text(source,"companyCode");
+        if (company!=null && !company.isBlank()) r.setCompanyCode(Set.of("001","002","003","004").contains(company)
+                ?company:DppmsCompanyCodeConverter.fromSource(company));
+        r.setCustomerProjectName(text(source,"customerProjectName"));
         r.setFinalCustomerName(text(source,"finalCustomerName")); r.setAgentName(text(source,"agentName"));
         r.setMajorProjectLevel(text(source,"majorProjectLevel")); r.setProjectAmount(decimal(source,"projectAmount"));
         r.setSubmitTime(time(source,"submitTime")); r.setPredictedBidTime(time(source,"predictedBidTime"));
@@ -150,10 +170,10 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         return new Change(r.object(),r.sourceKey(),id,action,before,after,message);
     }
     private static String key(String source,String no){return source+"|"+no;}
-    private static String text(Row r,String name){Object v=r.fields().get(name);return v==null||v.toString().isBlank()?null:v.toString().trim();}
-    private static String required(Row r,String name){String v=text(r,name);if(v==null)throw new IllegalArgumentException("必填来源字段缺失: "+name);return v;}
-    private static BigDecimal decimal(Row r,String name){String v=text(r,name);if(v==null)return null;try{return new BigDecimal(v.replace(",",""));}catch(NumberFormatException e){throw new IllegalArgumentException("数值字段格式错误: "+name);}}
-    private static LocalDateTime time(Row r,String name){String v=text(r,name);if(v==null)return null;try{return LocalDateTime.parse(v.replace(' ','T'));}catch(Exception e){throw new IllegalArgumentException("时间字段格式错误: "+name);}}
+    private static String text(Row r,String name){Object v=r.fields().get(name);return v==null?null:v.toString();}
+    private static String required(Row r,String name){String v=text(r,name);if(v==null||v.isBlank())throw new IllegalArgumentException("必填来源字段缺失: "+name);return v;}
+    private static BigDecimal decimal(Row r,String name){String v=text(r,name);if(v==null||v.isBlank())return null;try{var amount=new BigDecimal(v.replace(",","").trim());if(amount.stripTrailingZeros().scale()>4||amount.precision()-amount.scale()>16)throw new NumberFormatException();return amount;}catch(NumberFormatException e){throw new IllegalArgumentException("数值字段格式或精度错误: "+name);}}
+    private static LocalDateTime time(Row r,String name){String v=text(r,name);if(v==null||v.isBlank())return null;try{return LocalDateTime.parse(v.trim().replace(' ','T'));}catch(Exception e){throw new IllegalArgumentException("时间字段格式错误: "+name);}}
     private static final List<String> SOURCE_FIELDS=List.of("projectCode","projectName","salesRepCode","salesRepName","marketCode","marketName","systemSourceKey","systemName","expendSourceKey","expendName","industryCode","industryName","departmentCode","departmentName","serviceTypeName","channelName","engineeringFeeRaw","sourceObjectId","applyType","companyCode","customerProjectName","finalCustomerName","agentName","majorProjectLevel","projectAmount","submitTime","predictedBidTime","contactName","contactPhone");
     private record Candidate(String key,CrmExecutionOrderDO row,Map<String,Object> payload,String action){}
     private record Plan(List<Change> changes,List<Candidate> candidates){}
