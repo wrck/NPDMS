@@ -19,6 +19,7 @@ public class GenericSyncEngine {
     public static final String KEY = "TABLE_MAPPING";
     private static final Set<String> MODES = Set.of("UPSERT","INSERT_ONLY","INSERT_IGNORE","UPDATE_ONLY");
     private static final Set<String> CONVERSIONS = Set.of("DIRECT","STRING","TRIM","LONG","DECIMAL","BOOLEAN","DATETIME","DATE","ENUM","LOOKUP","CONSTANT","JSON");
+    private static final Map<String,Object> AMBIGUOUS_LOOKUP = Map.of("_ambiguous", true);
     private final GenericTargetCatalog catalog;
     private final GenericSyncJdbcStore store;
     private final org.springframework.context.ApplicationEventPublisher events;
@@ -26,8 +27,11 @@ public class GenericSyncEngine {
     public DataSyncAdapter.Descriptor descriptor() {
         return new DataSyncAdapter.Descriptor(KEY,"通用表映射与迁移",List.of(),List.of("RETAIN"),List.of("UPSERT"),false,true);
     }
-    public DataSyncAdapter bind(SyncDefinition definition) { validate(definition);return new Execution(definition); }
+    public DataSyncAdapter bind(SyncDefinition definition) {
+        var normalized=GenericSyncLegacyFields.normalize(definition);validate(normalized);return new Execution(normalized);
+    }
     public void validate(SyncDefinition d) {
+        d=GenericSyncLegacyFields.normalize(d);
         if (d.taskKey() == null || !d.taskKey().matches("[A-Za-z0-9_-]{1,40}")) throw new IllegalArgumentException("通用任务标识须为 1 至 40 位字母、数字、下划线或横线");
         if (d.clearBeforeLoad() || d.resetMappingsBeforeLoad() || !"UPSERT".equals(d.loadingMode()) || !"RETAIN".equals(d.missingPolicy()))
             throw new IllegalArgumentException("通用引擎保留已有数据；写入方式由各步骤配置，不支持清空和重置映射");
@@ -83,7 +87,28 @@ public class GenericSyncEngine {
 
     private class Execution implements DataSyncAdapter {
         private final SyncDefinition definition;
-        Execution(SyncDefinition definition) {this.definition=definition;}
+        private final Map<String,SyncDefinition.Source> sourceByObject = new HashMap<>();
+        private volatile Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas;
+        Execution(SyncDefinition definition) {
+            this.definition=definition;
+            definition.sources().forEach(source -> sourceByObject.put(source.object(),source));
+        }
+        private Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas() {
+            var current=schemas;
+            if(current!=null)return current;
+            synchronized(this) {
+                if(schemas==null) {
+                    Map<String,Map<String,GenericSyncJdbcStore.Column>> loaded=new HashMap<>();
+                    for(var source:definition.sources())for(var step:source.targets()) {
+                        loaded.computeIfAbsent(step.table(),name->Map.copyOf(store.columns(catalog.required(name))));
+                        for(var lookup:step.lookups()==null?List.<GenericTargetStep.Lookup>of():step.lookups())
+                            loaded.computeIfAbsent(lookup.table(),name->Map.copyOf(store.columns(catalog.required(name))));
+                    }
+                    schemas=Map.copyOf(loaded);
+                }
+                return schemas;
+            }
+        }
         @Override public Descriptor descriptor() {
             return new Descriptor(KEY,"通用表映射与迁移",definition.sources().stream().map(source->{
                 var primary=source.primaryTarget()==null?source.targets().getLast():source.targets().stream().filter(t->t.name().equals(source.primaryTarget())).findFirst().orElseThrow();
@@ -104,15 +129,15 @@ public class GenericSyncEngine {
             if(batch.adoptExisting()||batch.clearBeforeLoad())throw new IllegalArgumentException("通用任务不能接管或清空目标");
             long tenant=TenantContextHolder.getRequiredTenantId();
             long previewId=-1;
-            Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas=new HashMap<>();
-            for(var source:definition.sources())for(var step:source.targets())schemas.computeIfAbsent(step.table(),name->store.columns(catalog.required(name)));
+            var schemas=schemas();
             Map<String,Map<String,Object>> overlay=new HashMap<>();
-            prefillOverlay(definition,batch,overlay,apply);
+            prefillOverlay(definition,batch,overlay,apply,schemas);
             List<Mutation> mutations=new ArrayList<>();List<Change> changes=new ArrayList<>();
             for(var row:batch.rows()) {
-                var source=definition.sources().stream().filter(s->s.object().equals(row.object())).findFirst().orElseThrow();
+                var source=Objects.requireNonNull(sourceByObject.get(row.object()),"Unknown source object");
                 String primaryStep=source.primaryTarget()==null?source.targets().getLast().name():source.primaryTarget();
-                Map<String,Map<String,Object>> local=new HashMap<>(overlay);
+                // Only this row's writes are staged here. Never copy the whole chunk cache per row.
+                Map<String,Map<String,Object>> local=new HashMap<>();
                 List<Mutation> rowWrites=new ArrayList<>();List<Map<String,Object>> refs=new ArrayList<>();
                 Map<String,Object> variables=new HashMap<>(row.fields());
                 variables.put("$SOURCE_KEY",row.sourceKey());variables.put("$SOURCE_SYSTEM",definition.sourceSystem());variables.put("$ROW",row.fields().getOrDefault("_syncSourcePayload",row.fields()));
@@ -135,7 +160,7 @@ public class GenericSyncEngine {
                             Map<String,Object> match=new LinkedHashMap<>();lookup.match().forEach((column,input)->match.put(column,input.startsWith("@")?variables.get(input.substring(1)):values.get(input)));
                             var lookupTable=catalog.required(lookup.table());
                             Map<String,Object> found;
-                            try { found=find(lookupTable,match,local,apply); }
+                            try { found=find(lookupTable,match,overlay,local,apply,schemas); }
                             catch(AmbiguousLookup ex) {
                                 if("ERROR".equals(lookup.onMissing()))throw ex;
                                 warnings.add(ex.getMessage());found=null;
@@ -154,7 +179,7 @@ public class GenericSyncEngine {
                             if("UPDATE_ONLY".equals(step.mode())) {warnings.add("关联业务键缺失: "+step.table());if(primaryStep.equals(step.name()))break;continue;}
                             throw new IllegalArgumentException("业务唯一键缺失: "+step.table());
                         }
-                        Map<String,Object> old=find(table,keys,local,apply);
+                        Map<String,Object> old=find(table,keys,overlay,local,apply,schemas);
                         if(old!=null && deleted(table,old))throw new Conflict("目标已删除，禁止同步恢复: "+step.table());
                         if(old!=null && !table.immutable() && missingLookupOutputs.stream().anyMatch(column->old.get(column)!=null))throw new Conflict("已有关系无法重新解析，保留原记录: "+step.table());
                         if(old!=null && "INSERT_ONLY".equals(step.mode()))throw new Conflict("目标已存在: "+step.table());
@@ -202,12 +227,12 @@ public class GenericSyncEngine {
                         long targetId=((Number)next.get("id")).longValue();
                         if(primaryStep.equals(step.name()))primary=targetId;
                         variables.put("$"+step.name()+".id",targetId);
-                        local.put(cacheKey(table,keys),next);
+                        local.put(cacheKey(table,comparisonKeys(table,keys,schemas)),next);
                         refs.add(Map.of("context",table.context(),"table",table.table(),"id",targetId,"step",step.name()));
                     }
                     if(primary==null) {
                         // No orphan writes or fictitious lineage when the required primary step is skipped.
-                        rowWrites.clear();refs.clear();local=new HashMap<>(overlay);beforeValues.clear();afterValues.clear();
+                        rowWrites.clear();refs.clear();local.clear();beforeValues.clear();afterValues.clear();
                         warnings.add("主目标未生成，保留来源并跳过整行");
                     }
                     if(row.targetId()!=null && primary!=null && !row.targetId().equals(primary))throw new Conflict("来源已经绑定另一目标，禁止改换业务身份");
@@ -215,8 +240,8 @@ public class GenericSyncEngine {
                     if(!warnings.isEmpty())after.put("_warnings",warnings);
                     if(!apply)after.put("_previewVirtualIds",true);
                     changes.add(new Change(row.object(),row.sourceKey(),primary!=null&&primary>0?primary:null,primary==null?"SKIPPED":action,beforeValues,after,warnings.isEmpty()?null:String.join("; ",warnings)));
-                    overlay=local;mutations.addAll(rowWrites);
-                } catch(IllegalArgumentException ex) {
+                    overlay.putAll(local);mutations.addAll(rowWrites);
+                } catch(IllegalArgumentException | ArithmeticException ex) {
                     changes.add(new Change(row.object(),row.sourceKey(),null,ex instanceof Conflict?"CONFLICT":"ISSUE",Map.of(),row.fields(),ex.getMessage()));
                 }
             }
@@ -260,52 +285,94 @@ public class GenericSyncEngine {
             return changes;
         }
     }
-    /** 分块开始前按业务键一次性预取现存目标行（含“确认不存在”），消除全量装载时每行的逐键往返。
-     * 仅预取可直接由来源字段求值的键；键含关联输出或缺失来源字段时回退到逐行查找，语义不变。 */
-    private void prefillOverlay(SyncDefinition definition, DataSyncAdapter.Batch batch, Map<String,Map<String,Object>> overlay, boolean lock) {
-        Map<String,List<Map<String,Object>>> groups=new LinkedHashMap<>();
+    /** Prefetch distinct source-resolvable business and lookup keys once per chunk.
+     * Lookups into tables written by this chunk remain row-ordered: an earlier step may
+     * have created or changed the lookup fact in the same chunk. Dependent keys fall back safely.
+     */
+    private static Set<String> prefetchColumns(GenericTargetStep step) {
+        Set<String> columns=new HashSet<>(step.keys());
+        if(step.lookups()!=null)for(var lookup:step.lookups())
+            for(var input:lookup.match().values())
+                if(input!=null && !input.startsWith("@"))columns.add(input);
+        return columns;
+    }
+
+    private void prefillOverlay(SyncDefinition definition, DataSyncAdapter.Batch batch, Map<String,Map<String,Object>> overlay, boolean lock,
+                                Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas) {
+        Map<String,Map<String,Map<String,Object>>> groups=new LinkedHashMap<>();
         Map<String,GenericTargetCatalog.Table> tables=new HashMap<>();
-        Map<String,Set<String>> groupColumns=new HashMap<>();
+        Map<String,SyncDefinition.Source> sources=new HashMap<>();
+        Map<GenericTargetStep,Set<String>> prefetchColumns=new IdentityHashMap<>();
+        Set<String> writtenTables=new HashSet<>();
+        for(var source:definition.sources()) {
+            sources.put(source.object(),source);
+            for(var step:source.targets())prefetchColumns.put(step,prefetchColumns(step));
+        }
+        // A previous source has already committed before the streaming reader starts this source.
+        // Only writes present in this chunk can invalidate its prefetched lookup facts.
         for(var row:batch.rows()) {
-            var source=definition.sources().stream().filter(s->s.object().equals(row.object())).findFirst().orElse(null);
+            var source=sources.get(row.object());
+            if(source!=null)source.targets().forEach(step->writtenTables.add(step.table()));
+        }
+        for(var row:batch.rows()) {
+            var source=sources.get(row.object());
             if(source==null)continue;
             Map<String,Object> variables=new HashMap<>(row.fields());
             variables.put("$SOURCE_KEY",row.sourceKey());variables.put("$SOURCE_SYSTEM",definition.sourceSystem());
             for(var step:source.targets()) {
                 if(step.whenField()!=null && !present(variables.get(step.whenField())))continue;
-                var table=catalog.required(step.table());
-                Map<String,Object> keys=new LinkedHashMap<>();
+                Map<String,Object> values=new LinkedHashMap<>();
                 for(var mapping:step.mappings()) {
-                    if(!step.keys().contains(mapping.target()))continue;
-                    if(!"CONSTANT".equals(mapping.conversion()) && !variables.containsKey(mapping.source())){keys=null;break;}
+                    // Prefetch needs only business keys and lookup predicates. The row
+                    // planner still converts and validates every declared field below.
+                    if(!prefetchColumns.get(step).contains(mapping.target()))continue;
+                    if(!"CONSTANT".equals(mapping.conversion()) && !variables.containsKey(mapping.source()))continue;
                     Object value="CONSTANT".equals(mapping.conversion())?mapping.constant():variables.get(mapping.source());
                     if(value==null)value=mapping.defaultValue();
-                    value=convert(value,mapping);
-                    if(!present(value)){keys=null;break;}
-                    keys.put(mapping.target(),value);
+                    try {values.put(mapping.target(),convert(value,mapping));}
+                    catch(IllegalArgumentException | ArithmeticException invalid) { /* The row planner classifies this bad field. */ }
                 }
-                if(keys==null || keys.size()!=step.keys().size())continue;
-                String signature=table.table()+":"+String.join(",",new TreeSet<>(keys.keySet()));
-                tables.putIfAbsent(signature,table);
-                groupColumns.putIfAbsent(signature,keys.keySet());
-                groups.computeIfAbsent(signature,g->new ArrayList<>()).add(keys);
+                var table=catalog.required(step.table());
+                Map<String,Object> keys=new LinkedHashMap<>();
+                step.keys().forEach(key->keys.put(key,values.get(key)));
+                collectKeys(table,comparisonKeys(table,keys,schemas),groups,tables);
+                for(var lookup:step.lookups()==null?List.<GenericTargetStep.Lookup>of():step.lookups()) {
+                    if(writtenTables.contains(lookup.table()))continue;
+                    var lookupTable=catalog.required(lookup.table());
+                    // Arbitrary non-key predicates can match an unbounded number of rows; keep LIMIT 2 for those.
+                    if(lookupTable.keys().stream().noneMatch(key->new HashSet<>(key).equals(lookup.match().keySet())))continue;
+                    Map<String,Object> match=new LinkedHashMap<>();
+                    lookup.match().forEach((column,input)->match.put(column,
+                            input.startsWith("@")?variables.get(input.substring(1)):values.get(input)));
+                    collectKeys(lookupTable,comparisonKeys(lookupTable,match,schemas),groups,tables);
+                }
             }
         }
         for(var entry:groups.entrySet()) {
             var table=tables.get(entry.getKey());
-            var columns=groupColumns.get(entry.getKey());
+            var keys=new ArrayList<>(entry.getValue().values());
+            Set<String> columns=keys.getFirst().keySet();
             Map<String,Map<String,Object>> fetched=new HashMap<>();
             Set<String> ambiguous=new HashSet<>();
-            for(var existing:store.findByKeys(table,entry.getValue(),lock)) {
+            for(var existing:store.findByKeys(table,keys,lock)) {
                 String token=keyToken(columns,existing);
-                if(fetched.containsKey(token))ambiguous.add(token);
-                fetched.put(token,existing);
+                var previous=fetched.putIfAbsent(token,existing);
+                // Case-equivalent request keys can join the same row twice; only distinct IDs are ambiguous.
+                if(previous!=null && !equal(previous.get("id"),existing.get("id")))ambiguous.add(token);
             }
-            for(var keys:entry.getValue()) {
-                if(ambiguous.contains(keyToken(columns,keys)))continue;
-                overlay.put(cacheKey(table,keys),fetched.get(keyToken(columns,keys)));
+            for(var key:keys) {
+                String token=keyToken(columns,key);
+                overlay.put(cacheKey(table,key),ambiguous.contains(token)?AMBIGUOUS_LOOKUP:fetched.get(token));
             }
         }
+    }
+    private static void collectKeys(GenericTargetCatalog.Table table,Map<String,Object> keys,
+                                    Map<String,Map<String,Map<String,Object>>> groups,
+                                    Map<String,GenericTargetCatalog.Table> tables) {
+        if(keys.isEmpty() || keys.values().stream().anyMatch(value->!present(value)))return;
+        String signature=table.table()+":"+String.join(",",new TreeSet<>(keys.keySet()));
+        tables.putIfAbsent(signature,table);
+        groups.computeIfAbsent(signature,ignored->new LinkedHashMap<>()).putIfAbsent(cacheKey(table,keys),keys);
     }
     private static String keyToken(Set<String> columns,Map<String,Object> row) {
         StringBuilder token=new StringBuilder();
@@ -324,11 +391,43 @@ public class GenericSyncEngine {
         while(end>0 && text.charAt(end-1)==' ')end--;
         return text.substring(0,end).toLowerCase(Locale.ROOT);
     }
-    private Map<String,Object> find(GenericTargetCatalog.Table table,Map<String,Object> values,Map<String,Map<String,Object>> overlay,boolean lock) {
-        String key=cacheKey(table,values);if(overlay.containsKey(key))return overlay.get(key);
-        var rows=store.find(new GenericSyncJdbcStore.Match(table,values,lock));
-        if(rows.size()>1)throw new AmbiguousLookup("关联不唯一: "+table.table());
-        var result=rows.isEmpty()?null:rows.getFirst();overlay.put(key,result);return result;
+    private Map<String,Object> find(GenericTargetCatalog.Table table,Map<String,Object> values,
+                                    Map<String,Map<String,Object>> overlay,Map<String,Map<String,Object>> local,boolean lock,
+                                    Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas) {
+        values=comparisonKeys(table,values,schemas);
+        String key=cacheKey(table,values);
+        if(local.containsKey(key))return local.get(key);
+        if(!overlay.containsKey(key)) {
+            var rows=store.find(new GenericSyncJdbcStore.Match(table,values,lock));
+            overlay.put(key,rows.size()>1?AMBIGUOUS_LOOKUP:rows.isEmpty()?null:rows.getFirst());
+        }
+        var result=overlay.get(key);
+        if(result==AMBIGUOUS_LOOKUP)throw new AmbiguousLookup("关联不唯一: "+table.table());
+        return result;
+    }
+    /** Bind numeric source references as text when the target identity column is textual.
+     * MySQL otherwise numerically coerces the indexed column ("01" = 1), both losing
+     * exact identity and defeating the composite business-key index. Payloads and writes
+     * retain their original types; both cache and JDBC comparison use this same key.
+     */
+    private static Map<String,Object> comparisonKeys(GenericTargetCatalog.Table table,Map<String,Object> values,
+                                    Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas) {
+        var columns=schemas.getOrDefault(table.table(),Map.of());
+        Map<String,Object> normalized=null;
+        for(var entry:values.entrySet()) {
+            var column=columns.get(entry.getKey());
+            if(!(entry.getValue() instanceof Number) || column==null)continue;
+            boolean text=switch(column.sqlType()) {
+                case java.sql.Types.CHAR,java.sql.Types.VARCHAR,java.sql.Types.LONGVARCHAR,
+                     java.sql.Types.NCHAR,java.sql.Types.NVARCHAR,java.sql.Types.LONGNVARCHAR -> true;
+                default -> false;
+            };
+            if(text) {
+                if(normalized==null)normalized=new LinkedHashMap<>(values);
+                normalized.put(entry.getKey(),entry.getValue().toString());
+            }
+        }
+        return normalized==null?values:normalized;
     }
     private static String cacheKey(GenericTargetCatalog.Table table,Map<String,Object> values) {return table.table()+":"+JsonUtils.toJsonString(new TreeMap<>(values));}
     private static boolean deleted(GenericTargetCatalog.Table table,Map<String,Object> row) {return table.deletedColumn()!=null && (Boolean.TRUE.equals(row.get(table.deletedColumn())) || "1".equals(Objects.toString(row.get(table.deletedColumn()),"")));}

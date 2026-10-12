@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.query.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,13 +40,17 @@ public class DeviceOrganizationProjectionService implements DeviceOrganizationPr
         return rebuild(new DeviceOrganizationBatchQuery(tenantId, afterId, 500, true, Set.of(),Set.of(),Set.of()));
     }
 
+    private static final int ORGANIZATION_WRITE_BATCH = 100;
+
     private Result rebuild(DeviceOrganizationBatchQuery query) {
         var rows = mapper.selectBatchForUpdate(query);
         var facts = organizations.resolveSource(query.tenantId(), rows.stream().map(row ->
                 new DeviceOrganizationService.Device(row.getId(),row.getProjectId(),row.getContractNo())).toList());
-        // 归属事实相同（全量装载时多为同一 UNRESOLVED 值）的设备合并为一条 IN 更新，避免逐行往返。
-        Map<String,DeviceOrganizationUpdate> groups = new LinkedHashMap<>();
-        Map<String,List<Long>> groupIds = new LinkedHashMap<>();
+        // Keep the one-fact IN fast path, but bound writes when a page contains
+        // many different organizations. Group by the typed fact, never a delimited
+        // string: names may themselves contain delimiters or the text "null".
+        Map<DeviceOrganizationUpdate,List<Long>> groups = new LinkedHashMap<>();
+        List<DeviceOrganizationUpdate> updates = new ArrayList<>();
         for (var row : rows) {
             var fact = Objects.requireNonNull(facts.get(row.getId()), "Missing organization resolution");
             if (row.getOrganizationUpdatedAt() != null
@@ -54,14 +59,20 @@ public class DeviceOrganizationProjectionService implements DeviceOrganizationPr
                     && Objects.equals(row.getDepartmentName(),fact.departmentName()) && Objects.equals(row.getOrganizationSource(),fact.source())) continue;
             var update = new DeviceOrganizationUpdate(query.tenantId(),null,fact.companyId(),fact.companyName(),
                     fact.departmentId(),fact.departmentCode(),fact.departmentName(),fact.source());
-            String key = update.companyId()+"|"+update.companyName()+"|"+update.departmentId()+"|"
-                    +update.departmentCode()+"|"+update.departmentName()+"|"+update.source();
-            groups.putIfAbsent(key,update);
-            groupIds.computeIfAbsent(key,ignored->new java.util.ArrayList<>()).add(row.getId());
+            groups.computeIfAbsent(update,ignored->new ArrayList<>()).add(row.getId());
+            updates.add(new DeviceOrganizationUpdate(query.tenantId(),row.getId(),fact.companyId(),fact.companyName(),
+                    fact.departmentId(),fact.departmentCode(),fact.departmentName(),fact.source()));
         }
         int updated = 0;
-        for (var entry : groups.entrySet())
-            updated += mapper.updateOrganizationBatch(entry.getValue(),groupIds.get(entry.getKey()));
+        int pages = (updates.size() + ORGANIZATION_WRITE_BATCH - 1) / ORGANIZATION_WRITE_BATCH;
+        if (groups.size() <= pages) {
+            for (var entry : groups.entrySet())
+                updated += mapper.updateOrganizationBatch(entry.getKey(),entry.getValue());
+        } else {
+            for (int start = 0; start < updates.size(); start += ORGANIZATION_WRITE_BATCH)
+                updated += mapper.updateOrganizationRows(query.tenantId(),
+                        updates.subList(start,Math.min(start+ORGANIZATION_WRITE_BATCH,updates.size())));
+        }
         return new Result(rows.isEmpty() ? query.afterId() : rows.getLast().getId(), rows.size(), updated);
     }
 }

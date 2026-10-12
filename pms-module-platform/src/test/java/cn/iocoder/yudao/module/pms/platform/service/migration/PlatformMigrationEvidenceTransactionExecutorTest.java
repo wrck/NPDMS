@@ -39,7 +39,7 @@ class PlatformMigrationEvidenceTransactionExecutorTest {
     @BeforeEach
     void setUp() {
         executor = new PlatformMigrationEvidenceTransactionExecutor(
-                batchMapper, sourceMapper, mappingMapper, issueMapper, commandExecutionApi);
+                batchMapper, sourceMapper, mappingMapper, issueMapper, commandExecutionApi, mock(MigrationEvidenceJdbcWriter.class));
         answerNewCommands();
     }
 

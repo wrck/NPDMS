@@ -40,6 +40,7 @@ public class PlatformMigrationEvidenceTransactionExecutor {
     private final ExternalKeyMappingMapper mappingMapper;
     private final MigrationIssueMapper issueMapper;
     private final PlatformCommandExecutionApi commandExecutionApi;
+    private final MigrationEvidenceJdbcWriter bulkWriter;
     private final Clock clock = Clock.systemDefaultZone();
 
     @Transactional(rollbackFor = Exception.class)
@@ -105,12 +106,12 @@ public class PlatformMigrationEvidenceTransactionExecutor {
                         + row.getSourceTable().length() + row.getSourceRecordKey().length()
                         + Objects.toString(row.getSourceBusinessKey(), "").length() + row.getSourceChecksum().length()) + 512;
                 if (index > start && bytes + rowBytes > 8L * 1024 * 1024) {
-                    sourceMapper.insertRows(created.subList(start, index));
+                    bulkWriter.insertSources(created.subList(start, index));
                     start = index; bytes = 0;
                 }
                 bytes += rowBytes;
             }
-            sourceMapper.insertRows(created.subList(start, created.size()));
+            bulkWriter.insertSources(created.subList(start, created.size()));
         }
         return ordered.stream().map(row -> sourceFact(row, null)).toList();
     }
@@ -160,7 +161,7 @@ public class PlatformMigrationEvidenceTransactionExecutor {
         created.forEach(this::initializeAuditFields);
         created.forEach(row -> row.setId(com.baomidou.mybatisplus.core.toolkit.IdWorker.getId()));
         for (int start = 0; start < created.size(); start += 1000)
-            mappingMapper.insertRows(created.subList(start, Math.min(start + 1000, created.size())));
+            bulkWriter.insertMappings(created.subList(start, Math.min(start + 1000, created.size())));
         return new MigrationMappingPageResult(command.batchId(), command.mappings().size());
     }
 
@@ -281,11 +282,12 @@ public class PlatformMigrationEvidenceTransactionExecutor {
         if (batch.getVersion() != command.expectedBatchVersion()) {
             throw failure(BATCH_STATE_CONFLICT, "batch version is stale");
         }
-        MigrationBatchClassificationSummary summary = sourceMapper.selectClassificationSummary(
+        // Staging consumes only cardinality. Keep full classification validation
+        // in completeBatch, after reconciliation has actually produced results.
+        long sourceCount = sourceMapper.countBatchSources(
                 new MigrationBatchIdQuery(command.tenantId(), command.batchId()));
         String target;
         String failureCode = null;
-        long sourceCount = summary.sourceCount();
         if (command.decision() == ImportStagingDecision.READY) {
             if (!Objects.equals(command.manifestRowCount(), batch.getExpectedRowCount())
                     || !command.manifestSchemaVersion().equals(batch.getManifestSchemaVersion())

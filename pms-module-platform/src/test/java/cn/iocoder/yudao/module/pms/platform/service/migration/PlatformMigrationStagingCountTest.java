@@ -21,7 +21,7 @@ class PlatformMigrationStagingCountTest {
     private final MigrationSourceRecordMapper sources = mock(MigrationSourceRecordMapper.class);
     private final PlatformCommandExecutionApi commands = mock(PlatformCommandExecutionApi.class);
     private final PlatformMigrationEvidenceTransactionExecutor executor = new PlatformMigrationEvidenceTransactionExecutor(
-            batches, sources, mock(ExternalKeyMappingMapper.class), mock(MigrationIssueMapper.class), commands);
+            batches, sources, mock(ExternalKeyMappingMapper.class), mock(MigrationIssueMapper.class), commands, mock(MigrationEvidenceJdbcWriter.class));
 
     @ParameterizedTest @ValueSource(longs = {127,128,865,10000})
     void stagesEqualCountsRegardlessOfBoxingCache(long count) {
@@ -40,6 +40,16 @@ class PlatformMigrationStagingCountTest {
         verify(batches, never()).transition(any());
     }
 
+    @Test void stagingDoesNotQueryReconciliationClassifications() {
+        prepare(865,865);
+        when(batches.transition(any())).thenReturn(1);
+        var result=executor.markStagedReady(command(865));
+        assertEquals(865L,result.sourceCount());
+        verify(sources).countBatchSources(
+                new cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationBatchIdQuery(1L,1L));
+        verify(sources,never()).selectClassificationSummary(any());
+    }
+
     private MarkStagedReadyCommand command(long count) {
         return new MarkStagedReadyCommand(1L,1L,0,ImportStagingDecision.READY,
                 Long.valueOf(count),"SYNC_V1","a".repeat(64),null,"ready:1","1");
@@ -55,6 +65,7 @@ class PlatformMigrationStagingCountTest {
         batch.setVersion(0); batch.setSourceCount(0L); batch.setMappedCount(0L);
         batch.setIssueCount(0L); batch.setRetainedCount(0L); batch.setCreateTime(LocalDateTime.now());
         when(batches.selectByTenantAndIdForUpdate(any())).thenReturn(batch);
+        when(sources.countBatchSources(any())).thenReturn(actual);
         when(sources.selectClassificationSummary(any())).thenReturn(
                 new MigrationBatchClassificationSummary(actual,0,0,0,actual,0));
         when(commands.execute(any(),anyString(),any(),any(),any())).thenAnswer(invocation ->

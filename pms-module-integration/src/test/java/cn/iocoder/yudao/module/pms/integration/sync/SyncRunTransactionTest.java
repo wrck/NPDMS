@@ -73,6 +73,121 @@ class SyncRunTransactionTest {
         Long id=runner.start(new SyncRunService.Start(taskId,context.getBean(SyncTaskService.class).required(taskId).getVersion(),UUID.randomUUID().toString(),preview,true,false,null,false));
         runner.execute(id);return id;
     }
+    Map<String,Object> streamingRaw;
+    void configureStreamingEvidence(String policy) throws Exception {
+        streamingRaw=new LinkedHashMap<>(Map.of("id",42,"title","原始内容"));
+        jdbc.execute("CREATE TABLE test_stream_item(id BIGINT PRIMARY KEY,title VARCHAR(100))");
+        DataSyncAdapter adapter=new DataSyncAdapter() {
+            public Descriptor descriptor() {return new Descriptor("TABLE_MAPPING","流式测试",List.of(
+                    new ObjectDescriptor("ITEM","条目",List.of(),"TEST","Item","test_stream_item",false)),
+                    List.of("RETAIN"),List.of("UPSERT"),false);}
+            public boolean supportsStreaming(){return true;}
+            public boolean sharesTargetAcrossSources(){return true;}
+            public boolean requiresAllBindings(){return false;}
+            public List<Change> preview(Batch batch){return batch.rows().stream().map(row->new Change(
+                    row.object(),row.sourceKey(),42L,streamingAction(row),
+                    Map.of(),row.fields(),null)).toList();}
+            private String streamingAction(Row row) {
+                var titles=jdbc.queryForList("SELECT title FROM test_stream_item WHERE id=42",String.class);
+                return titles.isEmpty()?"CREATED":Objects.equals(titles.getFirst(),row.fields().get("title"))?"UNCHANGED":"UPDATED";
+            }
+            public List<Change> apply(Batch batch){
+                assertTrue(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+                var changes=preview(batch);
+                changes.stream().filter(c->"CREATED".equals(c.action())).forEach(c->
+                        jdbc.update("INSERT INTO test_stream_item VALUES (?,?)",c.targetId(),c.after().get("title")));
+                changes.stream().filter(c->"UPDATED".equals(c.action())).forEach(c->
+                        jdbc.update("UPDATE test_stream_item SET title=? WHERE id=?",c.after().get("title"),c.targetId()));
+                return changes;
+            }
+            public void refreshCaches(){}
+        };
+        when(context.getBean(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class).bind(any())).thenReturn(adapter);
+        var definition=EhrSyncTemplate.create(1L).toBuilder().adapter("TABLE_MAPPING").taskKey("stream-evidence")
+                .sourceSystem("STREAM_TEST").mode("SNAPSHOT").missingPolicy("RETAIN").readStrategy("STREAMING_CURSOR")
+                .evidencePolicy(policy).sources(List.of(SyncDefinition.Source.builder().object("ITEM").sourceObject("legacy_item")
+                        .readMode("TABLE").table("legacy_item").sourceKey("id").columns(List.of("id","title"))
+                        .filters(List.of()).mappings(List.of()).build())).build();
+        taskId=context.getBean(SyncTaskService.class).save(new SyncTaskService.Save(null,null,"流式证据测试",definition));
+        when(context.getBean(SpringJdbcStreamingReader.class).stream(any(),any(),anyBoolean(),any(),any())).thenAnswer(call->{
+            java.util.function.Consumer<SpringJdbcStreamingReader.StreamChunk> consumer=call.getArgument(4);
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",
+                    List.of(new LinkedHashMap<>(streamingRaw)),42,100,false,1));
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",List.of(),42,0,true,1));
+            return new SpringJdbcStreamingReader.StreamResult(upper,1,1);
+        });
+        when(context.getBean(SyncEvidenceService.class).stage(any(),any(),any(),anyString(),anyString()))
+                .thenReturn(List.of(new SyncEvidenceService.Evidence("ITEM","legacy_item",1L,Map.of("42",1L))));
+    }
+    @Test void streamingReuseChecksTargetsButDoesNotAppendEvidenceOrTouchBindingOnReplay() throws Exception {
+        configureStreamingEvidence("REUSE_UNCHANGED");
+        Long first=run(false);
+        String stored=jdbc.queryForObject("SELECT fields_json FROM int_sync_binding WHERE task_id=?",String.class,taskId);
+        assertTrue(stored.contains("NPDMS_SYNC_BINDING_V1"));
+        SyncEvidenceService evidence=org.springframework.test.util.AopTestUtils.getUltimateTargetObject(context.getBean(SyncEvidenceService.class));clearInvocations(evidence);
+        Long second=run(false);
+        assertEquals("SUCCESS",runner.required(second).getStatus());
+        assertEquals(1,runner.required(second).getReadCount());
+        assertEquals(Map.of("UNCHANGED",1,"EVIDENCE_REUSED",1),
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseMap(runner.required(second).getSummaryJson()));
+        assertEquals(first,jdbc.queryForObject("SELECT last_run_id FROM int_sync_binding WHERE task_id=?",Long.class,taskId));
+        assertEquals(stored,jdbc.queryForObject("SELECT fields_json FROM int_sync_binding WHERE task_id=?",String.class,taskId));
+        verifyNoInteractions(evidence);
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM test_stream_item",Integer.class));
+        assertEquals(upper,context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
+    }
+    @Test void streamingSourceOnlyChangesAndTargetDriftStillGetNewEvidence() throws Exception {
+        configureStreamingEvidence("REUSE_UNCHANGED");run(false);
+        SyncEvidenceService evidence=org.springframework.test.util.AopTestUtils.getUltimateTargetObject(context.getBean(SyncEvidenceService.class));clearInvocations(evidence);
+        streamingRaw.put("unmapped_note","新的完整来源事实");
+        Long changed=run(false);
+        verify(evidence).stage(eq(changed),any(),any(),anyString(),anyString());
+        assertEquals("{\"UNCHANGED\":1}",runner.required(changed).getSummaryJson());
+        assertEquals(changed,jdbc.queryForObject("SELECT last_run_id FROM int_sync_binding WHERE task_id=?",Long.class,taskId));
+        clearInvocations(evidence);
+        jdbc.update("UPDATE test_stream_item SET title='drift' WHERE id=42");
+        Long repaired=run(false);
+        assertEquals("{\"UPDATED\":1}",runner.required(repaired).getSummaryJson());
+        verify(evidence).stage(eq(repaired),any(),any(),anyString(),anyString());
+        assertEquals("原始内容",jdbc.queryForObject("SELECT title FROM test_stream_item WHERE id=42",String.class));
+        assertEquals(repaired,jdbc.queryForObject("SELECT last_run_id FROM int_sync_binding WHERE task_id=?",Long.class,taskId));
+    }
+    @Test void bindingExistenceProbeIsScopedAndIgnoresDeletedBindings() throws Exception {
+        configureStreamingEvidence("REUSE_UNCHANGED");
+        var mapper=context.getBean(SyncBindingMapper.class);
+        assertFalse(mapper.hasTaskBindings(new SyncQueries.Task(1L,taskId)));
+        run(false);
+        assertTrue(mapper.hasTaskBindings(new SyncQueries.Task(1L,taskId)));
+        assertFalse(mapper.hasTaskBindings(new SyncQueries.Task(2L,taskId)));
+        assertFalse(mapper.hasTaskBindings(new SyncQueries.Task(1L,taskId+1)));
+        jdbc.update("UPDATE int_sync_binding SET deleted=TRUE WHERE task_id=?",taskId);
+        assertFalse(mapper.hasTaskBindings(new SyncQueries.Task(1L,taskId)));
+    }
+    @Test void streamingFullEvidenceRetainsLegacyReplayHistory() throws Exception {
+        configureStreamingEvidence("FULL");run(false);
+        SyncEvidenceService evidence=org.springframework.test.util.AopTestUtils.getUltimateTargetObject(context.getBean(SyncEvidenceService.class));clearInvocations(evidence);
+        Long second=run(false);
+        verify(evidence).stage(eq(second),any(),any(),anyString(),anyString());
+        verify(evidence).complete(eq(second),any(),any(),any(),any(),eq(false));
+        assertEquals(second,jdbc.queryForObject("SELECT last_run_id FROM int_sync_binding WHERE task_id=?",Long.class,taskId));
+        assertEquals("{\"UNCHANGED\":1}",runner.required(second).getSummaryJson());
+    }
+    @Test void streamingReuseEvidenceFailureRollsBackTargetBindingAndCheckpoint() throws Exception {
+        configureStreamingEvidence("REUSE_UNCHANGED");
+        doThrow(new IllegalStateException("evidence failure")).when((SyncEvidenceService)org.springframework.test.util.AopTestUtils.getUltimateTargetObject(context.getBean(SyncEvidenceService.class)))
+                .complete(any(),any(),any(),any(),any(),anyBoolean());
+        assertThrows(IllegalStateException.class,()->run(false));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_stream_item",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+        assertNull(context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
+    }
+    @Test void streamingReusePreviewNeverWritesTargetsOrBindings() throws Exception {
+        configureStreamingEvidence("REUSE_UNCHANGED");
+        assertEquals("PREVIEW_READY",runner.required(run(true)).getStatus());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_stream_item",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+        assertNull(context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
+    }
     @Test void previewDoesNotWriteBusinessMappingOrCheckpoint()throws Exception {
         assertEquals("PREVIEW_READY",runner.required(run(true)).getStatus());
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_company",Integer.class));
@@ -488,6 +603,8 @@ class SyncRunTransactionTest {
         }
         @Bean SyncBatchLauncher launcher(){return mock(SyncBatchLauncher.class);}
         @Bean SyncEvidenceService evidence(){var e=mock(SyncEvidenceService.class);when(e.stage(any(),any(),any())).thenReturn(List.of());return e;}
+        @Bean SpringJdbcStreamingReader streamingReader(){return mock(SpringJdbcStreamingReader.class);}
+        @Bean GenericSyncJdbcStore jdbcStore(DataSource source){return new GenericSyncJdbcStore(source);}
         @Bean MysqlSyncReader reader(){return mock(MysqlSyncReader.class);}
         @Bean SyncConnectionService connections(){var c=mock(SyncConnectionService.class);when(c.resolve(any())).thenAnswer(i->i.getArgument(0));return c;}
         @Bean RedissonClient redisson()throws Exception{

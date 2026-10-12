@@ -68,6 +68,22 @@ class GenericSyncEngineTest {
         }
         assertTrue(validator.descriptors().stream().anyMatch(d->d.key().equals("TABLE_MAPPING")));
     }
+    @Test void evidenceReuseIsOptInAndRejectsIncompatibleExecutionModes() {
+        var validator=new SyncDefinitionValidator(List.of());ReflectionTestUtils.setField(validator,"genericEngine",engine);
+        var d=definition(1).toBuilder().readStrategy("STREAMING_CURSOR").evidencePolicy("REUSE_UNCHANGED").build();
+        assertDoesNotThrow(()->validator.validate(d));
+        for(var invalid:List.of(d.toBuilder().readStrategy("SNAPSHOT").build(),
+                d.toBuilder().missingPolicy("DISABLE").build(),d.toBuilder().clearBeforeLoad(true).build(),
+                d.toBuilder().resetMappingsBeforeLoad(true).build(),d.toBuilder().evidencePolicy("SKIP_ALL").build()))
+            assertThrows(IllegalArgumentException.class,()->validator.validate(invalid));
+        var json=cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(d);
+        var roundTrip=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(json,SyncDefinition.class);
+        assertEquals("REUSE_UNCHANGED",roundTrip.effectiveEvidencePolicy());
+        var legacy=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseMap(json);
+        legacy.remove("evidencePolicy");
+        assertEquals("FULL",cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(legacy),SyncDefinition.class).effectiveEvidencePolicy());
+    }
     @Test void previewDoesNotWriteAndReplayKeepsOneTargetPerSource() {
         var d=definition(1);var row=row(d,"P1",Map.of("packlist_id","P1","receiveName","Alice"));
         var preview=engine.bind(d).preview(batch(row)).getFirst();
@@ -118,6 +134,13 @@ class GenericSyncEngineTest {
         var d=definition(2);var fields=new HashMap<>(barcode("SN1"));fields.put("warrantyMonth","bad");
         assertEquals("ISSUE",apply(d,row(d,"1",fields)).getFirst().action());assertEquals(0,count("ast_device"));
     }
+    @Test void fractionalIntegerInOneRowIsAnIssueWithoutLeakingItsEarlierWrites() {
+        var d=definition(2);var invalid=new HashMap<>(barcode("BAD-FRACTION"));invalid.put("warrantyMonth","1.5");
+        var changes=apply(d,row(d,"1",invalid),row(d,"2",barcode("GOOD-INTEGER")));
+        assertEquals(List.of("ISSUE","CREATED"),changes.stream().map(DataSyncAdapter.Change::action).toList());
+        assertEquals(1,count("ast_device"));assertEquals(1,count("ast_device_shipment"));
+        assertEquals("GOOD-INTEGER",jdbc.queryForObject("SELECT sn FROM ast_device",String.class));
+    }
     @Test void databaseFailureRollsBackEarlierRowsInChunk() {
         var d=definition(1);var good=row(d,"1",Map.of("packlist_id","P1"));
         var bad=row(d,"2",Map.of("packlist_id","P2","warrantyStartTime","2026-09-20T00:00:00","warrantyEndTime","2020-01-01T00:00:00"));
@@ -164,7 +187,7 @@ class GenericSyncEngineTest {
     @Test void contractSourceQueryDeduplicatesAndUsesLatestNonemptySupplementWithoutCrossCompanyGuessing() {
         jdbc.execute("CREATE TABLE pm_order_data_from_erp(id BIGINT,compCode VARCHAR(40),contractNo VARCHAR(40),customerCode VARCHAR(40),customerName VARCHAR(40))");
         jdbc.execute("CREATE TABLE fb_contract(contract_id BIGINT,contract_code VARCHAR(40),project_name VARCHAR(40),marketCode VARCHAR(40),marketName VARCHAR(40),office_code VARCHAR(40),systemName VARCHAR(40))");
-        jdbc.execute("CREATE TABLE sms_ofst_contract_head_sap(id BIGINT,contract_num VARCHAR(40),update_time TIMESTAMP,currency_name VARCHAR(40),contract_create_date TIMESTAMP,project_name VARCHAR(40),projectCode VARCHAR(40),marketCode VARCHAR(40),maketing_department_name VARCHAR(40),officeCode VARCHAR(40),office_name VARCHAR(40),industryId VARCHAR(40),industry_name VARCHAR(40),usernamec VARCHAR(40),marketing_representative_name VARCHAR(40),usernamec2 VARCHAR(40))");
+        jdbc.execute("CREATE TABLE sms_ofst_contract_head_sap(id BIGINT,contract_num VARCHAR(40),update_time TIMESTAMP,currency_name VARCHAR(40),contract_create_date TIMESTAMP,project_name VARCHAR(40),projectCode VARCHAR(40),marketCode VARCHAR(40),maketing_department_name VARCHAR(40),officeCode VARCHAR(40),office_name VARCHAR(40),industryId VARCHAR(40),industry_name VARCHAR(40),usernamec VARCHAR(40),marketing_representative_name VARCHAR(40),usernamec2 VARCHAR(40),contract_money_amount DECIMAL(20,2))");
         jdbc.update("INSERT INTO pm_order_data_from_erp VALUES(1,'A','C1','CUS','Customer'),(2,'A','C1','CUS','Customer'),(3,'A','C2','CUS','Customer'),(4,'B','C2','CUS','Customer')");
         jdbc.update("INSERT INTO sms_ofst_contract_head_sap(id,contract_num,update_time,project_name,projectCode) VALUES(1,'C1','2026-09-01','Receipt','PRJ'),(2,'C2','2026-09-01','Ambiguous','NO')");
         jdbc.update("INSERT INTO fb_contract(contract_id,contract_code,project_name) VALUES(1,'C1','Old'),(2,'C1','Shipment'),(3,'C1',NULL)");
@@ -234,4 +257,160 @@ class GenericSyncEngineTest {
         assertEquals(1,count("ast_device_shipment"));
     }
 
+    @Test void aFailedRowDoesNotLeakStagedDeviceIntoTheNextRow() {
+        var d=definition(2);
+        var bad=new HashMap<>(barcode("SHARED-SN"));bad.put("warrantyMonth","bad");
+        var changes=apply(d,row(d,"bad",bad),row(d,"good",barcode("SHARED-SN")));
+        assertEquals(List.of("ISSUE","CREATED"),changes.stream().map(DataSyncAdapter.Change::action).toList());
+        assertEquals(1,count("ast_device"));assertEquals(1,count("ast_device_shipment"));
+    }
+    @Test void sourceResolvableLookupsArePrefetchedInOneDistinctKeyBatch() {
+        var store=org.mockito.Mockito.spy(new GenericSyncJdbcStore(jdbc.getDataSource()));
+        engine=new GenericSyncEngine(catalog,store,event->{});
+        var d=definition(1);
+        List<DataSyncAdapter.Row> rows=new ArrayList<>();
+        for(int index=0;index<40;index++) {
+            jdbc.update("INSERT INTO com_shipment_contract_reference(id,tenant_id,source_system,source_record_key) VALUES(?,1,'DPPMS',?)",1000+index,Integer.toString(index));
+            rows.add(row(d,"P"+index,Map.of("packlist_id","P"+index,"con_id",Integer.toString(index))));
+        }
+        var changes=apply(d,rows.toArray(DataSyncAdapter.Row[]::new));
+        assertEquals(40,changes.size());assertEquals(40,count("com_shipment_package"));
+        org.mockito.Mockito.verify(store,org.mockito.Mockito.never()).find(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(store).findByKeys(org.mockito.ArgumentMatchers.argThat(table->table.table().equals("com_shipment_contract_reference")),
+                org.mockito.ArgumentMatchers.argThat(keys->keys.size()==40),org.mockito.ArgumentMatchers.eq(true));
+        assertEquals(40,jdbc.queryForObject("SELECT COUNT(*) FROM com_shipment_package WHERE shipment_contract_ref_id IS NOT NULL",Integer.class));
+    }
+    @Test void targetSchemaIsLoadedOnceForAReusedExecutionAcrossChunks() {
+        var store=org.mockito.Mockito.spy(new GenericSyncJdbcStore(jdbc.getDataSource()));
+        engine=new GenericSyncEngine(catalog,store,event->{});
+        var d=definition(1);var execution=engine.bind(d);
+        tx.executeWithoutResult(status->execution.apply(batch(row(d,"P1",Map.of("packlist_id","P1")))));
+        tx.executeWithoutResult(status->execution.apply(batch(row(d,"P2",Map.of("packlist_id","P2")))));
+        org.mockito.Mockito.verify(store,org.mockito.Mockito.times(2)).columns(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(store).columns(org.mockito.ArgumentMatchers.argThat(t->t.table().equals("com_shipment_package")));
+        org.mockito.Mockito.verify(store).columns(org.mockito.ArgumentMatchers.argThat(t->t.table().equals("com_shipment_contract_reference")));
+        assertEquals(2,count("com_shipment_package"));
+    }
+    @Test void savedPreRenameLookupUsesCurrentProductColumnWithoutMutatingTask() {
+        jdbc.update("INSERT INTO com_sales_order_line(id,tenant_id,order_no,line_no,product_code) VALUES(101,1,'O1','1','ITEM-1')");
+        var d=definition(2);var source=d.sources().getFirst();var steps=new ArrayList<>(source.targets());
+        var event=steps.get(2);var lookup=event.lookups().getFirst();var legacy=new LinkedHashMap<>(lookup.match());
+        legacy.put("item_code",legacy.remove("product_code"));
+        steps.set(2,new GenericTargetStep(event.name(),event.table(),event.keys(),event.mode(),event.nullPolicy(),
+                event.updateColumns(),event.whenField(),event.newerBy(),event.tieBreaker(),event.mappings(),
+                List.of(new GenericTargetStep.Lookup(lookup.table(),legacy,lookup.outputs(),lookup.onMissing()))));
+        d=d.toBuilder().sources(List.of(source.toBuilder().targets(steps).build())).build();
+        var fields=new HashMap<>(barcode("LEGACY-SN"));fields.put("orderNumber","O1");fields.put("lineNum","1");
+        assertEquals("CREATED",apply(d,row(d,"1",fields)).getFirst().action());
+        assertEquals(101L,jdbc.queryForObject("SELECT order_line_id FROM ast_device_shipment",Long.class));
+        assertTrue(d.sources().getFirst().targets().get(2).lookups().getFirst().match().containsKey("item_code"));
+        assertFalse(catalog.required("com_sales_order_line").columns().contains("item_code"));
+    }
+    @Test void repeatedCompositeLookupKeysDoNotManufactureAmbiguity() {
+        jdbc.update("INSERT INTO com_sales_order_line(id,tenant_id,order_no,line_no,product_code) VALUES(101,1,'O1','1','ITEM-1'),(102,1,'O2','2','ITEM-1')");
+        var d=definition(2);List<DataSyncAdapter.Row> rows=new ArrayList<>();
+        for(int i=0;i<3;i++) {
+            var fields=new HashMap<>(barcode("SN-"+i));
+            fields.put("orderNumber",i==1?"O2":"O1");fields.put("lineNum",i==1?"2":"1");
+            rows.add(row(d,Integer.toString(i),fields));
+        }
+        var changes=apply(d,rows.toArray(DataSyncAdapter.Row[]::new));
+        assertTrue(changes.stream().allMatch(change->change.message()==null));
+        assertEquals(List.of(101L,102L,101L),jdbc.queryForList("SELECT order_line_id FROM ast_device_shipment ORDER BY source_key",Long.class));
+    }
+
+
+    @Test void earlierSourceTargetsAreStillBatchPrefetchedForAPackageOnlyChunk() {
+        var store=org.mockito.Mockito.spy(new GenericSyncJdbcStore(jdbc.getDataSource()));
+        engine=new GenericSyncEngine(catalog,store,event->{});
+        var packages=definition(1);
+        var complete=packages.toBuilder().sources(List.of(definition(0).sources().getFirst(),packages.sources().getFirst())).build();
+        List<DataSyncAdapter.Row> rows=new ArrayList<>();
+        for(int i=1;i<=6;i++) {
+            jdbc.update("INSERT INTO com_shipment_contract_reference(id,tenant_id,source_system,source_record_key) VALUES(?,1,'DPPMS',?)",100+i,Integer.toString(i));
+            rows.add(row(packages,"P"+i,Map.of("packlist_id","P"+i,"con_id",Integer.toString(i))));
+        }
+        assertTrue(apply(complete,rows.toArray(DataSyncAdapter.Row[]::new)).stream().allMatch(c->"CREATED".equals(c.action())));
+        assertEquals(6,jdbc.queryForObject("SELECT COUNT(*) FROM com_shipment_package WHERE shipment_contract_ref_id IS NOT NULL",Integer.class));
+        org.mockito.Mockito.verify(store,org.mockito.Mockito.never()).find(org.mockito.ArgumentMatchers.any());
+        org.mockito.Mockito.verify(store).findByKeys(org.mockito.ArgumentMatchers.argThat(t->t.table().equals("com_shipment_contract_reference")),
+                org.mockito.ArgumentMatchers.argThat(keys->keys.size()==6),org.mockito.ArgumentMatchers.eq(true));
+    }
+    @Test void numericSourceReferenceMatchesOnlyItsExactTextIdentity() {
+        jdbc.update("INSERT INTO com_shipment_contract_reference(id,tenant_id,source_system,source_record_key) VALUES(101,1,'DPPMS','1'),(102,1,'DPPMS','01'),(103,1,'DPPMS','1x')");
+        var store=org.mockito.Mockito.spy(new GenericSyncJdbcStore(jdbc.getDataSource()));
+        engine=new GenericSyncEngine(catalog,store,event->{});
+        var d=definition(1);var r=row(d,"P1",Map.of("packlist_id","P1","con_id",1));
+        assertEquals("CREATED",apply(d,r).getFirst().action());
+        assertEquals(101L,jdbc.queryForObject("SELECT shipment_contract_ref_id FROM com_shipment_package",Long.class));
+        assertEquals(1,r.fields().get("con_id"));
+        org.mockito.Mockito.verify(store).findByKeys(org.mockito.ArgumentMatchers.argThat(t->t.table().equals("com_shipment_contract_reference")),
+                org.mockito.ArgumentMatchers.argThat(keys->keys.size()==1 && "1".equals(keys.getFirst().get("source_record_key"))),org.mockito.ArgumentMatchers.eq(true));
+    }
+    @Test void sameChunkParentWriteRemainsVisibleToALaterPackageRow() {
+        var contracts=definition(0);var packages=definition(1);
+        var complete=packages.toBuilder().sources(List.of(contracts.sources().getFirst(),packages.sources().getFirst())).build();
+        var changes=apply(complete,row(contracts,"77",Map.of("contractNum","C77")),
+                row(packages,"P77",Map.of("packlist_id","P77","con_id",77)));
+        assertEquals(List.of("CREATED","CREATED"),changes.stream().map(DataSyncAdapter.Change::action).toList());
+        assertEquals(changes.getFirst().targetId(),jdbc.queryForObject("SELECT shipment_contract_ref_id FROM com_shipment_package",Long.class));
+    }
+
+
+    @Test void prefetchSkipsNonKeyTimestampConversion() {
+        var calls=new java.util.concurrent.atomic.AtomicInteger();
+        Object timestamp=new Object() {
+            @Override public String toString() { calls.incrementAndGet();return "2026-09-20T12:00:00"; }
+        };
+        var d=definition(2);
+        var values=new HashMap<String,Object>(barcode("PREFETCH-SN"));values.put("shipment_time",timestamp);
+        var source=row(d,"prefetch-1",values);
+        Object schemas=ReflectionTestUtils.invokeMethod(engine.bind(d),"schemas");
+        ReflectionTestUtils.invokeMethod(engine,"prefillOverlay",d,batch(source),new HashMap<>(),false,schemas);
+        assertEquals(0,calls.get(),"Prefetch must not convert non-key timestamps; planner owns full validation");
+    }
+
+    @Test void prefetchIncludesMappedLookupInputsButNotSourceReferences() {
+        var step=definition(1).sources().getFirst().targets().getFirst();
+        step.lookups().add(new GenericTargetStep.Lookup("com_shipment_contract_reference",
+            Map.of("source_record_key","non_key_lookup_input","source_system","@source_system"),
+            Map.of("shipment_contract_ref_id","id"),"RETAIN"));
+        Set<String> columns=ReflectionTestUtils.invokeMethod(GenericSyncEngine.class,"prefetchColumns",step);
+        assertTrue(columns.containsAll(step.keys()));
+        assertTrue(columns.contains("non_key_lookup_input"));
+        assertFalse(columns.contains("@source_system"));
+        assertFalse(columns.contains("shipment_contract_ref_id"));
+    }
+
+    @Test void skippedPrefetchFieldStillFailsRowValidation() {
+        var d=definition(2);var values=new HashMap<String,Object>(barcode("INVALID-PREFETCH-TIME"));
+        values.put("shipment_time","not-a-time");
+        var change=apply(d,row(d,"invalid-prefetch-1",values)).getFirst();
+        assertEquals("ISSUE",change.action());
+        assertEquals(0,count("ast_device"));assertEquals(0,count("ast_device_shipment"));
+    }
+
+    @Test void newerShipmentChangesOldSourcesDerivedCurrentProjectionOnce() {
+        var d=definition(2);
+        var oldSource=row(d,"1",barcode("RECONCILE-SN"));
+        var initial=apply(d,oldSource).getFirst();
+        assertEquals("CREATED",initial.action());
+        var boundOld=new DataSyncAdapter.Row(oldSource.object(),oldSource.sourceKey(),oldSource.fields(),initial.targetId());
+        var values=new HashMap<String,Object>(barcode("RECONCILE-SN"));
+        values.put("shipment_time","2026-10-02T12:00:00");values.put("pack_id","PACK-NEW");
+        var deltaSource=row(d,"4000001",values);
+        var changed=apply(d,boundOld,deltaSource);
+        assertEquals("UNCHANGED",changed.getFirst().action());assertEquals("CREATED",changed.getLast().action());
+        var boundDelta=new DataSyncAdapter.Row(deltaSource.object(),deltaSource.sourceKey(),deltaSource.fields(),changed.getLast().targetId());
+        var reconciled=apply(d,boundOld,boundDelta);
+        assertEquals(List.of("UNCHANGED","UNCHANGED"),reconciled.stream().map(DataSyncAdapter.Change::action).toList());
+        assertEquals(changed.getFirst().targetId(),reconciled.getFirst().targetId());
+        assertNotEquals(changed.getFirst().after().get("deviceShipment.shipment_record_id"),
+            reconciled.getFirst().after().get("deviceShipment.shipment_record_id"));
+        assertEquals(changed.getLast().targetId(),reconciled.getFirst().after().get("deviceShipment.shipment_record_id"));
+        var stable=apply(d,boundOld,boundDelta);
+        assertEquals(reconciled.getFirst().after(),stable.getFirst().after());
+        assertEquals(reconciled.getLast().after(),stable.getLast().after());
+        assertEquals(1,count("ast_device"));assertEquals(2,count("ast_device_shipment"));
+    }
 }

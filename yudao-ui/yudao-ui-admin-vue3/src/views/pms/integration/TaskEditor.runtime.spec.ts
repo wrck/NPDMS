@@ -86,6 +86,7 @@ const renderEditor = async () => {
           open: (id: string) => Promise<void>
           save: () => Promise<void>
           selectMappingReset: () => void
+          syncLegacyPaging: () => void
           section: string
           draft: Task
           visible: boolean
@@ -165,9 +166,33 @@ describe('task configuration groups preserve the existing save contract', () => 
     await state.save()
     expect(api.saveTask).toHaveBeenCalledWith({
       ...task,
-      definition: { ...task.definition, loadingMode: 'UPSERT', retryCount: 2 }
+      definition: { ...task.definition, loadingMode: 'UPSERT', retryCount: 2,
+        readStrategy: 'SNAPSHOT', evidencePolicy: 'FULL', fetchSize: 2000, chunkSize: 1000,
+        restartPolicy: 'RESTART_ALL', queryTimeoutSeconds: 0, autoPaging: false }
     })
     expect(state.visible).toBe(false)
+  })
+
+  it('defaults old configurations to full evidence and clears reuse when leaving streaming', async () => {
+    const state = await renderEditor()
+    expect(state.draft.definition.evidencePolicy).toBe('FULL')
+    state.draft.definition.evidencePolicy = 'REUSE_UNCHANGED'
+    state.draft.definition.readStrategy = 'KEYSET_PAGING'
+    state.syncLegacyPaging()
+    expect(state.draft.definition.evidencePolicy).toBe('FULL')
+    expect(state.draft.definition.autoPaging).toBe(true)
+  })
+
+  it('preserves an explicit reuse policy when opening a streaming task', async () => {
+    api.getTask.mockResolvedValue({ ...structuredClone(task), definition: {
+      ...structuredClone(task.definition), adapter: 'TABLE_MAPPING', missingPolicy: 'RETAIN',
+      readStrategy: 'STREAMING_CURSOR', evidencePolicy: 'REUSE_UNCHANGED'
+    } })
+    const state = await renderEditor()
+    expect(state.draft.definition.evidencePolicy).toBe('REUSE_UNCHANGED')
+    state.syncLegacyPaging()
+    expect(state.draft.definition.evidencePolicy).toBe('REUSE_UNCHANGED')
+    expect(state.draft.definition.autoPaging).toBe(false)
   })
 
   it('returns to the basic group when its hidden required field is invalid', async () => {

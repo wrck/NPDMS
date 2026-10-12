@@ -53,6 +53,8 @@ public interface MigrationSourceRecordMapper extends BaseMapperX<MigrationSource
 
     List<MigrationSourceRecordDO> selectCursorPage(@Param("query") MigrationSourceCursorQuery query);
 
+    long countBatchSources(@Param("query") MigrationBatchIdQuery query);
+
     MigrationBatchClassificationSummary selectClassificationSummary(
             @Param("query") MigrationBatchIdQuery query);
 }

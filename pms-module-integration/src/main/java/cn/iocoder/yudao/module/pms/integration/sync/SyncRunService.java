@@ -308,26 +308,39 @@ public class SyncRunService {
             var rows=fieldMapper.transform(d,snapshot,existing);
             Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
             var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,false,d.missingPolicy(),false,d.loadingMode(),false);
-            // Stage, target writes, reconciliation, bindings and checkpoint advance are one atomic chunk transaction.
+            // Target validation still runs for every row; source equality alone cannot hide target drift.
+            // FULL retains the original staging order. Reuse mode stages only facts not already evidenced.
+            boolean reuseEvidence="REUSE_UNCHANGED".equals(d.effectiveEvidencePolicy());
             timing.stop();timing.start("evidenceStage");
-            var evidence=evidenceService.stage(runId,d,snapshot,correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
+            List<SyncEvidenceService.Evidence> evidence=reuseEvidence?List.of():
+                    evidenceService.stage(runId,d,snapshot,correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
             timing.stop();timing.start("apply");
             var changes=current.getPreview()?adapter.preview(batch):adapter.apply(batch);
             if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
                 throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
             verifyPrimaryKeys(batch,changes);
             var finalChanges=markStale(changes,stale);
+            timing.stop();timing.start("evidenceSelection");
+            var selection=SyncEvidenceSelection.select(d,snapshot,finalChanges,bindingRows,current.getPreview(),"TABLE_MAPPING".equals(d.adapter())?existing:List.of());
+            var materialChanges=selection.needingEvidence(finalChanges);
+            if(reuseEvidence && !selection.snapshot().objects().isEmpty())
+                evidence=evidenceService.stage(runId,d,selection.snapshot(),correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
             timing.stop();timing.start("bindingsWrite");
-            if(!current.getPreview())persistBindings(t,d,finalChanges,runId,bindingRows);
+            if(!current.getPreview())persistBindings(t,d,materialChanges,runId,bindingRows);
             timing.stop();timing.start("evidenceComplete");
-            evidenceService.complete(runId,d,evidence,adapter.descriptor(),
-                    current.getPreview()?List.of():finalChanges,false);
+            if(!reuseEvidence || !evidence.isEmpty())evidenceService.complete(runId,d,evidence,adapter.descriptor(),
+                    current.getPreview()?List.of():materialChanges,false);
             timing.stop();timing.start("checkpoint");
             state=state.committed(chunk.lastKey(),chunk.rows().size());
             current.setPagingJson(JsonUtils.toJsonString(state)).setSourceUpper(chunk.upper())
                     .setReadCount(current.getReadCount()+chunk.rows().size())
                     .setStatus(current.getPreview()?"VALIDATING":"APPLYING");
             mergeSummary(current,finalChanges);
+            if(!selection.reused().isEmpty()) {
+                var totals=new LinkedHashMap<>(JsonUtils.parseMap(current.getSummaryJson()));
+                totals.compute("EVIDENCE_REUSED",(key,value)->(value==null?0L:((Number)value).longValue())+selection.reused().size());
+                current.setSummaryJson(JsonUtils.toJsonString(totals));
+            }
             // 全量复制不累积整批变更样本：样本随 maxRows 增长会把运行行拖到 MB 级，每块整行重写拖垮吞吐；预览保留完整样本。
             appendResultSample(current,finalChanges,current.getPreview()?d.maxRows():50);
             runs.updateById(current);
@@ -466,10 +479,10 @@ public class SyncRunService {
         for(var c:changes) {
             if(c.targetId()==null||Set.of("SKIPPED","CLEARED").contains(c.action()))continue;
             var b=existing.get(c.object()+":"+c.sourceKey());boolean fresh=b==null;
-            String fieldsJson=JsonUtils.toJsonString(c.after());
+            String fieldsJson=SyncBindingSnapshots.encode(c.after(),"REUSE_UNCHANGED".equals(d.effectiveEvidencePolicy()));
             if(!fresh && Objects.equals(b.getTargetId(),c.targetId())
                     && (Objects.equals(b.getFieldsJson(),fieldsJson)
-                        || Objects.equals(JsonUtils.parseTree(b.getFieldsJson()),JsonUtils.parseTree(fieldsJson)))
+                        || SyncBindingSnapshots.same(SyncBindingSnapshots.decode(b.getFieldsJson()),c.after()))
                     && Boolean.TRUE.equals(b.getTargetShared())==targetShared) {
                 unchanged.add(b.getId());continue;
             }
@@ -504,7 +517,7 @@ public class SyncRunService {
     }
     private static List<DataSyncAdapter.Binding> bindingFacts(List<SyncBindingDO> rows) {
         return rows.stream()
-                .map(b->new DataSyncAdapter.Binding(b.getObjectKey(),b.getSourceKey(),b.getTargetId(),JsonUtils.parseMap(b.getFieldsJson()))).toList();
+                .map(b->new DataSyncAdapter.Binding(b.getObjectKey(),b.getSourceKey(),b.getTargetId(),SyncBindingSnapshots.decode(b.getFieldsJson()))).toList();
     }
     private List<SyncBindingDO> loadPageBindingRows(Long taskId,SyncDefinition definition,MysqlSyncReader.Snapshot snapshot) {
         List<SyncBindingDO> result=new ArrayList<>();

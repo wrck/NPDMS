@@ -54,4 +54,60 @@ class DeviceOrganizationProjectionServiceTest {
         when(projects.getOrganizations(1L,Set.of(10L))).thenReturn(List.of());
         assertNull(service.resolveSource(1L,devices).get(8L).companyId());
     }
+
+    @Test void diverseOrganizationsUseFiveBoundedWritesForFiveHundredDevices() {
+        var mapper=mock(DeviceOrganizationMapper.class);var source=mock(DeviceOrganizationService.class);
+        var devices=new ArrayList<DeviceDO>();var facts=new LinkedHashMap<Long,DeviceOrganizationRespVO>();
+        for(long id=1;id<=500;id++) {
+            var row=new DeviceDO();row.setId(id);devices.add(row);
+            long department=id%100;
+            facts.put(id,new DeviceOrganizationRespVO(department%10,"Company "+department%10,
+                    department,"D"+department,"Office "+department,"CONTRACT"));
+        }
+        when(mapper.selectBatchForUpdate(any())).thenReturn(devices);
+        when(source.resolveSource(eq(7L),any())).thenReturn(facts);
+        var captured=new ArrayList<DeviceOrganizationUpdate>();
+        when(mapper.updateOrganizationRows(eq(7L),any())).thenAnswer(invocation->{
+            List<DeviceOrganizationUpdate> rows=invocation.getArgument(1);
+            assertTrue(rows.size()<=100);captured.addAll(rows);return rows.size();
+        });
+        var result=new DeviceOrganizationProjectionService(mapper,source).rebuildPage(7L,0);
+        assertEquals(500,result.updated());assertEquals(500,result.processed());assertEquals(500,result.afterId());
+        verify(mapper,times(5)).updateOrganizationRows(eq(7L),any());
+        verify(mapper,never()).updateOrganizationBatch(any(),any());
+        assertEquals(500,captured.stream().map(DeviceOrganizationUpdate::deviceId).distinct().count());
+        for(var update:captured) {
+            assertEquals(7L,update.tenantId());var fact=facts.get(update.deviceId());
+            assertEquals(fact.companyId(),update.companyId());assertEquals(fact.departmentId(),update.departmentId());
+            assertEquals(fact.departmentCode(),update.departmentCode());assertEquals(fact.departmentName(),update.departmentName());
+        }
+    }
+
+    @Test void mixedNullGrantsAndDelimiterContainingNamesRemainDistinct() {
+        var mapper=mock(DeviceOrganizationMapper.class);var source=mock(DeviceOrganizationService.class);
+        var devices=new ArrayList<DeviceDO>();
+        for(long id=1;id<=3;id++){var row=new DeviceDO();row.setId(id);row.setCompanyId(99L);devices.add(row);}
+        var facts=Map.of(1L,new DeviceOrganizationRespVO(1L,"A",2L,"x|y","z","CONTRACT"),
+                2L,new DeviceOrganizationRespVO(1L,"A",2L,"x","y|z","CONTRACT"),
+                3L,new DeviceOrganizationRespVO(null,null,null,null,null,"UNRESOLVED"));
+        when(mapper.selectBatchForUpdate(any())).thenReturn(devices);
+        when(source.resolveSource(eq(1L),any())).thenReturn(facts);
+        when(mapper.updateOrganizationRows(eq(1L),any())).thenAnswer(invocation->{
+            List<DeviceOrganizationUpdate> rows=invocation.getArgument(1);
+            assertEquals(List.of(new DeviceOrganizationUpdate(1L,1L,1L,"A",2L,"x|y","z","CONTRACT"),
+                    new DeviceOrganizationUpdate(1L,2L,1L,"A",2L,"x","y|z","CONTRACT"),
+                    new DeviceOrganizationUpdate(1L,3L,null,null,null,null,null,"UNRESOLVED")),rows);
+            return rows.size();
+        });
+        assertEquals(3,new DeviceOrganizationProjectionService(mapper,source).rebuildPage(1L,0).updated());
+        verify(mapper).updateOrganizationRows(eq(1L),any());verify(mapper,never()).updateOrganizationBatch(any(),any());
+    }
+
+    @Test void emptyOrAlreadyCurrentPageDoesNotInvokeEitherWriter() {
+        var mapper=mock(DeviceOrganizationMapper.class);var source=mock(DeviceOrganizationService.class);
+        when(mapper.selectBatchForUpdate(any())).thenReturn(List.of());
+        when(source.resolveSource(eq(1L),any())).thenReturn(Map.of());
+        assertEquals(0,new DeviceOrganizationProjectionService(mapper,source).rebuildPage(1L,0).updated());
+        verify(mapper,never()).updateOrganizationRows(any(),any());verify(mapper,never()).updateOrganizationBatch(any(),any());
+    }
 }

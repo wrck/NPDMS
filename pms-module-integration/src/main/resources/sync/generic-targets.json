@@ -465,14 +465,14 @@
     "columns": [
       "order_no",
       "line_no",
-      "item_code"
+      "product_code"
     ],
     "updateColumns": [],
     "keys": [
       [
         "order_no",
         "line_no",
-        "item_code"
+        "product_code"
       ]
     ],
     "insertDefaults": {},
