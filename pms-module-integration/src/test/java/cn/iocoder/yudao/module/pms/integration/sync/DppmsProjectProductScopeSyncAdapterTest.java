@@ -74,6 +74,24 @@ class DppmsProjectProductScopeSyncAdapterTest {
         when(bindings.resolve(any(DppmsProjectBindingApi.BatchQuery.class))).thenReturn(List.of(new DppmsProjectBindingApi.ProjectBinding(18L,"50370",10L,"afxx","P1","P1")));
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row(),List.of())));verifyNoInteractions(scopes);
     }
+    @Test void replayRetainsPreciseScopeTimesWhenAuditWasSerializedAsEpochMillis() {
+        var precise=date.withNano(266651500);
+        doAnswer(call->{
+            var fields=new LinkedHashMap<String,Object>();fields.put("id",30L);fields.put("creator","1");fields.put("updater","1");
+            fields.put("createTime",precise);fields.put("updateTime",precise);fields.put("effectiveFrom",precise);fields.put("allocationConfirmed",false);
+            return List.of(new DppmsProjectProductScopeApi.Result("100",30L,"CREATED",fields));
+        }).when(scopes).apply(any());
+        var source=row();var created=adapter.apply(batch(source,List.of())).getFirst();
+        var persisted=JsonUtils.parseMap(JsonUtils.toJsonString(created.after()));
+        var proof=new Binding(OBJECT,"100",30L,persisted);var bound=new Row(OBJECT,"100",source.fields(),30L);
+        clearInvocations(scopes);adapter.apply(batch(bound,List.of(proof)));
+        verify(scopes).apply(argThat(command->precise.equals(command.entries().getFirst().baseline().createTime())
+                && precise.equals(command.entries().getFirst().baseline().updateTime())));
+        clearInvocations(scopes);
+        @SuppressWarnings("unchecked") var audit=(Map<String,Object>)persisted.get("baseline");
+        audit.put("updateTime",((Number)audit.get("updateTime")).longValue()+1);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(bound,List.of(proof))));verifyNoInteractions(scopes);
+    }
     @Test void approvedOldAuditBaselineDoesNotAuthorizeClearOrAdoption() {
         var source=row();source.fields().put("baseline",Map.of("id",30,"creator","1","updater","1","createTime",date.toString(),"updateTime",date.toString()));
         adapter.apply(batch(source,List.of()));verify(scopes).apply(argThat(command->command.entries().getFirst().baseline().id()==30L

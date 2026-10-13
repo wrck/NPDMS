@@ -5,4 +5,7 @@ import java.util.Set;
 /** 当前租户内项目的有效关联合同号，只读业务事实。 */
 public interface ProjectContractQueryApi {
     Set<String> getCurrentContractNumbers(Long projectId);
+
+    /** Read-only shipment/renewal display, including explicitly retained historical project relations. Not an authorization grant. */
+    Set<String> getWarrantyShipmentContractNumbers(Long projectId);
 }

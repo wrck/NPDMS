@@ -165,8 +165,18 @@ class ProjectMasterMigrationServiceTest {
         doThrow(new IllegalArgumentException("FORBIDDEN")).when(creationAuthorization).assertCanCreate(1L);
         assertThrows(IllegalArgumentException.class,()->service.preview(request(entry(null,null),false)));
         doNothing().when(creationAuthorization).assertCanCreate(1L);when(organization.hasScope(1L,1L,8L)).thenReturn(false);
+        doThrow(new IllegalArgumentException("FORBIDDEN")).when(creationAuthorization).assertCanImportAcrossOrganizations(1L);
         assertThrows(IllegalArgumentException.class,()->service.preview(request(entry(null,null),false)));
         verify(projects,never()).insertHistoricalRoot(any());
+    }
+    @Test void authorizedMigrationAdministratorCanPreviewAnotherOfficeWithoutGrantingScope() {
+        newSource();when(organization.hasScope(1L,1L,8L)).thenReturn(false);
+        assertEquals("CREATED",service.preview(request(entry(null,null),false)).getFirst().action());
+        verify(creationAuthorization).assertCanImportAcrossOrganizations(1L);
+        verify(organization).hasScope(1L,1L,8L);
+        verifyNoMoreInteractions(organization);
+        verify(projects,never()).insertHistoricalRoot(any());
+        verify(projects,never()).initializeFormalIfMatch(any());
     }
     @Test void securityTypesAreSupportedInTheDesignAndNullAttributesRemainNull() {
         newSource();original.put("projectType","afss");original.put("projectState","50");

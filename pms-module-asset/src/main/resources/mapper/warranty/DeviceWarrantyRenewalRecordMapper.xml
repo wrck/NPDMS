@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper">
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRenewalRecordDO">
+        SELECT * FROM ast_device_warranty_renewal_record
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.id} FOR UPDATE
+    </select>
+    <insert id="insertRecord">
+        INSERT INTO ast_device_warranty_renewal_record
+        (id,tenant_id,device_sn,warranty_contract_no,warranty_grade,warranty_start_date,warranty_end_date,
+         warranty_months,extended,is_latest,remark,version,creator,create_time,updater,update_time,deleted)
+        VALUES (#{row.id},#{row.tenantId},#{row.deviceSn},#{row.warrantyContractNo},#{row.warrantyGrade},
+          #{row.warrantyStartDate},#{row.warrantyEndDate},#{row.warrantyMonths},#{row.extended},#{row.isLatest},
+          #{row.remark},#{row.version},#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted})
+    </insert>
+    <update id="updateRecord">
+        UPDATE ast_device_warranty_renewal_record
+        SET device_sn=#{command.row.deviceSn},warranty_contract_no=#{command.row.warrantyContractNo},
+            warranty_grade=#{command.row.warrantyGrade},warranty_start_date=#{command.row.warrantyStartDate},
+            warranty_end_date=#{command.row.warrantyEndDate},warranty_months=#{command.row.warrantyMonths},
+            extended=#{command.row.extended},is_latest=#{command.row.isLatest},remark=#{command.row.remark},
+            version=#{command.row.version},updater=#{command.row.updater},update_time=#{command.row.updateTime}
+        WHERE tenant_id=#{command.row.tenantId} AND id=#{command.row.id}
+          AND version=#{command.expectedVersion} AND deleted=FALSE
+    </update>
+    <sql id="visibleRecords">
+        r.tenant_id=#{query.tenantId} AND r.deleted=FALSE
+        AND r.device_sn IS NOT NULL AND r.device_sn &lt;&gt; ''
+        <choose>
+            <when test="query.deviceSn != null and query.deviceSn != ''">
+                AND r.device_sn=#{query.deviceSn}
+            </when>
+            <when test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+                AND EXISTS (SELECT 1 FROM ast_device_shipment s
+                    WHERE s.tenant_id=r.tenant_id AND s.deleted=FALSE AND s.device_sn=r.device_sn
+                      AND s.contract_no IN
+                      <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+                      AND (s.rma_no IS NULL OR s.rma_no='' OR s.rma_no='null'))
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        <if test="query.sn != null and query.sn != ''">AND r.device_sn LIKE CONCAT('%',#{query.sn},'%')</if>
+    </sql>
+    <select id="count" resultType="long">
+        SELECT COUNT(*) FROM ast_device_warranty_renewal_record r WHERE <include refid="visibleRecords"/>
+    </select>
+    <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRenewalRecordDO">
+        SELECT r.* FROM ast_device_warranty_renewal_record r WHERE <include refid="visibleRecords"/>
+        ORDER BY r.warranty_start_date DESC,r.id DESC LIMIT #{query.limit} OFFSET #{query.offset}
+    </select>
+</mapper>

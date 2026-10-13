@@ -1,0 +1,239 @@
+{
+  "taskId": "2107037031219654657",
+  "version": 9,
+  "sourceObject": "pm_order_data_from_erp",
+  "sourceKey": "id",
+  "sqlFile": "sql/contract-master-approved-source-query.sql",
+  "parameters": {
+    "projectIds": "31339,44338,26040,46781,9957,25501,32945,20072,13383,29284",
+    "contractNos": "31020220620A23,31120220620A37",
+    "projectTypes": "10",
+    "approvedContractNos": "31020181224A12,31020211228A12",
+    "customerCodeOverrides": "{\"31020220620A23\":\"C00013\",\"31120220620A37\":\"C00013\"}"
+  },
+  "targets": [
+    {
+      "name": "contract",
+      "table": "com_contract",
+      "keys": [
+        "company_code",
+        "contract_no"
+      ],
+      "mode": "UPSERT",
+      "nullPolicy": "IGNORE",
+      "updateColumns": [
+        "currency_name",
+        "contract_amount",
+        "currency_code",
+        "contract_create_time",
+        "project_name",
+        "project_code",
+        "market_code",
+        "market_name",
+        "department_code",
+        "department_name",
+        "industry_code",
+        "industry_name",
+        "marketing_representative_code",
+        "marketing_representative_name",
+        "secondary_representative_code",
+        "system_name"
+      ],
+      "whenField": null,
+      "newerBy": null,
+      "tieBreaker": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null,
+          "source": "company_code",
+          "target": "company_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contract_no",
+          "target": "contract_no",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customer_code",
+          "target": "customer_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customer_name",
+          "target": "customer_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "$SOURCE_KEY",
+          "target": "master_source_record_key",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "master_origin",
+          "target": "master_source_system",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "currency_name",
+          "target": "currency_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "currency_code",
+          "target": "currency_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contract_amount",
+          "target": "contract_amount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "contract_create_time",
+          "target": "contract_create_time",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "project_name",
+          "target": "project_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "project_code",
+          "target": "project_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "market_code",
+          "target": "market_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "market_name",
+          "target": "market_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "department_code",
+          "target": "department_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "department_name",
+          "target": "department_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "industry_code",
+          "target": "industry_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "industry_name",
+          "target": "industry_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "marketing_representative_code",
+          "target": "marketing_representative_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "marketing_representative_name",
+          "target": "marketing_representative_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "secondary_representative_code",
+          "target": "secondary_representative_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "system_name",
+          "target": "system_name",
+          "values": null
+        }
+      ],
+      "lookups": [
+        {
+          "table": "system_company",
+          "match": {
+            "code": "company_code"
+          },
+          "outputs": {
+            "company_id": "id",
+            "company_name": "name"
+          },
+          "onMissing": "RETAIN"
+        }
+      ]
+    }
+  ],
+  "writeBoundary": "Only the four contracts approved in this conversation; other task sources remain inactive during this validation."
+}

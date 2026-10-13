@@ -310,6 +310,8 @@ export const getGenericTargets = () =>
   request.get<GenericTarget[]>({ url: base + '/generic-targets' })
 export const getGenericTemplates = (connectionId: Id) =>
   request.get<GenericTemplate[]>({ url: base + '/templates/generic', params: { connectionId } })
+export const getDppmsWarrantyRenewalTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-warranty-renewals', params: { connectionId } })
 export const getDppmsContractReceivableTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-contract-receivables', params: { connectionId } })
 export const getDppmsProjectFactsTemplate = (connectionId: Id, definitionId?: Id) =>

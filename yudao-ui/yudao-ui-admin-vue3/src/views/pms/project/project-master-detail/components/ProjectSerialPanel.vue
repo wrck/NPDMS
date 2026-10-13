@@ -8,6 +8,12 @@
       <span class="panel-title"><Icon icon="ep:cpu" /> 序列号详情</span>
       <span class="serial-total num">共 {{ total }} 台</span>
     </div>
+    <el-tabs v-model="activeSection">
+      <el-tab-pane label="设备序列号" name="devices" />
+      <el-tab-pane label="续保记录" name="renewals" />
+    </el-tabs>
+    <DeviceWarrantyRenewalTable v-if="activeSection === 'renewals'" :project-id="projectId" />
+    <template v-else>
     <el-form inline @submit.prevent="search">
       <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="查询设备序列号" @keyup.enter="search" /></el-form-item>
       <el-form-item><el-button type="primary" :loading="loading" @click="search">查询</el-button></el-form-item>
@@ -97,12 +103,15 @@
       :total="total"
       @pagination="load"
     />
+    </template>
   </ContentWrap>
 </template>
 
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
+import { getWarrantyRenewals } from '@/api/pms/asset/warranty-renewal'
+import DeviceWarrantyRenewalTable from '@/views/pms/asset/device/components/DeviceWarrantyRenewalTable.vue'
 
 defineOptions({ name: 'ProjectSerialPanel' })
 
@@ -110,6 +119,7 @@ const props = defineProps<{ projectId: number }>()
 const emit = defineEmits<{ (e: 'open-config-log', deviceId: number): void }>()
 
 const NOT_INTEGRATED = '—'
+const activeSection = ref('devices')
 
 interface SerialRow {
   deviceId: number
@@ -188,9 +198,10 @@ const load = async () => {
 const enrich = async (list: SerialRow[]) => {
   await Promise.allSettled(
     list.map(async (row) => {
-      const [detail, warranty] = await Promise.allSettled([
+      const [detail, warranty, renewals] = await Promise.allSettled([
         DeviceApi.getDevice(row.deviceId),
-        DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: 1, pageSize: 100 })
+        DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: 1, pageSize: 1 }),
+        getWarrantyRenewals({ deviceId: row.deviceId, pageNo: 1, pageSize: 1 })
       ])
       if (detail.status === 'fulfilled' && detail.value) {
         const slice = detail.value.networkVersion
@@ -202,15 +213,8 @@ const enrich = async (list: SerialRow[]) => {
       }
       if (warranty.status === 'fulfilled' && warranty.value) {
         row.warrantyMonths = warranty.value.current?.warrantyMonths
-        const records = [...(warranty.value.records?.list || [])]
-        const recordTotal = Number(warranty.value.records?.total || 0)
-        for (let nextPage = 2; records.length < recordTotal; nextPage++) {
-          const next = await DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: nextPage, pageSize: 100 })
-          if (!next.records?.list?.length) break
-          records.push(...next.records.list)
-        }
-        row.extendedCount = records.length >= recordTotal ? records.filter((r) => r.extended).length : undefined
       }
+      if (renewals.status === 'fulfilled') row.extendedCount = Number(renewals.value.total)
     })
   )
 }

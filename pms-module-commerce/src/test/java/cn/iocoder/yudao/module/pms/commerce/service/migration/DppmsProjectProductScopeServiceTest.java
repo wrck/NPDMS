@@ -184,6 +184,54 @@ class DppmsProjectProductScopeServiceTest {
         assertThrows(RuntimeException.class,()->service.page(new DppmsProjectProductScopeApi.Query(1L,1L,100L,1,20)));
         verifyNoInteractions(mapper);
     }
+    @Test void newScopeAndDetailReceiptsUseStoredPrecisionAndReplayWithoutWrites() {
+        var saved=new DeliveryScopeDO();
+        doAnswer(call->{savedFields(call.getArgument(0),saved);return 1;}).when(mapper).insertHistoricalScope(any());
+        var raw=entry("1",null);var original=new Entry(raw.sourceKey(),raw.originalFields(),null);
+        var first=service.apply(command(original)).getFirst();
+        for(String field:List.of("createTime","updateTime","effectiveFrom"))
+            assertEquals(0,((LocalDateTime)first.fields().get(field)).getNano()%1_000_000,field);
+        var detail=(Map<?,?>)first.fields().get("productDetail");
+        for(String field:List.of("createTime","updateTime"))
+            assertEquals(0,((LocalDateTime)detail.get(field)).getNano()%1_000_000,field);
+        var replay=replayEntry(original,first,(LocalDateTime)first.fields().get("createTime"));
+        when(mapper.lockIdentity(any())).thenReturn(List.of(saved));
+        assertEquals("UNCHANGED",service.apply(command(replay)).getFirst().action());
+        saved.setUpdateTime(saved.getUpdateTime().plusNanos(1_000_000));
+        assertThrows(RuntimeException.class,()->service.apply(command(replay)));
+        verify(mapper,times(1)).insertHistoricalScope(any());verify(mapper,times(1)).insertHistoricalProductDetail(any());
+    }
+    @Test void earlierNanosecondReceiptsMatchOnlyTheirExactStoredMillisecond() {
+        var saved=new DeliveryScopeDO();
+        doAnswer(call->{savedFields(call.getArgument(0),saved);return 1;}).when(mapper).insertHistoricalScope(any());
+        var original=entry("1",null);var first=service.apply(command(original)).getFirst();
+        when(mapper.lockIdentity(any())).thenReturn(List.of(saved));
+        var second=LocalDateTime.of(2026,10,13,23,11,33);
+        int[] nanos={123499000,123499500,123500000,266651500,999999500};
+        int[] millis={123,124,124,267,1000};
+        for(int index=0;index<nanos.length;index++) {
+            var receiptTime=second.withNano(nanos[index]);var stored=second.plusNanos(millis[index]*1_000_000L);
+            var replay=replayEntry(original,first,receiptTime);
+            saved.setCreateTime(stored);saved.setUpdateTime(stored);saved.setEffectiveFrom(stored);
+            assertEquals("UNCHANGED",service.apply(command(replay)).getFirst().action());
+            saved.setEffectiveFrom(stored.plusNanos(1_000_000));
+            assertThrows(RuntimeException.class,()->service.apply(command(replay)));
+            saved.setEffectiveFrom(stored);saved.setUpdateTime(stored.plusNanos(1_000_000));
+            assertThrows(RuntimeException.class,()->service.apply(command(replay)));
+        }
+        verify(mapper,times(1)).insertHistoricalScope(any());verify(mapper,times(1)).insertHistoricalProductDetail(any());
+    }
+    private static Entry replayEntry(Entry original,Result first,LocalDateTime receiptTime) {
+        var before=new LinkedHashMap<String,Object>();
+        first.fields().forEach((name,value)->{
+            if(!Set.of("productDetail","productDetailAction").contains(name))
+                before.put(name,value==null?tools.jackson.databind.node.NullNode.getInstance():value instanceof LocalDateTime time?time.toString():value);
+        });
+        for(String name:List.of("createTime","updateTime","effectiveFrom"))before.put(name,receiptTime.toString());
+        return new Entry(original.sourceKey(),original.originalFields(),new Baseline(first.targetId(),
+                (String)first.fields().get("creator"),receiptTime,(String)first.fields().get("updater"),receiptTime,
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(before)));
+    }
     @Test void formalPagePreservesHistoricalQuantitiesAndReusesOrderUnit() {
         when(access.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
         var row=new DppmsProductScopeMapper.ProductProjection();row.setId(9L);row.setSourceEvidence("DPPMS:pm_project_product_line:101:7");

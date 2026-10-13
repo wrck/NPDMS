@@ -155,26 +155,26 @@
 
 ## 6. fb_service
 
-状态：**未完成正式承接**。本批来源0；维保计算结果不独立同步不等于原权利/登记/变更事实获准丢弃；原附加原型不是已批准承接
+状态：**已实际承接（批准范围）**。新增10个多合同用服项目222条，加此前单条验收，共223条；全部原字段准确承接并完成重放、正式页面验收。完整462,213条设计适用，不代表已经全量写入。
 
-正式表：尚无已确认完整承接主体。
+正式表：`ast_device_warranty_renewal_record`，用户批准的17列。原维保记录149条及当前投影31条保持；等级目录、人工变更和当前计算仍单列，不混同为续保记录完成。
 
-旧查询索引：本地未检出直接SELECT；不能用生成的审查语句冒称原查询；原视图关系：—；迁移查询索引：无独立成功SQL任务材料；原材料采集索引：C032。
+原SQL依据：实际`view_warranty_source`与每日固化过程，见[原计算SQL](sql/warranty-original-calculation.sql)。正式任务`2110010787726274561`使用可编辑、参数化完整查询；[整表裁决](../2026-10-13-dppms-renewal-and-warranty-table-proposal.md)及[实际验证报告](../2026-10-13-dppms-renewal-multi-contract-validation.md)。
 
 | 原字段 | 原类型/可空 | 正式承接点或不迁入 | 转换、关联、排除原因 | 字段处理 |
 |---|---|---|---|---|
-| id | varchar(64)/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| con_xb | varchar(25)/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| barcode | varchar(50)/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| grade | varchar(15)/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| begin_date | datetime/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| end_date | datetime/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| warranty | char(1)/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| remark | text/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| isyb | int(11)/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
-| state | int(11)/YES | — | 维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接 | 保留/未独立承接 |
+| id | varchar(64)/YES | int_sync_binding.source_key | 与原SN组成复合技术身份，保留同ID不同SN；正式记录ID由Owner生成 | 技术绑定 |
+| con_xb | varchar(25)/YES | ast_device_warranty_renewal_record.warranty_contract_no | 原续保合同号原样保存，不替换项目销售合同关系 | 正式字段承接 |
+| barcode | varchar(50)/YES | ast_device_warranty_renewal_record.device_sn | 原SN原样保存；可为空且不强制设备主档外键，空SN不参与项目/设备查询 | 正式字段承接 |
+| grade | varchar(15)/YES | ast_device_warranty_renewal_record.warranty_grade | 保存原等级编码；等级目录的完整承接仍单列待处理 | 正式字段承接 |
+| begin_date | datetime/YES | ast_device_warranty_renewal_record.warranty_start_date | 实际开始日期原值；原非零时分秒阻断，不能无声截断 | 正式字段承接 |
+| end_date | datetime/YES | ast_device_warranty_renewal_record.warranty_end_date | 实际结束日期原值，不以参考月数重算 | 正式字段承接 |
+| warranty | char(1)/YES | ast_device_warranty_renewal_record.warranty_months | 原年数乘12；空值/空串为NULL，0保留0，仅作参考 | 正式字段承接 |
+| remark | text/YES | ast_device_warranty_renewal_record.remark | 原TEXT及NULL原样保存 | 正式字段承接 |
+| isyb | int(11)/YES | ast_device_warranty_renewal_record.extended | 1为true，0为false，NULL保持；不据此生成当前完成事实 | 正式字段承接 |
+| state | int(11)/YES | ast_device_warranty_renewal_record.is_latest | 1为true，NULL保持；仅原最新选择标记，不是当前在保状态 | 正式字段承接 |
 
-整表裁决及过程证据：[原审查](../2026-10-11-dppms-warranty-record-table-decision.md)。
+运行/核验定位：`renewal-ten-formal-fields-verification-20261013.json`，重放运行`2110024910384070658`为222条UNCHANGED；此前单条重放`2110016692773629954`为1条UNCHANGED。
 
 ## 7. fb_shipment
 

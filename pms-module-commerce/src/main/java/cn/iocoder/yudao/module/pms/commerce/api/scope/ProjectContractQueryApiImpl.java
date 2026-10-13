@@ -14,6 +14,13 @@ public class ProjectContractQueryApiImpl implements ProjectContractQueryApi {
     private final ProjectCommerceMapper mapper;
 
     @Override
+    public Set<String> getWarrantyShipmentContractNumbers(Long projectId) {
+        if (projectId == null || projectId <= 0) throw new IllegalArgumentException("项目编号无效");
+        return Set.copyOf(mapper.selectWarrantyShipmentContractNumbers(new ProjectCommerceQuery(
+                TenantContextHolder.getRequiredTenantId(), projectId)));
+    }
+
+    @Override
     public Set<String> getCurrentContractNumbers(Long projectId) {
         if (projectId == null || projectId <= 0) throw new IllegalArgumentException("项目编号无效");
         return mapper.selectContracts(new ProjectCommerceQuery(

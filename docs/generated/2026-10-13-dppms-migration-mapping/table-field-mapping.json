@@ -829,97 +829,103 @@
       ]
     },
     {
-      "targets": [],
-      "status": "未完成正式承接",
-      "result": "本批来源0；维保计算结果不独立同步不等于原权利/登记/变更事实获准丢弃；原附加原型不是已批准承接",
-      "doc": "2026-10-11-dppms-warranty-record-table-decision.md",
-      "evidence": null,
+      "targets": [
+        "ast_device_warranty_renewal_record"
+      ],
+      "status": "已实际承接（批准范围）",
+      "result": "原10字段完整映射；新增十个多合同用服项目222条及此前单条验收，共223条。整表462213条不等于已全量写入；旧维保149条及当前31条保持。",
+      "doc": "2026-10-13-dppms-renewal-and-warranty-table-proposal.md",
+      "evidence": "renewal-ten-formal-fields-verification-20261013.json",
       "sourceTable": "fb_service",
       "sourceKind": "BASE TABLE",
       "schemaEvidence": "dppms-original-source-schema.json",
       "legacyQueryIds": [],
-      "legacyViewNames": [],
-      "migrationQueryIds": [],
+      "legacyViewNames": [
+        "view_warranty_source"
+      ],
+      "migrationQueryIds": [
+        "TASK:2110010787726274561"
+      ],
       "fields": [
         {
           "sourceField": "id",
           "sourceType": "varchar(64)",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "int_sync_binding.source_key",
+          "rule": "与原SN组成复合技术身份，保留同ID不同SN；正式记录ID由Owner生成",
+          "fieldStatus": "技术绑定"
         },
         {
           "sourceField": "con_xb",
           "sourceType": "varchar(25)",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.warranty_contract_no",
+          "rule": "原续保合同号原样保存，不替换项目销售合同关系",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "barcode",
           "sourceType": "varchar(50)",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.device_sn",
+          "rule": "原SN原样保存；可为空且不强制设备主档外键，空SN不参与项目/设备查询",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "grade",
           "sourceType": "varchar(15)",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.warranty_grade",
+          "rule": "保存原等级编码；等级目录的完整承接仍单列待处理",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "begin_date",
           "sourceType": "datetime",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.warranty_start_date",
+          "rule": "实际开始日期原值；原非零时分秒阻断，不能无声截断",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "end_date",
           "sourceType": "datetime",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.warranty_end_date",
+          "rule": "实际结束日期原值，不以参考月数重算",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "warranty",
           "sourceType": "char(1)",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.warranty_months",
+          "rule": "原年数乘12；空值/空串为NULL，0保留0，仅作参考",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "remark",
           "sourceType": "text",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.remark",
+          "rule": "原TEXT及NULL原样保存",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "isyb",
           "sourceType": "int(11)",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.extended",
+          "rule": "1为true，0为false，NULL保持；不据此生成当前完成事实",
+          "fieldStatus": "正式字段承接"
         },
         {
           "sourceField": "state",
           "sourceType": "int(11)",
           "nullable": "YES",
-          "target": "—",
-          "rule": "维保结果不独立同步；现存维保记录结构暂保留。原服务权利/登记/变更字段尚未获完整正式承接，不计迁移快照为业务承接",
-          "fieldStatus": "保留/未独立承接"
+          "target": "ast_device_warranty_renewal_record.is_latest",
+          "rule": "1为true，NULL保持；仅原最新选择标记，不是当前在保状态",
+          "fieldStatus": "正式字段承接"
         }
       ]
     },

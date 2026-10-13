@@ -1,6 +1,8 @@
 <template>
   <DeviceSourceStatus :slice="slice" />
   <el-button :disabled="loading" class="mb-16px" @click="refresh++">加载维保记录</el-button>
+  <h3>续保记录</h3>
+  <DeviceWarrantyRenewalTable :device-id="deviceId" />
   <el-alert v-if="error" title="维保资料加载失败，请重试。" type="error" :closable="false" />
   <div v-loading="loading">
     <DeviceReadOnlyFields
@@ -44,6 +46,7 @@ import { formatSourceDate } from '@/utils/formatSourceDate'
 import * as DeviceApi from '@/api/pms/asset/device'
 import type { DeviceSourceSliceVO, DeviceWarrantyResultVO } from '@/api/pms/asset/device'
 import DeviceSourceStatus from './DeviceSourceStatus.vue'
+import DeviceWarrantyRenewalTable from './DeviceWarrantyRenewalTable.vue'
 import DeviceReadOnlyFields from './DeviceReadOnlyFields.vue'
 import { deviceWarrantyFields } from './device-native-fields'
 const props = defineProps<{ deviceId: number; slice: DeviceSourceSliceVO }>()

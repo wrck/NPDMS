@@ -27,6 +27,15 @@ public class ProjectCreationAuthorizationService {
 
     /** Approved historical import exception; does not grant an organization or project scope. */
     public void assertCanImportWithoutOrganization(Long actorId) {
+        assertMigrationAdministrator(actorId);
+    }
+
+    /** Migration Owner only; ordinary project creation still requires its organization scope. */
+    public void assertCanImportAcrossOrganizations(Long actorId) {
+        assertMigrationAdministrator(actorId);
+    }
+
+    private void assertMigrationAdministrator(Long actorId) {
         if (!permissionApi.hasAnyRoles(actorId,
                 cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode())) {
             throw exception(FORBIDDEN);

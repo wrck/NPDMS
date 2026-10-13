@@ -96,6 +96,25 @@ class DppmsProductScopeMapperMySqlTest {
         var mapped=configuration.getMappedStatement(prefix+"insertHistoricalScope");var parameter=Map.of("row",row);var bound=mapped.getBoundSql(parameter);
         try(var sql=db.prepareStatement(bound.getSql())) {new DefaultParameterHandler(mapped,parameter,bound).setParameters(sql);return sql.executeUpdate();}
     }
+    @Test void jdbcAndDatetime3RoundReceiptsToTheStoredMillisecond() throws Exception {
+        var second=LocalDateTime.of(2026,10,13,23,11,33);
+        int[] nanos={123499000,123499500,123500000,266651500,999999500};
+        int[] millis={123,124,124,267,1000};
+        for(int index=0;index<nanos.length;index++) {
+            var input=row(9900+index,"precision-"+index);
+            var time=second.withNano(nanos[index]);
+            input.setCreateTime(time);input.setUpdateTime(time);input.setEffectiveFrom(time);
+            assertEquals(1,insert(input));
+            try(var sql=db.prepareStatement("SELECT create_time,update_time,effective_from FROM com_delivery_scope WHERE id=?")) {
+                sql.setLong(1,input.getId());
+                try(var data=sql.executeQuery()) {
+                    assertTrue(data.next());
+                    for(String field:List.of("create_time","update_time","effective_from"))
+                        assertEquals(second.plusNanos(millis[index]*1_000_000L),data.getTimestamp(field).toLocalDateTime(),field+":"+nanos[index]);
+                }
+            }
+        }
+    }
     @Test void formalOrderFieldsAreJoinedOnlyForAuthorizedScopeIdsAndTenant() throws Exception {
         assertEquals(1,insert(row(9991,"proof-order-fields")));
         String name=cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper.class.getName()+".selectOrderFields";

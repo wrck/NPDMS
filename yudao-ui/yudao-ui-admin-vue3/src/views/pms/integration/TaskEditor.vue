@@ -380,6 +380,12 @@ const changeAdapter = async () => {
     normalizePerformance()
     return
   }
+  if (selectedAdapter.value.key === 'DPPMS_WARRANTY_RENEWAL') {
+    draft.value.definition = await api.getDppmsWarrantyRenewalTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'DPPMS 设备续保记录迁移与同步'
+    normalizePerformance()
+    return
+  }
   if (selectedAdapter.value.key === 'DPPMS_CONTRACT_RECEIVABLE') {
     draft.value.definition = await api.getDppmsContractReceivableTemplate(draft.value.definition.connectionId)
     draft.value.name = 'DPPMS 合同回款信息迁移与同步'

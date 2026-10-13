@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.*;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import static cn.iocoder.yudao.module.pms.integration.sync.DppmsProjectProductScopeSyncTemplate.*;
 
@@ -89,7 +90,16 @@ public class DppmsProjectProductScopeSyncAdapter implements DataSyncAdapter {
             if(prior!=null && baseline!=null) {
                 Object scopeBefore=prior.lastFields().get("scope");
                 if(!(scopeBefore instanceof Map<?,?>))fail("完整正式范围前值缺失");
-                baseline=new Baseline(baseline.id(),baseline.creator(),baseline.createTime(),baseline.updater(),baseline.updateTime(),formalFields((Map<?,?>)scopeBefore));
+                var before=(Map<?,?>)scopeBefore;var times=new HashMap<String,LocalDateTime>();
+                for(String name:List.of("createTime","updateTime")) {
+                    if(before.get(name)==null)fail("完整正式范围审计日期缺失");
+                    var precise=SyncFieldMapper.sourceTime(before.get(name));
+                    // Old Baseline records used epoch millis, while the full Owner receipt retained ISO nanos.
+                    var expected=audit.get(name) instanceof Number?precise.truncatedTo(ChronoUnit.MILLIS):precise;
+                    if(!Objects.equals(expected,SyncFieldMapper.sourceTime(audit.get(name))))fail("范围回执与审计前值不一致");
+                    times.put(name,precise);
+                }
+                baseline=new Baseline(baseline.id(),baseline.creator(),times.get("createTime"),baseline.updater(),times.get("updateTime"),formalFields(before));
             }
             if(prior!=null && (baseline==null || !Objects.equals(prior.targetId(),baseline.id())))fail("正式范围前值缺失");
             grouped.computeIfAbsent(text(row.fields().get("projectId")),key->new ArrayList<>()).add(new Entry(row.sourceKey(),rawRows.get(row.sourceKey()),baseline));

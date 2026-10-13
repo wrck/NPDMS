@@ -166,6 +166,11 @@ public class DataSyncController {
         connections.required(connectionId);tasks.required(originalTaskId);
         return success(DppmsObsoleteOrderLineSyncTemplate.create(connectionId,originalTaskId));
     }
+    @GetMapping("/templates/dppms-warranty-renewals")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> warrantyRenewalTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsWarrantyRenewalSyncTemplate.create(connectionId));
+    }
     @GetMapping("/templates/dppms-contract-receivables")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> contractReceivableTemplate(@RequestParam Long connectionId) {

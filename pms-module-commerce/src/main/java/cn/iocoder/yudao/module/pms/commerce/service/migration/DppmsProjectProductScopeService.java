@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.*;
 import java.math.*;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /** Historical consolidation includes product quantity details without device SN or current allocation effects. */
@@ -67,7 +68,7 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
         var project=apply?projects.lockAndRevalidate(query):projects.resolve(query);
         var version=apply?versions.lockExisting(command.tenantId(),command.projectId()):null;
         long nextVersion=Math.addExact(apply?(version==null?0:version.getScopeVersion()):versions.current(command.tenantId(),command.projectId()),1);
-        LocalDateTime now=LocalDateTime.now();Set<String> keys=new HashSet<>();Set<Long> ids=new HashSet<>();
+        LocalDateTime now=LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);Set<String> keys=new HashSet<>();Set<Long> ids=new HashSet<>();
         var prepared=new ArrayList<DeliveryScopeDO>();var preparedDetails=new ArrayList<DeliveryScopeDetailDO>();var result=new ArrayList<Result>();
         for(var entry:command.entries()) {
             var raw=entry.originalFields();
@@ -105,9 +106,9 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
                     throw blocked("EXISTING_SCOPE_CHANGED:"+entry.sourceKey());
                 if(entry.baseline()!=null && (!Objects.equals(previous.getId(),entry.baseline().id())
                         || !Objects.equals(previous.getCreator(),entry.baseline().creator())
-                        || !Objects.equals(previous.getCreateTime(),entry.baseline().createTime())
+                        || !Objects.equals(previous.getCreateTime(),storedTime(entry.baseline().createTime()))
                         || !Objects.equals(previous.getUpdater(),entry.baseline().updater())
-                        || !Objects.equals(previous.getUpdateTime(),entry.baseline().updateTime())))throw blocked("BASELINE_ID_OR_AUDIT_CHANGED");
+                        || !Objects.equals(previous.getUpdateTime(),storedTime(entry.baseline().updateTime()))))throw blocked("BASELINE_ID_OR_AUDIT_CHANGED");
                 var detail=productDetail(command,previous,apply,now);
                 if(detail.created())preparedDetails.add(detail.row());
                 result.add(new Result(entry.sourceKey(),previous.getId(),detail.created()?"UPDATED":"UNCHANGED",fields(previous,detail)));continue;
@@ -144,12 +145,19 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
         // The platform JSON default reads dates as epoch milliseconds; original SQL guards retain ISO precision.
         var bean=new BeanWrapperImpl(before);
         for(String field:List.of("effectiveFrom","effectiveTo","createTime","updateTime"))
-            if(values.get(field) instanceof String time)bean.setPropertyValue(field,LocalDateTime.parse(time.replace(' ','T')));
+            if(values.get(field) instanceof String time)bean.setPropertyValue(field,storedTime(LocalDateTime.parse(time.replace(' ','T'))));
         if(before==null || !Objects.equals(before.getId(),previous.getId()) || !matches(previous,before)
                 || !Objects.equals(previous.getCreator(),before.getCreator()) || !Objects.equals(previous.getCreateTime(),before.getCreateTime())
                 || !Objects.equals(previous.getUpdater(),before.getUpdater()) || !Objects.equals(previous.getUpdateTime(),before.getUpdateTime()))
             throw blocked("FORMAL_BEFORE_CHANGED");
         return before;
+    }
+    /** Earlier receipts retained nanos: Connector/J rounds to micros, then DATETIME(3) rounds to millis. */
+    private static LocalDateTime storedTime(LocalDateTime time) {
+        if(time==null)return null;
+        long micros=(time.getNano()+500L)/1000;
+        long millis=(micros+500L)/1000;
+        return time.withNano(0).plusNanos(millis*1_000_000);
     }
     private static final List<String> PROJECT_SNAPSHOT_FIELDS=List.of("projectCode","projectName","projectCompanyCode","projectCompanyName",
             "projectDepartmentCode","projectDepartmentName","projectCustomerCode","projectCustomerName","projectManagerEmployeeNo","projectManagerName",

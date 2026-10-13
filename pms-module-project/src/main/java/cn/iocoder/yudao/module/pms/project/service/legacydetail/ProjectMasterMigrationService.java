@@ -199,7 +199,7 @@ public class ProjectMasterMigrationService implements ProjectMasterMigrationApi 
                 results.add(issue(entry,before,"公司或项目正式办事处未精确关联；不得猜配或清空")); continue;
             }
             if (creating && !missingCompany && !missingDepartment && !organization.hasScope(request.actorId(),company.getId(),department.getId()))
-                throw new IllegalArgumentException("DPPMS_PROJECT_CREATION_ORGANIZATION_SCOPE_REQUIRED");
+                creationAuthorization.assertCanImportAcrossOrganizations(request.actorId());
             requireHistoricalActor(original.get("createBy"),entry.creator());
             requireHistoricalActor(original.get("updateBy"),entry.updater());
             LocalDateTime created = time(original.get("createTime"));
