@@ -189,5 +189,6 @@ public class ProjectRespVO {
     private String businessLevelName;
 
     private java.util.List<Party> parties;
+    private java.util.Map<String, Object> statusAttributes;
     public record Party(String role, String code, String name) {}
 }

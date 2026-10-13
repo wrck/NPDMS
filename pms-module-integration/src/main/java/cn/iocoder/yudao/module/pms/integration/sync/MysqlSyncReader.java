@@ -110,6 +110,7 @@ public class MysqlSyncReader {
             var selected=page==null?definition.sources():List.of(definition.sources().get(page.sourceIndex()));
             for(var source:selected) {
                 BoundSql base=compile(source);
+                var compositeKeys=new CompositeRowKeys(source);
                 verifyTransactionalTables(c,base.sql(),new HashSet<>());
                 String sql="SELECT * FROM ("+base.sql()+") sync_source";
                 List<Object> values=new ArrayList<>(base.values());
@@ -120,7 +121,8 @@ public class MysqlSyncReader {
                     values.add(Timestamp.valueOf(upper));
                 }
                 sql+=" ORDER BY "+(source.updatedAt()!=null&&!source.updatedAt().isBlank()
-                        ?identifier(source.updatedAt())+", ":"")+identifier(source.sourceKey());
+                        ?identifier(source.updatedAt())+", ":"")+(compositeKeys.columns.isEmpty()?identifier(source.sourceKey()):
+                        String.join(",",compositeKeys.columns.stream().map(MysqlSyncReader::identifier).toList()));
                 if(page!=null) { var paged=pageSql(source,page,definition.maxRows());sql=paged.sql();values=paged.values(); }
                 List<Map<String,Object>> rows=new ArrayList<>();
                 Set<String> keys=new HashSet<>();
@@ -140,6 +142,7 @@ public class MysqlSyncReader {
                                 if(value instanceof java.sql.Time t) value=t.toString();
                                 row.put(metadata.getColumnLabel(i),value);
                             }
+                            compositeKeys.assign(row);
                             Object key=row.get(source.sourceKey());
                             if(page!=null) pagingKey(key);
                             if(key==null||key.toString().isBlank()||key.toString().length()>128||!keys.add(key.toString()))
@@ -161,8 +164,29 @@ public class MysqlSyncReader {
     }
 
     public record BoundSql(String sql,List<Object> values) {}
+    /** Reuses the original collector's sorted JSON + SHA-256 + occurrence identity. */
+    static final class CompositeRowKeys {
+        final String key;final List<String> columns;final Map<String,Integer> occurrences=new HashMap<>();
+        CompositeRowKeys(SyncDefinition.Source source) {
+            identifier(source.sourceKey());key=source.sourceKey();columns=source.sourceKeyColumns()==null?List.of():List.copyOf(source.sourceKeyColumns());
+            if(new HashSet<>(columns).size()!=columns.size() || columns.contains(key))throw new IllegalArgumentException("来源完整字段身份定义无效");
+            columns.forEach(MysqlSyncReader::identifier);
+        }
+        void assign(Map<String,Object> row) {
+            if(columns.isEmpty())return;
+            if(row.containsKey(key) || !row.keySet().containsAll(columns))throw new IllegalArgumentException("来源完整字段身份缺列或覆盖原列");
+            var json=new StringJoiner(", ","{","}");
+            columns.stream().sorted().forEach(name->{Object value=row.get(name);
+                json.add(JsonUtils.toJsonString(name)+": "+JsonUtils.toJsonString(value==null?null:value.toString()));});
+            try {
+                String digest=HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(json.toString().getBytes(StandardCharsets.UTF_8)));
+                row.put(key,digest+":"+occurrences.merge(digest,1,Integer::sum));
+            }catch(java.security.NoSuchAlgorithmException error){throw new IllegalStateException(error);}
+        }
+    }
     static BoundSql compile(SyncDefinition.Source source) {
         identifier(source.sourceKey());
+        new CompositeRowKeys(source);
         if("SQL".equals(source.readMode())) {
             String sql=source.sql()==null?"":source.sql().strip();
             // Lexical check is conservative; parsing additionally enforces a single SELECT.

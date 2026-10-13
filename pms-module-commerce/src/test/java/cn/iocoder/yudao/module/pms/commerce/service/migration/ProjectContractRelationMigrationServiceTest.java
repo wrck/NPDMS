@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.commerce.api.migration.ProjectContractRelatio
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.ContractDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ProjectContractRelationMigrationMapper;
-import cn.iocoder.yudao.module.pms.project.api.migration.ProjectScopeMigrationContextApi;
+import cn.iocoder.yudao.module.pms.project.api.migration.ProjectMigrationIdentityContextApi;
 import cn.iocoder.yudao.module.pms.project.api.migration.ProjectMasterMigrationApi;
 import cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi;
 import cn.iocoder.yudao.module.system.api.permission.OrganizationScopeApi;
@@ -22,7 +22,7 @@ import static org.mockito.ArgumentMatchers.*;
 class ProjectContractRelationMigrationServiceTest {
     final ProjectContractRelationMigrationMapper relations=mock(ProjectContractRelationMigrationMapper.class);
     final ContractMapper contracts=mock(ContractMapper.class);
-    final ProjectScopeMigrationContextApi projects=mock(ProjectScopeMigrationContextApi.class);
+    final ProjectMigrationIdentityContextApi projects=mock(ProjectMigrationIdentityContextApi.class);
     final OrganizationScopeApi organization=mock(OrganizationScopeApi.class);
     final PermissionApi permissions=mock(PermissionApi.class);
     final AdminUserApi users=mock(AdminUserApi.class);
@@ -36,7 +36,7 @@ class ProjectContractRelationMigrationServiceTest {
         when(permissions.hasAnyPermissions(eq(1L),any())).thenReturn(true);
         var scope=new UserCompanyDepartmentScopeRespDTO();scope.setId(20L);scope.setVersion(0);scope.setCompanyCode("001");
         when(organization.getActiveScopes(1L)).thenReturn(List.of(scope));
-        var project=new ProjectScopeMigrationContextApi.Context(10L,3L,"P1","项目","001","公司",null,null,null,null,12L,"D1","办事处",0);
+        var project=new ProjectMigrationIdentityContextApi.Context(10L,3L,"P1","10","001","公司");
         when(projects.resolve(any())).thenReturn(project);when(projects.lockAndRevalidate(any())).thenReturn(project);
         var contract=new ContractDO();contract.setId(11L);contract.setTenantId(1L);contract.setDeleted(false);contract.setContractNo("C1");contract.setCompanyCode("001");
         when(contracts.selectByIdForUpdate(any())).thenReturn(contract);
@@ -155,7 +155,7 @@ class ProjectContractRelationMigrationServiceTest {
         return new Entry("41325:37632",target,last,review,row,"36645","16200220110601N-0",3L,"16200220092717N");
     }
     void historicalContext() {
-        var project=new ProjectScopeMigrationContextApi.Context(10L,3L,"16200220110601N-0","项目","001","公司",null,null,null,null,12L,"D1","办事处",0);
+        var project=new ProjectMigrationIdentityContextApi.Context(10L,3L,"16200220110601N-0","10","001","公司");
         when(projects.resolve(any())).thenReturn(project);when(projects.lockAndRevalidate(any())).thenReturn(project);
         var contract=new ContractDO();contract.setTenantId(1L);contract.setDeleted(false);contract.setContractNo("16200220092717N");contract.setCompanyCode("001");
         when(contracts.selectByIdForUpdate(any())).thenReturn(contract);

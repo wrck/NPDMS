@@ -28,6 +28,8 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         fields.add(new Field("executionNo", "执行单编号", "STRING", true));
         fields.add(new Field("sourceSystem", "来源系统", "STRING", true));
         for (String name : SOURCE_FIELDS) fields.add(new Field(name, name, "STRING", false));
+        fields.add(new Field("canonicalSourceId","整表最后原修订ID","LONG",false));
+        for(String name:sourceFields())fields.add(new Field("canonical_"+name,"最后原修订 "+name,"STRING",false));
         return new Descriptor(KEY, "DPPMS项目执行单常规头", List.of(new ObjectDescriptor(
                 "EXECUTION_ORDER", "项目执行单", fields, "COM", "CrmExecutionOrder", "com_crm_execution_order", false)),
                 List.of("RETAIN"), List.of("UPSERT"), false);
@@ -90,10 +92,13 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         List<Change> changes = new ArrayList<>();
         for (Row source : batch.rows()) {
             try {
-                CrmExecutionOrderDO row = convert(source, tenantId);
+                CrmExecutionOrderDO row = convert(selectedRevision(source), tenantId);
                 directory.associate(row);
                 String businessKey = key(row.getSourceSystem(), row.getExecutionNo());
                 CrmExecutionOrderDO old = existing.get(businessKey);
+                if(source.targetId()!=null && (old==null || !Objects.equals(source.targetId(),old.getId()))) {
+                    changes.add(change(source,null,"CONFLICT",Map.of(),businessKey,"已绑定来源不能重建执行单或改绑其他目标"));continue;
+                }
                 if (old != null && Boolean.TRUE.equals(old.getDeleted())) {
                     changes.add(change(source, old.getId(), "CONFLICT", Map.of(), businessKey, "目标执行单已删除，不能由同步重新创建"));
                     continue;
@@ -113,8 +118,8 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
                     row.setPrimaryProjectId(old.getPrimaryProjectId());
                 } else row.setStatus("ACTIVE");
                 row.setSourceSyncTime(LocalDateTime.now());
-                // The source table keeps historical revisions under different ids. Rows are read by ascending id,
-                // therefore the last revision in a page is the authoritative value for the shared business key.
+                // Editable whole-table SQL selects the last revision across every page; legacy frozen
+                // table tasks retain their previous ascending-id behavior. Each original row stays bound.
                 if (!"UNCHANGED".equals(action) || previous != null)
                     candidates.put(businessKey, new Candidate(businessKey, row, payload, action));
                 Binding binding = bindings.get(source.object() + ":" + source.sourceKey());
@@ -127,6 +132,25 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         return new Plan(changes, new ArrayList<>(candidates.values()));
     }
 
+    private static List<String> sourceFields() {
+        var names=new ArrayList<>(List.of("sourceSystem","executionNo"));names.addAll(SOURCE_FIELDS);return names;
+    }
+    private static Row selectedRevision(Row source) {
+        if(!source.fields().containsKey("canonicalSourceId"))return source;
+        var selected=new LinkedHashMap<String,Object>();
+        String id=text(source,"canonicalSourceId");
+        if(id==null || !id.matches("[1-9][0-9]*") || !source.sourceKey().matches("[1-9][0-9]*")
+                || new BigDecimal(id).compareTo(new BigDecimal(source.sourceKey()))<0)
+            throw new IllegalArgumentException("整表最后原修订身份无效");
+        for(String name:sourceFields()) {
+            if(!source.fields().containsKey("canonical_"+name))throw new IllegalArgumentException("整表最后原修订字段不完整");
+            selected.put(name,source.fields().get("canonical_"+name));
+        }
+        if(!Objects.equals(text(source,"sourceSystem"),Objects.toString(selected.get("sourceSystem"),null))
+                || !Objects.equals(text(source,"executionNo"),Objects.toString(selected.get("executionNo"),null)))
+            throw new IllegalArgumentException("整表最后原修订身份与原业务键不一致");
+        return new Row(source.object(),source.sourceKey(),selected,source.targetId());
+    }
     private static CrmExecutionOrderDO convert(Row source, long tenantId) {
         CrmExecutionOrderDO r = new CrmExecutionOrderDO(); r.setTenantId(tenantId);
         r.setExecutionNo(required(source,"executionNo")); r.setSourceSystem(required(source,"sourceSystem"));

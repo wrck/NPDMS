@@ -78,4 +78,31 @@ class ProjectProductConfigurationImportServiceTest {
     @Test void emptyPilotHasNoInventedRowsOrMappings() {
         var plan=service.prepare(100L,"101",List.of(header),List.of(),actor);assertTrue(service.apply(plan,actor).rows().isEmpty());verifyNoInteractions(mapper,evidence);
     }
+
+    cn.iocoder.yudao.module.pms.project.api.migration.ProjectAssociatedProductMigrationApi.Source direct(String key,Long id,String baseline) {
+        return new cn.iocoder.yudao.module.pms.project.api.migration.ProjectAssociatedProductMigrationApi.Source("a".repeat(64)+":"+key,new LinkedHashMap<>(raw),id,baseline);
+    }
+    @Test void directSqlRowsUseTheExistingOwnerAndKeepDuplicatesAndReplayProtection() {
+        var plan=service.prepareSources(new ProjectProductConfigurationImportService.DirectPreparation(100L,"SOURCE-0",List.of(direct("1",null,null),direct("2",null,null)),actor));
+        var preview=service.sourceResults(new ProjectProductConfigurationImportService.SourceExecution(plan,actor,false));assertEquals(2,preview.size());
+        assertEquals(19,preview.getFirst().fields().size());assertNull(preview.getFirst().fields().get("parentCode"));
+        verify(mapper,never()).insert(any(ProjectProductConfigurationDO.class));verifyNoInteractions(evidence);
+        var results=service.sourceResults(new ProjectProductConfigurationImportService.SourceExecution(plan,actor,true));assertEquals(2,stored.size());
+        assertNotEquals(results.get(0).targetId(),results.get(1).targetId());
+        var replay=java.util.stream.IntStream.range(0,2).mapToObj(i->direct(String.valueOf(i+1),results.get(i).targetId(),results.get(i).baseline())).toList();
+        clearInvocations(mapper);
+        assertTrue(service.sourceResults(new ProjectProductConfigurationImportService.SourceExecution(service.prepareSources(new ProjectProductConfigurationImportService.DirectPreparation(100L,"SOURCE-0",replay,actor)),actor,true))
+                .stream().allMatch(result->"UNCHANGED".equals(result.action())));
+        verify(mapper,never()).insert(any(ProjectProductConfigurationDO.class));verify(mapper,never()).updateById(any(ProjectProductConfigurationDO.class));
+        persisted.setUpdater("manual");assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectProductConfigurationImportService.DirectPreparation(100L,"SOURCE-0",replay,actor)));
+    }
+    @Test void directSqlInputRejectsMissingFieldsOrDifferentProjectAndCannotAdoptAnExistingList() {
+        var valid=direct("1",null,null);
+        assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectProductConfigurationImportService.DirectPreparation(100L,"OTHER-0",List.of(valid),actor)));
+        raw.remove("bomPaths");var missing=direct("1",null,null);
+        assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectProductConfigurationImportService.DirectPreparation(100L,"SOURCE-0",List.of(missing),actor)));
+        when(mapper.countAllProjectRecords(any())).thenReturn(1L);
+        assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectProductConfigurationImportService.DirectPreparation(100L,"SOURCE-0",List.of(valid),actor)));
+        verify(mapper,never()).insert(any(ProjectProductConfigurationDO.class));verifyNoInteractions(evidence);
+    }
 }

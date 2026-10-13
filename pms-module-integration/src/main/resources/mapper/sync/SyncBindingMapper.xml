@@ -33,4 +33,21 @@
     DELETE FROM int_sync_binding WHERE tenant_id=#{tenantId} AND task_id IN
       (SELECT id FROM int_sync_task WHERE tenant_id=#{tenantId} AND adapter=#{adapter})
   </delete>
+  <select id="selectObsoleteOrderLinesForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
+    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}
+      AND object_key='LINE' AND source_object='pm_order_line_from_erp' AND deleted=FALSE
+      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.companyCode')) AS BINARY)=CAST('01' AS BINARY)
+    <choose><when test="query.sourceKeys != null and !query.sourceKeys.isEmpty()">
+      AND source_key IN <foreach collection="query.sourceKeys" item="key" open="(" separator="," close=")">#{key}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+    ORDER BY id FOR UPDATE
+  </select>
+  <delete id="deleteObsoleteOrderLines">
+    DELETE FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}
+      AND object_key='LINE' AND source_object='pm_order_line_from_erp' AND deleted=FALSE
+      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.companyCode')) AS BINARY)=CAST('01' AS BINARY)
+    <choose><when test="query.bindingIds != null and !query.bindingIds.isEmpty()">
+      AND id IN <foreach collection="query.bindingIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+  </delete>
 </mapper>

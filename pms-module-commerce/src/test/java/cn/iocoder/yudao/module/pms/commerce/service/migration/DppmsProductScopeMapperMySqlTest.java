@@ -27,6 +27,10 @@ class DppmsProductScopeMapperMySqlTest {
         try(var input=getClass().getClassLoader().getResourceAsStream(resource)) {
             assertNotNull(input);new XMLMapperBuilder(input,configuration,resource,configuration.getSqlFragments()).parse();
         }
+        String scopeResource="mapper/scope/DeliveryScopeMapper.xml";
+        try(var input=getClass().getClassLoader().getResourceAsStream(scopeResource)) {
+            assertNotNull(input);new XMLMapperBuilder(input,configuration,scopeResource,configuration.getSqlFragments()).parse();
+        }
         try(var sql=db.createStatement()) {
             sql.execute("CREATE TEMPORARY TABLE com_sales_order AS SELECT * FROM com_sales_order WHERE tenant_id=1 AND order_no='SO064298' AND deleted=0");
             sql.execute("CREATE TEMPORARY TABLE com_sales_order_line AS SELECT * FROM com_sales_order_line WHERE tenant_id=1 AND order_no='SO064298' AND deleted=0");
@@ -91,6 +95,28 @@ class DppmsProductScopeMapperMySqlTest {
     int insert(DeliveryScopeDO row) throws Exception {
         var mapped=configuration.getMappedStatement(prefix+"insertHistoricalScope");var parameter=Map.of("row",row);var bound=mapped.getBoundSql(parameter);
         try(var sql=db.prepareStatement(bound.getSql())) {new DefaultParameterHandler(mapped,parameter,bound).setParameters(sql);return sql.executeUpdate();}
+    }
+    @Test void formalOrderFieldsAreJoinedOnlyForAuthorizedScopeIdsAndTenant() throws Exception {
+        assertEquals(1,insert(row(9991,"proof-order-fields")));
+        String name=cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper.class.getName()+".selectOrderFields";
+        var mapped=configuration.getMappedStatement(name);
+        for(var query:List.of(
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsQuery(1L,List.of(9991L)),
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsQuery(2L,List.of(9991L)),
+                new cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsQuery(1L,List.of()))) {
+            var parameter=Map.of("query",query);var bound=mapped.getBoundSql(parameter);
+            try(var sql=db.prepareStatement(bound.getSql())) {
+                new DefaultParameterHandler(mapped,parameter,bound).setParameters(sql);
+                try(var data=sql.executeQuery()) {
+                    if(query.tenantId()==1L && !query.scopeIds().isEmpty()) {
+                        assertTrue(data.next());assertEquals(9991L,data.getLong("scope_id"));
+                        assertEquals("31220230224A04",data.getString("contract_no"));
+                        assertEquals(0,new BigDecimal("4").compareTo(data.getBigDecimal("order_quantity")));
+                        assertNull(data.getString("unit_code"));assertFalse(data.next());
+                    } else assertFalse(data.next());
+                }
+            }
+        }
     }
     @Test void productDetailKeepsFullQuantityNoSerialAndIsLockedByTenantWithRollback() throws Exception {
         assertEquals(1,insert(row(9991,"proof-product")));

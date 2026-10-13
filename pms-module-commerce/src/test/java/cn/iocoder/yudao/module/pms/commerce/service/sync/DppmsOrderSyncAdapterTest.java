@@ -20,7 +20,9 @@ import static org.mockito.ArgumentMatchers.any;
 class DppmsOrderSyncAdapterTest {
     private final ErpOrderSyncMapper mapper=mock(ErpOrderSyncMapper.class);
     private final CommerceAuthorityIngestApi authority=mock(CommerceAuthorityIngestApi.class);
-    private final DppmsOrderSyncAdapter adapter=new DppmsOrderSyncAdapter(mapper,authority,new AuthorityPayloadCanonicalizer());
+    private final DppmsOrderFieldCarryOwner fieldCarry=mock(DppmsOrderFieldCarryOwner.class);
+    private final DppmsOrderLineFieldCarryOwner lineFieldCarry=mock(DppmsOrderLineFieldCarryOwner.class);
+    private final DppmsOrderSyncAdapter adapter=new DppmsOrderSyncAdapter(mapper,authority,new AuthorityPayloadCanonicalizer(),fieldCarry,lineFieldCarry);
     private static final String ORDER_KEY="DPPMS|D365|001|1|R-1";
     @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
@@ -28,6 +30,14 @@ class DppmsOrderSyncAdapterTest {
     @Test void descriptorExposesStreamingCapability() {
         assertTrue(adapter.supportsStreaming());
         assertTrue(adapter.descriptor().supportsStreaming());
+    }
+
+    @Test void reviewedLineCarryDelegatesToItsOwnerAndDoesNotEnterOrdinaryAuthority() {
+        var input=batch(new Row("LINE","1",Map.of("lineFieldCarryProof",Map.of("targetId",20L)),20L));
+        var expected=List.of(new Change("LINE","1",20L,"UNCHANGED",Map.of(),Map.of(),null));
+        when(lineFieldCarry.preview(input)).thenReturn(expected);when(lineFieldCarry.apply(input)).thenReturn(expected);
+        assertEquals(expected,adapter.preview(input));assertEquals(expected,adapter.apply(input));
+        verifyNoInteractions(authority,mapper,fieldCarry);
     }
 
     @Test void descriptorExposesOrderChainColumns() {
@@ -38,6 +48,34 @@ class DppmsOrderSyncAdapterTest {
         var names = order.fields().stream().map(Field::name).toList();
         assertTrue(names.contains("contractNo"));
         assertTrue(names.contains("executionNo"));
+    }
+
+    @Test void reviewedFieldCarryUsesItsOwnerAndKeepsTheOrdinaryAuthorityPathClosed() {
+        var old=order();old.setSourceVersion("opaque-existing-revision");old.setSourceUpdatedAt(LocalDateTime.parse("2026-09-14T10:00:00"));
+        when(mapper.selectOrders(any())).thenReturn(List.of(old));
+        var fields=new LinkedHashMap<>(row("ORDER","1").fields());
+        fields.put("fieldCarryProof",Map.of("targetId",old.getId(),"expectedVersion",0L,"sourceFingerprint","a".repeat(64),"fieldsFingerprint","b".repeat(64),"protectedFingerprint","c".repeat(64)));
+        fields.put("originalSourceFingerprint","a".repeat(64));fields.put("originalSourceFields","{\"id\":1,\"source\":\"D365\"}");
+        var source=new Row("ORDER","1",fields,old.getId());var input=batch(source);
+        when(fieldCarry.preview(eq(input),anyList())).thenAnswer(inv->{
+            List<DppmsOrderFieldCarryOwner.Entry> entries=inv.getArgument(1);assertEquals(1,entries.size());
+            assertEquals("opaque-existing-revision",entries.getFirst().fact().sourceVersion());assertEquals("opaque-existing-revision",entries.getFirst().fact().expectedPreviousSourceVersion());
+            assertEquals("a".repeat(64),entries.getFirst().sourceFingerprint());assertEquals(1,entries.getFirst().originalFields().get("id"));return List.of();
+        });
+        assertTrue(adapter.preview(input).isEmpty());verify(fieldCarry).preview(eq(input),anyList());verifyNoInteractions(authority);
+    }
+
+    @Test void missingBoundTargetCannotEnterReviewedFieldCarry() {
+        var fields=new LinkedHashMap<>(row("ORDER","1").fields());fields.put("fieldCarryProof",Map.of("targetId",101L,"expectedVersion",0));
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(new Row("ORDER","1",fields,101L))));
+        verifyNoInteractions(authority,fieldCarry);
+    }
+
+    @Test void conflictOrMixedSourceRowsCannotEnterReviewedFieldCarry() {
+        var old=order();old.setSourceVersion("V");when(mapper.selectOrders(any())).thenReturn(List.of(old));
+        var fields=new LinkedHashMap<>(row("ORDER","1").fields());fields.put("fieldCarryProof",Map.of("targetId",old.getId(),"expectedVersion",0));fields.put("migrationIssue","DUPLICATE_BUSINESS_KEY_CONFLICT");
+        assertThrows(IllegalArgumentException.class,()->adapter.preview(batch(new Row("ORDER","1",fields,old.getId()))));
+        verifyNoInteractions(authority,fieldCarry);
     }
 
     @Test void acceptedProductAndCustomFieldsReachTheAuthorityFacts() {
@@ -226,6 +264,45 @@ class DppmsOrderSyncAdapterTest {
         var fields=new LinkedHashMap<>(row("ORDER","1").fields());fields.put("companyCode","05");
         var result=adapter.apply(batch(new Row("ORDER","1",fields,null))).getFirst();
         assertEquals("ISSUE",result.action());assertTrue(result.message().contains("DPPMS_COMPANY_CODE_UNMAPPED"));verifyNoInteractions(authority);
+    }
+    @Test void activeRawCompanyTargetMustNotBeMistakenForANewOrder() {
+        var stored=order();stored.setCompanyCode("01");stored.setSourceKey("DPPMS|D365|01|1|R-1");
+        when(mapper.selectOrders(any())).thenReturn(List.of(stored));
+        var incoming=row("ORDER","1");incoming=new Row(incoming.object(),incoming.sourceKey(),incoming.fields(),101L);
+        var change=adapter.preview(batch(incoming)).getFirst();
+        assertEquals("ISSUE",change.action());
+        assertTrue(change.message().contains("SOURCE_VERSION_PAYLOAD_CONFLICT"));
+        verifyNoInteractions(authority);
+    }
+    @Test void twoActiveCompanyAliasesRemainAnUnresolvedBusinessCollision() {
+        var raw=order();raw.setSourceKey("DPPMS|D365|01|1|R-1");raw.setCompanyCode("01");
+        var converted=order();converted.setId(103L);
+        when(mapper.selectOrders(any())).thenReturn(List.of(raw,converted));
+        var exception=assertThrows(IllegalStateException.class,()->adapter.preview(batch(row("ORDER","1"))));
+        assertEquals("DPPMS_ORDER_BUSINESS_IDENTITY_AMBIGUOUS",exception.getMessage());
+        verifyNoInteractions(authority);
+    }
+    @Test void anExistingSourceBindingCannotBeRedirectedToAnotherOrder() {
+        when(mapper.selectOrders(any())).thenReturn(List.of(order()));
+        var incoming=row("ORDER","1");incoming=new Row(incoming.object(),incoming.sourceKey(),incoming.fields(),99L);
+        var change=adapter.apply(batch(incoming)).getFirst();
+        assertEquals("CONFLICT",change.action());
+        verifyNoInteractions(authority);
+    }
+    @Test void deletedRawAliasDoesNotDisplaceItsExistingActiveIdentity() {
+        var deleted=order();deleted.setId(99L);deleted.setSourceKey("DPPMS|D365|01|1|R-1");deleted.setCompanyCode("01");deleted.setDeleted(true);
+        var active=order();when(mapper.selectOrders(any())).thenReturn(List.of(deleted,active));
+        var incoming=row("ORDER","1");incoming=new Row(incoming.object(),incoming.sourceKey(),incoming.fields(),101L);
+        var change=adapter.preview(batch(incoming)).getFirst();
+        assertEquals("UPDATED",change.action());assertEquals(101L,change.targetId());
+        assertEquals(ORDER_KEY,change.after().get("_targetSourceKey"));assertTrue(deleted.getDeleted());
+        verifyNoInteractions(authority);
+    }
+    @Test void aSoleDeletedRawAliasCannotBecomeANewConvertedOrder() {
+        var deleted=order();deleted.setSourceKey("DPPMS|D365|01|1|R-1");deleted.setCompanyCode("01");deleted.setDeleted(true);
+        when(mapper.selectOrders(any())).thenReturn(List.of(deleted));
+        assertEquals("CONFLICT",adapter.preview(batch(row("ORDER","1"))).getFirst().action());
+        verifyNoInteractions(authority);
     }
     @Test void originalDescriptionAndEmptyBundleReachTheOwnerWithoutTrimmingOrDropping() {
         var fields=new LinkedHashMap<>(row("LINE","2").fields());fields.put("productDesc"," Description ");fields.put("bundleCode","");

@@ -11,6 +11,8 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeV
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeProjectQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeEvidenceQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeSelectionQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsRow;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -87,4 +89,6 @@ public interface DeliveryScopeMapper extends BaseMapperX<DeliveryScopeDO> {
     Long selectCountByProjectScope(@Param("query") DeliveryScopePageQuery query);
 
     List<DeliveryScopeDO> selectPageByProjectScope(@Param("query") DeliveryScopePageQuery query);
+
+    List<DeliveryScopeOrderFieldsRow> selectOrderFields(@Param("query") DeliveryScopeOrderFieldsQuery query);
 }

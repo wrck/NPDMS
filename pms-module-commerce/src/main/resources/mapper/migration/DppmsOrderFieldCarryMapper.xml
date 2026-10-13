@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsOrderFieldCarryMapper">
+    <sql id="fieldsFingerprint">
+        SHA2(CAST(JSON_ARRAY(id,tenant_id,source_system,source_record_key,source_version,
+            company_id,company_code,company_name,order_type,order_no,sales_type,contract_no,execution_no,
+            customer_id,customer_code,customer_name,source_project_name,order_comment,order_amount,
+            currency_code,authority_status,source_lifecycle_status,order_create_time,customer_required_time,
+            custom_info,source_sync_time,source_updated_at,status,version,creator,create_time,updater,update_time,deleted) AS CHAR),256)
+    </sql>
+    <!-- Only the approved field-carry columns and the Owner version are excluded. -->
+    <sql id="protectedFingerprint">
+        SHA2(CAST(JSON_ARRAY(id,tenant_id,source_record_key,source_version,order_type,order_no,
+            customer_id,order_amount,currency_code,authority_status,source_lifecycle_status,
+            source_sync_time,source_updated_at,status,creator,create_time,updater,update_time,deleted) AS CHAR),256)
+    </sql>
+    <sql id="currentOrders">
+        SELECT *, <include refid="fieldsFingerprint"/> AS fields_fingerprint,
+            <include refid="protectedFingerprint"/> AS protected_fingerprint
+        FROM com_sales_order WHERE tenant_id=#{query.tenantId}
+        <choose>
+            <when test="query.targetIds != null and !query.targetIds.isEmpty()">
+                AND id IN <foreach collection="query.targetIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        ORDER BY id
+    </sql>
+    <select id="selectCurrent" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsOrderFieldCarryMapper$Current">
+        <include refid="currentOrders"/>
+    </select>
+    <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsOrderFieldCarryMapper$Current">
+        <include refid="currentOrders"/> FOR UPDATE
+    </select>
+    <update id="updateFields">
+        UPDATE com_sales_order SET source_system=#{query.row.sourceSystem},
+            company_id=#{query.row.companyId},company_code=#{query.row.companyCode},company_name=#{query.row.companyName},
+            sales_type=#{query.row.salesType},contract_no=#{query.row.contractNo},execution_no=#{query.row.executionNo},
+            customer_code=#{query.row.customerCode},customer_name=#{query.row.customerName},
+            source_project_name=#{query.row.sourceProjectName},order_comment=#{query.row.orderComment},
+            order_create_time=#{query.row.orderCreateTime},customer_required_time=#{query.row.customerRequiredTime},
+            custom_info=#{query.row.customInfo},version=version+1,
+            update_time=update_time
+        WHERE id=#{query.row.id} AND tenant_id=#{query.tenantId} AND version=#{query.expectedVersion}
+            AND source_record_key=#{query.row.sourceRecordKey} AND deleted=0
+    </update>
+</mapper>

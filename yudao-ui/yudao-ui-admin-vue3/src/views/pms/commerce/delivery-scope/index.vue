@@ -61,10 +61,14 @@
         :data="rows"
         :empty-text="projectContext ? '当前筛选条件下没有交付范围' : '请先从项目工作台进入交付范围'"
       >
-        <el-table-column prop="orderNo" label="订单号" min-width="150" fixed="left" />
+        <el-table-column prop="contractNo" label="合同号" min-width="155" fixed="left" />
+        <el-table-column prop="orderNo" label="订单号" min-width="150" />
         <el-table-column prop="lineNo" label="行号" min-width="80" />
         <el-table-column prop="productCode" label="产品编码" min-width="130" />
+        <el-table-column prop="productDesc" label="产品名称" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="orderQuantity" label="订单数量" min-width="105" />
         <el-table-column prop="allocatedQuantity" label="范围数量" min-width="105" />
+        <el-table-column prop="unitCode" label="单位" min-width="80" />
         <el-table-column label="分配确认" min-width="120">
           <template #default="{ row }">{{ row.allocationConfirmed ? '已确认' : '未确认' }}</template>
         </el-table-column>

@@ -115,3 +115,7 @@ Registry按固定`refType -> providerKey`映射唯一分派：`TASK/PROJ_TASK`�
 已裁决DPPMS合同年数纠正复用INT同步运行及来源证据，新增本地`ShipmentContractWarrantyCorrectionApi`由COM提供、INT消费：只允许明确目标的空白年数转NULL，完整29列指纹、租户和来源键核对，全部目标锁定验证后写入；COM的apply须加入同步分块事务，审计和其他28列保持。INT核实完整12原字段及原任务运行阶段，不直写COM表，不借纠正调整合同、公司或当前保修状态。重复运行仅接受完整原记录或完整纠正后记录；后续业务/审计变化阻断。正式同步模板统一使用`DPPMS_WARRANTY_YEARS_V1`整数/空值规则，非整数、负数及INT溢出阻断。
 
 2026-10-11批准的16列许可历史由AST持有。PROJ迁移应用调用AST `DppmsLicenseRecordApi.preview/apply/page`，仅传原非秘密业务属性、受控密文、当前租户/主体和正式关联ID；AST的preview/apply加入外层事务，PLT既有命令及迁移证据与正式实体全有或全无。查询通过PROJECT_VIEW重验范围，写入保留项目管理守卫，PROJ只读取自身来源材料及公开PLT绑定，不直接查AST业务表。COM `DppmsCommerceEntityResolveApi.resolveLicenseContracts`按租户、项目正式合同关系及完整合同号唯一匹配；缺失/多义返回NULL，不任选合同。AST按完整SN核实设备，不据迁入改变归属或当前许可。密文单独具名实体列承接，来源证据用于身份、幂等和后续变化保护，不代替正式业务保存；页面和公共回执不暴露许可秘密。
+
+2026-10-13正式合同关系由COM消费PROJ公开内部`ProjectMigrationIdentityContextApi`：只提供经管理权、租户、版本及准确来源绑定核验的正式身份与公司，不附带实施办事处要求。锁定调用加入COM/INT迁移事务，失败整体回滚；COM仍负责合同引用和公司范围。实施范围继续消费原`ProjectScopeMigrationContextApi`及其办事处目录守卫。详细输入、返回值与禁止回退条件见[API设计](10-api-design.md#2026-10-12-整表项目正式创建及来源身份契约)，不改变原NULL组织裁决或授予任何新权限。
+
+2026-10-13新增项目范围异常仍待需求方裁决，当前不接管6570个项目及关联，不提供或执行撤销动作；保留原十项目及不可变来源、审计和运行回执。实际范围见[待裁决清单](../decisions/open-questions.md)。

@@ -97,4 +97,17 @@ class ProjectLeaseProductOwnerMySqlTest {
         assertThrows(IllegalArgumentException.class,this::prepare);
         assertEquals(3,mapper.countProject(new AssociatedPageQuery(1L,100L,0,20)));
     }
+
+    @Test void nativeDisplayUsesTheOriginalLatestExecutionRuleWithoutDeletingEarlierFacts() throws Exception {
+        for(int i=0;i<originals.size();i++)originals.get(i).setPayloadJson(originals.get(i).getPayloadJson()
+                .replace("\"orderExecNumber\":\"\"","\"orderExecNumber\":\""+(i==0?"A001":"A002")+"\""));
+        owner.apply(prepare(),actor);session.commit();
+        var query=new AssociatedPageQuery(1L,100L,0,20);var page=mapper.selectProjectPage(query);
+        assertEquals(2,page.size());assertEquals(2L,mapper.countProject(query));assertTrue(page.stream().allMatch(row->"A002".equals(row.getExecutionNo())));
+        assertEquals(3L,mapper.countAllProjectRecords(new ProjectLeaseProductProjectQuery(1L,100L)));
+        assertTrue(mapper.selectProjectPage(new AssociatedPageQuery(2L,100L,0,20)).isEmpty());
+        try(var sql=db.createStatement()){sql.executeUpdate("UPDATE proj_project_lease_product SET deleted=1 WHERE execution_no='A002'");}session.clearCache();
+        var earlier=mapper.selectProjectPage(query);assertEquals(1,earlier.size());assertEquals("A001",earlier.getFirst().getExecutionNo());
+        assertEquals(3L,mapper.countAllProjectRecords(new ProjectLeaseProductProjectQuery(1L,100L)));
+    }
 }

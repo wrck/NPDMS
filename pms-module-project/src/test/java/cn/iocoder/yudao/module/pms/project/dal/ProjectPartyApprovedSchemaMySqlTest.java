@@ -24,6 +24,17 @@ class ProjectPartyApprovedSchemaMySqlTest {
         factory.setTransactionFactory(new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory());
         var config=new com.baomidou.mybatisplus.core.MybatisConfiguration();config.setMapUnderscoreToCamelCase(true);
         factory.setConfiguration(config);
+        var global=new com.baomidou.mybatisplus.core.config.GlobalConfig();
+        global.setMetaObjectHandler(new com.baomidou.mybatisplus.core.handlers.MetaObjectHandler() {
+            @Override public void insertFill(org.apache.ibatis.reflection.MetaObject object) {
+                if(object.hasSetter("creator") && object.getValue("creator")==null)setFieldValByName("creator","1",object);
+                updateFill(object);
+            }
+            @Override public void updateFill(org.apache.ibatis.reflection.MetaObject object) {
+                if(object.hasSetter("updater") && object.getValue("updater")==null)setFieldValByName("updater","1",object);
+            }
+        });
+        factory.setGlobalConfig(global);
         factory.setMapperLocations(new org.springframework.core.io.ClassPathResource("mapper/projectmanual/ProjectPartyMapper.xml"));
         session=factory.getObject().openSession(db);
         try(var sql=db.createStatement()) {
@@ -45,5 +56,21 @@ class ProjectPartyApprovedSchemaMySqlTest {
         var row=session.getMapper(ProjectPartyMapper.class).selectSourceForUpdate(new ProjectPartyMapper.PartySourceQuery(1L,"DPPMS","pm_project_header","101","FINAL_CUSTOMER"));
         assertNotNull(row);assertEquals(1L,row.getId());
         assertNull(session.getMapper(ProjectPartyMapper.class).selectSourceForUpdate(new ProjectPartyMapper.PartySourceQuery(2L,"DPPMS","pm_project_header","101","FINAL_CUSTOMER")));
+    }
+    @Test void explicitMigrationAuditSurvivesFrameworkInsertAndUpdateAutoFill() {
+        var mapper=session.getMapper(ProjectPartyMapper.class);
+        var row=new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectPartyDO();
+        row.setId(11L);row.setTenantId(1L);row.setProjectId(100L);row.setPartyRole("10");row.setPartyName("渠道");
+        row.setSourceSystem("DPPMS");row.setSourceTable("pm_project_related_party");row.setSourceRecordKey("11");
+        row.setStatus("ACTIVE");row.setVersion(0);row.setDeleted(false);row.setCreateTime(LocalDateTime.of(2023,1,2,3,4,5));
+        row.setUpdateTime(row.getCreateTime());
+        assertEquals(1,mapper.insertMigrationParty(new ProjectPartyMapper.MigrationWrite(row,null,null)));
+        var identity=new ProjectPartyMapper.MigrationSourceQuery(1L,"pm_project_related_party","11");
+        var stored=mapper.selectMigrationSourceForUpdate(identity).getFirst();
+        assertNull(stored.getCreator());assertNull(stored.getUpdater());
+        row.setPartyName("修正渠道");row.setVersion(1);
+        assertEquals(1,mapper.updateMigrationParty(new ProjectPartyMapper.MigrationWrite(row,null,null)));
+        stored=mapper.selectMigrationSourceForUpdate(identity).getFirst();
+        assertNull(stored.getCreator());assertNull(stored.getUpdater());assertEquals(row.getCreateTime(),stored.getUpdateTime());
     }
 }

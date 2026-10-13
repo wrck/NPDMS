@@ -1,0 +1,988 @@
+{
+  "reviewedAt": "2026-10-13T16:17:50.715236+08:00",
+  "worktree": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup",
+  "reviewMode": "只读代码、原SQL、来源/目标表、现有任务及回执；未执行迁移/重放、DDL、服务切换或修改业务数据",
+  "tablesReviewed": 67,
+  "originalFieldsReviewed": 1031,
+  "currentSavedTasks": 41,
+  "sourceObjectsNotPresent": [],
+  "countScope": "来源总量包含不同类型/非规范旧身份，不能当作本轮类型10可迁入数量；目标计数限租户1、未删除。",
+  "findings": [
+    {
+      "business": "原项目过程状态及日期",
+      "sourceTables": [
+        "pm_project_state"
+      ],
+      "sourceCounts": {
+        "pm_project_state": 80245
+      },
+      "state": "未正式承接",
+      "evidence": "旧计划、发货、实施、关闭过程状态及日期共9字段；代码仍返回STAGE_MAPPING_NOT_APPROVED。主档生命周期/阶段初始化不替代此独立原表。",
+      "code": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/LegacyNativeReasons.java",
+      "originalQueryIds": [
+        "L0097",
+        "L0148"
+      ]
+    },
+    {
+      "business": "原任务及里程碑事实",
+      "sourceTables": [
+        "pm_project_task"
+      ],
+      "sourceCounts": {
+        "pm_project_task": 129626
+      },
+      "state": "未正式承接",
+      "evidence": "全部28原字段仍缺完整正式映射，原任务事件、计划日期、工程日期、实际结束日期及状态不能由当前新模板任务代替；保留来源不计业务承接。",
+      "code": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/LegacyNativeReasons.java",
+      "originalQueryIds": [
+        "L0125"
+      ]
+    },
+    {
+      "business": "项目相关方",
+      "sourceTables": [
+        "pm_project_related_party"
+      ],
+      "sourceCounts": {
+        "pm_project_related_party": 188770
+      },
+      "state": "部分已承接，角色及审计缺口",
+      "existingBusinessTable": "proj_project_party",
+      "verifiedRows": 55,
+      "evidence": "55条均能精确回查原记录；正式项目、角色、编码、名称、有效区间一致。createTime/updateTime各55处未恢复原值。现导入只接受角色20/30，角色10分支尚不支持；不能将主档最终客户替代独立原表11列。",
+      "sourceRoleCounts": [
+        {
+          "partyRole": "10",
+          "n": 12878
+        },
+        {
+          "partyRole": "20",
+          "n": 30723
+        },
+        {
+          "partyRole": "30",
+          "n": 145169
+        }
+      ],
+      "auditDifferenceCounts": {
+        "createTime": 55,
+        "updateTime": 55
+      },
+      "code": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLegacyEntityMigrationService.java",
+      "originalQueryIds": [
+        "L0097"
+      ]
+    },
+    {
+      "business": "SMS合同回款信息及完整合同头",
+      "sourceTables": [
+        "sms_ofst_contract_head_sap"
+      ],
+      "sourceCounts": {
+        "sms_ofst_contract_head_sap": 81547
+      },
+      "state": "合同属性部分复用，回款信息及39列未完整承接",
+      "existingBusinessTables": [
+        "com_contract",
+        "com_contract_receivable"
+      ],
+      "existingTaskId": "2107037031219654657",
+      "existingTaskVersion": 8,
+      "referencedOriginalFields": [
+        "contract_create_date",
+        "contract_money_amount",
+        "contract_num",
+        "currency_name",
+        "industryId",
+        "industry_name",
+        "maketing_department_name",
+        "marketCode",
+        "marketing_representative_name",
+        "officeCode",
+        "office_name",
+        "projectCode",
+        "project_name",
+        "usernamec",
+        "usernamec2"
+      ],
+      "contractReceivableRowsTenant1": 0,
+      "evidence": "原任务已把金额、币种、项目/部门/市场等部分属性映射com_contract；com_contract_receivable当前租户未删除记录0。已交、已收、回款比例、应收、逾期、批次及原审计/有效期等未完成整表迁入。这是合同回款信息，不能用com_contract_collection_plan回款计划替代。",
+      "originalQueryIds": [
+        "L0368",
+        "L0394"
+      ]
+    },
+    {
+      "business": "续保服务权利、保修登记、期限变更",
+      "sourceTables": [
+        "fb_service",
+        "warranty_info",
+        "warranty_change_logs"
+      ],
+      "sourceCounts": {
+        "fb_service": 462213,
+        "warranty_info": 0,
+        "warranty_change_logs": 55
+      },
+      "state": "有未批准原型/空表，尚非完整正式承接",
+      "prototypeTables": {
+        "ast_device_warranty_service_record": {
+          "present": true,
+          "columns": [
+            "id",
+            "tenant_id",
+            "source_system",
+            "source_table",
+            "source_key",
+            "source_version",
+            "source_read_at",
+            "source_checksum",
+            "source_id",
+            "renewal_contract_no",
+            "device_sn",
+            "grade",
+            "begin_date",
+            "end_date",
+            "warranty_flag",
+            "remark",
+            "extension_flag",
+            "source_state",
+            "creator",
+            "create_time",
+            "updater",
+            "update_time",
+            "deleted"
+          ],
+          "rows": 0
+        },
+        "ast_device_warranty_registration": {
+          "present": true,
+          "columns": [
+            "id",
+            "tenant_id",
+            "source_system",
+            "source_table",
+            "source_key",
+            "source_version",
+            "source_read_at",
+            "source_checksum",
+            "source_id",
+            "package_sync_id",
+            "contract_sync_id",
+            "device_sn",
+            "office_code",
+            "source_project_name",
+            "contract_no",
+            "contract_type",
+            "customer_name",
+            "item_code",
+            "item_name",
+            "warranty_level",
+            "warranty_start_time",
+            "warranty_end_time",
+            "warranty_limit",
+            "creator",
+            "create_time",
+            "updater",
+            "update_time",
+            "deleted"
+          ],
+          "rows": 0
+        },
+        "ast_device_warranty_change_record": {
+          "present": true,
+          "columns": [
+            "id",
+            "tenant_id",
+            "source_system",
+            "source_table",
+            "source_key",
+            "source_version",
+            "source_read_at",
+            "source_checksum",
+            "source_id",
+            "source_username",
+            "update_type",
+            "device_sn",
+            "warranty_start_time",
+            "warranty_end_time",
+            "warranty_times",
+            "source_updated_at",
+            "creator",
+            "create_time",
+            "updater",
+            "update_time",
+            "deleted"
+          ],
+          "rows": 0
+        }
+      },
+      "evidence": "三个V4原型及代码已存在，但未获得完整业务结构裁决且记录0；不重新造原型、不认作已完成。warranty_info原表当前0，无实际记录漏迁；fb_service及warranty_change_logs有值。派生view_warranty不独立同步的裁决不能自动排除原服务权利和变更事实。"
+    },
+    {
+      "business": "设备串货/转移关系",
+      "sourceTables": [
+        "pm_project_shipment"
+      ],
+      "state": "五个关系字段尚未正式承接",
+      "unmappedFields": [
+        "chProjectId",
+        "chContractNo",
+        "transferProjectId",
+        "transferContractNo",
+        "transferFlag"
+      ],
+      "sourceTransferRows": 30,
+      "sourceFlagDistribution": [
+        {
+          "transferFlag": "-1",
+          "n": 1064744
+        },
+        {
+          "transferFlag": "0",
+          "n": 15
+        },
+        {
+          "transferFlag": "1",
+          "n": 15
+        }
+      ],
+      "sourceProjectTypeDistribution": [
+        {
+          "projectType": null,
+          "n": 1
+        },
+        {
+          "projectType": "10",
+          "n": 29
+        }
+      ],
+      "evidence": "30条有转移关系值，flag=0和1各15条；其中29条用服、1条原项目关联缺失。现安装迁入Owner明确只接受flag=-1及四个关联字段NULL/-1，不能把948条普通安装完成当作串货完成；不推断15次业务转移，不改变当前归属。",
+      "code": "pms-module-engineering/src/main/java/cn/iocoder/yudao/module/pms/engineering/service/installation/DppmsInstallationRecordMigrationService.java"
+    },
+    {
+      "business": "原账号isSysUser标记",
+      "sourceTables": [
+        "t_user"
+      ],
+      "state": "原字段已读取但未在正式属性保存",
+      "unmappedFields": [
+        "isSysUser"
+      ],
+      "targetUserCounts": {
+        "users": 1198,
+        "isSysUserJson": "0",
+        "accountTypeJson": "0"
+      },
+      "evidence": "来源模板读取该字段，DppmsUserCustomInfo未组装isSysUser/accountType；当前租户1198账号的正式custom_info均无这两个键。该字段未获明确排除裁决；不猜其含义、不以账号授权规则或任职employeeType替代原属性。",
+      "code": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsUserCustomInfo.java"
+    }
+  ],
+  "baselineCorrections": [
+    {
+      "source": "pm_project_related_party",
+      "baselineClaim": "targets为空/未完成正式承接",
+      "currentFact": "有55条正式核心关系，但全字段、角色10和原审计仍不完整；不能记成全无承接或整表完成。"
+    },
+    {
+      "source": "sms_ofst_contract_head_sap",
+      "baselineClaim": "39字段均未明确正式映射",
+      "currentFact": "原任务已有部分com_contract属性复用；其余合同头/回款信息未完整承接。"
+    },
+    {
+      "source": "pm_order_line_from_erp",
+      "baselineClaim": "全历史只有预演、尚未正式写入",
+      "currentFact": "较新原任务已有142697条UNCHANGED成功回执（v26），对应50954已有行补缺＋91743新来源阶段；这不代表380605来源全部完成，原缺目标/父订单等问题保持。",
+      "runId": "2109807770016092161"
+    },
+    {
+      "source": "pm_project_contract",
+      "baselineClaim": "跨组通用归并仍未完成",
+      "currentFact": "已接收的正式归并代码和完整源SQL核对存在，6480条重放成功；不得重复实现。实际新增项目范围问题仍独立保持。",
+      "runId": "2109772284929183746"
+    },
+    {
+      "source": "pm_project_product_line_real / 租赁 / 配置 / 上游",
+      "baselineClaim": "已实现，10项目0条",
+      "currentFact": "已有正式可编辑整表任务及10项目0条预览/执行；不是缺业务实体或没有任务。没有非空全历史实际迁入证明。",
+      "taskIds": [
+        "2109865269478027265",
+        "2109865270430134273"
+      ]
+    },
+    {
+      "source": "fb_shipment / view_shipment_ems_4_pm",
+      "currentFact": "原任务v8已经修正carrier_code/名称映射；19UNCHANGED实际验证及正常配置浏览器完成，不再重做。"
+    },
+    {
+      "source": "ehr_department字段清单",
+      "currentFact": "18处target误写为非空计数N/8，属于清单格式/字段解析错误；对应11项缺属性和7项本批全NULL已获不迁入裁决，不增新业务缺口。"
+    },
+    {
+      "source": "来源连接/对象存在",
+      "baselineClaim": "目标断连，不声称实时核对通过",
+      "currentFact": "本次只读来源和目标连接均可用，67个来源对象均存在。仅据本次列出的实查对象和回执声明验证范围。"
+    }
+  ],
+  "wholeTaskEntranceStillIncomplete": [
+    "出厂版本",
+    "安装",
+    "软件登记及批次（一次性）",
+    "许可（受控采集）",
+    "项目人员及最终客户联系人"
+  ],
+  "deferredSourceTables": [
+    "fnd_act_hi_comment",
+    "pm_cl_callback",
+    "pm_cl_callback_quesnaire",
+    "pm_cl_quesnaire_result_header",
+    "pm_cl_quesnaire_result_line",
+    "pm_cl_quesnaire_template_header",
+    "pm_cl_quesnaire_template_line",
+    "pm_cl_quesnaire_template_options",
+    "pm_project_incident_table_from_itr",
+    "pm_project_instruction",
+    "pm_project_maintenance",
+    "pm_project_notification",
+    "pm_project_supervision",
+    "pm_project_weekly",
+    "pm_project_weekly_content",
+    "pm_project_weekly_feedback",
+    "pm_subcontract_project_header",
+    "pm_subcontract_project_payment",
+    "pm_subcontract_project_price"
+  ],
+  "allSourceTableReview": [
+    {
+      "sourceTable": "ehr_department",
+      "originalFields": 24,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108569376783273985",
+        "2108538095265562625",
+        "2108524822998773762",
+        "2108524501517955073",
+        "2101562667583217666"
+      ]
+    },
+    {
+      "sourceTable": "ehr_employee",
+      "originalFields": 31,
+      "baselineStatus": "引用核对；不独立迁移整表",
+      "reviewClassification": "身份引用目录，非独立整表迁移",
+      "currentSavedTaskReferences": [
+        "2108569376783273985",
+        "2108524822998773762"
+      ]
+    },
+    {
+      "sourceTable": "ehr_login",
+      "originalFields": 7,
+      "baselineStatus": "引用核对；不独立迁移整表",
+      "reviewClassification": "身份引用目录，非独立整表迁移",
+      "currentSavedTaskReferences": [
+        "2108569376783273985",
+        "2108538095265562625",
+        "2108524822998773762"
+      ]
+    },
+    {
+      "sourceTable": "fb_contract",
+      "originalFields": 12,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2108799116748152833",
+        "2107046961754501121",
+        "2107041701736570882",
+        "2107041701187117058",
+        "2107040712333811713",
+        "2107037031798468609",
+        "2107037031219654657",
+        "2102825819916980226",
+        "2101891886242299906",
+        "2101875785110306818",
+        "2101875784317583361",
+        "2101857698189352962"
+      ]
+    },
+    {
+      "sourceTable": "fb_items",
+      "originalFields": 4,
+      "baselineStatus": "已完成可核实原记录承接；缺项另列",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2108534088732168194",
+        "2101875785110306818"
+      ]
+    },
+    {
+      "sourceTable": "fb_service",
+      "originalFields": 10,
+      "baselineStatus": "未完成正式承接",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "originalFields": 8,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2107046961754501121",
+        "2107041701736570882",
+        "2107041701468135425",
+        "2107040712333811713",
+        "2107037031798468609",
+        "2107037031219654657",
+        "2102825819916980226",
+        "2101891886242299906",
+        "2101875785110306818",
+        "2101875784728625154"
+      ]
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "originalFields": 19,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2107046961754501121",
+        "2107041701736570882",
+        "2107040712333811713",
+        "2107037031798468609",
+        "2107037031219654657",
+        "2104524842835423234",
+        "2102825819916980226",
+        "2101891886242299906",
+        "2101875785110306818"
+      ]
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "originalFields": 8,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2109382583085117441",
+        "2107046961754501121",
+        "2107041701984034818",
+        "2107040712333811713",
+        "2107037031798468609",
+        "2107037031219654657",
+        "2104524842835423234",
+        "2102825819916980226"
+      ]
+    },
+    {
+      "sourceTable": "fb_soft_version",
+      "originalFields": 5,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "fnd_act_hi_comment",
+      "originalFields": 12,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "fnd_basic_data",
+      "originalFields": 12,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2109371486114320385",
+        "2109351154645135362",
+        "2107037031219654657"
+      ]
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "originalFields": 10,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2109351154645135362"
+      ]
+    },
+    {
+      "sourceTable": "fnd_department",
+      "originalFields": 9,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108538095265562625",
+        "2108524501517955073"
+      ]
+    },
+    {
+      "sourceTable": "fnd_roles",
+      "originalFields": 11,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108567804242235394",
+        "2108554583850524673"
+      ]
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "originalFields": 18,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108608417343934465",
+        "2108574253093683202",
+        "2108569376783273985",
+        "2108568095503093761",
+        "2108554583850524673",
+        "2108545067259985922",
+        "2108538095265562625",
+        "2108524822998773762"
+      ]
+    },
+    {
+      "sourceTable": "fnd_user_power",
+      "originalFields": 10,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108569376783273985"
+      ]
+    },
+    {
+      "sourceTable": "pm_cl_callback",
+      "originalFields": 13,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_cl_callback_quesnaire",
+      "originalFields": 12,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_cl_quesnaire_result_header",
+      "originalFields": 10,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_cl_quesnaire_result_line",
+      "originalFields": 13,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_cl_quesnaire_template_header",
+      "originalFields": 14,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_cl_quesnaire_template_line",
+      "originalFields": 15,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_cl_quesnaire_template_options",
+      "originalFields": 13,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "originalFields": 16,
+      "baselineStatus": "已完成可核实原记录承接；缺项另列",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2107046961754501121",
+        "2107041701187117058",
+        "2107040712333811713",
+        "2107037031798468609",
+        "2107037031219654657",
+        "2101891886242299906",
+        "2101875784317583361",
+        "2101857698189352962",
+        "2101587859478949890"
+      ]
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "originalFields": 16,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2101587859478949890"
+      ]
+    },
+    {
+      "sourceTable": "pm_pb_plan_from_sms",
+      "originalFields": 16,
+      "baselineStatus": "原试点完成；续办扩大写入待范围处置",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2108574253093683202"
+      ]
+    },
+    {
+      "sourceTable": "pm_project",
+      "originalFields": 37,
+      "baselineStatus": "原试点完成；续办扩大写入待范围处置",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2109865270430134273",
+        "2109865269478027265",
+        "2109829769958453249",
+        "2109622534918856706",
+        "2109363204544983041",
+        "2108608417343934465"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_contract",
+      "originalFields": 7,
+      "baselineStatus": "原试点完成；续办扩大写入待范围处置",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2109363204544983041"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "originalFields": 8,
+      "baselineStatus": "原试点完成；续办扩大写入待范围处置",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2109363204544983041"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "originalFields": 9,
+      "baselineStatus": "原试点完成；续办扩大写入待范围处置",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2109363204544983041"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_header",
+      "originalFields": 37,
+      "baselineStatus": "原试点完成；续办扩大写入待范围处置",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2108608417343934465"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_incident_table_from_itr",
+      "originalFields": 37,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_instruction",
+      "originalFields": 11,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "originalFields": 8,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_maintenance",
+      "originalFields": 44,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_member",
+      "originalFields": 15,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_notification",
+      "originalFields": 6,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "originalFields": 11,
+      "baselineStatus": "已实现；试点原数据0条",
+      "reviewClassification": "实体和整表任务已接入；10项目原数据0条",
+      "currentSavedTaskReferences": [
+        "2109865270430134273"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "originalFields": 11,
+      "baselineStatus": "已实现；试点原数据0条",
+      "reviewClassification": "实体和整表任务已接入；10项目原数据0条",
+      "currentSavedTaskReferences": [
+        "2109865270430134273"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "originalFields": 11,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2109829769958453249"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_product_line_real",
+      "originalFields": 12,
+      "baselineStatus": "已实现；试点原数据0条",
+      "reviewClassification": "实体和整表任务已接入；10项目原数据0条",
+      "currentSavedTaskReferences": [
+        "2109865269478027265"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "originalFields": 32,
+      "baselineStatus": "已完成可核实原记录承接；缺项另列",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": [
+        "2101625228492091393"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_real_product_line_from_sms",
+      "originalFields": 10,
+      "baselineStatus": "已实现；试点原数据0条",
+      "reviewClassification": "实体和整表任务已接入；10项目原数据0条",
+      "currentSavedTaskReferences": [
+        "2109865269478027265"
+      ]
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "originalFields": 11,
+      "baselineStatus": "未完成正式承接",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_shipment",
+      "originalFields": 21,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "originalFields": 9,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_soft_version",
+      "originalFields": 28,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "originalFields": 9,
+      "baselineStatus": "未完成正式承接",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_supervision",
+      "originalFields": 17,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_task",
+      "originalFields": 28,
+      "baselineStatus": "未完成正式承接",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_weekly",
+      "originalFields": 14,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_weekly_content",
+      "originalFields": 9,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_project_weekly_feedback",
+      "originalFields": 5,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_subcontract_project_header",
+      "originalFields": 28,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_subcontract_project_payment",
+      "originalFields": 13,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "pm_subcontract_project_price",
+      "originalFields": 13,
+      "baselineStatus": "按裁决暂缓",
+      "reviewClassification": "按原安排暂缓或待裁决，不认作已授权实施遗漏",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "originalFields": 39,
+      "baselineStatus": "未完成正式承接",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": [
+        "2107046961754501121",
+        "2107041701187117058",
+        "2107040712333811713",
+        "2107037031798468609",
+        "2107037031219654657",
+        "2101891886242299906",
+        "2101875784317583361"
+      ]
+    },
+    {
+      "sourceTable": "t_role",
+      "originalFields": 11,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108554583850524673"
+      ]
+    },
+    {
+      "sourceTable": "t_user",
+      "originalFields": 16,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": [
+        "2108608417343934465",
+        "2108574253093683202",
+        "2108569376783273985",
+        "2108568095503093761",
+        "2108554583850524673",
+        "2108538095265562625",
+        "2108524822998773762"
+      ]
+    },
+    {
+      "sourceTable": "t_user_info",
+      "originalFields": 26,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108569376783273985",
+        "2108524822998773762"
+      ]
+    },
+    {
+      "sourceTable": "t_user_role",
+      "originalFields": 4,
+      "baselineStatus": "已实际承接（批准范围）",
+      "reviewClassification": "已有正式平台实体及迁入回执；排除字段按用户裁决保留原因",
+      "currentSavedTaskReferences": [
+        "2108569376783273985",
+        "2108568095503093761"
+      ]
+    },
+    {
+      "sourceTable": "view_shipment_ems_4_pm",
+      "originalFields": 6,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "originalFields": 11,
+      "baselineStatus": "已承接10项目；全历史未执行",
+      "reviewClassification": "已有承接或现有任务，保留范围/整表执行限制，不重复实现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "view_warranty",
+      "originalFields": 36,
+      "baselineStatus": "现存保留；不独立同步",
+      "reviewClassification": "派生结果不独立同步，现存暂保留",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "warranty_change_logs",
+      "originalFields": 8,
+      "baselineStatus": "未完成正式承接",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": []
+    },
+    {
+      "sourceTable": "warranty_info",
+      "originalFields": 15,
+      "baselineStatus": "未完成正式承接",
+      "reviewClassification": "缺项或部分承接；见具体发现",
+      "currentSavedTaskReferences": []
+    }
+  ],
+  "businessWrites": 0,
+  "schemaWrites": 0,
+  "newTasks": 0,
+  "newRuns": 0,
+  "evidenceLocation": "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\c-users-user-documents-codex-2026\\work\\native-followup-private",
+  "evidenceFiles": [
+    "mapping-audit-source-presence-20261013.json",
+    "mapping-audit-target-and-tasks-20261013.json",
+    "mapping-audit-party-fields-20261013.json",
+    "mapping-audit-sms-existing-partial-mapping-20261013.json",
+    "mapping-audit-installation-transfer-fields-20261013.json",
+    "mapping-audit-installation-transfer-classification-20261013.json",
+    "mapping-audit-newer-existing-runs-20261013.json"
+  ]
+}

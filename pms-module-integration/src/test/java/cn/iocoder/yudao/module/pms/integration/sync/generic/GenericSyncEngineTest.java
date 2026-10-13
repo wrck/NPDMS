@@ -158,6 +158,23 @@ class GenericSyncEngineTest {
         var source=row(d,"1",Map.of("packlist_id","P1","con_id",77));apply(d,source);
         assertEquals(123L,jdbc.queryForObject("SELECT shipment_contract_ref_id FROM com_shipment_package",Long.class));
     }
+    @Test void packagePreservesCarrierCodeAndDecodedNameWithoutRewritingUnchangedRecords() {
+        var d=definition(1);
+        var source=row(d,"PACK-CARRIER",Map.of("packlist_id","PACK-CARRIER","emsCompany","0","carrier_name","顺丰"));
+        assertEquals("CREATED",apply(d,source).getFirst().action());
+        var before=jdbc.queryForMap("SELECT * FROM com_shipment_package");
+        assertEquals("0",before.get("carrier_code"));
+        assertEquals("顺丰",before.get("carrier_name"));
+        assertEquals("UNCHANGED",apply(d,source).getFirst().action());
+        assertEquals(before,jdbc.queryForMap("SELECT * FROM com_shipment_package"));
+    }
+    @Test void packageCarrierCodesAreNotCompanyCodesAndCannotOverwriteAnotherTenant() {
+        var d=definition(1);
+        jdbc.update("INSERT INTO com_shipment_package(id,tenant_id,source_system,source_record_key,package_no,carrier_code,carrier_name) VALUES(50,2,'DPPMS','PACK','PACK','0','另一租户')");
+        apply(d,row(d,"PACK",Map.of("packlist_id","PACK","emsCompany","01","carrier_name","01")));
+        assertEquals("01",jdbc.queryForObject("SELECT carrier_code FROM com_shipment_package WHERE tenant_id=1",String.class));
+        assertEquals("另一租户",jdbc.queryForObject("SELECT carrier_name FROM com_shipment_package WHERE tenant_id=2",String.class));
+    }
     @Test void sourceContractWithoutCompanyStillPersistsSourceFact() {
         var d=definition(0);assertEquals("CREATED",apply(d,row(d,"1",Map.of("contract_code","C1"))).getFirst().action());
         assertEquals(1,count("com_shipment_contract_reference"));assertEquals(0,count("com_contract"));

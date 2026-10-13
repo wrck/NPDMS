@@ -263,6 +263,7 @@
   </el-dialog>
 </template>
 <script setup lang="ts">
+import { ElMessageBox } from 'element-plus'
 import ProductCatalogSetup from './ProductCatalogSetup.vue'
 import * as api from '@/api/pms/integration'
 import SourceEditor from './SourceEditor.vue'
@@ -361,6 +362,53 @@ const changeAdapter = async () => {
     }
     normalizePerformance()
     section.value = 'sources'
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_PRODUCT_SCOPE') {
+    draft.value.definition = await api.getDppmsProjectProductScopeTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = 'DPPMS 项目产品实施范围迁移'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_REAL_PRODUCT') {
+    draft.value.definition = await api.getDppmsProjectRealProductTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = 'DPPMS 项目真实产品清单迁移'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_CONTRACT_RECEIVABLE') {
+    draft.value.definition = await api.getDppmsContractReceivableTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'DPPMS 合同回款信息迁移与同步'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_OBSOLETE_ORDER_LINE_BINDING') {
+    const result = await ElMessageBox.prompt('填写已裁决的原订单迁移任务ID，仅清理该任务中无正式目标的旧01绑定。', '原订单迁移任务', {
+      inputPattern: /^[1-9][0-9]*$/, inputErrorMessage: '请输入有效任务ID'
+    }).catch(() => null)
+    if (!result) return
+    draft.value.definition = await api.getDppmsObsoleteOrderLineTemplate(draft.value.definition.connectionId, result.value)
+    draft.value.name = 'DPPMS 旧01订单行迁移记录清理'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_FACTS') {
+    const definitionId = await api.configureDppmsProjectFactsDefinition()
+    draft.value.definition = await api.getDppmsProjectFactsTemplate(draft.value.definition.connectionId, definitionId)
+    draft.value.name = 'DPPMS 项目相关方及发货执行状态'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_ASSOCIATED_PRODUCTS') {
+    draft.value.definition = await api.getDppmsProjectAssociatedProductTemplate(
+      draft.value.definition.connectionId
+    )
+    draft.value.name = 'DPPMS 项目租赁及产品配置迁移'
+    normalizePerformance()
     return
   }
   if (selectedAdapter.value.key === 'PAYMENT_PLAN_ACCEPTANCE') {

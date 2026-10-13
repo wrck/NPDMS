@@ -126,6 +126,8 @@ public class ProjectMasterController {
     @Resource
     private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper projectPartyMapper;
     @Resource
+    private cn.iocoder.yudao.module.pms.platform.api.entity.EntityExtensionApi projectExtensions;
+    @Resource
     private Environment environment;
 
     @PostMapping
@@ -204,6 +206,11 @@ public class ProjectMasterController {
                 .map(party -> new ProjectRespVO.Party(party.getPartyRole(), party.getPartyCode(), party.getPartyName()))
                 .toList());
         projectStatusPresentationService.populate(List.of(response));
+        var attributes = projectExtensions.read(
+                cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef.current(
+                        new cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef(currentTenantId(), "PRJ", "project", id)),
+                new cn.iocoder.yudao.module.pms.platform.api.entity.EntityActor(currentTenantId(), accessActor().actorId(), "project-detail"));
+        response.setStatusAttributes(attributes.fields());
         return success(response);
     }
 

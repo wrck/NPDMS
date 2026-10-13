@@ -1,0 +1,1905 @@
+{
+  "checkedAt": "2026-10-13T03:07:37.081382",
+  "operatorUserId": 1,
+  "canonicalProjects": 80170,
+  "nullOrganizationProjects": 3756,
+  "requiredPairs": [
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 120,
+      "departmentCode": "160400",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "渠道管理与商业市场部",
+      "projectCount": 79,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 135,
+      "departmentCode": "165000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "运营商市场部",
+      "projectCount": 1155,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 138,
+      "departmentCode": "167000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "产品行销部",
+      "projectCount": 11,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 143,
+      "departmentCode": "161000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "专网营销部",
+      "projectCount": 3876,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 145,
+      "departmentCode": "161100",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "战略合作部",
+      "projectCount": 3407,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 148,
+      "departmentCode": "162001",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "北京办事处",
+      "projectCount": 1709,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 153,
+      "departmentCode": "162002",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "太原办事处",
+      "projectCount": 1750,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 158,
+      "departmentCode": "162003",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "天津办事处",
+      "projectCount": 831,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 163,
+      "departmentCode": "162004",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "石家庄办事处",
+      "projectCount": 1941,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 168,
+      "departmentCode": "162005",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "呼和浩特办事处",
+      "projectCount": 991,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 173,
+      "departmentCode": "162006",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "沈阳办事处",
+      "projectCount": 1889,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 178,
+      "departmentCode": "162007",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "长春办事处",
+      "projectCount": 2852,
+      "alreadyAuthorized": true
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 183,
+      "departmentCode": "162008",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "哈尔滨办事处",
+      "projectCount": 2050,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 188,
+      "departmentCode": "162009",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "郑州办事处",
+      "projectCount": 2373,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 193,
+      "departmentCode": "162010",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "长沙办事处",
+      "projectCount": 1449,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 198,
+      "departmentCode": "162011",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "南昌办事处",
+      "projectCount": 2216,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 203,
+      "departmentCode": "162012",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "武汉办事处",
+      "projectCount": 2138,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 208,
+      "departmentCode": "162013",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "兰州办事处",
+      "projectCount": 1388,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 213,
+      "departmentCode": "162014",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "乌鲁木齐办事处",
+      "projectCount": 1342,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 218,
+      "departmentCode": "162015",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "西安办事处",
+      "projectCount": 986,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 223,
+      "departmentCode": "162016",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "成都办事处",
+      "projectCount": 2972,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 228,
+      "departmentCode": "162017",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "重庆办事处",
+      "projectCount": 1358,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 233,
+      "departmentCode": "162018",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "昆明办事处",
+      "projectCount": 2572,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 238,
+      "departmentCode": "162019",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "贵阳办事处",
+      "projectCount": 956,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 243,
+      "departmentCode": "162020",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "上海办事处",
+      "projectCount": 2944,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 248,
+      "departmentCode": "162021",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "南京办事处",
+      "projectCount": 5039,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 253,
+      "departmentCode": "162022",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "杭州办事处",
+      "projectCount": 5427,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 258,
+      "departmentCode": "162023",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "合肥办事处",
+      "projectCount": 1512,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 263,
+      "departmentCode": "162024",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "济南办事处",
+      "projectCount": 3221,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 268,
+      "departmentCode": "162025",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "广州办事处",
+      "projectCount": 3558,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 273,
+      "departmentCode": "162026",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "福州办事处",
+      "projectCount": 1210,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 278,
+      "departmentCode": "162027",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "南宁办事处",
+      "projectCount": 1745,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 345,
+      "departmentCode": "162101",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "胶东办事处",
+      "projectCount": 655,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 526,
+      "departmentCode": "162102",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "深圳办",
+      "projectCount": 103,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 527,
+      "departmentCode": "162103",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "宁波办",
+      "projectCount": 123,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 529,
+      "departmentCode": "162104",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "佛山办",
+      "projectCount": 242,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 530,
+      "departmentCode": "162105",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "东莞办",
+      "projectCount": 19,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 543,
+      "departmentCode": "162106",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "海口办",
+      "projectCount": 147,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 544,
+      "departmentCode": "162107",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "厦门办",
+      "projectCount": 49,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 545,
+      "departmentCode": "162108",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "苏州办",
+      "projectCount": 8,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 546,
+      "departmentCode": "162109",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "大连办",
+      "projectCount": 16,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 560,
+      "departmentCode": "162110",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "银川办",
+      "projectCount": 35,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 832,
+      "departmentCode": "166000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "国际市场部",
+      "projectCount": 18,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712109764610,
+      "departmentCode": "160300",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "企业网市场部",
+      "projectCount": 3971,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712109764611,
+      "departmentCode": "162028",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "深圳办事处",
+      "projectCount": 31,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958927,
+      "departmentCode": "167060",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "战略合作部（新）",
+      "projectCount": 1153,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958928,
+      "departmentCode": "165030",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "移动/广电系统部",
+      "projectCount": 61,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958929,
+      "departmentCode": "165040",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "电信系统部",
+      "projectCount": 58,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958930,
+      "departmentCode": "163120",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "政府系统部",
+      "projectCount": 75,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958931,
+      "departmentCode": "163140",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "交通系统部",
+      "projectCount": 68,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958932,
+      "departmentCode": "163220",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "电力能源系统部",
+      "projectCount": 205,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958933,
+      "departmentCode": "163230",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "金融系统部",
+      "projectCount": 303,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958934,
+      "departmentCode": "163240",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "大企业系统部",
+      "projectCount": 72,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958935,
+      "departmentCode": "163320",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "科教文卫系统部",
+      "projectCount": 145,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958936,
+      "departmentCode": "165050",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "联通系统部",
+      "projectCount": 9,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 3,
+      "companyCode": "003",
+      "departmentId": 248,
+      "departmentCode": "162021",
+      "companyName": "杭州迪普科技股份有限公司南京分公司",
+      "departmentName": "南京办事处",
+      "projectCount": 195,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 143,
+      "departmentCode": "161000",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "专网营销部",
+      "projectCount": 122,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 148,
+      "departmentCode": "162001",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "北京办事处",
+      "projectCount": 35,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 153,
+      "departmentCode": "162002",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "太原办事处",
+      "projectCount": 37,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 158,
+      "departmentCode": "162003",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "天津办事处",
+      "projectCount": 13,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 163,
+      "departmentCode": "162004",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "石家庄办事处",
+      "projectCount": 48,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 168,
+      "departmentCode": "162005",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "呼和浩特办事处",
+      "projectCount": 29,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 173,
+      "departmentCode": "162006",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "沈阳办事处",
+      "projectCount": 18,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 178,
+      "departmentCode": "162007",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "长春办事处",
+      "projectCount": 50,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 183,
+      "departmentCode": "162008",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "哈尔滨办事处",
+      "projectCount": 33,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 188,
+      "departmentCode": "162009",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "郑州办事处",
+      "projectCount": 65,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 193,
+      "departmentCode": "162010",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "长沙办事处",
+      "projectCount": 38,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 198,
+      "departmentCode": "162011",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "南昌办事处",
+      "projectCount": 64,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 203,
+      "departmentCode": "162012",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "武汉办事处",
+      "projectCount": 56,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 208,
+      "departmentCode": "162013",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "兰州办事处",
+      "projectCount": 29,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 213,
+      "departmentCode": "162014",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "乌鲁木齐办事处",
+      "projectCount": 41,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 218,
+      "departmentCode": "162015",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "西安办事处",
+      "projectCount": 24,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 223,
+      "departmentCode": "162016",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "成都办事处",
+      "projectCount": 95,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 228,
+      "departmentCode": "162017",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "重庆办事处",
+      "projectCount": 54,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 233,
+      "departmentCode": "162018",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "昆明办事处",
+      "projectCount": 83,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 238,
+      "departmentCode": "162019",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "贵阳办事处",
+      "projectCount": 30,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 243,
+      "departmentCode": "162020",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "上海办事处",
+      "projectCount": 86,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 248,
+      "departmentCode": "162021",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "南京办事处",
+      "projectCount": 135,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 253,
+      "departmentCode": "162022",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "杭州办事处",
+      "projectCount": 89,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 258,
+      "departmentCode": "162023",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "合肥办事处",
+      "projectCount": 47,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 263,
+      "departmentCode": "162024",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "济南办事处",
+      "projectCount": 64,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 268,
+      "departmentCode": "162025",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "广州办事处",
+      "projectCount": 87,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 273,
+      "departmentCode": "162026",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "福州办事处",
+      "projectCount": 30,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 278,
+      "departmentCode": "162027",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "南宁办事处",
+      "projectCount": 36,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 345,
+      "departmentCode": "162101",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "胶东办事处",
+      "projectCount": 12,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 526,
+      "departmentCode": "162102",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "深圳办",
+      "projectCount": 5,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 527,
+      "departmentCode": "162103",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "宁波办",
+      "projectCount": 1,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 543,
+      "departmentCode": "162106",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "海口办",
+      "projectCount": 1,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712109764610,
+      "departmentCode": "160300",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "企业网市场部",
+      "projectCount": 81,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712109764611,
+      "departmentCode": "162028",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "深圳办事处",
+      "projectCount": 2,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958930,
+      "departmentCode": "163120",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "政府系统部",
+      "projectCount": 10,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958931,
+      "departmentCode": "163140",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "交通系统部",
+      "projectCount": 11,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958932,
+      "departmentCode": "163220",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "电力能源系统部",
+      "projectCount": 9,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958933,
+      "departmentCode": "163230",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "金融系统部",
+      "projectCount": 27,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958935,
+      "departmentCode": "163320",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "科教文卫系统部",
+      "projectCount": 3,
+      "alreadyAuthorized": false
+    }
+  ],
+  "missingAuthorizedPairs": [
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 120,
+      "departmentCode": "160400",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "渠道管理与商业市场部",
+      "projectCount": 79,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 135,
+      "departmentCode": "165000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "运营商市场部",
+      "projectCount": 1155,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 138,
+      "departmentCode": "167000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "产品行销部",
+      "projectCount": 11,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 143,
+      "departmentCode": "161000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "专网营销部",
+      "projectCount": 3876,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 145,
+      "departmentCode": "161100",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "战略合作部",
+      "projectCount": 3407,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 148,
+      "departmentCode": "162001",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "北京办事处",
+      "projectCount": 1709,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 153,
+      "departmentCode": "162002",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "太原办事处",
+      "projectCount": 1750,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 158,
+      "departmentCode": "162003",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "天津办事处",
+      "projectCount": 831,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 163,
+      "departmentCode": "162004",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "石家庄办事处",
+      "projectCount": 1941,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 168,
+      "departmentCode": "162005",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "呼和浩特办事处",
+      "projectCount": 991,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 173,
+      "departmentCode": "162006",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "沈阳办事处",
+      "projectCount": 1889,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 183,
+      "departmentCode": "162008",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "哈尔滨办事处",
+      "projectCount": 2050,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 188,
+      "departmentCode": "162009",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "郑州办事处",
+      "projectCount": 2373,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 193,
+      "departmentCode": "162010",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "长沙办事处",
+      "projectCount": 1449,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 198,
+      "departmentCode": "162011",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "南昌办事处",
+      "projectCount": 2216,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 203,
+      "departmentCode": "162012",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "武汉办事处",
+      "projectCount": 2138,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 208,
+      "departmentCode": "162013",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "兰州办事处",
+      "projectCount": 1388,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 213,
+      "departmentCode": "162014",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "乌鲁木齐办事处",
+      "projectCount": 1342,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 218,
+      "departmentCode": "162015",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "西安办事处",
+      "projectCount": 986,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 223,
+      "departmentCode": "162016",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "成都办事处",
+      "projectCount": 2972,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 228,
+      "departmentCode": "162017",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "重庆办事处",
+      "projectCount": 1358,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 233,
+      "departmentCode": "162018",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "昆明办事处",
+      "projectCount": 2572,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 238,
+      "departmentCode": "162019",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "贵阳办事处",
+      "projectCount": 956,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 243,
+      "departmentCode": "162020",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "上海办事处",
+      "projectCount": 2944,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 248,
+      "departmentCode": "162021",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "南京办事处",
+      "projectCount": 5039,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 253,
+      "departmentCode": "162022",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "杭州办事处",
+      "projectCount": 5427,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 258,
+      "departmentCode": "162023",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "合肥办事处",
+      "projectCount": 1512,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 263,
+      "departmentCode": "162024",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "济南办事处",
+      "projectCount": 3221,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 268,
+      "departmentCode": "162025",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "广州办事处",
+      "projectCount": 3558,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 273,
+      "departmentCode": "162026",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "福州办事处",
+      "projectCount": 1210,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 278,
+      "departmentCode": "162027",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "南宁办事处",
+      "projectCount": 1745,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 345,
+      "departmentCode": "162101",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "胶东办事处",
+      "projectCount": 655,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 526,
+      "departmentCode": "162102",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "深圳办",
+      "projectCount": 103,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 527,
+      "departmentCode": "162103",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "宁波办",
+      "projectCount": 123,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 529,
+      "departmentCode": "162104",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "佛山办",
+      "projectCount": 242,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 530,
+      "departmentCode": "162105",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "东莞办",
+      "projectCount": 19,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 543,
+      "departmentCode": "162106",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "海口办",
+      "projectCount": 147,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 544,
+      "departmentCode": "162107",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "厦门办",
+      "projectCount": 49,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 545,
+      "departmentCode": "162108",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "苏州办",
+      "projectCount": 8,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 546,
+      "departmentCode": "162109",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "大连办",
+      "projectCount": 16,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 560,
+      "departmentCode": "162110",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "银川办",
+      "projectCount": 35,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 832,
+      "departmentCode": "166000",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "国际市场部",
+      "projectCount": 18,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712109764610,
+      "departmentCode": "160300",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "企业网市场部",
+      "projectCount": 3971,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712109764611,
+      "departmentCode": "162028",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "深圳办事处",
+      "projectCount": 31,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958927,
+      "departmentCode": "167060",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "战略合作部（新）",
+      "projectCount": 1153,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958928,
+      "departmentCode": "165030",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "移动/广电系统部",
+      "projectCount": 61,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958929,
+      "departmentCode": "165040",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "电信系统部",
+      "projectCount": 58,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958930,
+      "departmentCode": "163120",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "政府系统部",
+      "projectCount": 75,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958931,
+      "departmentCode": "163140",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "交通系统部",
+      "projectCount": 68,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958932,
+      "departmentCode": "163220",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "电力能源系统部",
+      "projectCount": 205,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958933,
+      "departmentCode": "163230",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "金融系统部",
+      "projectCount": 303,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958934,
+      "departmentCode": "163240",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "大企业系统部",
+      "projectCount": 72,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958935,
+      "departmentCode": "163320",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "科教文卫系统部",
+      "projectCount": 145,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 1,
+      "companyCode": "001",
+      "departmentId": 2108524712113958936,
+      "departmentCode": "165050",
+      "companyName": "杭州迪普科技股份有限公司",
+      "departmentName": "联通系统部",
+      "projectCount": 9,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 3,
+      "companyCode": "003",
+      "departmentId": 248,
+      "departmentCode": "162021",
+      "companyName": "杭州迪普科技股份有限公司南京分公司",
+      "departmentName": "南京办事处",
+      "projectCount": 195,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 143,
+      "departmentCode": "161000",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "专网营销部",
+      "projectCount": 122,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 148,
+      "departmentCode": "162001",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "北京办事处",
+      "projectCount": 35,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 153,
+      "departmentCode": "162002",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "太原办事处",
+      "projectCount": 37,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 158,
+      "departmentCode": "162003",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "天津办事处",
+      "projectCount": 13,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 163,
+      "departmentCode": "162004",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "石家庄办事处",
+      "projectCount": 48,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 168,
+      "departmentCode": "162005",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "呼和浩特办事处",
+      "projectCount": 29,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 173,
+      "departmentCode": "162006",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "沈阳办事处",
+      "projectCount": 18,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 178,
+      "departmentCode": "162007",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "长春办事处",
+      "projectCount": 50,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 183,
+      "departmentCode": "162008",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "哈尔滨办事处",
+      "projectCount": 33,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 188,
+      "departmentCode": "162009",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "郑州办事处",
+      "projectCount": 65,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 193,
+      "departmentCode": "162010",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "长沙办事处",
+      "projectCount": 38,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 198,
+      "departmentCode": "162011",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "南昌办事处",
+      "projectCount": 64,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 203,
+      "departmentCode": "162012",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "武汉办事处",
+      "projectCount": 56,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 208,
+      "departmentCode": "162013",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "兰州办事处",
+      "projectCount": 29,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 213,
+      "departmentCode": "162014",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "乌鲁木齐办事处",
+      "projectCount": 41,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 218,
+      "departmentCode": "162015",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "西安办事处",
+      "projectCount": 24,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 223,
+      "departmentCode": "162016",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "成都办事处",
+      "projectCount": 95,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 228,
+      "departmentCode": "162017",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "重庆办事处",
+      "projectCount": 54,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 233,
+      "departmentCode": "162018",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "昆明办事处",
+      "projectCount": 83,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 238,
+      "departmentCode": "162019",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "贵阳办事处",
+      "projectCount": 30,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 243,
+      "departmentCode": "162020",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "上海办事处",
+      "projectCount": 86,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 248,
+      "departmentCode": "162021",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "南京办事处",
+      "projectCount": 135,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 253,
+      "departmentCode": "162022",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "杭州办事处",
+      "projectCount": 89,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 258,
+      "departmentCode": "162023",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "合肥办事处",
+      "projectCount": 47,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 263,
+      "departmentCode": "162024",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "济南办事处",
+      "projectCount": 64,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 268,
+      "departmentCode": "162025",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "广州办事处",
+      "projectCount": 87,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 273,
+      "departmentCode": "162026",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "福州办事处",
+      "projectCount": 30,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 278,
+      "departmentCode": "162027",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "南宁办事处",
+      "projectCount": 36,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 345,
+      "departmentCode": "162101",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "胶东办事处",
+      "projectCount": 12,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 526,
+      "departmentCode": "162102",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "深圳办",
+      "projectCount": 5,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 527,
+      "departmentCode": "162103",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "宁波办",
+      "projectCount": 1,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 543,
+      "departmentCode": "162106",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "海口办",
+      "projectCount": 1,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712109764610,
+      "departmentCode": "160300",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "企业网市场部",
+      "projectCount": 81,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712109764611,
+      "departmentCode": "162028",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "深圳办事处",
+      "projectCount": 2,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958930,
+      "departmentCode": "163120",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "政府系统部",
+      "projectCount": 10,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958931,
+      "departmentCode": "163140",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "交通系统部",
+      "projectCount": 11,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958932,
+      "departmentCode": "163220",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "电力能源系统部",
+      "projectCount": 9,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958933,
+      "departmentCode": "163230",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "金融系统部",
+      "projectCount": 27,
+      "alreadyAuthorized": false
+    },
+    {
+      "companyId": 4,
+      "companyCode": "002",
+      "departmentId": 2108524712113958935,
+      "departmentCode": "163320",
+      "companyName": "杭州迪普信息技术有限公司",
+      "departmentName": "科教文卫系统部",
+      "projectCount": 3,
+      "alreadyAuthorized": false
+    }
+  ],
+  "businessWrites": 0,
+  "authorizationWrites": 0,
+  "status": "AUTHORIZATION_REQUIRED",
+  "requiredPermission": "Existing pms:integration:execute and pms:project:create plus the exact active company and department pairs",
+  "originalFailure": "DPPMS_PROJECT_CREATION_ORGANIZATION_SCOPE_REQUIRED"
+}

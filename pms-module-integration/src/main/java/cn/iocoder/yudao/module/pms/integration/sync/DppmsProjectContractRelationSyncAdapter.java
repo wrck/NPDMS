@@ -28,6 +28,7 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
     @Override public Descriptor descriptor() {
         var columns=new ArrayList<>(columns());columns.addAll(List.of(DUPLICATE_GROUP_SIZE,"expectedProjectVersion","contractId","reviewedBefore","migrationDecision"));
         columns.addAll(STREAM_COLUMNS);
+        columns.addAll(DppmsProjectContractFormalDecision.columns().stream().filter(name->!columns.contains(name)).toList());
         return new Descriptor(ADAPTER,"DPPMS正式项目合同关系",List.of(new ObjectDescriptor(OBJECT,"原合同及完整组桥",
                 columns.stream().map(name->new Field(name,name,"STRING",false)).toList(),"COM","ProjectContractRelation",
                 "com_project_contract_relation",false)),List.of("RETAIN"),List.of("UPSERT"),false,true);
@@ -57,7 +58,7 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
         var included=new ArrayList<Row>();var skipped=new LinkedHashMap<String,Change>();
         for(var row:batch.rows()) {
             if(!OBJECT.equals(row.object()) || !row.fields().keySet().containsAll(columns()) || row.fields().containsKey("_sourcePrimaryKey")) fail("原7列及完整桥表字段缺失");
-            if("STREAMING_CURSOR".equals(definition.effectiveReadStrategy())
+            if("STREAMING_CURSOR".equals(definition.effectiveReadStrategy()) && !DppmsProjectContractFormalDecision.present(row.fields())
                     && (!row.fields().keySet().containsAll(STREAM_COLUMNS)
                     || !Objects.equals(row.sourceKey(),DppmsProjectContractDuplicateDecision.orderedSourceKey(row.fields()))))
                 fail("整表流式任务缺少完整分组元数据或稳定来源顺序");
@@ -68,6 +69,8 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                         Map.of("originalFields",original(row.fields())),exclusion))!=null) fail("原来源身份重复");
             } else included.add(row);
         }
+        boolean formal=included.stream().anyMatch(row->DppmsProjectContractFormalDecision.present(row.fields()));
+        var formalDecisions=formal?DppmsProjectContractFormalDecision.resolve(included):Map.<String,DppmsProjectContractFormalDecision.Selection>of();
         var projectKeys=new HashSet<String>();var actorNames=new HashSet<String>();
         for(var row:included) {
             var f=row.fields();String id=text(f.get("id")),member=text(f.get("member_id")),project=text(f.get("originalProjectId"));
@@ -81,7 +84,8 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                     || !Objects.equals(text(f.get("member_projectCode")),text(f.get("originalProjectCode"))) && !approvedHistorical(row)) fail("组、组成员或原项目未精确匹配；未经裁决的历史桥阻断");
             projectKeys.add(project);
             for(String name:List.of("createBy","updateBy")) {
-                String actor=text(auditValue(f,name));
+                var selection=formalDecisions.get(row.sourceKey());
+                String actor=selection==null?text(auditValue(f,name)):"createBy".equals(name)?selection.creator():selection.updater();
                 if(actor!=null && !ProjectContractRelationMigrationApi.UNLINKED_AUDIT_CODES.contains(actor)) actorNames.add(actor);
             }
         }
@@ -122,11 +126,12 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                     || f.get("contractId")!=null && !positive(f.get("contractId")).equals(ref.contractId()))
                 fail("正式目标解析与项目绑定或显式版本/合同引用不一致");
         }
-        var duplicates=DppmsProjectContractDuplicateDecision.resolve(included);
+        var duplicates=formal?Map.<String,DppmsProjectContractDuplicateDecision.Canonical>of():DppmsProjectContractDuplicateDecision.resolve(included);
         var canonicalBindings=new HashMap<String,Binding>();
-        var canonicalKeys=included.stream().filter(row->row.fields().containsKey("canonicalOriginalId"))
-                .flatMap(row->java.util.stream.Stream.of(DppmsProjectContractDuplicateDecision.canonicalBindingKey(row),duplicates.get(row.sourceKey()).sourceKey()))
-                .distinct().toList();
+        var canonicalKeys=formal?formalDecisions.values().stream().flatMap(selection->java.util.stream.Stream.of(
+                DppmsProjectContractFormalDecision.canonicalBindingKey(selection),selection.sourceKey())).distinct().toList():
+                included.stream().filter(row->row.fields().containsKey("canonicalOriginalId"))
+                .flatMap(row->java.util.stream.Stream.of(DppmsProjectContractDuplicateDecision.canonicalBindingKey(row),duplicates.get(row.sourceKey()).sourceKey())).distinct().toList();
         if(!canonicalKeys.isEmpty()) {
             var source=definition.sources().stream().filter(item->OBJECT.equals(item.object())).findFirst().orElseThrow();
             for(var binding:bindings.selectSourceKeys(new SyncQueries.SourceKeys(tenant,task.getId(),OBJECT,source.sourceObject(),canonicalKeys))) {
@@ -151,8 +156,23 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
             if(reviewed!=null && !batch.adoptExisting()) fail("具体存量纠正未批准");
             Long targetId=prior==null?reviewed==null?null:reviewed.id():row.targetId();
             var duplicate=duplicates.get(row.sourceKey());
-            String ownerKey=duplicate==null?row.sourceKey():duplicate.sourceKey();
-            LocalDateTime created=duplicate==null?time(auditValue(f,"createTime")):duplicate.createdAt();
+            var selection=formalDecisions.get(row.sourceKey());
+            if(selection!=null && prior!=null && prior.lastFields().containsKey("formalDecision")
+                    && !DppmsProjectContractFormalDecision.sameProof(selection,prior.lastFields().get("formalDecision"))) fail("完整身份归并事实已改变，禁止自动覆盖");
+            String ownerKey=selection!=null?selection.sourceKey():duplicate==null?row.sourceKey():duplicate.sourceKey();
+            LocalDateTime created=selection!=null?selection.createdAt():duplicate==null?time(auditValue(f,"createTime")):duplicate.createdAt();
+            if(selection!=null && prior==null) {
+                var canonical=canonicalBindings.get(DppmsProjectContractFormalDecision.canonicalBindingKey(selection));
+                if(canonical==null) canonical=canonicalBindings.get(ownerKey);
+                if(canonical!=null) {
+                    if(!sameOriginal(selection.canonical(),canonical.lastFields().get("originalFields"))
+                            || canonical.lastFields().containsKey("formalDecision") && !DppmsProjectContractFormalDecision.sameProof(selection,canonical.lastFields().get("formalDecision")))
+                        fail("跨块规范来源或完整身份归并事实已改变");
+                    last=decode(canonical.lastFields().get("relation"));
+                    if(last==null || !Objects.equals(canonical.targetId(),last.id())) fail("跨块规范绑定的完整正式前值缺失");
+                    targetId=canonical.targetId();
+                }
+            }
             if(prior==null && f.containsKey("canonicalOriginalId")) {
                 var canonical=canonicalBindings.get(DppmsProjectContractDuplicateDecision.canonicalBindingKey(row));
                 if(canonical==null) canonical=canonicalBindings.get(ownerKey);
@@ -165,11 +185,13 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                 }
             }
             Object originalUpdated=auditValue(f,"updateTime");
-            LocalDateTime updated=originalUpdated==null?created:time(originalUpdated);
+            LocalDateTime updated=selection!=null?selection.updatedAt():originalUpdated==null?created:time(originalUpdated);
             String projectKey=text(f.get("originalProjectId"));
             var targetReference=targetReferences.get(row.sourceKey());
             var incoming=new Relation(null,tenant,projectIds.get(projectKey),targetReference.contractId(),"RELATED","DPPMS",OBJECT,
-                    ownerKey,created,null,approvedHistorical(row)?"HISTORICAL":"ACTIVE",0,actor(auditValue(f,"createBy"),actors),created,actor(auditValue(f,"updateBy"),actors),updated,false);
+                    ownerKey,created,null,selection!=null?selection.status():approvedHistorical(row)?"HISTORICAL":"ACTIVE",0,
+                    actor(selection!=null?selection.creator():auditValue(f,"createBy"),actors),created,
+                    actor(selection!=null?selection.updater():auditValue(f,"updateBy"),actors),updated,false);
             var entry=new Entry(ownerKey,targetId,last,reviewed,incoming,projectKey,projectReferences.get(projectKey).projectCode(),
                     targetReference.projectVersion(),text(f.get("contractNo")),task.getConnectionId());
             var previousEntry=entries.putIfAbsent(ownerKey,entry);
@@ -184,10 +206,13 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
         for(var item:ownerKeys.entrySet()) {
             var result=byKey.get(item.getValue());var duplicate=duplicates.get(item.getKey());
             var dispositions=fieldDecisions(originals.get(item.getKey()));
+            var selection=formalDecisions.get(item.getKey());
+            if(selection!=null) dispositions.putAll(DppmsProjectContractFormalDecision.fieldDecisions(originals.get(item.getKey()),selection));
             String message="正式合同关系；合同关系审计为主、成员审计补缺；拆分备注不迁入，由正式主子项目功能处理";
             if(dispositions.values().stream().anyMatch(value->value.startsWith("不独立迁入")))
                 message+="；不同成员审计按裁决不独立迁入，逐字段原因见fieldDecisions";
-            if(duplicate!=null && countedSources.contains(item.getKey()))
+            if(selection!=null) message+="；Q018按规范项目＋合同归并，当前来源优先、最早创建、最近非空更新；每个原ID独立绑定";
+            else if(duplicate!=null && countedSources.contains(item.getKey()))
                 message+="；Q-LEGACY-CONTRACT-DUPLICATE-POLICY-20261012-008共用关系 "+duplicate.sourceKey()
                         +(duplicate.identical()?"；原6项业务及审计值全部同值承接":item.getKey().equals(duplicate.sourceKey())?"，createTime承接最早原值":"；createTime不独立迁入正式审计：重复登记时间，不构成不同关系事实")
                         +"；每个原ID独立绑定";
@@ -195,9 +220,10 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                     +"；原6项业务及审计值全部同值承接，每个原ID独立绑定";
             else if(duplicate!=null) message+="；Q-LEGACY-CONTRACT-DUPLICATE-TIMES-20261012-004共用关系 "+duplicate.sourceKey()
                     +(item.getKey().equals(duplicate.sourceKey())?"，createTime承接最早原值":"；createTime不独立迁入正式审计：重复登记时间，不构成不同关系事实");
-            changes.put(item.getKey(),new Change(OBJECT,item.getKey(),result.after().id(),result.action(),encode(result.before()),
-                    Map.of("relation",encode(result.after()),"originalFields",originals.get(item.getKey()),
-                            "fieldDecisions",dispositions),message));
+            var after=new LinkedHashMap<String,Object>();after.put("relation",encode(result.after()));
+            after.put("originalFields",originals.get(item.getKey()));after.put("fieldDecisions",dispositions);
+            if(selection!=null) after.put("formalDecision",selection.proof());
+            changes.put(item.getKey(),new Change(OBJECT,item.getKey(),result.after().id(),result.action(),encode(result.before()),after,message));
         }
         return batch.rows().stream().map(row->changes.get(row.sourceKey())).toList();
     }
@@ -207,7 +233,7 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
         // Old list joins remove all repeated historical suffixes, not only the last one.
         return code!=null && code.endsWith("-his") && code.replace("-his","").equals(text(f.get("originalProjectCode")));
     }
-    private static Object auditValue(Map<String,Object> fields,String name) {
+    static Object auditValue(Map<String,Object> fields,String name) {
         Object value=fields.get(name);
         String raw=text(value);
         if(raw!=null && !raw.isEmpty()) return value;
@@ -226,19 +252,28 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
             result.put("member_"+name,disposition);
         }
         result.put("member_mergeBranchMark","不迁入：用户裁决拆分由新系统正式主子项目功能处理");
-        return Map.copyOf(result);
+        return result;
     }
     private static String approvedExclusion(Row row) {
         var f=row.fields();
         if(!(f.get("migrationDecision") instanceof Map<?,?> decision)) return null;
         String action=text(decision.get("action"));
-        if(!Set.of("SKIP_MISSING_GROUP","SKIP_MISSING_PROJECT_MEMBER").contains(action==null?"":action)) return null;
+        if(!Set.of("SKIP_MISSING_GROUP","SKIP_MISSING_PROJECT_MEMBER","SKIP_MISSING_GROUP_MEMBER").contains(action==null?"":action)) return null;
         requireConfiguredDecision(row);
         if(!validSourceKey(row)) fail("已裁决排除记录的原身份改变");
         if("SKIP_MISSING_GROUP".equals(action)) {
             if(columns().stream().filter(name->!ORIGINAL_COLUMNS.contains(name)).anyMatch(name->f.get(name)!=null))
                 fail("已裁决缺组记录的原字段或关联状态改变");
-            return "Q006用户明确不迁入：原项目组及成员不存在，无法形成项目合同关联";
+            return "用户明确不迁入：原项目组及成员不存在，无法形成项目合同关联";
+        }
+        if("SKIP_MISSING_GROUP_MEMBER".equals(action)) {
+            if(f.get("group_id")==null || f.get("group_projectType")==null
+                    || !Objects.equals(text(f.get("projectGroupCode")),text(f.get("group_projectGroupCode")))
+                    || MEMBER_COLUMNS.stream().anyMatch(name->f.get("member_"+name)!=null)
+                    || f.get("originalProjectId")!=null || f.get("originalProjectCode")!=null
+                    || f.get("projectCandidateCount")!=null && !"0".equals(text(f.get("projectCandidateCount"))))
+                fail("已裁决缺成员记录的关联已恢复或完整原组不一致");
+            return "Q019用户明确不迁入：原项目组无成员，无法确定项目归属；完整原始证据保留";
         }
         // The task's frozen full original fields determine the approved scope; never skip all missing joins.
         if(f.get("originalProjectId")!=null || f.get("originalProjectCode")!=null
@@ -251,6 +286,7 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
     }
     private static boolean validSourceKey(Row row) {
         var f=row.fields();
+        if(DppmsProjectContractFormalDecision.present(f)) return Objects.equals(row.sourceKey(),DppmsProjectContractFormalDecision.orderedSourceKey(f));
         String originalKey=text(f.get("id"))+":"+(f.get("member_id")==null?"0":text(f.get("member_id")));
         return f.containsKey("canonicalOriginalId") ? Objects.equals(row.sourceKey(),DppmsProjectContractDuplicateDecision.orderedSourceKey(f))
                 : Objects.equals(row.sourceKey(),originalKey);
@@ -265,7 +301,7 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
         ((Map<?,?>)((Map<?,?>)value).get("originalFields")).forEach((key,item)->expected.put(key.toString(),item));
         if(!sameOriginal(original(row.fields()),original(expected))) fail("任务配置中的裁决原字段或关联关系已改变");
     }
-    private static Map<String,Object> original(Map<String,Object> fields) {
+    static Map<String,Object> original(Map<String,Object> fields) {
         var raw=new LinkedHashMap<String,Object>();
         for(String name:columns()) {
             Object value=fields.get(name);

@@ -193,7 +193,8 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
         if (!currentProjectIds(tenantId, userId).contains(projectId)) throw inaccessible();
         var query = new cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectCommerceQuery(tenantId, projectId);
         return new ProjectCommerceDetail(projectCommerceMapper.selectContracts(query),
-                projectCommerceMapper.selectOrders(query), projectCommerceMapper.selectExecutionOrders(query));
+                projectCommerceMapper.selectOrders(query), projectCommerceMapper.selectExecutionOrders(query),
+                projectCommerceMapper.selectReceivables(query));
     }
 
     public PageResult<cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ProjectContractRelationRow> getProjectContractRelations(
@@ -211,7 +212,13 @@ public class ContractAccessService implements cn.iocoder.yudao.module.pms.commer
     }
 
     public record ProjectCommerceDetail(List<ContractDO> contracts, List<SalesOrderDO> orders,
-        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders) {}
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders,
+        List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.history.ContractReceivableDO> receivables) {
+        public ProjectCommerceDetail(List<ContractDO> contracts, List<SalesOrderDO> orders,
+            List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO> executionOrders) {
+            this(contracts,orders,executionOrders,List.of());
+        }
+    }
 
     /**
      * 合同主档单入口的项目创建取值解析：合同 → 订单（主导列业务键直连，排退货）→ 执行单（主执行单号直连）。

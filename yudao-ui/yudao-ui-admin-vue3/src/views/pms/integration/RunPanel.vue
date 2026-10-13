@@ -205,7 +205,7 @@
         <el-table
           :data="changes"
           class="integration-table"
-          empty-text="暂无差异结果；失败批次未提交业务数据"
+          :empty-text="changeEmptyText"
         >
           <el-table-column prop="object" label="对象" width="130" /><el-table-column
             prop="sourceKey"
@@ -307,6 +307,19 @@ watch(
     if (!id) selected.value = undefined
   }
 )
+const completedEmptyQuery = computed(
+  () =>
+    !!selected.value &&
+    ['SUCCESS', 'PREVIEW_READY'].includes(selected.value.status) &&
+    selected.value.readCount === 0
+)
+const changeEmptyText = computed(() =>
+  completedEmptyQuery.value
+    ? '本次查询没有记录，无需写入业务数据'
+    : selected.value?.status === 'FAILED'
+      ? '暂无差异结果；失败批次未提交业务数据'
+      : '暂无差异结果'
+)
 const summary = computed(() => {
   try {
     const counts = JSON.parse(selected.value?.summaryJson || '{}') as Record<string, number>
@@ -315,7 +328,7 @@ const summary = computed(() => {
         .map(
           ([key, count]) => (key === 'FAILED' ? '失败' : api.changeLabels[key] || key) + ' ' + count
         )
-        .join('，') || '尚无处理结果'
+        .join('，') || (completedEmptyQuery.value ? '本次查询没有记录' : '尚无处理结果')
     )
   } catch {
     return '尚无处理结果'

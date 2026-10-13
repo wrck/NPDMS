@@ -527,6 +527,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
+import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import ProjectAssociatedDataPanel from './components/ProjectAssociatedDataPanel.vue'
 import * as RiskApi from '@/api/pms/project/project-risk'
 import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
@@ -584,6 +585,7 @@ defineOptions({ name: 'PmsProjectMasterDetail' })
 
 const route = useRoute()
 const router = useRouter()
+const routeProjectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
 
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
@@ -828,7 +830,7 @@ const switchTab = async (key: string) => {
 const primaryContact = ref<ContactsApi.ContactVO>()
 const primaryContactPending = ref(false)
 const loadPrimaryContact = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId()
   if (!id || !checkPermi(['pms:customer-contact:query'])) return
   try {
     const page = await ContactsApi.getProjectPage(id, { pageNo: 1, pageSize: 1, status: 0 })
@@ -949,7 +951,7 @@ const handleFlowChanged = async () => {
 
 // ============ 数据加载 ============
 const loadDetail = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId()
   if (!id) return
   detail.value = await ProjectsApi.getProject(id)
 }
@@ -964,12 +966,12 @@ const handleScheduleChanged = async () => {
   await Promise.all([loadDetail(), loadInstances()])
 }
 const loadInstances = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId()
   if (!id) return
   instances.value = await ProjectsApi.getProjectInstances(id)
 }
 const loadRiskCount = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId()
   if (!id || !checkPermi(['pms:project-risk:query'])) return
   try {
     riskCount.value = ((await RiskApi.getProjectRiskListByProjectId(id)) || []).length
@@ -978,12 +980,12 @@ const loadRiskCount = async () => {
   }
 }
 const loadScopeVersion = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId()
   scopeVersion.value = undefined
   if (!id || !checkPermi(['pms:commerce:scope:query'])) return
   try {
     const scope = await ProjectsApi.queryTree(id, { queryType: 'LOCATE', pageSize: 1 })
-    if (id === Number(route.query.projectId)) scopeVersion.value = scope.updating ? undefined : scope.treeVersion
+    if (id === routeProjectId()) scopeVersion.value = scope.updating ? undefined : scope.treeVersion
   } catch {
     scopeVersion.value = undefined
   }

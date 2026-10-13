@@ -44,8 +44,9 @@ public class DeliveryScopeController {
             @RequestParam(defaultValue = "1") @Min(1) int pageNo,
             @RequestParam(defaultValue = "20") @Min(1) @Max(200) int pageSize) {
         return withTenant(() -> {
-            PageResult<DeliveryScopeView> page = queryService.page(currentTenantId(), currentUserId(), projectId,
-                    orderLineId, includeHistory, (pageNo - 1) * pageSize, pageSize);
+            PageResult<DeliveryScopeView> page = queryService.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                    .tenantId(currentTenantId()).subjectUserId(currentUserId()).projectId(projectId).orderLineId(orderLineId)
+                    .includeHistory(includeHistory).offset((pageNo-1)*pageSize).limit(pageSize).build());
             return success(new PageResult<>(page.getList().stream().map(this::toResponse).toList(), page.getTotal()));
         });
     }
@@ -115,13 +116,17 @@ public class DeliveryScopeController {
                 detail.getDetailSequence(), detail.getSerialNo(), detail.getProductName(), detail.getProductCode(),
                 detail.getDeviceTypeCode(), detail.getDeviceTypeName(), detail.getAllocatedQty(),
                 detail.getDetailStatus())).toList();
-        return new DeliveryScopeRespVO(scope.getId(), scope.getProjectId(), scope.getProjectCode(),
-                scope.getOrderLineId(), scope.getOrderNo(), scope.getLineNo(), scope.getProductCode(),
-                scope.getProductDesc(), scope.getAllocatedQty(), scope.getScopeStatus(), scope.getAllocationVersion(),
-                scope.getAllocationSource(), scope.getChangeReason(), scope.getDepartmentId(),
-                scope.getDepartmentCode(), scope.getDepartmentName(), scope.getDepartmentVersion(),
-                scope.getEffectiveFrom(), scope.getEffectiveTo(), scope.getVersion(), details,
-                scope.getAllocationConfirmed(), scope.getDeliveredQuantity(), scope.getOpenQuantity());
+        var order=view.orderFields();
+        return DeliveryScopeRespVO.builder().id(scope.getId()).projectId(scope.getProjectId()).projectCode(scope.getProjectCode())
+                .orderLineId(scope.getOrderLineId()).orderNo(scope.getOrderNo()).lineNo(scope.getLineNo()).productCode(scope.getProductCode())
+                .productDesc(scope.getProductDesc()).allocatedQuantity(scope.getAllocatedQty()).scopeStatus(scope.getScopeStatus())
+                .allocationVersion(scope.getAllocationVersion()).allocationSource(scope.getAllocationSource()).changeReason(scope.getChangeReason())
+                .departmentId(scope.getDepartmentId()).departmentCode(scope.getDepartmentCode()).departmentName(scope.getDepartmentName())
+                .departmentVersion(scope.getDepartmentVersion()).effectiveFrom(scope.getEffectiveFrom()).effectiveTo(scope.getEffectiveTo())
+                .version(scope.getVersion()).details(details).allocationConfirmed(scope.getAllocationConfirmed())
+                .deliveredQuantity(scope.getDeliveredQuantity()).openQuantity(scope.getOpenQuantity())
+                .contractNo(order==null?null:order.contractNo()).orderQuantity(order==null?null:order.orderQuantity())
+                .unitCode(order==null?null:order.unitCode()).build();
     }
 
     private Long parseVersion(String value) {

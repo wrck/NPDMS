@@ -22,12 +22,20 @@
     <select id="countAllProjectRecords" resultType="java.lang.Long">
         SELECT COUNT(*) FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
     </select>
+    <sql id="latestExecutionRows">
+        FROM (
+            SELECT *, MAX(execution_no) OVER (PARTITION BY project_code) AS display_execution_no
+            FROM proj_project_product_configuration
+            WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'
+        ) c
+        WHERE c.execution_no=c.display_execution_no
+    </sql>
     <select id="selectProjectPage" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO">
-        SELECT * FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'
-        ORDER BY id LIMIT #{query.offset},#{query.limit}
+        SELECT c.* <include refid="latestExecutionRows"/>
+        ORDER BY c.project_code, c.item_group, c.bom_path, c.id LIMIT #{query.offset},#{query.limit}
     </select>
     <select id="countProject" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'
+        SELECT COUNT(*) <include refid="latestExecutionRows"/>
     </select>
     <select id="selectPathNodes" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO">
         SELECT * FROM proj_project_product_configuration

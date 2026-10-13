@@ -18,10 +18,9 @@ public final class DppmsProjectContractRelationSyncTemplate {
     }
     public static SyncDefinition create(Long connectionId) {
         if(connectionId==null || connectionId<=0) throw new IllegalArgumentException("项目合同来源连接无效");
-        String sql=DppmsMigrationSql.initial("project-contract-relations");
+        String sql=DppmsMigrationSql.initial("project-contract-formal-relations");
         var mappings=new ArrayList<>(columns().stream().map(name->SyncDefinition.Mapping.builder().source(name).target(name).conversion("DIRECT").build()).toList());
-        mappings.add(SyncDefinition.Mapping.builder().source(DUPLICATE_GROUP_SIZE).target(DUPLICATE_GROUP_SIZE).conversion("DIRECT").build());
-        STREAM_COLUMNS.forEach(name->mappings.add(SyncDefinition.Mapping.builder().source(name).target(name).conversion("DIRECT").build()));
+        DppmsProjectContractFormalDecision.columns().forEach(name->mappings.add(SyncDefinition.Mapping.builder().source(name).target(name).conversion("DIRECT").build()));
         for(String name:List.of("reviewedBefore","migrationDecision")) mappings.add(SyncDefinition.Mapping.builder()
                 .source("relationOriginalKey").target(name).conversion("LOOKUP").values(Map.of()).build());
         var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).sourceKey("relationSourceKey")

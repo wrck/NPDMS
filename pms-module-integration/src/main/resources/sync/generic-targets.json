@@ -79,6 +79,7 @@
       "receiver_name",
       "express_no",
       "carrier_name",
+      "carrier_code",
       "mapping_status",
       "source_system",
       "source_record_key",
@@ -92,6 +93,7 @@
       "receiver_name",
       "express_no",
       "carrier_name",
+      "carrier_code",
       "source_sync_time"
     ],
     "keys": [

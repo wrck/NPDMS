@@ -44,6 +44,34 @@ class ProjectRealProductImportServiceTest {
         r.setPayloadJson(LegacyDetailNormalizer.sourcePayloadJson(values));return r;
     }
     ProjectRealProductImportService.Plan prepare(){return service.prepare(100L,"101",List.of(original),List.of(upstream),actor);}
+    cn.iocoder.yudao.module.pms.project.api.migration.ProjectRealProductMigrationApi.Source direct(Long id,String baseline) {
+        var companion=new LinkedHashMap<>(raw);companion.keySet().retainAll(ProjectRealProductImportService.SHARED_COLUMNS);companion.put("dataSource","SMS");
+        return new cn.iocoder.yudao.module.pms.project.api.migration.ProjectRealProductMigrationApi.Source("301",new LinkedHashMap<>(raw),companion,1,id,baseline);
+    }
+    @Test void editableSqlInputsReuseFormalOwnerWithoutProjectSnapshotOrDuplicateBusinessImplementation() {
+        var plan=service.prepareSources(new ProjectRealProductImportService.DirectPreparation(100L,"101",List.of(direct(null,null)),actor));
+        var preview=service.sourceResults(new ProjectRealProductImportService.SourceExecution(plan,actor,false)).getFirst();
+        assertEquals("CREATED",preview.action());assertNull(preview.targetId());assertEquals(19,preview.fields().size());
+        assertEquals(new BigDecimal("-2"),preview.fields().get("quantity"));assertEquals("COMMERCIAL-CODE",preview.fields().get("projectCode"));
+        assertNull(preview.fields().get("memo"));assertEquals("SMS",preview.fields().get("dataSource"));verifyNoInteractions(evidence);
+        verify(mapper,never()).insert(any(ProjectRealProductDO.class));
+        var applied=service.sourceResults(new ProjectRealProductImportService.SourceExecution(plan,actor,true)).getFirst();
+        assertEquals(persisted.getId(),applied.targetId());assertEquals(ProjectRealProductImportService.baseline(persisted),applied.baseline());
+        var replayPlan=service.prepareSources(new ProjectRealProductImportService.DirectPreparation(100L,"101",List.of(direct(applied.targetId(),applied.baseline())),actor));
+        var replay=service.sourceResults(new ProjectRealProductImportService.SourceExecution(replayPlan,actor,true)).getFirst();
+        assertEquals("UNCHANGED",replay.action());assertEquals(applied.fields(),replay.fields());verify(mapper,times(1)).insert(any(ProjectRealProductDO.class));
+        persisted.setUpdater("later editor");
+        assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectRealProductImportService.DirectPreparation(100L,"101",List.of(direct(applied.targetId(),applied.baseline())),actor)));
+    }
+    @Test void rawSqlCoverageUpstreamMismatchAndOldUnboundListStillBlockBeforeWrites() {
+        var missing=direct(null,null);missing.originalFields().remove("memo");
+        assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectRealProductImportService.DirectPreparation(100L,"101",List.of(missing),actor)));
+        var changed=direct(null,null);changed.upstreamFields().put("productSubName","different");
+        assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectRealProductImportService.DirectPreparation(100L,"101",List.of(changed),actor)));
+        when(mapper.countAllProjectRecords(any())).thenReturn(1L);
+        assertThrows(IllegalArgumentException.class,()->service.prepareSources(new ProjectRealProductImportService.DirectPreparation(100L,"101",List.of(direct(null,null)),actor)));
+        verify(mapper,never()).insert(any(ProjectRealProductDO.class));verifyNoInteractions(evidence);
+    }
     @Test void actualCommercialCodeEmptyNullAndNegativeQuantityAreCarriedWithoutAllocation() {
         var plan=prepare();var result=service.apply(plan,actor);
         assertEquals("COMMERCIAL-CODE",persisted.getProjectCode());assertEquals("",persisted.getContractNo());assertNull(persisted.getMemo());

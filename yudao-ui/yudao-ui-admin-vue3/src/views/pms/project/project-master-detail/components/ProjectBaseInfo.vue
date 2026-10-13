@@ -51,9 +51,21 @@
             <div class="fact"><dt>执行单来源</dt><dd>{{ order.sourceSystem || '—' }}</dd></div>
           </dl>
         </div>
-        <p v-if="!loading && !error && !contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
+        <div v-for="item in commerce?.receivables || []" :key="item.id" class="source-record">
+          <div class="record-heading"><el-tag effect="plain">合同回款信息</el-tag><strong>{{ item.contractNo }}</strong></div>
+          <dl class="fact-grid">
+            <div class="fact"><dt>客户</dt><dd>{{ item.customerName || item.customerCode || '—' }}</dd></div>
+            <div class="fact"><dt>币种</dt><dd>{{ item.currencyName || '—' }}</dd></div>
+            <div v-for="field in receivableAmountFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ item[field.key] == null ? '—' : item[field.key] }}</dd></div>
+            <div v-for="field in receivableFields" :key="field.key" class="fact"><dt>{{ field.label }}</dt><dd>{{ field.time ? time(item[field.key]) : item[field.key] ?? '—' }}</dd></div>
+          </dl>
+        </div>
+        <p v-if="!loading && !error && !contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length && !commerce?.receivables?.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
         <ProjectAssociatedDataPanel v-if="project.id" :project-id="project.id" title="回款计划" :kinds="['plans']" />
       </template>
+    </section>
+    <section v-if="project.id" class="fact-section">
+      <ProjectAssociatedDataPanel :project-id="project.id" title="设备许可" :kinds="['licenses']" />
     </section>
     <section class="fact-section">
       <h3>补充信息</h3>
@@ -83,6 +95,7 @@ interface CommerceOverview {
   contracts: { id: number; contractNo: string; contractName?: string; companyName?: string; companyCode?: string; customerCode?: string; customerName?: string; currencyCode?: string; contractAmount?: number | null }[]
   orders: { id: number; orderNo: string; customerCode?: string; customerName?: string; companyName?: string; orderCreateTime?: string; orderAmount?: number | null; currencyCode?: string; salesType?: string; customerRequiredTime?: string; executionNo?: string }[]
   executionOrders: ({ id: number; executionNo: string } & Record<string, any>)[]
+  receivables?: ({ id: number; contractNo: string } & Record<string, any>)[]
 }
 const commerce = ref<CommerceOverview>()
 const contractRelations = ref<ProjectContractRelation[]>([])
@@ -106,7 +119,8 @@ const time = (value: any) => value ? formatDate(value) : '—'
 const amount = (value?: number | null, currency?: string) => value == null ? '—' : `${currency || ''} ${value}`.trim()
 const names = (roles: string[], exclude?: number) => members.value.filter(m => roles.includes(m.memberRole) && m.userId !== exclude).map(m => m.memberName || m.employeeNo).filter(Boolean).join('、') || (memberError.value ? '人员信息加载失败' : '—')
 const party = (role: string) => {
-  const assigned = props.project.parties?.filter(p => p.role === role).map(p => p.name || p.code).filter(Boolean).join('、')
+  const roles = role === 'AGENT' ? ['AGENT', '30'] : [role]
+  const assigned = [...new Set(props.project.parties?.filter(p => roles.includes(p.role)).map(p => p.name || p.code).filter(Boolean) || [])].join('、')
   if (assigned) return assigned
   const key = role === 'FINAL_CUSTOMER' ? 'finalCustomerName' : role === 'AGENT' ? 'agentName' : undefined
   const sourced = key ? [...new Set((commerce.value?.executionOrders || []).map(order => order[key]).filter(Boolean))] : []
@@ -136,7 +150,11 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
       { label: '项目关闭时间', value: time(p.closedAt ?? p.projectCloseTime) },
       { label: '销售类型', value: p.salesType }, { label: '业务类型', value: p.businessType },
       { label: '项目结束日期（工勘要求）', value: p.projectEndDate },
-      { label: '实施地点', value: p.implementationLocation, wide: true }
+      { label: '实施地点', value: p.implementationLocation, wide: true },
+      { label: '发货状态', value: statusLabel(p.statusAttributes?.shipment_status, shipmentStatusLabels) },
+      { label: '发货状态更新时间', value: time(p.statusAttributes?.shipment_status_updated_at) },
+      { label: '执行状态', value: statusLabel(p.statusAttributes?.execution_status, executionStatusLabels) },
+      { label: '执行状态更新时间', value: time(p.statusAttributes?.execution_status_updated_at) }
     ] },
     { title: '组织与人员', fields: [
       { label: '所属公司', value: p.companyName || p.companyCode },
@@ -155,11 +173,34 @@ const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
       { label: '最终客户单位', value: party('FINAL_CUSTOMER') },
       { label: '下单代理商', value: party('AGENT') },
       { label: '服务提供商', value: party('SERVICE_PROVIDER') },
+      { label: '服务渠道', value: party('10') },
+      { label: '出货渠道', value: party('20') },
       { label: '登记合同号', value: p.contractNo },
       { label: '用户服务等级', value: p.serviceLevelCode }
     ] }
   ]
 })
+const shipmentStatusLabels: Record<string, string> = { '-1': '已发货', '1': '未发货', '2': '部分发货' }
+const executionStatusLabels: Record<string, string> = { '5': '未实施', '7': '挂起状态', '10': '到货签收', '20': '上架加电',
+  '30': '配置调试', '40': '业务割接', '50': '实施完毕', '60': '初验-直签', '70': '终验-直签', '80': '项目闭环', '90': '维护阶段' }
+const statusLabel = (value: unknown, labels: Record<string, string>) => value == null ? '—' : labels[String(value)] || String(value)
+const receivableAmountFields = [
+  { key: 'contractAmount', label: '合同金额' }, { key: 'deliveredAmount', label: '发货金额' },
+  { key: 'collectedAmount', label: '已回款金额' }, { key: 'collectedRatio', label: '回款比例' },
+  { key: 'receivableAmount', label: '应收金额' }, { key: 'overdueAmount', label: '逾期金额' }
+]
+const receivableFields = [
+  { key: 'projectName', label: '合同项目名称' }, { key: 'projectCode', label: '合同项目编码' },
+  { key: 'orderNo', label: '销售订单号' }, { key: 'marketName', label: '市场' },
+  { key: 'departmentName', label: '办事处' }, { key: 'industryName', label: '行业' },
+  { key: 'marketingRepresentativeName', label: '销售代表' }, { key: 'marketingRepresentativeCode', label: '销售代表编码' },
+  { key: 'secondaryRepresentativeCode', label: '第二销售代表编码' }, { key: 'marketCode', label: '市场编码' },
+  { key: 'departmentCode', label: '办事处编码' }, { key: 'industryCode', label: '行业编码' },
+  { key: 'systemSourceKey', label: '系统编码' }, { key: 'expendSourceKey', label: '拓展编码' },
+  { key: 'contractCreateTime', label: '合同创建日期', time: true }, { key: 'latestShipTime', label: '最近发货日期', time: true },
+  { key: 'effectiveFrom', label: '生效日期', time: true }, { key: 'effectiveTo', label: '失效日期', time: true },
+  { key: 'batchCode', label: '批次' }, { key: 'importBatchNo', label: '导入批次' }, { key: 'dataSource', label: '数据来源' }
+]
 const executionFields: { key: string; label: string; dict?: DICT_TYPE }[] = [
   { key: 'salesRepName', label: '销售代表' }, { key: 'departmentName', label: '办事处' },
   { key: 'marketName', label: '市场' }, { key: 'systemName', label: '系统' },

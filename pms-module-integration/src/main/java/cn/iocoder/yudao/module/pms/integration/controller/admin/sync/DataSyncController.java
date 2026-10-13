@@ -24,6 +24,8 @@ public class DataSyncController {
     private final ExternalDataSourceApi sources;
     private final MysqlSyncReader reader;
     private final SyncDefinitionValidator definitions;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.api.migration.ProjectFactsMigrationApi projectFacts;
     private final SyncTaskService tasks;
     private final SyncRunService runner;
     private final SyncRunMapper runs;
@@ -147,6 +149,46 @@ public class DataSyncController {
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> projectContractRelationTemplate(@RequestParam Long connectionId) {
         connections.required(connectionId);return success(DppmsProjectContractRelationSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-project-product-scopes")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> projectProductScopeTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsProjectProductScopeSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-project-real-products")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> projectRealProductTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsProjectRealProductSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-obsolete-order-line-bindings")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> obsoleteOrderLineTemplate(@RequestParam Long connectionId,@RequestParam Long originalTaskId) {
+        connections.required(connectionId);tasks.required(originalTaskId);
+        return success(DppmsObsoleteOrderLineSyncTemplate.create(connectionId,originalTaskId));
+    }
+    @GetMapping("/templates/dppms-contract-receivables")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> contractReceivableTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsContractReceivableSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-project-facts")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> projectFactsTemplate(@RequestParam Long connectionId,
+            @RequestParam(required=false) Long definitionId) {
+        connections.required(connectionId);return success(DppmsProjectFactsSyncTemplate.create(connectionId,definitionId));
+    }
+    @PostMapping("/templates/dppms-project-facts-definition")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<Long> projectFactsDefinition(@RequestBody ProjectFactsDefinition request) {
+        return success(projectFacts.configureDefinition(new cn.iocoder.yudao.module.pms.project.api.migration.ProjectFactsMigrationApi.DefinitionRequest(
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),
+                request.existingRevisionId())));
+    }
+    public record ProjectFactsDefinition(Long existingRevisionId) {}
+    @GetMapping("/templates/dppms-project-associated-products")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> projectAssociatedProductTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsProjectAssociatedProductSyncTemplate.create(connectionId));
     }
     @GetMapping("/templates/dppms-users")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")

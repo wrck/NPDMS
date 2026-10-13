@@ -89,7 +89,15 @@ public class ContractController {
                     e.getSubmitTime(), e.getSourceSystem(), e.getSourceSyncTime(),
                     e.getProjectCode(), e.getProjectName(), sensitive ? e.getProjectAmount() : null,
                     e.getMajorProjectLevel(), e.getProjectType(), e.getMarketCode(), e.getSystemCode(),
-                    e.getExpendCode(), e.getIndustryCode())).toList()));
+                    e.getExpendCode(), e.getIndustryCode())).toList(),
+                detail.receivables().stream().map(f -> new cn.iocoder.yudao.module.pms.commerce.controller.admin.contract.vo.ProjectCommerceRespVO.Receivable(
+                    f.getId(),f.getContractNo(),f.getProjectName(),f.getSourceOrderNo(),sensitive?f.getCustomerCode():null,sensitive?f.getCustomerName():null,
+                    sensitive?f.getContractAmount():null,sensitive?f.getDeliveredAmount():null,sensitive?f.getCollectedAmount():null,
+                    sensitive?f.getCollectedRatio():null,sensitive?f.getReceivableAmount():null,sensitive?f.getOverdueAmount():null,
+                    f.getCurrencyName(),f.getMarketName(),f.getDepartmentName(),f.getIndustryName(),f.getMarketingRepresentativeName(),
+                    f.getContractCreateTime(),f.getLatestShipTime(),f.getProjectCode(),f.getMarketCode(),f.getDepartmentCode(),
+                    f.getIndustryCode(),f.getSystemSourceKey(),f.getExpendSourceKey(),f.getMarketingRepresentativeCode(),f.getSecondaryRepresentativeCode(),
+                    f.getOriginalDivisionValues(),f.getSourceEffectiveFrom(),f.getSourceEffectiveTo(),f.getSourceBatchCode(),f.getImportBatchNo(),f.getSourceSystem())).toList()));
         });
     }
 

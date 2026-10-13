@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.commerce.service.migration;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.commerce.api.migration.DppmsProjectProductScopeApi;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
@@ -62,7 +63,7 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
                 || command.entries()==null || command.entries().isEmpty() || command.entries().size()>1000)
             throw blocked("INVALID_REQUEST");
         var query=new ProjectScopeMigrationContextApi.Query(command.tenantId(),command.actorId(),command.projectId(),
-                command.expectedProjectVersion(),command.sourceProjectKey());
+                command.expectedProjectVersion(),command.sourceProjectKey(),command.sourceConnectionId());
         var project=apply?projects.lockAndRevalidate(query):projects.resolve(query);
         var version=apply?versions.lockExisting(command.tenantId(),command.projectId()):null;
         long nextVersion=Math.addExact(apply?(version==null?0:version.getScopeVersion()):versions.current(command.tenantId(),command.projectId()),1);
@@ -92,6 +93,11 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
                     previous==null?now:previous.getEffectiveFrom());
             if(previous!=null) {
                 if(entry.baseline()==null)throw blocked("BASELINE_MISSING");
+                var frozen=verifiedFormalBefore(entry,previous);
+                if(frozen!=null) {
+                    var snapshot=new BeanWrapperImpl(frozen);var planned=new BeanWrapperImpl(row);
+                    for(String field:PROJECT_SNAPSHOT_FIELDS)planned.setPropertyValue(field,snapshot.getPropertyValue(field));
+                }
                 if(Boolean.TRUE.equals(previous.getDeleted()) || !Boolean.FALSE.equals(previous.getAllocationConfirmed())
                         || !"DPPMS".equals(previous.getAllocationSource()) || !"ACTIVE".equals(previous.getScopeStatus())
                         || previous.getAllocationVersion()==null || previous.getAllocationVersion()<1 || previous.getEffectiveFrom()==null
@@ -127,6 +133,27 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
         if(apply)for(var row:preparedDetails)if(migration.insertHistoricalProductDetail(row)!=1)throw blocked("PRODUCT_DETAIL_INSERT_CONFLICT");
         return List.copyOf(result);
     }
+    /** Exact old Owner result protects historical project snapshots while current authorization stays in the context Owner. */
+    private static DeliveryScopeDO verifiedFormalBefore(Entry entry,DeliveryScopeDO previous) {
+        String json=entry.baseline().formalFieldsJson();
+        if(json==null)return null;
+        var values=JsonUtils.parseMap(json);var required=new HashSet<>(BUSINESS_FIELDS);
+        required.addAll(List.of("id","creator","createTime","updater","updateTime"));
+        if(values==null || !values.keySet().equals(required))throw blocked("FORMAL_BEFORE_INCOMPLETE");
+        var before=JsonUtils.parseObject(json,DeliveryScopeDO.class);
+        // The platform JSON default reads dates as epoch milliseconds; original SQL guards retain ISO precision.
+        var bean=new BeanWrapperImpl(before);
+        for(String field:List.of("effectiveFrom","effectiveTo","createTime","updateTime"))
+            if(values.get(field) instanceof String time)bean.setPropertyValue(field,LocalDateTime.parse(time.replace(' ','T')));
+        if(before==null || !Objects.equals(before.getId(),previous.getId()) || !matches(previous,before)
+                || !Objects.equals(previous.getCreator(),before.getCreator()) || !Objects.equals(previous.getCreateTime(),before.getCreateTime())
+                || !Objects.equals(previous.getUpdater(),before.getUpdater()) || !Objects.equals(previous.getUpdateTime(),before.getUpdateTime()))
+            throw blocked("FORMAL_BEFORE_CHANGED");
+        return before;
+    }
+    private static final List<String> PROJECT_SNAPSHOT_FIELDS=List.of("projectCode","projectName","projectCompanyCode","projectCompanyName",
+            "projectDepartmentCode","projectDepartmentName","projectCustomerCode","projectCustomerName","projectManagerEmployeeNo","projectManagerName",
+            "departmentId","departmentCode","departmentName","departmentVersion");
     private record ProductDetail(DeliveryScopeDetailDO row,boolean created) {}
     private ProductDetail productDetail(Command command,DeliveryScopeDO scope,boolean apply,LocalDateTime now) {
         var row=new DeliveryScopeDetailDO();

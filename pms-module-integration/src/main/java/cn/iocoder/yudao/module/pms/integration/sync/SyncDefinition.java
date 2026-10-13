@@ -63,6 +63,8 @@ public class SyncDefinition {
         private String sql;
         private Map<String,Object> parameters;
         private String sourceKey;
+        /** Once-only tables without a primary key: full original fields plus parent identity. */
+        private List<String> sourceKeyColumns;
         private boolean syncPrimaryKey;
         private String updatedAt;
         private List<String> columns;

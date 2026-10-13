@@ -86,6 +86,9 @@ public class SyncDefinitionValidator {
             var object=descriptor.objects().stream().filter(o->o.name().equals(s.object())).findFirst()
                     .orElseThrow(()->new IllegalArgumentException("对象不属于适配器"));
             MysqlSyncReader.compile(s);
+            if(s.sourceKeyColumns()!=null && !s.sourceKeyColumns().isEmpty()
+                    && (!"ONCE".equals(d.mode()) || !"SNAPSHOT".equals(readStrategy) || d.autoPaging() || s.syncPrimaryKey()))
+                throw new IllegalArgumentException("无主键来源的完整字段身份仅支持一次性整批读取，不支持源主键覆盖或游标恢复");
             if(s.syncPrimaryKey()&&!object.supportsSourcePrimaryKey())
                 throw new IllegalArgumentException("该业务对象不支持同步源主键");
             if("INCREMENTAL".equals(d.mode())) MysqlSyncReader.identifier(s.updatedAt());

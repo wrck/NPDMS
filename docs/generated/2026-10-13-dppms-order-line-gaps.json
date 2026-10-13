@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-10-13T07:41:21.254156",
+  "sourceOriginals": 380605,
+  "classifications": {
+    "REVIEWED_EXISTING_LINE": 50962,
+    "BOUND_LINE_REVIEW_CONFLICT": 9,
+    "BOUND_TARGET_ABSENT": 236259,
+    "PARENT_IDENTITY_2": 3,
+    "DUPLICATE_BUSINESS_KEY_CONFLICT": 40,
+    "PARENT_IDENTITY_0": 1579,
+    "NEW_LINE_OWNER_CANDIDATE": 91753
+  },
+  "reviewedExistingOriginals": 50962,
+  "completeOriginalEvidence": "D:\\CodexTaskArtifacts\\dppms-migration-20261013\\order-lines-originals-frozen-20261013T074108.jsonl",
+  "businessWrites": 0,
+  "schemaWrites": 0,
+  "fullClassificationEvidence": "D:\\CodexTaskArtifacts\\dppms-migration-20261013\\order-lines-restoration-scope-20261013T074108.json",
+  "decision": "Q-LEGACY-ORDER-LINE-MISSING-TARGETS-20261013-025",
+  "protection": "Existing missing target bindings and source evidence are preserved. No target rebuild or rebinding is authorized by this audit."
+}

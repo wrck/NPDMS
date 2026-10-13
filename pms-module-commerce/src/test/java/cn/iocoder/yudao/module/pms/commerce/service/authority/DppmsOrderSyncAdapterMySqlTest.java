@@ -32,6 +32,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class DppmsOrderSyncAdapterMySqlTest {
     @Resource DppmsOrderSyncAdapter adapter;
     @Resource CommerceAuthorityIngestApi authority;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    cn.iocoder.yudao.module.pms.commerce.service.sync.DppmsOrderFieldCarryOwner fieldCarryOwner;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    cn.iocoder.yudao.module.pms.commerce.service.sync.DppmsOrderLineFieldCarryOwner lineFieldCarryOwner;
     @Resource JdbcTemplate jdbc;
     @Resource org.apache.ibatis.session.SqlSession sqlSession;
     private final long tenant = 8_000_000_000L + new Random().nextInt(1_000_000_000);

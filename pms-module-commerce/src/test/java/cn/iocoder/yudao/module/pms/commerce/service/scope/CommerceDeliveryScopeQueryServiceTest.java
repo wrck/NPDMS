@@ -5,6 +5,7 @@ import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDe
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsRow;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeFactException;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,14 +45,21 @@ class CommerceDeliveryScopeQueryServiceTest {
         scope.setId(101L);
         scope.setProjectId(10L);
         when(scopeMapper.selectPageByProjectScope(any())).thenReturn(List.of(scope));
+        when(scopeMapper.selectOrderFields(any())).thenReturn(List.of(
+                new DeliveryScopeOrderFieldsRow(101L,"C1",new java.math.BigDecimal("4"),null)));
         DeliveryScopeDetailDO detail = new DeliveryScopeDetailDO();
         detail.setDeliveryScopeId(101L);
         when(detailMapper.selectByScopeIds(any())).thenReturn(List.of(detail));
 
-        var result = service.page(1L, 7L, 10L, null, false, 0, 20);
+        var result = service.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                .tenantId(1L).subjectUserId(7L).projectId(10L).limit(20).build());
 
         assertEquals(3L, result.getTotal());
         assertEquals(List.of(detail), result.getList().getFirst().details());
+        assertEquals("C1",result.getList().getFirst().orderFields().contractNo());
+        assertEquals(new java.math.BigDecimal("4"),result.getList().getFirst().orderFields().orderQuantity());
+        assertNull(result.getList().getFirst().orderFields().unitCode());
+        verify(scopeMapper).selectOrderFields(argThat(orderQuery->orderQuery.tenantId()==1L && orderQuery.scopeIds().equals(List.of(101L))));
         ArgumentCaptor<DeliveryScopePageQuery> query = ArgumentCaptor.forClass(DeliveryScopePageQuery.class);
         verify(scopeMapper).selectCountByProjectScope(query.capture());
         assertEquals(List.of(10L, 20L), query.getValue().projectIds());
@@ -62,7 +70,8 @@ class CommerceDeliveryScopeQueryServiceTest {
     void shouldReturnEmptyWithoutDataReadsWhenRequestedProjectIsInvisible() {
         when(projectScopeApi.resolveAllCurrent(any())).thenReturn(Set.of(20L));
 
-        assertTrue(service.page(1L, 7L, 10L, null, false, 0, 20).getList().isEmpty());
+        assertTrue(service.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                .tenantId(1L).subjectUserId(7L).projectId(10L).limit(20).build()).getList().isEmpty());
 
         verifyNoInteractions(scopeMapper, detailMapper);
     }
@@ -71,7 +80,8 @@ class CommerceDeliveryScopeQueryServiceTest {
     void shouldFailClosedWhenProjectOwnerIsUnavailable() {
         when(projectScopeApi.resolveAllCurrent(any())).thenThrow(new IllegalStateException("down"));
 
-        assertEquals(0L, service.page(1L, 7L, null, null, true, 0, 20).getTotal());
+        assertEquals(0L, service.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                .tenantId(1L).subjectUserId(7L).includeHistory(true).limit(20).build()).getTotal());
 
         verifyNoInteractions(scopeMapper, detailMapper);
     }

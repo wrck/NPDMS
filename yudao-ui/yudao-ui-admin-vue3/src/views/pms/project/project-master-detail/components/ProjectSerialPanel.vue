@@ -1,5 +1,5 @@
 <!-- 项目详情 · 序列号详情面板（DemoV2 1.1.1）：18 列序列号明细表，
-     行数据取 /pms/asset/devices/page（按项目过滤），安装位置取设备档案位置快照按 sn 关联，
+     行数据及安装位置直接取 /pms/asset/devices/page（按项目过滤），
      在网 conboot/cpld 与维保时长/续保次数按当前页逐台补齐（设备详情 + 维保记录接口）。
      出厂版本（MES）与官网版本/受影响技术公告（KNO）数据源未接入，如实以「—」展示。 -->
 <template>
@@ -103,7 +103,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as DeviceApi from '@/api/pms/asset/device'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 
 defineOptions({ name: 'ProjectSerialPanel' })
 
@@ -136,6 +135,15 @@ const pageSize = ref(20)
 const sn = ref('')
 const errorText = ref('')
 let loadSequence = 0
+const locationText = (snapshot?: string) => {
+  if (!snapshot) return ''
+  try {
+    const location = JSON.parse(snapshot)
+    return typeof location?.fallbackLocation === 'string' ? location.fallbackLocation : ''
+  } catch {
+    return snapshot
+  }
+}
 const load = async () => {
   const sequence = ++loadSequence
   const projectId = props.projectId
@@ -160,11 +168,12 @@ const load = async () => {
       productName: d.productName,
       conpVersion: d.conpVersion,
       conpType: d.conpType,
+      location: locationText(d.locationSnapshot),
       warrantyStartDate: d.warrantyStartDate,
       warrantyEndDate: d.warrantyEndDate
     }))
     // 只读取当前页的设备，避免截断项目第 200 台之后的安装位置。
-    await enrich(list, projectId)
+    await enrich(list)
     if (sequence !== loadSequence) return
     rows.value = list
   } catch {
@@ -176,17 +185,13 @@ const load = async () => {
 
 // 在网 conboot/cpld 版本与维保时长/续保次数不在列表投影内，按当前页逐台补齐；
 // 详情切片未同步（NOT_AVAILABLE）时对应列保持「—」，不臆造取值
-const enrich = async (list: SerialRow[], projectId: number) => {
+const enrich = async (list: SerialRow[]) => {
   await Promise.allSettled(
     list.map(async (row) => {
-      const [detail, warranty, archive] = await Promise.allSettled([
+      const [detail, warranty] = await Promise.allSettled([
         DeviceApi.getDevice(row.deviceId),
-        DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: 1, pageSize: 100 }),
-        DeviceArchiveApi.getDeviceArchivePage({ projectId, sn: row.sn, pageNo: 1, pageSize: 100 })
+        DeviceApi.getWarrantyRecords(row.deviceId, { pageNo: 1, pageSize: 100 })
       ])
-      if (archive.status === 'fulfilled') {
-        row.location = archive.value.list?.find((item: DeviceArchiveApi.DeviceArchiveVO) => item.sn === row.sn)?.locationSnapshot
-      }
       if (detail.status === 'fulfilled' && detail.value) {
         const slice = detail.value.networkVersion
         const data = (slice?.data || {}) as Record<string, any>

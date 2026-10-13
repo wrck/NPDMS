@@ -13,6 +13,7 @@ import java.util.List;
 
 @Mapper
 public interface SalesOrderLineMapper extends BaseMapperX<SalesOrderLineDO> {
+    List<Long> selectMigrationTargetIdsForUpdate(@Param("query") cn.iocoder.yudao.module.pms.commerce.api.migration.OrderLineMigrationPresenceApi.Query query);
     SalesOrderLineDO selectBySourceForUpdate(@Param("query") AuthoritySourceLockQuery query);
     List<SalesOrderLineDO> selectByCompanyScope(@Param("query") SalesOrderLineCompanyScopeQuery query);
     Long selectCountByCompanyScope(@Param("query") SalesOrderLineCompanyScopeQuery query);

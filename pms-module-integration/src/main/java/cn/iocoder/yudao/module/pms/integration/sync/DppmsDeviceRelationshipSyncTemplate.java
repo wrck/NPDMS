@@ -10,7 +10,8 @@ public final class DppmsDeviceRelationshipSyncTemplate {
     static final List<String> ORIGINAL_COLUMNS=List.of("id","sn1","item1","sn2","item2","contract","createtime","updatetime");
     public static SyncDefinition create(Long connectionId) {
         if(connectionId==null || connectionId<=0) throw new IllegalArgumentException("主附SN来源连接无效");
-        var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).readMode("TABLE").table(OBJECT)
+        var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).readMode("SQL")
+                .sql(DppmsMigrationSql.initial("device-relationships"))
                 .sourceKey("id").updatedAt(null).columns(ORIGINAL_COLUMNS).filters(List.of()).parameters(Map.of())
                 .mappings(ORIGINAL_COLUMNS.stream().map(name->SyncDefinition.Mapping.builder()
                         .source(name).target(name).conversion("DIRECT").build()).toList()).build();

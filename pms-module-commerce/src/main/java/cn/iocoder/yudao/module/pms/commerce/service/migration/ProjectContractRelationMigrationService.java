@@ -5,7 +5,7 @@ import cn.iocoder.yudao.module.pms.commerce.api.migration.ProjectContractRelatio
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.ContractMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ContractIdLockQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ProjectContractRelationMigrationMapper;
-import cn.iocoder.yudao.module.pms.project.api.migration.ProjectScopeMigrationContextApi;
+import cn.iocoder.yudao.module.pms.project.api.migration.ProjectMigrationIdentityContextApi;
 import cn.iocoder.yudao.module.pms.project.api.migration.ProjectMasterMigrationApi;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.contract.query.ContractMigrationIdentityQuery;
 import cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi;
@@ -23,7 +23,7 @@ import java.util.*;
 public class ProjectContractRelationMigrationService implements ProjectContractRelationMigrationApi {
     private final ProjectContractRelationMigrationMapper relations;
     private final ContractMapper contracts;
-    private final ProjectScopeMigrationContextApi projects;
+    private final ProjectMigrationIdentityContextApi projects;
     private final OrganizationScopeApi organization;
     private final PermissionApi permissions;
     private final AdminUserApi users;
@@ -121,7 +121,7 @@ public class ProjectContractRelationMigrationService implements ProjectContractR
         var result=new ArrayList<Result>();
         for(var entry:request.entries()) {
             var incoming=entry.incoming();
-            var query=new ProjectScopeMigrationContextApi.Query(tenant,request.actorId(),incoming.projectId(),
+            var query=new ProjectMigrationIdentityContextApi.Query(tenant,request.actorId(),incoming.projectId(),
                     entry.expectedProjectVersion(),entry.sourceProjectKey(),entry.sourceConnectionId());
             var project=apply?projects.lockAndRevalidate(query):projects.resolve(query);
             if(project==null || !Objects.equals(project.projectCode(),entry.sourceProjectCode())) fail("正式项目编码与原项目不一致");

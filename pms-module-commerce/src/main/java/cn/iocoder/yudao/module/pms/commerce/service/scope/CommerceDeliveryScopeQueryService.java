@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailM
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeDetailIdsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopePageQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsQuery;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.query.DeliveryScopeOrderFieldsRow;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.DeliveryScopeFactException;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
@@ -38,8 +40,13 @@ public class CommerceDeliveryScopeQueryService {
         return projectVersionService.current(tenantId, projectId);
     }
 
-    public PageResult<DeliveryScopeView> page(Long tenantId, Long subjectUserId, Long projectId,
-                                               Long orderLineId, boolean includeHistory, int offset, int limit) {
+    @lombok.Builder
+    public record PageQuery(Long tenantId,Long subjectUserId,Long projectId,Long orderLineId,boolean includeHistory,int offset,int limit) {}
+
+    public PageResult<DeliveryScopeView> page(PageQuery request) {
+        if(request==null)throw new IllegalArgumentException("COMMERCE_SCOPE_QUERY_INVALID_ARGUMENT");
+        Long tenantId=request.tenantId(),subjectUserId=request.subjectUserId(),projectId=request.projectId(),orderLineId=request.orderLineId();
+        boolean includeHistory=request.includeHistory();int offset=request.offset(),limit=request.limit();
         validate(tenantId, subjectUserId, projectId, orderLineId, offset, limit);
         List<Long> visibleProjectIds = visibleProjectIds(tenantId, subjectUserId);
         if (visibleProjectIds.isEmpty() || projectId != null && !visibleProjectIds.contains(projectId)) {
@@ -59,9 +66,11 @@ public class CommerceDeliveryScopeQueryService {
         Map<Long, List<DeliveryScopeDetailDO>> detailsByScope = detailMapper.selectByScopeIds(
                         new DeliveryScopeDetailIdsQuery(tenantId, scopeIds)).stream()
                 .collect(Collectors.groupingBy(DeliveryScopeDetailDO::getDeliveryScopeId));
+        var orderFieldsByScope=scopeMapper.selectOrderFields(new DeliveryScopeOrderFieldsQuery(tenantId,scopeIds)).stream()
+                .collect(Collectors.toMap(DeliveryScopeOrderFieldsRow::scopeId, row->row));
         List<DeliveryScopeView> views = scopes.stream()
                 .map(scope -> new DeliveryScopeView(scope,
-                        List.copyOf(detailsByScope.getOrDefault(scope.getId(), List.of()))))
+                        List.copyOf(detailsByScope.getOrDefault(scope.getId(), List.of())),orderFieldsByScope.get(scope.getId())))
                 .toList();
         return new PageResult<>(views, total);
     }

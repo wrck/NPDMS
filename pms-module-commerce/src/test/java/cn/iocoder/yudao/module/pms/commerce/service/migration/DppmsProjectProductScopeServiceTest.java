@@ -47,6 +47,14 @@ class DppmsProjectProductScopeServiceTest {
         raw.put("projectQuantity",split);return new Entry(id,raw,new Baseline(Long.parseLong(id)+1000,"creator",history,"updater",history));
     }
     Command command(Entry... entries) {return new Command(1L,1L,100L,3L,"101",List.of(entries));}
+    @Test void syncConnectionUsesTheExistingOfficeOwnerAndVersionGuard() {
+        var original=command(entry("1",null));
+        service.preview(new Command(original.tenantId(),original.actorId(),original.projectId(),original.expectedProjectVersion(),
+                original.sourceProjectKey(),original.entries(),18L));
+        verify(projects).resolve(argThat(query->query.sourceConnectionId().equals(18L) && query.expectedProjectVersion()==3L
+                && query.projectId()==100L && "101".equals(query.sourceProjectKey())));
+        verify(mapper,never()).insertHistoricalScope(any());
+    }
     @Test void previewGeneratesFormalFieldsWithoutWritingOrConsumingCapacity() {
         var result=service.preview(command(entry("1",null))).getFirst();
         assertEquals(1001L,result.targetId());assertEquals(new BigDecimal("4"),result.fields().get("allocatedQty"));
@@ -148,6 +156,28 @@ class DppmsProjectProductScopeServiceTest {
         saved.setUpdater("later editor");
         assertThrows(RuntimeException.class,()->service.apply(command(original)));
         verify(mapper,times(1)).insertHistoricalScope(any());
+    }
+    @Test void completeFormalBeforePreservesOldManagerSnapshotAndBlocksAnyLaterScopeChange() {
+        var saved=new DeliveryScopeDO();
+        doAnswer(call->{savedFields(call.getArgument(0),saved);return 1;}).when(mapper).insertHistoricalScope(any());
+        var original=entry("1",null);var first=service.apply(command(original)).getFirst();
+        var before=new LinkedHashMap<String,Object>();first.fields().forEach((name,value)->{
+            if(!Set.of("productDetail","productDetailAction").contains(name))
+                before.put(name,value==null?tools.jackson.databind.node.NullNode.getInstance():value instanceof LocalDateTime time?time.toString():value);
+        });
+        var baseline=original.baseline();var protectedEntry=new Entry(original.sourceKey(),original.originalFields(),new Baseline(
+                baseline.id(),baseline.creator(),baseline.createTime(),baseline.updater(),baseline.updateTime(),
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(before)));
+        when(mapper.lockIdentity(any())).thenReturn(List.of(saved));
+        when(projects.lockAndRevalidate(any())).thenReturn(new ProjectScopeMigrationContextApi.Context(
+                100L,3L,"P","Project","001","Company","C","Customer","NEW","Current manager",20L,"162007","Office",7));
+        var replay=service.apply(command(protectedEntry)).getFirst();assertEquals("UNCHANGED",replay.action());
+        assertEquals("Manager",replay.fields().get("projectManagerName"));assertEquals("E",replay.fields().get("projectManagerEmployeeNo"));
+        saved.setProjectManagerName("modified historical scope");
+        assertThrows(RuntimeException.class,()->service.apply(command(protectedEntry)));
+        saved.setProjectManagerName("Manager");saved.setOpenQuantity(new BigDecimal("8"));
+        assertThrows(RuntimeException.class,()->service.apply(command(protectedEntry)));
+        verify(mapper,times(1)).insertHistoricalScope(any());verify(mapper,times(1)).insertHistoricalProductDetail(any());
     }
     @Test void emptyProjectPermissionCannotExpandTheScopePage() {
         when(access.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(100L,1L,Set.of(),Set.of(100L)));

@@ -17,6 +17,8 @@ public final class SyncQueries {
     public record Due(Long tenantId,LocalDateTime now) {}
     public record TaskIdentity(Long tenantId,String sourceSystem,String adapter) {}
     public record AdapterScope(Long tenantId,String adapter,Long taskId) {}
+    public record ObsoleteOrderLines(Long tenantId,Long taskId,java.util.List<String> sourceKeys) {}
+    public record ObsoleteOrderLineDelete(Long tenantId,Long taskId,java.util.List<Long> bindingIds) {}
     @Data @EqualsAndHashCode(callSuper=true)
     public static class Page extends PageParam {
         private Long tenantId;

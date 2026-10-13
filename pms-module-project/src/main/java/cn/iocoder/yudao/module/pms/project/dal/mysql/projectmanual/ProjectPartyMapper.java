@@ -8,6 +8,12 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 @Mapper
 public interface ProjectPartyMapper extends BaseMapperX<ProjectPartyDO> {
+    record MigrationSourceQuery(Long tenantId, String sourceTable, String sourceKey) {}
+    List<ProjectPartyDO> selectMigrationSourceForUpdate(@Param("query") MigrationSourceQuery query);
+    /** Wrapper keeps the migration audit values outside MyBatis entity auto-fill. */
+    record MigrationWrite(ProjectPartyDO row, String creator, String updater) {}
+    int insertMigrationParty(@Param("command") MigrationWrite command);
+    int updateMigrationParty(@Param("command") MigrationWrite command);
     record PartySourceQuery(Long tenantId, String sourceSystem, String sourceTable,
                             String sourceRecordKey, String partyRole) {}
     ProjectPartyDO selectSourceForUpdate(@Param("query") PartySourceQuery query);

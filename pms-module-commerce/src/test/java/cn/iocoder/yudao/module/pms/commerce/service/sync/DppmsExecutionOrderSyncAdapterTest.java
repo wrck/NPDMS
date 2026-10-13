@@ -140,6 +140,38 @@ class DppmsExecutionOrderSyncAdapterTest {
         verify(mapper,never()).insertBatch(anyCollection(),anyInt());
         verify(mapper,never()).updateBatch(anyCollection(),anyInt());
     }
+    @Test void wholeTableLatestRevisionIsStableAcrossSeparateChunksAndReplays() {
+        var current=new CrmExecutionOrderDO();current.setId(42L);current.setVersion(7L);
+        current.setSourceSystem("CRM");current.setExecutionNo("EX-1");current.setProjectCode("P-1");current.setProjectName("最新项目");
+        current.setStatus("DISABLED");current.setPrimaryProjectId(88L);current.setAfEvidenceStatus("CONFIRMED");
+        when(mapper.selectIncoming(any())).thenReturn(List.of(current));
+        for(String id:List.of("1","2","1","2")) {
+            var fields=canonicalFields(id,"1".equals(id)?"早期项目":"最新项目");
+            var change=adapter.apply(batch(new Row("EXECUTION_ORDER",id,fields,42L))).getFirst();
+            assertEquals("UNCHANGED",change.action());assertEquals(42L,change.targetId());
+            assertEquals(fields.get("projectName"),change.after().get("projectName"));
+            assertEquals("最新项目",change.after().get("canonical_projectName"));
+        }
+        assertEquals(7L,current.getVersion());assertEquals("DISABLED",current.getStatus());assertEquals(88L,current.getPrimaryProjectId());
+        verify(mapper,never()).updateBatch(anyCollection(),anyInt());verify(mapper,never()).insertBatch(anyCollection(),anyInt());
+    }
+    @Test void wholeTableSelectionCannotSubstituteAnotherExecutionIdentity() {
+        var fields=canonicalFields("1","早期项目");fields.put("canonical_executionNo","FOREIGN-EXECUTION");
+        var change=adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst();
+        assertEquals("ISSUE",change.action());assertTrue(change.message().contains("修订身份"));
+        verify(mapper,never()).updateBatch(anyCollection(),anyInt());verify(mapper,never()).insertBatch(anyCollection(),anyInt());
+    }
+    private Map<String,Object> canonicalFields(String id,String originalName) {
+        var fields=new LinkedHashMap<String,Object>();
+        for(var field:adapter.descriptor().objects().getFirst().fields()) {
+            if(field.name().startsWith("canonical"))continue;
+            fields.put(field.name(),null);fields.put("canonical_"+field.name(),null);
+        }
+        fields.putAll(Map.of("sourceSystem","CRM","executionNo","EX-1","projectCode","P-1","projectName",originalName,
+                "canonical_sourceSystem","CRM","canonical_executionNo","EX-1","canonical_projectCode","P-1",
+                "canonical_projectName","最新项目","canonicalSourceId",2));
+        return fields;
+    }
 
     private static Row row(String id, String projectName) {
         return new Row("EXECUTION_ORDER", id, Map.of("executionNo", "EX-1", "sourceSystem", "CRM",

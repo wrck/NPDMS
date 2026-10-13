@@ -54,6 +54,40 @@ class DppmsProjectContractRelationSyncAdapterTest {
         return new Row(OBJECT,"100:200",f,null);
     }
     Batch batch(Row row,List<Binding> prior,boolean adopt) { return new Batch("integration:1:12",List.of(row),prior,true,"RETAIN",adopt,"UPSERT",false); }
+    @Test void formalGroupingSharesOneOwnerEntryAcrossGroupsAndPreservesEachOriginalBinding() {
+        var current=row();current.fields().put("createBy","sys");
+        var history=DppmsProjectContractFormalDecisionTest.source(101,201,"g2",true,"2020-01-01 00:00:00","unselected-person",null,null);
+        var first=DppmsProjectContractFormalDecisionTest.grouped(current,current,2,current);
+        var second=DppmsProjectContractFormalDecisionTest.grouped(history,current,2,current);
+        var changes=adapter.apply(new Batch("integration:1:12",List.of(first,second),List.of(),true,"RETAIN",false,"UPSERT",false));
+        verify(relations).apply(argThat(request->request.entries().size()==1 && "ACTIVE".equals(request.entries().getFirst().incoming().status())));
+        verifyNoInteractions(users);
+        assertEquals(2,changes.size());assertEquals(changes.getFirst().targetId(),changes.getLast().targetId());
+        assertNotEquals(changes.getFirst().sourceKey(),changes.getLast().sourceKey());
+        assertEquals("g2",((Map<?,?>)changes.getLast().after().get("originalFields")).get("projectGroupCode"));
+        assertTrue(((Map<?,?>)changes.getLast().after().get("fieldDecisions")).get("createBy").toString().contains("当前事实"));
+    }
+    @Test void formalGroupingReusesCommittedCanonicalBindingAndRejectsChangedGroupFacts() {
+        var current=row();var history=DppmsProjectContractFormalDecisionTest.source(101,201,"g2",true,"2020-01-01 00:00:00",null,null,null);
+        var first=DppmsProjectContractFormalDecisionTest.grouped(current,current,2,current);
+        var second=DppmsProjectContractFormalDecisionTest.grouped(history,current,2,current);
+        var committed=adapter.apply(batch(first,List.of(),false)).getFirst();
+        when(bindings.selectSourceKeys(any())).thenReturn(List.of(new SyncBindingDO().setSourceKey(first.sourceKey())
+                .setTargetId(committed.targetId()).setFieldsJson(JsonUtils.toJsonString(committed.after()))));
+        clearInvocations(relations);
+        adapter.apply(batch(second,List.of(),false));
+        verify(relations).apply(argThat(request->request.entries().getFirst().targetId().equals(30L)
+                && request.entries().getFirst().lastApplied()!=null));
+        clearInvocations(relations);second.fields().put("formalGroupSize",3);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(second,List.of(),false)));
+        verifyNoOwnerMutation();
+    }
+    @Test void formalAuditTieStopsBeforeOwnerMutation() {
+        var raw=row();var selected=DppmsProjectContractFormalDecisionTest.grouped(raw,raw,2,raw);
+        selected.fields().put("formalUpdateConflicts",1);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(selected,List.of(),false)));
+        verifyNoOwnerMutation();
+    }
     void verifyNoOwnerMutation() {
         // Formal identity resolution is read-only; rejected input must never reach either mutation plan.
         verify(relations,never()).apply(any());verify(relations,never()).preview(any());
@@ -473,6 +507,37 @@ class DppmsProjectContractRelationSyncAdapterTest {
             row.fields().put("projectCandidateCount",0);
         }
         return rows;
+    }
+    Row approvedGroupWithoutMember() {
+        var fields=new LinkedHashMap<>(row().fields());
+        MEMBER_COLUMNS.forEach(name->fields.put("member_"+name,null));
+        fields.put("originalProjectId",null);fields.put("originalProjectCode",null);fields.put("projectCandidateCount",0);
+        var raw=new LinkedHashMap<String,Object>();columns().forEach(name->raw.put(name,fields.get(name)));
+        fields.put("migrationDecision",Map.of("action","SKIP_MISSING_GROUP_MEMBER","originalFields",raw));
+        return new Row(OBJECT,"100:0",fields,null);
+    }
+    @Test void approvedGroupWithoutMembersKeepsAllOriginalsAndNeverCallsOwner() {
+        var row=approvedGroupWithoutMember();var result=adapter.apply(batch(row,List.of(),false));
+        assertEquals("SKIPPED",result.getFirst().action());assertNull(result.getFirst().targetId());
+        assertEquals(26,((Map<?,?>)result.getFirst().after().get("originalFields")).size());
+        assertTrue(result.getFirst().message().contains("原项目组无成员"));
+        assertEquals(result,adapter.apply(batch(row,List.of(),false)));
+        verifyNoInteractions(relations,users,bindings);
+    }
+    @Test void missingMemberDecisionRejectsRestoredBridgeChangedOriginalAndExistingTargets() {
+        for(String change:List.of("group_id","group_updateTime","member_id","originalProjectId","projectCandidateCount","no-decision","target","binding")) {
+            var row=approvedGroupWithoutMember();var fields=row.fields();List<Binding> prior=List.of();
+            switch(change) {
+                case "no-decision" -> fields.remove("migrationDecision");
+                case "target" -> row=new Row(OBJECT,row.sourceKey(),fields,30L);
+                case "binding" -> prior=List.of(new Binding(OBJECT,row.sourceKey(),30L,Map.of()));
+                case "group_updateTime" -> fields.put(change,"2026-10-13 01:00:00");
+                default -> fields.put(change,1);
+            }
+            var selected=row;var previous=prior;
+            assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(selected,previous,false)),change);
+        }
+        verifyNoOwnerMutation();
     }
     @Test void approvedMissingProjectMembersRetainEveryOriginalAndDoNotCallBusinessOwner() throws Exception {
         var rows=approvedMissingProjectMembers();

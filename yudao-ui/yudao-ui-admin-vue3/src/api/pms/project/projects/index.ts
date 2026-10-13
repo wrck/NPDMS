@@ -11,6 +11,7 @@ import type { TemplateMatchEvaluation } from '../project-templates'
 
 /** 项目主档（列表行与详情共用） */
 export interface ProjectMasterVO {
+  statusAttributes?: Record<string, unknown>
   id?: number
   projectCode?: string
   codeRootId?: number

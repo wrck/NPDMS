@@ -27,6 +27,7 @@ export interface Source {
   sql?: string
   parameters: Record<string, unknown>
   sourceKey: string
+  sourceKeyColumns?: string[]
   syncPrimaryKey?: boolean
   updatedAt?: string
   columns: string[]
@@ -143,6 +144,12 @@ export const getDppmsCollectionPlanTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-collection-plans', params: { connectionId } })
 export const getDppmsOrderTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-orders', params: { connectionId } })
+export const getDppmsProjectProductScopeTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-project-product-scopes', params: { connectionId } })
+export const getDppmsProjectRealProductTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-project-real-products', params: { connectionId } })
+export const getDppmsProjectAssociatedProductTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-project-associated-products', params: { connectionId } })
 export const getDppmsRoleTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-roles', params: { connectionId } })
 export const getDppmsUserTemplate = (connectionId: Id) =>
@@ -303,3 +310,11 @@ export const getGenericTargets = () =>
   request.get<GenericTarget[]>({ url: base + '/generic-targets' })
 export const getGenericTemplates = (connectionId: Id) =>
   request.get<GenericTemplate[]>({ url: base + '/templates/generic', params: { connectionId } })
+export const getDppmsContractReceivableTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-contract-receivables', params: { connectionId } })
+export const getDppmsProjectFactsTemplate = (connectionId: Id, definitionId?: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-project-facts', params: { connectionId, definitionId } })
+export const getDppmsObsoleteOrderLineTemplate = (connectionId: Id, originalTaskId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-obsolete-order-line-bindings', params: { connectionId, originalTaskId } })
+export const configureDppmsProjectFactsDefinition = (existingRevisionId?: Id) =>
+  request.post<Id>({ url: base + '/templates/dppms-project-facts-definition', data: { existingRevisionId } })

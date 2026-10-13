@@ -28,13 +28,14 @@ class DppmsExecutionOrderSyncTemplateTest {
         var source = definition.sources().getFirst();
         assertEquals("pm_project_property_from_sms", source.sourceObject());
         assertEquals("id", source.sourceKey());
-        assertEquals("TABLE", source.readMode());
-        assertEquals("pm_project_property_from_sms", source.table());
+        assertEquals("SQL", source.readMode());
+        assertNull(source.table());
         var sql = MysqlSyncReader.compile(source).sql();
         assertTrue(sql.contains("orderExecNumber"));
         assertTrue(sql.contains("pm_project_property_from_sms"));
         assertTrue(source.mappings().stream().anyMatch(m -> m.target().equals("executionNo") && m.source().equals("orderExecNumber")));
         assertTrue(source.mappings().stream().anyMatch(m -> m.target().equals("applyType") && m.source().equals("applyType")));
-        assertEquals(31, source.mappings().size());
+        assertEquals(63, source.mappings().size());
+        assertTrue(source.mappings().stream().anyMatch(m -> m.target().equals("canonical_projectCode") && m.source().equals("canonical_projectCode")));
     }
 }

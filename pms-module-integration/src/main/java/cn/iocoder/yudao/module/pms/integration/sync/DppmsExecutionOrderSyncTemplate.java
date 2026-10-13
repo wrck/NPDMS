@@ -20,12 +20,16 @@ public final class DppmsExecutionOrderSyncTemplate {
                 mapping.conversion("DIRECT");
             }
             mappings.add(mapping.build());
+            mappings.add(SyncDefinition.Mapping.builder().target("canonical_"+pair[0]).source("canonical_"+pair[1])
+                    .conversion("companyCode".equals(pair[0])?DppmsCompanyCodeConverter.CONVERSION:"DIRECT").build());
         }
+        mappings.add(SyncDefinition.Mapping.builder().target("canonicalSourceId").source("canonicalId").conversion("DIRECT").build());
         List<String> columns = new ArrayList<>(List.of("id"));
         for (String[] pair : FIELDS) columns.add(pair[1]);
+        columns.add("canonicalId");for(String[] pair:FIELDS)columns.add("canonical_"+pair[1]);
         var source = SyncDefinition.Source.builder().object("EXECUTION_ORDER")
-                .sourceObject("pm_project_property_from_sms").readMode("TABLE")
-                .table("pm_project_property_from_sms").parameters(Map.of()).columns(columns).filters(List.of()).sourceKey("id")
+                .sourceObject("pm_project_property_from_sms").readMode("SQL")
+                .sql(DppmsMigrationSql.initial("execution-orders")).parameters(Map.of()).columns(columns).filters(List.of()).sourceKey("id")
                 .mappings(mappings).build();
         return SyncDefinition.builder().adapter("DPPMS_CRM_EXECUTION_ORDER").sourceSystem("DPPMS")
                 .connectionId(connectionId).mode("ONCE").loadingMode("UPSERT").missingPolicy("RETAIN")

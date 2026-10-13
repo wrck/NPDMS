@@ -12,6 +12,8 @@ public class ProjectPartyDO extends TenantBaseDO {
     private String partyRole;
     private String partyCode;
     private String partyName;
+    private String contactName;
+    private String phone;
     private String sourceSystem;
     private String sourceTable;
     private String sourceRecordKey;

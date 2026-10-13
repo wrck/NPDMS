@@ -1,0 +1,6742 @@
+[
+  {
+    "id": "L0001",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-activity-config.xml",
+    "statement": "query_act_comment_list",
+    "line": 57,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0002",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_sys_roles",
+    "line": 21,
+    "tables": [
+      "fnd_roles"
+    ]
+  },
+  {
+    "id": "L0003",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_user_by_id",
+    "line": 58,
+    "tables": [
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0004",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "get-id-byname",
+    "line": 111,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0005",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-user-by-name",
+    "line": 118,
+    "tables": [
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0006",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-user-count",
+    "line": 125,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0007",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-userlist",
+    "line": 138,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0008",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-userlist-all",
+    "line": 159,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0009",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-all-user",
+    "line": 174,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0010",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "select-user",
+    "line": 236,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0011",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_user_allMap",
+    "line": 259,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0012",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-role-count",
+    "line": 281,
+    "tables": [
+      "fnd_roles"
+    ]
+  },
+  {
+    "id": "L0013",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-rolelist",
+    "line": 295,
+    "tables": [
+      "fnd_roles"
+    ]
+  },
+  {
+    "id": "L0014",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-department-count",
+    "line": 382,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0015",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query-departmentlist",
+    "line": 396,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0016",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_department_map",
+    "line": 432,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0017",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "queryDepartmentByDepartmentNum",
+    "line": 438,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0018",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "select-user-byusername",
+    "line": 444,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0019",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "select-users-byusernames",
+    "line": 450,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0020",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_defaultpage_by_username_1",
+    "line": 456,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0021",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_defaultpage_by_username_2",
+    "line": 461,
+    "tables": [
+      "fnd_roles",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0022",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_all_department",
+    "line": 654,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0023",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basic_data",
+    "line": 696,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0024",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basicdata_by_attri",
+    "line": 704,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0025",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basic_data_all",
+    "line": 723,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_basic_data_type"
+    ]
+  },
+  {
+    "id": "L0026",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basic_data_type",
+    "line": 736,
+    "tables": [
+      "fnd_basic_data_type"
+    ]
+  },
+  {
+    "id": "L0027",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basic_data_one",
+    "line": 741,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_basic_data_type"
+    ]
+  },
+  {
+    "id": "L0028",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "find_basic_data_id",
+    "line": 768,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0029",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_username_size",
+    "line": 780,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0030",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_user_with_role",
+    "line": 789,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0031",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_user_with_dpNo_role",
+    "line": 801,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0032",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_user_with_dpNo_role_orin_areaPower",
+    "line": 810,
+    "tables": [
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0033",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_file_list",
+    "line": 857,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0034",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basic_data_for_map",
+    "line": 865,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0035",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basicdataname_byId",
+    "line": 872,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0036",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basicdata_bydataId",
+    "line": 878,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0037",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_mails_with_role",
+    "line": 889,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0038",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_mails_with_role_and_office",
+    "line": 895,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0039",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_mails_and_office",
+    "line": 903,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0040",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-admin-config.xml",
+    "statement": "query_basic_data_for_map_with_sub",
+    "line": 947,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0041",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-callback-config.xml",
+    "statement": "query_callback_byId",
+    "line": 35,
+    "tables": [
+      "pm_cl_callback",
+      "pm_cl_callback_quesnaire"
+    ]
+  },
+  {
+    "id": "L0042",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-callback-config.xml",
+    "statement": "query_cb_quesnaire_version",
+    "line": 50,
+    "tables": [
+      "pm_cl_callback_quesnaire"
+    ]
+  },
+  {
+    "id": "L0043",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-callback-config.xml",
+    "statement": "query_callback_quesnaire",
+    "line": 56,
+    "tables": [
+      "pm_cl_callback_quesnaire"
+    ]
+  },
+  {
+    "id": "L0044",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-callback-config.xml",
+    "statement": "query_quesnaire_template_id",
+    "line": 61,
+    "tables": [
+      "pm_cl_quesnaire_result_header"
+    ]
+  },
+  {
+    "id": "L0045",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-callback-config.xml",
+    "statement": "query_callbackQuesnaireId",
+    "line": 66,
+    "tables": [
+      "pm_cl_callback_quesnaire"
+    ]
+  },
+  {
+    "id": "L0046",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-callback-config.xml",
+    "statement": "query_callback_comment",
+    "line": 98,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_cl_callback_quesnaire",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0047",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-callback-config.xml",
+    "statement": "query_is_callback",
+    "line": 117,
+    "tables": [
+      "pm_cl_callback",
+      "pm_cl_callback_quesnaire"
+    ]
+  },
+  {
+    "id": "L0048",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceById",
+    "line": 172,
+    "tables": [
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0049",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceList",
+    "line": 177,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0050",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "countProjectMaintenanceList",
+    "line": 267,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0051",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectSingleProjectMaintenanceMaxId",
+    "line": 528,
+    "tables": [
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0052",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceVOList",
+    "line": 598,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0053",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceMapList",
+    "line": 741,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0054",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectDailyMaintenanceMapList",
+    "line": 1048,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0055",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectDailyMaintenanceUsers",
+    "line": 1232,
+    "tables": [
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0056",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "queryProjectWarrantyState",
+    "line": 1484,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0057",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "queryProjectMaintenanceServiceDeliveriedByProjectDeliver",
+    "line": 1510,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0058",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "queryProjectMaintenanceServiceDeliveriedByMap",
+    "line": 1535,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0059",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "queryProjectMaintenanceDeliverCount",
+    "line": 1561,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0060",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "queryProjectMaintenanceServiceDeliveriedCount",
+    "line": 1639,
+    "tables": [
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0061",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "countProjectMaintenanceServiceDeliveryMapList",
+    "line": 1850,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0062",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceServiceDeliveryMapList",
+    "line": 1855,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0063",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-presales-config.xml",
+    "statement": "query_presales_byid",
+    "line": 53,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project_task",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0064",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-presales-config.xml",
+    "statement": "query_presales_count",
+    "line": 100,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0065",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-presales-config.xml",
+    "statement": "query_presales_list",
+    "line": 201,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0066",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-presales-config.xml",
+    "statement": "query_presales_task_size",
+    "line": 366,
+    "tables": [
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0067",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-presales-config.xml",
+    "statement": "query_presales_en_task",
+    "line": 392,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0068",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-presales-config.xml",
+    "statement": "query_presale_shipmentInfo",
+    "line": 469,
+    "tables": [
+      "fb_contract",
+      "fb_items",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0069",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-presales-config.xml",
+    "statement": "queryPresalesExportData",
+    "line": 541,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project_task",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0070",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_count",
+    "line": 27,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0071",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_list",
+    "line": 76,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0072",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_one",
+    "line": 156,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0073",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "check_soft_version_list",
+    "line": 228,
+    "tables": [
+      "fb_soft_version",
+      "pm_project_soft_version"
+    ]
+  },
+  {
+    "id": "L0074",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_restore_list",
+    "line": 358,
+    "tables": [
+      "fb_contract",
+      "fb_items",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "fb_soft_version",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_soft_version",
+      "view_shipment_info_4_pm",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0075",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_list_probRestore_task",
+    "line": 561,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_soft_version",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0076",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_list_probRestore_task_project",
+    "line": 611,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_soft_version",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0077",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_task_weekly",
+    "line": 719,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0078",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_assignee_emails",
+    "line": 730,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0079",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_hist_soft_version_list_by_probRestoreIds",
+    "line": 763,
+    "tables": [
+      "pm_project_soft_change_logs",
+      "pm_project_soft_version"
+    ]
+  },
+  {
+    "id": "L0080",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_officeMails_by_probRestoreIds",
+    "line": 779,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0081",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_exportProb_list",
+    "line": 791,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0082",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_statistics_count",
+    "line": 834,
+    "tables": [
+      "fb_items",
+      "fb_soft_version",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_soft_change_logs",
+      "pm_project_soft_version",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0083",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_statistics",
+    "line": 940,
+    "tables": [
+      "fb_items",
+      "fb_soft_version",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_soft_change_logs",
+      "pm_project_soft_version",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0084",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_read_log",
+    "line": 1442,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0085",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "query_prob_read_statistics",
+    "line": 1460,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0086",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config.xml",
+    "statement": "count_prob_read_statistics",
+    "line": 1495,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0087",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config_bak.xml",
+    "statement": "query_prob_count",
+    "line": 27,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0088",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config_bak.xml",
+    "statement": "query_prob_list",
+    "line": 80,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0089",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config_bak.xml",
+    "statement": "query_prob_restore_list",
+    "line": 359,
+    "tables": [
+      "fb_contract",
+      "fb_items",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "fb_soft_version",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_soft_version",
+      "view_shipment_info_4_pm",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0090",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-prob-config_bak.xml",
+    "statement": "query_exportProb_list",
+    "line": 792,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0091",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "select-quesnaire_template_header-list",
+    "line": 1087,
+    "tables": [
+      "fnd_basic_data",
+      "pm_cl_quesnaire_template_header"
+    ]
+  },
+  {
+    "id": "L0092",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_instruction_list",
+    "line": 1170,
+    "tables": [
+      "pm_project_instruction",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0093",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_feedback_list",
+    "line": 1175,
+    "tables": [
+      "pm_project_instruction",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0094",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-maxproject-groupcode",
+    "line": 1210,
+    "tables": [
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0095",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-project-bycontractno",
+    "line": 1246,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0096",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projectname-byprojectid",
+    "line": 1269,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0097",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_byId",
+    "line": 1321,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_related_party",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0098",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_weekly",
+    "line": 1470,
+    "tables": [
+      "pm_project_weekly"
+    ]
+  },
+  {
+    "id": "L0099",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_weekly_one",
+    "line": 1480,
+    "tables": [
+      "pm_project_weekly"
+    ]
+  },
+  {
+    "id": "L0100",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_weekly_contents",
+    "line": 1491,
+    "tables": [
+      "pm_project_weekly_content"
+    ]
+  },
+  {
+    "id": "L0101",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_weekly_feedback",
+    "line": 1528,
+    "tables": [
+      "pm_project_weekly_feedback",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0102",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "select-evaluation_header-list",
+    "line": 1670,
+    "tables": [
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0103",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "select-evaluation_header-objMap",
+    "line": 1732,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0104",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "select-evaluation_header-objMap",
+    "line": 1777,
+    "tables": [
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0105",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "select-quesnaire_result_header-list",
+    "line": 1873,
+    "tables": [
+      "pm_cl_quesnaire_result_header"
+    ]
+  },
+  {
+    "id": "L0106",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "select-quesnaire_result_line-list",
+    "line": 1905,
+    "tables": [
+      "pm_cl_quesnaire_result_line"
+    ]
+  },
+  {
+    "id": "L0107",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projectplanlist-bycontractno",
+    "line": 1935,
+    "tables": [
+      "fnd_basic_data",
+      "pm_pb_plan_from_sms"
+    ]
+  },
+  {
+    "id": "L0108",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projectstate-byprojectid",
+    "line": 1961,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0109",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-orderline-fromsap-bycontractno",
+    "line": 1978,
+    "tables": [
+      "fb_items"
+    ]
+  },
+  {
+    "id": "L0110",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-orderdatalist-byprojectid",
+    "line": 2049,
+    "tables": [
+      "fb_items",
+      "pm_project_product_line"
+    ]
+  },
+  {
+    "id": "L0111",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-shipmentinfo-bycontractno",
+    "line": 2106,
+    "tables": [
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0112",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-shipmentinfo-bycontractno",
+    "line": 2129,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0113",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_shipmentInfo_size_by_contractNo",
+    "line": 2165,
+    "tables": [
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0114",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_shipmentInfo_size_by_contractNoAndProfitCenter",
+    "line": 2176,
+    "tables": [
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0115",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_soft_version_list",
+    "line": 2210,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "fb_soft_version",
+      "pm_project_shipment",
+      "pm_project_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0116",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_hist_soft_version_list_factory",
+    "line": 2262,
+    "tables": [
+      "fb_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0117",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_hist_soft_version",
+    "line": 2304,
+    "tables": [
+      "pm_project_soft_change_logs"
+    ]
+  },
+  {
+    "id": "L0118",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_hist_soft_version_change",
+    "line": 2330,
+    "tables": [
+      "pm_project_soft_change_logs"
+    ]
+  },
+  {
+    "id": "L0119",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_hist_soft_version_list",
+    "line": 2355,
+    "tables": [
+      "fb_shipment_barcode_relation",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_soft_version"
+    ]
+  },
+  {
+    "id": "L0120",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_one_soft_change_log",
+    "line": 2388,
+    "tables": [
+      "pm_project_soft_change_logs"
+    ]
+  },
+  {
+    "id": "L0121",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-quesnaire_template_line-list",
+    "line": 2411,
+    "tables": [
+      "pm_cl_quesnaire_template_line"
+    ]
+  },
+  {
+    "id": "L0122",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-quesnaire_template_options-list",
+    "line": 2449,
+    "tables": [
+      "pm_cl_quesnaire_template_options"
+    ]
+  },
+  {
+    "id": "L0123",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projectplanevent-byproject",
+    "line": 2469,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0124",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_pm_member_list",
+    "line": 2498,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0125",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projecttask-buprojectid",
+    "line": 2545,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0126",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_shipment",
+    "line": 2556,
+    "tables": [
+      "pm_project_shipment"
+    ]
+  },
+  {
+    "id": "L0127",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "find_transfer_project_list",
+    "line": 2594,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0128",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-transferShipmentInfo-bycontractno",
+    "line": 2681,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0129",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projectdeliver-list",
+    "line": 2766,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0130",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryNeededUndelivedCount",
+    "line": 2779,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0131",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryNeededUndelivedProjectDeliverList",
+    "line": 2806,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0132",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-deliverdetail-byprojectid",
+    "line": 2858,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0133",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryDeliverDetailByProjectIdAndDeliverType",
+    "line": 2869,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0134",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryDeliverDetailByProjectIdAndProjectType",
+    "line": 2893,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0135",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_last_weeklyid",
+    "line": 2960,
+    "tables": [
+      "pm_project_weekly"
+    ]
+  },
+  {
+    "id": "L0136",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projectmembercount-byproject",
+    "line": 3044,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0137",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_mail_byusername",
+    "line": 3052,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0138",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_mail_byroleid",
+    "line": 3057,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0139",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_usernames_byroleId",
+    "line": 3062,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0140",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_contract_info",
+    "line": 3077,
+    "tables": [
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0141",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_group_count",
+    "line": 3147,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0142",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_task_size",
+    "line": 3197,
+    "tables": [
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0143",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_system_list",
+    "line": 3208,
+    "tables": [
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0144",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_member_address",
+    "line": 3225,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0145",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-projectcontractcount-bycontractno",
+    "line": 3246,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0146",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query-cbData-list",
+    "line": 3379,
+    "tables": [
+      "fnd_act_hi_comment",
+      "pm_cl_callback",
+      "pm_cl_callback_quesnaire",
+      "pm_cl_quesnaire_result_header",
+      "pm_cl_quesnaire_result_line",
+      "pm_cl_quesnaire_template_line",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0147",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_shipment_size",
+    "line": 3486,
+    "tables": [
+      "pm_project_shipment",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0148",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_state",
+    "line": 3497,
+    "tables": [
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0149",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_shipment_state",
+    "line": 3526,
+    "tables": [
+      "pm_project_product_line"
+    ]
+  },
+  {
+    "id": "L0150",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_plan_state",
+    "line": 3539,
+    "tables": [
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0151",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_current_plan",
+    "line": 3545,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0152",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_deliver_name",
+    "line": 3672,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0153",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_call_back_list",
+    "line": 3704,
+    "tables": [
+      "fnd_basic_data",
+      "pm_cl_callback",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0154",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_callbacking_size",
+    "line": 3718,
+    "tables": [
+      "pm_cl_callback"
+    ]
+  },
+  {
+    "id": "L0155",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_call_back_run_list",
+    "line": 3724,
+    "tables": [
+      "fnd_basic_data",
+      "pm_cl_callback",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0156",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_list_by_officeAndMemberCode",
+    "line": 3741,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0157",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_real_orderdatalist_by_projectid",
+    "line": 3800,
+    "tables": [
+      "pm_project_product_line_real"
+    ]
+  },
+  {
+    "id": "L0158",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_real_orderdatasize_by_projectid",
+    "line": 3806,
+    "tables": [
+      "pm_project_product_line_real"
+    ]
+  },
+  {
+    "id": "L0159",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_Project_PreAndFinalInspection",
+    "line": 3813,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0160",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_Project_ArrivalReceipt",
+    "line": 3835,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_state",
+      "pm_project_task",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0161",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_valid_member_by_projectId",
+    "line": 3969,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0162",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_valid_member_email_by_projectId_roles",
+    "line": 3977,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0163",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_existsProject_by_contractNo",
+    "line": 4051,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0164",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "querySpotCheckList",
+    "line": 4074,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0165",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "query_project_notify_list",
+    "line": 4139,
+    "tables": [
+      "pm_project_notification",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0166",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryProjectInspectionOfficeCode",
+    "line": 4153,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_state",
+      "pm_project_task",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0167",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryProjectInspection",
+    "line": 4220,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fnd_basic_data",
+      "pm_pb_plan_from_sms",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "pm_project_task",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0168",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryProjectInspectionCounts",
+    "line": 4466,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0169",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryValidMemberByProjectIdsAndRoles",
+    "line": 4490,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0170",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "selectProjectMaintenanceList",
+    "line": 4630,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0171",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "countProjectMaintenanceList",
+    "line": 4692,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0172",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "selectProjectMaintenanceVOList",
+    "line": 4914,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0173",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "selectProjectMaintenanceMapList",
+    "line": 4995,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0174",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "selectProjectSupervisionById",
+    "line": 5168,
+    "tables": [
+      "pm_project_supervision"
+    ]
+  },
+  {
+    "id": "L0175",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "selectProjectSupervisionList",
+    "line": 5173,
+    "tables": [
+      "pm_project_member",
+      "pm_project_supervision"
+    ]
+  },
+  {
+    "id": "L0176",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "countProjectSupervisionList",
+    "line": 5225,
+    "tables": [
+      "pm_project_member",
+      "pm_project_supervision"
+    ]
+  },
+  {
+    "id": "L0177",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "selectProjectSupervisionMapList",
+    "line": 5339,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project_supervision",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0178",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "queryProjectSimplifyByProjectId",
+    "line": 5532,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0179",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config.xml",
+    "statement": "querySoleAgentProject",
+    "line": 5738,
+    "tables": [
+      "pm_project_header",
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0180",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "select-quesnaire_template_header-list",
+    "line": 953,
+    "tables": [
+      "fnd_basic_data",
+      "pm_cl_quesnaire_template_header"
+    ]
+  },
+  {
+    "id": "L0181",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_instruction_list",
+    "line": 1036,
+    "tables": [
+      "pm_project_instruction",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0182",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_feedback_list",
+    "line": 1041,
+    "tables": [
+      "pm_project_instruction",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0183",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-project-bycontractno",
+    "line": 1109,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0184",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_byId",
+    "line": 1177,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_related_party",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0185",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_weekly",
+    "line": 1321,
+    "tables": [
+      "pm_project_weekly"
+    ]
+  },
+  {
+    "id": "L0186",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_weekly_one",
+    "line": 1331,
+    "tables": [
+      "pm_project_weekly"
+    ]
+  },
+  {
+    "id": "L0187",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_weekly_contents",
+    "line": 1342,
+    "tables": [
+      "pm_project_weekly_content"
+    ]
+  },
+  {
+    "id": "L0188",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_weekly_feedback",
+    "line": 1379,
+    "tables": [
+      "pm_project_weekly_feedback",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0189",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "select-evaluation_header-list",
+    "line": 1521,
+    "tables": [
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0190",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "select-evaluation_header-objMap",
+    "line": 1583,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0191",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "select-evaluation_header-objMap",
+    "line": 1628,
+    "tables": [
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0192",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "select-quesnaire_result_header-list",
+    "line": 1724,
+    "tables": [
+      "pm_cl_quesnaire_result_header"
+    ]
+  },
+  {
+    "id": "L0193",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "select-quesnaire_result_line-list",
+    "line": 1756,
+    "tables": [
+      "pm_cl_quesnaire_result_line"
+    ]
+  },
+  {
+    "id": "L0194",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-projectplanlist-bycontractno",
+    "line": 1786,
+    "tables": [
+      "fnd_basic_data",
+      "pm_pb_plan_from_sms"
+    ]
+  },
+  {
+    "id": "L0195",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-projectstate-byprojectid",
+    "line": 1812,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0196",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-orderline-fromsap-bycontractno",
+    "line": 1829,
+    "tables": [
+      "fb_items"
+    ]
+  },
+  {
+    "id": "L0197",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-orderdatalist-byprojectid",
+    "line": 1900,
+    "tables": [
+      "fb_items",
+      "pm_project_product_line"
+    ]
+  },
+  {
+    "id": "L0198",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-shipmentinfo-bycontractno",
+    "line": 1954,
+    "tables": [
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0199",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-shipmentinfo-bycontractno",
+    "line": 1977,
+    "tables": [
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0200",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_shipmentInfo_size_by_contractNo",
+    "line": 2004,
+    "tables": [
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0201",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_soft_version_list",
+    "line": 2033,
+    "tables": [
+      "fb_soft_version",
+      "pm_project_shipment",
+      "pm_project_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0202",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_hist_soft_version_list_factory",
+    "line": 2080,
+    "tables": [
+      "fb_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0203",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_hist_soft_version",
+    "line": 2121,
+    "tables": [
+      "pm_project_soft_change_logs"
+    ]
+  },
+  {
+    "id": "L0204",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_hist_soft_version_change",
+    "line": 2147,
+    "tables": [
+      "pm_project_soft_change_logs"
+    ]
+  },
+  {
+    "id": "L0205",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_hist_soft_version_list",
+    "line": 2171,
+    "tables": [
+      "pm_project_soft_version"
+    ]
+  },
+  {
+    "id": "L0206",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_one_soft_change_log",
+    "line": 2187,
+    "tables": [
+      "pm_project_soft_change_logs"
+    ]
+  },
+  {
+    "id": "L0207",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-quesnaire_template_line-list",
+    "line": 2210,
+    "tables": [
+      "pm_cl_quesnaire_template_line"
+    ]
+  },
+  {
+    "id": "L0208",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-quesnaire_template_options-list",
+    "line": 2248,
+    "tables": [
+      "pm_cl_quesnaire_template_options"
+    ]
+  },
+  {
+    "id": "L0209",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-projectplanevent-byproject",
+    "line": 2268,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0210",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_pm_member_list",
+    "line": 2297,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0211",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-projecttask-buprojectid",
+    "line": 2344,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0212",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_shipment",
+    "line": 2355,
+    "tables": [
+      "pm_project_shipment"
+    ]
+  },
+  {
+    "id": "L0213",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "find_transfer_project_list",
+    "line": 2389,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0214",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-transferShipmentInfo-bycontractno",
+    "line": 2472,
+    "tables": [
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0215",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-projectdeliver-list",
+    "line": 2550,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0216",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "queryNeededUndelivedCount",
+    "line": 2563,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0217",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-deliverdetail-byprojectid",
+    "line": 2606,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0218",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "queryDeliverDetailByProjectIdAndDeliverType",
+    "line": 2617,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0219",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_last_weeklyid",
+    "line": 2708,
+    "tables": [
+      "pm_project_weekly"
+    ]
+  },
+  {
+    "id": "L0220",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-projectmembercount-byproject",
+    "line": 2792,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0221",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_mail_byusername",
+    "line": 2800,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0222",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_mail_byroleid",
+    "line": 2805,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0223",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_usernames_byroleId",
+    "line": 2810,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0224",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_contract_info",
+    "line": 2825,
+    "tables": [
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0225",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_group_count",
+    "line": 2860,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0226",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_task_size",
+    "line": 2910,
+    "tables": [
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0227",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_system_list",
+    "line": 2921,
+    "tables": [
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0228",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_member_address",
+    "line": 2938,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0229",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-projectcontractcount-bycontractno",
+    "line": 2959,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0230",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query-cbData-list",
+    "line": 3091,
+    "tables": [
+      "pm_cl_callback",
+      "pm_cl_callback_quesnaire",
+      "pm_cl_quesnaire_result_header",
+      "pm_cl_quesnaire_result_line",
+      "pm_cl_quesnaire_template_line",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0231",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_shipment_size",
+    "line": 3195,
+    "tables": [
+      "pm_project_shipment",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0232",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_state",
+    "line": 3206,
+    "tables": [
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0233",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_shipment_state",
+    "line": 3229,
+    "tables": [
+      "pm_project_product_line"
+    ]
+  },
+  {
+    "id": "L0234",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_plan_state",
+    "line": 3242,
+    "tables": [
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0235",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_current_plan",
+    "line": 3248,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0236",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_deliver_name",
+    "line": 3375,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0237",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_call_back_list",
+    "line": 3407,
+    "tables": [
+      "fnd_basic_data",
+      "pm_cl_callback",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0238",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_callbacking_size",
+    "line": 3421,
+    "tables": [
+      "pm_cl_callback"
+    ]
+  },
+  {
+    "id": "L0239",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_call_back_run_list",
+    "line": 3427,
+    "tables": [
+      "fnd_basic_data",
+      "pm_cl_callback",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0240",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_list_by_officeAndMemberCode",
+    "line": 3444,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0241",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_real_orderdatalist_by_projectid",
+    "line": 3503,
+    "tables": [
+      "pm_project_product_line_real"
+    ]
+  },
+  {
+    "id": "L0242",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_real_orderdatasize_by_projectid",
+    "line": 3509,
+    "tables": [
+      "pm_project_product_line_real"
+    ]
+  },
+  {
+    "id": "L0243",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_Project_PreAndFinalInspection",
+    "line": 3516,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0244",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_Project_ArrivalReceipt",
+    "line": 3538,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_state",
+      "pm_project_task",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0245",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_valid_member_by_projectId",
+    "line": 3672,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0246",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_existsProject_by_contractNo",
+    "line": 3754,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0247",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "querySpotCheckList",
+    "line": 3776,
+    "tables": [
+      "fb_items",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0248",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "query_project_notify_list",
+    "line": 3833,
+    "tables": [
+      "pm_project_notification",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0249",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "queryProjectInspectionOfficeCode",
+    "line": 3847,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_state",
+      "pm_project_task",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0250",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "queryProjectInspection",
+    "line": 3914,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fnd_basic_data",
+      "pm_pb_plan_from_sms",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "pm_project_task",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0251",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "queryProjectInspectionCounts",
+    "line": 4152,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0252",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "queryValidMemberByProjectIdsAndRoles",
+    "line": 4176,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0253",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "countProjectMaintenanceList",
+    "line": 4378,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0254",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "selectProjectMaintenanceVOList",
+    "line": 4600,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0255",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "selectProjectMaintenanceMapList",
+    "line": 4681,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0256",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-project-config2.xml",
+    "statement": "queryProjectSimplifyByProjectId",
+    "line": 5212,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0257",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config.xml",
+    "statement": "query_pm_project_product_line",
+    "line": 116,
+    "tables": [
+      "pm_project_product_line"
+    ]
+  },
+  {
+    "id": "L0258",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config.xml",
+    "statement": "query_pm_self_service_project",
+    "line": 832,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0259",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config.xml",
+    "statement": "query_project_serviceManager_by_officeCode",
+    "line": 885,
+    "tables": [
+      "fnd_department",
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0260",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config.xml",
+    "statement": "query_project_sales_change",
+    "line": 1215,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0261",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config_bak.xml",
+    "statement": "query_pm_project_product_line",
+    "line": 104,
+    "tables": [
+      "pm_project_product_line"
+    ]
+  },
+  {
+    "id": "L0262",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config_bak.xml",
+    "statement": "query_pm_self_service_project",
+    "line": 517,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0263",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config_bak.xml",
+    "statement": "query_project_serviceManager_by_officeCode",
+    "line": 569,
+    "tables": [
+      "fnd_department",
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0264",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-refresh-data-config_bak.xml",
+    "statement": "query_project_sales_change",
+    "line": 879,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0265",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_assigned_rate",
+    "line": 9,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0266",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_reportline_assigned_info",
+    "line": 36,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0267",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_trace_rate",
+    "line": 57,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0268",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_reportline_trace_info",
+    "line": 81,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0269",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_other_office_quality",
+    "line": 217,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0270",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_reportline_quality_info",
+    "line": 252,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0271",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_reportline_no_quality_info",
+    "line": 291,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0272",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_close_project_size",
+    "line": 330,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0273",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_close_project_size",
+    "line": 338,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0274",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_new_project_size",
+    "line": 346,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0275",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_new_project_size",
+    "line": 354,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0276",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_reportline_closed_info",
+    "line": 364,
+    "tables": [
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0277",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_reportline_closed_info",
+    "line": 381,
+    "tables": [
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0278",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_implway_size",
+    "line": 409,
+    "tables": [
+      "pm_project_header"
+    ]
+  },
+  {
+    "id": "L0279",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_reportline_impl_info",
+    "line": 434,
+    "tables": [
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0280",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_totalNum",
+    "line": 515,
+    "tables": [
+      "pm_project_header",
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0281",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_engineeringTypeNum",
+    "line": 522,
+    "tables": [
+      "pm_project_header",
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0282",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_commonTypeNum",
+    "line": 530,
+    "tables": [
+      "pm_project_header",
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0283",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_assignedNum",
+    "line": 538,
+    "tables": [
+      "pm_project_header",
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0284",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-report-config.xml",
+    "statement": "query_traceNum",
+    "line": 545,
+    "tables": [
+      "pm_project_header",
+      "pm_project_state"
+    ]
+  },
+  {
+    "id": "L0285",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectById",
+    "line": 40,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0286",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectList",
+    "line": 187,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0287",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectList",
+    "line": 218,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0288",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectVOList",
+    "line": 250,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0289",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectVOList",
+    "line": 340,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0290",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectVOListPageable",
+    "line": 373,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0291",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectVOListPageable",
+    "line": 483,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0292",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectVOById",
+    "line": 569,
+    "tables": [
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0293",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractLineList",
+    "line": 698,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation"
+    ]
+  },
+  {
+    "id": "L0294",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractDeliverVOList",
+    "line": 1060,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0295",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractPaymentById",
+    "line": 1107,
+    "tables": [
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0296",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractPaymentList",
+    "line": 1194,
+    "tables": [
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0297",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractPaymentList",
+    "line": 1210,
+    "tables": [
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0298",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractPriceById",
+    "line": 1424,
+    "tables": [
+      "pm_subcontract_project_price"
+    ]
+  },
+  {
+    "id": "L0299",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractPriceList",
+    "line": 1518,
+    "tables": [
+      "pm_subcontract_project_price"
+    ]
+  },
+  {
+    "id": "L0300",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractPriceList",
+    "line": 1536,
+    "tables": [
+      "pm_subcontract_project_price"
+    ]
+  },
+  {
+    "id": "L0301",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "queryProjectListBak",
+    "line": 1570,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0302",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "queryProjectList",
+    "line": 1651,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0303",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "queryShipmentinfoByContractNosAndProjectIds",
+    "line": 1750,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0304",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "checkSubcontractName",
+    "line": 1793,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0305",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "queryContractNoEngineeFee",
+    "line": 1800,
+    "tables": [
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0306",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "queryContractNoEngineeFeeWithSubPrice",
+    "line": 1816,
+    "tables": [
+      "pm_project_property_from_sms",
+      "pm_subcontract_project_price"
+    ]
+  },
+  {
+    "id": "L0307",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractTaskList",
+    "line": 1892,
+    "tables": [
+      "pm_subcontract_project_header",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0308",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "selectRejectedSubcontractProjectList",
+    "line": 1972,
+    "tables": [
+      "pm_subcontract_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0309",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractActivitiTaskList",
+    "line": 2047,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0310",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractCommentList",
+    "line": 2105,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0311",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractInfoForProject",
+    "line": 2149,
+    "tables": [
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0312",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractExportData",
+    "line": 2173,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0313",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractPaiedAmount",
+    "line": 2288,
+    "tables": [
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0314",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "queryNextPaymentTask",
+    "line": 2299,
+    "tables": [
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0315",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-subcontract-config.xml",
+    "statement": "querySSESubcontractPaymentList",
+    "line": 2331,
+    "tables": [
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0316",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "check_notification_list",
+    "line": 15,
+    "tables": [
+      "pm_project_notification"
+    ]
+  },
+  {
+    "id": "L0317",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_pm_task_list",
+    "line": 68,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "pm_project_task",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0318",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_pm_task_count",
+    "line": 97,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0319",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_notify_count",
+    "line": 120,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_notification",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0320",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_notify_list",
+    "line": 143,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_notification",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0321",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_project_back_task_list",
+    "line": 176,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0322",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_project_track_task_list",
+    "line": 198,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0323",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_call_back_task",
+    "line": 240,
+    "tables": [
+      "pm_cl_callback",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0324",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_presales_task",
+    "line": 294,
+    "tables": [
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0325",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_callback_his_list",
+    "line": 329,
+    "tables": [
+      "fnd_act_hi_comment",
+      "pm_cl_callback",
+      "pm_project_header",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0326",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "query_probTask_list",
+    "line": 401,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0327",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/bin/sql-map-work-config.xml",
+    "statement": "queryProjectSupervisionTask",
+    "line": 481,
+    "tables": [
+      "pm_project_member",
+      "pm_project_supervision",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0328",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceList",
+    "line": 180,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0329",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "countProjectMaintenanceList",
+    "line": 271,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0330",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceVOList",
+    "line": 606,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0331",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceMapList",
+    "line": 752,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0332",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectDailyMaintenanceMapList",
+    "line": 1065,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0333",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectDailyMaintenanceUsers",
+    "line": 1257,
+    "tables": [
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0334",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "queryDepartmentSectary",
+    "line": 1978,
+    "tables": [
+      "ehr_employee",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0335",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_count",
+    "line": 27,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0336",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_list",
+    "line": 125,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0337",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_soft_version",
+    "line": 451,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0338",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_exportProb_list",
+    "line": 915,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0339",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-max-project-group-id",
+    "line": 1231,
+    "tables": [
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0340",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-project-bycontractno",
+    "line": 1267,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0341",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-project-bycontractnoAndType",
+    "line": 1290,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0342",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_project_group_count",
+    "line": 3196,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0343",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectContractCountByContractNoAndType",
+    "line": 3304,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0344",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-cbData-list",
+    "line": 3444,
+    "tables": [
+      "fnd_act_hi_comment",
+      "pm_cl_callback",
+      "pm_cl_callback_quesnaire",
+      "pm_cl_quesnaire_result_header",
+      "pm_cl_quesnaire_result_line",
+      "pm_cl_quesnaire_template_line",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0345",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_history_project_shipment_size",
+    "line": 3589,
+    "tables": [
+      "pm_project_shipment"
+    ]
+  },
+  {
+    "id": "L0346",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectSimplifyByProjectId",
+    "line": 5630,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0347",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-refresh-data-config.xml",
+    "statement": "query_pm_self_service_project",
+    "line": 844,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0348",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-report-config.xml",
+    "statement": "queryProjectSummaryStatus",
+    "line": 604,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0349",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectList",
+    "line": 187,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0350",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectList",
+    "line": 218,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0351",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectVOList",
+    "line": 250,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0352",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectVOList",
+    "line": 340,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0353",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectVOListPageable",
+    "line": 373,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0354",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectVOListPageable",
+    "line": 483,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0355",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractDeliverVOList",
+    "line": 1060,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0356",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractExportData",
+    "line": 2173,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0357",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "selectProjectWarrantyCallbackMapList",
+    "line": 458,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0358",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "countProjectWarrantyCallbackMapList",
+    "line": 463,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0359",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "countProjectWarranty",
+    "line": 624,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0360",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "selectProjectWarranty",
+    "line": 632,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0361",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "countCustomerProjectWarrantyCallbackStatistics",
+    "line": 638,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0362",
+    "path": "D:/IDEAWorkspace/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "selectCustomerProjectWarrantyCallbackStatistics",
+    "line": 645,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0363",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DailyReportMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 785,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0364",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DailyReportMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 885,
+    "tables": [
+      "pm_project_member",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0365",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DailyReportMapper.xml",
+    "statement": "checkPermission",
+    "line": 981,
+    "tables": [
+      "pm_project_member",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0366",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchProjectMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 563,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0367",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchProjectMapper.xml",
+    "statement": "selectDispatchProjectVOList",
+    "line": 978,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0368",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchProjectMapper.xml",
+    "statement": "selectDispatchVOWithAmountBySelective",
+    "line": 1107,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "pm_project",
+      "t_user",
+      "t_user_info",
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0369",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchProjectMapper.xml",
+    "statement": "selectDispatchVOWithAmountBySelectivePageable",
+    "line": 1116,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "pm_project",
+      "t_user",
+      "t_user_info",
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0370",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchSettlementMapper.xml",
+    "statement": "selectSettlementWidthDispatchPageable",
+    "line": 813,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0371",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchSettlementMapper.xml",
+    "statement": "querySSEDispatchSettlementPaymentList",
+    "line": 991,
+    "tables": [
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0372",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/FacilitatorMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 473,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0373",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/FacilitatorMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 485,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0374",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryAssetLeakRelationMapper.xml",
+    "statement": "selectProjectAssetLeakBySelectivePageable",
+    "line": 438,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0375",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryAssetLeakRelationMapper.xml",
+    "statement": "countProjectAssetLeakBySelectivePageable",
+    "line": 598,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0376",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryAssetMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 914,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0377",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryAssetMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 1094,
+    "tables": [
+      "pm_project_member",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0378",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryAssetMapper.xml",
+    "statement": "selectProjectAssetBySelectivePageable",
+    "line": 1261,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0379",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryAssetProjectRelationMapper.xml",
+    "statement": "selectProjectAssetBySelectivePageable",
+    "line": 409,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0380",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryAssetProjectRelationMapper.xml",
+    "statement": "countProjectAssetBySelectivePageable",
+    "line": 582,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0381",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryLeakMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 457,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0382",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryLeakMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 515,
+    "tables": [
+      "pm_project_member",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0383",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryLeakWarningMapper.xml",
+    "statement": "selectWarningAssetBySelectivePageable",
+    "line": 748,
+    "tables": [
+      "pm_project_member",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0384",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/IndustryLeakWarningMapper.xml",
+    "statement": "countWarningAssetBySelectivePageable",
+    "line": 830,
+    "tables": [
+      "pm_project_member",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0385",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmSynchronizeMapper.xml",
+    "statement": "clearAllOfstContractHeadSAP",
+    "line": 217,
+    "tables": [
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0386",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "countRunTasksByAssigneeAndProcessKeyAndTaskKey",
+    "line": 4,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0387",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "selectRunTasksByAssigneeAndProcessKeyAndTaskKey",
+    "line": 103,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0388",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "countFinishedTasksByAssignee",
+    "line": 215,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0389",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "selectFinishedTasksByAssignee",
+    "line": 318,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0390",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkFlowMapper.xml",
+    "statement": "selectActivitiUserMails",
+    "line": 801,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0391",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 49,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0392",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectBySelective",
+    "line": 781,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0393",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "countBySelective",
+    "line": 785,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0394",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 789,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_member",
+      "pm_project",
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0395",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 864,
+    "tables": [
+      "pm_project_member",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0396",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectVOByProjectId",
+    "line": 912,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0397",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "queryProjectStateByProjectId",
+    "line": 921,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0398",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectUncreateProjectList",
+    "line": 1236,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "fnd_department",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0399",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "countUncreateProjectList",
+    "line": 1256,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "fnd_department",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0400",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "queryProjectByContractNoAndType",
+    "line": 1263,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "fnd_department",
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0401",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "checkPermission",
+    "line": 1447,
+    "tables": [
+      "pm_project_member",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0402",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectPermissionByMemberRole",
+    "line": 1519,
+    "tables": [
+      "fnd_basic_data",
+      "t_role"
+    ]
+  },
+  {
+    "id": "L0403",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectRoleByMemberRole",
+    "line": 1544,
+    "tables": [
+      "fnd_basic_data",
+      "t_role",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0404",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectAllProjectRelateInfos",
+    "line": 1587,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0405",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectAllProjectRelateInfosPrepare",
+    "line": 1640,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0406",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectAllProjectRelateInfosBak",
+    "line": 1743,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0407",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectAllProjectRelateInfos",
+    "line": 1883,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0408",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectManageUserMapper.xml",
+    "statement": "selectBySelective",
+    "line": 339,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0409",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectManageUserMapper.xml",
+    "statement": "countBySelective",
+    "line": 374,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0410",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectManageUserMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 410,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0411",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectManageUserMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 446,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0412",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 47,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0413",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMapper.xml",
+    "statement": "selectBySelective",
+    "line": 432,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0414",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMapper.xml",
+    "statement": "countBySelective",
+    "line": 538,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0415",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 644,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0416",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 787,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0417",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMemberMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 25,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0418",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMemberMapper.xml",
+    "statement": "selectBySelective",
+    "line": 344,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0419",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMemberMapper.xml",
+    "statement": "countBySelective",
+    "line": 396,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0420",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMemberMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 448,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0421",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectMemberMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 526,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0422",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 41,
+    "tables": [
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0423",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "selectBySelective",
+    "line": 596,
+    "tables": [
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0424",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "countBySelective",
+    "line": 600,
+    "tables": [
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0425",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 604,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0426",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 620,
+    "tables": [
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0427",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "selectProjectDeliverBySelective",
+    "line": 626,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_task",
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0428",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "checkPermission",
+    "line": 673,
+    "tables": [
+      "pm_project_member",
+      "pm_project_task",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0429",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EhrDepartmentMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 35,
+    "tables": [
+      "ehr_department"
+    ]
+  },
+  {
+    "id": "L0430",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EhrDepartmentMapper.xml",
+    "statement": "selectBySelective",
+    "line": 316,
+    "tables": [
+      "ehr_department"
+    ]
+  },
+  {
+    "id": "L0431",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EhrDepartmentMapper.xml",
+    "statement": "countBySelective",
+    "line": 395,
+    "tables": [
+      "ehr_department"
+    ]
+  },
+  {
+    "id": "L0432",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EhrDepartmentMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 474,
+    "tables": [
+      "ehr_department"
+    ]
+  },
+  {
+    "id": "L0433",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EhrDepartmentMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 570,
+    "tables": [
+      "ehr_department"
+    ]
+  },
+  {
+    "id": "L0434",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EhrDepartmentMapper.xml",
+    "statement": "selectDepartmentWithChildrenTreeNode",
+    "line": 1197,
+    "tables": [
+      "ehr_department"
+    ]
+  },
+  {
+    "id": "L0435",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EHRLoginAccountMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 16,
+    "tables": [
+      "ehr_login"
+    ]
+  },
+  {
+    "id": "L0436",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EHRLoginAccountMapper.xml",
+    "statement": "selectBySelective",
+    "line": 117,
+    "tables": [
+      "ehr_login"
+    ]
+  },
+  {
+    "id": "L0437",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EHRLoginAccountMapper.xml",
+    "statement": "countBySelective",
+    "line": 145,
+    "tables": [
+      "ehr_login"
+    ]
+  },
+  {
+    "id": "L0438",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EHRLoginAccountMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 173,
+    "tables": [
+      "ehr_login"
+    ]
+  },
+  {
+    "id": "L0439",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EHRLoginAccountMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 220,
+    "tables": [
+      "ehr_login"
+    ]
+  },
+  {
+    "id": "L0440",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EmployeeMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 43,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0441",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EmployeeMapper.xml",
+    "statement": "selectBySelective",
+    "line": 400,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0442",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EmployeeMapper.xml",
+    "statement": "countBySelective",
+    "line": 500,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0443",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EmployeeMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 600,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0444",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EmployeeMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 723,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0445",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EmployeeMapper.xml",
+    "statement": "selectBySelectivePageableVO",
+    "line": 847,
+    "tables": [
+      "ehr_login"
+    ]
+  },
+  {
+    "id": "L0446",
+    "path": "D:/IDEAWorkspace/PMS/PMS-springmvc/src/main/java/com/dp/plat/ehr/mapping/EmployeeMapper.xml",
+    "statement": "selectEmployeeWithAccount",
+    "line": 1471,
+    "tables": [
+      "ehr_login"
+    ]
+  },
+  {
+    "id": "L0447",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/DataExportMapper.xml",
+    "statement": "exportUserDetail",
+    "line": 23,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0448",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/RoleMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 20,
+    "tables": [
+      "t_role"
+    ]
+  },
+  {
+    "id": "L0449",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/RoleMapper.xml",
+    "statement": "countBySelective",
+    "line": 164,
+    "tables": [
+      "t_role"
+    ]
+  },
+  {
+    "id": "L0450",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/RoleMapper.xml",
+    "statement": "selectBySelective",
+    "line": 183,
+    "tables": [
+      "t_role"
+    ]
+  },
+  {
+    "id": "L0451",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/RoleMapper.xml",
+    "statement": "selectRolesByRoleNames",
+    "line": 201,
+    "tables": [
+      "t_role"
+    ]
+  },
+  {
+    "id": "L0452",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/RoleMapper.xml",
+    "statement": "selectRoleByRoleName",
+    "line": 207,
+    "tables": [
+      "t_role"
+    ]
+  },
+  {
+    "id": "L0453",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 37,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0454",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectBySelective",
+    "line": 340,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0455",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "countBySelective",
+    "line": 425,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0456",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 510,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0457",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 621,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0458",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectByUserId",
+    "line": 724,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0459",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectOneByUserId",
+    "line": 728,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0460",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectVOsByUserId",
+    "line": 738,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0461",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectOneByUserIdAndCompId",
+    "line": 748,
+    "tables": [
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0462",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserInfoMapper.xml",
+    "statement": "selectOneByUserNameAndCompId",
+    "line": 758,
+    "tables": [
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0463",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 27,
+    "tables": [
+      "t_user"
+    ]
+  },
+  {
+    "id": "L0464",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "selectBySelective",
+    "line": 224,
+    "tables": [
+      "t_user"
+    ]
+  },
+  {
+    "id": "L0465",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "countBySelective",
+    "line": 276,
+    "tables": [
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0466",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 329,
+    "tables": [
+      "t_user"
+    ]
+  },
+  {
+    "id": "L0467",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 406,
+    "tables": [
+      "t_user"
+    ]
+  },
+  {
+    "id": "L0468",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "selectByUserName",
+    "line": 476,
+    "tables": [
+      "t_user"
+    ]
+  },
+  {
+    "id": "L0469",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "selectAllUser",
+    "line": 481,
+    "tables": [
+      "t_user"
+    ]
+  },
+  {
+    "id": "L0470",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "queryUserMenuByUsername",
+    "line": 495,
+    "tables": [
+      "t_user",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0471",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "queryUserMenuByUserIdAndCompId",
+    "line": 506,
+    "tables": [
+      "t_user",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0472",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "countBySelective",
+    "line": 520,
+    "tables": [
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0473",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "selectBySelective",
+    "line": 579,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0474",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "countBySelective",
+    "line": 689,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0475",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "checkUniqueUserName",
+    "line": 860,
+    "tables": [
+      "t_user"
+    ]
+  },
+  {
+    "id": "L0476",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "queryMaxRoleHomePageByUserId",
+    "line": 1019,
+    "tables": [
+      "t_role",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0477",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "queryMaxRoleHomePageByUserIdAndCompId",
+    "line": 1031,
+    "tables": [
+      "t_role",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0478",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserMapper.xml",
+    "statement": "findUserByParam",
+    "line": 1043,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0479",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "selectByPrimaryKey",
+    "line": 13,
+    "tables": [
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0480",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "selectBySelective",
+    "line": 82,
+    "tables": [
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0481",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "countBySelective",
+    "line": 101,
+    "tables": [
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0482",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 120,
+    "tables": [
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0483",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 150,
+    "tables": [
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0484",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "queryUserRoleByName",
+    "line": 174,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0485",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "queryUserRoleByNameAndCompId",
+    "line": 184,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0486",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "queryPermissionByUsername",
+    "line": 197,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0487",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "queryPermissionByUsernameAndCompId",
+    "line": 208,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0488",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "countUserRoleSelected",
+    "line": 222,
+    "tables": [
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0489",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "selectUserRoleSelected",
+    "line": 263,
+    "tables": [
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0490",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "countUserRoleUnselected",
+    "line": 300,
+    "tables": [
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0491",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "selectUserRoleUnselected",
+    "line": 335,
+    "tables": [
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0492",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "selectUserRolesByUserId",
+    "line": 392,
+    "tables": [
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0493",
+    "path": "D:/IDEAWorkspace/PMS/core/src/main/java/com/dp/plat/core/mapping/UserRoleMapper.xml",
+    "statement": "selectUserRolesByUserIdAndCompId",
+    "line": 396,
+    "tables": [
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0494",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_user_by_id",
+    "line": 103,
+    "tables": [
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0495",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query-user-count",
+    "line": 173,
+    "tables": [
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0496",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query-userlist",
+    "line": 193,
+    "tables": [
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0497",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query-userlist-all",
+    "line": 223,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0498",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "select-user",
+    "line": 306,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0499",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query-role-count",
+    "line": 352,
+    "tables": [
+      "fnd_roles"
+    ]
+  },
+  {
+    "id": "L0500",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query-rolelist",
+    "line": 366,
+    "tables": [
+      "fnd_roles"
+    ]
+  },
+  {
+    "id": "L0501",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query-department-count",
+    "line": 453,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0502",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query-departmentlist",
+    "line": 467,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0503",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "select-user-byusername",
+    "line": 515,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0504",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "select-users-byusernames",
+    "line": 521,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0505",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_all_department",
+    "line": 733,
+    "tables": [
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0506",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_user_with_role",
+    "line": 886,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0507",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_user_with_dpNo_role",
+    "line": 898,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0508",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_user_with_dpNo_role_orin_areaPower",
+    "line": 907,
+    "tables": [
+      "fnd_user_info",
+      "fnd_user_power"
+    ]
+  },
+  {
+    "id": "L0509",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_file_list",
+    "line": 954,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0510",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_mails_with_role",
+    "line": 986,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0511",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_mails_with_role_and_office",
+    "line": 992,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0512",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-admin-config.xml",
+    "statement": "query_mails_and_office",
+    "line": 1000,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0513",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceList",
+    "line": 185,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0514",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "countProjectMaintenanceList",
+    "line": 283,
+    "tables": [
+      "pm_project_maintenance",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0515",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceVOList",
+    "line": 628,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0516",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectProjectMaintenanceMapList",
+    "line": 781,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0517",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectDailyMaintenanceMapList",
+    "line": 1108,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_maintenance",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0518",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-maintenance-config.xml",
+    "statement": "selectDailyMaintenanceUsers",
+    "line": 1314,
+    "tables": [
+      "pm_project_maintenance"
+    ]
+  },
+  {
+    "id": "L0519",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-presales-config.xml",
+    "statement": "query_presales_byid",
+    "line": 56,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project_task",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0520",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-presales-config.xml",
+    "statement": "query_presales_count",
+    "line": 104,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0521",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-presales-config.xml",
+    "statement": "query_presales_list",
+    "line": 208,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0522",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-presales-config.xml",
+    "statement": "queryPresalesExportData",
+    "line": 559,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_member",
+      "pm_project_task",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0523",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_count",
+    "line": 91,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0524",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_list",
+    "line": 171,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0525",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "check_soft_version_list",
+    "line": 389,
+    "tables": [
+      "fb_soft_version",
+      "pm_project_soft_version"
+    ]
+  },
+  {
+    "id": "L0526",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_restore_list_old",
+    "line": 561,
+    "tables": [
+      "fb_contract",
+      "fb_items",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "fb_soft_version",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_soft_version",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0527",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "count_prob_restore_list",
+    "line": 725,
+    "tables": [
+      "fb_items",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_soft_version",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0528",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_restore_list",
+    "line": 729,
+    "tables": [
+      "fb_items",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_soft_version",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0529",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_list_probRestore_task",
+    "line": 861,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_soft_version",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0530",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_list_probRestore_task_project",
+    "line": 930,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_soft_version",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0531",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_prob_assignee_emails",
+    "line": 1068,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0532",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_hist_soft_version_list_by_probRestoreIds",
+    "line": 1101,
+    "tables": [
+      "pm_project_soft_change_logs",
+      "pm_project_soft_version"
+    ]
+  },
+  {
+    "id": "L0533",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_officeMails_by_probRestoreIds",
+    "line": 1117,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0534",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_exportProb_list",
+    "line": 1129,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0535",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_contract_shipment_soft_count",
+    "line": 1906,
+    "tables": [
+      "fb_items",
+      "fb_soft_version",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0536",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "query_contract_shipment_soft_list",
+    "line": 1924,
+    "tables": [
+      "fb_items",
+      "fb_soft_version",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0537",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "selectProductItemListByParams",
+    "line": 2541,
+    "tables": [
+      "fb_items"
+    ]
+  },
+  {
+    "id": "L0538",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config.xml",
+    "statement": "selectProductItemListByExample",
+    "line": 2561,
+    "tables": [
+      "fb_items"
+    ]
+  },
+  {
+    "id": "L0539",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-prob-config_bak.xml",
+    "statement": "query_prob_list",
+    "line": 84,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0540",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "select-quesnaire_template_header-list",
+    "line": 1153,
+    "tables": [
+      "fnd_basic_data",
+      "pm_cl_quesnaire_template_header"
+    ]
+  },
+  {
+    "id": "L0541",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-project-bycontractno",
+    "line": 1317,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0542",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-project-bycontractnoAndType",
+    "line": 1341,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0543",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_project_byId",
+    "line": 1420,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_related_party",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0544",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_project_by_power_Id",
+    "line": 1470,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "pm_project_state",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0545",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "select-evaluation_header-objMap",
+    "line": 1797,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0546",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-orderline-fromsap-bycontractno",
+    "line": 2043,
+    "tables": [
+      "fb_items"
+    ]
+  },
+  {
+    "id": "L0547",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryOrderDataDetailListByProjectId",
+    "line": 2116,
+    "tables": [
+      "fb_items",
+      "pm_project_product_line"
+    ]
+  },
+  {
+    "id": "L0548",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-shipmentinfo-bycontractno",
+    "line": 2252,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm",
+      "view_warranty"
+    ]
+  },
+  {
+    "id": "L0549",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_soft_version_list",
+    "line": 2308,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "fb_soft_version",
+      "pm_project_shipment",
+      "pm_project_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0550",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_hist_soft_version_list_factory",
+    "line": 2393,
+    "tables": [
+      "fb_soft_version",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0551",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "countProjectSoftVersionList",
+    "line": 2594,
+    "tables": [
+      "fb_contract",
+      "fb_items",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "fb_shipment_barcode_relation",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_soft_version",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0552",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "selectProjectSoftVersionList",
+    "line": 2599,
+    "tables": [
+      "fb_contract",
+      "fb_items",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "fb_shipment_barcode_relation",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_soft_version",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0553",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_hist_soft_version_list",
+    "line": 2608,
+    "tables": [
+      "fb_shipment_barcode_relation",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_soft_version"
+    ]
+  },
+  {
+    "id": "L0554",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_one_soft_change_log",
+    "line": 2642,
+    "tables": [
+      "pm_project_soft_change_logs"
+    ]
+  },
+  {
+    "id": "L0555",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "find_transfer_project_list",
+    "line": 2865,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0556",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-transferShipmentInfo-bycontractno",
+    "line": 2952,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0557",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryNeededUndelivedProjectDeliverList",
+    "line": 3077,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0558",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_mail_byusername",
+    "line": 3326,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0559",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_mail_byroleid",
+    "line": 3331,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0560",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_usernames_byroleId",
+    "line": 3336,
+    "tables": [
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0561",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_contract_info",
+    "line": 3351,
+    "tables": [
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0562",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_project_group_count",
+    "line": 3422,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0563",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_member_address",
+    "line": 3501,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0564",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query-cbData-list",
+    "line": 3672,
+    "tables": [
+      "fnd_act_hi_comment",
+      "pm_cl_callback",
+      "pm_cl_callback_quesnaire",
+      "pm_cl_quesnaire_result_header",
+      "pm_cl_quesnaire_result_line",
+      "pm_cl_quesnaire_template_line",
+      "pm_cl_quesnaire_template_options",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0565",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "query_project_list_by_officeAndMemberCode",
+    "line": 4085,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0566",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectLeaseLineByProjectCode",
+    "line": 4156,
+    "tables": [
+      "pm_project_product_lease_line_from_crm"
+    ]
+  },
+  {
+    "id": "L0567",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectLeaseLineSizeByProjectCode",
+    "line": 4169,
+    "tables": [
+      "pm_project_product_lease_line_from_crm"
+    ]
+  },
+  {
+    "id": "L0568",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectProductConfigLevelInfoByProjectCode",
+    "line": 4182,
+    "tables": [
+      "pm_project_product_config_level_info_from_crm"
+    ]
+  },
+  {
+    "id": "L0569",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectProductConfigLevelInfoSizeByProjectCode",
+    "line": 4199,
+    "tables": [
+      "pm_project_product_config_level_info_from_crm"
+    ]
+  },
+  {
+    "id": "L0570",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "querySpotCheckList",
+    "line": 4474,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0571",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryOverWarrantyRemindList",
+    "line": 4541,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm",
+      "view_warranty"
+    ]
+  },
+  {
+    "id": "L0572",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectInspection",
+    "line": 4683,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fnd_basic_data",
+      "pm_pb_plan_from_sms",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "pm_project_task",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0573",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "queryProjectSimplifyByProjectId",
+    "line": 5997,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0574",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "querySoleAgentProject",
+    "line": 6210,
+    "tables": [
+      "pm_project_header",
+      "pm_project_property_from_sms"
+    ]
+  },
+  {
+    "id": "L0575",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "selectContractAcceptanceDeliveryInfo",
+    "line": 6353,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0576",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "selectProblemTicket",
+    "line": 6381,
+    "tables": [
+      "pm_project_incident_table_from_itr"
+    ]
+  },
+  {
+    "id": "L0577",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "selectProblemTicketByProjectBarcode",
+    "line": 6392,
+    "tables": [
+      "fb_items",
+      "fb_shipment_barcode_relation",
+      "pm_project_incident_table_from_itr",
+      "pm_project_shipment",
+      "view_shipment_ems_4_pm",
+      "view_shipment_info_4_pm"
+    ]
+  },
+  {
+    "id": "L0578",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-project-config.xml",
+    "statement": "selectLicenseInfo",
+    "line": 6405,
+    "tables": [
+      "pm_project_license_info_from_license"
+    ]
+  },
+  {
+    "id": "L0579",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-refresh-data-common-config.xml",
+    "statement": "selectOrderLineFromERP",
+    "line": 1051,
+    "tables": [
+      "fb_items"
+    ]
+  },
+  {
+    "id": "L0580",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-refresh-data-common-config.xml",
+    "statement": "selectContractShimpentBarcodeToCRM",
+    "line": 1083,
+    "tables": [
+      "fb_contract",
+      "fb_shipment",
+      "fb_shipment_barcode",
+      "view_warranty"
+    ]
+  },
+  {
+    "id": "L0581",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-refresh-data-common-config.xml",
+    "statement": "selectSubcontractPaymentToFP",
+    "line": 1138,
+    "tables": [
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0582",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-report-config.xml",
+    "statement": "queryProjectSummaryStatus",
+    "line": 604,
+    "tables": [
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_state",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0583",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectList",
+    "line": 201,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0584",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectList",
+    "line": 233,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0585",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectVOList",
+    "line": 299,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0586",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectVOList",
+    "line": 401,
+    "tables": [
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0587",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractProjectVOListPageable",
+    "line": 445,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0588",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractProjectVOListPageable",
+    "line": 555,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0589",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractDeliverVOList",
+    "line": 1175,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0590",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectSubcontractPaymentList",
+    "line": 1319,
+    "tables": [
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0591",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "countSubcontractPaymentList",
+    "line": 1336,
+    "tables": [
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0592",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "queryProjectListBak",
+    "line": 1743,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0593",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "queryProjectList",
+    "line": 1824,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0594",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractTaskList",
+    "line": 2072,
+    "tables": [
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_roles",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0595",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "selectRejectedSubcontractProjectList",
+    "line": 2200,
+    "tables": [
+      "pm_subcontract_project_header",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0596",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractActivitiTaskList",
+    "line": 2285,
+    "tables": [
+      "pm_subcontract_project_header"
+    ]
+  },
+  {
+    "id": "L0597",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractCommentList",
+    "line": 2392,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0598",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "querySubcontractExportData",
+    "line": 2461,
+    "tables": [
+      "fnd_act_hi_comment",
+      "fnd_basic_data",
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0599",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-subcontract-config.xml",
+    "statement": "queryNextPaymentTask",
+    "line": 2596,
+    "tables": [
+      "pm_subcontract_project_header",
+      "pm_subcontract_project_payment"
+    ]
+  },
+  {
+    "id": "L0600",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "selectProjectWarrantyCallbackList",
+    "line": 413,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0601",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "countProjectWarrantyCallbackList",
+    "line": 428,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0602",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "selectProjectWarrantyCallbackVOListPageable",
+    "line": 441,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0603",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "countProjectWarrantyCallbackVOListPageable",
+    "line": 458,
+    "tables": [
+      "pm_project_member"
+    ]
+  },
+  {
+    "id": "L0604",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "countProjectWarranty",
+    "line": 755,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0605",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "selectProjectWarranty",
+    "line": 764,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0606",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "countCustomerProjectWarrantyCallbackStatistics",
+    "line": 771,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0607",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-warrantyCallback-config.xml",
+    "statement": "selectCustomerProjectWarrantyCallbackStatistics",
+    "line": 778,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_contract",
+      "pm_project_group_relationship",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_property_from_sms",
+      "pm_project_related_party",
+      "fnd_department",
+      "pm_project_group"
+    ]
+  },
+  {
+    "id": "L0608",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "query_pm_task_list",
+    "line": 68,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "pm_project_task",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0609",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "query_pm_task_count",
+    "line": 97,
+    "tables": [
+      "fnd_basic_data",
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_state",
+      "pm_project_task"
+    ]
+  },
+  {
+    "id": "L0610",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "query_notify_count",
+    "line": 120,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_notification",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0611",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "query_notify_list",
+    "line": 143,
+    "tables": [
+      "pm_project_header",
+      "pm_project_member",
+      "pm_project_notification",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0612",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "query_call_back_task",
+    "line": 240,
+    "tables": [
+      "pm_cl_callback",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0613",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "query_callback_his_list",
+    "line": 330,
+    "tables": [
+      "fnd_act_hi_comment",
+      "pm_cl_callback",
+      "pm_project_header",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0614",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "query_probTask_list",
+    "line": 403,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0615",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "queryProjectSupervisionTask",
+    "line": 484,
+    "tables": [
+      "pm_project_member",
+      "pm_project_supervision",
+      "fnd_department"
+    ]
+  },
+  {
+    "id": "L0616",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "countSelfHistoryTaskList",
+    "line": 573,
+    "tables": [
+      "fnd_act_hi_comment",
+      "pm_cl_callback",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0617",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-struts/config-ibaits/sql-map-work-config.xml",
+    "statement": "querySelfHistoryTaskList",
+    "line": 581,
+    "tables": [
+      "fnd_act_hi_comment",
+      "pm_cl_callback",
+      "pm_project_header",
+      "pm_project_member",
+      "fnd_department",
+      "fnd_user_info"
+    ]
+  },
+  {
+    "id": "L0618",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DailyReportMapper.xml",
+    "statement": "checkPermission",
+    "line": 981,
+    "tables": [
+      "pm_project_member",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0619",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchProjectMapper.xml",
+    "statement": "selectDispatchProjectVOList",
+    "line": 978,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "t_user",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0620",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchSettlementMapper.xml",
+    "statement": "selectSettlementWidthDispatchPageableOld",
+    "line": 944,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0621",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchSettlementMapper.xml",
+    "statement": "selectSettlementWidthDispatchPageable",
+    "line": 1121,
+    "tables": [
+      "fnd_basic_data",
+      "fnd_department",
+      "pm_project",
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0622",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/DispatchSettlementMapper.xml",
+    "statement": "countSettlementWidthDispatchPageable",
+    "line": 1238,
+    "tables": [
+      "sms_ofst_contract_head_sap"
+    ]
+  },
+  {
+    "id": "L0623",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/FacilitatorMapper.xml",
+    "statement": "selectBySelectivePageable",
+    "line": 511,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0624",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/FacilitatorMapper.xml",
+    "statement": "countBySelectivePageable",
+    "line": 523,
+    "tables": [
+      "fnd_basic_data"
+    ]
+  },
+  {
+    "id": "L0625",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "countRunTasksByAssigneeAndProcessKeyAndTaskKey",
+    "line": 4,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0626",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "selectRunTasksByAssigneeAndProcessKeyAndTaskKey",
+    "line": 104,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0627",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "countFinishedTasksByAssignee",
+    "line": 217,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0628",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/PmWorkBenchMapper.xml",
+    "statement": "selectFinishedTasksByAssignee",
+    "line": 321,
+    "tables": [
+      "ehr_employee"
+    ]
+  },
+  {
+    "id": "L0629",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "checkPermission",
+    "line": 1507,
+    "tables": [
+      "pm_project_member",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0630",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectPermissionByMemberRole",
+    "line": 1582,
+    "tables": [
+      "fnd_basic_data",
+      "t_role",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0631",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectRoleByMemberRole",
+    "line": 1616,
+    "tables": [
+      "fnd_basic_data",
+      "t_role",
+      "t_user_info",
+      "t_user_role"
+    ]
+  },
+  {
+    "id": "L0632",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectHeaderMapper.xml",
+    "statement": "selectAllProjectRelateInfos",
+    "line": 1955,
+    "tables": [
+      "pm_project"
+    ]
+  },
+  {
+    "id": "L0633",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/PMS-springmvc/src/main/java/com/dp/plat/pms/springmvc/mapping/ProjectTaskMapper.xml",
+    "statement": "checkPermission",
+    "line": 673,
+    "tables": [
+      "pm_project_member",
+      "pm_project_task",
+      "pm_project",
+      "t_user_info"
+    ]
+  },
+  {
+    "id": "L0634",
+    "path": "D:/EclipseWorkspace/Parctice/PMS/core/src/main/java/com/dp/plat/core/mapping/DataExportMapper.xml",
+    "statement": "exportUserDetail",
+    "line": 23,
+    "tables": [
+      "t_role",
+      "t_user",
+      "t_user_info",
+      "t_user_role"
+    ]
+  }
+]

@@ -261,10 +261,10 @@
         {
           "object": "PACKAGE",
           "sourceObject": "fb_shipment",
-          "readMode": "TABLE",
+          "readMode": "SQL",
           "table": "fb_shipment",
-          "sql": null,
-          "parameters": {},
+          "sql": "SELECT p.*,COALESCE(d.basicDataName,p.emsCompany) AS carrier_name FROM fb_shipment p LEFT JOIN fnd_basic_data d ON d.dataTypeCode='01' AND d.basicDataId=p.emsCompany WHERE (:contractNos='' OR EXISTS (SELECT 1 FROM fb_contract c WHERE c.contract_id=p.con_id AND FIND_IN_SET(c.contract_code,:contractNos)))",
+          "parameters": {"contractNos": ""},
           "columns": [],
           "filters": [],
           "sourceKey": "packlist_id",
@@ -286,6 +286,7 @@
                 "receiver_name",
                 "express_no",
                 "carrier_name",
+                "carrier_code",
                 "shipment_contract_ref_id"
               ],
               "whenField": null,
@@ -323,6 +324,11 @@
                 },
                 {
                   "target": "carrier_name",
+                  "source": "carrier_name",
+                  "conversion": "DIRECT"
+                },
+                {
+                  "target": "carrier_code",
                   "source": "emsCompany",
                   "conversion": "DIRECT"
                 },

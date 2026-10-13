@@ -8,6 +8,7 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectProductCo
 import cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.*;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService;
 import cn.iocoder.yudao.module.pms.project.service.projectmanual.ProjectManualCreationService.ProjectAccessActor;
+import cn.iocoder.yudao.module.pms.project.api.migration.ProjectAssociatedProductMigrationApi;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.*;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 
-/** Formal additional project list; technical identity and full replay baselines remain with PLT. */
+/** Formal additional project list; technical identity and full replay baselines remain with the migration module. */
 @Service @RequiredArgsConstructor
 public class ProjectProductConfigurationImportService {
     public static final Set<String> ORIGINAL_COLUMNS=Set.of("projectCode","orderExecNumber","itemGroup","itemCode","parentCode","quantity","bomPaths","itemModel","itemDesc","level","dataSource");
@@ -29,6 +30,45 @@ public class ProjectProductConfigurationImportService {
     public record Entry(String sourceKey,ProjectProductConfigurationDO incoming,Long targetId,String baseline) {}
     public record Plan(Long projectId,List<Entry> entries) { public Plan { entries=List.copyOf(entries); } }
     public record Result(List<NativeEntityMigrationRow> rows,Map<String,String> baselines) {}
+    public record DirectPreparation(Long projectId,String originalProjectCode,List<ProjectAssociatedProductMigrationApi.Source> rows,ProjectAccessActor actor) {}
+    public record SourceExecution(Plan plan,ProjectAccessActor actor,boolean apply) {}
+    @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
+    public Plan prepareSources(DirectPreparation request) {
+        if(request==null)throw invalid("INPUT_INVALID");
+        var actor=request.actor();validate(actor);access.getProjectForManage(request.projectId(),actor);
+        if(request.rows()==null || request.rows().size()>10000 || request.originalProjectCode()==null || request.originalProjectCode().isBlank())throw invalid("INPUT_INVALID");
+        String queryCode=request.originalProjectCode().split("-",2)[0];
+        var entries=new ArrayList<Entry>();var keys=new HashSet<String>();var ids=new HashSet<Long>();
+        for(var source:request.rows()) {
+            var raw=source.originalFields();
+            if(raw==null || !raw.keySet().equals(ORIGINAL_COLUMNS) || source.sourceKey()==null
+                    || !source.sourceKey().matches("[0-9a-f]{64}:[1-9][0-9]*") || !keys.add(source.sourceKey())
+                    || !Objects.equals(raw.get("projectCode"),queryCode))throw invalid("SOURCE_PROJECT_INVALID");
+            if(source.targetId()==null?source.baseline()!=null:source.targetId()<=0 || source.baseline()==null || !ids.add(source.targetId()))throw invalid("MAPPING_INVALID");
+            var entry=new Entry(source.sourceKey(),incoming(new ProductInput(request.projectId(),raw,actor)),source.targetId(),source.baseline());
+            validateCurrent(request.projectId(),entry,actor);entries.add(entry);
+        }
+        if(entries.stream().anyMatch(entry->entry.targetId()==null) && mapper.countAllProjectRecords(new ProjectProductConfigurationProjectQuery(actor.tenantId(),request.projectId()))>0)
+            throw invalid("CONTINUOUS_REFRESH_NOT_ADJUDICATED");
+        return new Plan(request.projectId(),entries);
+    }
+    @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
+    public List<ProjectAssociatedProductMigrationApi.Result> sourceResults(SourceExecution request) {
+        validate(request.actor());if(request.apply())apply(request.plan(),request.actor());
+        var result=new ArrayList<ProjectAssociatedProductMigrationApi.Result>();
+        for(var entry:request.plan().entries()) {
+            var row=entry.targetId()==null?entry.incoming():validateCurrent(request.plan().projectId(),entry,request.actor());
+            if(!request.apply() && entry.targetId()==null) {
+                var now=LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);row.setCreator(request.actor().actorId().toString());row.setUpdater(row.getCreator());
+                row.setCreateTime(now);row.setUpdateTime(now);row.setDeleted(false);
+            }
+            var fields=new LinkedHashMap<String,Object>();var bean=new org.springframework.beans.BeanWrapperImpl(row);
+            for(String field:List.of("id","tenantId","projectId","projectCode","executionNo","itemGroup","productCode","parentCode","quantity","bomPath","productModel","productDescription","level","dataSource","creator","createTime","updater","updateTime","deleted"))fields.put(field,bean.getPropertyValue(field));
+            result.add(new ProjectAssociatedProductMigrationApi.Result(entry.sourceKey(),row.getId(),entry.targetId()==null?"CREATED":"UNCHANGED",
+                    Collections.unmodifiableMap(fields),row.getId()==null?null:baseline(row)));
+        }
+        return List.copyOf(result);
+    }
     @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
     public Plan prepare(Long projectId,String sourceProjectKey,List<ProjectLegacyRecordDO> headers,List<ProjectLegacyRecordDO> rows,ProjectAccessActor actor) {
         validate(actor);access.getProjectForManage(projectId,actor);
@@ -49,26 +89,7 @@ public class ProjectProductConfigurationImportService {
         for(var source:rows) {
             var raw=read(source,actor,snapshotId,"configured-products","pm_project_product_config_level_info_from_crm",ORIGINAL_COLUMNS);
             if(!keys.add(source.getSourceKey()) || !Objects.equals(raw.get("projectCode"),queryCode))throw invalid("SOURCE_PROJECT_INVALID");
-            var incoming=new ProjectProductConfigurationDO();incoming.setTenantId(actor.tenantId());incoming.setProjectId(projectId);
-            incoming.setProjectCode(raw.get("projectCode"));
-            incoming.setExecutionNo(raw.get("orderExecNumber"));
-            incoming.setItemGroup((raw.get("itemGroup")==null?null:new BigDecimal(raw.get("itemGroup")).intValueExact()));
-            incoming.setProductCode(raw.get("itemCode"));
-            incoming.setParentCode(raw.get("parentCode"));
-            incoming.setQuantity((raw.get("quantity")==null?null:new BigDecimal(new BigDecimal(raw.get("quantity")).intValueExact())));
-            incoming.setBomPath(raw.get("bomPaths"));
-            incoming.setProductModel(raw.get("itemModel"));
-            incoming.setProductDescription(raw.get("itemDesc"));
-            incoming.setLevel((raw.get("level")==null?null:new BigDecimal(raw.get("level")).intValueExact()));
-            incoming.setDataSource(raw.get("dataSource"));
-            if(incoming.getDataSource()!=null && incoming.getDataSource().length()>25)throw invalid("DATA_SOURCE_TOO_LONG");
-            if(incoming.getProjectCode()!=null && incoming.getProjectCode().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
-            if(incoming.getExecutionNo()!=null && incoming.getExecutionNo().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
-            if(incoming.getProductCode()!=null && incoming.getProductCode().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
-            if(incoming.getParentCode()!=null && incoming.getParentCode().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
-            if(incoming.getBomPath()!=null && incoming.getBomPath().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
-            if(incoming.getProductModel()!=null && incoming.getProductModel().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
-            if(incoming.getProductDescription()!=null && incoming.getProductDescription().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+            var incoming=incoming(new ProductInput(projectId,raw,actor));
             var status=statuses.get(source.getSourceKey());
             if(status==null || !Set.of("NOT_MIGRATED","MAPPED").contains(status.classification()))throw invalid("EVIDENCE_INVALID");
             Long id=null;String baseline=null;
@@ -124,6 +145,31 @@ public class ProjectProductConfigurationImportService {
                 || Boolean.TRUE.equals(row.getDeleted()) || !business(row).equals(business(entry.incoming()))
                 || !baseline(row).equals(entry.baseline()))throw invalid("TARGET_CHANGED");
         return row;
+    }
+    private record ProductInput(Long projectId,Map<String,String> raw,ProjectAccessActor actor) {}
+    private static ProjectProductConfigurationDO incoming(ProductInput input) {
+        var raw=input.raw();var actor=input.actor();Long projectId=input.projectId();
+        var incoming=new ProjectProductConfigurationDO();incoming.setTenantId(actor.tenantId());incoming.setProjectId(projectId);
+        incoming.setProjectCode(raw.get("projectCode"));
+        incoming.setExecutionNo(raw.get("orderExecNumber"));
+        incoming.setItemGroup((raw.get("itemGroup")==null?null:new BigDecimal(raw.get("itemGroup")).intValueExact()));
+        incoming.setProductCode(raw.get("itemCode"));
+        incoming.setParentCode(raw.get("parentCode"));
+        incoming.setQuantity((raw.get("quantity")==null?null:new BigDecimal(new BigDecimal(raw.get("quantity")).intValueExact())));
+        incoming.setBomPath(raw.get("bomPaths"));
+        incoming.setProductModel(raw.get("itemModel"));
+        incoming.setProductDescription(raw.get("itemDesc"));
+        incoming.setLevel((raw.get("level")==null?null:new BigDecimal(raw.get("level")).intValueExact()));
+        incoming.setDataSource(raw.get("dataSource"));
+        if(incoming.getDataSource()!=null && incoming.getDataSource().length()>25)throw invalid("DATA_SOURCE_TOO_LONG");
+        if(incoming.getProjectCode()!=null && incoming.getProjectCode().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+        if(incoming.getExecutionNo()!=null && incoming.getExecutionNo().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+        if(incoming.getProductCode()!=null && incoming.getProductCode().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+        if(incoming.getParentCode()!=null && incoming.getParentCode().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+        if(incoming.getBomPath()!=null && incoming.getBomPath().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+        if(incoming.getProductModel()!=null && incoming.getProductModel().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+        if(incoming.getProductDescription()!=null && incoming.getProductDescription().getBytes(java.nio.charset.StandardCharsets.UTF_8).length>65535)throw invalid("TEXT_TOO_LONG");
+        return incoming;
     }
     private static Map<String,String> read(ProjectLegacyRecordDO row,ProjectAccessActor actor,Long snapshotId,String domain,String table,Set<String> columns) {
         if(row==null || !Objects.equals(row.getTenantId(),actor.tenantId()) || !Objects.equals(row.getSnapshotId(),snapshotId)

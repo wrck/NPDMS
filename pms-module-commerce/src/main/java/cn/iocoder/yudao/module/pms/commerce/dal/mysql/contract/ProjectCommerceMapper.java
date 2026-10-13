@@ -11,4 +11,5 @@ public interface ProjectCommerceMapper {
     List<ContractDO> selectContracts(@Param("query") ProjectCommerceQuery query);
     List<SalesOrderDO> selectOrders(@Param("query") ProjectCommerceQuery query);
     List<CrmExecutionOrderDO> selectExecutionOrders(@Param("query") ProjectCommerceQuery query);
+    List<cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.history.ContractReceivableDO> selectReceivables(@Param("query") ProjectCommerceQuery query);
 }

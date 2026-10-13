@@ -15,6 +15,8 @@ class DppmsProjectContractSourceMySqlTest {
                 System.getenv("DPPMS_SOURCE_USER"),System.getenv("DPPMS_SOURCE_PASSWORD"))) {
             db.setReadOnly(true);
             var definition=DppmsProjectContractRelationSyncTemplate.create(18L);
+            // Frozen pre-Q018 task SQL remains supported without rewriting its history.
+            definition.sources().getFirst().sql(DppmsMigrationSql.initial("project-contract-relations"));
             assertEquals("STREAMING_CURSOR",definition.effectiveReadStrategy());
             var bound=MysqlSyncReader.compile(definition.sources().getFirst());
             try(var query=prepared(db,"SELECT COUNT(*) FROM ("+bound.sql()+") selected WHERE projectCandidateCount>1",bound.values());var result=query.executeQuery()) {
@@ -62,6 +64,55 @@ class DppmsProjectContractSourceMySqlTest {
                 assertTrue(result.next());assertEquals(0,result.getLong(1));
             }
         }
+    }
+    @Test void formalIdentityQueryReconcilesAllRepeatedSourceGroupsBeforeChunking() throws Exception {
+        assertEquals("dppms",System.getenv("DPPMS_SOURCE_DB"));
+        try(var db=DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/dppms?useSSL=false&serverTimezone=Asia/Shanghai",
+                System.getenv("DPPMS_SOURCE_USER"),System.getenv("DPPMS_SOURCE_PASSWORD"))) {
+            db.setReadOnly(true);
+            var source=DppmsProjectContractRelationSyncTemplate.create(18L).sources().getFirst();
+            var bound=MysqlSyncReader.compile(source);
+            var rows=new ArrayList<cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter.Row>();
+            try(var query=prepared(db,"SELECT * FROM ("+bound.sql()+") repeated WHERE originalProjectId IS NOT NULL AND formalGroupSize>1 ORDER BY relationSourceKey",bound.values());
+                    var result=query.executeQuery()) {
+                while(result.next()) {
+                    var values=new LinkedHashMap<String,Object>();
+                    for(int i=1;i<=result.getMetaData().getColumnCount();i++) values.put(result.getMetaData().getColumnLabel(i),result.getObject(i));
+                    rows.add(new cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter.Row(
+                            DppmsProjectContractRelationSyncTemplate.OBJECT,result.getString("relationSourceKey"),values,null));
+                }
+            }
+            assertFalse(rows.isEmpty());
+            var groups=rows.stream().collect(java.util.stream.Collectors.groupingBy(row->List.of(
+                    row.fields().get("originalProjectId"),row.fields().get("contractNo"))));
+            var decisions=DppmsProjectContractFormalDecision.resolve(rows);
+            for(var group:groups.values()) {
+                var selected=group.stream().filter(row->!row.fields().get("member_projectCode").toString().endsWith("-his")).toList();
+                boolean current=!selected.isEmpty();if(!current) selected=group;
+                var earliest=selected.stream().map(row->sourceDate(row.fields(),"createTime")).min(Comparator.naturalOrder()).orElseThrow();
+                var latest=selected.stream().map(row->sourceDate(row.fields(),"updateTime")).filter(Objects::nonNull).max(Comparator.naturalOrder());
+                for(var row:group) {
+                    var decision=decisions.get(row.sourceKey());
+                    assertEquals(group.size(),decision.count());assertEquals(current?"ACTIVE":"HISTORICAL",decision.status());
+                    assertEquals(earliest,decision.createdAt());assertEquals(latest.orElse(earliest),decision.updatedAt());
+                    var canonical=group.stream().filter(candidate->(candidate.fields().get("id")+":"+candidate.fields().get("member_id")).equals(decision.sourceKey())).findFirst().orElseThrow();
+                    assertEquals(DppmsProjectContractRelationSyncAdapter.original(canonical.fields()),decision.canonical());
+                    assertEquals(sourceActor(canonical.fields(),"createBy"),decision.creator());
+                    var finalLatest=latest.orElse(null);
+                    assertTrue(selected.stream().filter(candidate->Objects.equals(sourceDate(candidate.fields(),"updateTime"),finalLatest))
+                            .allMatch(candidate->Objects.equals(sourceActor(candidate.fields(),"updateBy"),decision.updater())));
+                }
+            }
+        }
+    }
+    private java.time.LocalDateTime sourceDate(Map<String,Object> fields,String name) {
+        Object value=fields.get(name)==null?fields.get("member_"+name):fields.get(name);
+        return value==null?null:SyncFieldMapper.sourceTime(value);
+    }
+    private String sourceActor(Map<String,Object> fields,String name) {
+        Object value=fields.get(name);
+        if(value==null || value.toString().isEmpty()) value=fields.get("member_"+name);
+        return value==null || value.toString().isEmpty()?null:value.toString();
     }
     private PreparedStatement prepared(Connection db,String sql,List<Object> values) throws Exception {
         var statement=db.prepareStatement(sql);statement.setQueryTimeout(60);for(int i=0;i<values.size();i++)statement.setObject(i+1,values.get(i));return statement;

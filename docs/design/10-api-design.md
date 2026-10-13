@@ -893,3 +893,26 @@ ProjectMasterMigrationApi.verifyBindings/lockBindings接收BindingVerification(t
 新历史根在同一INT事务内复用正式ProjectTreeProjectionService.publish，按正常根创建规则发布treeVersion=1、唯一根节点及其自关联路径，使正式查看/管理可用。复用已有树版本/路径表，不增加字段，不将项目组变成父子关系；投影或事务事件失败须整块回滚主档与绑定。仅新建时初始化，既有根及重放不重建其有效投影，不实例化计划、阶段或任务。
 
 ProjectScopeMigrationContextApi.Query及ProjectContractRelationMigrationApi.Entry追加可空sourceConnectionId；已有调用不传时保持既有来源校验，通用INT任务传实际连接ID后必须经上述绑定API，不回退猜配。PROJ仍核验项目管理权、租户、删除、项目版本、正式类型/编码和办事处。COM原26字段原样保留，合同关系使用绑定的正式项目编码，允许已裁决尾号调整且不把原码覆盖成目标码。整个绑定查询和业务写入共享迁移事务；来源身份不作为业务数据承接点。
+
+2026-10-13合同关系上下文补充：PROJ提供公开内部`ProjectMigrationIdentityContextApi.resolve/lockAndRevalidate`，输入场景Query为tenantId、actorId、projectId、expectedProjectVersion、sourceProjectKey及可空sourceConnectionId，返回正式项目ID、当前版本、编码、类型及公司编码/名称。PROJ重验项目管理权、租户、删除、当前版本和准确来源绑定；旧快照调用与实际连接绑定调用分别沿既有Owner校验，不能相互回退。lockAndRevalidate必须参与调用方事务并锁住项目。COM合同关系Owner复用此身份上下文，并自行核验合同身份、项目公司和操作者公司授权；关系的正式字段不依赖实施办事处快照，因此不要求原办事处非空。原`ProjectScopeMigrationContextApi`继续为实施范围提供完整办事处目录/版本及相同守卫，其接口与消费者不变。两个上下文均不创建项目、授予范围、改生命周期或访问其他模块业务表。
+
+2026-10-13项目产品整表任务复用`GET /api/v1/pms/integration/templates/dppms-project-product-scopes`及既有`DppmsProjectProductScopeApi.preview/apply`。初始SQL完整读取pm_project_product_line的11列并关联原pm_project类型、编码，复制到可编辑任务SQL；projectTypes=10，projectIds空值为整表，10项目验证只设置参数。缺项目原行保留并阻断。INT使用正式迁入身份及当前项目版本，COM复核正式办事处、合同订单行、正数量和历史保护；数量按原项目数量优先、正式订单数量补缺。已裁决allocation_confirmed=false，既有正常分配容量、版本及当前槽位约束保持，无新增表列。
+
+2026-10-13真实产品清单任务使用`GET /api/v1/pms/integration/templates/dppms-project-real-products`生成可编辑SQL。原pm_project_product_line_real全部12列与上游pm_project_real_product_line_from_sms全部10列按既定九项业务值精确关联，NULL与空串分别保留；上游不是唯一匹配时阻断。公开内部`ProjectRealProductMigrationApi.preview/apply(Command)`仅接入现有`ProjectRealProductImportService`的转换、正式表写入及完整字段重放保护，Command携带`ProjectMigrationIdentityContextApi.Query`和原/上游字段、目标ID、正式前值。PROJ复核管理权限、租户、来源项目绑定及版本；INT保存技术绑定和运行回执，业务值写入现有19列正式实体，不使用迁移快照承接。首次迁入采用真实迁入操作者和时间，零/负数量按已裁决清单事实保留，不触发分配、交付或退货。ONCE任务禁止清表、重置绑定或接管未绑定现存业务行；已有绑定只在原字段及全部正式前值未变时重放。
+
+2026-10-13租赁与配置复用`GET /api/v1/pms/integration/templates/dppms-project-associated-products`及公开内部`ProjectAssociatedProductMigrationApi.preview/apply(Command)`。Command由INT沿同一项目身份上下文构造，含原项目编码、既有领域Kind、完整11原字段及来源绑定/正式前值；PROJ分别委托既有租赁、配置Owner，转换和入库均不另造一套实现。初始SQL按旧DAO的原项目编码首段关联，同类型同码取最大projectId，projectTypes/projectIds为任务参数；旧页面的最大执行单筛选不用于整表迁移，全部执行单及重复原行保留。租赁分类/类型/编码/型号/名称及租赁月数沿已裁决正式列，配置原BOM路径/父码/层级保留，查询派生路径继续计算。均无新增物理表列或历史展示块。
+
+两张来源没有主键，任务Source加性提供可空`sourceKeyColumns`，指定全部原字段及准确来源项目身份。既有一次性采集器的排序UTF-8 JSON、SHA-256和出现次序生成技术键，NULL/空串及不同项目分别保持；不写原库、不制造业务ID、不去重。该配置仅允许ONCE/SNAPSHOT整批读取，禁止增量、分页/流式恢复和源主键覆盖；普通有主键任务保持原逻辑。来源缺列、重复列或覆盖原列均阻断。技术键和回执不作为业务承接点；业务字段仍全部由原Owner写入正式实体。
+
+2026-10-13展示规则按需求方补充裁决：已完整同步的业务值直接读取正式附表，不反查原始主档或按业务编码解析主档唯一键作为展示前提。租赁、配置页面沿旧DAO按商务项目编码分组取最大执行单号；使用正式表内的相同字段进行筛选，并按现有项目ID/租户/授权限定。配置排序保留项目编码、分组和BOM路径，三个路径派生值沿原规则计算。旧执行单及重复行完整留在正式表，展示筛选不改变迁移覆盖范围、来源绑定或原值。真实产品仍按正式项目关联直接分页，无产品目录解析。
+
+Command复用既有迁入对象并补实际sourceConnectionId，旧调用保留。Baseline的可空formalFieldsJson仅作为已核验完整正式前值输入，不是业务承接；来自旧成功迁入的44个实体字段，必须完整含NULL，并逐项与当前范围核对。只有完整前值相同时保留原范围的项目/办事处快照，项目后续合法经理变更不改写旧范围；原范围自身的任意后续变化仍阻断。正常项目授权和当前版本仍经PROJ Owner核验。日期前值支持既有毫秒时间戳及无损ISO日期，技术绑定复用INT原11列和正式Owner回执，事务内共同提交；不得从当前业务表临时生成前值接管记录。
+
+普通`GET /api/v1/pms/delivery-scopes`原查询/权限/历史筛选保持，响应追加contractNo、orderQuantity、unitCode；产品名称复用productDesc。COM只对已授权范围页的ID集合，经同租户正式范围→订单行→订单头关系读取，不增加业务表或物理列，不访问其他模块表；空ID集合返回空，缺失正式订单不隐藏范围自身记录，单位可空。普通实施范围表格直接展示这些字段，不另建迁移历史块。Controller和查询服务之间使用PageQuery对象，分页和可见项目仍由服务端确定。
+
+
+2026-10-13当前实现未提供新增项目及关联的受控撤销API；该业务决策仍待需求方回复，不以设计文本推定已批准。6570个范围异常项目不接管、不新增关联、不执行撤销。来源创建回执和原审计保留，原十项目验证范围保持。
+
+2026-10-13剩余业务承接：INT通过`ContractReceivableMigrationApi`向COM写既有52列回款信息，原39列完整映射、空合同号按裁决过滤；通过`ProjectFactsMigrationApi`向PROJ写既有20列相关方及已批准的四项正式状态扩展。PROJ的`ProjectEntityFieldProvider`复用正常项目读写授权、租户和版本锁，不生成内容修订或流程完成。显式审计写入使用场景命令，防止实体自动填充覆盖原NULL。整表SQL、验证参数、完整字段及实际运行见[承接清单](../generated/2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md)。
+
+INT旧01绑定清理只读COM公开`OrderLineMigrationPresenceApi`确认目标不存在，再删除自身已裁决的绑定；存在正式目标、原任务正在运行、租户/连接不符或空筛选均不能扩大删除范围。旧运行回执和有效绑定保持。

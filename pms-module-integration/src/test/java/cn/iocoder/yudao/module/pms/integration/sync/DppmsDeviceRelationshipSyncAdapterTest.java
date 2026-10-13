@@ -52,7 +52,8 @@ class DppmsDeviceRelationshipSyncAdapterTest {
         var definition=create(18L);
         assertDoesNotThrow(()->new SyncDefinitionValidator(List.of(adapter)).validate(definition));
         var source=definition.sources().getFirst();assertEquals(ORIGINAL_COLUMNS,source.columns());
-        assertTrue(source.filters().isEmpty());assertNull(source.sql());
+        assertTrue(source.filters().isEmpty());assertEquals("SQL",source.readMode());
+        assertTrue(MysqlSyncReader.compile(source).sql().contains("fb_shipment_barcode_relation"));
         assertTrue(adapter.supportsStreaming());assertFalse(adapter.requiresAllBindings());
     }
     @Test void actorComesFromControlledRunAndRawNullsRemainExplicitInBindingEvidence(){
