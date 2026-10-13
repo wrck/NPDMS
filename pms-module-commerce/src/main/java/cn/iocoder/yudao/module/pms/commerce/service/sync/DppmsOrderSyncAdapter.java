@@ -64,8 +64,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
     }
 
     @Override public List<Change> preview(Batch batch) {
-        if(hasLineFieldCarry(batch))return lineFieldCarryOwner.preview(batch);
-        if(hasFieldCarry(batch))return fieldCarryOwner.preview(batch,fieldCarryEntries(batch));
+        if(hasLineFieldCarry(batch) || hasFieldCarry(batch))return carry(batch,false);
         return plan(batch,true).changes();
     }
     @Override public boolean requiresAllBindings() { return false; }
@@ -76,8 +75,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public List<Change> apply(Batch batch) {
-        if(hasLineFieldCarry(batch))return lineFieldCarryOwner.apply(batch);
-        if(hasFieldCarry(batch))return fieldCarryOwner.apply(batch,fieldCarryEntries(batch));
+        if(hasLineFieldCarry(batch) || hasFieldCarry(batch))return carry(batch,true);
         Plan plan = plan(batch,false);
         if (plan.changes().stream().anyMatch(c -> "CONFLICT".equals(c.action()))) return plan.changes();
         if (!plan.orders().isEmpty() || !plan.lines().isEmpty()) {
@@ -108,6 +106,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                 .map(r -> text(r, "orderNo")).filter(Objects::nonNull).distinct().toList());
         Map<String, SalesOrderDO> orders = new HashMap<>();
         Map<String, String> orderBusiness = new HashMap<>();
+        Set<String> ambiguousOrderBusinesses = new HashSet<>();
         if(hasOrderRows||hasLineRows) for (var r : mapper.selectOrders(query)) {
             if (orders.put(r.getSourceKey(), r)!=null) throw new IllegalStateException("DPPMS_ORDER_SOURCE_IDENTITY_AMBIGUOUS");
             String company=targetCompanyCode(r);
@@ -118,8 +117,10 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                 String[] identity=r.getSourceKey().split("\\|",-1);
                 boolean sameDppms=identity.length==5 && sameDppmsOrderIdentity(previous,identity[1],company,r.getOrderType(),r.getOrderNo())
                         && sameDppmsOrderIdentity(r.getSourceKey(),identity[1],company,r.getOrderType(),r.getOrderNo());
-                if(!sameDppms || Boolean.TRUE.equals(earlier.getDeleted())==Boolean.TRUE.equals(r.getDeleted()))
-                    throw new IllegalStateException("DPPMS_ORDER_BUSINESS_IDENTITY_AMBIGUOUS");
+                if(!sameDppms || Boolean.TRUE.equals(earlier.getDeleted())==Boolean.TRUE.equals(r.getDeleted())) {
+                    ambiguousOrderBusinesses.add(businessKey);
+                    continue;
+                }
                 // Retain the deleted alias in the identity map: a binding to it still fails below.
                 if(Boolean.TRUE.equals(earlier.getDeleted()))orderBusiness.put(businessKey,r.getSourceKey());
             }
@@ -145,7 +146,12 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                 if (!Set.of("SAP", "D365", "SMS").contains(source) || !Set.of("0", "1").contains(type))
                     throw new IllegalArgumentException("未知ERP来源或订单类型");
                 String parentKey = "DPPMS|" + source + "|" + company + "|" + type + "|" + number;
-                String occupied=orderBusiness.get(company+"|"+type+"|"+number);
+                String businessKey=company+"|"+type+"|"+number;
+                if (ambiguousOrderBusinesses.contains(businessKey)) {
+                    changes.add(conflict(row,"DPPMS_ORDER_BUSINESS_IDENTITY_AMBIGUOUS: 多个现存订单身份，禁止任选目标"));
+                    continue;
+                }
+                String occupied=orderBusiness.get(businessKey);
                 if (occupied!=null && !occupied.equals(parentKey)) {
                     if (!sameDppmsOrderIdentity(occupied,source,company,type,number)) {
                         changes.add(conflict(row,"订单业务键已由其他来源身份占用"));continue;
@@ -284,8 +290,32 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         Object value=row.fields().get(field);return value==null?null:value.toString();
     }
 
-    private static boolean hasFieldCarry(Batch batch) { return batch.rows().stream().anyMatch(r->r.fields().get("fieldCarryProof")!=null); }
-    private static boolean hasLineFieldCarry(Batch batch) { return batch.rows().stream().anyMatch(r->r.fields().get("lineFieldCarryProof")!=null); }
+    private static boolean hasFieldCarry(Batch batch) { return batch.rows().stream().anyMatch(r->r.fields().containsKey("fieldCarryProof")); }
+    private static boolean hasLineFieldCarry(Batch batch) { return batch.rows().stream().anyMatch(r->r.fields().containsKey("lineFieldCarryProof")); }
+    private List<Change> carry(Batch batch,boolean apply) {
+        boolean line=hasLineFieldCarry(batch);
+        String object=line?"LINE":"ORDER",proofKey=line?"lineFieldCarryProof":"fieldCarryProof";
+        if (line && hasFieldCarry(batch) || batch.rows().stream().anyMatch(row->!object.equals(row.object()))
+                || batch.clearBeforeLoad() || batch.adoptExisting() || !"UPSERT".equals(batch.loadingMode())
+                || !"RETAIN".equals(batch.missingPolicy()))
+            throw new IllegalArgumentException("DPPMS_FIELD_CARRY_SCOPE_INVALID");
+        var eligible=new ArrayList<Row>();var results=new ArrayList<Change>();
+        for (var row:batch.rows()) {
+            String problem=text(row,"migrationIssue");
+            if (problem!=null) results.add(issue(row,problem));
+            else if (row.fields().get(proofKey)==null)
+                results.add(issue(row,"FIELD_CARRY_PROOF_MISSING: 来源或目标仍有未解决冲突，禁止自动接管"));
+            else eligible.add(row);
+        }
+        if (!eligible.isEmpty()) {
+            var selected=new Batch(batch.owner(),List.copyOf(eligible),batch.bindings(),batch.full(),
+                    batch.missingPolicy(),batch.adoptExisting(),batch.loadingMode(),batch.clearBeforeLoad());
+            if (line) results.addAll(apply?lineFieldCarryOwner.apply(selected):lineFieldCarryOwner.preview(selected));
+            else results.addAll(apply?fieldCarryOwner.apply(selected,fieldCarryEntries(selected))
+                    :fieldCarryOwner.preview(selected,fieldCarryEntries(selected)));
+        }
+        return List.copyOf(results);
+    }
     private List<DppmsOrderFieldCarryOwner.Entry> fieldCarryEntries(Batch batch) {
         var query=new ErpOrderSyncQuery(TenantContextHolder.getRequiredTenantId(),batch.rows().stream()
                 .map(r->required(r,"orderNo")).distinct().toList());

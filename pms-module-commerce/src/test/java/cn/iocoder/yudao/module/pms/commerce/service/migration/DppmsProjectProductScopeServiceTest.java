@@ -100,6 +100,25 @@ class DppmsProjectProductScopeServiceTest {
         when(mapper.lockAssociatedLines(any())).thenReturn(List.of(line));when(scopes.selectById(1001L)).thenReturn(new DeliveryScopeDO());
         assertThrows(RuntimeException.class,()->service.apply(command(entry("1",null))));verify(mapper,never()).insertHistoricalScope(any());
     }
+    @Test void previewCollectsMissingAmbiguousAndInvalidQuantityWhileApplyRemainsAtomic() {
+        when(mapper.selectAssociatedLines(any())).thenReturn(List.of(),List.of(line,line),List.of(line),List.of(line));
+        var result=service.preview(command(entry("1",null),entry("2",null),entry("3","0"),entry("4","2")));
+        assertEquals(List.of("CONFLICT","CONFLICT","CONFLICT","CREATED"),result.stream().map(Result::action).toList());
+        assertEquals("DPPMS_PRODUCT_SCOPE_ASSOCIATED_ORDER_LINE_MISSING",result.getFirst().message());
+        assertEquals("DPPMS_PRODUCT_SCOPE_POSITIVE_QUANTITY_REQUIRED",result.get(2).message());
+        when(mapper.lockAssociatedLines(any())).thenReturn(List.of(line),List.of());
+        assertThrows(IllegalArgumentException.class,()->service.apply(command(entry("1",null),entry("2",null))));
+        verify(mapper,never()).insertHistoricalScope(any());verify(mapper,never()).insertHistoricalProductDetail(any());
+    }
+    @Test void onlyMissingOfficeIsCollectedAndAuthorizationErrorsStillPropagate() {
+        when(projects.resolve(any())).thenThrow(new IllegalArgumentException("DPPMS_SCOPE_PROJECT_OFFICE_UNRESOLVED"));
+        var raw=entry("1",null);var noBaseline=new Entry(raw.sourceKey(),raw.originalFields(),null);
+        assertEquals("ISSUE",service.preview(command(noBaseline)).getFirst().action());
+        when(projects.lockAndRevalidate(any())).thenThrow(new IllegalArgumentException("DPPMS_SCOPE_PROJECT_OFFICE_UNRESOLVED"));
+        assertThrows(IllegalArgumentException.class,()->service.apply(command(noBaseline)));
+        doThrow(new IllegalArgumentException("PROJECT_FORBIDDEN")).when(projects).resolve(any());
+        assertThrows(IllegalArgumentException.class,()->service.preview(command(noBaseline)));verifyNoInteractions(mapper);
+    }
     @Test void wrongTenantStopsAllOwnerReads() {
         TenantContextHolder.setTenantId(2L);assertThrows(RuntimeException.class,()->service.preview(command(entry("1",null))));
         verifyNoInteractions(projects,mapper,versions,scopes);

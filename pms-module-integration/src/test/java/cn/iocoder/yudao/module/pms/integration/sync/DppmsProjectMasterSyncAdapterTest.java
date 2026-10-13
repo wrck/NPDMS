@@ -69,6 +69,42 @@ class DppmsProjectMasterSyncAdapterTest {
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(bound,List.of(new Binding(OBJECT,"10",40L,saved)))));
         verifyNoInteractions(projects);
     }
+    @Test void restorationRequiresRetiredBindingAndSuccessfulOriginalReceipts() {
+        when(projects.apply(any())).thenReturn(List.of(new Result("10","UPDATED",facts(),facts(),"承接")));
+        var saved=adapter.apply(batch(row(),List.of())).getFirst().after();
+        var retired=new SyncBindingDO().setId(91L).setTaskId(12L).setSourceKey("10").setTargetId(40L)
+                .setLastRunId(87L).setFieldsJson(JsonUtils.toJsonString(saved));
+        when(bindings.selectRetiredSourceKeysForUpdate(any())).thenReturn(List.of(retired));
+        when(bindings.restoreVerifiedBinding(retired)).thenReturn(1);
+        var created=new SyncRunDO().setId(86L).setTaskId(12L).setPreview(false).setStatus("SUCCESS").setSummaryJson("{\"CREATED\":1}");
+        created.setTenantId(1L);
+        var replay=new SyncRunDO().setId(87L).setTaskId(12L).setPreview(false).setStatus("SUCCESS");replay.setTenantId(1L);
+        when(runs.selectScoped(argThat(q->q!=null && Long.valueOf(86).equals(q.id())))).thenReturn(created);
+        when(runs.selectScoped(argThat(q->q!=null && Long.valueOf(87).equals(q.id())))).thenReturn(replay);
+        var raw=row();raw.fields().put("migrationRestoration",Map.of("retiredBindingId",91L,"creationRunId",86L,
+                "lastRunId",87L,"targetId",40L,"expectedFingerprint","a".repeat(64)));
+        var request=new Batch("integration:1:12",List.of(raw),List.of(),true,"RETAIN",false,"UPSERT",false);
+        when(projects.apply(any())).thenAnswer(inv->{Request r=inv.getArgument(0);var e=r.entries().getFirst();
+            assertEquals(40L,e.targetId());assertEquals(facts(),e.lastApplied());
+            assertEquals("a".repeat(64),e.restoration().expectedFingerprint());
+            return List.of(new Result("10","UPDATED",facts(),facts(),"恢复原ID"));});
+        assertEquals(40L,adapter.apply(request).getFirst().targetId());
+        verify(bindings).restoreVerifiedBinding(retired);
+        when(bindings.restoreVerifiedBinding(retired)).thenReturn(0);
+        assertThrows(IllegalStateException.class,()->adapter.apply(request));
+        when(bindings.restoreVerifiedBinding(retired)).thenReturn(1);
+        clearInvocations(bindings);run.setPreview(true).setStatus("VALIDATING");
+        when(projects.preview(any())).thenReturn(List.of(new Result("10","UPDATED",facts(),facts(),"恢复预览")));
+        adapter.preview(request);verify(bindings,never()).restoreVerifiedBinding(any());
+        run.setPreview(false).setStatus("APPLYING");
+        clearInvocations(projects);created.setPreview(true);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(request));verifyNoInteractions(projects);
+        created.setPreview(false);retired.setLastRunId(88L);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(request));verifyNoInteractions(projects);
+        retired.setLastRunId(87L);clearInvocations(bindings);
+        doReturn(List.of(new Result("10","ISSUE",facts(),null,"目标已被修改"))).when(projects).apply(any());
+        assertThrows(IllegalStateException.class,()->adapter.apply(request));verify(bindings,never()).restoreVerifiedBinding(any());
+    }
     @Test void unknownCompanyAndMissingOriginalColumnsAreBlockedBeforeOwner() {
         var raw=row();raw.fields().put("migrationCompanyCode","99");
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(raw,List.of())));

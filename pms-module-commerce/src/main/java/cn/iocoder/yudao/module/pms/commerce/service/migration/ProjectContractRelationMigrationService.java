@@ -58,16 +58,26 @@ public class ProjectContractRelationMigrationService implements ProjectContractR
             var identity=project==null?null:expected.get(project.id());
             if(identity==null || !Objects.equals(project.tenantId(),tenant) || project.version()==null || project.version()<0
                     || !Objects.equals(identity.projectCode(),project.projectCode()) || !Objects.equals(identity.projectType(),project.projectType())
-                    || project.companyCode()==null || project.companyCode().isBlank() || projectsById.put(project.id(),project)!=null)
-                fail("正式项目身份、版本或公司未核实");
+                    || projectsById.put(project.id(),project)!=null)
+                fail("正式项目身份或版本未核实");
         }
         var result=new ArrayList<ResolvedReference>();
         for(var ref:query.references()) {
             var project=projectsById.get(ref.projectId());
+            if(project.companyCode()==null || project.companyCode().isBlank()) {
+                result.add(new ResolvedReference(ref.sourceKey(),project.id(),project.version(),null,
+                        ReferenceIssue.PROJECT_COMPANY_MISSING));
+                continue;
+            }
             if(scopes.stream().filter(Objects::nonNull).noneMatch(scope->scope.getId()!=null && scope.getVersion()!=null
                     && Objects.equals(scope.getCompanyCode(),project.companyCode()))) fail("合同公司授权范围不匹配");
             var candidates=contracts.selectMigrationIdentity(new ContractMigrationIdentityQuery(tenant,project.companyCode(),ref.contractNo()));
-            if(candidates==null || candidates.size()!=1) fail("正式公司和合同号未唯一匹配");
+            if(candidates==null) fail("正式合同查询未返回结果");
+            if(candidates.size()!=1) {
+                result.add(new ResolvedReference(ref.sourceKey(),project.id(),project.version(),null,
+                        candidates.isEmpty()?ReferenceIssue.CONTRACT_MISSING:ReferenceIssue.CONTRACT_AMBIGUOUS));
+                continue;
+            }
             var contract=candidates.getFirst();
             if(contract==null || contract.getId()==null || contract.getId()<=0 || Boolean.TRUE.equals(contract.getDeleted())
                     || !Objects.equals(contract.getTenantId(),tenant) || !Objects.equals(contract.getCompanyCode(),project.companyCode())
@@ -135,7 +145,11 @@ public class ProjectContractRelationMigrationService implements ProjectContractR
             var identity=new ProjectContractRelationMigrationMapper.IdentityQuery(tenant,incoming.projectId(),incoming.contractId());
             var before=apply?relations.selectIdentityForUpdate(identity):relations.selectIdentity(identity);
             if(before!=null && (!Boolean.FALSE.equals(before.deleted()) || !incoming.status().equals(before.status())
-                    || before.effectiveTo()!=null || before.version()==null)) fail("现存关系已删除、失效或版本缺失，禁止复活");
+                    || before.effectiveTo()!=null || before.version()==null)) {
+                if(apply) fail("现存关系已删除、失效或版本缺失，禁止复活");
+                result.add(new Result(entry.sourceKey(),"CONFLICT",before,before));
+                continue;
+            }
             if(entry.targetId()!=null && (before==null || !entry.targetId().equals(before.id()))) fail("来源绑定的目标已改变");
             if(entry.lastApplied()!=null && !entry.lastApplied().equals(before)) fail("全部17列与上次迁入结果不同，禁止覆盖");
             if(entry.reviewedBefore()!=null && (!entry.reviewedBefore().equals(before)

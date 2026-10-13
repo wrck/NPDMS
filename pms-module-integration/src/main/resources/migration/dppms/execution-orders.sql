@@ -22,9 +22,20 @@ SELECT r.id, r.orderExecNumber, r.dataSource, r.projectCode, r.projectName,
   latest.linkmanName AS canonical_linkmanName, latest.linkmanTel AS canonical_linkmanTel
 FROM pm_project_property_from_sms r
 JOIN (
-  SELECT CAST(dataSource AS BINARY) AS systemKey, CAST(orderExecNumber AS BINARY) AS executionKey, MAX(id) AS canonicalId
+  SELECT dataSource, orderExecNumber, CAST(dataSource AS BINARY) AS systemKey,
+    CAST(orderExecNumber AS BINARY) AS executionKey, MAX(id) AS canonicalId
   FROM pm_project_property_from_sms
-  GROUP BY CAST(dataSource AS BINARY), CAST(orderExecNumber AS BINARY)
-) selected ON selected.systemKey <=> CAST(r.dataSource AS BINARY)
+  GROUP BY dataSource, orderExecNumber, CAST(dataSource AS BINARY), CAST(orderExecNumber AS BINARY)
+) selected ON selected.dataSource <=> r.dataSource AND selected.orderExecNumber <=> r.orderExecNumber
+  AND selected.systemKey <=> CAST(r.dataSource AS BINARY)
   AND selected.executionKey <=> CAST(r.orderExecNumber AS BINARY)
 JOIN pm_project_property_from_sms latest ON latest.id=selected.canonicalId
+LEFT JOIN (
+  SELECT MIN(SUBSTRING_INDEX(projectCode,'-',1)) AS projectCode
+  FROM pm_project
+  WHERE (:projectTypes='' OR FIND_IN_SET(projectType,:projectTypes))
+    AND (:projectIds='' OR FIND_IN_SET(projectId,:projectIds))
+  GROUP BY CAST(SUBSTRING_INDEX(projectCode,'-',1) AS BINARY)
+) project_scope ON project_scope.projectCode=r.projectCode
+  AND CAST(project_scope.projectCode AS BINARY)=CAST(r.projectCode AS BINARY)
+WHERE (:projectTypes='' AND :projectIds='') OR project_scope.projectCode IS NOT NULL

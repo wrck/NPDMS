@@ -133,6 +133,24 @@ class ProjectMasterMigrationMySqlTest {
             assertFalse(rs.next());return values;
         }
     }
+    @Test void restorationProtectsEveryColumnAndTenantWithoutRewritingAudit() throws Exception {
+        try(var sql=db.createStatement()) {
+            sql.executeUpdate("UPDATE proj_project SET source_type='MIGRATION',deleted=b'1',version=1,parent_id=NULL,"
+                    +"root_id=id,code_root_id=id,manager_id=NULL,active_plan_version_id=NULL,lifecycle_template_id=NULL,"
+                    +"assignment_status='UNASSIGNED' WHERE id=992203060189");
+        }
+        session.clearCache();var identity=new ProjectMasterMigrationMapper.IdentityQuery(1L,id);
+        assertNull(mapper.selectIdentity(identity));assertTrue(mapper.selectRestorationIdentityForUpdate(identity).getDeleted());
+        String proof=mapper.selectRestorationFingerprint(identity);assertNotNull(proof);
+        assertNull(mapper.selectRestorationFingerprint(new ProjectMasterMigrationMapper.IdentityQuery(2L,id)));
+        try(var sql=db.createStatement()) {sql.executeUpdate("UPDATE proj_project SET creation_reason='later edit' WHERE id=992203060189");}
+        session.clearCache();assertNotEquals(proof,mapper.selectRestorationFingerprint(identity));
+        assertEquals(0,mapper.restoreHistoricalIfMatch(new ProjectMasterMigrationMapper.RestorationUpdate(1L,id,1L,proof)));
+        var before=row();proof=mapper.selectRestorationFingerprint(identity);
+        assertEquals(0,mapper.restoreHistoricalIfMatch(new ProjectMasterMigrationMapper.RestorationUpdate(2L,id,1L,proof)));
+        assertEquals(1,mapper.restoreHistoricalIfMatch(new ProjectMasterMigrationMapper.RestorationUpdate(1L,id,1L,proof)));
+        var after=row();assertNotEquals(before.remove("deleted"),after.remove("deleted"));assertEquals(before,after);
+    }
     @Test void newHistoricalRootUsesTheExistingSchemaAndNeverCreatesCurrentRuntimeFacts() throws Exception {
         var existing=mapper.selectIdentity(new ProjectMasterMigrationMapper.IdentityQuery(1L,id));
         var companies=mock(CompanyApi.class);var company=new CompanyRespDTO();company.setId(existing.getCompanyId());

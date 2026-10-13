@@ -55,8 +55,16 @@ public class DppmsContractReceivableSyncAdapter implements DataSyncAdapter {
             for(String name:List.of("create_by","update_by"))if(text(row.fields().get(name))!=null)names.add(text(row.fields().get(name)));
         }
         var identities=new HashMap<String,String>();
-        for(var user:users.getHistoricalIdentitiesByUsername(tenant,names))
-            if(identities.put(user.username(),user.id().toString())!=null)fail("同名审计账号多义");
+        // A sync chunk can contain two different audit accounts per row. Keep the SYSTEM
+        // lookup limit independent of the task's row chunk size.
+        var orderedNames=new ArrayList<>(names);
+        for(int offset=0;offset<orderedNames.size();offset+=200) {
+            var requested=new HashSet<>(orderedNames.subList(offset,Math.min(offset+200,orderedNames.size())));
+            for(var user:users.getHistoricalIdentitiesByUsername(tenant,requested)) {
+                if(!requested.contains(user.username()))fail("审计账号查询返回范围外身份");
+                if(identities.put(user.username(),user.id().toString())!=null)fail("同名审计账号多义");
+            }
+        }
         var entries=new ArrayList<ContractReceivableMigrationApi.Entry>();
         for(var row:batch.rows()) {
             var original=new LinkedHashMap<String,String>();ContractReceivableMigrationApi.ORIGINAL_COLUMNS.forEach(name->original.put(name,text(row.fields().get(name))));

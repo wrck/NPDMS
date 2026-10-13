@@ -71,11 +71,30 @@ class DppmsOrderSyncAdapterTest {
         verifyNoInteractions(authority,fieldCarry);
     }
 
-    @Test void conflictOrMixedSourceRowsCannotEnterReviewedFieldCarry() {
+    @Test void conflictingSourceIsReportedWithoutEnteringReviewedFieldCarry() {
         var old=order();old.setSourceVersion("V");when(mapper.selectOrders(any())).thenReturn(List.of(old));
         var fields=new LinkedHashMap<>(row("ORDER","1").fields());fields.put("fieldCarryProof",Map.of("targetId",old.getId(),"expectedVersion",0));fields.put("migrationIssue","DUPLICATE_BUSINESS_KEY_CONFLICT");
-        assertThrows(IllegalArgumentException.class,()->adapter.preview(batch(new Row("ORDER","1",fields,old.getId()))));
+        var input=batch(new Row("ORDER","1",fields,old.getId()));
+        assertEquals("ISSUE",adapter.preview(input).getFirst().action());
+        assertEquals("DUPLICATE_BUSINESS_KEY_CONFLICT",adapter.apply(input).getFirst().message());
         verifyNoInteractions(authority,fieldCarry);
+    }
+
+    @Test void missingProofDoesNotAbortOtherReviewedRowsOrEnterOrdinaryIngestion() {
+        var good=new Row("LINE","1",Map.of("lineFieldCarryProof",Map.of("targetId",20L)),20L);
+        var absent=new LinkedHashMap<String,Object>();absent.put("lineFieldCarryProof",null);
+        var bad=new Row("LINE","2",absent,21L);
+        var input=new Batch("integration:1:5",List.of(good,bad),List.of(),true,"RETAIN",false,"UPSERT",false);
+        when(lineFieldCarry.preview(any())).thenAnswer(inv->{
+            Batch selected=inv.getArgument(0);assertEquals(List.of(good),selected.rows());
+            return List.of(new Change("LINE","1",20L,"UNCHANGED",Map.of(),Map.of(),null));
+        });
+        var result=adapter.preview(input);
+        assertEquals(2,result.size());assertEquals("ISSUE",result.getFirst().action());
+        assertTrue(result.getFirst().message().startsWith("FIELD_CARRY_PROOF_MISSING"));
+        verifyNoInteractions(authority,mapper,fieldCarry);
+        assertThrows(IllegalArgumentException.class,()->adapter.preview(new Batch("integration:1:5",
+                List.of(good,row("ORDER","3")),List.of(),true,"RETAIN",false,"UPSERT",false)));
     }
 
     @Test void acceptedProductAndCustomFieldsReachTheAuthorityFacts() {
@@ -278,8 +297,25 @@ class DppmsOrderSyncAdapterTest {
         var raw=order();raw.setSourceKey("DPPMS|D365|01|1|R-1");raw.setCompanyCode("01");
         var converted=order();converted.setId(103L);
         when(mapper.selectOrders(any())).thenReturn(List.of(raw,converted));
-        var exception=assertThrows(IllegalStateException.class,()->adapter.preview(batch(row("ORDER","1"))));
-        assertEquals("DPPMS_ORDER_BUSINESS_IDENTITY_AMBIGUOUS",exception.getMessage());
+        var change=adapter.preview(batch(row("ORDER","1"))).getFirst();
+        assertEquals("CONFLICT",change.action());
+        assertTrue(change.message().startsWith("DPPMS_ORDER_BUSINESS_IDENTITY_AMBIGUOUS"));
+        verifyNoInteractions(authority);
+    }
+    @Test void ambiguousParentDoesNotHideOtherPreviewRowsAndBlocksTheEntireApplyBatch() {
+        var raw=order();raw.setSourceKey("DPPMS|D365|01|1|R-1");raw.setCompanyCode("01");
+        var converted=order();converted.setId(103L);
+        var unrelated=new LinkedHashMap<>(row("ORDER","3").fields());unrelated.put("orderNo","R-2");
+        var input=batch(row("ORDER","1"),row("LINE","2"),new Row("ORDER","3",unrelated,null));
+        for (var targets:List.of(List.of(raw,converted),List.of(converted,raw))) {
+            when(mapper.selectOrders(any())).thenReturn(targets);
+            var preview=adapter.preview(input);
+            assertEquals(3,preview.size());
+            assertEquals(2,preview.stream().filter(c->"CONFLICT".equals(c.action())).count());
+            assertEquals("CREATED",preview.stream().filter(c->"3".equals(c.sourceKey())).findFirst().orElseThrow().action());
+            var applied=adapter.apply(input);
+            assertEquals(preview,applied);
+        }
         verifyNoInteractions(authority);
     }
     @Test void anExistingSourceBindingCannotBeRedirectedToAnotherOrder() {

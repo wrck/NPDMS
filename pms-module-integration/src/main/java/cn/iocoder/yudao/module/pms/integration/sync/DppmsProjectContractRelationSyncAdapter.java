@@ -96,7 +96,14 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
             if(binding.projectId()==null || prior!=null && !prior.equals(binding.projectId())) fail("原项目正式绑定多义");
             projectReferences.put(binding.sourceProjectKey(),binding);
         }
-        if(!projectIds.keySet().equals(projectKeys)) fail("先完成正式项目迁入，禁止按名称猜配");
+        if(!projectKeys.containsAll(projectIds.keySet())) fail("返回了范围外项目绑定");
+        included.removeIf(row->{
+            if(projectIds.containsKey(text(row.fields().get("originalProjectId"))))return false;
+            if(row.targetId()!=null || previous.containsKey(row.sourceKey()))fail("现存关系的项目绑定缺失，禁止接管");
+            skipped.put(row.sourceKey(),new Change(OBJECT,row.sourceKey(),null,"ISSUE",Map.of(),row.fields(),
+                    "PROJECT_BINDING_MISSING：先迁入规范项目主档"));return true;
+        });
+        if(included.isEmpty())return batch.rows().stream().map(row->skipped.get(row.sourceKey())).toList();
         for(var row:included) {
             var reference=projectReferences.get(text(row.fields().get("originalProjectId")));
             if(!Objects.equals(reference.originalProjectCode(),text(row.fields().get("originalProjectCode")))
@@ -104,8 +111,10 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                 fail("原项目类型或原编码与正式迁移绑定不一致");
         }
         var actors=new HashMap<String,Long>();
-        if(!actorNames.isEmpty()) for(var identity:users.getHistoricalIdentitiesByUsername(tenant,actorNames))
-            if(!actorNames.contains(identity.username()) || actors.put(identity.username(),identity.id())!=null) fail("原审计人员身份不唯一");
+        var requestedActors=new ArrayList<>(actorNames);
+        for(int offset=0;offset<requestedActors.size();offset+=200)
+            for(var identity:users.getHistoricalIdentitiesByUsername(tenant,new HashSet<>(requestedActors.subList(offset,Math.min(offset+200,requestedActors.size())))))
+                if(!actorNames.contains(identity.username()) || actors.put(identity.username(),identity.id())!=null) fail("原审计人员身份不唯一");
         if(!actors.keySet().equals(actorNames)) fail("原审计人员缺少已核实账号，等待裁决");
         var requestedReferences=new ArrayList<Reference>();
         for(var row:included) {
@@ -121,11 +130,27 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
         for(var row:included) {
             var ref=targetReferences.get(row.sourceKey());var f=row.fields();
             if(!Objects.equals(ref.projectId(),projectIds.get(text(f.get("originalProjectId"))))
-                    || ref.projectVersion()==null || ref.projectVersion()<0 || ref.contractId()==null || ref.contractId()<=0
+                    || ref.projectVersion()==null || ref.projectVersion()<0
                     || f.get("expectedProjectVersion")!=null && !nonnegative(f.get("expectedProjectVersion")).equals(ref.projectVersion())
+                    || ref.issue()==null && (ref.contractId()==null || ref.contractId()<=0
                     || f.get("contractId")!=null && !positive(f.get("contractId")).equals(ref.contractId()))
+                    || ref.issue()!=null && ref.contractId()!=null)
                 fail("正式目标解析与项目绑定或显式版本/合同引用不一致");
         }
+        included.removeIf(row->{
+            var ref=targetReferences.get(row.sourceKey());
+            if(ref.issue()==null)return false;
+            boolean conflict=ref.issue()==ReferenceIssue.CONTRACT_AMBIGUOUS || row.targetId()!=null
+                    || previous.containsKey(row.sourceKey()) || row.fields().get("contractId")!=null;
+            skipped.put(row.sourceKey(),new Change(OBJECT,row.sourceKey(),row.targetId(),conflict?"CONFLICT":"ISSUE",
+                    Map.of(),row.fields(),ref.issue().name()+(ref.issue()==ReferenceIssue.PROJECT_COMPANY_MISSING
+                    ?"：项目公司缺失，不能确定合同公司；不猜配公司、不创建关系"
+                    :"：正式公司和合同号未唯一匹配，需先核实合同主档；不选择目标、不创建关系")));
+            return true;
+        });
+        if(apply && skipped.values().stream().anyMatch(change->"CONFLICT".equals(change.action())))
+            fail("正式合同引用冲突，整块停止写入");
+        if(included.isEmpty())return batch.rows().stream().map(row->skipped.get(row.sourceKey())).toList();
         var duplicates=formal?Map.<String,DppmsProjectContractDuplicateDecision.Canonical>of():DppmsProjectContractDuplicateDecision.resolve(included);
         var canonicalBindings=new HashMap<String,Binding>();
         var canonicalKeys=formal?formalDecisions.values().stream().flatMap(selection->java.util.stream.Stream.of(
@@ -205,6 +230,12 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
         var changes=new HashMap<String,Change>(skipped);
         for(var item:ownerKeys.entrySet()) {
             var result=byKey.get(item.getValue());var duplicate=duplicates.get(item.getKey());
+            if("CONFLICT".equals(result.action())) {
+                changes.put(item.getKey(),new Change(OBJECT,item.getKey(),result.before().id(),"CONFLICT",
+                        encode(result.before()),Map.of("originalFields",originals.get(item.getKey())),
+                        "RELATION_NOT_CURRENT：现存关系已删除、失效或版本缺失，禁止复活；等待限定恢复裁决"));
+                continue;
+            }
             var dispositions=fieldDecisions(originals.get(item.getKey()));
             var selection=formalDecisions.get(item.getKey());
             if(selection!=null) dispositions.putAll(DppmsProjectContractFormalDecision.fieldDecisions(originals.get(item.getKey()),selection));

@@ -6,17 +6,17 @@
     </select>
     <select id="selectBusinessRecordsForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectLeaseProductDO">
         SELECT * FROM proj_project_lease_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
-          AND BINARY project_code &lt;=> BINARY #{query.projectCode}
-          AND BINARY execution_no &lt;=> BINARY #{query.executionNo}
-          AND BINARY product_category &lt;=> BINARY #{query.productCategory}
-          AND BINARY product_type &lt;=> BINARY #{query.productType}
-          AND BINARY product_code &lt;=> BINARY #{query.productCode}
-          AND BINARY product_model &lt;=> BINARY #{query.productModel}
-          AND BINARY product_name &lt;=> BINARY #{query.productName}
+          AND CAST(project_code AS BINARY) &lt;=> CAST(#{query.projectCode} AS BINARY)
+          AND CAST(execution_no AS BINARY) &lt;=> CAST(#{query.executionNo} AS BINARY)
+          AND CAST(product_category AS BINARY) &lt;=> CAST(#{query.productCategory} AS BINARY)
+          AND CAST(product_type AS BINARY) &lt;=> CAST(#{query.productType} AS BINARY)
+          AND CAST(product_code AS BINARY) &lt;=> CAST(#{query.productCode} AS BINARY)
+          AND CAST(product_model AS BINARY) &lt;=> CAST(#{query.productModel} AS BINARY)
+          AND CAST(product_name AS BINARY) &lt;=> CAST(#{query.productName} AS BINARY)
           AND quantity &lt;=> #{query.quantity}
-          AND BINARY memo &lt;=> BINARY #{query.memo}
+          AND CAST(memo AS BINARY) &lt;=> CAST(#{query.memo} AS BINARY)
           AND lease_duration &lt;=> #{query.leaseDuration}
-          AND BINARY data_source &lt;=> BINARY #{query.dataSource}
+          AND CAST(data_source AS BINARY) &lt;=> CAST(#{query.dataSource} AS BINARY)
         ORDER BY id FOR UPDATE
     </select>
     <select id="countAllProjectRecords" resultType="java.lang.Long">

@@ -132,25 +132,42 @@ public class ProjectMasterMigrationService implements ProjectMasterMigrationApi 
         for (var entry : ordered) {
             var sourceQuery = new ProjectLegacyDetailMapper.SourceIdentityQuery(tenant, entry.sourceKey());
             var source = apply ? sources.selectSourceForUpdate(sourceQuery) : sources.selectSource(sourceQuery);
-            boolean creating=source==null && entry.targetId()==null && entry.lastApplied()==null;
+            boolean restoring=entry.restoration()!=null;
+            boolean creating=!restoring && source==null && entry.targetId()==null && entry.lastApplied()==null;
             if (!creating && source!=null && (!Objects.equals(source.getTenantId(), tenant) || source.getProjectId() == null
                     || entry.targetId() != null && !Objects.equals(entry.targetId(), source.getProjectId())
                     ))
                 throw new IllegalArgumentException("DPPMS_PROJECT_SOURCE_IDENTITY_UNRESOLVED");
             Long target=source==null?entry.targetId():source.getProjectId();
             if (!creating && (target==null || !targetIds.add(target))) throw new IllegalArgumentException("DPPMS_PROJECT_SOURCE_IDENTITY_UNRESOLVED");
-            if (creating) {
+            if (restoring) {
+                creationAuthorization.assertCanImportAcrossOrganizations(request.actorId());
+                if (entry.targetId()==null || entry.lastApplied()==null || request.adoptExisting()
+                        || entry.restoration().expectedFingerprint()==null
+                        || !entry.restoration().expectedFingerprint().matches("[a-f0-9]{64}"))
+                    throw new IllegalArgumentException("DPPMS_PROJECT_RESTORATION_PROOF_INVALID");
+            } else if (creating) {
                 if (request.adoptExisting() || entry.expectedProjectVersion()!=null)
                     throw new IllegalArgumentException("DPPMS_PROJECT_NEW_SOURCE_CANNOT_ADOPT_EXISTING");
                 creationAuthorization.assertCanCreate(request.actorId());
             } else access.getProjectForManage(target, new ProjectAccessActor(tenant, request.actorId()));
             var identity = new ProjectMasterMigrationMapper.IdentityQuery(tenant,target);
-            var row = creating?new ProjectMasterDO():apply ? projects.selectIdentityForUpdate(identity) : projects.selectIdentity(identity);
+            var row = creating?new ProjectMasterDO():restoring?projects.selectRestorationIdentityForUpdate(identity)
+                    :apply ? projects.selectIdentityForUpdate(identity) : projects.selectIdentity(identity);
             if (creating) {row.setTenantId(tenant);row.setVersion(0L);row.setDeleted(false);row.setLifecycleStatus("ACTIVE");row.setCurrentStage("S0");}
-            if (row == null || !Objects.equals(row.getTenantId(), tenant) || Boolean.TRUE.equals(row.getDeleted()))
+            if (row == null || !Objects.equals(row.getTenantId(), tenant) || !restoring && Boolean.TRUE.equals(row.getDeleted()))
                 throw new IllegalArgumentException("DPPMS_PROJECT_TARGET_PROTECTED");
             Facts before = creating?null:snapshot(row);
-            if (!creating && entry.lastApplied() == null) {
+            if (restoring) {
+                if (!Boolean.TRUE.equals(row.getDeleted()) || !"MIGRATION".equals(row.getSourceType())
+                        || row.getVersion()==null || entry.lastApplied().version()==null
+                        || row.getVersion()!=entry.lastApplied().version()+1
+                        || !Objects.equals(before,withVersion(entry.lastApplied(),row.getVersion()))
+                        || !Objects.equals(entry.restoration().expectedFingerprint(),projects.selectRestorationFingerprint(identity))
+                        || projects.selectRestorationReferenceCount(identity)!=0) {
+                    results.add(issue(entry,before,"撤回项目或其业务关联已变化，禁止恢复或另建同码项目"));continue;
+                }
+            } else if (!creating && entry.lastApplied() == null) {
                 if (!request.adoptExisting() || !Objects.equals(entry.expectedProjectVersion(), row.getVersion())) {
                     results.add(issue(entry,before,"初次承接必须明确接管并核对项目版本；禁止覆盖后续变化")); continue;
                 }
@@ -210,9 +227,12 @@ public class ProjectMasterMigrationService implements ProjectMasterMigrationApi 
             if (effectiveFrom!=null && effectiveTo!=null && effectiveTo.isBefore(effectiveFrom))
                 throw new IllegalArgumentException("DPPMS_PROJECT_VALIDITY_INTERVAL_INVALID");
             String code = formalCode(entry);
-            if (code == null || code.isEmpty() || code.length()>64 || original.get("projectName")==null
-                    || original.get("projectName").length()>200)
-                throw new IllegalArgumentException("DPPMS_PROJECT_NAME_OR_CODE_INVALID");
+            String name = original.get("projectName");
+            if (name == null || name.isBlank()) name = code;
+            if (code == null || code.isEmpty() || code.length()>64 || name.length()>200) {
+                results.add(issue(entry,before,"DPPMS_PROJECT_NAME_OR_CODE_INVALID：编码缺失或名称/编码超长；保留问题行"));
+                continue;
+            }
             if(entry.lastApplied()!=null && !Objects.equals(code,entry.lastApplied().projectCode())) {
                 results.add(issue(entry,before,"已绑定项目重跑必须复用已承接编码，不得再次递增尾号"));continue;
             }
@@ -228,7 +248,7 @@ public class ProjectMasterMigrationService implements ProjectMasterMigrationApi 
                             row.getLifecycleStatus(),row.getCurrentStage(),row.getClosedAt()),entry.lastApplied()!=null);
             String reason = original.get("column008");
             if ("20".equals(original.get("projectState")) && reason==null) reason="不予跟踪";
-            var after = new Facts(row.getId(),tenant,row.getVersion(),code,original.get("projectName"),
+            var after = new Facts(row.getId(),tenant,row.getVersion(),code,name,
                     company==null?null:company.getId(),company==null?null:company.getCode(),company==null?null:company.getName(),original.get("projectType"),
                     category(original.get("column010")),signing(original.get("column011")),implementation(original.get("column012"),original.get("columno12_readonly")),
                     original.get("customerProjectName"),original.get("salesType"),original.get("majorProjectLevel"),
@@ -236,7 +256,7 @@ public class ProjectMasterMigrationService implements ProjectMasterMigrationApi 
                     time(original.get("projectStartTime")),time(original.get("projectRefreshTime")),time(original.get("projectCloseTime")),
                     time(original.get("column009")),canonicalJson(original.get("customInfo")),bool(original.get("disabled")),effectiveFrom,effectiveTo,
                     entry.creator(),created,entry.updater(),updated,state.lifecycleStatus(),state.currentStage(),state.closedAt());
-            String action=creating?"CREATED":Objects.equals(before,after)?"UNCHANGED":"UPDATED";
+            String action=creating?"CREATED":!restoring && Objects.equals(before,after)?"UNCHANGED":"UPDATED";
             if (creating && apply) {
                 row.setId(IdWorker.getId());
                 after=withIdentity(after,row.getId(),0L);
@@ -253,6 +273,9 @@ public class ProjectMasterMigrationService implements ProjectMasterMigrationApi 
             }
             if ("UPDATED".equals(action)) {
                 after=withVersion(after,row.getVersion()+1);
+                if (restoring && apply && projects.restoreHistoricalIfMatch(new ProjectMasterMigrationMapper.RestorationUpdate(
+                        tenant,row.getId(),row.getVersion(),entry.restoration().expectedFingerprint()))!=1)
+                    throw new IllegalStateException("DPPMS_PROJECT_RESTORATION_CONCURRENT_CHANGE");
                 if (apply && projects.initializeFormalIfMatch(new ProjectMasterMigrationMapper.InitializationUpdate(
                         tenant,row.getId(),row.getVersion(),row.getLifecycleStatus(),row.getCurrentStage(),after))!=1)
                     throw new IllegalStateException("DPPMS_PROJECT_INITIALIZATION_CONCURRENT_CHANGE");
@@ -262,7 +285,9 @@ public class ProjectMasterMigrationService implements ProjectMasterMigrationApi 
                     after=persisted;
                 }
             }
-            results.add(new Result(entry.sourceKey(),action,before,after,"正式字段承接历史；不生成当前任务、审批或分配完成事实"));
+            results.add(new Result(entry.sourceKey(),action,before,after,restoring
+                    ?"按裁决恢复已撤回项目并复用原ID；原审计、运行回执及树历史保留"
+                    :"正式字段承接历史；不生成当前任务、审批或分配完成事实"));
         }
         return List.copyOf(results);
     }

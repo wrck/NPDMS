@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper">
+  <update id="restoreVerifiedBinding">
+    UPDATE int_sync_binding SET deleted=FALSE
+    WHERE id=#{original.id} AND tenant_id=#{original.tenantId} AND task_id=#{original.taskId}
+      AND object_key=#{original.objectKey} AND source_object=#{original.sourceObject}
+      AND source_key=#{original.sourceKey} AND target_id=#{original.targetId} AND deleted=TRUE
+      AND last_run_id &lt;=> #{original.lastRunId}
+      AND target_shared &lt;=> #{original.targetShared}
+      AND fields_json=CAST(#{original.fieldsJson} AS JSON)
+  </update>
+  <select id="selectRetiredSourceKeysForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
+    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}
+      AND object_key=#{query.object} AND source_object=#{query.sourceObject} AND deleted=TRUE
+    <choose><when test="query.sourceKeys != null and !query.sourceKeys.isEmpty()">
+      AND source_key IN <foreach collection="query.sourceKeys" item="key" open="(" separator="," close=")">#{key}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+    ORDER BY id FOR UPDATE
+  </select>
   <select id="selectIdentitySources" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
     SELECT b.* FROM int_sync_binding b
     JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE

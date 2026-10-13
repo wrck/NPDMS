@@ -101,6 +101,49 @@ class ProjectMasterMigrationServiceTest {
         assertEquals("ISSUE",service.preview(request(entry(3L,null),true)).getFirst().action());
         verify(projects,never()).initializeFormalIfMatch(any());
     }
+    private Entry reviewedRestoration() {
+        newSource();row.setProjectCode(original.get("projectCode"));row.setSourceType("MIGRATION");
+        row.setLifecycleStatus("NORMAL_CLOSED");row.setCurrentStage("S6");
+        row.setClosedAt(LocalDateTime.parse(original.get("projectCloseTime").replace(' ','T')));
+        var created=ProjectMasterMigrationService.snapshot(row);
+        row.setDeleted(true);row.setVersion(created.version()+1);
+        when(projects.selectRestorationIdentityForUpdate(any())).thenReturn(row);
+        when(projects.selectRestorationFingerprint(any())).thenReturn("a".repeat(64));
+        return new Entry("10",100L,null,new LinkedHashMap<>(original),"001","162007","41",null,created,null,
+                new Restoration("a".repeat(64)));
+    }
+    @Test void reviewedRestorationReusesIdentityAndKeepsOrdinaryDeletedProtection() {
+        var result=service.preview(request(reviewedRestoration(),false)).getFirst();
+        assertEquals("UPDATED",result.action());assertEquals(100L,result.after().id());
+        assertEquals(5L,result.after().version());assertTrue(row.getDeleted());
+        verify(creationAuthorization).assertCanImportAcrossOrganizations(1L);
+        verifyNoInteractions(access,treeProjection);
+        verify(projects,never()).insertHistoricalRoot(any());verify(projects,never()).restoreHistoricalIfMatch(any());
+    }
+    @Test void restorationRejectsChangedUnmappedFieldsReferencesAndConcurrentWrites() {
+        var entry=reviewedRestoration();
+        when(projects.selectRestorationFingerprint(any())).thenReturn("b".repeat(64));
+        assertEquals("ISSUE",service.preview(request(entry,false)).getFirst().action());
+        when(projects.selectRestorationFingerprint(any())).thenReturn("a".repeat(64));
+        when(projects.selectRestorationReferenceCount(any())).thenReturn(1L);
+        assertEquals("ISSUE",service.preview(request(entry,false)).getFirst().action());
+        when(projects.selectRestorationReferenceCount(any())).thenReturn(0L);
+        when(projects.restoreHistoricalIfMatch(any())).thenReturn(0);
+        assertThrows(IllegalStateException.class,()->service.apply(request(entry,false)));
+        verify(projects,never()).initializeFormalIfMatch(any());verify(projects,never()).insertHistoricalRoot(any());
+    }
+    @Test void missingHistoricalNameUsesApprovedProjectCodeAndKeepsOriginalEvidence() {
+        for (String missing : new String[] {null,"","  "}) {
+            original.put("projectName",missing);saveOriginal();
+            var result=service.preview(request(entry(3L,null),true)).getFirst();
+            assertEquals("UPDATED",result.action());
+            assertEquals("162007-old-code",result.after().projectName());
+            assertEquals(missing,original.get("projectName"));
+        }
+        assertEquals("原正式项目",row.getProjectName());
+        verify(projects,never()).initializeFormalIfMatch(any());
+        verify(projects,never()).insertHistoricalRoot(any());
+    }
     @Test void currentCompanyDepartmentAndActorMustMatchPreciseIdentity() {
         var wrong=entry(3L,null);wrong=new Entry(wrong.sourceKey(),wrong.targetId(),wrong.expectedProjectVersion(),
                 wrong.originalFields(),"001","different",wrong.creator(),wrong.updater(),null);

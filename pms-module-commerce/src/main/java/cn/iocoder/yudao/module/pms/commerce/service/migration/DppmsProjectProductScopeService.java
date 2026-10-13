@@ -65,7 +65,12 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
             throw blocked("INVALID_REQUEST");
         var query=new ProjectScopeMigrationContextApi.Query(command.tenantId(),command.actorId(),command.projectId(),
                 command.expectedProjectVersion(),command.sourceProjectKey(),command.sourceConnectionId());
-        var project=apply?projects.lockAndRevalidate(query):projects.resolve(query);
+        ProjectScopeMigrationContextApi.Context project;
+        try { project=apply?projects.lockAndRevalidate(query):projects.resolve(query); }
+        catch(IllegalArgumentException ex) {
+            if(apply || !"DPPMS_SCOPE_PROJECT_OFFICE_UNRESOLVED".equals(ex.getMessage()))throw ex;
+            return command.entries().stream().map(entry->previewBlock(entry,"PROJECT_OFFICE_UNRESOLVED",false)).toList();
+        }
         var version=apply?versions.lockExisting(command.tenantId(),command.projectId()):null;
         long nextVersion=Math.addExact(apply?(version==null?0:version.getScopeVersion()):versions.current(command.tenantId(),command.projectId()),1);
         LocalDateTime now=LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);Set<String> keys=new HashSet<>();Set<Long> ids=new HashSet<>();
@@ -81,10 +86,21 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
             var orderQuery=new DppmsProductScopeMapper.OrderLineQuery(command.tenantId(),command.projectId(),
                     raw.get("contractNo"),raw.get("orderNumber"),raw.get("lineNum"),raw.get("itemCode"));
             var lines=apply?migration.lockAssociatedLines(orderQuery):migration.selectAssociatedLines(orderQuery);
-            if(lines.size()!=1)throw blocked("ORDER_LINE_NOT_UNIQUE:"+entry.sourceKey());
+            if(lines.size()!=1) {
+                if(apply)throw blocked("ORDER_LINE_NOT_UNIQUE:"+entry.sourceKey());
+                result.add(previewBlock(entry,lines.isEmpty()?"ASSOCIATED_ORDER_LINE_MISSING":"ORDER_LINE_AMBIGUOUS",!lines.isEmpty()));
+                continue;
+            }
             var line=lines.getFirst();
-            if(line.getOrderQty()==null || !same(decimal(raw.get("orderQuantity")),line.getOrderQty()))
-                throw blocked("ORIGINAL_ORDER_QUANTITY_DIFFERS:"+entry.sourceKey());
+            if(line.getOrderQty()==null || !same(decimal(raw.get("orderQuantity")),line.getOrderQty())) {
+                if(apply)throw blocked("ORIGINAL_ORDER_QUANTITY_DIFFERS:"+entry.sourceKey());
+                result.add(previewBlock(entry,"ORIGINAL_ORDER_QUANTITY_DIFFERS",true));continue;
+            }
+            BigDecimal quantity=raw.get("projectQuantity")==null?line.getOrderQty():decimal(raw.get("projectQuantity"));
+            if(quantity==null || quantity.signum()<=0) {
+                if(apply)throw blocked("POSITIVE_QUANTITY_REQUIRED");
+                result.add(previewBlock(entry,"POSITIVE_QUANTITY_REQUIRED",true));continue;
+            }
             String evidence="DPPMS:pm_project_product_line:"+command.sourceProjectKey()+":"+entry.sourceKey();
             var identity=new DppmsProductScopeMapper.IdentityQuery(command.tenantId(),evidence);
             var existing=apply?migration.lockIdentity(identity):migration.selectIdentity(identity);
@@ -133,6 +149,10 @@ public class DppmsProjectProductScopeService implements DppmsProjectProductScope
         if(apply)for(var row:prepared)if(migration.insertHistoricalScope(row)!=1)throw blocked("INSERT_CONFLICT");
         if(apply)for(var row:preparedDetails)if(migration.insertHistoricalProductDetail(row)!=1)throw blocked("PRODUCT_DETAIL_INSERT_CONFLICT");
         return List.copyOf(result);
+    }
+    private static Result previewBlock(Entry entry,String reason,boolean conflict) {
+        return new Result(entry.sourceKey(),entry.baseline()==null?null:entry.baseline().id(),
+                conflict || entry.baseline()!=null?"CONFLICT":"ISSUE",Map.of(),"DPPMS_PRODUCT_SCOPE_"+reason);
     }
     /** Exact old Owner result protects historical project snapshots while current authorization stays in the context Owner. */
     private static DeliveryScopeDO verifiedFormalBefore(Entry entry,DeliveryScopeDO previous) {

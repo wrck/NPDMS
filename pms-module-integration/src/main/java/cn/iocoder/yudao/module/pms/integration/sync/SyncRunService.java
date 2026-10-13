@@ -81,8 +81,9 @@ public class SyncRunService {
             r.setTenantId(tenant);
             if(command.retryOf()!=null) {
                 var prior=required(command.retryOf());
-                boolean keepCheckpoint="KEYSET_PAGING".equals(d.effectiveReadStrategy())
-                        ||("STREAMING_CURSOR".equals(d.effectiveReadStrategy())&&"CHECKPOINT_KEY".equals(d.effectiveRestartPolicy()));
+                // Preview must evaluate the full current source/target state, including earlier conflicts.
+                boolean keepCheckpoint=!command.preview() && ("KEYSET_PAGING".equals(d.effectiveReadStrategy())
+                        ||("STREAMING_CURSOR".equals(d.effectiveReadStrategy())&&"CHECKPOINT_KEY".equals(d.effectiveRestartPolicy())));
                 if(keepCheckpoint)r.setPagingJson(prior.getPagingJson());
             }
             Long actor=cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();
@@ -117,7 +118,7 @@ public class SyncRunService {
         if("SUCCESS".equals(r.getStatus())||"PREVIEW_READY".equals(r.getStatus()))return;
         if(!Objects.equals(taskService.required(r.getTaskId()).getActiveRunId(),ownerRunId))return;
         var d=JsonUtils.parseObject(r.getConfigSnapshot(),SyncDefinition.class);
-        var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
+        var lock=targetLocks(d);
         boolean acquired=false;
         List<SyncEvidenceService.Evidence> evidence=List.of();
         var timing=new org.springframework.util.StopWatch();
@@ -227,7 +228,7 @@ public class SyncRunService {
             if(timing.isRunning())timing.stop();
             log.info("Data sync run={} page={} phasesMs={}",runId,r.getPageNumber(),
                     Arrays.stream(timing.getTaskInfo()).map(t->t.getTaskName()+":"+t.getTimeMillis()).toList());
-            if(acquired&&lock.isHeldByCurrentThread())lock.unlock();
+            lock.close();
         }
     }
 
@@ -235,7 +236,7 @@ public class SyncRunService {
         var root=required(runId);
         if(Set.of("SUCCESS","PREVIEW_READY").contains(root.getStatus())
                 ||!Objects.equals(taskService.required(root.getTaskId()).getActiveRunId(),runId))return;
-        var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
+        var lock=targetLocks(d);
         boolean acquired=false;
         try {
             acquired=lock.tryLock(1,TimeUnit.SECONDS);
@@ -252,6 +253,10 @@ public class SyncRunService {
                 if(chunk.sourceComplete())advanceStreamingSource(runId,d,chunk);
                 else processStreamingChunk(runId,d,task,adapter,chunk);
             });
+            var completed=required(runId);
+            if(root.getPreview() && completed.getSummaryJson()!=null
+                    && ((Number)JsonUtils.parseMap(completed.getSummaryJson()).getOrDefault("CONFLICT",0)).longValue()>0)
+                throw new IllegalArgumentException("完整预览存在目标归属或字段冲突，未写入任何业务记录");
             tx().executeWithoutResult(status->{
                 var current=required(runId);
                 var state=current.getPagingJson()==null?SyncStreamingState.start(current.getSourceUpper()):
@@ -283,7 +288,7 @@ public class SyncRunService {
                 }
             });
             throw ex;
-        } finally {if(acquired&&lock.isHeldByCurrentThread())lock.unlock();}
+        } finally {lock.close();}
     }
 
     private void processStreamingChunk(Long runId,SyncDefinition d,SyncTaskDO task,DataSyncAdapter adapter,
@@ -314,7 +319,7 @@ public class SyncRunService {
             var evidence=evidenceService.stage(runId,d,snapshot,correlation,"s"+chunk.sourceIndex()+"-c"+chunk.sequence());
             timing.stop();timing.start("apply");
             var changes=current.getPreview()?adapter.preview(batch):adapter.apply(batch);
-            if(changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
+            if(!current.getPreview() && changes.stream().anyMatch(c->"CONFLICT".equals(c.action())))
                 throw new IllegalArgumentException("流式分块存在目标归属或字段冲突，当前分块已回滚");
             verifyPrimaryKeys(batch,changes);
             var finalChanges=markStale(changes,stale);
@@ -329,7 +334,7 @@ public class SyncRunService {
                     .setReadCount(current.getReadCount()+chunk.rows().size())
                     .setStatus(current.getPreview()?"VALIDATING":"APPLYING");
             mergeSummary(current,finalChanges);
-            // 全量复制不累积整批变更样本：样本随 maxRows 增长会把运行行拖到 MB 级，每块整行重写拖垮吞吐；预览保留完整样本。
+            // Bounded preview samples retain blockers first; full action counts remain in summaryJson.
             appendResultSample(current,finalChanges,current.getPreview()?d.maxRows():50);
             runs.updateById(current);
             timing.stop();
@@ -363,7 +368,7 @@ public class SyncRunService {
         var root=required(runId);
         if(Set.of("SUCCESS","PREVIEW_READY").contains(root.getStatus())
                 || !Objects.equals(taskService.required(root.getTaskId()).getActiveRunId(),runId))return;
-        var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
+        var lock=targetLocks(d);
         boolean acquired=false;
         try {
             acquired=lock.tryLock(1,TimeUnit.SECONDS);
@@ -412,7 +417,7 @@ public class SyncRunService {
             log.error("Data sync page run={} failed: {}:: {}",runId,ex.getClass().getSimpleName(),pageCause.toString(),ex);
             tx().executeWithoutResult(s->{var r=required(runId);r.setStatus("FAILED").setErrorMessage(safeError(ex)).setFinishedAt(LocalDateTime.now());runs.updateById(r);failTask(r,d);});
             throw ex;
-        } finally {if(acquired&&lock.isHeldByCurrentThread())lock.unlock();}
+        } finally {lock.close();}
     }
 
     /** Called in the page's business/evidence transaction so retry cannot skip an uncommitted page. */
@@ -447,7 +452,7 @@ public class SyncRunService {
         if(!Set.of("QUEUED","READING","VALIDATING","APPLYING").contains(run.getStatus()))
             throw new IllegalArgumentException("运行状态不支持中断恢复");
         var d=JsonUtils.parseObject(run.getConfigSnapshot(),SyncDefinition.class);
-        var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
+        var lock=targetLocks(d);
         if(!lock.tryLock())throw new SyncTaskConflictException("运行仍由执行进程占用，不能恢复");
         try {
             return tx().execute(status->{
@@ -461,20 +466,20 @@ public class SyncRunService {
                 recordInterruption(runId,d);
                 return true;
             });
-        } finally {lock.unlock();}
+        } finally {lock.close();}
     }
     /** Framework recovery is only invoked while holding the same scope lock as all writers. */
     public void maintain() {
         for(var run:runs.selectMaintenance(new SyncQueries.Due(SyncTaskService.tenant(),LocalDateTime.now().minusMinutes(2)))) {
             if("SUCCESS".equals(run.getStatus())) { refreshCache(run.getId());continue; }
             var d=JsonUtils.parseObject(run.getConfigSnapshot(),SyncDefinition.class);
-            var lock=redisson.getLock("int:data-sync:"+SyncTaskService.tenant()+":"+d.adapter());
+            var lock=targetLocks(d);
             if(!lock.tryLock())continue;
             try {
                 var current=required(run.getId());
                 if(Set.of("SUCCESS","FAILED","PREVIEW_READY").contains(current.getStatus()))continue;
                 recordInterruption(run.getId(),d);
-            } finally {lock.unlock();}
+            } finally {lock.close();}
         }
     }
     private void recordInterruption(Long runId,SyncDefinition d) {
@@ -494,10 +499,20 @@ public class SyncRunService {
         Map<String,SyncBindingDO> existing=new HashMap<>();
         // All binding writers hold the same adapter lock; reuse this chunk's protected snapshot.
         bindingRows.forEach(b->existing.put(b.getObjectKey()+":"+b.getSourceKey(),b));
+        if (validator.adapter(d).restoresSourceBindings()) {
+            // The adapter verified and restored these rows under the same transaction/adapter lock.
+            // Read live rows again so an approved restoration reuses the original binding ID.
+            for (var source:d.sources()) {
+                var keys=changes.stream().filter(c->source.object().equals(c.object()) && c.targetId()!=null)
+                        .map(DataSyncAdapter.Change::sourceKey).distinct().toList();
+                for (var binding:selectPageBindings(task.getId(),source.object(),source.sourceObject(),keys))
+                    existing.put(binding.getObjectKey()+":"+binding.getSourceKey(),binding);
+            }
+        }
         List<SyncBindingDO> created=new ArrayList<>(),updated=new ArrayList<>();
         List<Long> unchanged=new ArrayList<>();
         for(var c:changes) {
-            if(c.targetId()==null||Set.of("SKIPPED","CLEARED").contains(c.action()))continue;
+            if(c.targetId()==null||Set.of("SKIPPED","CLEARED","ISSUE").contains(c.action()))continue;
             var b=existing.get(c.object()+":"+c.sourceKey());boolean fresh=b==null;
             String fieldsJson=JsonUtils.toJsonString(c.after());
             if(!fresh && Objects.equals(b.getTargetId(),c.targetId())
@@ -598,9 +613,18 @@ public class SyncRunService {
         if(limit<=0||changes.isEmpty())return;
         List<DataSyncAdapter.Change> sample=run.getResultJson()==null?new ArrayList<>():
                 new ArrayList<>(JsonUtils.parseArray(run.getResultJson(),DataSyncAdapter.Change.class));
-        int remaining=Math.max(0,limit-sample.size());
-        if(remaining>0)sample.addAll(changes.subList(0,Math.min(remaining,changes.size())));
+        int replacement=sample.size()-1;
+        for(var change:changes) {
+            if(sample.size()<limit) { sample.add(change);replacement=sample.size()-1;continue; }
+            if(!Boolean.TRUE.equals(run.getPreview()) || !isPreviewProblem(change))continue;
+            while(replacement>=0 && isPreviewProblem(sample.get(replacement)))replacement--;
+            if(replacement<0)break;
+            sample.set(replacement--,change);
+        }
         run.setResultJson(JsonUtils.toJsonString(sample));
+    }
+    private static boolean isPreviewProblem(DataSyncAdapter.Change change) {
+        return Set.of("ISSUE","CONFLICT","FAILED").contains(change.action());
     }
     private void updateStatus(Long id,String state){tx().executeWithoutResult(s->{var r=required(id);r.setStatus(state);runs.updateById(r);});}
     private void saveResult(Long id,List<DataSyncAdapter.Change> changes){tx().executeWithoutResult(s->{var r=required(id);r.setResultJson(JsonUtils.toJsonString(changes)).setSummaryJson(summary(changes));runs.updateById(r);});}
@@ -608,6 +632,9 @@ public class SyncRunService {
         Map<String,Long> counts=new LinkedHashMap<>();for(var change:changes)counts.merge(change.action(),1L,Long::sum);return JsonUtils.toJsonString(counts);
     }
     public static String owner(SyncTaskDO t){return "integration:"+t.getTenantId()+":"+t.getId();}
+    private SyncTargetLocks targetLocks(SyncDefinition definition){
+        return new SyncTargetLocks(redisson,SyncTaskService.tenant(),definition,validator.adapter(definition));
+    }
     private TransactionTemplate tx(){return new TransactionTemplate(transactionManager);}
     private static String safeError(Exception ex){
         if(ex instanceof IllegalArgumentException||ex instanceof IllegalStateException) {

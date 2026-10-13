@@ -293,9 +293,11 @@ const isPagedRoot = (run: api.Run) => {
 }
 const runStatusLabel = (run: api.Run) =>
   run.status === 'FAILED' && run.pagingJson && !run.pageNumber
-    ? isPagedRoot(run)
-      ? '分页停止（已成功页保留）'
-      : '分块停止（已提交块保留）'
+    ? run.preview
+      ? '预览停止（未写入）'
+      : isPagedRoot(run)
+        ? '分页停止（已成功页保留）'
+        : '分块停止（已提交块保留）'
     : api.runLabels[run.status] || run.status
 const childPages = ref<api.Run[]>([]),
   childTotal = ref(0)

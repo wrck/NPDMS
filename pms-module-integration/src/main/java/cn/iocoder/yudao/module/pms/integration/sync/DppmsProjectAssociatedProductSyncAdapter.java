@@ -56,7 +56,8 @@ public class DppmsProjectAssociatedProductSyncAdapter implements DataSyncAdapter
             var kind=kind(row.object());var key=new RowKey(row.object(),row.sourceKey());
             if(!row.fields().keySet().containsAll(columns(kind)) || row.sourceKey()==null || !row.sourceKey().matches("[0-9a-f]{64}:[1-9][0-9]*")
                     || originals.put(key,row)!=null)fail("来源身份或字段不完整");
-            var project=text(row.fields().get("sourceProjectId"));SyncFieldMapper.primaryKey(project);sourceKeys.add(project);
+            var project=text(row.fields().get("sourceProjectId"));
+            if(project!=null){SyncFieldMapper.primaryKey(project);sourceKeys.add(project);}
             var prior=previous.get(key);
             if(prior==null && row.targetId()!=null || prior!=null && (!Objects.equals(row.targetId(),prior.targetId()) || !originalsMatch(row,prior,kind)))fail("来源或绑定变化，禁止接管");
         }
@@ -64,7 +65,14 @@ public class DppmsProjectAssociatedProductSyncAdapter implements DataSyncAdapter
         for(int offset=0;offset<keys.size();offset+=500)
             for(var ref:bindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(keys.subList(offset,Math.min(offset+500,keys.size()))))))
                 if(references.put(ref.sourceProjectKey(),ref)!=null)fail("项目身份多义");
-        if(!references.keySet().equals(sourceKeys))fail("先完成正式项目绑定");
+        if(!sourceKeys.containsAll(references.keySet()))fail("返回了范围外项目绑定");
+        var changes=new HashMap<RowKey,Change>();
+        for(var row:originals.values()) if(!references.containsKey(text(row.fields().get("sourceProjectId")))) {
+            if(row.targetId()!=null || previous.containsKey(new RowKey(row.object(),row.sourceKey())))fail("现存业务绑定的项目身份缺失，禁止接管");
+            changes.put(new RowKey(row.object(),row.sourceKey()),new Change(row.object(),row.sourceKey(),null,"ISSUE",Map.of(),row.fields(),
+                    text(row.fields().get("sourceProjectId"))==null?"SOURCE_PROJECT_MISSING：原项目身份未匹配":"PROJECT_BINDING_MISSING：先迁入规范项目主档"));
+        }
+        originals.entrySet().removeIf(entry->changes.containsKey(entry.getKey()));
         for(var row:originals.values()) {
             var ref=references.get(text(row.fields().get("sourceProjectId")));
             if(!Objects.equals(ref.originalProjectCode(),text(row.fields().get("originalProjectCode")))
@@ -86,7 +94,6 @@ public class DppmsProjectAssociatedProductSyncAdapter implements DataSyncAdapter
             groups.computeIfAbsent(new Group(kind,text(row.fields().get("sourceProjectId"))),key->new ArrayList<>()).add(
                     new ProjectAssociatedProductMigrationApi.Source(row.sourceKey(),values(row,kind.columns),row.targetId(),baseline));
         }
-        var changes=new HashMap<RowKey,Change>();
         for(var group:groups.entrySet()) {
             var key=group.getKey();var ref=references.get(key.projectKey());
             var command=new ProjectAssociatedProductMigrationApi.Command(new ProjectMigrationIdentityContextApi.Query(

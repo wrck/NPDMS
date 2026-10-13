@@ -25,12 +25,18 @@ public interface ProjectMasterMigrationApi {
     /** originalFields is the bounded 37-column original header, not a business payload destination. */
     record CodeCollisionProject(Long projectId,String projectType) {}
     record CodeAllocation(String originalProjectCode,List<CodeCollisionProject> orderedProjects,String projectCode) {}
+    /** Explicit restoration of a reviewed, previously withdrawn migration root; no ordinary takeover. */
+    record Restoration(String expectedFingerprint) {}
     record Entry(String sourceKey, Long targetId, Long expectedProjectVersion,
                  Map<String, String> originalFields, String companyCode, String departmentCode,
-                 String creator, String updater, Facts lastApplied,CodeAllocation codeAllocation) {
+                 String creator, String updater, Facts lastApplied,CodeAllocation codeAllocation,Restoration restoration) {
+        public Entry(String sourceKey,Long targetId,Long expectedProjectVersion,Map<String,String> originalFields,
+                     String companyCode,String departmentCode,String creator,String updater,Facts lastApplied,CodeAllocation codeAllocation) {
+            this(sourceKey,targetId,expectedProjectVersion,originalFields,companyCode,departmentCode,creator,updater,lastApplied,codeAllocation,null);
+        }
         public Entry(String sourceKey,Long targetId,Long expectedProjectVersion,Map<String,String> originalFields,
                      String companyCode,String departmentCode,String creator,String updater,Facts lastApplied) {
-            this(sourceKey,targetId,expectedProjectVersion,originalFields,companyCode,departmentCode,creator,updater,lastApplied,null);
+            this(sourceKey,targetId,expectedProjectVersion,originalFields,companyCode,departmentCode,creator,updater,lastApplied,null,null);
         }
     }
     record Request(Long tenantId, Long actorId, String owner, List<Entry> entries, boolean adoptExisting) {}

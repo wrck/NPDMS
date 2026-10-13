@@ -70,9 +70,18 @@ class DppmsProjectProductScopeSyncAdapterTest {
     }
     @Test void missingProjectOrChangedTypeCannotBecomeAFormalScope() {
         when(bindings.resolve(any(DppmsProjectBindingApi.BatchQuery.class))).thenReturn(List.of());
-        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row(),List.of())));verifyNoInteractions(scopes);
+        assertEquals("ISSUE",adapter.apply(batch(row(),List.of())).getFirst().action());verifyNoInteractions(scopes);
         when(bindings.resolve(any(DppmsProjectBindingApi.BatchQuery.class))).thenReturn(List.of(new DppmsProjectBindingApi.ProjectBinding(18L,"50370",10L,"afxx","P1","P1")));
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row(),List.of())));verifyNoInteractions(scopes);
+    }
+    @Test void previewPreservesRawFieldsForOwnerDependencyBlockerWithoutCreatingBaseline() {
+        run.setStatus("VALIDATING").setPreview(true);
+        when(scopes.preview(any())).thenReturn(List.of(new DppmsProjectProductScopeApi.Result("100",null,"ISSUE",Map.of(),
+                "DPPMS_PRODUCT_SCOPE_ASSOCIATED_ORDER_LINE_MISSING")));
+        var source=row();var result=adapter.preview(batch(source,List.of())).getFirst();
+        assertEquals("ISSUE",result.action());assertNull(result.targetId());assertEquals(source.fields(),result.after());
+        assertTrue(result.message().contains("ASSOCIATED_ORDER_LINE_MISSING"));
+        verify(scopes,never()).apply(any());verify(projects,never()).lockBindings(any());
     }
     @Test void replayRetainsPreciseScopeTimesWhenAuditWasSerializedAsEpochMillis() {
         var precise=date.withNano(266651500);

@@ -29,7 +29,9 @@ public final class DppmsExecutionOrderSyncTemplate {
         columns.add("canonicalId");for(String[] pair:FIELDS)columns.add("canonical_"+pair[1]);
         var source = SyncDefinition.Source.builder().object("EXECUTION_ORDER")
                 .sourceObject("pm_project_property_from_sms").readMode("SQL")
-                .sql(DppmsMigrationSql.initial("execution-orders")).parameters(Map.of()).columns(columns).filters(List.of()).sourceKey("id")
+                .sql(DppmsMigrationSql.initial("execution-orders"))
+                .parameters(Map.of("projectTypes","","projectIds",""))
+                .columns(columns).filters(List.of()).sourceKey("id")
                 .mappings(mappings).build();
         return SyncDefinition.builder().adapter("DPPMS_CRM_EXECUTION_ORDER").sourceSystem("DPPMS")
                 .connectionId(connectionId).mode("ONCE").loadingMode("UPSERT").missingPolicy("RETAIN")

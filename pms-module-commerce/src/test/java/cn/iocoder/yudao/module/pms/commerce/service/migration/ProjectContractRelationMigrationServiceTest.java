@@ -89,11 +89,13 @@ class ProjectContractRelationMigrationServiceTest {
         verify(contracts).selectMigrationIdentity(argThat(query->query.tenantId()==1 && query.companyCode().equals("001") && query.contractNo().equals("C1")));
         verifyNoInteractions(relations,projects,historicalUsers);
     }
-    @Test void targetResolutionRejectsMissingDuplicateChangedCompanyAndUnauthorizedReferences() {
+    @Test void targetResolutionReportsMissingAndDuplicateButRejectsChangedCompanyAndUnauthorizedReferences() {
         var contract=new ContractDO();contract.setId(11L);contract.setTenantId(1L);contract.setDeleted(false);contract.setContractNo("C1");contract.setCompanyCode("001");
         for(var candidates:List.of(List.<ContractDO>of(),List.of(contract,contract))) {
             when(contracts.selectMigrationIdentity(any())).thenReturn(candidates);
-            assertThrows(IllegalArgumentException.class,()->service.resolveReferences(referenceQuery()));
+            var ref=service.resolveReferences(referenceQuery()).getFirst();
+            assertNull(ref.contractId());
+            assertEquals(candidates.isEmpty()?ReferenceIssue.CONTRACT_MISSING:ReferenceIssue.CONTRACT_AMBIGUOUS,ref.issue());
         }
         contract.setCompanyCode("002");when(contracts.selectMigrationIdentity(any())).thenReturn(List.of(contract));
         assertThrows(IllegalArgumentException.class,()->service.resolveReferences(referenceQuery()));
@@ -103,6 +105,31 @@ class ProjectContractRelationMigrationServiceTest {
         assertThrows(IllegalArgumentException.class,()->service.resolveReferences(referenceQuery()));
         assertThrows(IllegalArgumentException.class,()->service.resolveReferences(new ReferenceQuery(2L,1L,"integration:2:5",referenceQuery().references())));
         verifyNoInteractions(relations,projects,historicalUsers);
+    }
+    @Test void missingProjectCompanyIsAReferenceIssueButCannotCreateARelationship() {
+        var facts=projectIdentities.inspectBindings(null).getFirst();
+        for(String company:Arrays.asList(null,"")) {
+            when(facts.companyCode()).thenReturn(company);
+            assertEquals(List.of(new ResolvedReference("100:200",10L,3L,null,ReferenceIssue.PROJECT_COMPANY_MISSING)),
+                    service.resolveReferences(referenceQuery()));
+        }
+        verify(contracts,never()).selectMigrationIdentity(any());
+        when(projects.lockAndRevalidate(any())).thenReturn(new ProjectMigrationIdentityContextApi.Context(10L,3L,"P1","10",null,null));
+        assertThrows(IllegalArgumentException.class,()->service.apply(request(entry(null,null,null),false)));
+        verify(relations,never()).insertHistorical(any());verify(relations,never()).correctHistorical(any());
+        when(facts.tenantId()).thenReturn(2L);
+        assertThrows(IllegalArgumentException.class,()->service.resolveReferences(referenceQuery()));
+    }
+    @Test void deletedRelationshipIsPreviewConflictAndApplyStillRejectsBeforeWrite() {
+        var x=existing();var deleted=new Relation(x.id(),x.tenantId(),x.projectId(),x.contractId(),x.relationRole(),
+                x.sourceSystem(),x.sourceTable(),x.sourceRecordKey(),x.effectiveFrom(),x.effectiveTo(),x.status(),
+                x.version(),x.creator(),x.createTime(),x.updater(),x.updateTime(),true);
+        when(relations.selectIdentity(any())).thenReturn(deleted);
+        when(relations.selectIdentityForUpdate(any())).thenReturn(deleted);
+        var result=service.preview(request(entry(null,null,null),false)).getFirst();
+        assertEquals("CONFLICT",result.action());assertEquals(deleted,result.before());assertEquals(deleted,result.after());
+        assertThrows(IllegalArgumentException.class,()->service.apply(request(entry(null,null,null),false)));
+        verify(relations,never()).insertHistorical(any());verify(relations,never()).correctHistorical(any());
     }
     @Test void reviewedCorrectionChangesOnlyFiveHistoricalValuesAndConcurrencyVersion() {
         when(relations.selectIdentityForUpdate(any())).thenReturn(existing());

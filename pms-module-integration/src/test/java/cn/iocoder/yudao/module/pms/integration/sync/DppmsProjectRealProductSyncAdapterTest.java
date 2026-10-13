@@ -58,7 +58,7 @@ class DppmsProjectRealProductSyncAdapterTest {
     }
     @Test void missingProjectWrongVersionAndAdoptionRemainBlocked() {
         when(bindings.resolve(any(DppmsProjectBindingApi.BatchQuery.class))).thenReturn(List.of());
-        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row(null),List.of())));verifyNoInteractions(products);
+        assertEquals("ISSUE",adapter.apply(batch(row(null),List.of())).getFirst().action());verifyNoInteractions(products);
         run.setConfigVersion(1);assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row(null),List.of())));
         var adopt=new Batch("integration:1:12",List.of(row(null)),List.of(),true,"RETAIN",true,"UPSERT",false);
         assertThrows(IllegalArgumentException.class,()->adapter.apply(adopt));verifyNoInteractions(products);

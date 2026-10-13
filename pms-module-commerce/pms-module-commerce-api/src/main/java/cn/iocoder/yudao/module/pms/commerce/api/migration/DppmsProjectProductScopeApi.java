@@ -25,5 +25,9 @@ public interface DppmsProjectProductScopeApi {
         }
     }
     record Entry(String sourceKey,Map<String,String> originalFields,Baseline baseline) {}
-    record Result(String sourceKey,Long targetId,String action,Map<String,Object> fields) {}
+    record Result(String sourceKey,Long targetId,String action,Map<String,Object> fields,String message) {
+        public Result(String sourceKey,Long targetId,String action,Map<String,Object> fields) {
+            this(sourceKey,targetId,action,fields,null);
+        }
+    }
 }

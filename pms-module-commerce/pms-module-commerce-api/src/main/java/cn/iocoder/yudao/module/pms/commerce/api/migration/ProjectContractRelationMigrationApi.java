@@ -25,7 +25,13 @@ public interface ProjectContractRelationMigrationApi {
     record Result(String sourceKey, String action, Relation before, Relation after) {}
     record Reference(String sourceKey,Long projectId,String projectType,String projectCode,String contractNo) {}
     record ReferenceQuery(Long tenantId,Long actorId,String owner,List<Reference> references) {}
-    record ResolvedReference(String sourceKey,Long projectId,Long projectVersion,Long contractId) {}
+    enum ReferenceIssue { CONTRACT_MISSING, CONTRACT_AMBIGUOUS, PROJECT_COMPANY_MISSING }
+    /** A missing/ambiguous contract is a row blocker, never permission to choose or create one. */
+    record ResolvedReference(String sourceKey,Long projectId,Long projectVersion,Long contractId,ReferenceIssue issue) {
+        public ResolvedReference(String sourceKey,Long projectId,Long projectVersion,Long contractId) {
+            this(sourceKey,projectId,projectVersion,contractId,null);
+        }
+    }
     /** Reads existing formal identities; no business creation, grants, or migration-binding writes. */
     List<ResolvedReference> resolveReferences(ReferenceQuery query);
     List<Result> preview(Request request);

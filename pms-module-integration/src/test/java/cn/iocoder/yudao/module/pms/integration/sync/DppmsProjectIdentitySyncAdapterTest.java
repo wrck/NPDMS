@@ -52,7 +52,7 @@ class DppmsProjectIdentitySyncAdapterTest {
         var row=row("11");row.fields().put("projectCode","different");
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(row),List.of())));
         when(bindings.selectIdentitySources(any())).thenReturn(List.of());
-        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(row("11")),List.of())));
+        assertEquals("ISSUE",adapter.apply(batch(List.of(row("11")),List.of())).getFirst().action());
         run.setConfigVersion(2);assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(row("11")),List.of())));
         verifyNoInteractions(projects);
     }
@@ -62,6 +62,22 @@ class DppmsProjectIdentitySyncAdapterTest {
         var bound=new Row(OBJECT,"11",source.fields(),101L);
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(bound),List.of(new Binding(OBJECT,"11",101L,initial.after())))));
         verifyNoInteractions(projects);
+    }
+    @Test void approvedIdentityRestorationReusesVerifiedBindingAndRejectsChangedReceipt(){
+        var source=row("11");var saved=adapter.apply(batch(List.of(source),List.of())).getFirst().after();
+        var retired=new SyncBindingDO().setId(81L).setTaskId(12L).setSourceKey("11").setTargetId(100L)
+                .setLastRunId(80L).setFieldsJson(JsonUtils.toJsonString(saved));retired.setTenantId(1L);
+        when(bindings.selectRetiredSourceKeysForUpdate(argThat(q->q!=null && "pm_project".equals(q.sourceObject())
+                && OBJECT.equals(q.object()) && q.sourceKeys().equals(List.of("11"))))).thenReturn(List.of(retired));
+        when(bindings.restoreVerifiedBinding(retired)).thenReturn(1);
+        var receipt=new SyncRunDO().setId(80L).setTaskId(12L).setPreview(false).setStatus("SUCCESS");receipt.setTenantId(1L);
+        when(runs.selectScoped(argThat(q->q!=null && Long.valueOf(80).equals(q.id())))).thenReturn(receipt);
+        source.fields().put("migrationRestoration",Map.of("retiredBindingId",81L,"lastRunId",80L,"targetId",100L));
+        adapter.apply(batch(List.of(source),List.of()));verify(bindings).restoreVerifiedBinding(retired);
+        clearInvocations(bindings);run.setPreview(true).setStatus("VALIDATING");
+        adapter.preview(batch(List.of(source),List.of()));verify(bindings,never()).restoreVerifiedBinding(any());
+        run.setPreview(false).setStatus("APPLYING");receipt.setStatus("FAILED");clearInvocations(projects);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(source),List.of())));verifyNoInteractions(projects);
     }
     @Test void templateIsEditableAndPreviewUsesFormalOwnerReadProtection(){
         var definition=create(18L);assertEquals("10",definition.sources().getFirst().parameters().get("projectTypes"));

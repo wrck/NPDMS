@@ -37,6 +37,14 @@ public class SpringJdbcStreamingReader {
                                SyncStreamingState resume, Consumer<StreamChunk> consumer) throws SQLException {
         var sourceApi=sources.orElseThrow(()->new IllegalStateException("外部数据源服务不可用"));
         try (Connection connection=sourceApi.openReadOnly(definition.connectionId())) {
+            // Honour the existing task query limit even when the source provider defaults to a shorter socket wait.
+            // This changes only this run's connection; statement cancellation remains the task's upper bound.
+            if (definition.queryTimeoutSeconds()>0) {
+                int networkTimeout=connection.getNetworkTimeout();
+                int taskTimeout=Math.multiplyExact(definition.queryTimeoutSeconds()+1,1000);
+                if (networkTimeout>0 && networkTimeout<taskTimeout)
+                    connection.setNetworkTimeout(Runnable::run,taskTimeout);
+            }
             SingleConnectionDataSource dataSource=new SingleConnectionDataSource(connection,true);
             JdbcTemplate jdbc=new JdbcTemplate(dataSource);
             // ExternalDataSourceApi opens MySQL with autoCommit=false. Take the upper-bound timestamp outside that

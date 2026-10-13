@@ -22,6 +22,7 @@ class ContractReceivableMigrationMySqlTest {
         factory.setTransactionFactory(new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory());
         var config=new com.baomidou.mybatisplus.core.MybatisConfiguration();config.setMapUnderscoreToCamelCase(true);factory.setConfiguration(config);
         factory.setMapperLocations(new org.springframework.core.io.ClassPathResource("mapper/migration/ContractReceivableMigrationMapper.xml"),
+                new org.springframework.core.io.ClassPathResource("mapper/migration/ContractCollectionPlanMapper.xml"),
                 new org.springframework.core.io.ClassPathResource("mapper/contract/ProjectCommerceMapper.xml"));
         session=factory.getObject().openSession(db);
         try(var sql=db.createStatement()) {
@@ -56,5 +57,14 @@ class ContractReceivableMigrationMySqlTest {
         assertTrue(queries.selectReceivables(new ProjectCommerceQuery(1L,21L)).isEmpty());
         assertTrue(queries.selectReceivables(new ProjectCommerceQuery(2L,22L)).isEmpty());
         assertTrue(queries.selectReceivables(new ProjectCommerceQuery(1L,999L)).isEmpty());
+    }
+    @Test void indexedCandidateLookupStillExcludesCaseSpacesOtherTenantsAndDeletedContracts() throws Exception {
+        try(var sql=db.createStatement()) {
+            sql.execute("INSERT INTO com_contract VALUES(1,1,'C-01',FALSE),(2,1,'c-01',FALSE),(3,1,'C-01 ',FALSE),(4,2,'C-01',FALSE),(5,1,'C-01',TRUE)");
+        }
+        assertEquals(List.of(1L),session.getMapper(ContractReceivableMigrationMapper.class).selectExactContractIds(
+                new ContractReceivableMigrationMapper.ContractQuery(1L,"C-01")));
+        assertEquals(List.of(1L),session.getMapper(cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractCollectionPlanMapper.class)
+                .selectExactContractIds(new cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractCollectionPlanMapper.ContractQuery(1L,"C-01")));
     }
 }

@@ -19,12 +19,14 @@ import static cn.iocoder.yudao.module.pms.integration.sync.DppmsProjectMasterSyn
 @Component
 @RequiredArgsConstructor
 public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
+    record RestorationProof(Long retiredBindingId,Long creationRunId,Long lastRunId,Long targetId,String expectedFingerprint) {}
     private final ProjectMasterMigrationApi projects;
     private final SyncTaskService tasks;
     private final SyncRunMapper runs;
     private final SyncBindingMapper bindings;
     @Override public boolean supportsStreaming() { return true; }
     @Override public boolean requiresAllBindings() { return false; }
+    @Override public boolean restoresSourceBindings() { return true; }
     @Override public void refreshCaches() {}
     @Override public Descriptor descriptor() {
         var fields=new ArrayList<Field>();
@@ -34,6 +36,7 @@ public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
         fields.add(new Field("migrationCompanyCode","按原公司外键解析的公司码","STRING",false));
         fields.add(new Field("expectedProjectVersion","已复核项目版本","LONG",false));
         fields.add(new Field("migrationCodeAllocation","已复核跨类型编码尾号分配","OBJECT",false));
+        fields.add(new Field("migrationRestoration","获准恢复项目的原回执与全字段保护","OBJECT",false));
         fields.add(new Field("creatorHistoricalCode","获准保留的未关联创建人编码","STRING",false));
         fields.add(new Field("updaterHistoricalCode","获准保留的未关联更新人编码","STRING",false));
         return new Descriptor(ADAPTER,"DPPMS项目正式主档",List.of(new ObjectDescriptor(OBJECT,"项目主表原37列",
@@ -65,6 +68,14 @@ public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
         for (var binding:batch.bindings()) if (previous.put(binding.object()+":"+binding.sourceKey(),binding)!=null)
             throw new IllegalArgumentException("项目来源绑定重复");
         Map<String,Long> actors=resolveActors(batch,tenant,task.getConnectionId());
+        var restorationKeys=batch.rows().stream().filter(r->r.fields().get("migrationRestoration")!=null
+                && !previous.containsKey(OBJECT+":"+r.sourceKey())).map(Row::sourceKey).toList();
+        Map<String,cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO> retired=new HashMap<>();
+        if (!restorationKeys.isEmpty()) for (var binding:bindings.selectRetiredSourceKeysForUpdate(
+                new SyncQueries.SourceKeys(tenant,task.getId(),OBJECT,OBJECT,restorationKeys)))
+            if (retired.put(binding.getSourceKey(),binding)!=null)
+                throw new IllegalArgumentException("项目存在多个撤回绑定，不能任选恢复身份");
+        Map<Long,cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO> receipts=new HashMap<>();
         var entries=new ArrayList<Entry>();
         Map<String,Map<String,String>> originals=new LinkedHashMap<>();
         for (var row:batch.rows()) {
@@ -77,7 +88,7 @@ public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
             var prior=previous.get(OBJECT+":"+row.sourceKey());
             if (row.targetId()!=null && prior==null || prior!=null && !Objects.equals(prior.targetId(),row.targetId()))
                 throw new IllegalArgumentException("项目目标与正式来源绑定不一致");
-            Facts last=null;
+            Facts last=null;Restoration restoration=null;Long target=row.targetId();
             if (prior!=null) {
                 if (!(prior.lastFields().get("originalFields") instanceof Map<?,?> saved)
                         || !sameOriginal(saved,original) || !(prior.lastFields().get("project") instanceof Map<?,?> facts))
@@ -85,14 +96,48 @@ public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
                 last=decode(facts);
             }
             var fields=row.fields();
-            entries.add(new Entry(row.sourceKey(),row.targetId(),number(fields.get("expectedProjectVersion")),original,
+            if (prior==null && fields.get("migrationRestoration")!=null) {
+                var proof=JsonUtils.parseObject(JsonUtils.toJsonString(fields.get("migrationRestoration")),RestorationProof.class);
+                var old=retired.get(row.sourceKey());
+                if (proof==null || proof.creationRunId()==null || proof.lastRunId()==null || old==null
+                        || !Objects.equals(old.getId(),proof.retiredBindingId())
+                        || !Objects.equals(old.getTargetId(),proof.targetId()) || !Objects.equals(old.getLastRunId(),proof.lastRunId()))
+                    throw new IllegalArgumentException("项目原撤回绑定、目标或成功回执不匹配");
+                for (Long receiptId:List.of(proof.creationRunId(),proof.lastRunId())) {
+                    var receipt=receipts.computeIfAbsent(receiptId,id->runs.selectScoped(new SyncQueries.Id(tenant,id)));
+                    if (receipt==null || !Objects.equals(receipt.getTaskId(),task.getId())
+                            || !Objects.equals(receipt.getTenantId(),tenant) || !Boolean.FALSE.equals(receipt.getPreview())
+                            || !"SUCCESS".equals(receipt.getStatus()))
+                        throw new IllegalArgumentException("项目原创建或重放回执无效，禁止恢复");
+                }
+                var created=receipts.get(proof.creationRunId());
+                var summary=created.getSummaryJson()==null?Map.<String,Object>of():JsonUtils.parseMap(created.getSummaryJson());
+                if (!(summary.get("CREATED") instanceof Number count) || count.longValue()<=0)
+                    throw new IllegalArgumentException("项目恢复缺少成功创建回执");
+                var saved=JsonUtils.parseMap(old.getFieldsJson());
+                if (!(saved.get("originalFields") instanceof Map<?,?> sourceFields) || !sameOriginal(sourceFields,original)
+                        || !(saved.get("project") instanceof Map<?,?> facts))
+                    throw new IllegalArgumentException("项目完整原字段或原承接值已变化，禁止恢复");
+                last=decode(facts);target=proof.targetId();
+                if (!Objects.equals(last.id(),target) || !Objects.equals(last.tenantId(),tenant))
+                    throw new IllegalArgumentException("项目撤回绑定的业务身份不一致");
+                restoration=new Restoration(proof.expectedFingerprint());
+            }
+            entries.add(new Entry(row.sourceKey(),target,number(fields.get("expectedProjectVersion")),original,
                     companyCode(fields),
                     DppmsDepartmentCodeRules.normalize(text(fields,"column001")),
                     actor(fields,"creator","createBy",actors),actor(fields,"updater","updateBy",actors),last,
-                    fields.get("migrationCodeAllocation")==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(fields.get("migrationCodeAllocation")),CodeAllocation.class)));
+                    fields.get("migrationCodeAllocation")==null?null:JsonUtils.parseObject(JsonUtils.toJsonString(fields.get("migrationCodeAllocation")),CodeAllocation.class),restoration));
         }
         var request=new Request(tenant,SyncFieldMapper.primaryKey(run.getCreator()),batch.owner(),entries,batch.adoptExisting());
         var result=apply?projects.apply(request):projects.preview(request);
+        if (apply) for (var restored:result) {
+            var old=retired.get(restored.sourceKey());
+            if (old==null) continue;
+            if (!"UPDATED".equals(restored.action()) || restored.after()==null || !Objects.equals(restored.after().id(),old.getTargetId())
+                    || bindings.restoreVerifiedBinding(old)!=1)
+                throw new IllegalStateException("项目已核验来源绑定恢复冲突，当前块回滚");
+        }
         return result.stream().map(r->new Change(OBJECT,r.sourceKey(),r.after()==null?(r.before()==null?null:r.before().id()):r.after().id(),r.action(),
                 encode(r.before()),r.after()==null?Map.of():Map.of("project",encode(r.after()),
                 "originalFields",evidence(originals.get(r.sourceKey()))),r.message())).toList();

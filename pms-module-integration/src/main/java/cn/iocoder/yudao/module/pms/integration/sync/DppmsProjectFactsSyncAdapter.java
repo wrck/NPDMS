@@ -65,7 +65,16 @@ public class DppmsProjectFactsSyncAdapter implements DataSyncAdapter {
         var refs=new HashMap<String,DppmsProjectBindingApi.ProjectBinding>();
         for(var ref:bindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(sourceProjects))))
             if(refs.put(ref.sourceProjectKey(),ref)!=null)fail("项目绑定多义");
-        if(!refs.keySet().equals(sourceProjects))fail("先完成正式项目绑定，不自动创建项目");
+        if(!sourceProjects.containsAll(refs.keySet()))fail("返回了范围外项目绑定");
+        var changes=new ArrayList<Change>();
+        originals.entrySet().removeIf(entry->{
+            var row=entry.getValue();
+            if(refs.containsKey(text(row.fields().get("projectId"))))return false;
+            if(row.targetId()!=null || prior.containsKey(entry.getKey()))fail("现存资料的项目绑定缺失，禁止接管");
+            changes.add(new Change(row.object(),row.sourceKey(),null,"ISSUE",Map.of(),row.fields(),
+                    "PROJECT_BINDING_MISSING：先迁入规范项目主档"));return true;
+        });
+        if(originals.isEmpty())return List.copyOf(changes);
         for(var row:originals.values()) {
             var ref=refs.get(text(row.fields().get("projectId")));
             if(!Objects.equals(ref.originalProjectCode(),text(row.fields().get("originalProjectCode")))
@@ -77,8 +86,10 @@ public class DppmsProjectFactsSyncAdapter implements DataSyncAdapter {
         if(apply)projects.lockBindings(new ProjectMasterMigrationApi.BindingVerification(tenant,actor,targetFacts));
         var versions=new HashMap<Long,Long>();targetFacts.forEach(fact->versions.put(fact.id(),fact.version()));
         var actors=new HashMap<String,String>();
-        for(var user:users.getHistoricalIdentitiesByUsername(tenant,names))
-            if(actors.put(user.username(),user.id().toString())!=null)fail("审计账号同名多义");
+        var requestedNames=new ArrayList<>(names);
+        for(int offset=0;offset<requestedNames.size();offset+=200)
+            for(var user:users.getHistoricalIdentitiesByUsername(tenant,new HashSet<>(requestedNames.subList(offset,Math.min(offset+200,requestedNames.size())))))
+                if(!names.contains(user.username()) || actors.put(user.username(),user.id().toString())!=null)fail("审计账号同名多义");
         var grouped=new LinkedHashMap<String,List<ProjectFactsMigrationApi.Entry>>();Long revision=null;
         for(var row:originals.values()) {
             var original=new LinkedHashMap<String,String>();(PARTY.equals(row.object())?ProjectFactsMigrationApi.PARTY_COLUMNS:ProjectFactsMigrationApi.STATE_COLUMNS)
@@ -93,7 +104,7 @@ public class DppmsProjectFactsSyncAdapter implements DataSyncAdapter {
                     Collections.unmodifiableMap(original),actors.getOrDefault(original.get("createBy"),original.get("createBy")),
                     actors.getOrDefault(original.get("updateBy"),original.get("updateBy")),row.targetId(),baseline));
         }
-        var changes=new ArrayList<Change>();var returned=new HashSet<String>();
+        var returned=new HashSet<String>();
         for(var group:grouped.entrySet()) {
             var ref=refs.get(group.getKey());var command=new ProjectFactsMigrationApi.Command(new ProjectMigrationIdentityContextApi.Query(
                     tenant,actor,ref.projectId(),versions.get(ref.projectId()),group.getKey(),task.getConnectionId()),revision,List.copyOf(group.getValue()));

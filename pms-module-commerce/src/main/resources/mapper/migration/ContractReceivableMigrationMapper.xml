@@ -8,6 +8,7 @@
   </select>
   <select id="selectExactContractIds" resultType="java.lang.Long">
     SELECT id FROM com_contract WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+      AND contract_no=#{query.contractNo}
       AND CAST(contract_no AS BINARY)=CAST(#{query.contractNo} AS BINARY) ORDER BY id
   </select>
   <insert id="insertReceipt">

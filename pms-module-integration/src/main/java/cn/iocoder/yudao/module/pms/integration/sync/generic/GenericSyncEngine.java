@@ -100,6 +100,10 @@ public class GenericSyncEngine {
         @Override public boolean requiresAllBindings(){return false;}
         @Override public boolean sharesTargetAcrossSources(){return true;}
         @Override public boolean supportsStreaming(){return true;}
+        @Override public List<String> writeTables(){
+            return definition.sources().stream().flatMap(s->s.targets().stream()).map(GenericTargetStep::table)
+                    .distinct().sorted().toList();
+        }
         @Override public void refreshCaches(){}
         @Override public List<Change> preview(Batch batch){return execute(batch,false);}
         @Override public List<Change> apply(Batch batch){

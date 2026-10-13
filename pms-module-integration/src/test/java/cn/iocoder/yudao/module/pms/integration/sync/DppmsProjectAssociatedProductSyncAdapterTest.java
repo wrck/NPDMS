@@ -58,9 +58,26 @@ class DppmsProjectAssociatedProductSyncAdapterTest {
     }
     @Test void missingFormalProjectOrStaleConfigurationAndAdoptionFailBeforeOwnerWrites() {
         when(bindings.resolve(any(DppmsProjectBindingApi.BatchQuery.class))).thenReturn(List.of());
-        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(row(Kind.LEASE_PRODUCT,null)),List.of())));
+        assertEquals("ISSUE",adapter.apply(batch(List.of(row(Kind.LEASE_PRODUCT,null)),List.of())).getFirst().action());
         run.setConfigVersion(2);assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(row(Kind.LEASE_PRODUCT,null)),List.of())));
         assertThrows(IllegalArgumentException.class,()->adapter.apply(new Batch("integration:1:12",List.of(),List.of(),true,"RETAIN",true,"UPSERT",false)));verifyNoInteractions(products);
+    }
+    @Test void missingRawProjectAndUnmigratedProjectAreReportedWithoutWritingOrDroppingOtherRows() {
+        var valid=row(Kind.LEASE_PRODUCT,null);
+        var absentFields=new LinkedHashMap<>(row(Kind.PRODUCT_CONFIGURATION,null).fields());absentFields.put("sourceProjectId",null);
+        var absent=new Row(Kind.PRODUCT_CONFIGURATION.sourceTable,"b".repeat(64)+":1",absentFields,null);
+        var unboundFields=new LinkedHashMap<>(absentFields);unboundFields.put("sourceProjectId",102);
+        var unbound=new Row(Kind.PRODUCT_CONFIGURATION.sourceTable,"c".repeat(64)+":1",unboundFields,null);
+        var result=adapter.apply(batch(List.of(absent,valid,unbound),List.of()));
+        assertEquals(List.of("ISSUE","UNCHANGED","ISSUE"),result.stream().map(Change::action).toList());
+        assertTrue(result.getFirst().message().contains("SOURCE_PROJECT_MISSING"));
+        assertTrue(result.getLast().message().contains("PROJECT_BINDING_MISSING"));
+        assertEquals(absentFields,result.getFirst().after());assertNull(result.getFirst().targetId());
+        verify(products,times(1)).apply(argThat(c->c.kind()==Kind.LEASE_PRODUCT && c.rows().size()==1));
+        clearInvocations(products);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(List.of(
+                new Row(absent.object(),absent.sourceKey(),absent.fields(),99L)),List.of())));
+        verifyNoInteractions(products);
     }
     @Test void wholeTemplatesAreEditableAndCompositeKeysCannotBeUsedForIncrementalOrPagedRuns() {
         var definition=create(18L);var validator=new SyncDefinitionValidator(List.of(adapter));assertDoesNotThrow(()->validator.validate(definition));

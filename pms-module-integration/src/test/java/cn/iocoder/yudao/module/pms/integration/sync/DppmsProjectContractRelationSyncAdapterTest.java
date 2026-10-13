@@ -126,6 +126,45 @@ class DppmsProjectContractRelationSyncAdapterTest {
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row(),List.of(),false)));
         verify(relations,never()).apply(any());verify(relations,never()).preview(any());
     }
+    @Test void missingUnboundContractIsReportedWithoutCallingRelationshipOwner() {
+        var row=row();row.fields().remove("contractId");
+        doReturn(List.of(new ResolvedReference(row.sourceKey(),10L,0L,null,ReferenceIssue.CONTRACT_MISSING)))
+                .when(relations).resolveReferences(any());
+        run.setStatus("VALIDATING").setPreview(true);
+        var change=adapter.preview(batch(row,List.of(),false)).getFirst();
+        assertEquals("ISSUE",change.action());assertNull(change.targetId());assertTrue(change.message().startsWith("CONTRACT_MISSING"));
+        assertEquals(row.fields(),change.after());verifyNoOwnerMutation();
+    }
+    @Test void missingProjectCompanyRetainsOriginalFactsWithoutInventingAContract() {
+        var row=row();row.fields().remove("contractId");
+        doReturn(List.of(new ResolvedReference(row.sourceKey(),10L,0L,null,ReferenceIssue.PROJECT_COMPANY_MISSING)))
+                .when(relations).resolveReferences(any());
+        run.setStatus("VALIDATING").setPreview(true);
+        var change=adapter.preview(batch(row,List.of(),false)).getFirst();
+        assertEquals("ISSUE",change.action());assertNull(change.targetId());
+        assertTrue(change.message().startsWith("PROJECT_COMPANY_MISSING"));assertEquals(row.fields(),change.after());
+        verifyNoOwnerMutation();
+    }
+    @Test void missingExplicitOrAmbiguousContractCannotWriteTheBatch() {
+        for(var issue:ReferenceIssue.values()) {
+            var row=row();
+            doReturn(List.of(new ResolvedReference(row.sourceKey(),10L,0L,null,issue))).when(relations).resolveReferences(any());
+            run.setStatus("VALIDATING").setPreview(true);
+            assertEquals("CONFLICT",adapter.preview(batch(row,List.of(),false)).getFirst().action());
+            run.setStatus("APPLYING").setPreview(false);
+            assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row,List.of(),false)));
+        }
+        verifyNoOwnerMutation();
+    }
+    @Test void ownerDeletedRelationshipConflictPreservesSourceAndCurrentFactsInPreview() {
+        var row=row();run.setStatus("VALIDATING").setPreview(true);
+        var deleted=new Relation(30L,1L,10L,11L,"RELATED","DPPMS",OBJECT,"100:200",old,null,"ACTIVE",2,null,old,null,old,true);
+        doReturn(List.of(new Result(row.sourceKey(),"CONFLICT",deleted,deleted))).when(relations).preview(any());
+        var change=adapter.preview(batch(row,List.of(),false)).getFirst();
+        assertEquals("CONFLICT",change.action());assertEquals(30L,change.targetId());
+        assertEquals(Boolean.TRUE,change.before().get("deleted"));assertTrue(change.after().containsKey("originalFields"));
+        verify(relations,never()).apply(any());
+    }
     @Test void repeatedHistoricalSuffixesFollowTheOldListJoinWithoutActivatingCurrentRelation() {
         var row=row();row.fields().put("member_projectCode","P1-his-his-his");
         var change=adapter.apply(batch(row,List.of(),false)).getFirst();

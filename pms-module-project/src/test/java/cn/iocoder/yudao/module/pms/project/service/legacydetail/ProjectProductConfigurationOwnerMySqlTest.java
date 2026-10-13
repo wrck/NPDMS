@@ -37,6 +37,14 @@ class ProjectProductConfigurationOwnerMySqlTest {
         factory.setDataSource(new org.springframework.jdbc.datasource.DriverManagerDataSource(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD")));
         factory.setTransactionFactory(new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory());
         var config=new com.baomidou.mybatisplus.core.MybatisConfiguration();config.setMapUnderscoreToCamelCase(true);factory.setConfiguration(config);
+        var plugins=new com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor();
+        plugins.addInnerInterceptor(new com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor(
+                new com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler() {
+                    @Override public net.sf.jsqlparser.expression.Expression getTenantId() {
+                        return new net.sf.jsqlparser.expression.LongValue(1);
+                    }
+                }));
+        factory.setPlugins(plugins);
         factory.setMapperLocations(new org.springframework.core.io.ClassPathResource("mapper/associated/ProjectProductConfigurationMapper.xml"));
         session=factory.getObject().openSession(db);mapper=session.getMapper(ProjectProductConfigurationMapper.class);TenantContextHolder.setTenantId(1L);
         owner=new ProjectProductConfigurationImportService(mock(ProjectManualCreationService.class),evidence,mapper);

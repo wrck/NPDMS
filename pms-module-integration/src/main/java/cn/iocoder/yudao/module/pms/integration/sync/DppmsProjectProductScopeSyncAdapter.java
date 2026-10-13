@@ -68,7 +68,15 @@ public class DppmsProjectProductScopeSyncAdapter implements DataSyncAdapter {
         var references=projectBindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(projectKeys)));
         var byProject=new HashMap<String,DppmsProjectBindingApi.ProjectBinding>();
         for(var ref:references)if(byProject.put(ref.sourceProjectKey(),ref)!=null)fail("正式项目绑定多义");
-        if(!byProject.keySet().equals(projectKeys))fail("先完成正式项目身份，禁止按名称猜配");
+        if(!projectKeys.containsAll(byProject.keySet()))fail("返回了范围外项目绑定");
+        var changes=new HashMap<String,Change>();
+        for(var row:sourceRows.values()) if(!byProject.containsKey(text(row.fields().get("projectId")))) {
+            if(row.targetId()!=null || previous.containsKey(row.sourceKey()))fail("现存范围的项目绑定缺失，禁止接管");
+            changes.put(row.sourceKey(),new Change(OBJECT,row.sourceKey(),null,"ISSUE",Map.of(),row.fields(),
+                    "PROJECT_BINDING_MISSING：先迁入规范项目主档"));
+        }
+        sourceRows.entrySet().removeIf(entry->changes.containsKey(entry.getKey()));
+        if(sourceRows.isEmpty())return batch.rows().stream().map(row->changes.get(row.sourceKey())).toList();
         for(var row:sourceRows.values()) {
             var ref=byProject.get(text(row.fields().get("projectId")));
             if(!Objects.equals(ref.originalProjectCode(),text(row.fields().get("originalProjectCode")))
@@ -104,7 +112,6 @@ public class DppmsProjectProductScopeSyncAdapter implements DataSyncAdapter {
             if(prior!=null && (baseline==null || !Objects.equals(prior.targetId(),baseline.id())))fail("正式范围前值缺失");
             grouped.computeIfAbsent(text(row.fields().get("projectId")),key->new ArrayList<>()).add(new Entry(row.sourceKey(),rawRows.get(row.sourceKey()),baseline));
         }
-        var changes=new HashMap<String,Change>();
         for(var group:grouped.entrySet()) {
             var ref=byProject.get(group.getKey());var fact=byTarget.get(ref.projectId());
             var command=new Command(tenant,actor,ref.projectId(),fact.version(),group.getKey(),List.copyOf(group.getValue()),task.getConnectionId());
@@ -113,6 +120,13 @@ public class DppmsProjectProductScopeSyncAdapter implements DataSyncAdapter {
             for(var result:results) {
                 var original=rawRows.get(result.sourceKey());var row=sourceRows.get(result.sourceKey());
                 if(original==null || !group.getKey().equals(original.get("projectId")) || changes.containsKey(result.sourceKey()))fail("COM来源回执身份不一致");
+                if(Set.of("ISSUE","CONFLICT").contains(result.action())) {
+                    if(apply)fail("正式执行不得跳过Owner校验失败的范围");
+                    var prior=previous.get(result.sourceKey());
+                    changes.put(result.sourceKey(),new Change(OBJECT,result.sourceKey(),result.targetId(),result.action(),
+                            prior==null?Map.of():prior.lastFields(),row.fields(),result.message()));
+                    continue;
+                }
                 var fields=result.fields();var baseline=new Baseline(result.targetId(),text(fields.get("creator")),SyncFieldMapper.sourceTime(fields.get("createTime")),
                         text(fields.get("updater")),SyncFieldMapper.sourceTime(fields.get("updateTime")));
                 var prior=previous.get(result.sourceKey());

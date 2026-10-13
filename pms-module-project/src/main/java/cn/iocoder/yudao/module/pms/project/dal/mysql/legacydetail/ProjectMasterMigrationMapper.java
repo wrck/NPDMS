@@ -14,6 +14,11 @@ public interface ProjectMasterMigrationMapper {
     record InitializationUpdate(Long tenantId, Long projectId, Long expectedVersion,
                                 String expectedLifecycleStatus, String expectedCurrentStage, Facts facts) {}
     record HistoricalRoot(Facts facts,Long departmentId,String departmentCode,String departmentName) {}
+    record RestorationUpdate(Long tenantId,Long projectId,Long expectedVersion,String expectedFingerprint) {}
+    ProjectMasterDO selectRestorationIdentityForUpdate(@Param("query") IdentityQuery query);
+    String selectRestorationFingerprint(@Param("query") IdentityQuery query);
+    long selectRestorationReferenceCount(@Param("query") IdentityQuery query);
+    int restoreHistoricalIfMatch(@Param("query") RestorationUpdate query);
     ProjectMasterDO selectIdentity(@Param("query") IdentityQuery query);
     ProjectMasterDO selectIdentityForUpdate(@Param("query") IdentityQuery query);
     List<Long> selectExactCodeIds(@Param("query") CodeQuery query);

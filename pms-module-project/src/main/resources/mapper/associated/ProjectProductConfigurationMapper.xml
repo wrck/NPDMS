@@ -6,17 +6,17 @@
     </select>
     <select id="selectBusinessRecordsForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO">
         SELECT * FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
-          AND BINARY project_code &lt;=> BINARY #{query.projectCode}
-          AND BINARY execution_no &lt;=> BINARY #{query.executionNo}
+          AND CAST(project_code AS BINARY) &lt;=> CAST(#{query.projectCode} AS BINARY)
+          AND CAST(execution_no AS BINARY) &lt;=> CAST(#{query.executionNo} AS BINARY)
           AND item_group &lt;=> #{query.itemGroup}
-          AND BINARY product_code &lt;=> BINARY #{query.productCode}
-          AND BINARY parent_code &lt;=> BINARY #{query.parentCode}
+          AND CAST(product_code AS BINARY) &lt;=> CAST(#{query.productCode} AS BINARY)
+          AND CAST(parent_code AS BINARY) &lt;=> CAST(#{query.parentCode} AS BINARY)
           AND quantity &lt;=> #{query.quantity}
-          AND BINARY bom_path &lt;=> BINARY #{query.bomPath}
-          AND BINARY product_model &lt;=> BINARY #{query.productModel}
-          AND BINARY product_description &lt;=> BINARY #{query.productDescription}
+          AND CAST(bom_path AS BINARY) &lt;=> CAST(#{query.bomPath} AS BINARY)
+          AND CAST(product_model AS BINARY) &lt;=> CAST(#{query.productModel} AS BINARY)
+          AND CAST(product_description AS BINARY) &lt;=> CAST(#{query.productDescription} AS BINARY)
           AND level &lt;=> #{query.level}
-          AND BINARY data_source &lt;=> BINARY #{query.dataSource}
+          AND CAST(data_source AS BINARY) &lt;=> CAST(#{query.dataSource} AS BINARY)
         ORDER BY id FOR UPDATE
     </select>
     <select id="countAllProjectRecords" resultType="java.lang.Long">
@@ -44,10 +44,10 @@
             <when test="query.paths.size() > 0">
                 AND (
                 <foreach collection="query.paths" item="path" separator=" OR ">
-                    (BINARY project_code &lt;=> BINARY #{path.projectCode}
-                     AND BINARY execution_no &lt;=> BINARY #{path.executionNo}
+                    (CAST(project_code AS BINARY) &lt;=> CAST(#{path.projectCode} AS BINARY)
+                     AND CAST(execution_no AS BINARY) &lt;=> CAST(#{path.executionNo} AS BINARY)
                      AND item_group &lt;=> #{path.itemGroup}
-                     AND BINARY bom_path &lt;=> BINARY #{path.bomPath})
+                     AND CAST(bom_path AS BINARY) &lt;=> CAST(#{path.bomPath} AS BINARY))
                 </foreach>
                 )
             </when>

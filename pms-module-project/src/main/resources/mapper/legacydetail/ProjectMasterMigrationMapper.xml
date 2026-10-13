@@ -57,4 +57,147 @@
       #{query.facts.closedAt},'UNASSIGNED',#{query.facts.version},b'0'
     )
   </insert>
+  <!-- Reuses the reviewed withdrawal snapshot, including every physical project column. -->
+  <sql id="restorationSnapshot">JSON_OBJECT(
+      'id',p.`id`,
+      'project_code',p.`project_code`,
+      'code_root_id',p.`code_root_id`,
+      'project_sequence',p.`project_sequence`,
+      'code_rule_version',p.`code_rule_version`,
+      'project_name',p.`project_name`,
+      'parent_id',p.`parent_id`,
+      'root_id',p.`root_id`,
+      'tree_path',p.`tree_path`,
+      'tree_depth',p.`tree_depth`,
+      'tree_sort',p.`tree_sort`,
+      'business_level_code',p.`business_level_code`,
+      'business_level_name',p.`business_level_name`,
+      'customer_id',p.`customer_id`,
+      'customer_code',p.`customer_code`,
+      'customer_name',p.`customer_name`,
+      'manager_id',p.`manager_id`,
+      'manager_employee_no',p.`manager_employee_no`,
+      'manager_name',p.`manager_name`,
+      'company_id',p.`company_id`,
+      'company_code',p.`company_code`,
+      'company_name',p.`company_name`,
+      'department_id',p.`department_id`,
+      'department_code',p.`department_code`,
+      'department_name',p.`department_name`,
+      'project_type',p.`project_type`,
+      'signing_method',p.`signing_method`,
+      'project_category',p.`project_category`,
+      'implementation_mode',p.`implementation_mode`,
+      'major_project_level',p.`major_project_level`,
+      'market_code',p.`market_code`,
+      'market_name',p.`market_name`,
+      'system_code',p.`system_code`,
+      'system_name',p.`system_name`,
+      'expend_code',p.`expend_code`,
+      'expend_name',p.`expend_name`,
+      'industry_code',p.`industry_code`,
+      'industry_name',p.`industry_name`,
+      'customer_project_name',p.`customer_project_name`,
+      'sales_type',p.`sales_type`,
+      'business_type',p.`business_type`,
+      'service_level_code',p.`service_level_code`,
+      'not_track_reason',p.`not_track_reason`,
+      'contract_no',p.`contract_no`,
+      'implementation_location',p.`implementation_location`,
+      'location_resolution_status',p.`location_resolution_status`,
+      'creation_reason',p.`creation_reason`,
+      'lifecycle_template_id',p.`lifecycle_template_id`,
+      'lifecycle_template_revision_no',p.`lifecycle_template_revision_no`,
+      'lifecycle_template_revision_id',p.`lifecycle_template_revision_id`,
+      'template_load_method',p.`template_load_method`,
+      'process_definition_key',p.`process_definition_key`,
+      'process_definition_version',p.`process_definition_version`,
+      'project_start_time',p.`project_start_time`,
+      'project_refresh_time',p.`project_refresh_time`,
+      'project_close_time',p.`project_close_time`,
+      'source_type',p.`source_type`,
+      'status',p.`status`,
+      'progress',p.`progress`,
+      'aggregation_weight',p.`aggregation_weight`,
+      'weight_source',p.`weight_source`,
+      'version',p.`version`,
+      'creator',p.`creator`,
+      'create_time',p.`create_time`,
+      'updater',p.`updater`,
+      'update_time',p.`update_time`,
+      'deleted',CAST(p.`deleted` AS UNSIGNED),
+      'deleted_time',p.`deleted_time`,
+      'tenant_id',p.`tenant_id`,
+      'lifecycle_status',p.`lifecycle_status`,
+      'current_stage',p.`current_stage`,
+      'assignment_status',p.`assignment_status`,
+      'task_tree_version',p.`task_tree_version`,
+      'task_progress_version',p.`task_progress_version`,
+      'project_end_date',p.`project_end_date`,
+      'closure_policy_snapshot',p.`closure_policy_snapshot`,
+      'closure_type',p.`closure_type`,
+      'closed_from_stage',p.`closed_from_stage`,
+      'closed_at',p.`closed_at`,
+      'active_plan_version_id',p.`active_plan_version_id`,
+      'custom_info',p.`custom_info`,
+      'order_create_time',p.`order_create_time`,
+      'disabled',CAST(p.`disabled` AS UNSIGNED),
+      'effective_from',p.`effective_from`,
+      'effective_to',p.`effective_to`)</sql>
+  <select id="selectRestorationIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+    SELECT * FROM proj_project WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} FOR UPDATE
+  </select>
+  <select id="selectRestorationFingerprint" resultType="java.lang.String">
+    SELECT SHA2(CAST(<include refid="restorationSnapshot"/> AS CHAR),256)
+    FROM proj_project p WHERE p.tenant_id=#{query.tenantId} AND p.id=#{query.projectId}
+      AND p.deleted=b'1' AND p.source_type='MIGRATION' AND p.parent_id IS NULL
+      AND p.root_id=p.id AND p.code_root_id=p.id AND p.assignment_status='UNASSIGNED'
+      AND p.active_plan_version_id IS NULL AND p.lifecycle_template_id IS NULL AND p.manager_id IS NULL
+  </select>
+  <select id="selectRestorationReferenceCount" resultType="long">
+    SELECT (SELECT COUNT(*) FROM `proj_business_result_channel` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_legacy_detail_source` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_node_overdue_completion` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_preparation_confirmation` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_company_department_relation` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_deliverable` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_exit_record` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_gate` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_governance_action` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_lease_product` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_member_assignment` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_milestone` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_node_execution` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_party` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_plan_version` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_portfolio_member` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_product_configuration` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_progress_fact` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_progress_snapshot` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_real_product` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_risk` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_site` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_stage` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_stage_execution_contract` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_stage_snapshot` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_stage_transition` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_task` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_task_responsible` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_project_template_match_history` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_result_evidence_item` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_result_evidence_scan` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_result_subscription` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_result_subscription_candidate` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_task_business_link` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_task_dependency` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_task_tree_path` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM `proj_team_batch_change_item` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})
+      +(SELECT COUNT(*) FROM proj_project WHERE tenant_id=#{query.tenantId} AND parent_id=#{query.projectId})
+  </select>
+  <update id="restoreHistoricalIfMatch">
+    UPDATE proj_project p SET deleted=b'0',update_time=update_time
+    WHERE p.tenant_id=#{query.tenantId} AND p.id=#{query.projectId} AND p.deleted=b'1'
+      AND p.version=#{query.expectedVersion} AND p.source_type='MIGRATION'
+      AND SHA2(CAST(<include refid="restorationSnapshot"/> AS CHAR),256)=#{query.expectedFingerprint}
+  </update>
 </mapper>

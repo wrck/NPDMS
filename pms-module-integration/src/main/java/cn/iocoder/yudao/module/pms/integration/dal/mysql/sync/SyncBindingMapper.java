@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Mapper;
 import java.util.List;
 @Mapper
 public interface SyncBindingMapper extends BaseMapperX<SyncBindingDO> {
+    List<SyncBindingDO> selectRetiredSourceKeysForUpdate(@org.apache.ibatis.annotations.Param("query") SyncQueries.SourceKeys query);
+    int restoreVerifiedBinding(@org.apache.ibatis.annotations.Param("original") SyncBindingDO original);
     List<SyncBindingDO> selectObsoleteOrderLinesForUpdate(@org.apache.ibatis.annotations.Param("query") SyncQueries.ObsoleteOrderLines query);
     int deleteObsoleteOrderLines(@org.apache.ibatis.annotations.Param("query") SyncQueries.ObsoleteOrderLineDelete query);
     default boolean hasTaskBindings(SyncQueries.Task query) {

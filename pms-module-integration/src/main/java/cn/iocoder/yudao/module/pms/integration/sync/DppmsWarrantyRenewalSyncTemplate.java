@@ -22,6 +22,6 @@ public final class DppmsWarrantyRenewalSyncTemplate {
                 .loadingMode("UPSERT").missingPolicy("RETAIN").cron("0 0 2 * * ?").fullCron("0 0 2 ? * SUN")
                 .overlapSeconds(0).retryCount(0).retryIntervalSeconds(60).autoPaging(false)
                 .readStrategy("STREAMING_CURSOR").fetchSize(1000).chunkSize(500).restartPolicy("RESTART_ALL")
-                .maxRows(10000).maxBytes(64L * 1024 * 1024).queryTimeoutSeconds(0).sources(List.of(source)).build();
+                .maxRows(10000).maxBytes(64L * 1024 * 1024).queryTimeoutSeconds(180).sources(List.of(source)).build();
     }
 }

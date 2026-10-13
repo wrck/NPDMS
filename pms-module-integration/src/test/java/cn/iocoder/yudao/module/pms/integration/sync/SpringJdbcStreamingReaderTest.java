@@ -16,6 +16,28 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SpringJdbcStreamingReaderTest {
     @Test
+    @org.junit.jupiter.api.condition.EnabledIfSystemProperty(named="npdms.dppms-commerce-mapper.mysql",matches="true")
+    void explicitTaskTimeoutIsNotCutShortByTheSourceSocketDefault() throws Exception {
+        assertEquals("24306",System.getenv("NPDMS_MYSQL_PORT"));
+        assertEquals("npdms_domain_test",System.getenv("NPDMS_DB_NAME"));
+        String url="jdbc:mysql://127.0.0.1:24306/npdms_domain_test?useSSL=false&allowPublicKeyRetrieval=true&socketTimeout=30";
+        var api=new ExternalDataSourceApi() {
+            public List<Info> list(){return List.of();}
+            public Long save(Save command){throw new UnsupportedOperationException();}
+            public Connection openReadOnly(Long id)throws SQLException {
+                var connection=DriverManager.getConnection(url,System.getenv("NPDMS_DB_USER"),System.getenv("NPDMS_DB_PASSWORD"));
+                connection.setReadOnly(true);connection.setAutoCommit(false);
+                assertEquals(30,connection.getNetworkTimeout());return connection;
+            }
+        };
+        var source=SyncDefinition.Source.builder().object("WAIT").sourceObject("read_only_wait").readMode("SQL")
+                .sql("SELECT 1 AS id, SHA2(REPEAT('x', 16777216),256) AS digest").sourceKey("id").parameters(Map.of())
+                .columns(List.of()).filters(List.of()).mappings(List.of()).build();
+        var definition=SyncDefinition.builder().connectionId(1L).mode("ONCE").queryTimeoutSeconds(2)
+                .fetchSize(10).chunkSize(10).maxRows(10).maxBytes(1024*1024).sources(List.of(source)).build();
+        assertEquals(1,new SpringJdbcStreamingReader(api).stream(definition,null,true,null,chunk->{}).rows());
+    }
+    @Test
     void streamsSingleResultSetIntoBoundedChunksWithStableSourceKeyOrder() throws Exception {
         String url="jdbc:h2:mem:spring_jdbc_stream;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE";
         try(Connection connection=DriverManager.getConnection(url,"sa",""); Statement statement=connection.createStatement()) {

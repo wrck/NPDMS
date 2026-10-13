@@ -59,7 +59,14 @@ public class DppmsProjectRealProductSyncAdapter implements DataSyncAdapter {
         for(int offset=0;offset<keys.size();offset+=500)
             for(var ref:bindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(keys.subList(offset,Math.min(offset+500,keys.size()))))))
                 if(references.put(ref.sourceProjectKey(),ref)!=null)fail("项目身份多义");
-        if(!references.keySet().equals(sourceKeys))fail("先完成正式项目绑定");
+        if(!sourceKeys.containsAll(references.keySet()))fail("返回了范围外项目绑定");
+        var changes=new HashMap<String,Change>();
+        for(var row:originals.values()) if(!references.containsKey(text(row.fields().get("projectId")))) {
+            if(row.targetId()!=null || previous.containsKey(row.sourceKey()))fail("现存业务绑定的项目身份缺失，禁止接管");
+            changes.put(row.sourceKey(),new Change(row.object(),row.sourceKey(),null,"ISSUE",Map.of(),row.fields(),
+                    text(row.fields().get("projectId"))==null?"SOURCE_PROJECT_MISSING：原项目身份未匹配":"PROJECT_BINDING_MISSING：先迁入规范项目主档"));
+        }
+        originals.entrySet().removeIf(entry->changes.containsKey(entry.getKey()));
         for(var row:originals.values()) {
             var ref=references.get(text(row.fields().get("projectId")));
             if(!Objects.equals(ref.originalProjectCode(),text(row.fields().get("originalProjectCode")))
@@ -82,7 +89,6 @@ public class DppmsProjectRealProductSyncAdapter implements DataSyncAdapter {
             grouped.computeIfAbsent(text(row.fields().get("projectId")),key->new ArrayList<>()).add(new ProjectRealProductMigrationApi.Source(
                     row.sourceKey(),values(row,ProjectRealProductMigrationApi.ORIGINAL_COLUMNS,""),values(row,ProjectRealProductMigrationApi.UPSTREAM_COLUMNS,"upstream_"),count,row.targetId(),baseline));
         }
-        var changes=new HashMap<String,Change>();
         for(var group:grouped.entrySet()) {
             var ref=references.get(group.getKey());var command=new ProjectRealProductMigrationApi.Command(new ProjectMigrationIdentityContextApi.Query(
                     tenant,actor,ref.projectId(),facts.get(ref.projectId()).version(),group.getKey(),task.getConnectionId()),List.copyOf(group.getValue()));

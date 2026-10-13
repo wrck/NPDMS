@@ -5,6 +5,10 @@ import java.util.Map;
 
 /** Local transactional business sink; implementations never perform external writes. */
 public interface DataSyncAdapter {
+    /** Shared with every runtime connected to the same tenant database. */
+    default List<String> writeTables() {
+        return descriptor().objects().stream().map(ObjectDescriptor::targetTable).distinct().sorted().toList();
+    }
     Descriptor descriptor();
     List<Change> preview(Batch batch);
     /** Apply must not leave target writes committed when it returns a CONFLICT change. */
@@ -16,6 +20,8 @@ public interface DataSyncAdapter {
     default boolean sharesTargetAcrossSources() { return false; }
     /** Explicit opt-in: chunk apply must be transaction-bound, bounded, and safe to replay after a partial run. */
     default boolean supportsStreaming() { return false; }
+    /** An approved restoration may reactivate its verified binding within the apply transaction. */
+    default boolean restoresSourceBindings() { return false; }
 
     record Field(String name, String label, String type, boolean required) {}
     record ObjectDescriptor(String name, String label, List<Field> fields,
