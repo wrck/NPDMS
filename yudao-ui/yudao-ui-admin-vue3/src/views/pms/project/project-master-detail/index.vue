@@ -7,13 +7,13 @@
           <div class="project-title-row">
             <ProjectStatusTag :project="detail" />
             <h2 class="project-name">{{ detail?.projectName || '未选择项目' }}</h2>
-            <el-tag v-if="detail?.majorProjectLevel" size="small" type="warning">
-              {{ getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, detail.majorProjectLevel) }}
+            <el-tag v-if="majorProjectLevelLabel" size="small" type="warning">
+              {{ majorProjectLevelLabel }}
             </el-tag>
             <el-tag v-if="detail?.projectCategory" size="small" effect="plain">
               {{ getDictLabel(DICT_TYPE.PMS_PROJECT_CATEGORY, detail.projectCategory) }}
             </el-tag>
-            <el-tag v-if="detail?.lifecycleTemplateId" size="small" type="info" effect="plain">
+            <el-tag v-if="detail?.lifecycleTemplateId && checkRole(['admin'])" size="small" type="info" effect="plain">
               模板 #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }}
             </el-tag>
           </div>
@@ -22,7 +22,9 @@
               编码 <span class="meta-code">{{ detail?.projectCode || '—' }}</span>
             </span>
             <span v-if="detail?.parentId" class="meta-item">
-              父项目 <span class="meta-code">#{{ detail.parentId }}</span>
+              父项目
+              <router-link v-if="parentProject?.projectName" class="parent-project-link" :to="{ path: '/pms/project-management/project-master-detail', query: { projectId: String(detail.parentId) } }">{{ parentProject.projectName }}</router-link>
+              <span v-else>{{ parentProjectLoading ? '加载中' : '信息不可见' }}</span>
             </span>
             <span class="meta-item">
               <Icon icon="ep:office-building" />{{ detail?.customerName || '-' }}
@@ -582,7 +584,7 @@ import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue
 import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
-import { checkPermi } from '@/utils/permission'
+import { checkPermi, checkRole } from '@/utils/permission'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
 
@@ -595,6 +597,10 @@ provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 
 const loading = ref(false)
 const detail = ref<ProjectMasterVO | null>(null)
+const parentProject = ref<ProjectMasterVO | null>(null)
+const parentProjectLoading = ref(false)
+const majorProjectLevelLabel = computed(() => detail.value?.majorProjectLevel
+  ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, detail.value.majorProjectLevel).trim() : '')
 const instances = ref<ProjectInstancesVO | null>(null)
 // 身份卡右侧进度/任务/风险统计（设计稿 hstat）；进度与任务由新链实例视图计算，风险走 /pms/project-risk
 // 注意：/pms/project-panoramic 面向旧链 pms_project，ID 空间与本页主数据不同，不能混用
@@ -681,6 +687,7 @@ const formatDateTime = (v?: any) => (v ? formatDate(v) : '-')
 const deliveryModules: Record<string, DeliveryModuleConfig> = {
   equipment: {
     label: '设备清单',
+    tableSize: 'default',
     icon: 'ep:cpu',
     load: async (pid, pageNo, pageSize) => {
       const equipment = await loadProjectEquipmentList(pid)
@@ -854,6 +861,18 @@ const loadDetail = async () => {
   const id = Number(route.query.projectId)
   if (!id) return
   detail.value = await ProjectsApi.getProject(id)
+  parentProject.value = null
+  const parentId = detail.value.parentId
+  parentProjectLoading.value = Boolean(parentId)
+  if (parentId) {
+    try {
+      parentProject.value = await ProjectsApi.getProject(parentId)
+    } catch {
+      parentProject.value = null
+    } finally {
+      parentProjectLoading.value = false
+    }
+  }
 }
 const handleAttributeUpdated = async () => {
   await loadDetail()
@@ -901,6 +920,10 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.parent-project-link, .parent-project-link:hover {
+  color: var(--el-color-primary);
+  text-decoration: none;
+}
 /* 顶部档案区 */
 .project-header {
   display: flex;

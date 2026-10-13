@@ -120,7 +120,7 @@ PM-01创建请求可携带`serviceManagerUserId`作为人工确认的一级服�
 | `/project-split-requests/{id}` | `GET`, `PUT` | 读取/更新草稿、范围项和逐项校验结果 | APPLIED不可编辑；`If-Match`校验草稿版本；失败草稿保留 |
 | `/project-split-requests/{id}/actions/{preview|validate}` | `POST` | 服务端返回子项目方案、Commerce/AST/组织校验结果、`previewHash`与各Owner水位 | 无业务写入；客户端预览摘要不能作为确认依据；权威范围不可用时禁止确认 |
 | `/project-split-requests/{id}/actions/apply` | `POST` | `Idempotency-Key`、`If-Match`及父项目/范围/树期望版本；返回全部子项目、范围分配、`changeBatchId/treeVersion` | 服务端重新校验；全部子项目、模板实例、范围、树、审计、Outbox和幂等完成点原子提交 |
-| `/projects/{id}/tree` | `GET` | `queryType=CHILDREN/DESCENDANTS/ANCESTORS/BUSINESS_LEVEL/LOCATE`、业务层级、游标；返回`treeVersion/items/nextCursor/updating` | 游标固定在同一完整版本；服务端先执行租户与ProjectTreeScope；无权路径只返回必要占位 |
+| `/projects/{id}/tree` | `GET` | `queryType=CHILDREN/DESCENDANTS/ANCESTORS/BUSINESS_LEVEL/LOCATE/FULL`；`FULL`一次返回锚点所在根项目的全部可见分支，不使用游标、不受分页大小截断；其FULL可见节点附带`displayDetails.office/serviceManager/projectManager`（当前有效经理姓名）；其他查询保持原分页契约；返回`treeVersion/items/nextCursor/updating` | 固定同一完整版本；服务端先执行租户与ProjectTreeScope；无权路径只返回必要占位；根概要和占位节点不返回办事处或经理信息；FULL拒绝游标和业务层级筛选 |
 | `/projects/{id}/actions/move` | `POST` | 目标父项目、原因、`Idempotency-Key`、`If-Match`；返回`changeBatchId/treeVersion` | 按稳定ID锁定，拒绝自身、后代、跨租户和陈旧版本；移动不改项目编码命名空间 |
 | `/projects/{id}/progress-policies` | `POST`, `GET` | 创建/查询直接子项目权重和分母口径版本 | 草稿完整覆盖直接子项目；权重合计100%；默认等权也形成版本；历史版本只读 |
 | `/progress-policies/{id}/actions/submit` | `POST` | 提交配置化BPM审批；返回流程实例和策略版本 | `If-Match`；批准回调幂等；未批准版本不影响当前计算 |

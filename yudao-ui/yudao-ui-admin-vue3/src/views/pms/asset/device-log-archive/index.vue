@@ -1,6 +1,8 @@
 <template>
   <ContentWrap>
-    <el-form inline>
+    <div :class="{ 'panel-header': props.projectId }">
+    <span v-if="props.projectId" class="panel-title"><Icon icon="ep:document" /> 配置Log</span>
+    <el-form inline :class="{ 'panel-header-actions': props.projectId }">
       <el-form-item v-if="!props.projectId" label="项目">
         <PmsEntitySelect
           v-model="projectId"
@@ -36,6 +38,7 @@
         </el-upload>
       </el-form-item>
     </el-form>
+    </div>
     <p class="text-sm text-[var(--el-text-color-secondary)] mt-0">
       自动识别 UTF-8、GB18030 / GBK 及带 BOM 的 UTF-16 日志，统一转换为 UTF-8，最大 20 MiB。
       按内容中的设备序列号拆分并关联当前项目设备，历史文件全部保留。
@@ -361,3 +364,11 @@ const downloadSource = async (id: Api.Identifier) => {
 const sourceName = (type: string) => (type === 'MANUAL_UPLOAD' ? '手工上传' : '采集回传')
 const formatTime = (value?: number) => (value ? formatDate(value, 'YYYY-MM-DD HH:mm:ss') : '—')
 </script>
+
+<style scoped>
+.panel-header, .panel-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.panel-header { justify-content: space-between; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.panel-title { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.panel-header-actions :deep(.el-form-item) { margin: 0; }
+@media (max-width: 767px) { .panel-header { align-items: flex-start; } }
+</style>

@@ -22,8 +22,6 @@
     <el-table
       v-loading="loading"
       :data="rows"
-      stripe
-      border
       empty-text="本项目暂无符合查询条件的已登记设备"
       data-testid="serial-device-table"
     >
@@ -188,15 +186,19 @@ onBeforeUnmount(() => { ++loadSequence })
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .panel-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 6px;
+  font-size: 14px;
   font-weight: 600;
+  color: var(--el-text-color-primary);
 }
 .serial-total {
   font-size: 12px;

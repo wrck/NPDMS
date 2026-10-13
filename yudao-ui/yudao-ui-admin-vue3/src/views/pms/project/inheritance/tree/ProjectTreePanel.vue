@@ -1,37 +1,37 @@
 <template>
-  <ContentWrap>
-    <div class="tree-heading"><h3>项目树</h3><div>
+  <ContentWrap class="project-tree-panel">
+    <header class="panel-header"><span class="panel-title"><Icon icon="ep:share" /> 项目树</span><div class="panel-header-actions">
       <el-button v-hasPermi="['pms:project:update']" :disabled="moving" @click="openMove">移动当前项目</el-button>
-      <el-button :loading="tree.state.root.loading" @click="load">刷新</el-button>
-    </div></div>
+      <el-button :loading="tree.state.root.loading" @click="load"><Icon icon="ep:refresh" />刷新</el-button>
+    </div></header>
     <el-alert v-if="tree.state.root.error" :title="tree.state.root.error" type="error" :closable="false" />
     <el-alert v-if="tree.state.updating" title="项目树正在更新，当前显示上一完整版本" type="info" :closable="false" />
+    <p v-if="mobile" class="tree-scroll-hint">左右滑动查看办事处、负责人及进度</p>
     <el-table v-loading="tree.state.root.loading" :data="rows" row-key="rowKey" :tree-props="{ children: 'children' }" default-expand-all :indent="24" empty-text="当前项目暂无可见关系">
-      <el-table-column label="项目名称 / 编码" min-width="280" show-overflow-tooltip><template #default="{ row }">
-        <template v-if="row.pagerFor != null">
-          <el-button link type="primary" :loading="tree.pageFor(row.pagerFor).loading" @click="tree.children(row.pagerFor)">
-            {{ tree.pageFor(row.pagerFor).error ? '加载失败，重试下级' : '加载更多下级' }}</el-button>
-          <span v-if="tree.pageFor(row.pagerFor).error" role="alert">{{ tree.pageFor(row.pagerFor).error }}</span>
-        </template><template v-else><span>{{ projectLabel(row) }}</span>
-          <el-tag v-if="row.projectId === props.projectId" size="small" class="current-project">当前项目</el-tag>
-          <el-tag v-if="row.visibility !== 'FULL'" size="small" type="info" class="current-project">{{ visibilityLabel[row.visibility] }}</el-tag>
-        </template>
+      <el-table-column label="项目名称 / 编码" :min-width="mobile ? 250 : 340"><template #default="{ row }">
+        <div class="project-identity">
+          <div class="project-identity-title">
+            <router-link v-if="row.visibility === 'FULL'" class="project-link" :to="projectLocation(row.projectId)">{{ row.projectName || '未命名项目' }}</router-link>
+            <span v-else>{{ row.visibility === 'PATH_PLACEHOLDER' ? '受限项目' : row.projectName || '项目概要' }}</span>
+            <el-tag v-if="row.projectId === props.projectId" size="small" effect="plain" class="current-project">当前项目</el-tag>
+            <el-tag v-if="row.visibility !== 'FULL'" size="small" type="info" effect="plain" class="current-project">{{ visibilityLabel[row.visibility] }}</el-tag>
+          </div>
+          <div v-if="row.visibility !== 'PATH_PLACEHOLDER' && row.projectCode" class="project-code">{{ row.projectCode }}</div>
+        </div>
       </template></el-table-column>
-      <el-table-column label="阶段 / 状态" width="110"><template #default="{ row }"><ProjectStatusTag v-if="row.pagerFor == null" :project="row" /></template></el-table-column>
-      <el-table-column label="项目进度" min-width="150"><template #default="{ row }">
-        <template v-if="row.pagerFor == null">
-          <el-progress v-if="projectProgressDisplay(row).percentage != null" :percentage="projectProgressDisplay(row).percentage!" :stroke-width="8" />
-          <span v-else>{{ projectProgressDisplay(row).label }}</span>
-          <div v-if="row.progressRecordedAt && row.visibility === 'FULL'" class="progress-time">记录于 {{ formatDate(row.progressRecordedAt) }}</div>
-        </template>
+      <el-table-column label="办事处" min-width="110" show-overflow-tooltip><template #default="{ row }">
+        <span>{{ row.visibility === 'FULL' ? row.displayDetails?.office || '—' : '—' }}</span>
       </template></el-table-column>
-      <el-table-column label="操作" width="90" fixed="right"><template #default="{ row }">
-        <el-button v-if="row.pagerFor == null && tree.canLoadChildren(row.projectId) && !tree.pageFor(row.projectId).loaded && !tree.pageFor(row.projectId).error" link type="primary"
-          :loading="tree.pageFor(row.projectId).loading" @click="tree.children(row.projectId)">加载下级</el-button>
+      <el-table-column v-for="role in managerColumns" :key="role.key" :label="role.label" min-width="110" show-overflow-tooltip><template #default="{ row }">
+        <span>{{ row.visibility === 'FULL' ? row.displayDetails?.[role.key] || '未指派' : '—' }}</span>
+      </template></el-table-column>
+      <el-table-column label="阶段 / 状态" width="110"><template #default="{ row }"><ProjectStatusTag :project="row" /></template></el-table-column>
+      <el-table-column label="项目进度" min-width="140"><template #default="{ row }">
+        <el-progress v-if="projectProgressDisplay(row).percentage != null" :percentage="projectProgressDisplay(row).percentage!" :stroke-width="8" />
+        <span v-else class="progress-empty">{{ projectProgressDisplay(row).label }}</span>
+        <div v-if="row.progressRecordedAt && row.visibility === 'FULL'" class="progress-time">记录于 {{ formatDate(row.progressRecordedAt) }}</div>
       </template></el-table-column>
     </el-table>
-    <el-button v-if="tree.state.root.cursor" class="load-more" :loading="tree.state.root.loading" @click="loadMorePath">加载更多当前项目路径</el-button>
-    <p class="tree-help">仅展示当前项目的上下级关系；上级仅作路径上下文，不展开其他分支。下级按需分页加载。进度为最近形成的进度事实或汇总记录，未形成记录不显示为0%。</p>
   </ContentWrap>
   <Dialog v-model="moveVisible" title="移动当前项目" :width="mobile ? '96%' : '560px'">
     <el-form label-position="top" @submit.prevent="submitMove">
@@ -58,18 +58,17 @@ const props = defineProps<{ projectId: number }>()
 const emit = defineEmits<{ treeVersion: [value: number]; updated: [] }>()
 const message = useMessage(), mobile = useMediaQuery('(max-width: 767px)')
 const tree = createProjectTreeState(), rows = computed(tree.forest)
+const projectLocation = (projectId: number) => ({
+  path: '/pms/project-management/project-master-detail', query: { projectId: String(projectId) }
+})
+const managerColumns = [
+  { key: 'serviceManager' as const, label: '服务经理' },
+  { key: 'projectManager' as const, label: '项目经理' }
+]
 const visibilityLabel: Record<string, string> = { FULL: '可见项目', ROOT_SUMMARY: '根项目概要', PATH_PLACEHOLDER: '路径占位' }
-const loadCurrentChildren = async () => {
-  if (!tree.state.root.error && tree.state.nodes.has(props.projectId) && !tree.pageFor(props.projectId).loaded) {
-    await tree.children(props.projectId)
-  }
-}
 const load = async () => {
-  const id = props.projectId
-  await tree.load(id, 'LOCATE')
-  if (id === props.projectId) await loadCurrentChildren()
+  await tree.load(props.projectId, 'FULL')
 }
-const loadMorePath = async () => { await tree.more(); await loadCurrentChildren() }
 watch(() => tree.state.version, version => { if (version) emit('treeVersion', version) })
 watch(() => props.projectId, () => { void load() }, { immediate: true })
 const moveVisible = ref(false), moving = ref(false), parentId = ref<number>(), moveVersion = ref<number>()
@@ -112,10 +111,21 @@ const submitMove = async () => {
 }
 </script>
 <style scoped>
-.tree-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 16px; }
-.tree-heading h3 { margin: 0; font-size: 16px; }
+.panel-header, .panel-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.panel-header { justify-content: space-between; padding-bottom: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--el-border-color-lighter); }
+.panel-title { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--el-text-color-primary); }
+.tree-scroll-hint { margin: 0 0 10px; font-size: 12px; color: var(--el-text-color-secondary); }
+.project-tree-panel :deep(.el-alert) { margin-bottom: 12px; }
+.project-identity { display: inline-block; max-width: calc(100% - 24px); vertical-align: top; }
+.project-identity-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 8px; line-height: 1.6; }
+.project-code { margin-top: 4px; font-size: 12px; line-height: 1.5; color: var(--el-text-color-secondary); overflow-wrap: anywhere; }
 .tree-help { color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.5; }
-.current-project { margin-left: 8px; }
+.current-project { flex-shrink: 0; }
+.project-link, .project-link:hover { color: var(--el-color-primary); text-decoration: none; font-weight: 500; overflow-wrap: anywhere; }
+.project-link:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 3px; border-radius: 2px; }
+.progress-empty { color: var(--el-text-color-secondary); font-size: 13px; }
 .progress-time { margin-top: 4px; color: var(--el-text-color-secondary); font-size: 12px; }
-.load-more { margin-top: 12px; width: 100%; }
+@media (max-width: 767px) {
+  .panel-header { align-items: flex-start; }
+}
 </style>

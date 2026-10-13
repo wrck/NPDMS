@@ -17,7 +17,7 @@
       v-loading="loading"
       :data="list"
       empty-text="暂无数据"
-      size="small"
+      :size="config.tableSize || 'small'"
       max-height="520"
       class="clickable-table"
       @row-click="openDetail"
@@ -159,6 +159,7 @@ export interface DeliveryModuleAction {
 }
 
 export interface DeliveryModuleConfig {
+  tableSize?: 'default' | 'small' | 'large'
   label: string
   icon: string
   /** 完整页面路由（可空） */

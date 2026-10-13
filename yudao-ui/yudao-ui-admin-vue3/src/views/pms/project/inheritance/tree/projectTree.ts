@@ -50,7 +50,9 @@ export const createProjectTreeState = (api: QueryApi = ProjectsApi.queryTree) =>
   const mergeContext = async (result: ProjectTreeQueryVO, nodes: Map<number, ProjectTreeNodeVO>) => {
     result.items.forEach(node => nodes.set(node.projectId, node))
     for (const node of result.items) {
-      if (node.parentId == null || nodes.has(node.parentId) || node.parentId === state.anchorId) continue
+      if (node.parentId == null || nodes.has(node.parentId)
+        || state.queryType !== 'FULL' && node.parentId === state.anchorId) continue
+      if (state.queryType === 'FULL') throw new Error('完整项目树上级路径缺失，请刷新后重试')
       const path = await readProjectPath(node.projectId, api)
       if (path.version !== result.treeVersion) throw new Error('项目树版本已变化，请刷新后继续')
       path.nodes.forEach(parent => nodes.set(parent.projectId, parent))

@@ -6,6 +6,14 @@ const node = (projectId: number, parentId?: number): ProjectTreeNodeVO => ({ pro
 const page = (items: ProjectTreeNodeVO[], nextCursor?: string, treeVersion = 1) => ({ items, nextCursor, treeVersion, updating: false })
 
 describe('project tree hierarchy and independent paging', () => {
+  it('rejects an incomplete full tree without issuing a path-repair request', async () => {
+    const api = vi.fn().mockResolvedValue(page([node(3, 2)]))
+    const tree = createProjectTreeState(api)
+    await tree.load(3, 'FULL')
+    expect(tree.state.root.error).toContain('路径缺失')
+    expect(api).toHaveBeenCalledTimes(1)
+    expect(tree.forest()).toEqual([])
+  })
   it('uses recorded project progress, preserves zero and never substitutes legacy progress or hidden values', () => {
     const project = { ...node(1), milestoneProgress: 90 }
     expect(projectProgressDisplay(project).label).toBe('待形成')

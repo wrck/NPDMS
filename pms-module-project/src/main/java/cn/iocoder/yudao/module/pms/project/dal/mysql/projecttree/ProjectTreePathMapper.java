@@ -13,6 +13,8 @@ import java.util.Set;
 
 @Mapper
 public interface ProjectTreePathMapper extends BaseMapperX<ProjectTreePathDO> {
+    List<ProjectMasterDO> selectFullTree(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectFullTreeQuery query);
 
     default List<ProjectTreePathDO> selectByAncestor(Long rootId, Long treeVersion,
                                                      Long ancestorId, Integer distance) {

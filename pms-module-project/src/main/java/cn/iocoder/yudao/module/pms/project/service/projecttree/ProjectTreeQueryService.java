@@ -38,6 +38,7 @@ public class ProjectTreeQueryService {
     private final ProjectTreeViewSanitizer viewSanitizer;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeHierarchyMapper hierarchyMapper;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressMapper progressMapper;
+    private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper memberMapper;
 
     public ProjectTreeQueryResult query(ProjectTreeQuery query, Actor actor) {
         validate(query, actor);
@@ -73,7 +74,7 @@ public class ProjectTreeQueryService {
         }
         List<ProjectMasterDO> fetched = resolvePage(query, actor.tenantId(), rootId,
                 active.getTreeVersion(), scope.visibleProjectIds(), offset, pageSize + 1);
-        boolean hasNext = fetched.size() > pageSize;
+        boolean hasNext = query.queryType() != ProjectTreeQuery.QueryType.FULL && fetched.size() > pageSize;
         List<ProjectMasterDO> page = hasNext ? List.copyOf(fetched.subList(0, pageSize)) : List.copyOf(fetched);
         var parents = hierarchyMapper.selectDirectParents(
                 new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectTreeParentsQuery(
@@ -90,9 +91,17 @@ public class ProjectTreeQueryService {
                         actor.tenantId(), rootId, active.getTreeVersion(), progressIds, scope.fullProjectIds())).stream()
                 .collect(java.util.stream.Collectors.toMap(
                         cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeProgressRow::projectId, row -> row));
+        var managers = query.queryType() == ProjectTreeQuery.QueryType.FULL && !progressIds.isEmpty()
+                ? memberMapper.selectTreeManagers(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectTreeManagersQuery(
+                        actor.tenantId(), progressIds, java.time.LocalDateTime.now())).stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                        cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO::getProjectId))
+                : java.util.Map.<Long, java.util.List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO>>of();
         List<ProjectTreeViewSanitizer.ProjectTreeNodeView> visiblePage = page.stream()
                 .map(project -> viewSanitizer.sanitize(project, scope.visibility(project.getId()), parents.get(project.getId())))
-                .filter(Objects::nonNull).map(node -> node.withProgress(progress.get(node.projectId()))).toList();
+                .filter(Objects::nonNull).map(node -> node.withProgress(progress.get(node.projectId())))
+                .map(node -> query.queryType() == ProjectTreeQuery.QueryType.FULL
+                        ? node.withManagers(managers.getOrDefault(node.projectId(), List.of())) : node).toList();
         String next = hasNext ? encodeCursor(rootId, active.getTreeVersion(), query, offset + pageSize) : null;
         metrics.query(query.queryType().name(), updating, System.nanoTime() - started, visiblePage.size());
         return new ProjectTreeQueryResult(active.getTreeVersion(), visiblePage, next, updating);
@@ -102,6 +111,9 @@ public class ProjectTreeQueryService {
                                               Long treeVersion, java.util.Set<Long> visibleProjectIds,
                                               int offset, int limit) {
         return switch (query.queryType()) {
+            case FULL -> pathMapper.selectFullTree(
+                    new cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.query.ProjectFullTreeQuery(
+                            tenantId, rootId, treeVersion, visibleProjectIds));
             case CHILDREN -> pathMapper.selectDescendantsPage(tenantId, rootId, treeVersion,
                     query.anchorProjectId(), true, visibleProjectIds, offset, limit);
             case DESCENDANTS -> pathMapper.selectDescendantsPage(tenantId, rootId, treeVersion,
@@ -118,6 +130,8 @@ public class ProjectTreeQueryService {
     private void validate(ProjectTreeQuery query, Actor actor) {
         if (query == null || query.anchorProjectId() == null || query.queryType() == null
                 || actor == null || actor.tenantId() == null || actor.actorId() == null
+                || (query.queryType() == ProjectTreeQuery.QueryType.FULL
+                && (query.cursor() != null || query.businessLevelCode() != null))
                 || (query.queryType() == ProjectTreeQuery.QueryType.BUSINESS_LEVEL
                 && (query.businessLevelCode() == null || query.businessLevelCode().isBlank()))) {
             throw exception(PROJECT_TREE_QUERY_INVALID);

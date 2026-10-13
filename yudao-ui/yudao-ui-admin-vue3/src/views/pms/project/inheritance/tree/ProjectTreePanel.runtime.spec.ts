@@ -37,16 +37,20 @@ it('uses the current project version and preserves retry intent', async () => {
   expect(api.moveSubtree.mock.calls[1]).toEqual(first)
   expect(state.moveVisible).toBe(false)
 })
-it('loads only the current project path and direct children, keeping ancestors as context', async () => {
-  api.queryTree.mockImplementation(async (id, query) => ({ treeVersion: 7, updating: false, items: query.queryType === 'LOCATE'
-    ? [{ projectId: 9, projectName: '上级', visibility: 'FULL' }, { projectId: id, parentId: 9, projectName: '当前项目', visibility: 'FULL' }]
-    : [{ projectId: 2, parentId: id, projectName: '子项目', visibility: 'FULL' }] }))
+it('loads the entire root tree once, including sibling and deep branches without per-project requests', async () => {
+  api.queryTree.mockResolvedValue({ treeVersion: 7, updating: false, items: [
+    { projectId: 9, projectName: '根项目', visibility: 'FULL' },
+    { projectId: 1, parentId: 9, projectName: '当前项目', visibility: 'FULL' },
+    { projectId: 2, parentId: 1, projectName: '子项目', visibility: 'FULL' },
+    { projectId: 3, parentId: 2, projectName: '孙项目', visibility: 'FULL' },
+    { projectId: 4, parentId: 9, projectName: '兄弟项目', visibility: 'FULL' }
+  ] })
   const state = await render(); await flush()
-  expect(api.queryTree.mock.calls.map(call => [call[0], call[1].queryType])).toEqual([[1, 'LOCATE'], [1, 'CHILDREN']])
+  expect(api.queryTree.mock.calls.map(call => [call[0], call[1].queryType])).toEqual([[1, 'FULL']])
   expect(state.rows[0].children[0].children[0].projectId).toBe(2)
-  expect(state.tree.canLoadChildren(9)).toBe(false)
-  await state.tree.children(9)
-  expect(api.queryTree).toHaveBeenCalledTimes(2)
+  expect(state.rows[0].children[0].children[0].children[0].projectId).toBe(3)
+  expect(state.rows[0].children[1].projectId).toBe(4)
+  expect(api.queryTree).toHaveBeenCalledTimes(1)
   expect(api.getProjectPage).not.toHaveBeenCalled()
 })
 it('blocks self movement and cannot submit when source-version lookup failed', async () => {

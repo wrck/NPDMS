@@ -27,6 +27,21 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMemberAssignmentDO> {
+    default List<ProjectMemberAssignmentDO> selectTreeManagers(
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectTreeManagersQuery query) {
+        if (query.projectIds().isEmpty()) return List.of();
+        return selectList(new LambdaQueryWrapperX<ProjectMemberAssignmentDO>()
+                .eq(ProjectMemberAssignmentDO::getTenantId, query.tenantId())
+                .in(ProjectMemberAssignmentDO::getProjectId, query.projectIds())
+                .in(ProjectMemberAssignmentDO::getMemberRole,
+                        cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES)
+                .eq(ProjectMemberAssignmentDO::getStatus, "ACTIVE")
+                .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveFrom)
+                        .or().le(ProjectMemberAssignmentDO::getEffectiveFrom, query.effectiveAt()))
+                .and(w -> w.isNull(ProjectMemberAssignmentDO::getEffectiveTo)
+                        .or().gt(ProjectMemberAssignmentDO::getEffectiveTo, query.effectiveAt()))
+                .orderByAsc(ProjectMemberAssignmentDO::getId));
+    }
 
     default List<ProjectMemberAssignmentDO> selectStatusAssignments(
             cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery query) {

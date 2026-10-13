@@ -376,6 +376,7 @@ export type ProjectTreeQueryType =
   | 'ANCESTORS'
   | 'BUSINESS_LEVEL'
   | 'LOCATE'
+  | 'FULL'
 
 export interface ProjectTreeNodeVO {
   projectId: number
@@ -389,6 +390,7 @@ export interface ProjectTreeNodeVO {
   progressStatus?: 'READY' | 'PENDING' | 'STALE' | 'RESTRICTED'
   progressRecordedAt?: string | number
   visibility: 'FULL' | 'ROOT_SUMMARY' | 'PATH_PLACEHOLDER'
+  displayDetails?: { office?: string; serviceManager?: string; projectManager?: string }
 }
 
 export interface ProjectTreeQueryVO {
