@@ -32,6 +32,11 @@ public class CompletionConfirmationWorkflowController {
     public CommonResult<Boolean> voidRecord(@PathVariable("id") Long id){service.voidRecord(tenant(),actor(),id);return success(true);}
     @DeleteMapping("/{id}") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:delete')")
     public CommonResult<Boolean> delete(@PathVariable("id") Long id){service.delete(tenant(),actor(),id);return success(true);}
+    @GetMapping("/{id}/documents") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:query')")
+    public CommonResult<NativeGeneratedFileApi.RegisteredFile> registeredDocument(@PathVariable("id") Long id,
+            @RequestParam("expectedVersion") Long version,@RequestParam("kind") String kind,@RequestParam("layoutKey") String layoutKey) {
+        return success(service.findRegisteredPdf(new CompletionConfirmationWorkflowService.PdfLookup(tenant(),actor(),id,version,kind,layoutKey)));
+    }
     @PostMapping(path="/{id}/documents",consumes="multipart/form-data") @PreAuthorize("@ss.hasPermission('pms:file:upload')")
     public CommonResult<NativeGeneratedFileApi.RegisteredFile> document(@PathVariable("id") Long id,@RequestParam("expectedVersion") Long version,
             @RequestParam("kind") String kind,@RequestHeader("Idempotency-Key") String key,@RequestPart("file") MultipartFile file) throws java.io.IOException{

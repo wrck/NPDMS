@@ -77,6 +77,9 @@ export const saveConfirmationPdf = (id: number, expectedVersion: number, kind: '
   return request.post<{ materialId: number }>({ url: `${workflowUrl}/${id}/documents`, params: { expectedVersion, kind }, data,
     headersType: 'multipart/form-data', headers: { 'Idempotency-Key': key } })
 }
+export const getRegisteredConfirmationPdf = ({ id, ...params }: {
+  id: number; expectedVersion: number; kind: 'COMPLETION' | 'SATISFACTION'; layoutKey: string
+}) => request.get<{ materialId: number } | null>({ url: `${workflowUrl}/${id}/documents`, params })
 export const getConfirmationFileTicket = (id: number, materialId: number) => request.get<string>({ url: `${workflowUrl}/${id}/files/${materialId}` })
 
 const baseUrl = '/pms/acc-completion-certificate'

@@ -23,6 +23,7 @@ import static org.mockito.Mockito.*;
 class CompletionConfirmationWorkflowServiceTest {
     @Mock CompletionCertificateService legacy;
     @Mock CompletionCertificateMapper certificates;
+    @Mock cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionPdfBindingMapper pdfBindings;
     @Mock CompletionSatisfactionBundleMapper bundles;
     @Mock SatisfactionCollectionTaskMapper tasks;
     @Mock SatisfactionQuestionnaireMapper questionnaires;
@@ -38,10 +39,13 @@ class CompletionConfirmationWorkflowServiceTest {
     @Mock ProjectScopeApi scopes;
     @Mock PermissionApi permissions;
     @Mock NativeGeneratedFileApi files;
+    @Mock cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi deliveryMaterials;
+    @Mock cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi fileEvidence;
     @Mock SatisfactionQuestionnaireTemplateMapper templateMapper;
     @InjectMocks CompletionConfirmationWorkflowService service;
     CompletionCertificateDO certificate;
     @BeforeEach void setup(){
+        lenient().when(pdfBindings.insert(any(cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionPdfBindingDO.class))).thenReturn(1);
         certificate=new CompletionCertificateDO();certificate.setId(10L);certificate.setTenantId(1L);
         certificate.setProjectId(9L);certificate.setVersion(3L);certificate.setStatus(0);certificate.setSatisfactionTemplateId(11L);
         lenient().when(certificates.selectById(10L)).thenReturn(certificate);
@@ -132,4 +136,101 @@ class CompletionConfirmationWorkflowServiceTest {
         assertThrows(IllegalStateException.class,()->transaction.execute(status->service.issue(1L,1L,10L)));
         assertEquals(0,jdbc.queryForObject("SELECT status FROM proof WHERE id=10",Integer.class));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM survey",Integer.class));
     }
+    private void existingPdf(String purpose, boolean available) {
+        certificate.setCode("proof");
+        byte[] content="%PDF-demo".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        String digest=org.apache.commons.codec.digest.DigestUtils.sha256Hex(content);
+        var material=mock(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView.class);
+        when(deliveryMaterials.listByEntity("ACC","completionCertificate",10L)).thenReturn(List.of(material));
+        when(material.status()).thenReturn("ACTIVE");when(material.sourceKind()).thenReturn("GENERATED");
+        when(material.materialKind()).thenReturn("FILE");when(material.fileSha256()).thenReturn(digest);
+        when(material.fileArtifactId()).thenReturn(100L);when(material.fileVersionNo()).thenReturn(1);
+        lenient().when(material.id()).thenReturn(200L);
+        lenient().when(material.fileName()).thenReturn("proof-COMPLETION-"+"a".repeat(32)+".pdf");
+        when(fileEvidence.inspectDocumentByArtifact(1L,100L,1)).thenReturn(
+            new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Document(300L,"ACC","COMPLETION_CONFIRMATION","10",purpose,
+                "reference",100L,1,digest,"proof.pdf",available));
+    }
+    @Test void samePdfReusesRegisteredFileAfterProjectLockForBothKinds() {
+        existingPdf("COMPLETION_PDF/3",true);
+        var file=service.savePdf(1L,1L,10L,3L,"COMPLETION","new-key","%PDF-demo".getBytes());
+        assertEquals(200L,file.materialId());verifyNoInteractions(files);
+        var order=inOrder(projects,deliveryMaterials);
+        order.verify(projects).lock(any(),any(),any());
+        order.verify(deliveryMaterials).listByEntity("ACC","completionCertificate",10L);
+    }
+    @Test void anotherKindOrVersionIsNotReused() {
+        existingPdf("SATISFACTION_PDF/2",true);
+        service.savePdf(1L,1L,10L,3L,"COMPLETION","new-key","%PDF-demo".getBytes());
+        verify(files).create(any());
+    }
+    @Test void unavailablePdfIsNotReused() {
+        existingPdf("SATISFACTION_PDF/3",false);
+        service.savePdf(1L,1L,10L,3L,"SATISFACTION","new-key","%PDF-demo".getBytes());
+        verify(files).create(any());
+    }
+    @Test void sameSatisfactionPdfAlsoReusesRegisteredFile() {
+        existingPdf("SATISFACTION_PDF/3",true);
+        assertEquals(200L,service.savePdf(1L,1L,10L,3L,"SATISFACTION","new-key","%PDF-demo".getBytes()).materialId());
+        verifyNoInteractions(files);
+    }
+
+    @Test void findsRegisteredPdfBeforeAnyGeneration() {
+        existingPdf("COMPLETION_PDF/3",true);
+        var result=service.findRegisteredPdf(new CompletionConfirmationWorkflowService.PdfLookup(1L,1L,10L,3L,"COMPLETION","a".repeat(32)));
+        assertEquals(200L,result.materialId());verifyNoInteractions(files);
+    }
+    @Test void differentTemplateIdentityDoesNotReuseExistingPdf() {
+        certificate.setCode("proof");
+        var material=mock(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView.class);
+        when(deliveryMaterials.listByEntity("ACC","completionCertificate",10L)).thenReturn(List.of(material));
+        when(material.status()).thenReturn("ACTIVE");when(material.sourceKind()).thenReturn("GENERATED");
+        when(material.materialKind()).thenReturn("FILE");when(material.fileName()).thenReturn("proof-COMPLETION-"+"a".repeat(32)+".pdf");
+        assertNull(service.findRegisteredPdf(new CompletionConfirmationWorkflowService.PdfLookup(1L,1L,10L,3L,"COMPLETION","b".repeat(32))));
+        verifyNoInteractions(files);
+    }
+    @Test void sameTemplateIdentityReusesPdfDespiteDifferentRasterBytes() {
+        existingPdf("COMPLETION_PDF/3",true);
+        byte[] content=("%PDF-raster-diff /ID [ <"+"a".repeat(32)+"> <"+"a".repeat(32)+"> ]").getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+        assertEquals(200L,service.savePdf(1L,1L,10L,3L,"COMPLETION","new-key",content).materialId());
+        verifyNoInteractions(files);
+    }
+
+    @Test void lookupRejectsStaleOrVoidedRecordsBeforeFileQuery() {
+        assertThrows(IllegalStateException.class,()->service.findRegisteredPdf(new CompletionConfirmationWorkflowService.PdfLookup(1L,1L,10L,2L,"COMPLETION","a".repeat(32))));
+        certificate.setStatus(4);
+        assertThrows(IllegalStateException.class,()->service.findRegisteredPdf(new CompletionConfirmationWorkflowService.PdfLookup(1L,1L,10L,3L,"COMPLETION","a".repeat(32))));
+        verifyNoInteractions(deliveryMaterials,fileEvidence,files);
+    }
+
+    private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView legacyPdf(Long id,Long artifact,LocalDateTime time,String digest) {
+        return new cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView(
+            id,"ACC","completionCertificate",10L,"COMPLETION_CERTIFICATE","FILE",null,9L,artifact,1,digest,
+            "proof-COMPLETION.pdf",null,null,null,"proof","GENERATED","ACTIVE",null,"1",time);
+    }
+    @Test void latestEffectiveLegacyPdfBecomesBaselineWithoutGeneratingFile() {
+        certificate.setCode("proof");
+        var older=legacyPdf(20L,100L,LocalDateTime.of(2026,10,12,10,0),"a".repeat(64));
+        var latest=legacyPdf(21L,101L,LocalDateTime.of(2026,10,13,10,0),"b".repeat(64));
+        when(deliveryMaterials.listByEntity("ACC","completionCertificate",10L)).thenReturn(List.of(older,latest));
+        when(fileEvidence.inspectDocumentByArtifact(1L,101L,1)).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi.Document(
+            301L,"ACC","COMPLETION_CONFIRMATION","10","COMPLETION_PDF/3","ref",101L,1,"b".repeat(64),"proof-COMPLETION.pdf",true));
+        var query=new CompletionConfirmationWorkflowService.PdfLookup(1L,1L,10L,3L,"COMPLETION","a".repeat(32));
+        assertEquals(21L,service.findRegisteredPdf(query).materialId());
+        var binding=ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionPdfBindingDO.class);
+        verify(pdfBindings).insert(binding.capture());assertEquals(21L,binding.getValue().getMaterialId());
+        when(pdfBindings.hasBaseline(any())).thenReturn(true);
+        assertNull(service.findRegisteredPdf(new CompletionConfirmationWorkflowService.PdfLookup(1L,1L,10L,3L,"COMPLETION","b".repeat(32))));
+        verifyNoInteractions(files);
+    }
+    @Test void invalidBaselineDoesNotAllowDuplicateGeneration() {
+        var bound=new cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionPdfBindingDO();bound.setMaterialId(21L);
+        when(pdfBindings.selectBinding(any())).thenReturn(bound);
+        var material=mock(cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView.class);
+        when(material.status()).thenReturn("WITHDRAWN");
+        when(deliveryMaterials.listByEntity("ACC","completionCertificate",10L)).thenReturn(List.of(material));
+        assertThrows(IllegalStateException.class,()->service.findRegisteredPdf(new CompletionConfirmationWorkflowService.PdfLookup(1L,1L,10L,3L,"COMPLETION","a".repeat(32))));
+        verifyNoInteractions(files,fileEvidence);
+    }
+
 }

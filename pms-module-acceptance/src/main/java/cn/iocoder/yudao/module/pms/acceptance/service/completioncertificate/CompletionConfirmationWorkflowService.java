@@ -16,6 +16,8 @@ import cn.iocoder.yudao.module.pms.project.api.acceptance.ProjectAcceptanceConte
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
+import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +46,9 @@ public class CompletionConfirmationWorkflowService {
     private final ProjectScopeApi scopes;
     private final PermissionApi permissions;
     private final NativeGeneratedFileApi files;
+    private final PlatformDeliveryMaterialApi deliveryMaterials;
+    private final FileEvidenceApi fileEvidence;
+    private final CompletionPdfBindingMapper pdfBindings;
 
     @Transactional(rollbackFor=Exception.class)
     public Long save(Long tenant,Long actor,CompletionCertificateSaveReqVO request){
@@ -178,13 +183,83 @@ public class CompletionConfirmationWorkflowService {
     public NativeGeneratedFileApi.RegisteredFile savePdf(Long tenant,Long actor,Long id,Long version,String kind,String key,byte[] content){
         var row=requireCertificate(tenant,actor,id);lockProject(tenant,actor,row.getProjectId());
         requirePermission(actor,"update");
+        row=certificates.selectDeliveryOwnerForUpdate(new CompletionCertificateDeliveryLockQuery(tenant,id));
+        if(row==null)throw new IllegalStateException("完工证明不存在");
         if(!Set.of("COMPLETION","SATISFACTION").contains(kind) || !Objects.equals(version,row.getVersion()) || Integer.valueOf(4).equals(row.getStatus()))
             throw new IllegalStateException("打印记录已变化或已作废，请重新打开预览");
         if(content==null || content.length<5 || content.length>52_428_800 || !new String(content,0,5,java.nio.charset.StandardCharsets.US_ASCII).equals("%PDF-"))
             throw new IllegalArgumentException("PDF文件内容无效");
-        return files.create(new NativeGeneratedFileCommand(tenant,actor,key,"ACC","COMPLETION_CONFIRMATION",id,version,
-                kind+"_PDF/"+version,"COMPLETION_CERTIFICATE",row.getCode()+"-"+kind+".pdf","application/pdf",content));
+        var idMatcher=java.util.regex.Pattern.compile("/ID\\s*\\[\\s*<([a-fA-F0-9]{32})>").matcher(
+                new String(content,Math.max(0,content.length-8192),Math.min(8192,content.length),java.nio.charset.StandardCharsets.ISO_8859_1));
+        String layoutKey=idMatcher.find()?idMatcher.group(1).toLowerCase(java.util.Locale.ROOT):null;
+        String fileName=row.getCode()+"-"+kind+(layoutKey!=null?"-"+layoutKey:"")+".pdf";
+        var existing=layoutKey==null?findPdf(new PdfMatch(tenant,row,kind,org.apache.commons.codec.digest.DigestUtils.sha256Hex(content),fileName,null,false,null)):
+                resolvePdfBinding(new PdfMatch(tenant,row,kind,null,fileName,layoutKey,false,null));
+        if(existing!=null)return existing;
+        var created=files.create(new NativeGeneratedFileCommand(tenant,actor,key,"ACC","COMPLETION_CONFIRMATION",id,version,
+                kind+"_PDF/"+version,"COMPLETION_CERTIFICATE",fileName,"application/pdf",content));
+        if(layoutKey!=null)rememberPdf(new PdfMatch(tenant,row,kind,null,fileName,layoutKey,false,null),created);
+        return created;
     }
+
+    @Transactional(rollbackFor=Exception.class)
+    public NativeGeneratedFileApi.RegisteredFile findRegisteredPdf(PdfLookup query) {
+        var row=requireCertificate(query.tenant(),query.actor(),query.id());
+        if(!Set.of("COMPLETION","SATISFACTION").contains(query.kind())
+                || query.layoutKey()==null || !query.layoutKey().matches("[a-f0-9]{32}")
+                || !Objects.equals(query.version(),row.getVersion()) || Integer.valueOf(4).equals(row.getStatus()))
+            throw new IllegalStateException("打印记录已变化或已作废，请重新打开预览");
+        var locked=certificates.selectDeliveryOwnerForUpdate(new CompletionCertificateDeliveryLockQuery(query.tenant(),row.getId()));
+        if(locked==null || !Objects.equals(locked.getVersion(),query.version()) || Integer.valueOf(4).equals(locked.getStatus()))
+            throw new IllegalStateException("打印记录已变化或已作废，请重新打开预览");
+        return resolvePdfBinding(new PdfMatch(query.tenant(),locked,query.kind(),null,
+                locked.getCode()+"-"+query.kind()+"-"+query.layoutKey()+".pdf",query.layoutKey(),false,null));
+    }
+    public record PdfLookup(Long tenant,Long actor,Long id,Long version,String kind,String layoutKey) {}
+
+    private NativeGeneratedFileApi.RegisteredFile resolvePdfBinding(PdfMatch query) {
+        var row=query.certificate();
+        var scope=new CompletionPdfBindingQuery(query.tenant(),row.getId(),row.getVersion(),query.kind(),query.layoutKey());
+        var bound=pdfBindings.selectBinding(scope);
+        if(bound!=null) {
+            var matched=findPdf(new PdfMatch(query.tenant(),row,query.kind(),null,query.fileName(),query.layoutKey(),false,bound.getMaterialId()));
+            if(matched==null)throw new IllegalStateException("已登记PDF不可用，请处理交付件状态后重试");
+            return matched;
+        }
+        var existing=findPdf(query);
+        if(existing==null && !pdfBindings.hasBaseline(scope))
+            existing=findPdf(new PdfMatch(query.tenant(),row,query.kind(),null,row.getCode()+"-"+query.kind()+".pdf",query.layoutKey(),true,null));
+        if(existing!=null)rememberPdf(query,existing);
+        return existing;
+    }
+    private void rememberPdf(PdfMatch query,NativeGeneratedFileApi.RegisteredFile file) {
+        var binding=new CompletionPdfBindingDO();binding.setTenantId(query.tenant());
+        binding.setCertificateId(query.certificate().getId());binding.setCertificateVersion(query.certificate().getVersion());
+        binding.setDocumentKind(query.kind());binding.setLayoutKey(query.layoutKey());binding.setMaterialId(file.materialId());binding.setVersion(0L);
+        if(pdfBindings.insert(binding)!=1)throw new IllegalStateException("PDF模板基准保存失败");
+    }
+    private NativeGeneratedFileApi.RegisteredFile findPdf(PdfMatch query) {
+        var row=query.certificate();
+        var materials=new ArrayList<>(deliveryMaterials.listByEntity("ACC","completionCertificate",row.getId()));
+        materials.sort(Comparator.comparing(PlatformDeliveryMaterialApi.DeliveryMaterialView::createTime,
+                Comparator.nullsLast(Comparator.reverseOrder())).thenComparing(PlatformDeliveryMaterialApi.DeliveryMaterialView::id,Comparator.reverseOrder()));
+        for(var material:materials) {
+            if(!"ACTIVE".equals(material.status()) || !"GENERATED".equals(material.sourceKind())
+                    || !"FILE".equals(material.materialKind())
+                    || !(query.materialId()!=null?query.materialId().equals(material.id()):
+                    query.sha256()!=null && query.sha256().equals(material.fileSha256())
+                    || query.fileName().equals(material.fileName()) && (query.legacy() || query.fileName().matches(".*-[a-f0-9]{32}\\.pdf"))))continue;
+            var document=fileEvidence.inspectDocumentByArtifact(query.tenant(),material.fileArtifactId(),material.fileVersionNo());
+            if(document==null || !document.available() || !Objects.equals(material.fileSha256(),document.sha256())
+                    || !"ACC".equals(document.ownerContext()) || !"COMPLETION_CONFIRMATION".equals(document.objectType())
+                    || !row.getId().toString().equals(document.objectId())
+                    || !(query.kind()+"_PDF/"+row.getVersion()).equals(document.purposeCode()))continue;
+            return new NativeGeneratedFileApi.RegisteredFile(material.id(),document.referenceId(),document.artifactId(),
+                    document.versionNo(),document.sha256(),document.name());
+        }
+        return null;
+    }
+    private record PdfMatch(Long tenant,CompletionCertificateDO certificate,String kind,String sha256,String fileName,String layoutKey,boolean legacy,Long materialId) {}
 
     CompletionCertificateDO requireCertificate(Long tenant,Long actor,Long id){
         access.require(tenant,actor,"completionCertificate",id.toString(),"COMPLETION_CERTIFICATE",false,false,null);

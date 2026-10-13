@@ -62,6 +62,7 @@ import { getConfirmation, saveConfirmationPdf, type CompletionConfirmationDetail
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
 import { registerDynamicFormComponents } from '@/views/pms/platform/dynamic-form/components/registerDynamicFormComponents'
 import { printCategory, documentLabel, createConfirmationPrintForm, printValues, registerConfirmationPrintComponents, defaultPrintTemplateCode, type ConfirmationDocumentKind } from './confirmationPrintForm'
+import { confirmationPdfIdentity, reuseConfirmationPdf, stabilizeConfirmationPdf } from './confirmationPdfDelivery'
 import { prepareWordPrintExport, addWordPrintPageDecorations, repeatWordPrintWatermarks } from './wordPrintPdf'
 interface PrintSnapshot { engine: string; formConfJson: DynamicFormApi.JsonObject; formRulesJson: DynamicFormApi.JsonObject[] }
 const props = defineProps<{ kind: ConfirmationDocumentKind; readonly?: boolean }>()
@@ -77,12 +78,13 @@ registerConfirmationPrintComponents()
 const visible = ref(false),
   exporting = ref(false)
 const paper = ref<HTMLElement>()
+const printLayout = ref('')
 const decoded = shallowRef<ReturnType<typeof decodeDynamicForm>>()
 const wordPrint = computed(() => decoded.value?.rule.some(rule => ['CompletionCertificatePrintV2', 'CompletionSatisfactionPrintV2'].includes(String(rule.type))))
 const values = ref<Record<string, any>>({})
 const filename = ref('确认表.pdf')
 const message = useMessage()
-const deliveryAttempt = shallowRef<{ file: File; key: string }>()
+const deliveryAttempt = shallowRef<{ file: File; key: string; registered?: boolean }>()
 const canRegister = computed(() => !props.readonly && checkPermi(['pms:file:upload']) && checkPermi(['pms:acc-completion-certificate:update']))
 const loading = ref(false)
 const selected = ref('approved')
@@ -94,6 +96,7 @@ const boundSnapshot = shallowRef<PrintSnapshot>()
 let recordData: CompletionConfirmationDetail,
   openRequest = 0
 const applyLayout = (snapshot: PrintSnapshot) => {
+  printLayout.value = JSON.stringify({ formConfJson: snapshot.formConfJson, formRulesJson: snapshot.formRulesJson })
   const form = decodeDynamicForm(snapshot.formConfJson, snapshot.formRulesJson)
   form.option = {
     ...form.option,
@@ -173,6 +176,11 @@ const downloadPdf = (file: File) => {
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+const printStyleIdentity = () => Array.from(document.styleSheets).flatMap(sheet => {
+  try {
+    return Array.from(sheet.cssRules).filter(rule => /word-print|completion-word|satisfaction-word|word-service|word-signature|signature-image|signature-content|customer-date|vendor-date|opinion-row|rating-row|greeting|introduction/.test(rule.cssText)).map(rule => rule.cssText)
+  } catch { return [] }
+}).sort().join('\n')
 const exportPdf = async () => {
   if (!canRegister.value) return
   if (exporting.value || loading.value || !paper.value) return
@@ -189,8 +197,17 @@ const exportPdf = async () => {
         || current.version !== recordData.certificate.version) {
       throw new Error('确认记录已变化，请关闭预览后重新打开')
     }
+    const layoutKey = await confirmationPdfIdentity({ layout: { snapshot: printLayout.value, values: printValues(recordData), kind: props.kind, styles: printStyleIdentity() }, certificate: current })
+    const existing = await reuseConfirmationPdf({ certificate: current, kind: props.kind, layoutKey })
+    if (existing) {
+      downloadPdf(new File([existing], filename.value, { type: 'application/pdf' }))
+      return
+    }
     if (deliveryAttempt.value) {
-      await saveConfirmationPdf(current.id!, current.version!, props.kind, deliveryAttempt.value.file, deliveryAttempt.value.key)
+      if (!deliveryAttempt.value.registered) {
+        await saveConfirmationPdf(current.id!, current.version!, props.kind, deliveryAttempt.value.file, deliveryAttempt.value.key)
+        deliveryAttempt.value.registered = true
+      }
       downloadPdf(deliveryAttempt.value.file)
       return
     }
@@ -258,6 +275,7 @@ const exportPdf = async () => {
     try {
       const pdf = await worker.set(options).from(exportCopy?.element || paper.value).toPdf().get('pdf')
       if (wordPrint.value) addWordPrintPageDecorations(pdf, props.kind, paper.value.querySelector<HTMLImageElement>('.word-print-header img')!)
+      await stabilizeConfirmationPdf({ pdf, layoutKey, certificate: current })
       blob = pdf.output('blob')
     } finally {
       exportCopy?.remove()
@@ -265,6 +283,7 @@ const exportPdf = async () => {
     if (!canRegister.value) throw new Error('无生成交付件写权限')
     deliveryAttempt.value = { file: new File([blob], filename.value, { type: 'application/pdf' }), key: generateUUID() }
     await saveConfirmationPdf(current.id!, current.version!, props.kind, deliveryAttempt.value.file, deliveryAttempt.value.key)
+    deliveryAttempt.value.registered = true
     downloadPdf(deliveryAttempt.value.file)
   } catch (failure: any) {
     message.error(failure?.response?.data?.msg || failure?.message || 'PDF 生成或交付件登记失败，请重试')
