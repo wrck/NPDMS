@@ -1,0 +1,12 @@
+{
+  "historical_start_free": 21865492480,
+  "historical_minimum_free": 4565409792,
+  "observed_peak_growth": 17300082688,
+  "stop_guard_bytes": 2147483648,
+  "extra_budget_bytes": 536870912,
+  "required_start_bytes": 19984437248,
+  "binlog_remains_on": true,
+  "source_preserved": true,
+  "approved_on": "2026-10-13",
+  "scope": "This isolated acceptance run only"
+}
