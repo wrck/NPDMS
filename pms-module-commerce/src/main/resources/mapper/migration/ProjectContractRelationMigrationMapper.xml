@@ -32,4 +32,11 @@
         WHERE tenant_id=#{write.before.tenantId} AND id=#{write.before.id} AND version=#{write.before.version}
           AND deleted=0
     </update>
+    <!-- The Owner locks and compares all 17 columns; preserve historical business/audit values exactly. -->
+    <update id="restoreWithdrawn">
+        UPDATE com_project_contract_relation
+        SET deleted=0, version=#{write.after.version}, update_time=update_time
+        WHERE tenant_id=#{write.before.tenantId} AND id=#{write.before.id}
+          AND version=#{write.before.version} AND deleted=1
+    </update>
 </mapper>

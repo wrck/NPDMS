@@ -1,0 +1,725 @@
+{
+  "task": {
+    "key": "P27",
+    "name": "装箱单与物流",
+    "businessOwners": [
+      "COM"
+    ],
+    "source": "C01/v14的PACKAGE：fb_shipment及物流参考",
+    "targetTables": [
+      "com_shipment_package"
+    ],
+    "dependencies": [
+      "P26"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "C01",
+        "originalTaskId": "2107037031219654657",
+        "originalVersion": 14,
+        "originalAdapter": "TABLE_MAPPING",
+        "sourceObjects": [
+          "PACKAGE"
+        ]
+      }
+    ],
+    "preparation": "OWNER_ENTRY_REQUIRED",
+    "configurationWork": "复用当前来源SQL与8原字段规则，改经COM Owner；物流编码与名称分别保存。",
+    "acceptance": "原装箱单、发货合同引用、日期及物流一致；缺引用不猜配，不把物流送达当业务完成。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-shipment-package-table-decision.md"
+    ],
+    "existingExecutionHold": true,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fb_shipment",
+      "view_shipment_ems_4_pm"
+    ],
+    "adapterClass": "GenericSyncEngine",
+    "writerClasses": [],
+    "businessKey": "装箱单来源packlist_id；合同引用、承运商名称与编码分别核实",
+    "genericAssessment": "当前已经使用通用TABLE_MAPPING。字段转换和合同查找可配置，生产缺口在COM正式装箱单Owner接入；不能因来源为视图或有联表就认定通用映射不适用。",
+    "processing": [
+      "按P26合同引用解析装箱单，保留装箱单/物流原字段。",
+      "carrier_name与已批准carrier_code分别承接，不互相代替，不用扩展存编码。",
+      "按配置唯一键、空值策略和更新白名单处理；当前通用直写需接COM Owner后生产执行。"
+    ],
+    "specialRules": [],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT p.*,COALESCE(d.basicDataName,p.emsCompany) AS carrier_name FROM fb_shipment p LEFT JOIN fnd_basic_data d ON d.dataTypeCode='01' AND d.basicDataId=p.emsCompany JOIN (SELECT DISTINCT selected_contract.contract_id FROM fb_contract selected_contract\n\nJOIN (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m\n JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n JOIN pm_project p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND p.projectId=(SELECT MAX(newer.projectId) FROM pm_project newer\n WHERE newer.projectCode=p.projectCode AND newer.projectType=p.projectType\n AND CAST(newer.projectCode AS BINARY)=CAST(p.projectCode AS BINARY))) project_scope ON project_scope.contractNo=selected_contract.contract_code AND FIND_IN_SET(selected_contract.contract_code,project_scope.contractNo)\n) selected_package_contract ON selected_package_contract.contract_id=p.con_id\n",
+      "table": "fb_shipment",
+      "object": "PACKAGE",
+      "columns": [],
+      "filters": [],
+      "targets": [
+        {
+          "keys": [
+            "source_system",
+            "source_record_key"
+          ],
+          "mode": "UPSERT",
+          "name": "package",
+          "table": "com_shipment_package",
+          "lookups": [
+            {
+              "match": {
+                "source_system": "source_system",
+                "source_record_key": "@con_id"
+              },
+              "table": "com_shipment_contract_reference",
+              "outputs": {
+                "shipment_contract_ref_id": "id"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "newerBy": null,
+          "mappings": [
+            {
+              "source": "packlist_id",
+              "target": "package_no",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "packdate",
+              "target": "shipment_time",
+              "values": null,
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null
+            },
+            {
+              "source": "warrantyStartTime",
+              "target": "warranty_start_time",
+              "values": null,
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null
+            },
+            {
+              "source": "warrantyEndTime",
+              "target": "warranty_end_time",
+              "values": null,
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null
+            },
+            {
+              "source": "receiveName",
+              "target": "receiver_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "emsNum",
+              "target": "express_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "carrier_name",
+              "target": "carrier_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_KEY",
+              "target": "source_record_key",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "emsCompany",
+              "target": "carrier_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            }
+          ],
+          "whenField": null,
+          "nullPolicy": "IGNORE",
+          "tieBreaker": null,
+          "updateColumns": [
+            "shipment_time",
+            "warranty_start_time",
+            "warranty_end_time",
+            "receiver_name",
+            "express_no",
+            "carrier_name",
+            "shipment_contract_ref_id",
+            "carrier_code"
+          ]
+        }
+      ],
+      "mappings": [],
+      "readMode": "SQL",
+      "sourceKey": "packlist_id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "fb_shipment",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P27-01-PACKAGE.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fb_contract",
+        "fb_shipment",
+        "fnd_basic_data",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "packlist_id",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_shipment_package.package_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "con_id",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_shipment_package.shipment_contract_ref_id",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "packdate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_shipment_package.shipment_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "warrantyStartTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_shipment_package.warranty_start_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "warrantyEndTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_shipment_package.warranty_end_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "receiveName",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "com_shipment_package.receiver_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "emsNum",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "com_shipment_package.express_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment",
+      "sourceField": "emsCompany",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "com_shipment_package.carrier_code；com_shipment_package.carrier_name",
+      "rule": "原码单独保存carrier_code；名称按fnd_basic_data快递公司词典精确解析carrier_name，两个属性不互相替代",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_ems_4_pm",
+      "sourceField": "contract_code",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.contract_no",
+      "rule": "原con_id精确合同引用，视图不独立制造合同",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_ems_4_pm",
+      "sourceField": "receiveName",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "com_shipment_package.receiver_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_ems_4_pm",
+      "sourceField": "emsNum",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "com_shipment_package.express_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_ems_4_pm",
+      "sourceField": "packdate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_shipment_package.shipment_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_ems_4_pm",
+      "sourceField": "emsCompany",
+      "sourceType": "mediumtext",
+      "nullable": "YES",
+      "target": "com_shipment_package.carrier_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_ems_4_pm",
+      "sourceField": "packId",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_shipment_package.package_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_shipment_package",
+      "columns": [
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "shipment_contract_ref_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货合同归属ID",
+          "taskHandling": "fb_shipment.con_id；LOOKUP com_shipment_contract_reference.id"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "package_no",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "装箱单编号",
+          "taskHandling": "fb_shipment.packlist_id；view_shipment_ems_4_pm.packId；PACKAGE.packlist_id"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "shipment_time",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货时间",
+          "taskHandling": "fb_shipment.packdate；view_shipment_ems_4_pm.packdate；PACKAGE.packdate"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "warranty_start_time",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "质保开始时间",
+          "taskHandling": "fb_shipment.warrantyStartTime；PACKAGE.warrantyStartTime"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "warranty_end_time",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "质保结束时间",
+          "taskHandling": "fb_shipment.warrantyEndTime；PACKAGE.warrantyEndTime"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "receiver_name",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "收件人名称",
+          "taskHandling": "fb_shipment.receiveName；view_shipment_ems_4_pm.receiveName；PACKAGE.receiveName"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "express_no",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "快递编号",
+          "taskHandling": "fb_shipment.emsNum；view_shipment_ems_4_pm.emsNum；PACKAGE.emsNum"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "carrier_name",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(256)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "承运商名称",
+          "taskHandling": "fb_shipment.emsCompany；PACKAGE.carrier_name"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "mapping_status",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "PENDING_MAPPING",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "映射状态",
+          "taskHandling": "通用目标目录insertDefault=PENDING_MAPPING"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "PACKAGE.$SOURCE_SYSTEM"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源记录稳定唯一键",
+          "taskHandling": "PACKAGE.$SOURCE_KEY"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "COLUMN_NAME": "carrier_code",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(256)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "fb_shipment.emsCompany；view_shipment_ems_4_pm.emsCompany；PACKAGE.emsCompany"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "idx_shipment_package_contract_ref",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "idx_shipment_package_contract_ref",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "shipment_contract_ref_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "idx_shipment_package_contract_ref",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "shipment_time",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_no",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_no",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_no",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "package_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_package",
+          "INDEX_NAME": "uk_shipment_package_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericSyncEngine.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/GenericSyncJdbcStore.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericTargetCatalog.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "TABLE_MAPPING",
+    "maxRows": 2000,
+    "taskKey": "delivery-full-sync",
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 2000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "CHECKPOINT_KEY",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "fb_contract",
+    "fnd_basic_data",
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+  "ownerSqlFiles": []
+}

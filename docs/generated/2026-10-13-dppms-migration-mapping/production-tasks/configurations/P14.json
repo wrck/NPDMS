@@ -1,0 +1,2120 @@
+{
+  "task": {
+    "key": "P14",
+    "name": "销售订单与订单行",
+    "businessOwners": [
+      "COM"
+    ],
+    "source": "pm_order_data_from_erp、pm_order_line_from_erp",
+    "targetTables": [
+      "com_sales_order",
+      "com_sales_order_line"
+    ],
+    "dependencies": [
+      "P01",
+      "P10",
+      "P12",
+      "P13"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B02",
+        "originalTaskId": "2101587859478949890",
+        "originalVersion": 31,
+        "originalAdapter": "DPPMS_ERP_ORDER",
+        "sourceObjects": [
+          "ORDER",
+          "LINE"
+        ]
+      }
+    ],
+    "preparation": "ADAPT_FIRST_IMPORT",
+    "configurationWork": "准备首次迁入配置，旧91161项fieldCarryProof仅留原环境追溯；生产已有订单必须重新取得Owner前值证明。保留头/行顺序、精确ERP公司业务键及Q023/Q025冲突保护。",
+    "acceptance": "完整原字段、公司、父单、执行单及来源绑定对账；410条来源执行单冲突不能任取一条；不复活236259条旧清理绑定。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-sales-order-table-decision.md",
+      "2026-10-09-dppms-sales-order-line-table-decision.md",
+      "2026-10-14-dppms-full-preview-blocker-repair.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_order_data_from_erp",
+      "pm_order_line_from_erp"
+    ],
+    "adapterClass": "DppmsOrderSyncAdapter",
+    "writerClasses": [
+      "CommerceAuthorityIngestApi",
+      "DppmsOrderFieldCarryOwner",
+      "DppmsOrderLineFieldCarryOwner"
+    ],
+    "businessKey": "订单：ERP来源＋转换公司码＋订单号＋订单类型；行再加行号",
+    "genericAssessment": "有专用适配器。订单头行必须进入既有COM权威接收事务，且有原公司码别名、父订单、执行单/合同及精确补字段保护；通用多步骤虽能关联头行，无法替代权威接收和现有冲突契约。",
+    "processing": [
+      "来源SQL先识别同键异值、缺父订单和多执行单问题，先头后行。",
+      "公司01/02/03/04映射001/002/003/004；旧源ID只维护绑定。",
+      "首次创建/正常接收调用CommerceAuthorityIngestApi；旧fieldCarryProof只用于原目标限定纠正。",
+      "生产重建首次迁入配置，不复制91,161项旧目标证明；来源冲突继续保留为问题。"
+    ],
+    "specialRules": [
+      "Q023的410行/169组执行单差异不得任选；原SO078894碰撞和8条行问题只作已知案例，生产重新预览。",
+      "不会因移除旧证明而关闭字段、来源版本或人工修改保护。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT after_sales_scope.* FROM (-- Existing order identities only. The task supplies reviewed fingerprints and the exact approved source scope.\n-- Every selected original keeps its full sixteen source columns. Conflicting originals stay in separate evidence.\nSELECT r.*, g.migrationVersion,\n       CASE WHEN g.payloadVariants>1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue,\n       SHA2(CAST(JSON_ARRAY(r.id,r.orderNumber,r.contractNo,r.orderExecNumber,r.orderCreateTime,\n           r.customerRequireTime,r.customerCode,r.customerName,r.projectName,r.orderComment,r.orderType,\n           r.compCode,r.salesType,r.source,r.customInfo,r.syncTime) AS CHAR),256) AS originalSourceFingerprint,\n       JSON_OBJECT('id',r.id,'orderNumber',r.orderNumber,'contractNo',r.contractNo,'orderExecNumber',r.orderExecNumber,\n           'orderCreateTime',r.orderCreateTime,'customerRequireTime',r.customerRequireTime,'customerCode',r.customerCode,\n           'customerName',r.customerName,'projectName',r.projectName,'orderComment',r.orderComment,'orderType',r.orderType,\n           'compCode',r.compCode,'salesType',r.salesType,'source',r.source,'customInfo',r.customInfo,'syncTime',r.syncTime) AS originalSourceFields\nFROM pm_order_data_from_erp r\nJOIN (SELECT source,compCode,orderType,orderNumber,MAX(syncTime) AS migrationVersion,\n             COUNT(DISTINCT JSON_ARRAY(orderCreateTime,customerRequireTime,customerCode,customerName,projectName,\n                 orderComment,salesType,customInfo,contractNo,orderExecNumber)) AS payloadVariants\n      FROM pm_order_data_from_erp GROUP BY source,compCode,orderType,orderNumber) g\n  ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.orderType <=> g.orderType AND r.orderNumber <=> g.orderNumber\nWHERE (:reviewedSourceIds='' OR FIND_IN_SET(r.id,:reviewedSourceIds))\n  AND (:unreviewedSourceIds='' OR NOT FIND_IN_SET(r.id,:unreviewedSourceIds))\n) after_sales_scope WHERE after_sales_scope.contractNo IN (SELECT reference_scope.contractNo FROM (SELECT c.id AS id,\n  c.contractNo AS contractNo,\n  c.projectGroupCode AS projectGroupCode,\n  c.createTime AS createTime,\n  c.createBy AS createBy,\n  c.updateTime AS updateTime,\n  c.updateBy AS updateBy,\n  m.id AS member_id,\n  m.projectGroupCode AS member_projectGroupCode,\n  m.projectCode AS member_projectCode,\n  m.mergeBranchMark AS member_mergeBranchMark,\n  m.smsProjectCode AS member_smsProjectCode,\n  m.createTime AS member_createTime,\n  m.createBy AS member_createBy,\n  m.updateTime AS member_updateTime,\n  m.updateBy AS member_updateBy,\n  g.id AS group_id,\n  g.projectGroupCode AS group_projectGroupCode,\n  g.projectGroupName AS group_projectGroupName,\n  g.projectType AS group_projectType,\n  g.createTime AS group_createTime,\n  g.createBy AS group_createBy,\n  g.updateTime AS group_updateTime,\n  g.updateBy AS group_updateBy,\n  p.projectId AS originalProjectId,\n  p.projectCode AS originalProjectCode,\n  IF(p.projectId IS NULL,0,1) AS projectCandidateCount,\n  CONCAT(c.id,':',COALESCE(m.id,0)) AS relationOriginalKey,\n  a.formalGroupSize,\n  IF(SUBSTRING(a.createdPick,1,1)='0','ACTIVE','HISTORICAL') AS formalStatus,\n  COALESCE(kc.createTime,km.createTime) AS formalCreatedAt,\n  COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS formalCreator,\n  COALESCE(uc.updateTime,um.updateTime) AS formalUpdatedAt,\n  COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS formalUpdater,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.createTime,dm.createTime) <=> COALESCE(kc.createTime,km.createTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.createBy,''),NULLIF(dm.createBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS BINARY)))) AS formalCreateConflicts,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.updateTime,dm.updateTime) <=> COALESCE(uc.updateTime,um.updateTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.updateBy,''),NULLIF(dm.updateBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS BINARY)))) AS formalUpdateConflicts,\n  kc.id AS canonical_id,\n  kc.contractNo AS canonical_contractNo,\n  kc.projectGroupCode AS canonical_projectGroupCode,\n  kc.createTime AS canonical_createTime,\n  kc.createBy AS canonical_createBy,\n  kc.updateTime AS canonical_updateTime,\n  kc.updateBy AS canonical_updateBy,\n  km.id AS canonical_member_id,\n  km.projectGroupCode AS canonical_member_projectGroupCode,\n  km.projectCode AS canonical_member_projectCode,\n  km.mergeBranchMark AS canonical_member_mergeBranchMark,\n  km.smsProjectCode AS canonical_member_smsProjectCode,\n  km.createTime AS canonical_member_createTime,\n  km.createBy AS canonical_member_createBy,\n  km.updateTime AS canonical_member_updateTime,\n  km.updateBy AS canonical_member_updateBy,\n  kg.id AS canonical_group_id,\n  kg.projectGroupCode AS canonical_group_projectGroupCode,\n  kg.projectGroupName AS canonical_group_projectGroupName,\n  kg.projectType AS canonical_group_projectType,\n  kg.createTime AS canonical_group_createTime,\n  kg.createBy AS canonical_group_createBy,\n  kg.updateTime AS canonical_group_updateTime,\n  kg.updateBy AS canonical_group_updateBy,\n  p.projectId AS canonical_originalProjectId,\n  p.projectCode AS canonical_originalProjectCode,\n  CONCAT(LPAD(kc.id,20,'0'),':',LPAD(COALESCE(km.id,0),20,'0'),':',\n    IF(c.id=kc.id AND COALESCE(m.id,0)=COALESCE(km.id,0),0,1),':',\n    LPAD(c.id,20,'0'),':',LPAD(COALESCE(m.id,0),20,'0')) AS relationSourceKey\nFROM pm_project_contract c\nLEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nLEFT JOIN (SELECT CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS projectIdentity,\n  MAX(projectId) AS projectId FROM pm_project\n  GROUP BY CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY))) canonical\n  ON canonical.projectIdentity=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))\nLEFT JOIN pm_project p ON p.projectId=canonical.projectId\nJOIN (\n  -- Aggregate the full formal identity before applying task scope or streaming chunks.\n  -- Picks encode status priority (1), timestamp (20), contract ID (20), member ID (20).\n  SELECT CAST(g.projectType AS BINARY) AS projectType,CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AS projectCode,\n    CAST(c.contractNo AS BINARY) AS contractNo,COUNT(*) AS formalGroupSize,\n    MIN(CONCAT(IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.createTime,m.createTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS createdPick,\n    MAX(CONCAT(1-IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.updateTime,m.updateTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS updatedPick\n  FROM pm_project_contract c\n  LEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  GROUP BY CAST(g.projectType AS BINARY),CAST(REPLACE(m.projectCode,'-his','') AS BINARY),CAST(c.contractNo AS BINARY)\n) a ON a.projectType <=> CAST(g.projectType AS BINARY)\n  AND a.projectCode <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AND a.contractNo <=> CAST(c.contractNo AS BINARY)\nLEFT JOIN pm_project_contract kc ON kc.id=CAST(SUBSTRING(a.createdPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship km ON km.id=CAST(SUBSTRING(a.createdPick,42,20) AS UNSIGNED)\nLEFT JOIN pm_project_group kg ON kg.projectGroupCode=kc.projectGroupCode AND CAST(kg.projectGroupCode AS BINARY)=CAST(kc.projectGroupCode AS BINARY)\nLEFT JOIN pm_project_contract uc ON uc.id=CAST(SUBSTRING(a.updatedPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship um ON um.id=CAST(SUBSTRING(a.updatedPick,42,20) AS UNSIGNED)\nWHERE (g.id IS NULL OR FIND_IN_SET(g.projectType,:projectTypes))\n  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))) reference_scope WHERE reference_scope.originalProjectId IS NOT NULL)",
+      "table": null,
+      "object": "ORDER",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "source",
+          "target": "erpSource",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "compCode",
+          "target": "companyCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null
+        },
+        {
+          "source": "orderNumber",
+          "target": "orderNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderType",
+          "target": "orderType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationVersion",
+          "target": "sourceUpdatedAt",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationIssue",
+          "target": "migrationIssue",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "customerCode",
+          "target": "customerCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "customerName",
+          "target": "customerName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "salesType",
+          "target": "salesType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectName",
+          "target": "sourceProjectName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderComment",
+          "target": "orderComment",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderCreateTime",
+          "target": "orderCreateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "customerRequireTime",
+          "target": "customerRequiredTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderExecNumber",
+          "target": "executionNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "id",
+          "target": "fieldCarryProof",
+          "values": {
+            "_historicalTargetProofOmitted": true,
+            "entries": 91161
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        },
+        {
+          "source": "originalSourceFingerprint",
+          "target": "originalSourceFingerprint",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalSourceFields",
+          "target": "originalSourceFields",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": "migrationVersion",
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10",
+        "reviewedSourceIds": "",
+        "unreviewedSourceIds": ""
+      },
+      "sourceObject": "pm_order_data_from_erp",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P14-01-ORDER.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_order_data_from_erp",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": [
+        {
+          "field": "fieldCarryProof",
+          "entries": 91161,
+          "originalTaskId": "2101587859478949890",
+          "originalVersion": 31,
+          "disposition": "OLD_TARGET_PROOF_NOT_PORTABLE"
+        }
+      ]
+    },
+    {
+      "sql": "SELECT after_sales_scope.* FROM (SELECT r.*,g.migrationVersion,CASE WHEN g.payloadVariants > 1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue ,EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode AND h.orderType=r.lineType AND h.orderNumber=r.orderNumber GROUP BY h.source,h.compCode,h.orderType,h.orderNumber HAVING MAX(h.syncTime) IS NOT NULL AND COUNT(DISTINCT JSON_ARRAY(h.orderCreateTime,h.customerRequireTime,h.customerCode,h.customerName,h.projectName,h.orderComment,h.salesType,h.customInfo,h.contractNo,h.orderExecNumber))=1) AS migrationParentExists FROM pm_order_line_from_erp r JOIN (SELECT source,compCode,lineType,orderNumber,lineNum,MAX(syncTime) AS migrationVersion,COUNT(DISTINCT JSON_ARRAY(itemCode,itemDesc,orderQuantity,openQuantity,bundleCode,warrantyMonth,profitCenter,realOrderExecNumber,customInfo)) AS payloadVariants FROM pm_order_line_from_erp GROUP BY source,compCode,lineType,orderNumber,lineNum) g ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.lineType <=> g.lineType AND r.orderNumber <=> g.orderNumber AND r.lineNum <=> g.lineNum WHERE (:sourceIds='' OR FIND_IN_SET(r.id,:sourceIds))) after_sales_scope WHERE EXISTS (SELECT 1 FROM pm_order_data_from_erp order_header WHERE order_header.source <=> after_sales_scope.source AND order_header.compCode <=> after_sales_scope.compCode AND order_header.orderType <=> after_sales_scope.lineType AND order_header.orderNumber <=> after_sales_scope.orderNumber AND order_header.contractNo IN (SELECT reference_scope.contractNo FROM (SELECT c.id AS id,\n  c.contractNo AS contractNo,\n  c.projectGroupCode AS projectGroupCode,\n  c.createTime AS createTime,\n  c.createBy AS createBy,\n  c.updateTime AS updateTime,\n  c.updateBy AS updateBy,\n  m.id AS member_id,\n  m.projectGroupCode AS member_projectGroupCode,\n  m.projectCode AS member_projectCode,\n  m.mergeBranchMark AS member_mergeBranchMark,\n  m.smsProjectCode AS member_smsProjectCode,\n  m.createTime AS member_createTime,\n  m.createBy AS member_createBy,\n  m.updateTime AS member_updateTime,\n  m.updateBy AS member_updateBy,\n  g.id AS group_id,\n  g.projectGroupCode AS group_projectGroupCode,\n  g.projectGroupName AS group_projectGroupName,\n  g.projectType AS group_projectType,\n  g.createTime AS group_createTime,\n  g.createBy AS group_createBy,\n  g.updateTime AS group_updateTime,\n  g.updateBy AS group_updateBy,\n  p.projectId AS originalProjectId,\n  p.projectCode AS originalProjectCode,\n  IF(p.projectId IS NULL,0,1) AS projectCandidateCount,\n  CONCAT(c.id,':',COALESCE(m.id,0)) AS relationOriginalKey,\n  a.formalGroupSize,\n  IF(SUBSTRING(a.createdPick,1,1)='0','ACTIVE','HISTORICAL') AS formalStatus,\n  COALESCE(kc.createTime,km.createTime) AS formalCreatedAt,\n  COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS formalCreator,\n  COALESCE(uc.updateTime,um.updateTime) AS formalUpdatedAt,\n  COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS formalUpdater,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.createTime,dm.createTime) <=> COALESCE(kc.createTime,km.createTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.createBy,''),NULLIF(dm.createBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS BINARY)))) AS formalCreateConflicts,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.updateTime,dm.updateTime) <=> COALESCE(uc.updateTime,um.updateTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.updateBy,''),NULLIF(dm.updateBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS BINARY)))) AS formalUpdateConflicts,\n  kc.id AS canonical_id,\n  kc.contractNo AS canonical_contractNo,\n  kc.projectGroupCode AS canonical_projectGroupCode,\n  kc.createTime AS canonical_createTime,\n  kc.createBy AS canonical_createBy,\n  kc.updateTime AS canonical_updateTime,\n  kc.updateBy AS canonical_updateBy,\n  km.id AS canonical_member_id,\n  km.projectGroupCode AS canonical_member_projectGroupCode,\n  km.projectCode AS canonical_member_projectCode,\n  km.mergeBranchMark AS canonical_member_mergeBranchMark,\n  km.smsProjectCode AS canonical_member_smsProjectCode,\n  km.createTime AS canonical_member_createTime,\n  km.createBy AS canonical_member_createBy,\n  km.updateTime AS canonical_member_updateTime,\n  km.updateBy AS canonical_member_updateBy,\n  kg.id AS canonical_group_id,\n  kg.projectGroupCode AS canonical_group_projectGroupCode,\n  kg.projectGroupName AS canonical_group_projectGroupName,\n  kg.projectType AS canonical_group_projectType,\n  kg.createTime AS canonical_group_createTime,\n  kg.createBy AS canonical_group_createBy,\n  kg.updateTime AS canonical_group_updateTime,\n  kg.updateBy AS canonical_group_updateBy,\n  p.projectId AS canonical_originalProjectId,\n  p.projectCode AS canonical_originalProjectCode,\n  CONCAT(LPAD(kc.id,20,'0'),':',LPAD(COALESCE(km.id,0),20,'0'),':',\n    IF(c.id=kc.id AND COALESCE(m.id,0)=COALESCE(km.id,0),0,1),':',\n    LPAD(c.id,20,'0'),':',LPAD(COALESCE(m.id,0),20,'0')) AS relationSourceKey\nFROM pm_project_contract c\nLEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nLEFT JOIN (SELECT CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS projectIdentity,\n  MAX(projectId) AS projectId FROM pm_project\n  GROUP BY CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY))) canonical\n  ON canonical.projectIdentity=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))\nLEFT JOIN pm_project p ON p.projectId=canonical.projectId\nJOIN (\n  -- Aggregate the full formal identity before applying task scope or streaming chunks.\n  -- Picks encode status priority (1), timestamp (20), contract ID (20), member ID (20).\n  SELECT CAST(g.projectType AS BINARY) AS projectType,CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AS projectCode,\n    CAST(c.contractNo AS BINARY) AS contractNo,COUNT(*) AS formalGroupSize,\n    MIN(CONCAT(IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.createTime,m.createTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS createdPick,\n    MAX(CONCAT(1-IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.updateTime,m.updateTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS updatedPick\n  FROM pm_project_contract c\n  LEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  GROUP BY CAST(g.projectType AS BINARY),CAST(REPLACE(m.projectCode,'-his','') AS BINARY),CAST(c.contractNo AS BINARY)\n) a ON a.projectType <=> CAST(g.projectType AS BINARY)\n  AND a.projectCode <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AND a.contractNo <=> CAST(c.contractNo AS BINARY)\nLEFT JOIN pm_project_contract kc ON kc.id=CAST(SUBSTRING(a.createdPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship km ON km.id=CAST(SUBSTRING(a.createdPick,42,20) AS UNSIGNED)\nLEFT JOIN pm_project_group kg ON kg.projectGroupCode=kc.projectGroupCode AND CAST(kg.projectGroupCode AS BINARY)=CAST(kc.projectGroupCode AS BINARY)\nLEFT JOIN pm_project_contract uc ON uc.id=CAST(SUBSTRING(a.updatedPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship um ON um.id=CAST(SUBSTRING(a.updatedPick,42,20) AS UNSIGNED)\nWHERE (g.id IS NULL OR FIND_IN_SET(g.projectType,:projectTypes))\n  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))) reference_scope WHERE reference_scope.originalProjectId IS NOT NULL))",
+      "table": null,
+      "object": "LINE",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "source",
+          "target": "erpSource",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "compCode",
+          "target": "companyCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null
+        },
+        {
+          "source": "orderNumber",
+          "target": "orderNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "lineType",
+          "target": "orderType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationVersion",
+          "target": "sourceUpdatedAt",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationIssue",
+          "target": "migrationIssue",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationParentExists",
+          "target": "migrationParentExists",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "lineNum",
+          "target": "lineNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemCode",
+          "target": "productCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemDesc",
+          "target": "productDesc",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderQuantity",
+          "target": "orderQuantity",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "openQuantity",
+          "target": "openQuantity",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "bundleCode",
+          "target": "bundleCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "warrantyMonth",
+          "target": "warrantyMonth",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "profitCenter",
+          "target": "profitCenter",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "realOrderExecNumber",
+          "target": "realExecutionNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": "migrationVersion",
+      "issueField": null,
+      "parameters": {
+        "sourceIds": "",
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_order_line_from_erp",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P14-02-LINE.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_order_data_from_erp",
+        "pm_order_line_from_erp",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderNumber",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order.order_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "contractNo",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "com_sales_order.contract_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderExecNumber",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "com_sales_order.execution_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderCreateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_sales_order.order_create_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customerRequireTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_sales_order.customer_required_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customerCode",
+      "sourceType": "varchar(55)",
+      "nullable": "YES",
+      "target": "com_sales_order.customer_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customerName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_sales_order.customer_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "projectName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_sales_order.source_project_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderComment",
+      "sourceType": "varchar(2048)",
+      "nullable": "YES",
+      "target": "com_sales_order.order_comment",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderType",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_sales_order.order_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "compCode",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order.company_code；com_sales_order.company_id",
+      "rule": "01→001、02→002、03→003、04→004；未知码阻断；按租户＋公司＋系统＋业务键匹配",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "salesType",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order.sales_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "source",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order.source_system",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customInfo",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "com_sales_order.custom_info",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "syncTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_sales_order.source_updated_at",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "orderNumber",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.order_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "lineNum",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.line_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "itemCode",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.product_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "itemDesc",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.product_desc",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "orderQuantity",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.order_qty",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "openQuantity",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.open_qty",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "bundleCode",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.bundle_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "warrantyMonth",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.warranty_month",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "lineType",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.line_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "compCode",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.company_code；com_sales_order_line.company_id",
+      "rule": "01→001、02→002、03→003、04→004；未知码阻断；按租户＋公司＋系统＋业务键匹配",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "profitCenter",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.profit_center",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "realOrderExecNumber",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.real_execution_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "source",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.source_system",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "customInfo",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "com_sales_order_line.custom_info",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_order_line_from_erp",
+      "sourceField": "syncTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_sales_order_line.source_updated_at",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_sales_order",
+      "columns": [
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "销售订单编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "pm_order_data_from_erp.source"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前COM权威接收使用source_key；此旧兼容列没有单独来源赋值"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "来源查询sourceVersion/原字段修订标记；与source_updated_at分开使用，不能把不透明版本串直接当时间排序"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司ID",
+          "taskHandling": "当前权威Fact写公司/客户业务码和source_updated_at/synced_at；未显式补这些旧关联/同步列。首次迁入不得据旧库已有值声称已解析，已有关系保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司编码",
+          "taskHandling": "pm_order_data_from_erp.compCode"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司名称",
+          "taskHandling": "当前权威Fact写公司/客户业务码和source_updated_at/synced_at；未显式补这些旧关联/同步列。首次迁入不得据旧库已有值声称已解析，已有关系保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "order_type",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单类型编码",
+          "taskHandling": "pm_order_data_from_erp.orderType"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "order_no",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单编号",
+          "taskHandling": "pm_order_data_from_erp.orderNumber"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "sales_type",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "销售类型编码",
+          "taskHandling": "pm_order_data_from_erp.salesType"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主合同号(快照来源订单头contractNo,对应合同主档业务键)",
+          "taskHandling": "pm_order_data_from_erp.contractNo"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "execution_no",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主执行单号(快照来源订单头orderExecNumber)",
+          "taskHandling": "pm_order_data_from_erp.orderExecNumber"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "customer_id",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户ID",
+          "taskHandling": "当前权威Fact写公司/客户业务码和source_updated_at/synced_at；未显式补这些旧关联/同步列。首次迁入不得据旧库已有值声称已解析，已有关系保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "customer_code",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户编码",
+          "taskHandling": "pm_order_data_from_erp.customerCode"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "customer_name",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户名称",
+          "taskHandling": "pm_order_data_from_erp.customerName"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "source_project_name",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源项目名称",
+          "taskHandling": "pm_order_data_from_erp.projectName"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "order_comment",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(2048)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单说明",
+          "taskHandling": "pm_order_data_from_erp.orderComment"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "order_amount",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前适配器传给权威Fact的金额、币种为NULL；不从别的来源猜填"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "currency_code",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前适配器传给权威Fact的金额、币种为NULL；不从别的来源猜填"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "authority_status",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CONFIRMED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "COM权威接收初始化CONFIRMED，表示来源权威性，不表示订单已完成"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "source_lifecycle_status",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "ACTIVE",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "原orderType=1为RETURNED，其余批准类型0为ACTIVE；经过COM权威Owner处理"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "order_create_time",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单创建时间",
+          "taskHandling": "pm_order_data_from_erp.orderCreateTime"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "customer_required_time",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户要求时间",
+          "taskHandling": "pm_order_data_from_erp.customerRequireTime"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "custom_info",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源customInfo原样同步",
+          "taskHandling": "pm_order_data_from_erp.customInfo"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "当前权威Fact写公司/客户业务码和source_updated_at/synced_at；未显式补这些旧关联/同步列。首次迁入不得据旧库已有值声称已解析，已有关系保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_order_data_from_erp.syncTime"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "权威Fact.lifecycleStatus=ACTIVE时ENABLED，否则DISABLED"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "order_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "customer_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_execution",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_execution",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "execution_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "order_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_time",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_time",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "order_create_time",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "idx_sales_order_time",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "order_type",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "order_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order",
+          "INDEX_NAME": "uk_sales_order_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "com_sales_order_line",
+      "columns": [
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "order_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单ID",
+          "taskHandling": "在同一COM Owner锁下从已核实父订单取正式ID/类型，不接受项目或CRM元数据覆盖"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父订单来源系统",
+          "taskHandling": "pm_order_line_from_erp.source"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前COM权威接收使用source_key；此旧兼容列没有单独来源赋值"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "来源查询sourceVersion/原字段修订标记；COM Owner按版本和独立来源时钟校验"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父订单所属公司主档ID",
+          "taskHandling": "当前COM行Fact从父订单取公司码/类型/订单号，未显式补这些目录ID/冗余列；新增按默认/NULL，已有正式业务关联保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司编码",
+          "taskHandling": "pm_order_line_from_erp.compCode"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司名称",
+          "taskHandling": "当前COM行Fact从父订单取公司码/类型/订单号，未显式补这些目录ID/冗余列；新增按默认/NULL，已有正式业务关联保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "order_type",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父订单类型编码",
+          "taskHandling": "在同一COM Owner锁下从已核实父订单取正式ID/类型，不接受项目或CRM元数据覆盖"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "order_no",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父订单编号",
+          "taskHandling": "pm_order_line_from_erp.orderNumber"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "line_no",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行编号",
+          "taskHandling": "pm_order_line_from_erp.lineNum"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "line_type",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行类型编码",
+          "taskHandling": "pm_order_line_from_erp.lineType"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品编码/物料编码（ERP订单行）",
+          "taskHandling": "pm_order_line_from_erp.itemCode"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "product_model",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品型号/物料型号（原model_code）",
+          "taskHandling": "当前适配器Fact未提供，不能用原itemName冒充型号"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "product_desc",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品描述/物料描述（原item_desc）",
+          "taskHandling": "pm_order_line_from_erp.itemDesc"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "custom_info",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源customInfo原样同步",
+          "taskHandling": "pm_order_line_from_erp.customInfo"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "product_id",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品ID",
+          "taskHandling": "当前COM行Fact从父订单取公司码/类型/订单号，未显式补这些目录ID/冗余列；新增按默认/NULL，已有正式业务关联保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "bundle_code",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "套件编码",
+          "taskHandling": "pm_order_line_from_erp.bundleCode"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "profit_center",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "利润中心",
+          "taskHandling": "pm_order_line_from_erp.profitCenter"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "real_execution_no",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "实际执行单编号",
+          "taskHandling": "pm_order_line_from_erp.realOrderExecNumber"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "warranty_month",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "质保期限月数",
+          "taskHandling": "pm_order_line_from_erp.warrantyMonth"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "customer_id",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父订单客户主档ID",
+          "taskHandling": "当前COM行Fact从父订单取公司码/类型/订单号，未显式补这些目录ID/冗余列；新增按默认/NULL，已有正式业务关联保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "customer_code",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户编码",
+          "taskHandling": "当前COM行Fact从父订单取公司码/类型/订单号，未显式补这些目录ID/冗余列；新增按默认/NULL，已有正式业务关联保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "customer_name",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户名称",
+          "taskHandling": "当前COM行Fact从父订单取公司码/类型/订单号，未显式补这些目录ID/冗余列；新增按默认/NULL，已有正式业务关联保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "order_qty",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "ERP订单行下单数量",
+          "taskHandling": "pm_order_line_from_erp.orderQuantity"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "open_qty",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "ERP订单行当前未执行数量",
+          "taskHandling": "pm_order_line_from_erp.openQuantity"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "delivered_qty",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "ERP订单行当前累计发货数量",
+          "taskHandling": "由当前源SQL/适配器数量载荷精确转换；原数量关系不擅自推断交付完成"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "unit_code",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "源任务unitCode；缺单位保留NULL并标PENDING_AUTHORITY，不伪造默认单位"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "unit_scale",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "tinyint unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "取本行order/open/delivered非空数量去尾零后的最大小数位，精度检查失败阻断"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "quantity_status",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "unitCode或原订单数量缺失时PENDING_AUTHORITY，否则CONFIRMED"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "source_lifecycle_status",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "ACTIVE",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "沿已核实的原订单类型形成RETURNED/ACTIVE，由COM Owner承接"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "当前COM行Fact从父订单取公司码/类型/订单号，未显式补这些目录ID/冗余列；新增按默认/NULL，已有正式业务关联保持"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_order_line_from_erp.syncTime"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "权威Fact.lifecycleStatus=ACTIVE时ENABLED，否则DISABLED"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "order_type",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "order_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 6,
+          "COLUMN_NAME": "line_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "customer_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "product_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_profit",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_profit",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "profit_center",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "idx_sales_order_line_profit",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "order_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "order_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "line_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_sales_order_line",
+          "INDEX_NAME": "uk_sales_order_line_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/sync/DppmsOrderSyncAdapter.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/authority/CommerceAuthorityIngestApi.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/authority/CommerceAuthorityIngestApiImpl.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/sync/DppmsOrderFieldCarryOwner.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/sync/DppmsOrderLineFieldCarryOwner.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/order/ErpOrderSyncMapper.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/authority/CommerceAuthorityIngestService.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/migration/DppmsOrderFieldCarryMapper.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/migration/DppmsOrderLineFieldCarryMapper.java",
+    "pms-module-commerce/src/main/resources/mapper/order/ErpOrderSyncMapper.xml",
+    "pms-module-commerce/src/main/resources/mapper/migration/DppmsOrderFieldCarryMapper.xml",
+    "pms-module-commerce/src/main/resources/mapper/migration/DppmsOrderLineFieldCarryMapper.xml",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/authority/ContractAuthorityMapper.java",
+    "pms-module-commerce/src/main/resources/mapper/authority/ContractAuthorityMapper.xml",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/authority/SalesOrderAuthorityMapper.java",
+    "pms-module-commerce/src/main/resources/mapper/authority/SalesOrderAuthorityMapper.xml",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/authority/OrderLineAuthorityMapper.java",
+    "pms-module-commerce/src/main/resources/mapper/authority/OrderLineAuthorityMapper.xml",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/authority/OrderContractRelationAuthorityMapper.java",
+    "pms-module-commerce/src/main/resources/mapper/authority/OrderContractRelationAuthorityMapper.xml",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/authority/AuthorityScopeImpactMapper.java",
+    "pms-module-commerce/src/main/resources/mapper/authority/AuthorityScopeImpactMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_ERP_ORDER",
+    "maxRows": 2000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_ERP_ORDER",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/ErpOrderSyncMapper.xml",
+    "owner-sql/DppmsOrderFieldCarryMapper.xml",
+    "owner-sql/DppmsOrderLineFieldCarryMapper.xml",
+    "owner-sql/SalesOrderAuthorityMapper.xml",
+    "owner-sql/OrderLineAuthorityMapper.xml"
+  ]
+}

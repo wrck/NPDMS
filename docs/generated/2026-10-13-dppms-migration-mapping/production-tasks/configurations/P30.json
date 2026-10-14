@@ -1,0 +1,2843 @@
+{
+  "task": {
+    "key": "P30",
+    "name": "设备主档及项目归属衔接",
+    "businessOwners": [
+      "AST",
+      "PROJ"
+    ],
+    "source": "已迁发货事实及可核实的原项目/合同/设备关联",
+    "targetTables": [
+      "ast_device",
+      "ast_device_project_relationship"
+    ],
+    "dependencies": [
+      "P12",
+      "P14",
+      "P17",
+      "P18",
+      "P28"
+    ],
+    "sourceTaskReferences": [],
+    "preparation": "TASK_ENTRY_MISSING",
+    "configurationWork": "现C01的DEVICE_SN只写发货事实，不能计为设备主档完成。复用已有DppmsAssetEntityImportApi和正式设备指派Owner边界，补统一任务入口；不得复活C05/C06旧通用条码写法。",
+    "acceptance": "SN身份、最新发货及当前项目归属分别核对；多项目竞争、较新归属或已删除主档冲突阻断，不按任务先后抢占SN。",
+    "ruleDocuments": [
+      "2026-10-10-dppms-equipment-association-repair-decision.md"
+    ],
+    "existingExecutionHold": true,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "ast_device_shipment",
+      "view_shipment_info_4_pm"
+    ],
+    "adapterClass": null,
+    "writerClasses": [
+      "DppmsAssetEntityImportApi",
+      "DppmsAssetEntityImportService",
+      "DeviceProjectAssignmentService"
+    ],
+    "businessKey": "正式设备按租户＋SN；项目归属通过正式设备指派版本和Owner维护",
+    "genericAssessment": "尚无已保存的独立全量DataSyncAdapter任务，已有正式导入/指派Owner。普通通用表写入不能替代最新发货核验、设备身份锁、现有项目归属及指派事务；缺的是统一任务接入，不是缺设备业务能力。",
+    "processing": [
+      "以P28已迁发货事实和原项目来源关联核对SN、合同及全部发货内容。",
+      "已有设备若已删除、当前项目不同或合同不一致则保留冲突；缺失设备还须核实最新发货。",
+      "新设备采用既有IN_STOCK初始化，不推断安装/验收完成；产品名应按P12正式目录。",
+      "DeviceProjectAssignmentService维护设备与项目关系；后写入不抢占已有较新归属。"
+    ],
+    "specialRules": [
+      "当前importShipment还可补缺ast_device_shipment既有字段；本包明确其辅助写入，不把P30仅列主表误认为没有副作用。",
+      "指派时刷新设备公司/部门投影；项目客户与设备客户同时非空且不一致时创建待对账记录，不覆盖设备客户。",
+      "旧通用条码主档自动投影不恢复。"
+    ],
+    "materialQueries": [
+      "shipment-facts",
+      "shipment-products"
+    ],
+    "additionalClasses": [
+      "DeviceOrganizationProjectionService",
+      "DeviceOrganizationService"
+    ]
+  },
+  "sources": [
+    {
+      "object": "shipment-facts",
+      "readMode": "SQL",
+      "sourceObject": "fb_shipment_barcode",
+      "sourceKey": "完整原身份/已批准复合身份，详承接规则",
+      "sql": "SELECT `id`,`pack_id`,`item`,`barcode`,`com_barcode`,`rma_no`,`isRMA`,`item2`,`barcode2`,`orderNumber`,`lineNum`,`profitCenter`,`soleAgentSuffix`,`warrantyStartDate`,`warrantyMonth`,`rmaBarcode`,`updateTime`,`syncTime`,`uuid` FROM `fb_shipment_barcode` WHERE `id` IN (:sourceShipmentIds);",
+      "parameters": {
+        "_status": "由生产范围和P17全部原身份提供，未绑定实际值"
+      },
+      "physicalSourceTables": [
+        "fb_shipment_barcode"
+      ],
+      "queryFile": "sql/P30-C025-existing-material.sql",
+      "queryProvenance": "EXISTING_MATERIAL_QUERY_NOT_FULL_TASK",
+      "mappings": [],
+      "targets": [],
+      "historicalProofsOmitted": []
+    },
+    {
+      "object": "shipment-products",
+      "readMode": "SQL",
+      "sourceObject": "view_shipment_info_4_pm",
+      "sourceKey": "完整原身份/已批准复合身份，详承接规则",
+      "sql": "SELECT `contract_code`,`itemCode`,`itemModel`,`itemName`,`barcode`,`packId`,`itemCode2`,`itemModel2`,`itemName2`,`barcode2`,`profitCenter` FROM `view_shipment_info_4_pm` WHERE `contract_code` IN (:contractNumbersAndOriginalNormalizedVariants);",
+      "parameters": {
+        "_status": "由生产范围和P17全部原身份提供，未绑定实际值"
+      },
+      "physicalSourceTables": [
+        "view_shipment_info_4_pm"
+      ],
+      "queryFile": "sql/P30-C028-existing-material.sql",
+      "queryProvenance": "EXISTING_MATERIAL_QUERY_NOT_FULL_TASK",
+      "mappings": [],
+      "targets": [],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "id",
+      "sourceType": "bigint",
+      "nullable": "NO",
+      "target": "ast_device.shipment_record_id",
+      "rule": "仅最新获准发货记录，正式id直接引用其正式记录。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "device_sn",
+      "sourceType": "varchar(100)",
+      "nullable": "NO",
+      "target": "ast_device.sn；ast_device_project_relationship.device_sn",
+      "rule": "按租户＋SN精确身份。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "shipment_time",
+      "sourceType": "datetime(3)",
+      "nullable": "YES",
+      "target": "ast_device.shipment_time",
+      "rule": "缺失设备从最新发货取值；已有更晚事实保护。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "package_no",
+      "sourceType": "varchar(128)",
+      "nullable": "YES",
+      "target": "ast_device.package_no",
+      "rule": "从核实的最新发货取值。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "contract_no",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "ast_device.contract_no",
+      "rule": "必须与命令已核实合同一致，已有归属冲突不抢占。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "event_type",
+      "sourceType": "varchar(32)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "warranty_start_date",
+      "sourceType": "date",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "warranty_months",
+      "sourceType": "int unsigned",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "rma_no",
+      "sourceType": "varchar(128)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "related_device_sn",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "source_system",
+      "sourceType": "varchar(32)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "source_key",
+      "sourceType": "varchar(128)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "source_version",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "source_updated_at",
+      "sourceType": "datetime(3)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "synced_at",
+      "sourceType": "datetime(3)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "sync_status",
+      "sourceType": "varchar(32)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "version",
+      "sourceType": "int unsigned",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "creator",
+      "sourceType": "varchar(64)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "create_time",
+      "sourceType": "datetime(3)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "updater",
+      "sourceType": "varchar(64)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "update_time",
+      "sourceType": "datetime(3)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "deleted",
+      "sourceType": "bit(1)",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "tenant_id",
+      "sourceType": "bigint",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "legacy_package_key",
+      "sourceType": "varchar(128)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "rma_related_sn",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "rma_marked",
+      "sourceType": "tinyint",
+      "nullable": "NO",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "order_line_id",
+      "sourceType": "bigint",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "source_payload",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "order_no",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "line_no",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "product_code",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "ast_device.product_code",
+      "rule": "P12正式目录编码；名称/型号采用正式目录。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "secondary_sn",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "ast_device.secondary_sn",
+      "rule": "仅当前选定发货记录且现值兼容时补缺。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "secondary_item",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "ast_device.secondary_item",
+      "rule": "仅当前选定发货记录且现值兼容时补缺。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "internal_serial_no",
+      "sourceType": "varchar(128)",
+      "nullable": "YES",
+      "target": "ast_device.internal_serial_no",
+      "rule": "仅当前选定发货记录且现值兼容时补缺。",
+      "fieldStatus": "正式发货读取/设备Owner"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "is_rma",
+      "sourceType": "int",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "profit_center",
+      "sourceType": "varchar(32)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "sole_agent_suffix",
+      "sourceType": "varchar(32)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "sync_time",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "ast_device_shipment",
+      "sourceField": "uuid",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "P28已承接发货事实；P30核对/保持",
+      "rule": "本任务不把所有发货列复制到设备；importShipment可能对获准既有发货空值补缺，须与P28共同核对。",
+      "fieldStatus": "前置正式事实"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "contract_code",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.contract_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "itemCode",
+      "sourceType": "varchar(16)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.product_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "itemModel",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "产品编码关联参考；不写产品异名扩展",
+      "rule": "当前来源材料用于核对；生产设备名称/型号使用P12正式目录CRM优先值，消费路径待接入。",
+      "fieldStatus": "最新P12规则；消费接入待完成"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "itemName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "产品编码关联参考；不写产品异名扩展",
+      "rule": "当前来源材料用于核对；生产设备名称/型号使用P12正式目录CRM优先值，消费路径待接入。",
+      "fieldStatus": "最新P12规则；消费接入待完成"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "barcode",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.device_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "packId",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.package_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "itemCode2",
+      "sourceType": "varchar(16)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.secondary_item",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "itemModel2",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "产品编码关联参考；不写产品异名扩展",
+      "rule": "当前来源材料用于核对；生产设备名称/型号使用P12正式目录CRM优先值，消费路径待接入。",
+      "fieldStatus": "最新P12规则；消费接入待完成"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "itemName2",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "产品编码关联参考；不写产品异名扩展",
+      "rule": "当前来源材料用于核对；生产设备名称/型号使用P12正式目录CRM优先值，消费路径待接入。",
+      "fieldStatus": "最新P12规则；消费接入待完成"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "barcode2",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.secondary_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "view_shipment_info_4_pm",
+      "sourceField": "profitCenter",
+      "sourceType": "varchar(32)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.profit_center",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_device",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "设备编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "sn",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户内唯一设备序列号",
+          "taskHandling": "ast_device_shipment.device_sn"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "name",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备名称",
+          "taskHandling": "当前importShipment取经核实来源产品名/型号；生产按P12最新规则须改取正式目录CRM优先字段，此消费接入尚待完成"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品编码",
+          "taskHandling": "ast_device_shipment.product_code"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "product_model",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品型号",
+          "taskHandling": "当前importShipment取经核实来源产品名/型号；生产按P12最新规则须改取正式目录CRM优先字段，此消费接入尚待完成"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "product_name",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品名称",
+          "taskHandling": "当前importShipment取经核实来源产品名/型号；生产按P12最新规则须改取正式目录CRM优先字段，此消费接入尚待完成"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "product_desc",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品描述",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "shipment_time",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最新有效发货时间",
+          "taskHandling": "ast_device_shipment.shipment_time"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "package_no",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "ast_device_shipment.package_no"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最新有效发货合同编号",
+          "taskHandling": "ast_device_shipment.contract_no"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "shipment_record_id",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最新有效发货记录编号",
+          "taskHandling": "ast_device_shipment.id"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前直接归属项目编号",
+          "taskHandling": "P17解析正式项目后通过DeviceProjectAssignmentService.assign写入；已有不同项目不抢占"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "project_assignment_version",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目归属版本",
+          "taskHandling": "新设备初始0；正式指派按expectedAssignmentVersion递增"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "customer_id",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前直接归属客户编号",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "customer_assignment_version",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户归属版本",
+          "taskHandling": "新设备初始0；不通过本任务推断或覆盖最终客户"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "site_id",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前站点编号",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "site_location_id",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前站点位置编号",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "location_resolution_status",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(16)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "UNRESOLVED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前位置解析状态",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "location_snapshot",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前位置快照",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "location_effective_from",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前位置生效时间",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "location_record_id",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前位置记录编号",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "warranty_start_date",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前维保开始日期",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "warranty_end_date",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前维保结束日期",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "warranty_status",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前客观维保状态",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "conp_version",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前在网CONP原始版本",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "conp_type",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前在网CONP类型",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "conp_series",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前在网CONP系列",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "conp_mark",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前在网CONP版本掩码",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备状态",
+          "taskHandling": "缺失设备创建时IN_STOCK；不据历史发货推断安装/验收完成"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "remark",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "平台备注",
+          "taskHandling": "固定迁移说明，明确未推断安装或验收完成；不转存P12产品异名"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "缺失设备创建时固定DPPMS"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "source_key",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源键",
+          "taskHandling": "缺失设备创建时SN:加原SN"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源版本",
+          "taskHandling": "受控材料快照/命令sourceVersion"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源更新时间",
+          "taskHandling": "当前设备迁入不提供这些当前客户/位置/维保/版本或其他资料；缺失设备按本页默认/NULL，已有设备当前事实保持。安装/续保/软件历史分别属于P33/P25/P36"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "synced_at",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最近成功同步时间",
+          "taskHandling": "命令extractedAt，即本次来源采集时间"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "sync_status",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "NOT_APPLICABLE",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "同步状态",
+          "taskHandling": "缺失设备创建时SUCCESS"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 42,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 43,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "internal_serial_no",
+          "ORDINAL_POSITION": 44,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "内部序列号",
+          "taskHandling": "ast_device_shipment.internal_serial_no"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "secondary_sn",
+          "ORDINAL_POSITION": 45,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最新发货附加SN缓存",
+          "taskHandling": "ast_device_shipment.secondary_sn"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "secondary_item",
+          "ORDINAL_POSITION": 46,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最新发货附加物料缓存",
+          "taskHandling": "ast_device_shipment.secondary_item"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 47,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "所属公司 ID",
+          "taskHandling": "正式设备指派后调用DeviceOrganizationProjectionApi刷新项目/合同解析结果；不直接照搬DPPMS组织ID"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 48,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "所属公司名称",
+          "taskHandling": "正式设备指派后调用DeviceOrganizationProjectionApi刷新项目/合同解析结果；不直接照搬DPPMS组织ID"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "department_id",
+          "ORDINAL_POSITION": 49,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "所属办事处/部门 ID",
+          "taskHandling": "正式设备指派后调用DeviceOrganizationProjectionApi刷新项目/合同解析结果；不直接照搬DPPMS组织ID"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 50,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "所属办事处/部门编码",
+          "taskHandling": "正式设备指派后调用DeviceOrganizationProjectionApi刷新项目/合同解析结果；不直接照搬DPPMS组织ID"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 51,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "所属办事处/部门名称",
+          "taskHandling": "正式设备指派后调用DeviceOrganizationProjectionApi刷新项目/合同解析结果；不直接照搬DPPMS组织ID"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "organization_source",
+          "ORDINAL_POSITION": 52,
+          "COLUMN_TYPE": "varchar(20)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "UNRESOLVED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "PROJECT/CONTRACT/UNRESOLVED",
+          "taskHandling": "正式设备指派后调用DeviceOrganizationProjectionApi刷新项目/合同解析结果；不直接照搬DPPMS组织ID"
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "COLUMN_NAME": "organization_updated_at",
+          "ORDINAL_POSITION": 53,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "归属重建时间",
+          "taskHandling": "正式设备指派后调用DeviceOrganizationProjectionApi刷新项目/合同解析结果；不直接照搬DPPMS组织ID"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_conp_parse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_conp_parse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "conp_type",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_conp_parse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "conp_series",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_conp_parse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "conp_mark",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_conp_parse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_conp_parse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 6,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_contract_projection",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_contract_projection",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_contract_projection",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_contract_projection",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_contract_projection",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "customer_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "product_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "product_model",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_shipment",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_shipment",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "shipment_time",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_shipment",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_shipment",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "department_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "department_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 6,
+          "COLUMN_NAME": "organization_source",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 7,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 8,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_visibility_cover",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 9,
+          "COLUMN_NAME": "sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_warranty",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_warranty",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "warranty_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_warranty",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "warranty_end_date",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_warranty",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_ast_device_warranty",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_device_organization",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_device_organization",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_device_organization",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_device_organization",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "department_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "idx_device_organization",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "uk_ast_device_tenant_sn",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device",
+          "INDEX_NAME": "uk_ast_device_tenant_sn",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "sn",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "项目关系编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "device_sn",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备序列号",
+          "taskHandling": "ast_device_shipment.device_sn"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编号",
+          "taskHandling": "经PROJ Guard校验的正式项目id"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "relationship_type",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "关系类型",
+          "taskHandling": "正式指派固定DIRECT"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "effective_from",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效时间",
+          "taskHandling": "AssignDeviceProjectCommand.effectiveAt"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "effective_to",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "失效时间",
+          "taskHandling": "新增当前关系NULL；有旧当前关系时由Owner按本次生效时间关闭，不能直接SQL改历史"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "assignment_version",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "归属版本",
+          "taskHandling": "expectedAssignmentVersion+1"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "reason",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "变更原因",
+          "taskHandling": "正式指派命令reason，反映已授权迁入原因"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "operation_id",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "操作编号",
+          "taskHandling": "正式指派Owner生成operationId UUID；不是原表主键"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "正式指派Owner固定PMS（设备本身迁移来源仍为DPPMS）"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "source_key",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源键",
+          "taskHandling": "正式指派Owner生成operationId UUID；不是原表主键"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源版本",
+          "taskHandling": "本次assignmentVersion字符串"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "current_direct_device_sn",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "STORED GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "数据库生成列维护当前DIRECT唯一性，不直接赋值"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "effective_to",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "effective_to",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "idx_ast_device_project_relationship_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "uk_ast_device_project_relationship_current",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "uk_ast_device_project_relationship_current",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "current_direct_device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "uk_ast_device_project_relationship_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "uk_ast_device_project_relationship_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_project_relationship",
+          "INDEX_NAME": "uk_ast_device_project_relationship_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_key",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DppmsAssetEntityImportApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/migration/DppmsAssetEntityImportService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/assignment/DeviceProjectAssignmentService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceOrganizationProjectionService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceOrganizationService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMigrationIdentityMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/shipment/DeviceShipmentMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/assignment/DeviceAssignmentMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/warranty/DeviceWarrantyRecordMapper.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/reference/ProjectDeviceAssignmentGuardApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/version/DeviceFactoryVersionMapper.java",
+    "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/command/PlatformCommandExecutionApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceOrganizationMapper.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/organization/ProjectDeviceOrganizationApi.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/scope/ContractDeviceVisibilityApi.java",
+    "pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/shipment/DeviceShipmentMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRecordMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/device/DeviceOrganizationMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": null,
+  "currentAdapter": null,
+  "supplementalOwnerWrites": [
+    "ast_device_shipment：importShipment对获准既有空字段补缺，非独立重写发货事实",
+    "ast_device_assignment_reconciliation：项目与设备客户同时非空且不同才新建PENDING对账；正式指派同时刷新ast_device组织投影"
+  ],
+  "auxiliaryTargetTables": {
+    "ast_device_shipment": "importShipment对获准既有发货字段补缺，来源/现值一致才处理",
+    "ast_device_assignment_reconciliation": "正式指派发现双方非空客户不一致时新增PENDING对账记录"
+  },
+  "auxiliaryTargetSchemas": [
+    {
+      "table": "ast_device_shipment",
+      "purpose": "importShipment对获准既有发货字段补缺，来源/现值一致才处理",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "发货记录编号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "device_sn",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备序列号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "shipment_time",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货时间",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "package_no",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "event_type",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货事件类型",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "warranty_start_date",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货约定维保开始日期",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "warranty_months",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货约定维保月数",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "rma_no",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "RMA编号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "related_device_sn",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "关联设备序列号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_key",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源键",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源版本",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源更新时间",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "synced_at",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最近成功同步时间",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "sync_status",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "同步状态",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "legacy_package_key",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源装箱单键，未解析时仍保留",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "rma_related_sn",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源RMA关联SN候选，不生成替换关系",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "rma_marked",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源RMA标识",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "order_line_id",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "唯一解析的ERP订单行ID",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_payload",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源条码记录",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "order_no",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源订单号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "line_no",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源订单行号",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源物料编码 item",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "secondary_sn",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源附加SN barcode2",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "secondary_item",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源附加物料 item2",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "internal_serial_no",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源组合条码 com_barcode",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "is_rma",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源RMA标识 isRMA",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "profit_center",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源利润中心 profitCenter",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "sole_agent_suffix",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源独家代理后缀 soleAgentSuffix",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "sync_time",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间 syncTime",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "uuid",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源UUID",
+          "taskHandling": "当前importShipment只按SHIPMENT_FIELDS获准集合fillMissing，现值非空不覆盖；完整字段见DppmsAssetEntityImportService和本包DeviceShipmentMapper.xml"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "fk_ast_device_shipment_related_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "fk_ast_device_shipment_related_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "related_device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "shipment_time",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_package",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_package",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "package_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_package",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "uk_ast_device_shipment_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "uk_ast_device_shipment_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "uk_ast_device_shipment_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_key",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "ast_device_assignment_reconciliation",
+      "purpose": "正式指派发现双方非空客户不一致时新增PENDING对账记录",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "归属核对编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "device_sn",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备序列号",
+          "taskHandling": "仅项目客户与设备客户同时非空且不同才写：取当前设备SN、批准项目ID、Guard客户及设备现客户"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前项目编号",
+          "taskHandling": "仅项目客户与设备客户同时非空且不同才写：取当前设备SN、批准项目ID、Guard客户及设备现客户"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "project_customer_id",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目当前客户编号",
+          "taskHandling": "仅项目客户与设备客户同时非空且不同才写：取当前设备SN、批准项目ID、Guard客户及设备现客户"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "device_customer_id",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备当前客户编号",
+          "taskHandling": "仅项目客户与设备客户同时非空且不同才写：取当前设备SN、批准项目ID、Guard客户及设备现客户"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "核对状态",
+          "taskHandling": "条件触发时PENDING"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "reason",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "核对原因",
+          "taskHandling": "条件触发时PROJECT_CUSTOMER_MISMATCH；不自动改客户归属"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "INDEX_NAME": "idx_ast_device_assignment_reconciliation_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "INDEX_NAME": "idx_ast_device_assignment_reconciliation_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "INDEX_NAME": "idx_ast_device_assignment_reconciliation_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "INDEX_NAME": "idx_ast_device_assignment_reconciliation_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_assignment_reconciliation",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "queryReferenceTables": [
+    "fb_shipment_barcode"
+  ],
+  "adapterState": "NO_FULL_TASK_ENTRY",
+  "ownerSqlFiles": [
+    "owner-sql/DeviceMigrationIdentityMapper.xml",
+    "owner-sql/DeviceShipmentMapper.xml",
+    "owner-sql/DeviceAssignmentMapper.xml",
+    "owner-sql/DeviceOrganizationMapper.xml"
+  ]
+}

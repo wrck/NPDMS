@@ -1,0 +1,1672 @@
+{
+  "task": {
+    "key": "P04",
+    "name": "账号与任职资料",
+    "businessOwners": [
+      "SYSTEM"
+    ],
+    "source": "t_user、t_user_info、fnd_user_info；EHR精确人员参考",
+    "targetTables": [
+      "system_users"
+    ],
+    "dependencies": [
+      "P01",
+      "P02",
+      "P03"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "A04",
+        "originalTaskId": "2108524822998773762",
+        "originalVersion": 0,
+        "originalAdapter": "DPPMS_USERS",
+        "sourceObjects": [
+          "t_user",
+          "t_user_info",
+          "fnd_user_info"
+        ]
+      }
+    ],
+    "preparation": "ADAPT_FIRST_IMPORT",
+    "configurationWork": "保留已批准账号范围、合并优先级和三项EHR例外；不读取旧密码。旧admin审计关联的正式身份须在生产核实，不能照搬ID1。首次写入即保留原NULL审计，不重放557项旧纠正证明。",
+    "acceptance": "账号资料和来源别名完整；原NULL/历史日期不被自动填充改写；角色、项目访问及认证激活分别受控。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-system-users-table-decision.md",
+      "2026-10-09-dppms-user-contact-and-login-decision.md",
+      "2026-10-09-dppms-user-null-updater-correction.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "t_user",
+      "t_user_info",
+      "fnd_user_info"
+    ],
+    "adapterClass": "DppmsUserSyncAdapter",
+    "writerClasses": [
+      "SystemUserMigrationApi"
+    ],
+    "businessKey": "经批准的规范username；每个t/fnd来源身份分别绑定同一正式用户",
+    "genericAssessment": "有专用适配器。三份来源合并、FND优先、真实EHR员工核验、历史共用联系方式和普通账号唯一性边界均属于IAM Owner；不能用通用UPSERT按姓名/电话合并账号或迁入旧密码。",
+    "processing": [
+      "联合读取t_user、t_user_info、fnd_user_info及EHR参考，排除密码字段。",
+      "按已裁决账号范围合并：FND为主，t_*补缺；重复FND登录名按既定较新记录裁决。",
+      "通过公司/部门/岗位与EHR真实工号核对，保留3个已批准员工例外；SYSTEM Owner保存正式账号及原审计。",
+      "为每个来源身份维护独立绑定；不在本任务授予系统角色、项目访问或启用密码登录。"
+    ],
+    "specialRules": [
+      "原isSysUser不是超级管理员标记；userCustom3/4等旧缺项不伪装为已迁。",
+      "迁移允许已裁决的历史共享邮箱/手机号，普通维护仍检查唯一；多账号手机号登录/找回不能任选。",
+      "当前旧配置对原admin审计引用的正式ID必须在生产重解；NULL审计首次即正确写入。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT u.user_id,u.user_name,u.create_by,u.create_time,u.update_by,u.update_time,u.status,u.needChangePwd,u.loginErrorCount,u.isSysUser,u.userCustom1,u.userCustom2,u.userCustom3,u.userCustom4,u.userCustom5,l.loginCount AS migrationLoginCount,l.empID AS migrationLoginEmployeeId,l.workNo AS migrationLoginWorkNo,l.name AS migrationLoginName,e.empID AS migrationEmployeeId,e.workNo AS migrationEmployeeWorkNo,e.name AS migrationEmployeeName FROM t_user u LEFT JOIN (SELECT account,COUNT(*) AS loginCount,MIN(empID) AS empID,MIN(workNo) AS workNo,MIN(name) AS name FROM ehr_login GROUP BY account) l ON CAST(l.account AS BINARY)=CAST(u.user_name AS BINARY) LEFT JOIN ehr_employee e ON e.empID=l.empID",
+      "table": null,
+      "object": "t_user",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "user_id",
+          "target": "user_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "user_name",
+          "target": "user_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "create_by",
+          "target": "create_by",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "create_time",
+          "target": "create_time",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "update_by",
+          "target": "update_by",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "update_time",
+          "target": "update_time",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "status",
+          "target": "status",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "needChangePwd",
+          "target": "needChangePwd",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "loginErrorCount",
+          "target": "loginErrorCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "isSysUser",
+          "target": "isSysUser",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "userCustom1",
+          "target": "userCustom1",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "userCustom2",
+          "target": "userCustom2",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "userCustom3",
+          "target": "userCustom3",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "userCustom4",
+          "target": "userCustom4",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "userCustom5",
+          "target": "userCustom5",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginCount",
+          "target": "migrationLoginCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginEmployeeId",
+          "target": "migrationLoginEmployeeId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginWorkNo",
+          "target": "migrationLoginWorkNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginName",
+          "target": "migrationLoginName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEmployeeId",
+          "target": "migrationEmployeeId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEmployeeWorkNo",
+          "target": "migrationEmployeeWorkNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEmployeeName",
+          "target": "migrationEmployeeName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "user_id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "t_user",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryFile": "sql/P04-01-t_user.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "ehr_employee",
+        "ehr_login",
+        "t_user",
+        "Account"
+      ],
+      "historicalProofsOmitted": []
+    },
+    {
+      "sql": "SELECT u.id,u.workNo,u.realName,u.eName,u.compID,u.depID,u.jobID,u.reportTo,u.wfreportTo,u.empStatus,u.jobStatus,u.empType,u.sex,u.birthday,u.email,u.mobile,u.telphone,u.avatar,u.remark,u.state,u.user_id,u.custom1,u.custom2,u.custom3,u.custom4,u.custom5,c.compCode AS migrationCompanyCode,d.depCode AS migrationDepartmentCode,j.jobCode AS migrationPositionCode,e.empID AS migrationVerifiedEmployeeId FROM t_user_info u LEFT JOIN t_company c ON c.id=u.compID LEFT JOIN ehr_department d ON d.depID=u.depID LEFT JOIN ehr_job j ON j.jobID=u.jobID LEFT JOIN t_user a ON a.user_id=u.user_id LEFT JOIN ehr_employee e ON e.empID=a.userCustom4 AND CAST(e.workNo AS BINARY)=CAST(u.workNo AS BINARY) AND u.workNo<>''",
+      "table": null,
+      "object": "t_user_info",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "workNo",
+          "target": "workNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "realName",
+          "target": "realName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "eName",
+          "target": "eName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "compID",
+          "target": "compID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depID",
+          "target": "depID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "jobID",
+          "target": "jobID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "reportTo",
+          "target": "reportTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "wfreportTo",
+          "target": "wfreportTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "empStatus",
+          "target": "empStatus",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "jobStatus",
+          "target": "jobStatus",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "empType",
+          "target": "empType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "sex",
+          "target": "sex",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "birthday",
+          "target": "birthday",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "email",
+          "target": "email",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "mobile",
+          "target": "mobile",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "telphone",
+          "target": "telphone",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "avatar",
+          "target": "avatar",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "remark",
+          "target": "remark",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "state",
+          "target": "state",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "user_id",
+          "target": "user_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "custom1",
+          "target": "custom1",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "custom2",
+          "target": "custom2",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "custom3",
+          "target": "custom3",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "custom4",
+          "target": "custom4",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "custom5",
+          "target": "custom5",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationCompanyCode",
+          "target": "migrationCompanyCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDepartmentCode",
+          "target": "migrationDepartmentCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationPositionCode",
+          "target": "migrationPositionCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationVerifiedEmployeeId",
+          "target": "migrationVerifiedEmployeeId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "t_user_info",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryFile": "sql/P04-02-t_user_info.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "ehr_department",
+        "ehr_employee",
+        "ehr_job",
+        "t_company",
+        "t_user",
+        "t_user_info"
+      ],
+      "historicalProofsOmitted": []
+    },
+    {
+      "sql": "SELECT u.id,u.username,u.email,u.dpNo,u.realName,u.roleIds,u.isemail,u.status,u.defaultPage,u.pwdoverdue,u.createBy,u.createTime,u.updateBy,u.updateTime,u.effectiveFrom,u.effectiveTo,u.customInfo,l.loginCount AS migrationLoginCount,l.empID AS migrationLoginEmployeeId,l.workNo AS migrationLoginWorkNo,l.name AS migrationLoginName,e.empID AS migrationEmployeeId,e.workNo AS migrationEmployeeWorkNo,e.name AS migrationEmployeeName FROM fnd_user_info u LEFT JOIN (SELECT account,COUNT(*) AS loginCount,MIN(empID) AS empID,MIN(workNo) AS workNo,MIN(name) AS name FROM ehr_login GROUP BY account) l ON CAST(l.account AS BINARY)=CAST(u.username AS BINARY) LEFT JOIN ehr_employee e ON e.empID=l.empID",
+      "table": null,
+      "object": "fnd_user_info",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "username",
+          "target": "username",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "email",
+          "target": "email",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dpNo",
+          "target": "dpNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "realName",
+          "target": "realName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "roleIds",
+          "target": "roleIds",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "isemail",
+          "target": "isemail",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "status",
+          "target": "status",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "defaultPage",
+          "target": "defaultPage",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "pwdoverdue",
+          "target": "pwdoverdue",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginCount",
+          "target": "migrationLoginCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginEmployeeId",
+          "target": "migrationLoginEmployeeId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginWorkNo",
+          "target": "migrationLoginWorkNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationLoginName",
+          "target": "migrationLoginName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEmployeeId",
+          "target": "migrationEmployeeId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEmployeeWorkNo",
+          "target": "migrationEmployeeWorkNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEmployeeName",
+          "target": "migrationEmployeeName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "fnd_user_info",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryFile": "sql/P04-03-fnd_user_info.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "ehr_employee",
+        "ehr_login",
+        "fnd_user_info",
+        "Account"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "t_user",
+      "sourceField": "user_id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "user_name",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "system_users.username",
+      "rule": "用户限定仅迁移首字母+工号、*_ss、*_supp；严格按原账号字符串筛选，不改名或修剪。原t_user329条、fnd_user_info866条，合并1176个账号、对应330条任职；304个选中账号的登录输入兼容已批准。admin/sse/test账号迁入提案被最新范围裁决取代，旧admin仅审计关联当前admin ID1已批准。；USER_APPROVED_ACCOUNT_SCOPE_LOGIN_INPUT_PENDING",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "password",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "旧认证凭据不读取、不迁入、不存JSON；沿新平台受控激活/认证规则",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "create_by",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "system_users.creator",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "create_time",
+      "sourceType": "datetime",
+      "nullable": "NO",
+      "target": "system_users.create_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "update_by",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "system_users.updater",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "update_time",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_users.update_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "status",
+      "sourceType": "smallint(1)",
+      "nullable": "NO",
+      "target": "system_users.status",
+      "rule": "用户批准fnd优先；原1→0启用、0→1停用；t独有锁定2→停用1，原值保存在custom_info.legacyUserStatus；未知值阻断。；USER_APPROVED_STATUS_CONVERSION",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "needChangePwd",
+      "sourceType": "bit(1)",
+      "nullable": "NO",
+      "target": "system_users.custom_info.mustChangePassword",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "loginErrorCount",
+      "sourceType": "int(1)",
+      "nullable": "NO",
+      "target": "system_users.custom_info.loginErrorCount",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "isSysUser",
+      "sourceType": "smallint(1)",
+      "nullable": "NO",
+      "target": "—",
+      "rule": "已读入完整原字段；已提交DppmsUserCustomInfo没有accountType/isSysUser属性，未证明该原标记已进入正式字段；账号范围/权限规则不能替代原值承接",
+      "fieldStatus": "正式字段映射缺口"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom1",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。；EXCLUDED_BY_USER_DECISION",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom2",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。；EXCLUDED_BY_USER_DECISION",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom3",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "system_users.employee_no / custom_info.employmentAssignments",
+      "rule": "经EHR真实工号核实；外部用户名不当工号",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom4",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.employmentAssignments[].employeeReference",
+      "rule": "作为EHR员工外键核对，保存已核实任职员工引用；不同创建链ID不能无条件当员工ID；未核实原值不宣称已保存",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user",
+      "sourceField": "userCustom5",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。；EXCLUDED_BY_USER_DECISION",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "workNo",
+      "sourceType": "varchar(25)",
+      "nullable": "NO",
+      "target": "system_users.employee_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "realName",
+      "sourceType": "varchar(50)",
+      "nullable": "NO",
+      "target": "system_users.nickname",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "eName",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.englishName",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "compID",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "system_user_company_department_scope.company_id；system_user_company_department_scope.company_code；system_user_company_department_scope.company_name",
+      "rule": "原公司外键经t_company及批准四码映射关联正式公司；P04只作账户组织参考，正式公司范围由P07写入。 本任务只作来源身份或范围参考；实际写入属于清单内相应账号/角色/范围任务。",
+      "fieldStatus": "跨任务参考/不在本任务重复写入"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "depID",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "system_users.dept_id；system_user_company_department_scope.department_id；system_user_company_department_scope.department_code；system_user_company_department_scope.department_name",
+      "rule": "精确原部门/正式绑定，账号主部门按fnd优先、t补缺；P07另行承接获准公司部门范围，不用旧部门ID直写。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "jobID",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "system_users.post_ids（关联system_post）",
+      "rule": "通过EHR岗位编码精确核对正式岗位；未匹配不伪造岗位",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "reportTo",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.employmentAssignments[].reportingEmployeeReference",
+      "rule": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "wfreportTo",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.employmentAssignments[].functionalReportingEmployeeReference",
+      "rule": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "empStatus",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "system_users.custom_info.employmentAssignments[].employeeStatus",
+      "rule": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "jobStatus",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.employmentAssignments[].positionStatus",
+      "rule": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "empType",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.employmentAssignments[].employeeType",
+      "rule": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "sex",
+      "sourceType": "smallint(1)",
+      "nullable": "YES",
+      "target": "system_users.sex",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "birthday",
+      "sourceType": "date",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。；EXCLUDED_BY_USER_DECISION",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "email",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "system_users.email",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "mobile",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "system_users.mobile",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "telphone",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.officePhone",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "avatar",
+      "sourceType": "varchar(500)",
+      "nullable": "YES",
+      "target": "system_users.avatar",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "remark",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "system_users.remark",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "state",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.employmentAssignments[].historicalEmploymentState",
+      "rule": "按公司任职业务属性承接，保留来源值及可核实引用；不压成单一公司或虚造当前EHR任职/审批事实。未精确关联的引用保持待关联，不丢弃。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "user_id",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.id",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom1",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。；EXCLUDED_BY_USER_DECISION",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom2",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原表核验本批无业务值（生日全部NULL、列明预留字段无非空/非零业务值），用户明确裁决不迁入；后续全历史扩展必须重新核验，有业务值时阻断并重新裁决。；EXCLUDED_BY_USER_DECISION",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom3",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "system_user_company_department_scope.department_code / 正式部门上下文",
+      "rule": "旧创建链明确是二级办事处编码，不必等于实际主部门；原341非空，同一公司配对保存，不新增custom3镜像。；EXISTING_FORMAL_FIELD_OR_OWNER_REUSE 本任务只作来源身份或范围参考；实际写入属于清单内相应账号/角色/范围任务。",
+      "fieldStatus": "跨任务参考/不在本任务重复写入"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom4",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.employmentAssignments[].projectTypeRestrictions",
+      "rule": "完整承接原项目类型准入值及已核实转换，历史限制不授予办事处或具体项目访问权；未知类型不得猜配。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "t_user_info",
+      "sourceField": "custom5",
+      "sourceType": "varchar(4096)",
+      "nullable": "YES",
+      "target": "system_user_company_department_scope 部门范围",
+      "rule": "原341非空；与该条userinfo明确公司组合，去空去重/别名映射，不能跨公司套用。；EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "id",
+      "sourceType": "int(8)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "username",
+      "sourceType": "varchar(128)",
+      "nullable": "NO",
+      "target": "system_users.username",
+      "rule": "用户限定仅迁移首字母+工号、*_ss、*_supp；严格按原账号字符串筛选，不改名或修剪。原t_user329条、fnd_user_info866条，合并1176个账号、对应330条任职；304个选中账号的登录输入兼容已批准。admin/sse/test账号迁入提案被最新范围裁决取代，旧admin仅审计关联当前admin ID1已批准。；USER_APPROVED_ACCOUNT_SCOPE_LOGIN_INPUT_PENDING",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "password",
+      "sourceType": "varchar(32)",
+      "nullable": "NO",
+      "target": "不迁入",
+      "rule": "旧认证凭据不读取、不迁入、不存JSON；沿新平台受控激活/认证规则",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "email",
+      "sourceType": "varchar(128)",
+      "nullable": "NO",
+      "target": "system_users.email",
+      "rule": "用户批准仅迁移过程允许重复邮箱、手机号，完整承接正式email/mobile，不改存JSON、不按联系人合并账号。普通新增及联系方式变更仍检查唯一性，未变更的历史共用值允许保留；手机号关联多个账号时短信登录/找回阻断，不任选账号。；USER_APPROVED_MIGRATION_ONLY_SHARED_CONTACTS",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "dpNo",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "system_users.dept_id；system_user_company_department_scope.department_id；system_user_company_department_scope.department_code；system_user_company_department_scope.department_name",
+      "rule": "原办事处码经批准目录精确解析；P04形成主部门，P07形成获准范围，不据部门猜公司或扩大授权。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "realName",
+      "sourceType": "varchar(128)",
+      "nullable": "NO",
+      "target": "system_users.nickname",
+      "rule": "fnd独有账号按外部账号；与t_user同义字段冲突须依据用户裁决，不能覆盖当前人员事实。；EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "roleIds",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "system_user_role / system_user_company_department_scope 的语义角色",
+      "rule": "按已裁决32项角色映射及fnd常量语义字符串编码关联system_user_role；停用角色不迁入，明确超级管理员例外；不据旧菜单关系授予其他菜单按钮。；EXISTING_FORMAL_FIELD_OR_OWNER_REUSE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "isemail",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.emailNotificationEnabled",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "status",
+      "sourceType": "int(1)",
+      "nullable": "YES",
+      "target": "system_users.status",
+      "rule": "用户批准fnd优先；原1→0启用、0→1停用；t独有锁定2→停用1，原值保存在custom_info.legacyUserStatus；未知值阻断。；USER_APPROVED_STATUS_CONVERSION",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "defaultPage",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "system_users.custom_info.defaultPage",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "pwdoverdue",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_users.custom_info.passwordExpireTime",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "createBy",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "system_users.creator",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_users.create_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "system_users.updater",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_users.update_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "effectiveFrom",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_users.custom_info.effectiveFrom",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "effectiveTo",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_users.custom_info.effectiveTo",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_user_info",
+      "sourceField": "customInfo",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "system_users.custom_info.customInfo",
+      "rule": "明确业务属性保存到正式账号JSON；原customInfo完整对象置于customInfo属性，NULL/false/0均保留，不混入密码，不据旧认证历史激活当前认证或权限。；USER_APPROVED_FORMAL_JSON_ATTRIBUTE",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "system_users",
+      "columns": [
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "用户ID",
+          "taskHandling": "t_user_info.user_id"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "username",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(30)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "用户账号",
+          "taskHandling": "t_user.user_name；fnd_user_info.username"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "password",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "密码",
+          "taskHandling": "只在新建账号时由PasswordEncoder散列运行内生成的随机值；旧密码/MD5不采集、不复用，散列值不进入本包"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "nickname",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(30)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "用户昵称",
+          "taskHandling": "t_user_info.realName；fnd_user_info.realName"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "remark",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "备注",
+          "taskHandling": "t_user_info.remark"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "dept_id",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "部门ID",
+          "taskHandling": "t_user_info.depID；fnd_user_info.dpNo"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "post_ids",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "岗位编号数组",
+          "taskHandling": "t_user_info.jobID"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "email",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "用户邮箱",
+          "taskHandling": "t_user_info.email；fnd_user_info.email"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "mobile",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "手机号码",
+          "taskHandling": "t_user_info.mobile"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "sex",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "用户性别",
+          "taskHandling": "t_user_info.sex"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "avatar",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "头像地址",
+          "taskHandling": "t_user_info.avatar"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "帐号状态（0正常 1停用）",
+          "taskHandling": "t_user.status；fnd_user_info.status"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "login_ip",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最后登录IP",
+          "taskHandling": "原登录痕迹不迁；新账号NULL，已有账号当前登录痕迹保持"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "login_date",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最后登录时间",
+          "taskHandling": "原登录痕迹不迁；新账号NULL，已有账号当前登录痕迹保持"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建者",
+          "taskHandling": "t_user.create_by；fnd_user_info.createBy"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "t_user.create_time；fnd_user_info.createTime"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新者",
+          "taskHandling": "t_user.update_by；fnd_user_info.updateBy"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "t_user.update_time；fnd_user_info.updateTime"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "employee_no",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "真实员工工号",
+          "taskHandling": "t_user.userCustom3；t_user_info.workNo"
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "COLUMN_NAME": "custom_info",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "账号扩展业务属性",
+          "taskHandling": "t_user.needChangePwd；t_user.loginErrorCount；t_user.userCustom4；t_user_info.eName；t_user_info.reportTo；t_user_info.wfreportTo；t_user_info.empStatus；t_user_info.jobStatus；t_user_info.empType；t_user_info.telphone；t_user_info.state；t_user_info.custom4；fnd_user_info.isemail；fnd_user_info.defaultPage；fnd_user_info.pwdoverdue；fnd_user_info.effectiveFrom；fnd_user_info.effectiveTo；fnd_user_info.customInfo"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "system_users",
+          "INDEX_NAME": "idx_dept_id",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "dept_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "INDEX_NAME": "idx_email",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "email",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "INDEX_NAME": "idx_mobile",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "mobile",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "INDEX_NAME": "idx_username",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "username",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_users",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsUserSyncAdapter.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApiImpl.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/company/CompanyApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemDepartmentMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/dept/PostApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/user/UserMigrationMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/dept/UserPostMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/tenant/TenantService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/oauth2/OAuth2TokenService.java",
+    "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_USERS",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "SNAPSHOT",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_USERS",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "Account",
+    "ehr_department",
+    "ehr_employee",
+    "ehr_job",
+    "ehr_login",
+    "t_company"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/UserMigrationMapper.xml"
+  ]
+}

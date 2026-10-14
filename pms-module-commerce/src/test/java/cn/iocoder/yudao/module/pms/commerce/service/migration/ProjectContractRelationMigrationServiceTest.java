@@ -52,6 +52,70 @@ class ProjectContractRelationMigrationServiceTest {
     Relation existing() { return new Relation(30L,1L,10L,11L,"RELATED","PMS","COM_PROJECT_CONTRACT_RELATION","op1",current,null,"ACTIVE",4,"1",current,"1",current,false); }
     Request request(Entry entry,boolean adopt) { return new Request(1L,1L,"integration:1:5",List.of(entry),adopt); }
     Entry entry(Long id,Relation last,Relation reviewed) { return new Entry("100:200",id,last,reviewed,incoming(),"50370","P1",3L,"C1"); }
+    Relation replace(Relation row,Map<String,Object> changes) {
+        var fields=new LinkedHashMap<String,Object>(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseMap(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(row)));
+        fields.putAll(changes);
+        return cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(
+                cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(fields),Relation.class);
+    }
+    Entry restoration(String status) {
+        var source=replace(incoming(),Map.of("status",status));
+        var original=replace(source,Map.of("id",30L));
+        return new Entry("100:200",30L,original,null,source,"50370","P1",3L,"C1",18L,
+                new Restoration(replace(original,Map.of("deleted",true,"version",1))));
+    }
+    @Test void approvedRestorationPreservesEveryBusinessAndAuditFieldAndReplaysWithoutAnotherWrite() {
+        when(relations.restoreWithdrawn(any())).thenReturn(1);
+        for(String status:List.of("ACTIVE","HISTORICAL")) {
+            var entry=restoration(status);var withdrawn=entry.restoration().withdrawnBefore();
+            when(relations.selectIdentity(any())).thenReturn(withdrawn);
+            when(relations.selectIdentityForUpdate(any())).thenReturn(withdrawn);
+            clearInvocations(relations);
+            var preview=service.preview(request(entry,false)).getFirst();
+            assertEquals("UPDATED",preview.action());assertEquals(entry.restoration().restored(),preview.after());
+            verify(relations,never()).restoreWithdrawn(any());
+            var applied=service.apply(request(entry,false)).getFirst();assertEquals(preview,applied);
+            verify(relations).restoreWithdrawn(argThat(write->write.before().equals(withdrawn) && write.after().equals(preview.after())));
+            when(relations.selectIdentityForUpdate(any())).thenReturn(applied.after());clearInvocations(relations);
+            assertEquals("UNCHANGED",service.apply(request(entry,false)).getFirst().action());
+            verify(relations,never()).restoreWithdrawn(any());verify(relations,never()).correctHistorical(any());verify(relations,never()).insertHistorical(any());
+        }
+    }
+    @Test void restorationRejectsEveryChangedColumnAndSourceDriftBeforeAnyWrite() {
+        var entry=restoration("ACTIVE");var withdrawn=entry.restoration().withdrawnBefore();
+        var changes=new LinkedHashMap<String,Object>();
+        changes.put("id",31L);changes.put("tenantId",2L);changes.put("projectId",12L);changes.put("contractId",13L);
+        changes.put("relationRole","OTHER");changes.put("sourceSystem","PMS");changes.put("sourceTable","other");
+        changes.put("sourceRecordKey","999:200");changes.put("effectiveFrom",current);changes.put("effectiveTo",current);
+        changes.put("status","HISTORICAL");changes.put("version",3);changes.put("creator","1");changes.put("createTime",current);
+        changes.put("updater","1");changes.put("updateTime",current);changes.put("deleted",false);
+        for(var change:changes.entrySet()) {
+            when(relations.selectIdentityForUpdate(any())).thenReturn(replace(withdrawn,Map.of(change.getKey(),change.getValue())));
+            assertThrows(IllegalArgumentException.class,()->service.apply(request(entry,false)),change.getKey());
+        }
+        when(relations.selectIdentityForUpdate(any())).thenReturn(withdrawn);
+        var sourceDrift=new Entry(entry.sourceKey(),entry.targetId(),entry.lastApplied(),null,
+                replace(entry.incoming(),Map.of("updateTime",current)),entry.sourceProjectKey(),entry.sourceProjectCode(),
+                entry.expectedProjectVersion(),entry.contractNo(),entry.sourceConnectionId(),entry.restoration());
+        assertThrows(IllegalArgumentException.class,()->service.apply(request(sourceDrift,false)));
+        assertThrows(IllegalArgumentException.class,()->service.apply(request(entry,true)));
+        when(permissions.hasAnyPermissions(eq(1L),any())).thenReturn(false);
+        assertThrows(IllegalArgumentException.class,()->service.apply(request(entry,false)));
+        verify(relations,never()).restoreWithdrawn(any());verify(relations,never()).insertHistorical(any());verify(relations,never()).correctHistorical(any());
+    }
+    @Test void restorationRejectsChangedWithdrawalSnapshotAndFailedCompareAndSet() {
+        var entry=restoration("ACTIVE");var withdrawn=entry.restoration().withdrawnBefore();
+        var changed=replace(withdrawn,Map.of("creator","1"));
+        when(relations.selectIdentityForUpdate(any())).thenReturn(changed);
+        var invalid=new Entry(entry.sourceKey(),entry.targetId(),entry.lastApplied(),null,entry.incoming(),entry.sourceProjectKey(),
+                entry.sourceProjectCode(),entry.expectedProjectVersion(),entry.contractNo(),entry.sourceConnectionId(),new Restoration(changed));
+        assertThrows(IllegalArgumentException.class,()->service.apply(request(invalid,false)));
+        verify(relations,never()).restoreWithdrawn(any());
+        when(relations.selectIdentityForUpdate(any())).thenReturn(withdrawn);
+        when(relations.restoreWithdrawn(any())).thenReturn(0);
+        assertThrows(IllegalStateException.class,()->service.apply(request(entry,false)));
+    }
     @Test void previewGeneratesNoIdAndPreservesNullAuditorsAndOriginalDates() {
         var result=service.preview(request(entry(null,null,null),false)).getFirst();
         assertEquals("CREATED",result.action());assertNull(result.after().id());assertNull(result.after().creator());assertNull(result.after().updater());

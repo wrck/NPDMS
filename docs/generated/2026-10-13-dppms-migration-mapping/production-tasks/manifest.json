@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-14T20:26:32",
+  "artifactKind": "READ_ONLY_PRODUCTION_MIGRATION_REVIEW_NOT_EXECUTABLE",
+  "catalogue": "docs\\superpowers\\plans\\2026-10-14-dppms-production-migration.json",
+  "taskCount": 37,
+  "adapterCounts": {
+    "CURRENT_SPECIALIZED_ADAPTER": 23,
+    "CURRENT_GENERIC_TABLE_MAPPING": 6,
+    "NO_FULL_TASK_ENTRY": 8
+  },
+  "metadataOnly": true,
+  "businessWrites": 0,
+  "sourceTaskDefinitionCount": 45,
+  "sqlCount": 51,
+  "sourceSchemaTables": 71,
+  "targetSchemaTables": 43,
+  "sourceSchemaColumns": 1107,
+  "targetSchemaColumns": 1105,
+  "ownerSqlMapperFiles": 43,
+  "fieldsListed": 861,
+  "tasks": [
+    {
+      "key": "P01",
+      "name": "公司与基础部门",
+      "targetTables": [
+        "system_company",
+        "system_dept"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "EHR_ORGANIZATION",
+      "details": "tasks/P01.md",
+      "configuration": "configurations/P01.json"
+    },
+    {
+      "key": "P02",
+      "name": "已批准的FND补充部门",
+      "targetTables": [
+        "system_dept"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_DEPARTMENTS",
+      "details": "tasks/P02.md",
+      "configuration": "configurations/P02.json"
+    },
+    {
+      "key": "P03",
+      "name": "八个EHR补充部门及主管补关联",
+      "targetTables": [
+        "system_dept"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+      "details": "tasks/P03.md",
+      "configuration": "configurations/P03.json"
+    },
+    {
+      "key": "P04",
+      "name": "账号与任职资料",
+      "targetTables": [
+        "system_users"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_USERS",
+      "details": "tasks/P04.md",
+      "configuration": "configurations/P04.json"
+    },
+    {
+      "key": "P05",
+      "name": "角色定义及来源角色绑定",
+      "targetTables": [
+        "system_role"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_ROLES",
+      "details": "tasks/P05.md",
+      "configuration": "configurations/P05.json"
+    },
+    {
+      "key": "P06",
+      "name": "用户角色关系",
+      "targetTables": [
+        "system_user_role"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_USER_ROLES",
+      "details": "tasks/P06.md",
+      "configuration": "configurations/P06.json"
+    },
+    {
+      "key": "P07",
+      "name": "用户公司与部门范围",
+      "targetTables": [
+        "system_user_company_department_scope"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_USER_SCOPES",
+      "details": "tasks/P07.md",
+      "configuration": "configurations/P07.json"
+    },
+    {
+      "key": "P08",
+      "name": "基础字典类型",
+      "targetTables": [
+        "system_dict_type"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_DICTIONARY_TYPES",
+      "details": "tasks/P08.md",
+      "configuration": "configurations/P08.json"
+    },
+    {
+      "key": "P09",
+      "name": "基础字典项",
+      "targetTables": [
+        "system_dict_data"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_DICTIONARY_DATA",
+      "details": "tasks/P09.md",
+      "configuration": "configurations/P09.json"
+    },
+    {
+      "key": "P10",
+      "name": "CRM客户主档",
+      "targetTables": [
+        "cus_customer_master"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "CRM_CUSTOMER",
+      "details": "tasks/P10.md",
+      "configuration": "configurations/P10.json"
+    },
+    {
+      "key": "P11",
+      "name": "CRM正式产品目录",
+      "targetTables": [
+        "ast_product_official_info"
+      ],
+      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+      "currentAdapter": "TABLE_MAPPING:crm-product",
+      "details": "tasks/P11.md",
+      "configuration": "configurations/P11.json"
+    },
+    {
+      "key": "P12",
+      "name": "DPPMS缺失产品补齐与编码关联",
+      "targetTables": [
+        "ast_product_official_info"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PRODUCT_CATALOG",
+      "details": "tasks/P12.md",
+      "configuration": "configurations/P12.json"
+    },
+    {
+      "key": "P13",
+      "name": "CRM执行单",
+      "targetTables": [
+        "com_crm_execution_order"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_CRM_EXECUTION_ORDER",
+      "details": "tasks/P13.md",
+      "configuration": "configurations/P13.json"
+    },
+    {
+      "key": "P14",
+      "name": "销售订单与订单行",
+      "targetTables": [
+        "com_sales_order",
+        "com_sales_order_line"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_ERP_ORDER",
+      "details": "tasks/P14.md",
+      "configuration": "configurations/P14.json"
+    },
+    {
+      "key": "P15",
+      "name": "正式合同主档",
+      "targetTables": [
+        "com_contract"
+      ],
+      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P15.md",
+      "configuration": "configurations/P15.json"
+    },
+    {
+      "key": "P16",
+      "name": "规范项目主档与基础最终客户资料",
+      "targetTables": [
+        "proj_project",
+        "proj_project_party"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PROJECT_MASTER",
+      "details": "tasks/P16.md",
+      "configuration": "configurations/P16.json"
+    },
+    {
+      "key": "P17",
+      "name": "全部原项目身份桥接",
+      "targetTables": [
+        "int_sync_binding"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PROJECT_IDENTITY",
+      "details": "tasks/P17.md",
+      "configuration": "configurations/P17.json"
+    },
+    {
+      "key": "P18",
+      "name": "项目合同关系及正式商务关联",
+      "targetTables": [
+        "com_project_contract_relation"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "details": "tasks/P18.md",
+      "configuration": "configurations/P18.json"
+    },
+    {
+      "key": "P19",
+      "name": "项目相关方与发货/执行状态资料",
+      "targetTables": [
+        "proj_project_party",
+        "plt_entity_extension_value"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PROJECT_FACTS",
+      "details": "tasks/P19.md",
+      "configuration": "configurations/P19.json"
+    },
+    {
+      "key": "P20",
+      "name": "项目真实产品",
+      "targetTables": [
+        "proj_project_real_product"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PROJECT_REAL_PRODUCT",
+      "details": "tasks/P20.md",
+      "configuration": "configurations/P20.json"
+    },
+    {
+      "key": "P21",
+      "name": "项目租赁产品与产品配置",
+      "targetTables": [
+        "proj_project_lease_product",
+        "proj_project_product_configuration"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "details": "tasks/P21.md",
+      "configuration": "configurations/P21.json"
+    },
+    {
+      "key": "P22",
+      "name": "项目产品实施范围",
+      "targetTables": [
+        "com_delivery_scope",
+        "com_delivery_scope_detail"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "details": "tasks/P22.md",
+      "configuration": "configurations/P22.json"
+    },
+    {
+      "key": "P23",
+      "name": "合同回款计划",
+      "targetTables": [
+        "com_contract_collection_plan"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "details": "tasks/P23.md",
+      "configuration": "configurations/P23.json"
+    },
+    {
+      "key": "P24",
+      "name": "合同实际回款信息",
+      "targetTables": [
+        "com_contract_receivable"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_CONTRACT_RECEIVABLE",
+      "details": "tasks/P24.md",
+      "configuration": "configurations/P24.json"
+    },
+    {
+      "key": "P25",
+      "name": "设备逐次续保记录",
+      "targetTables": [
+        "ast_device_warranty_renewal_record"
+      ],
+      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+      "currentAdapter": "DPPMS_WARRANTY_RENEWAL",
+      "details": "tasks/P25.md",
+      "configuration": "configurations/P25.json"
+    },
+    {
+      "key": "P26",
+      "name": "发货合同引用与保修年数",
+      "targetTables": [
+        "com_shipment_contract_reference",
+        "com_contract"
+      ],
+      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P26.md",
+      "configuration": "configurations/P26.json"
+    },
+    {
+      "key": "P27",
+      "name": "装箱单与物流",
+      "targetTables": [
+        "com_shipment_package"
+      ],
+      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P27.md",
+      "configuration": "configurations/P27.json"
+    },
+    {
+      "key": "P28",
+      "name": "设备发货事实",
+      "targetTables": [
+        "ast_device_shipment"
+      ],
+      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P28.md",
+      "configuration": "configurations/P28.json"
+    },
+    {
+      "key": "P29",
+      "name": "主SN与附加SN关系",
+      "targetTables": [
+        "ast_device_relationship"
+      ],
+      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P29.md",
+      "configuration": "configurations/P29.json"
+    },
+    {
+      "key": "P30",
+      "name": "设备主档及项目归属衔接",
+      "targetTables": [
+        "ast_device",
+        "ast_device_project_relationship"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P30.md",
+      "configuration": "configurations/P30.json"
+    },
+    {
+      "key": "P31",
+      "name": "项目成员历史与获准授权",
+      "targetTables": [
+        "proj_project_member_assignment"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P31.md",
+      "configuration": "configurations/P31.json"
+    },
+    {
+      "key": "P32",
+      "name": "历史最终客户联系人作为项目成员",
+      "targetTables": [
+        "proj_project_member_assignment"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P32.md",
+      "configuration": "configurations/P32.json"
+    },
+    {
+      "key": "P33",
+      "name": "普通安装历史及获准当前位置",
+      "targetTables": [
+        "imp_eng_installation",
+        "ast_device_location",
+        "ast_address",
+        "ast_device"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P33.md",
+      "configuration": "configurations/P33.json"
+    },
+    {
+      "key": "P34",
+      "name": "出厂软件版本记录",
+      "targetTables": [
+        "ast_device_factory_version_record"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P34.md",
+      "configuration": "configurations/P34.json"
+    },
+    {
+      "key": "P35",
+      "name": "项目软件变更批次",
+      "targetTables": [
+        "ast_device_software_change_batch"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P35.md",
+      "configuration": "configurations/P35.json"
+    },
+    {
+      "key": "P36",
+      "name": "设备软件版本历史",
+      "targetTables": [
+        "ast_device_software_version_record",
+        "plt_entity_extension_value"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P36.md",
+      "configuration": "configurations/P36.json"
+    },
+    {
+      "key": "P37",
+      "name": "设备许可历史",
+      "targetTables": [
+        "ast_device_license_record"
+      ],
+      "adapterState": "NO_FULL_TASK_ENTRY",
+      "currentAdapter": null,
+      "details": "tasks/P37.md",
+      "configuration": "configurations/P37.json"
+    }
+  ]
+}

@@ -1,0 +1,1711 @@
+{
+  "task": {
+    "key": "P26",
+    "name": "发货合同引用与保修年数",
+    "businessOwners": [
+      "COM"
+    ],
+    "source": "C01/v14的SHIPMENT_CONTRACT：fb_contract",
+    "targetTables": [
+      "com_shipment_contract_reference",
+      "com_contract"
+    ],
+    "dependencies": [
+      "P01",
+      "P02",
+      "P03",
+      "P15"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "C01",
+        "originalTaskId": "2107037031219654657",
+        "originalVersion": 14,
+        "originalAdapter": "TABLE_MAPPING",
+        "sourceObjects": [
+          "SHIPMENT_CONTRACT"
+        ]
+      }
+    ],
+    "preparation": "OWNER_ENTRY_REQUIRED",
+    "configurationWork": "抽出该来源及两个写入步骤，接COM Owner；保留合同原字段与年数转换、NULL裁决，不能把旧2条纠正证明平移执行。",
+    "acceptance": "发货引用、正式合同补充字段及年数单位准确；空业务身份问题单列，原合同权威字段受保护。",
+    "ruleDocuments": [
+      "2026-10-10-dppms-shipment-contract-reference-table-decision.md"
+    ],
+    "existingExecutionHold": true,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fb_contract"
+    ],
+    "adapterClass": "GenericSyncEngine",
+    "writerClasses": [],
+    "businessKey": "合同引用按当前配置来源同步身份/原合同键；正式合同仍按公司＋合同号",
+    "genericAssessment": "当前使用通用TABLE_MAPPING组合内SHIPMENT_CONTRACT段，且含两个目标步骤。原warranty_years转换已内置通用引擎；生产需接COM Owner保护合同与引用，不是必须重写源SQL。",
+    "processing": [
+      "按当前SQL核实原合同身份、公司、状态和同步来源问题。",
+      "当前先执行com_contract的UPDATE_ONLY步骤，仅补project_name、market_code、market_name、department_code、system_name；未命中不新增正式合同。",
+      "再UPSERT发货合同引用；保修年数只写com_shipment_contract_reference.warranty_years，按DPPMS_WARRANTY_YEARS转换，NULL的权威含义按该转换保留。"
+    ],
+    "specialRules": [
+      "角色、状态/启停与正常合同生命周期不混用；原目标纠正证明不迁生产。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT after_sales_scope.* FROM (SELECT normalized.*,CASE WHEN company_code='01' THEN '001' ELSE company_code END AS normalized_company_code FROM (SELECT f.*, e.company_code,\n       CASE WHEN f.contract_id IS NULL OR TRIM(f.contract_id) = ''\n            THEN CONCAT('invalid-source-key:', SHA2(CAST(JSON_OBJECT(\n                 'contract_id', f.contract_id, 'contract_code', f.contract_code,\n                 'office_code', f.office_code, 'contract_type', f.contract_type,\n                 'customer_name', f.customer_name, 'project_name', f.project_name,\n                 'warranty', f.warranty, 'marketCode', f.marketCode,\n                 'marketName', f.marketName, 'systemId', f.systemId,\n                 'systemName', f.systemName, 'remark', f.remark) AS CHAR), 256))\n            ELSE f.contract_id END AS sync_evidence_key,\n       CASE WHEN f.contract_id IS NULL OR TRIM(f.contract_id) = ''\n            THEN 'SOURCE_KEY_MISSING: fb_contract.contract_id'\n            ELSE NULL END AS sync_source_issue\nFROM fb_contract f\nLEFT JOIN (\n    SELECT contractNo, MIN(compCode) AS company_code\n    FROM pm_order_data_from_erp\n    WHERE compCode IS NOT NULL AND compCode <> ''\n    GROUP BY contractNo\n    HAVING COUNT(DISTINCT compCode) = 1\n) e ON e.contractNo = f.contract_code\n) normalized) after_sales_scope\nJOIN (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m\n JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n JOIN pm_project p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND p.projectId=(SELECT MAX(newer.projectId) FROM pm_project newer\n WHERE newer.projectCode=p.projectCode AND newer.projectType=p.projectType\n AND CAST(newer.projectCode AS BINARY)=CAST(p.projectCode AS BINARY))) project_scope ON project_scope.contractNo=after_sales_scope.contract_code AND FIND_IN_SET(after_sales_scope.contract_code,project_scope.contractNo)\n",
+      "table": "fb_contract",
+      "object": "SHIPMENT_CONTRACT",
+      "columns": [],
+      "filters": [],
+      "targets": [
+        {
+          "keys": [
+            "company_code",
+            "contract_no"
+          ],
+          "mode": "UPDATE_ONLY",
+          "name": "contractFields",
+          "table": "com_contract",
+          "lookups": [],
+          "newerBy": null,
+          "mappings": [
+            {
+              "source": "company_code",
+              "target": "company_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DPPMS_COMPANY_CODE",
+              "defaultValue": null
+            },
+            {
+              "source": "contract_code",
+              "target": "contract_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "project_name",
+              "target": "project_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "marketCode",
+              "target": "market_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "marketName",
+              "target": "market_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "office_code",
+              "target": "department_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "systemName",
+              "target": "system_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            }
+          ],
+          "whenField": null,
+          "nullPolicy": "IGNORE",
+          "tieBreaker": null,
+          "updateColumns": [
+            "project_name",
+            "market_code",
+            "market_name",
+            "department_code",
+            "system_name"
+          ]
+        },
+        {
+          "keys": [
+            "source_system",
+            "source_record_key"
+          ],
+          "mode": "UPSERT",
+          "name": "shipmentContract",
+          "table": "com_shipment_contract_reference",
+          "lookups": [
+            {
+              "match": {
+                "contract_no": "contract_no",
+                "company_code": "company_code"
+              },
+              "table": "com_contract",
+              "outputs": {
+                "contract_id": "id"
+              },
+              "onMissing": "RETAIN"
+            },
+            {
+              "match": {
+                "code": "company_code"
+              },
+              "table": "system_company",
+              "outputs": {
+                "company_id": "id",
+                "company_name": "name"
+              },
+              "onMissing": "RETAIN"
+            },
+            {
+              "match": {
+                "code": "department_code"
+              },
+              "table": "system_dept",
+              "outputs": {
+                "department_id": "id",
+                "department_name": "name"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "newerBy": null,
+          "mappings": [
+            {
+              "source": "contract_code",
+              "target": "contract_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "company_code",
+              "target": "company_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DPPMS_COMPANY_CODE",
+              "defaultValue": null
+            },
+            {
+              "source": "office_code",
+              "target": "department_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "contract_type",
+              "target": "contract_type",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "customer_name",
+              "target": "customer_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "project_name",
+              "target": "project_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "warranty",
+              "target": "warranty_years",
+              "values": null,
+              "constant": null,
+              "conversion": "DPPMS_WARRANTY_YEARS",
+              "defaultValue": null
+            },
+            {
+              "source": "marketCode",
+              "target": "market_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "marketName",
+              "target": "market_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "systemId",
+              "target": "system_source_key",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "systemName",
+              "target": "system_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "remark",
+              "target": "remark",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_KEY",
+              "target": "source_record_key",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            }
+          ],
+          "whenField": null,
+          "nullPolicy": "IGNORE",
+          "tieBreaker": null,
+          "updateColumns": [
+            "contract_no",
+            "company_code",
+            "department_code",
+            "contract_type",
+            "customer_name",
+            "project_name",
+            "warranty_years",
+            "market_code",
+            "market_name",
+            "system_source_key",
+            "system_name",
+            "remark",
+            "contract_id",
+            "company_id",
+            "company_name",
+            "department_id",
+            "department_name"
+          ]
+        }
+      ],
+      "mappings": [],
+      "readMode": "SQL",
+      "sourceKey": "sync_evidence_key",
+      "updatedAt": null,
+      "issueField": "sync_source_issue",
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "fb_contract",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P26-01-SHIPMENT_CONTRACT.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fb_contract",
+        "pm_order_data_from_erp",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "contract_id",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "contract_code",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.contract_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "office_code",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.department_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "contract_type",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.contract_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "customer_name",
+      "sourceType": "varchar(512)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.customer_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "project_name",
+      "sourceType": "varchar(512)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.project_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "warranty",
+      "sourceType": "varchar(2)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.warranty_years",
+      "rule": "单位年，空白/NULL→NULL；非负整数直接承接，负数/小数/溢出阻断；不存布尔warranty_flag",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "marketCode",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.market_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "marketName",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.market_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "systemId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.system_source_key",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "systemName",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.system_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_contract",
+      "sourceField": "remark",
+      "sourceType": "varchar(4096)",
+      "nullable": "YES",
+      "target": "com_shipment_contract_reference.remark",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_shipment_contract_reference",
+      "columns": [
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "contract_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同ID",
+          "taskHandling": "LOOKUP com_contract.id"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "fb_contract.contract_code；SHIPMENT_CONTRACT.contract_code"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司ID",
+          "taskHandling": "LOOKUP system_company.id"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司编码",
+          "taskHandling": "SHIPMENT_CONTRACT.company_code"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司名称",
+          "taskHandling": "LOOKUP system_company.name"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "department_id",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处ID",
+          "taskHandling": "LOOKUP system_dept.id"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处编码",
+          "taskHandling": "fb_contract.office_code；SHIPMENT_CONTRACT.office_code"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处名称",
+          "taskHandling": "LOOKUP system_dept.name"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "contract_type",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同类型编码",
+          "taskHandling": "fb_contract.contract_type；SHIPMENT_CONTRACT.contract_type"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "customer_name",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户名称",
+          "taskHandling": "fb_contract.customer_name；SHIPMENT_CONTRACT.customer_name"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "project_name",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目名称",
+          "taskHandling": "fb_contract.project_name；SHIPMENT_CONTRACT.project_name"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "market_code",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部编码",
+          "taskHandling": "fb_contract.marketCode；SHIPMENT_CONTRACT.marketCode"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "market_name",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部名称",
+          "taskHandling": "fb_contract.marketName；SHIPMENT_CONTRACT.marketName"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "system_source_key",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部来源键",
+          "taskHandling": "fb_contract.systemId；SHIPMENT_CONTRACT.systemId"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "system_code",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部编码",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "system_name",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部名称",
+          "taskHandling": "fb_contract.systemName；SHIPMENT_CONTRACT.systemName"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "warranty_years",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同保修年数，原空白或NULL表示未知；不代表当前保修状态",
+          "taskHandling": "fb_contract.warranty；SHIPMENT_CONTRACT.warranty"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "remark",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(4096)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "备注",
+          "taskHandling": "fb_contract.remark；SHIPMENT_CONTRACT.remark"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "mapping_status",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "PENDING_MAPPING",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "映射状态",
+          "taskHandling": "通用目标目录insertDefault=PENDING_MAPPING"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "SHIPMENT_CONTRACT.$SOURCE_SYSTEM"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源记录稳定唯一键",
+          "taskHandling": "SHIPMENT_CONTRACT.$SOURCE_KEY"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "mapping_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "contract_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "mapping_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "idx_shipment_contract_ref_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "mapping_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "uk_shipment_contract_ref_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "uk_shipment_contract_ref_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "uk_shipment_contract_ref_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "uk_shipment_contract_ref_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_shipment_contract_reference",
+          "INDEX_NAME": "uk_shipment_contract_ref_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "com_contract",
+      "columns": [
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "签约公司ID",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "签约公司编码",
+          "taskHandling": "SHIPMENT_CONTRACT.company_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "签约公司名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "SHIPMENT_CONTRACT.contract_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "master_source_system",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主档来源系统",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "master_source_record_key",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主档来源记录键",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "master_source_version",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_type",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同类型编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "customer_id",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户ID",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "customer_code",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "customer_name",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_name",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_amount",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "currency_code",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "币种编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "currency_name",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "币种名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_create_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同创建时间",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "authority_status",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CONFIRMED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "通用目标目录insertDefault=PENDING_AUTHORITY"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "source_lifecycle_status",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "通用目标目录insertDefault=NULL"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "effective_date",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效日期",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "expiry_date",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "失效日期",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "project_name",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目名称",
+          "taskHandling": "SHIPMENT_CONTRACT.project_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(80)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "market_code",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部编码",
+          "taskHandling": "SHIPMENT_CONTRACT.marketCode"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "market_name",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部名称",
+          "taskHandling": "SHIPMENT_CONTRACT.marketName"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处编码",
+          "taskHandling": "SHIPMENT_CONTRACT.office_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "system_code",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "system_name",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部名称",
+          "taskHandling": "SHIPMENT_CONTRACT.systemName"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "expend_code",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "expend_name",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "industry_code",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "industry_name",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "marketing_representative_code",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场代表编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "marketing_representative_name",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场代表名称",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "secondary_representative_code",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "辅助代表编码",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前步骤UPDATE_ONLY且未列入映射/更新白名单；保持已有值，不新增目标记录"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "通用目标目录insertDefault=NULL"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 42,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 43,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 44,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 45,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 46,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "customer_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_master_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_master_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "master_source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_master_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "master_source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericSyncEngine.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/GenericSyncJdbcStore.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericTargetCatalog.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "TABLE_MAPPING",
+    "maxRows": 2000,
+    "taskKey": "delivery-full-sync",
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 2000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "CHECKPOINT_KEY",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_order_data_from_erp",
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+  "ownerSqlFiles": []
+}

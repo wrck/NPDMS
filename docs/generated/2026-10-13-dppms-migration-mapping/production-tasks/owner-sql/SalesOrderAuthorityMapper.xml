@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.authority.SalesOrderAuthorityMapper">
+    <select id="selectBySourceForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
+        SELECT * FROM com_sales_order
+        WHERE tenant_id = #{tenantId}
+          AND (source_system = #{sourceSystem} OR
+            (#{sourceSystem} = 'ERP' AND source_system IN ('SAP','D365','SMS')
+             AND source_record_key LIKE CONCAT('DPPMS|',source_system,'|%')))
+          AND source_record_key = #{sourceKey} AND deleted = b'0'
+        FOR UPDATE
+    </select>
+    <select id="selectBySourcesForUpdate" resultType="cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO">
+        SELECT * FROM com_sales_order
+        WHERE tenant_id = #{tenantId} AND deleted = b'0'
+          AND (source_system = #{sourceSystem} OR
+            (#{sourceSystem} = 'ERP' AND source_system IN ('SAP','D365','SMS')
+             AND source_record_key LIKE CONCAT('DPPMS|',source_system,'|%')))
+        <choose>
+            <when test="sourceKeys != null and !sourceKeys.isEmpty()">
+                AND source_record_key IN
+                <foreach collection="sourceKeys" item="sourceKey" open="(" separator="," close=")">#{sourceKey}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        ORDER BY source_record_key
+        FOR UPDATE
+    </select>
+    <update id="updateOwnerByVersion">
+        UPDATE com_sales_order
+        SET source_system = #{row.sourceSystem}, company_code = #{row.companyCode}, order_no = #{row.orderNo}, order_type = #{row.orderType},
+            customer_code = #{row.customerCode}, customer_name = #{row.customerName},
+            order_amount = #{row.orderAmount}, currency_code = #{row.currencyCode},
+            authority_status = #{row.authorityStatus}, source_lifecycle_status = #{row.sourceLifecycleStatus},
+            sales_type = #{row.salesType},
+            contract_no = #{row.contractNo},
+            execution_no = #{row.executionNo},
+            source_project_name = #{row.sourceProjectName},
+            order_comment = #{row.orderComment},
+            order_create_time = #{row.orderCreateTime},
+            customer_required_time = #{row.customerRequiredTime},
+            custom_info = #{row.customInfo},
+            source_version = #{row.sourceVersion}, source_updated_at = #{row.sourceUpdatedAt},
+            source_sync_time = #{row.syncedAt}, status = #{row.status}, version = version + 1,
+            updater = #{row.updater}, update_time = #{row.updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{row.id} AND version = #{expectedVersion} AND deleted = b'0'
+    </update>
+</mapper>

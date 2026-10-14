@@ -1,0 +1,387 @@
+{
+  "task": {
+    "key": "P35",
+    "name": "项目软件变更批次",
+    "businessOwners": [
+      "AST",
+      "PROJ"
+    ],
+    "source": "pm_project_soft_change_logs",
+    "targetTables": [
+      "ast_device_software_change_batch"
+    ],
+    "dependencies": [
+      "P04",
+      "P17"
+    ],
+    "sourceTaskReferences": [],
+    "preparation": "TASK_ENTRY_MISSING",
+    "configurationWork": "沿正式11列、9原字段和NULL审计规则补整表任务；不携带原6条纠正目标ID。",
+    "acceptance": "批次身份、版本、日期及原审计逐项一致；旧latest/登记时间不生成每台设备升级完成事实。",
+    "ruleDocuments": [
+      "2026-10-10-dppms-software-batch-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project_soft_change_logs"
+    ],
+    "adapterClass": null,
+    "writerClasses": [
+      "ProjectLegacyEntityMigrationService",
+      "DppmsAssetSourceHistoryApi"
+    ],
+    "businessKey": "原log id＋原项目→正式软件变更批次",
+    "genericAssessment": "尚无独立全量任务，已有AST批次历史Owner。原审计NULL、来源身份、后续版本记录关系和重放全列保护需通过该Owner，不能仅做通用INSERT。",
+    "processing": [
+      "读取全部9原字段，按P17解析正式项目。",
+      "原changeVersion/changeRemark/latest及审计进入既有11列表。",
+      "正式批次ID供P36按logId精确关联；latest不产生每台设备升级完成事实。"
+    ],
+    "specialRules": [
+      "NULL更新人保持；更新时间NULL按原创建时间回退。"
+    ],
+    "materialQueries": [
+      "software-changes"
+    ]
+  },
+  "sources": [
+    {
+      "object": "software-changes",
+      "readMode": "SQL",
+      "sourceObject": "pm_project_soft_change_logs",
+      "sourceKey": "完整原身份/已批准复合身份，详承接规则",
+      "sql": "SELECT `id`,`projectId`,`changeVersion`,`changeRemark`,`latest`,`createBy`,`createTime`,`updateBy`,`updateTime` FROM `pm_project_soft_change_logs` WHERE `projectId`=:projectId;",
+      "parameters": {
+        "_status": "由生产范围和P17全部原身份提供，未绑定实际值"
+      },
+      "physicalSourceTables": [
+        "pm_project_soft_change_logs"
+      ],
+      "queryFile": "sql/P35-C009-existing-material.sql",
+      "queryProvenance": "EXISTING_MATERIAL_QUERY_NOT_FULL_TASK",
+      "mappings": [],
+      "targets": [],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "projectId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.project_id",
+      "rule": "通过P17或本任务已批准的PROJ原项目身份解析正式project_id；不将原数值直接落正式外键。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "changeVersion",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.change_version",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "changeRemark",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.change_remark",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "latest",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.latest",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "createBy",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.creator",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.create_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.updater",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_soft_change_logs",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "ast_device_software_change_batch.update_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_device_software_change_batch",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.projectId"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "change_version",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(10)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.changeVersion"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "change_remark",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.changeRemark"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "latest",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.latest"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.createBy"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.createTime"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.updateBy"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_soft_change_logs.updateTime"
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_software_change_batch",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLegacyEntityMigrationService.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DppmsAssetSourceHistoryApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/migration/DppmsAssetSourceHistoryService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/legacydetail/ProjectLegacyDetailMapper.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectPartyMapper.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/migration/DppmsCommerceEntityResolveApi.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DppmsAssetEntityImportApi.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DppmsWarrantySourceRecordsApi.java",
+    "pms-module-engineering-api/src/main/java/cn/iocoder/yudao/module/pms/engineering/api/installation/DppmsInstallationAddressImportApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLegacyNativeEvidenceService.java",
+    "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/command/PlatformCommandExecutionApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectAssociatedDataService.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/migration/DppmsCommerceDetailImportApi.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/device/DeviceQueryApi.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/device/ProjectDeviceSelectionApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectFactoryRecordImportService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/version/DeviceSoftwareVersionRecordMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/version/DeviceSoftwareChangeBatchMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/version/DeviceFactoryVersionRecordMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMigrationIdentityMapper.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/reference/ProjectDeviceAssignmentGuardApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/security/DeviceAccessScopeService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+    "pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectMasterMapper.java",
+    "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/associated/ProjectRealProductMapper.java",
+    "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/associated/ProjectLeaseProductMapper.java",
+    "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/associated/ProjectProductConfigurationMapper.java",
+    "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMapper.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": null,
+  "currentAdapter": null,
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [],
+  "adapterState": "NO_FULL_TASK_ENTRY",
+  "ownerSqlFiles": [
+    "owner-sql/DeviceSoftwareChangeBatchMapper.xml"
+  ]
+}

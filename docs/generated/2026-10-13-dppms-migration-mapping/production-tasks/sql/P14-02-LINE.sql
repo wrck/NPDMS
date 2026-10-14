@@ -1,0 +1,115 @@
+-- P14 / LINE | 原任务 2101587859478949890 v31
+-- EXACT_SAVED_SQL；只读整理，未执行；当前参数和完整业务映射见对应task JSON。
+SELECT after_sales_scope.* FROM (SELECT r.*,g.migrationVersion,CASE WHEN g.payloadVariants > 1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue ,EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode AND h.orderType=r.lineType AND h.orderNumber=r.orderNumber GROUP BY h.source,h.compCode,h.orderType,h.orderNumber HAVING MAX(h.syncTime) IS NOT NULL AND COUNT(DISTINCT JSON_ARRAY(h.orderCreateTime,h.customerRequireTime,h.customerCode,h.customerName,h.projectName,h.orderComment,h.salesType,h.customInfo,h.contractNo,h.orderExecNumber))=1) AS migrationParentExists FROM pm_order_line_from_erp r JOIN (SELECT source,compCode,lineType,orderNumber,lineNum,MAX(syncTime) AS migrationVersion,COUNT(DISTINCT JSON_ARRAY(itemCode,itemDesc,orderQuantity,openQuantity,bundleCode,warrantyMonth,profitCenter,realOrderExecNumber,customInfo)) AS payloadVariants FROM pm_order_line_from_erp GROUP BY source,compCode,lineType,orderNumber,lineNum) g ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.lineType <=> g.lineType AND r.orderNumber <=> g.orderNumber AND r.lineNum <=> g.lineNum WHERE (:sourceIds='' OR FIND_IN_SET(r.id,:sourceIds))) after_sales_scope WHERE EXISTS (SELECT 1 FROM pm_order_data_from_erp order_header WHERE order_header.source <=> after_sales_scope.source AND order_header.compCode <=> after_sales_scope.compCode AND order_header.orderType <=> after_sales_scope.lineType AND order_header.orderNumber <=> after_sales_scope.orderNumber AND order_header.contractNo IN (SELECT reference_scope.contractNo FROM (SELECT c.id AS id,
+  c.contractNo AS contractNo,
+  c.projectGroupCode AS projectGroupCode,
+  c.createTime AS createTime,
+  c.createBy AS createBy,
+  c.updateTime AS updateTime,
+  c.updateBy AS updateBy,
+  m.id AS member_id,
+  m.projectGroupCode AS member_projectGroupCode,
+  m.projectCode AS member_projectCode,
+  m.mergeBranchMark AS member_mergeBranchMark,
+  m.smsProjectCode AS member_smsProjectCode,
+  m.createTime AS member_createTime,
+  m.createBy AS member_createBy,
+  m.updateTime AS member_updateTime,
+  m.updateBy AS member_updateBy,
+  g.id AS group_id,
+  g.projectGroupCode AS group_projectGroupCode,
+  g.projectGroupName AS group_projectGroupName,
+  g.projectType AS group_projectType,
+  g.createTime AS group_createTime,
+  g.createBy AS group_createBy,
+  g.updateTime AS group_updateTime,
+  g.updateBy AS group_updateBy,
+  p.projectId AS originalProjectId,
+  p.projectCode AS originalProjectCode,
+  IF(p.projectId IS NULL,0,1) AS projectCandidateCount,
+  CONCAT(c.id,':',COALESCE(m.id,0)) AS relationOriginalKey,
+  a.formalGroupSize,
+  IF(SUBSTRING(a.createdPick,1,1)='0','ACTIVE','HISTORICAL') AS formalStatus,
+  COALESCE(kc.createTime,km.createTime) AS formalCreatedAt,
+  COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS formalCreator,
+  COALESCE(uc.updateTime,um.updateTime) AS formalUpdatedAt,
+  COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS formalUpdater,
+  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d
+  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)
+  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)
+  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)
+    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)
+    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)
+    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)
+    AND COALESCE(d.createTime,dm.createTime) <=> COALESCE(kc.createTime,km.createTime)
+    AND NOT (CAST(COALESCE(NULLIF(d.createBy,''),NULLIF(dm.createBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS BINARY)))) AS formalCreateConflicts,
+  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d
+  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)
+  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)
+  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)
+    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)
+    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)
+    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)
+    AND COALESCE(d.updateTime,dm.updateTime) <=> COALESCE(uc.updateTime,um.updateTime)
+    AND NOT (CAST(COALESCE(NULLIF(d.updateBy,''),NULLIF(dm.updateBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS BINARY)))) AS formalUpdateConflicts,
+  kc.id AS canonical_id,
+  kc.contractNo AS canonical_contractNo,
+  kc.projectGroupCode AS canonical_projectGroupCode,
+  kc.createTime AS canonical_createTime,
+  kc.createBy AS canonical_createBy,
+  kc.updateTime AS canonical_updateTime,
+  kc.updateBy AS canonical_updateBy,
+  km.id AS canonical_member_id,
+  km.projectGroupCode AS canonical_member_projectGroupCode,
+  km.projectCode AS canonical_member_projectCode,
+  km.mergeBranchMark AS canonical_member_mergeBranchMark,
+  km.smsProjectCode AS canonical_member_smsProjectCode,
+  km.createTime AS canonical_member_createTime,
+  km.createBy AS canonical_member_createBy,
+  km.updateTime AS canonical_member_updateTime,
+  km.updateBy AS canonical_member_updateBy,
+  kg.id AS canonical_group_id,
+  kg.projectGroupCode AS canonical_group_projectGroupCode,
+  kg.projectGroupName AS canonical_group_projectGroupName,
+  kg.projectType AS canonical_group_projectType,
+  kg.createTime AS canonical_group_createTime,
+  kg.createBy AS canonical_group_createBy,
+  kg.updateTime AS canonical_group_updateTime,
+  kg.updateBy AS canonical_group_updateBy,
+  p.projectId AS canonical_originalProjectId,
+  p.projectCode AS canonical_originalProjectCode,
+  CONCAT(LPAD(kc.id,20,'0'),':',LPAD(COALESCE(km.id,0),20,'0'),':',
+    IF(c.id=kc.id AND COALESCE(m.id,0)=COALESCE(km.id,0),0,1),':',
+    LPAD(c.id,20,'0'),':',LPAD(COALESCE(m.id,0),20,'0')) AS relationSourceKey
+FROM pm_project_contract c
+LEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)
+  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)
+LEFT JOIN (SELECT CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS projectIdentity,
+  MAX(projectId) AS projectId FROM pm_project
+  GROUP BY CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY))) canonical
+  ON canonical.projectIdentity=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))
+LEFT JOIN pm_project p ON p.projectId=canonical.projectId
+JOIN (
+  -- Aggregate the full formal identity before applying task scope or streaming chunks.
+  -- Picks encode status priority (1), timestamp (20), contract ID (20), member ID (20).
+  SELECT CAST(g.projectType AS BINARY) AS projectType,CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AS projectCode,
+    CAST(c.contractNo AS BINARY) AS contractNo,COUNT(*) AS formalGroupSize,
+    MIN(CONCAT(IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),
+      COALESCE(DATE_FORMAT(COALESCE(c.createTime,m.createTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),
+      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS createdPick,
+    MAX(CONCAT(1-IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),
+      COALESCE(DATE_FORMAT(COALESCE(c.updateTime,m.updateTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),
+      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS updatedPick
+  FROM pm_project_contract c
+  LEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)
+  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)
+  GROUP BY CAST(g.projectType AS BINARY),CAST(REPLACE(m.projectCode,'-his','') AS BINARY),CAST(c.contractNo AS BINARY)
+) a ON a.projectType <=> CAST(g.projectType AS BINARY)
+  AND a.projectCode <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AND a.contractNo <=> CAST(c.contractNo AS BINARY)
+LEFT JOIN pm_project_contract kc ON kc.id=CAST(SUBSTRING(a.createdPick,22,20) AS UNSIGNED)
+LEFT JOIN pm_project_group_relationship km ON km.id=CAST(SUBSTRING(a.createdPick,42,20) AS UNSIGNED)
+LEFT JOIN pm_project_group kg ON kg.projectGroupCode=kc.projectGroupCode AND CAST(kg.projectGroupCode AS BINARY)=CAST(kc.projectGroupCode AS BINARY)
+LEFT JOIN pm_project_contract uc ON uc.id=CAST(SUBSTRING(a.updatedPick,22,20) AS UNSIGNED)
+LEFT JOIN pm_project_group_relationship um ON um.id=CAST(SUBSTRING(a.updatedPick,42,20) AS UNSIGNED)
+WHERE (g.id IS NULL OR FIND_IN_SET(g.projectType,:projectTypes))
+  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))) reference_scope WHERE reference_scope.originalProjectId IS NOT NULL));

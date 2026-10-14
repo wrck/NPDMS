@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper">
+    <sql id="catalogue">
+        SELECT id,code,name,parent_id,sort,leader_user_id,phone,email,status,version,creator,create_time,updater,update_time
+        FROM system_dept WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id
+    </sql>
+    <select id="selectCatalogue" resultType="cn.iocoder.yudao.module.system.api.migration.SystemDepartmentMigrationApi$Department"><include refid="catalogue"/></select>
+    <select id="selectCatalogueForUpdate" resultType="cn.iocoder.yudao.module.system.api.migration.SystemDepartmentMigrationApi$Department"><include refid="catalogue"/> FOR UPDATE</select>
+    <select id="selectLeaderUserIds" resultType="java.lang.Long">
+        SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose><when test="query.userIds != null and !query.userIds.isEmpty()">
+            AND id IN <foreach collection="query.userIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+    </select>
+    <update id="completeHistoricalLeader">
+        UPDATE system_dept SET leader_user_id=#{after.leaderUserId},version=#{after.version},
+            updater=#{after.updater},update_time=#{after.updateTime}
+        WHERE id=#{before.id} AND tenant_id=#{tenantId} AND deleted=FALSE
+            AND version=#{before.version} AND leader_user_id IS NULL
+    </update>
+    <insert id="insertHistoricalDepartment">
+        INSERT INTO system_dept(id,code,name,parent_id,sort,leader_user_id,phone,email,status,version,
+            creator,create_time,updater,update_time,deleted,tenant_id)
+        VALUES(#{department.id},#{department.code},#{department.name},#{department.parentId},#{department.sort},
+            #{department.leaderUserId},#{department.phone},#{department.email},#{department.status},#{department.version},
+            #{department.creator},#{department.createTime},#{department.updater},#{department.updateTime},FALSE,#{tenantId})
+    </insert>
+</mapper>

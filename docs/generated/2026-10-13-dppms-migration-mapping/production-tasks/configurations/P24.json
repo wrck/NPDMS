@@ -1,0 +1,1576 @@
+{
+  "task": {
+    "key": "P24",
+    "name": "合同实际回款信息",
+    "businessOwners": [
+      "COM"
+    ],
+    "source": "sms_ofst_contract_head_sap",
+    "targetTables": [
+      "com_contract_receivable"
+    ],
+    "dependencies": [
+      "P04"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B07",
+        "originalTaskId": "2109967339937804289",
+        "originalVersion": 4,
+        "originalAdapter": "DPPMS_CONTRACT_RECEIVABLE",
+        "sourceObjects": [
+          "sms_ofst_contract_head_sap"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "保留39原字段、金额比例及7条空合同号的原裁决。合同ID只在精确唯一时补关联，缺唯一主档按批准保留NULL，不阻断该原始回款事实。",
+    "acceptance": "金额/比例精度、NULL和原合同号完整；项目展示另须P18正式合同关系，不把P15强行变成所有回款行的入库前置。",
+    "ruleDocuments": [
+      "2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "sms_ofst_contract_head_sap"
+    ],
+    "adapterClass": "DppmsContractReceivableSyncAdapter",
+    "writerClasses": [
+      "ContractReceivableMigrationApi"
+    ],
+    "businessKey": "原id/source_record_key；合同唯一时补contract_id，否则保留原contract_no",
+    "genericAssessment": "有专用适配器。六项金额/比例无损、原39列审计、合同可空关联及已有公司/合同关系保护由COM Owner控制；直接表映射不代表已满足这些商务约束。",
+    "processing": [
+      "仅按已批准规则过滤空合同号，原7条排除有明确原因。",
+      "完整承接原39列；金额DECIMAL(20,2)、比例DECIMAL(18,6)不擅自舍入或改单位。",
+      "唯一合同引用才补关联；原合同号可支撑授权商务查询，缺唯一主档不丢弃回款事实。",
+      "COM Owner显式写原审计和允许属性，已有正式关系与ERP权威字段受保护。"
+    ],
+    "specialRules": [],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT after_sales_scope.* FROM (SELECT r.*\nFROM sms_ofst_contract_head_sap r\nWHERE r.contract_num IS NOT NULL\n  AND (:contractNos='' OR FIND_IN_SET(r.contract_num,:contractNos))) after_sales_scope WHERE after_sales_scope.contract_num IN (SELECT reference_scope.contractNo FROM (SELECT c.id AS id,\n  c.contractNo AS contractNo,\n  c.projectGroupCode AS projectGroupCode,\n  c.createTime AS createTime,\n  c.createBy AS createBy,\n  c.updateTime AS updateTime,\n  c.updateBy AS updateBy,\n  m.id AS member_id,\n  m.projectGroupCode AS member_projectGroupCode,\n  m.projectCode AS member_projectCode,\n  m.mergeBranchMark AS member_mergeBranchMark,\n  m.smsProjectCode AS member_smsProjectCode,\n  m.createTime AS member_createTime,\n  m.createBy AS member_createBy,\n  m.updateTime AS member_updateTime,\n  m.updateBy AS member_updateBy,\n  g.id AS group_id,\n  g.projectGroupCode AS group_projectGroupCode,\n  g.projectGroupName AS group_projectGroupName,\n  g.projectType AS group_projectType,\n  g.createTime AS group_createTime,\n  g.createBy AS group_createBy,\n  g.updateTime AS group_updateTime,\n  g.updateBy AS group_updateBy,\n  p.projectId AS originalProjectId,\n  p.projectCode AS originalProjectCode,\n  IF(p.projectId IS NULL,0,1) AS projectCandidateCount,\n  CONCAT(c.id,':',COALESCE(m.id,0)) AS relationOriginalKey,\n  a.formalGroupSize,\n  IF(SUBSTRING(a.createdPick,1,1)='0','ACTIVE','HISTORICAL') AS formalStatus,\n  COALESCE(kc.createTime,km.createTime) AS formalCreatedAt,\n  COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS formalCreator,\n  COALESCE(uc.updateTime,um.updateTime) AS formalUpdatedAt,\n  COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS formalUpdater,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.createTime,dm.createTime) <=> COALESCE(kc.createTime,km.createTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.createBy,''),NULLIF(dm.createBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS BINARY)))) AS formalCreateConflicts,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.updateTime,dm.updateTime) <=> COALESCE(uc.updateTime,um.updateTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.updateBy,''),NULLIF(dm.updateBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS BINARY)))) AS formalUpdateConflicts,\n  kc.id AS canonical_id,\n  kc.contractNo AS canonical_contractNo,\n  kc.projectGroupCode AS canonical_projectGroupCode,\n  kc.createTime AS canonical_createTime,\n  kc.createBy AS canonical_createBy,\n  kc.updateTime AS canonical_updateTime,\n  kc.updateBy AS canonical_updateBy,\n  km.id AS canonical_member_id,\n  km.projectGroupCode AS canonical_member_projectGroupCode,\n  km.projectCode AS canonical_member_projectCode,\n  km.mergeBranchMark AS canonical_member_mergeBranchMark,\n  km.smsProjectCode AS canonical_member_smsProjectCode,\n  km.createTime AS canonical_member_createTime,\n  km.createBy AS canonical_member_createBy,\n  km.updateTime AS canonical_member_updateTime,\n  km.updateBy AS canonical_member_updateBy,\n  kg.id AS canonical_group_id,\n  kg.projectGroupCode AS canonical_group_projectGroupCode,\n  kg.projectGroupName AS canonical_group_projectGroupName,\n  kg.projectType AS canonical_group_projectType,\n  kg.createTime AS canonical_group_createTime,\n  kg.createBy AS canonical_group_createBy,\n  kg.updateTime AS canonical_group_updateTime,\n  kg.updateBy AS canonical_group_updateBy,\n  p.projectId AS canonical_originalProjectId,\n  p.projectCode AS canonical_originalProjectCode,\n  CONCAT(LPAD(kc.id,20,'0'),':',LPAD(COALESCE(km.id,0),20,'0'),':',\n    IF(c.id=kc.id AND COALESCE(m.id,0)=COALESCE(km.id,0),0,1),':',\n    LPAD(c.id,20,'0'),':',LPAD(COALESCE(m.id,0),20,'0')) AS relationSourceKey\nFROM pm_project_contract c\nLEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nLEFT JOIN (SELECT CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS projectIdentity,\n  MAX(projectId) AS projectId FROM pm_project\n  GROUP BY CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY))) canonical\n  ON canonical.projectIdentity=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))\nLEFT JOIN pm_project p ON p.projectId=canonical.projectId\nJOIN (\n  -- Aggregate the full formal identity before applying task scope or streaming chunks.\n  -- Picks encode status priority (1), timestamp (20), contract ID (20), member ID (20).\n  SELECT CAST(g.projectType AS BINARY) AS projectType,CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AS projectCode,\n    CAST(c.contractNo AS BINARY) AS contractNo,COUNT(*) AS formalGroupSize,\n    MIN(CONCAT(IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.createTime,m.createTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS createdPick,\n    MAX(CONCAT(1-IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.updateTime,m.updateTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS updatedPick\n  FROM pm_project_contract c\n  LEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  GROUP BY CAST(g.projectType AS BINARY),CAST(REPLACE(m.projectCode,'-his','') AS BINARY),CAST(c.contractNo AS BINARY)\n) a ON a.projectType <=> CAST(g.projectType AS BINARY)\n  AND a.projectCode <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AND a.contractNo <=> CAST(c.contractNo AS BINARY)\nLEFT JOIN pm_project_contract kc ON kc.id=CAST(SUBSTRING(a.createdPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship km ON km.id=CAST(SUBSTRING(a.createdPick,42,20) AS UNSIGNED)\nLEFT JOIN pm_project_group kg ON kg.projectGroupCode=kc.projectGroupCode AND CAST(kg.projectGroupCode AS BINARY)=CAST(kc.projectGroupCode AS BINARY)\nLEFT JOIN pm_project_contract uc ON uc.id=CAST(SUBSTRING(a.updatedPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship um ON um.id=CAST(SUBSTRING(a.updatedPick,42,20) AS UNSIGNED)\nWHERE (g.id IS NULL OR FIND_IN_SET(g.projectType,:projectTypes))\n  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))) reference_scope WHERE reference_scope.originalProjectId IS NOT NULL)",
+      "table": null,
+      "object": "sms_ofst_contract_head_sap",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "contract_num",
+          "target": "contract_num",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "batch_code",
+          "target": "batch_code",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "project_name",
+          "target": "project_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "order_num",
+          "target": "order_num",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "client_supplier_code",
+          "target": "client_supplier_code",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "client_supplier_name",
+          "target": "client_supplier_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "contract_money_amount",
+          "target": "contract_money_amount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "delivered_money_amount",
+          "target": "delivered_money_amount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "collected_money_amount",
+          "target": "collected_money_amount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "collected_money_ratio",
+          "target": "collected_money_ratio",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "receivables_money_amount",
+          "target": "receivables_money_amount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "over_due_money_amount",
+          "target": "over_due_money_amount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "maketing_department_name",
+          "target": "maketing_department_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "office_name",
+          "target": "office_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "industry_name",
+          "target": "industry_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "marketing_representative_name",
+          "target": "marketing_representative_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "currency_name",
+          "target": "currency_name",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "create_by",
+          "target": "create_by",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "create_time",
+          "target": "create_time",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "update_by",
+          "target": "update_by",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "update_time",
+          "target": "update_time",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effective_from",
+          "target": "effective_from",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effective_to",
+          "target": "effective_to",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "import_batch_num",
+          "target": "import_batch_num",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "contract_create_date",
+          "target": "contract_create_date",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "marketCode",
+          "target": "marketCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "systemId",
+          "target": "systemId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "industryId",
+          "target": "industryId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "officeCode",
+          "target": "officeCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "expendId",
+          "target": "expendId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "usernamec",
+          "target": "usernamec",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "latest_ship_date",
+          "target": "latest_ship_date",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "usernamec2",
+          "target": "usernamec2",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "systemid_o",
+          "target": "systemid_o",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "expendid_o",
+          "target": "expendid_o",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "industry_name_o",
+          "target": "industry_name_o",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataSource",
+          "target": "dataSource",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": "update_time",
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "contractNos": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "sms_ofst_contract_head_sap",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P24-01-sms_ofst_contract_head_sap.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship",
+        "sms_ofst_contract_head_sap"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "id",
+      "sourceType": "bigint(20)",
+      "nullable": "NO",
+      "target": "com_contract_receivable.source_record_key",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "contract_num",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.contract_no",
+      "rule": "空合同号按批准排除；唯一匹配才补contract_id，缺失/多义保留原号和可空引用。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "batch_code",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.source_batch_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "project_name",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.project_name",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "order_num",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.source_order_no",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "client_supplier_code",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.customer_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "client_supplier_name",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.customer_name",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "contract_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "NO",
+      "target": "com_contract_receivable.contract_amount",
+      "rule": "DECIMAL(20,2)无损保存，禁止静默舍入。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "delivered_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "NO",
+      "target": "com_contract_receivable.delivered_amount",
+      "rule": "DECIMAL(20,2)无损保存，禁止静默舍入。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "collected_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "NO",
+      "target": "com_contract_receivable.collected_amount",
+      "rule": "DECIMAL(20,2)无损保存，禁止静默舍入。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "collected_money_ratio",
+      "sourceType": "double",
+      "nullable": "YES",
+      "target": "com_contract_receivable.collected_ratio",
+      "rule": "DECIMAL(18,6)保留原单位，不截断到0～100。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "receivables_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.receivable_amount",
+      "rule": "DECIMAL(20,2)无损保存，禁止静默舍入。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "over_due_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.overdue_amount",
+      "rule": "DECIMAL(20,2)无损保存，禁止静默舍入。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "maketing_department_name",
+      "sourceType": "varchar(40)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.market_name",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "office_name",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.department_name",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "industry_name",
+      "sourceType": "varchar(40)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.industry_name",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "marketing_representative_name",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.marketing_representative_name",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "currency_name",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.currency_name",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "create_by",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.creator",
+      "rule": "精确用户来源绑定优先，否则按批准原码保留；不造账号，不用管理员填NULL。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "create_time",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_contract_receivable.create_time",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "update_by",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.updater",
+      "rule": "精确用户来源绑定优先，否则按批准原码保留；不造账号，不用管理员填NULL。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "update_time",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_contract_receivable.update_time；com_contract_receivable.source_sync_time",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "effective_from",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_contract_receivable.source_effective_from",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "effective_to",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_contract_receivable.source_effective_to",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "import_batch_num",
+      "sourceType": "varchar(12)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.import_batch_no",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "contract_create_date",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_contract_receivable.contract_create_time",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(80)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.project_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "marketCode",
+      "sourceType": "varchar(80)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.market_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "systemId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.system_source_key",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "industryId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.industry_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "officeCode",
+      "sourceType": "varchar(80)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.department_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "expendId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.expend_source_key",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "usernamec",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.marketing_representative_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "latest_ship_date",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_contract_receivable.latest_ship_time",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "usernamec2",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.secondary_representative_code",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "systemid_o",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.original_division_values.systemSourceKey",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "expendid_o",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.original_division_values.expendSourceKey",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "industry_name_o",
+      "sourceType": "varchar(40)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.original_division_values.industryName",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "dataSource",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_contract_receivable.source_system",
+      "rule": "原业务值保持；由COM Owner核实已有关系并显式承接原审计。",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_contract_receivable",
+      "columns": [
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "contract_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同ID",
+          "taskHandling": "合同号唯一命中才补id；缺失/多义保留NULL及原合同号"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "sms_ofst_contract_head_sap.contract_num"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司ID",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司编码",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司名称",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "company_resolution_source",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司解析来源",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "mapping_status",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "PENDING_COMPANY",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "映射状态",
+          "taskHandling": "新记录PENDING_COMPANY；既有记录保留原值，不能以合同号成功查询冒充公司已解析"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "project_name",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目名称",
+          "taskHandling": "sms_ofst_contract_head_sap.project_name"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "source_order_no",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源订单编号",
+          "taskHandling": "sms_ofst_contract_head_sap.order_num"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "customer_code",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户编码",
+          "taskHandling": "sms_ofst_contract_head_sap.client_supplier_code"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "customer_name",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户名称",
+          "taskHandling": "sms_ofst_contract_head_sap.client_supplier_name"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "contract_amount",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同金额",
+          "taskHandling": "sms_ofst_contract_head_sap.contract_money_amount"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "delivered_amount",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "已发货金额",
+          "taskHandling": "sms_ofst_contract_head_sap.delivered_money_amount"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "collected_amount",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "已收金额",
+          "taskHandling": "sms_ofst_contract_head_sap.collected_money_amount"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "collected_ratio",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "已收比例",
+          "taskHandling": "sms_ofst_contract_head_sap.collected_money_ratio"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "receivable_amount",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "应收金额",
+          "taskHandling": "sms_ofst_contract_head_sap.receivables_money_amount"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "overdue_amount",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "逾期金额",
+          "taskHandling": "sms_ofst_contract_head_sap.over_due_money_amount"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "currency_name",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "币种名称",
+          "taskHandling": "sms_ofst_contract_head_sap.currency_name"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "market_code",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部编码",
+          "taskHandling": "sms_ofst_contract_head_sap.marketCode"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "market_name",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部名称",
+          "taskHandling": "sms_ofst_contract_head_sap.maketing_department_name"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "department_id",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处ID",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处编码",
+          "taskHandling": "sms_ofst_contract_head_sap.officeCode"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处名称",
+          "taskHandling": "sms_ofst_contract_head_sap.office_name"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "industry_name",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业名称",
+          "taskHandling": "sms_ofst_contract_head_sap.industry_name"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "marketing_representative_name",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场代表名称",
+          "taskHandling": "sms_ofst_contract_head_sap.marketing_representative_name"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "source_batch_code",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源批次编码",
+          "taskHandling": "sms_ofst_contract_head_sap.batch_code"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "import_batch_no",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "导入批次编号",
+          "taskHandling": "sms_ofst_contract_head_sap.import_batch_num"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(80)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编码",
+          "taskHandling": "sms_ofst_contract_head_sap.projectCode"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "system_source_key",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部来源键",
+          "taskHandling": "sms_ofst_contract_head_sap.systemId"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "system_code",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部编码",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "system_name",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部名称",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "industry_code",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业编码",
+          "taskHandling": "sms_ofst_contract_head_sap.industryId"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "expend_source_key",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部来源键",
+          "taskHandling": "sms_ofst_contract_head_sap.expendId"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "expend_code",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部编码",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "expend_name",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部名称",
+          "taskHandling": "新记录不猜目录关联，保持NULL；既有记录逐列复制原正式关联并参加全52列前值保护，来源原码/原名另列保存"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "marketing_representative_code",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场代表编码",
+          "taskHandling": "sms_ofst_contract_head_sap.usernamec"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "secondary_representative_code",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "辅助代表编码",
+          "taskHandling": "sms_ofst_contract_head_sap.usernamec2"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "original_division_values",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建时行业划分原值JSON",
+          "taskHandling": "sms_ofst_contract_head_sap.systemid_o；sms_ofst_contract_head_sap.expendid_o；sms_ofst_contract_head_sap.industry_name_o"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "source_effective_from",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源生效开始时间",
+          "taskHandling": "sms_ofst_contract_head_sap.effective_from"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "source_effective_to",
+          "ORDINAL_POSITION": 42,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源生效结束时间",
+          "taskHandling": "sms_ofst_contract_head_sap.effective_to"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "contract_create_time",
+          "ORDINAL_POSITION": 43,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同创建时间",
+          "taskHandling": "sms_ofst_contract_head_sap.contract_create_date"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "latest_ship_time",
+          "ORDINAL_POSITION": 44,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最近发货时间",
+          "taskHandling": "sms_ofst_contract_head_sap.latest_ship_date"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 45,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "sms_ofst_contract_head_sap.dataSource"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 46,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源记录稳定唯一键",
+          "taskHandling": "sms_ofst_contract_head_sap.id"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 47,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "原sms_ofst_contract_head_sap.update_time（NULL保持），不同于目标update_time允许回退原create_time"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 48,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "sms_ofst_contract_head_sap.create_by"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 49,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "sms_ofst_contract_head_sap.create_time"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 50,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "sms_ofst_contract_head_sap.update_by"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 51,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "sms_ofst_contract_head_sap.update_time"
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 52,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_business",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "mapping_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "mapping_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "contract_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "idx_contract_receivable_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_sync_time",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "uk_contract_receivable_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "uk_contract_receivable_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "uk_contract_receivable_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "uk_contract_receivable_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract_receivable",
+          "INDEX_NAME": "uk_contract_receivable_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsContractReceivableSyncAdapter.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/migration/ContractReceivableMigrationApi.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/migration/ContractReceivableMigrationService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/migration/ContractReceivableMigrationMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/user/AdminUserApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_CONTRACT_RECEIVABLE",
+    "maxRows": 500,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 8388608,
+    "chunkSize": 500,
+    "fetchSize": 1000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 60,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_CONTRACT_RECEIVABLE",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/ContractReceivableMigrationMapper.xml"
+  ]
+}

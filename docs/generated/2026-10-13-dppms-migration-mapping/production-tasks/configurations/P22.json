@@ -1,0 +1,1496 @@
+{
+  "task": {
+    "key": "P22",
+    "name": "项目产品实施范围",
+    "businessOwners": [
+      "COM"
+    ],
+    "source": "pm_project_product_line及已批准的项目/合同/订单行解析",
+    "targetTables": [
+      "com_delivery_scope",
+      "com_delivery_scope_detail"
+    ],
+    "dependencies": [
+      "P01",
+      "P02",
+      "P03",
+      "P12",
+      "P14",
+      "P17",
+      "P18"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B08",
+        "originalTaskId": "2109829769958453249",
+        "originalVersion": 7,
+        "originalAdapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+        "sourceObjects": [
+          "pm_project_product_line"
+        ]
+      }
+    ],
+    "preparation": "ADAPT_FIRST_IMPORT",
+    "configurationWork": "105项旧baseline不带入生产；按新目标生成保护前值。保留精确订单行、办事处和正数量约束，不用默认数量消除来源缺项。",
+    "acceptance": "每条来源有准确项目、合同、订单行及数量；原330781/330782仍受正数量保护，其他缺办事处/订单行逐项闭合。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-delivery-scope-table-decision.md",
+      "2026-10-14-dppms-full-preview-blocker-repair.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project_product_line"
+    ],
+    "adapterClass": "DppmsProjectProductScopeSyncAdapter",
+    "writerClasses": [
+      "DppmsProjectProductScopeApi"
+    ],
+    "businessKey": "原产品行id→正式交付范围/范围明细；同项目、合同、订单行及产品精确解析",
+    "genericAssessment": "有专用适配器。实施范围的正式合同/订单行解析、正数量与范围一致性规则属于COM Owner；不能用通用映射直接插入范围或借迁移绕过数量约束。",
+    "processing": [
+      "按P17解析项目，按正式商务关系核实合同、订单及具体订单行。",
+      "保留原项目/订单/已发/待发数量，产品编码按P12目录关联。",
+      "COM Owner校验范围和明细并原子写入；生产不复制105项旧baseline。"
+    ],
+    "specialRules": [
+      "原330781/330782零数量仍阻断；已拒绝例外不重新解释为已批准。",
+      "项目主档允许NULL办事处不等于实施范围可以忽略该业务要求。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT l.*,p.projectCode AS originalProjectCode,p.projectType\nFROM pm_project_product_line l\nLEFT JOIN pm_project p ON p.projectId=l.projectId\nWHERE (p.projectId IS NULL OR FIND_IN_SET(p.projectType,:projectTypes))\n  AND (:projectIds='' OR FIND_IN_SET(l.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_product_line",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectId",
+          "target": "projectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemCode",
+          "target": "itemCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemName",
+          "target": "itemName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectQuantity",
+          "target": "projectQuantity",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderQuantity",
+          "target": "orderQuantity",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "deliverQuantity",
+          "target": "deliverQuantity",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "openQuantity",
+          "target": "openQuantity",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderNumber",
+          "target": "orderNumber",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "lineNum",
+          "target": "lineNum",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectType",
+          "target": "projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "id",
+          "target": "baseline",
+          "values": {
+            "_historicalTargetProofOmitted": true,
+            "entries": 105
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_project_product_line",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P22-01-pm_project_product_line.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_product_line"
+      ],
+      "historicalProofsOmitted": [
+        {
+          "field": "baseline",
+          "entries": 105,
+          "originalTaskId": "2109829769958453249",
+          "originalVersion": 7,
+          "disposition": "OLD_TARGET_PROOF_NOT_PORTABLE"
+        }
+      ]
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "projectId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_delivery_scope.project_id",
+      "rule": "通过P17或本任务已批准的PROJ原项目身份解析正式project_id；不将原数值直接落正式外键。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "contractNo",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_sales_order.contract_no",
+      "rule": "按正式订单头/行及范围关联承接，不重建独立proj_project_product",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "itemCode",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.product_code ＋ com_delivery_scope_detail.product_code",
+      "rule": "按正式订单头/行及范围关联承接，不重建独立proj_project_product",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "itemName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_delivery_scope.product_desc",
+      "rule": "按正式订单头/行及范围关联承接，不重建独立proj_project_product",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "projectQuantity",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_delivery_scope.allocated_qty",
+      "rule": "原projectQuantity优先，NULL取正式订单行order_qty；正数量约束保持，0/负数阻断；allocation_confirmed=false",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "orderQuantity",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.order_qty",
+      "rule": "通过精确order_line_id复用，非独立范围数量镜像；历史差异不得擅自吞掉",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "deliverQuantity",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_delivery_scope.delivered_quantity",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "openQuantity",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_delivery_scope.open_quantity",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "orderNumber",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.order_no",
+      "rule": "按正式订单头/行及范围关联承接，不重建独立proj_project_product",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_line",
+      "sourceField": "lineNum",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_sales_order_line.line_no",
+      "rule": "按正式订单头/行及范围关联承接，不重建独立proj_project_product",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_delivery_scope",
+      "columns": [
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "交付范围编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目ID",
+          "taskHandling": "pm_project_product_line.projectId"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编码",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_name",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目名称",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_company_code",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目公司编码",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_company_name",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目公司名称",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_department_code",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目部门编码",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_department_name",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目部门名称",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_customer_code",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目客户编码",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_customer_name",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目客户名称",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_manager_employee_no",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目负责人工号",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "project_manager_name",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目负责人姓名",
+          "taskHandling": "由PROJ公开ProjectScopeMigrationContext快照取值；已存在范围保护原冻结快照，不用来源冗余名称覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "order_line_id",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单行ID",
+          "taskHandling": "COM精确解析并锁定正式订单行后取值，不能凭订单号跨公司任选"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "current_order_line_id",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "STORED GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "数据库生成列，依据当前范围状态维护当前订单行约束，不由源SQL赋值"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "order_source_system",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单来源系统编码",
+          "taskHandling": "COM精确解析并锁定正式订单行后取值，不能凭订单号跨公司任选"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "order_company_code",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单公司编码",
+          "taskHandling": "COM精确解析并锁定正式订单行后取值，不能凭订单号跨公司任选"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "order_company_name",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单公司名称",
+          "taskHandling": "COM精确解析并锁定正式订单行后取值，不能凭订单号跨公司任选"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "order_type",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单类型编码",
+          "taskHandling": "COM精确解析并锁定正式订单行后取值，不能凭订单号跨公司任选"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "order_no",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单编号",
+          "taskHandling": "原orderNumber，经已核实正式订单行一致性检查"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "line_no",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "订单行号",
+          "taskHandling": "原lineNum，经已核实正式订单行一致性检查"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品编码/物料编码（订单行）",
+          "taskHandling": "原itemCode，经正式商务行/目录核对"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "product_desc",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品描述/物料描述",
+          "taskHandling": "pm_project_product_line.itemName"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "allocated_qty",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "实施数量",
+          "taskHandling": "pm_project_product_line.projectQuantity"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "scope_status",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "实施范围状态",
+          "taskHandling": "首次迁入ACTIVE，不等于实施完成"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "allocation_version",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前正式项目范围版本+1，同事务受版本锁保护"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "allocation_source",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "分配来源",
+          "taskHandling": "固定DPPMS"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "change_reason",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "变更原因",
+          "taskHandling": "首次迁入不提供，按物理默认/NULL；不制造范围变更原因或结束事实"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "department_id",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处ID",
+          "taskHandling": "取PROJ提供且经SYS核实的正式办事处及版本；缺必需办事处仍阻断"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处编码",
+          "taskHandling": "取PROJ提供且经SYS核实的正式办事处及版本；缺必需办事处仍阻断"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处名称",
+          "taskHandling": "取PROJ提供且经SYS核实的正式办事处及版本；缺必需办事处仍阻断"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "department_version",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处版本",
+          "taskHandling": "取PROJ提供且经SYS核实的正式办事处及版本；缺必需办事处仍阻断"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "source_evidence",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "保留批准的DPPMS原项目/产品行来源身份字符串"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "effective_from",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效开始时间",
+          "taskHandling": "按Owner从批准来源/项目时间选择并校验，禁止用当前时间冒充原生效"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "effective_to",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效结束时间",
+          "taskHandling": "首次迁入不提供，按物理默认/NULL；不制造范围变更原因或结束事实"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "ENABLED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "首次迁入ENABLED"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 42,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "allocation_confirmed",
+          "ORDINAL_POSITION": 43,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'1'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否确认占用订单分配数量",
+          "taskHandling": "首次迁入false，不推断已完成当前分配确认"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "delivered_quantity",
+          "ORDINAL_POSITION": 44,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目范围原已发货数量",
+          "taskHandling": "pm_project_product_line.deliverQuantity"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "COLUMN_NAME": "open_quantity",
+          "ORDINAL_POSITION": 45,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目范围原订单未交数量",
+          "taskHandling": "pm_project_product_line.openQuantity"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_acceptance_lock",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_acceptance_lock",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_acceptance_lock",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "effective_to",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_acceptance_lock",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_order_line",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_order_line",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "order_line_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_order_line",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "scope_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_order_line",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "product_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "scope_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "scope_status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "idx_scope_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "order_line_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_project_order_line_scope_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_project_order_line_scope_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_scope_current",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_scope_current",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_scope_current",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "current_order_line_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_scope_version",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_scope_version",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": null,
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_scope_version",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope",
+          "INDEX_NAME": "uk_scope_version",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "allocation_version",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "columns": [
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "delivery_scope_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "交付范围主ID",
+          "taskHandling": "同事务新增/解析的正式范围id"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "detail_sequence",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "交付范围明细序号",
+          "taskHandling": "本产品明细初始化1"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "serial_no",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "本任务为产品数量明细，当前Owner未赋这些设备/批次字段；新增按默认/NULL，不从产品行猜设备SN或批次"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品编码",
+          "taskHandling": "pm_project_product_line.itemCode"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "product_name",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品名称快照",
+          "taskHandling": "由正式范围product_desc（原itemName）形成；这是实施产品历史，不是P12目录异名扩展"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "device_type_code",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备类型编码",
+          "taskHandling": "本任务为产品数量明细，当前Owner未赋这些设备/批次字段；新增按默认/NULL，不从产品行猜设备SN或批次"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "device_type_name",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备类型名称快照",
+          "taskHandling": "本任务为产品数量明细，当前Owner未赋这些设备/批次字段；新增按默认/NULL，不从产品行猜设备SN或批次"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "delivery_batch_no",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "交付批次编号",
+          "taskHandling": "本任务为产品数量明细，当前Owner未赋这些设备/批次字段；新增按默认/NULL，不从产品行猜设备SN或批次"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "明细来源记录稳定键",
+          "taskHandling": "范围source_evidence加:PRODUCT，保持明细独立来源身份"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "allocated_qty",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "decimal(18,6)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "分配数量",
+          "taskHandling": "沿范围已校验正数量，原projectQuantity为空时使用正式订单数量；零/负数阻断"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "detail_status",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "首次产品明细ACTIVE"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "source_snapshot",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "本任务为产品数量明细，当前Owner未赋这些设备/批次字段；新增按默认/NULL，不从产品行猜设备SN或批次"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "remark",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "交付范围明细备注",
+          "taskHandling": "本任务为产品数量明细，当前Owner未赋这些设备/批次字段；新增按默认/NULL，不从产品行猜设备SN或批次"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "idx_delivery_scope_detail_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "idx_delivery_scope_detail_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "product_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "idx_delivery_scope_detail_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "device_type_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "idx_delivery_scope_detail_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "delivery_scope_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "idx_delivery_scope_detail_serial",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "idx_delivery_scope_detail_serial",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "serial_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "idx_delivery_scope_detail_serial",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "delivery_scope_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "uk_delivery_scope_detail_sequence",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "uk_delivery_scope_detail_sequence",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "delivery_scope_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "uk_delivery_scope_detail_sequence",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "detail_sequence",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "uk_delivery_scope_detail_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_delivery_scope_detail",
+          "INDEX_NAME": "uk_delivery_scope_detail_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectProductScopeSyncAdapter.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/migration/DppmsProjectProductScopeApi.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/migration/DppmsProjectProductScopeService.java",
+    "pms-module-integration/pms-module-integration-api/src/main/java/cn/iocoder/yudao/module/pms/integration/api/sync/DppmsProjectBindingApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMasterMigrationApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectScopeMigrationContextApi.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/migration/DppmsProductScopeMapper.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/DeliveryScopeMapper.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/scope/DeliveryScopeProjectVersionService.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/scope/ProjectScopeApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-commerce/src/main/resources/mapper/migration/DppmsProductScopeMapper.xml",
+    "pms-module-commerce/src/main/resources/mapper/scope/DeliveryScopeMapper.xml",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/scope/DeliveryScopeProjectVersionMapper.java",
+    "pms-module-commerce/src/main/resources/mapper/scope/DeliveryScopeProjectVersionMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 200,
+    "fetchSize": 1000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/DppmsProductScopeMapper.xml",
+    "owner-sql/DeliveryScopeMapper.xml"
+  ]
+}

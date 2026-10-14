@@ -54,6 +54,63 @@ class DppmsProjectContractRelationSyncAdapterTest {
         return new Row(OBJECT,"100:200",f,null);
     }
     Batch batch(Row row,List<Binding> prior,boolean adopt) { return new Batch("integration:1:12",List.of(row),prior,true,"RETAIN",adopt,"UPSERT",false); }
+    SyncBindingDO prepareRestoration(Row row,Change original) {
+        var last=JsonUtils.parseObject(JsonUtils.toJsonString(original.after().get("relation")),Relation.class);
+        var withdrawn=new Relation(last.id(),last.tenantId(),last.projectId(),last.contractId(),last.relationRole(),
+                last.sourceSystem(),last.sourceTable(),last.sourceRecordKey(),last.effectiveFrom(),last.effectiveTo(),last.status(),
+                last.version()+1,last.creator(),last.createTime(),last.updater(),last.updateTime(),true);
+        row.fields().put("migrationRestoration",new DppmsProjectContractRelationSyncAdapter.RestorationProof(70L,71L,72L,withdrawn));
+        var retired=new SyncBindingDO().setId(70L).setTaskId(12L).setObjectKey(OBJECT).setSourceObject(OBJECT)
+                .setSourceKey(row.sourceKey()).setTargetId(last.id()).setLastRunId(72L).setFieldsJson(JsonUtils.toJsonString(original.after()));
+        retired.setTenantId(1L);retired.setDeleted(true);
+        when(bindings.selectRetiredSourceKeysForUpdate(any())).thenReturn(List.of(retired));when(bindings.restoreVerifiedBinding(any())).thenReturn(1);
+        var creation=new SyncRunDO().setId(71L).setTaskId(12L).setPreview(false).setStatus("SUCCESS").setSummaryJson("{\"CREATED\":1}");creation.setTenantId(1L);
+        var replay=new SyncRunDO().setId(72L).setTaskId(12L).setPreview(false).setStatus("SUCCESS");replay.setTenantId(1L);
+        when(runs.selectScoped(argThat(q->q!=null && Long.valueOf(71L).equals(q.id())))).thenReturn(creation);
+        when(runs.selectScoped(argThat(q->q!=null && Long.valueOf(72L).equals(q.id())))).thenReturn(replay);
+        doAnswer(call->{Request request=call.getArgument(0);return request.entries().stream().map(e->new Result(e.sourceKey(),
+                "UPDATED",e.restoration().withdrawnBefore(),e.restoration().restored())).toList();}).when(relations).apply(any());
+        doAnswer(call->{Request request=call.getArgument(0);return request.entries().stream().map(e->new Result(e.sourceKey(),
+                "UPDATED",e.restoration().withdrawnBefore(),e.restoration().restored())).toList();}).when(relations).preview(any());
+        clearInvocations(relations,bindings);return retired;
+    }
+    @Test void restorationValidatesOriginalReceiptsAndRestoresSameBindingOnlyAfterOwnerWrite() {
+        var row=row();var original=adapter.apply(batch(row,List.of(),false)).getFirst();var retired=prepareRestoration(row,original);
+        run.setPreview(true).setStatus("VALIDATING");
+        var preview=adapter.preview(batch(row,List.of(),false)).getFirst();assertEquals("UPDATED",preview.action());
+        verify(bindings,never()).restoreVerifiedBinding(any());
+        run.setPreview(false).setStatus("APPLYING");
+        var result=adapter.apply(batch(row,List.of(),false)).getFirst();assertEquals(original.targetId(),result.targetId());
+        var order=inOrder(relations,bindings);order.verify(relations).apply(any());order.verify(bindings).restoreVerifiedBinding(retired);
+        when(bindings.restoreVerifiedBinding(any())).thenReturn(0);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row,List.of(),false)));
+    }
+    @Test void restorationRejectsStaleReceiptChangedOriginalAndWrongRetiredIdentityBeforeOwnerMutation() {
+        var row=row();var original=adapter.apply(batch(row,List.of(),false)).getFirst();var retired=prepareRestoration(row,original);
+        retired.setId(99L);assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row,List.of(),false)));retired.setId(70L);
+        row.fields().put("member_mergeBranchMark","changed");assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row,List.of(),false)));
+        row.fields().put("member_mergeBranchMark",null);
+        var receipt=runs.selectScoped(new SyncQueries.Id(1L,71L));receipt.setPreview(true);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row,List.of(),false)));receipt.setPreview(false).setStatus("FAILED");
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row,List.of(),false)));
+        verifyNoOwnerMutation();verify(bindings,never()).restoreVerifiedBinding(any());
+    }
+    @Test void restorationSupportsSharedTargetAlreadyRestoredInPreviousChunkAndRejectsChangedGroupProof() {
+        var current=row();var history=DppmsProjectContractFormalDecisionTest.source(101,201,"g2",true,"2020-01-01 00:00:00",null,null,null);
+        var first=DppmsProjectContractFormalDecisionTest.grouped(current,current,2,current);
+        var second=DppmsProjectContractFormalDecisionTest.grouped(history,current,2,current);
+        var created=adapter.apply(new Batch("integration:1:12",List.of(first,second),List.of(),true,"RETAIN",false,"UPSERT",false));
+        var retired=prepareRestoration(second,created.getLast());
+        var restored=JsonUtils.parseObject(JsonUtils.toJsonString(second.fields().get("migrationRestoration")),DppmsProjectContractRelationSyncAdapter.RestorationProof.class);
+        var canonical=new LinkedHashMap<>(created.getFirst().after());canonical.put("relation",new Restoration(restored.withdrawnBefore()).restored());
+        when(bindings.selectSourceKeys(any())).thenReturn(List.of(new SyncBindingDO().setSourceKey(first.sourceKey()).setTargetId(30L).setFieldsJson(JsonUtils.toJsonString(canonical))));
+        adapter.apply(batch(second,List.of(),false));verify(bindings).restoreVerifiedBinding(retired);
+        var active=new Row(OBJECT,first.sourceKey(),first.fields(),30L);
+        var activeBinding=new Binding(OBJECT,first.sourceKey(),30L,canonical);
+        adapter.apply(new Batch("integration:1:12",List.of(active,second),List.of(activeBinding),true,"RETAIN",false,"UPSERT",false));
+        clearInvocations(relations,bindings);second.fields().put("formalGroupSize",3);
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(second,List.of(),false)));verifyNoOwnerMutation();
+    }
     @Test void formalGroupingSharesOneOwnerEntryAcrossGroupsAndPreservesEachOriginalBinding() {
         var current=row();current.fields().put("createBy","sys");
         var history=DppmsProjectContractFormalDecisionTest.source(101,201,"g2",true,"2020-01-01 00:00:00","unselected-person",null,null);

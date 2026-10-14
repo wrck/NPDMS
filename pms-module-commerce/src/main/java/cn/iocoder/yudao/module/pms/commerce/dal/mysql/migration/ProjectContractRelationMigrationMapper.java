@@ -12,4 +12,5 @@ public interface ProjectContractRelationMigrationMapper {
     Relation selectIdentityForUpdate(@Param("query") IdentityQuery query);
     int insertHistorical(@Param("row") Relation row);
     int correctHistorical(@Param("write") HistoricalWrite write);
+    int restoreWithdrawn(@Param("write") HistoricalWrite write);
 }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMigrationIdentityMapper">
+    <select id="selectIdentityForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT * FROM ast_device WHERE tenant_id=#{query.tenantId} AND sn=#{query.deviceSn} FOR UPDATE
+    </select>
+</mapper>

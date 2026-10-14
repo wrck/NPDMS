@@ -1,0 +1,430 @@
+{
+  "task": {
+    "key": "P37",
+    "name": "设备许可历史",
+    "businessOwners": [
+      "AST"
+    ],
+    "source": "pm_project_license_info_from_license，受控加密采集",
+    "targetTables": [
+      "ast_device_license_record"
+    ],
+    "dependencies": [],
+    "sourceTaskReferences": [],
+    "preparation": "TASK_ENTRY_MISSING",
+    "configurationWork": "沿16列和专用受控加密Owner补一次性任务；不得用普通原文采集/日志保存licenseCode。生产密钥由部署身份配置并验证恢复；缓存自增ID不用于持续同步。",
+    "acceptance": "8原字段以受控内存核验，秘密只存认证密文；缺设备/合同按批准保持NULL和原业务值；页面不泄露秘密，不激活许可。",
+    "ruleDocuments": [
+      "2026-10-11-dppms-license-record-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project_license_info_from_license"
+    ],
+    "adapterClass": null,
+    "writerClasses": [
+      "ProjectLicenseRecordMigrationService",
+      "DppmsLicenseRecordApi"
+    ],
+    "businessKey": "原许可缓存id只用于批准的一次性来源；正式记录及幂等由许可Owner维护",
+    "genericAssessment": "尚无普通全量任务，已有受控加密采集脚本和AST许可Owner。通用reader会把原行交给普通快照/回执，不能接收明文licenseCode；须在受控内存加密后交Owner。",
+    "processing": [
+      "只对已批准来源ID读取原8字段，许可码在受控采集内存中AES-256-GCM加密。",
+      "持久化密文/nonce/keyId等正式受保护字段，页面、日志及普通来源证据不含明文。",
+      "缺设备/合同主档按原裁决保留NULL及原业务码，不激活许可或改变授权状态。",
+      "生产密钥由部署身份配置并验证恢复；缓存刷新不直接按旧自增ID持续同步。"
+    ],
+    "specialRules": [
+      "本包只提供SQL和字段名，不包含许可码、密码、Token或密钥值。"
+    ],
+    "materialQueries": [
+      "secure-license"
+    ]
+  },
+  "sources": [
+    {
+      "object": "secure-license",
+      "readMode": "SQL",
+      "sourceObject": "pm_project_license_info_from_license",
+      "sourceKey": "完整原身份/已批准复合身份，详承接规则",
+      "sql": "SELECT id,licenseCode,sn,specModel,contract,contractType,item,status FROM pm_project_license_info_from_license WHERE id IN (:approvedLicenseIds) ORDER BY id;",
+      "parameters": {
+        "_status": "由生产范围和P17全部原身份提供，未绑定实际值"
+      },
+      "physicalSourceTables": [
+        "pm_project_license_info_from_license"
+      ],
+      "queryFile": "sql/P37-SECURE_LICENSE-existing-material.sql",
+      "queryProvenance": "EXISTING_MATERIAL_QUERY_NOT_FULL_TASK",
+      "mappings": [],
+      "targets": [],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "licenseCode",
+      "sourceType": "varchar(256)",
+      "nullable": "NO",
+      "target": "ast_device_license_record.license_code_ciphertext",
+      "rule": "独立受控AES-256认证加密；密钥DPAPI受控，原值仅内存核对；页面/日志/明文证据禁显",
+      "fieldStatus": "受控加密字段"
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "sn",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "ast_device_license_record.device_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "specModel",
+      "sourceType": "varchar(256)",
+      "nullable": "YES",
+      "target": "ast_device_license_record.product_model",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "contract",
+      "sourceType": "varchar(32)",
+      "nullable": "YES",
+      "target": "ast_device_license_record.contract_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "contractType",
+      "sourceType": "varchar(16)",
+      "nullable": "YES",
+      "target": "ast_device_license_record.contract_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "item",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "ast_device_license_record.product_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_license_info_from_license",
+      "sourceField": "status",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "ast_device_license_record.license_status",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_device_license_record",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "device_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "由许可Owner按已批准业务码精确核实；缺主档允许NULL，保留原SN/合同号，不能任选或自动建主档"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "device_sn",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_license_info_from_license.sn"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "contract_id",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "由许可Owner按已批准业务码精确核实；缺主档允许NULL，保留原SN/合同号，不能任选或自动建主档"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_license_info_from_license.contract"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "contract_type",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(16)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_license_info_from_license.contractType"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_license_info_from_license.item"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "product_model",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(256)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_license_info_from_license.specModel"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "license_status",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_license_info_from_license.status"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "license_code_ciphertext",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_license_info_from_license.licenseCode"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "INDEX_NAME": "idx_license_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "INDEX_NAME": "idx_license_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "INDEX_NAME": "idx_license_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "INDEX_NAME": "idx_license_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "INDEX_NAME": "idx_license_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "device_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "INDEX_NAME": "idx_license_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_license_record",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLicenseRecordMigrationService.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DppmsLicenseRecordApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/license/DppmsLicenseRecordService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLegacyEntityMigrationService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLegacyNativeEvidenceService.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/migration/DppmsCommerceEntityResolveApi.java",
+    "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/command/PlatformCommandExecutionApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/legacydetail/ProjectLegacyDetailMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/license/DeviceLicenseRecordMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMapper.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/reference/ProjectDeviceAssignmentGuardApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/scope/ProjectScopeApi.java",
+    "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/migration/PlatformMigrationEvidenceApi.java",
+    "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/license/DeviceLicenseRecordMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectPartyMapper.java",
+    "pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": null,
+  "currentAdapter": null,
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [],
+  "adapterState": "NO_FULL_TASK_ENTRY",
+  "ownerSqlFiles": [
+    "owner-sql/DeviceLicenseRecordMapper.xml"
+  ]
+}

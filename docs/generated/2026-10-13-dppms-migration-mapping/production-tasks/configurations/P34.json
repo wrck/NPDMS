@@ -1,0 +1,383 @@
+{
+  "task": {
+    "key": "P34",
+    "name": "出厂软件版本记录",
+    "businessOwners": [
+      "AST"
+    ],
+    "source": "fb_soft_version",
+    "targetTables": [
+      "ast_device_factory_version_record"
+    ],
+    "dependencies": [
+      "P17",
+      "P28"
+    ],
+    "sourceTaskReferences": [],
+    "preparation": "TASK_ENTRY_MISSING",
+    "configurationWork": "沿已批准13列和完整重复保留规则补一次性任务。原表无稳定主键，以冻结来源和同值出现次数保留逐行身份；持续修订/消失处理不启用。",
+    "acceptance": "五原字段及重复次数完整；项目引用仅保留可核实关联，缺当前设备不丢记录；不任选最新、不自动覆盖唯一出厂主档。",
+    "ruleDocuments": [
+      "2026-10-10-dppms-factory-version-record-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fb_soft_version"
+    ],
+    "adapterClass": null,
+    "writerClasses": [
+      "ProjectFactoryRecordImportService",
+      "DppmsAssetSourceHistoryApi"
+    ],
+    "businessKey": "无数据库主键；已批准冻结整行组合＋重复出现序号作为本次来源身份",
+    "genericAssessment": "尚无独立全量任务，已有AST历史Owner。原表无主键且同SN有多个/重复版本，通用按SN UPSERT会覆盖历史；需要冻结来源及重复序号保留，不猜“最新”。",
+    "processing": [
+      "根据获准项目/发货SN范围读取全部5列和所有重复组合。",
+      "固定读取快照及发生序号，逐条导入ast_device_factory_version_record。",
+      "与既有唯一出厂版本主档冲突不覆盖；无原日期不制造最终版本时间。"
+    ],
+    "specialRules": [
+      "不把旧ast_device_factory_version主档路径当作全历史唯一承接点。"
+    ],
+    "materialQueries": [
+      "factory-versions"
+    ]
+  },
+  "sources": [
+    {
+      "object": "factory-versions",
+      "readMode": "SQL",
+      "sourceObject": "fb_soft_version",
+      "sourceKey": "完整原身份/已批准复合身份，详承接规则",
+      "sql": "SELECT `serial_number`,`conp`,`cpld`,`boot`,`pcb` FROM `fb_soft_version` WHERE `serial_number` IN (:shipmentAndInstallationSerials);",
+      "parameters": {
+        "_status": "由生产范围和P17全部原身份提供，未绑定实际值"
+      },
+      "physicalSourceTables": [
+        "fb_soft_version"
+      ],
+      "queryFile": "sql/P34-C031-existing-material.sql",
+      "queryProvenance": "EXISTING_MATERIAL_QUERY_NOT_FULL_TASK",
+      "mappings": [],
+      "targets": [],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fb_soft_version",
+      "sourceField": "serial_number",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "ast_device_factory_version_record.device_sn",
+      "rule": "全部重复组合保留正式记录；唯一主档冲突不自动覆盖，原无日期不猜最终版本",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_soft_version",
+      "sourceField": "conp",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "ast_device_factory_version_record.conp_version",
+      "rule": "全部重复组合保留正式记录；唯一主档冲突不自动覆盖，原无日期不猜最终版本",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_soft_version",
+      "sourceField": "cpld",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "ast_device_factory_version_record.cpld_version",
+      "rule": "全部重复组合保留正式记录；唯一主档冲突不自动覆盖，原无日期不猜最终版本",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_soft_version",
+      "sourceField": "boot",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "ast_device_factory_version_record.boot_version",
+      "rule": "全部重复组合保留正式记录；唯一主档冲突不自动覆盖，原无日期不猜最终版本",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_soft_version",
+      "sourceField": "pcb",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "ast_device_factory_version_record.pcb_version",
+      "rule": "全部重复组合保留正式记录；唯一主档冲突不自动覆盖，原无日期不猜最终版本",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_device_factory_version_record",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "P17原项目身份解析的正式项目，不要求当前设备仍在该项目"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "device_sn",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "fb_soft_version.serial_number"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "conp_version",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "fb_soft_version.conp"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "boot_version",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "fb_soft_version.boot"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "cpld_version",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "fb_soft_version.cpld"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "pcb_version",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "fb_soft_version.pcb"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_factory_version_record",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectFactoryRecordImportService.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DppmsAssetSourceHistoryApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/migration/DppmsAssetSourceHistoryService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLegacyNativeEvidenceService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/version/DeviceSoftwareVersionRecordMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/version/DeviceSoftwareChangeBatchMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/version/DeviceFactoryVersionRecordMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMigrationIdentityMapper.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/reference/ProjectDeviceAssignmentGuardApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/security/DeviceAccessScopeService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMapper.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": null,
+  "currentAdapter": null,
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [],
+  "adapterState": "NO_FULL_TASK_ENTRY",
+  "ownerSqlFiles": [
+    "owner-sql/DeviceFactoryVersionRecordMapper.xml"
+  ]
+}

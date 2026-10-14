@@ -1,0 +1,309 @@
+[
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+    "tasks": [
+      "P01"
+    ],
+    "file": "owner-sql/ManagedOrganizationMapper.xml"
+  },
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml",
+    "tasks": [
+      "P02",
+      "P03"
+    ],
+    "file": "owner-sql/DepartmentMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+    "tasks": [
+      "P03",
+      "P04"
+    ],
+    "file": "owner-sql/UserMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/permission/RoleMigrationMapper.xml",
+    "tasks": [
+      "P05"
+    ],
+    "file": "owner-sql/RoleMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/permission/UserRoleMigrationMapper.xml",
+    "tasks": [
+      "P06"
+    ],
+    "file": "owner-sql/UserRoleMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/permission/UserScopeMigrationMapper.xml",
+    "tasks": [
+      "P07"
+    ],
+    "file": "owner-sql/UserScopeMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml",
+    "tasks": [
+      "P08"
+    ],
+    "file": "owner-sql/DictionaryTypeMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml",
+    "tasks": [
+      "P09"
+    ],
+    "file": "owner-sql/DictionaryDataMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+    "tasks": [
+      "P10"
+    ],
+    "file": "owner-sql/CustomerMasterMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/product/AssetProductOfficialMapper.xml",
+    "tasks": [
+      "P12"
+    ],
+    "file": "owner-sql/AssetProductOfficialMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml",
+    "tasks": [
+      "P13"
+    ],
+    "file": "owner-sql/CrmExecutionOrderMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/order/ErpOrderSyncMapper.xml",
+    "tasks": [
+      "P14"
+    ],
+    "file": "owner-sql/ErpOrderSyncMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/migration/DppmsOrderFieldCarryMapper.xml",
+    "tasks": [
+      "P14"
+    ],
+    "file": "owner-sql/DppmsOrderFieldCarryMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/migration/DppmsOrderLineFieldCarryMapper.xml",
+    "tasks": [
+      "P14"
+    ],
+    "file": "owner-sql/DppmsOrderLineFieldCarryMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/authority/SalesOrderAuthorityMapper.xml",
+    "tasks": [
+      "P14"
+    ],
+    "file": "owner-sql/SalesOrderAuthorityMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/authority/OrderLineAuthorityMapper.xml",
+    "tasks": [
+      "P14"
+    ],
+    "file": "owner-sql/OrderLineAuthorityMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+    "tasks": [
+      "P16"
+    ],
+    "file": "owner-sql/ProjectMasterMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml",
+    "tasks": [
+      "P16",
+      "P19"
+    ],
+    "file": "owner-sql/ProjectPartyMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+    "tasks": [
+      "P16",
+      "P31"
+    ],
+    "file": "owner-sql/ProjectMasterMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "tasks": [
+      "P17"
+    ],
+    "file": "owner-sql/SyncBindingMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/migration/ProjectContractRelationMigrationMapper.xml",
+    "tasks": [
+      "P18"
+    ],
+    "file": "owner-sql/ProjectContractRelationMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml",
+    "tasks": [
+      "P18"
+    ],
+    "file": "owner-sql/ContractMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+    "tasks": [
+      "P20"
+    ],
+    "file": "owner-sql/ProjectRealProductMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+    "tasks": [
+      "P21"
+    ],
+    "file": "owner-sql/ProjectLeaseProductMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+    "tasks": [
+      "P21"
+    ],
+    "file": "owner-sql/ProjectProductConfigurationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/migration/DppmsProductScopeMapper.xml",
+    "tasks": [
+      "P22"
+    ],
+    "file": "owner-sql/DppmsProductScopeMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/scope/DeliveryScopeMapper.xml",
+    "tasks": [
+      "P22"
+    ],
+    "file": "owner-sql/DeliveryScopeMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/migration/ContractCollectionPlanMapper.xml",
+    "tasks": [
+      "P23"
+    ],
+    "file": "owner-sql/ContractCollectionPlanMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml",
+    "tasks": [
+      "P24"
+    ],
+    "file": "owner-sql/ContractReceivableMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml",
+    "tasks": [
+      "P25"
+    ],
+    "file": "owner-sql/DeviceWarrantyRenewalRecordMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/assembly/DeviceSourceRelationshipMapper.xml",
+    "tasks": [
+      "P29"
+    ],
+    "file": "owner-sql/DeviceSourceRelationshipMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml",
+    "tasks": [
+      "P30"
+    ],
+    "file": "owner-sql/DeviceMigrationIdentityMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/shipment/DeviceShipmentMapper.xml",
+    "tasks": [
+      "P30"
+    ],
+    "file": "owner-sql/DeviceShipmentMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+    "tasks": [
+      "P30"
+    ],
+    "file": "owner-sql/DeviceAssignmentMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/device/DeviceOrganizationMapper.xml",
+    "tasks": [
+      "P30"
+    ],
+    "file": "owner-sql/DeviceOrganizationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+    "tasks": [
+      "P31",
+      "P32"
+    ],
+    "file": "owner-sql/ProjectMemberAssignmentMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMemberHistoryMigrationMapper.xml",
+    "tasks": [
+      "P31",
+      "P32"
+    ],
+    "file": "owner-sql/ProjectMemberHistoryMigrationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-engineering/src/main/resources/mapper/installation/InstallationMapper.xml",
+    "tasks": [
+      "P33"
+    ],
+    "file": "owner-sql/InstallationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/location/DeviceLocationMapper.xml",
+    "tasks": [
+      "P33"
+    ],
+    "file": "owner-sql/DeviceLocationMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml",
+    "tasks": [
+      "P34"
+    ],
+    "file": "owner-sql/DeviceFactoryVersionRecordMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml",
+    "tasks": [
+      "P35"
+    ],
+    "file": "owner-sql/DeviceSoftwareChangeBatchMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml",
+    "tasks": [
+      "P36"
+    ],
+    "file": "owner-sql/DeviceSoftwareVersionRecordMapper.xml"
+  },
+  {
+    "sourceFile": "pms-module-asset/src/main/resources/mapper/license/DeviceLicenseRecordMapper.xml",
+    "tasks": [
+      "P37"
+    ],
+    "file": "owner-sql/DeviceLicenseRecordMapper.xml"
+  }
+]

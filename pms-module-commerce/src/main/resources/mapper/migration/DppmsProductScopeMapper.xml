@@ -25,6 +25,7 @@
         WHERE l.tenant_id=#{query.tenantId} AND l.deleted=0 AND cr.project_id=#{query.projectId}
           AND cr.status='ACTIVE' AND (cr.effective_from IS NULL OR cr.effective_from &lt;= CURRENT_TIMESTAMP)
           AND (cr.effective_to IS NULL OR cr.effective_to &gt; CURRENT_TIMESTAMP)
+          AND l.order_no=#{query.orderNo} AND l.line_no=#{query.lineNo} AND l.product_code=#{query.productCode}
           AND CAST(l.order_no AS BINARY)=CAST(#{query.orderNo} AS BINARY)
           AND CAST(l.line_no AS BINARY)=CAST(#{query.lineNo} AS BINARY)
           AND CAST(l.product_code AS BINARY)=CAST(#{query.productCode} AS BINARY)

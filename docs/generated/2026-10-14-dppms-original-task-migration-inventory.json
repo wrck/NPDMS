@@ -1,0 +1,5810 @@
+{
+  "capturedAt": "2026-10-14T18:01:18.729001",
+  "sourceDatabase": "npdms_domain_test",
+  "tenantId": 1,
+  "readOnly": true,
+  "classificationIsRecommendation": true,
+  "taskCount": 45,
+  "enabledTasks": 0,
+  "activeTasks": 0,
+  "connections": [
+    {
+      "id": "2101561624635936769",
+      "name": "DPPMS",
+      "dataSourceId": "18",
+      "dataSourceName": "DPPMS",
+      "database": "dppms",
+      "scheme": "mysql"
+    },
+    {
+      "id": "2101613038573838337",
+      "name": "DETAIL_ACCEPTANCE_ISOLATED",
+      "dataSourceId": "19",
+      "dataSourceName": "DETAIL_ACCEPTANCE_ISOLATED",
+      "database": "npdms_domain_test",
+      "scheme": "mysql"
+    },
+    {
+      "id": "2102221331933859841",
+      "name": "CRM SQL Server",
+      "dataSourceId": "20",
+      "dataSourceName": "CRM SQL Server",
+      "database": "",
+      "scheme": "sqlserver"
+    }
+  ],
+  "groups": [
+    {
+      "code": "A",
+      "name": "基础资料候选任务",
+      "count": 12
+    },
+    {
+      "code": "B",
+      "name": "业务主线候选任务",
+      "count": 12
+    },
+    {
+      "code": "C",
+      "name": "发货与设备相关任务：暂缓执行",
+      "count": 8
+    },
+    {
+      "code": "D",
+      "name": "历史纠正与清理专项：不作为新库初始化任务",
+      "count": 5
+    },
+    {
+      "code": "E",
+      "name": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "count": 8
+    }
+  ],
+  "tasks": [
+    {
+      "number": "A01",
+      "group": "基础资料候选任务",
+      "purpose": "公司、部门基础",
+      "recommendation": "保留现有公司映射及部门筛选；部门仅 depGrade<=2 且编码长度=6，并非全组织树。",
+      "id": "2101562667583217666",
+      "name": "EHR 公司与部门同步",
+      "version": 16,
+      "validatedVersion": 16,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "EHR_ORGANIZATION",
+      "storedAdapter": "EHR_ORGANIZATION",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "SNAPSHOT",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 25,
+      "latestRun": {
+        "runId": "2108203460623028226",
+        "version": 16,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 171,
+        "summary": {
+          "UNCHANGED": 171
+        },
+        "error": null,
+        "startedAt": "2026-10-08 22:30:48.195000",
+        "finishedAt": "2026-10-08 22:30:48.819000"
+      },
+      "latestSuccess": {
+        "runId": "2108203460623028226",
+        "version": 16,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 171,
+        "summary": {
+          "UNCHANGED": 171
+        },
+        "error": null,
+        "startedAt": "2026-10-08 22:30:48.195000",
+        "finishedAt": "2026-10-08 22:30:48.819000"
+      },
+      "latestPreview": {
+        "runId": "2101586558435209218",
+        "version": 16,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2101585335367774210",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 171,
+        "summary": {
+          "CREATED": 171
+        },
+        "error": null,
+        "startedAt": "2026-09-20 16:17:35.778000",
+        "finishedAt": "2026-09-20 16:17:36.297000"
+      },
+      "targetTables": [
+        "system_company",
+        "system_dept"
+      ],
+      "sources": [
+        {
+          "object": "COMPANY",
+          "sourceObject": "ehr_company",
+          "readMode": "TABLE",
+          "table": "ehr_company",
+          "referencedTables": [],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "compID",
+          "primaryTarget": null,
+          "mappingCount": 3,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "status",
+              "source": "isDisabled",
+              "conversion": "ENUM",
+              "valueCount": 5,
+              "valueShape": "int",
+              "constant": null
+            }
+          ]
+        },
+        {
+          "object": "DEPARTMENT",
+          "sourceObject": "ehr_department",
+          "readMode": "TABLE",
+          "table": "ehr_department",
+          "referencedTables": [],
+          "parameters": {},
+          "filters": [
+            {
+              "value": "2",
+              "column": "depGrade",
+              "function": null,
+              "operator": "<="
+            },
+            {
+              "value": "6",
+              "column": "depCode",
+              "function": "LENGTH",
+              "operator": "="
+            }
+          ],
+          "sourceKey": "depID",
+          "primaryTarget": null,
+          "mappingCount": 6,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "status",
+              "source": "isDisabled",
+              "conversion": "ENUM",
+              "valueCount": 5,
+              "valueShape": "int",
+              "constant": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "A02",
+      "group": "基础资料候选任务",
+      "purpose": "补充部门",
+      "recommendation": "在公司/上级部门就绪后处理；当前只限定8个已批准部门编码。",
+      "id": "2108538095265562625",
+      "name": "DPPMS 已裁决 ehr-departments",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+      "storedAdapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 5,
+      "latestRun": {
+        "runId": "2108553120462053377",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 8,
+        "summary": {
+          "UNCHANGED": 8
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:40:13.596000",
+        "finishedAt": "2026-10-09 21:40:14.151000"
+      },
+      "latestSuccess": {
+        "runId": "2108549492405899265",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 8,
+        "summary": {
+          "UPDATED": 8
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:25:48.601000",
+        "finishedAt": "2026-10-09 21:25:48.959000"
+      },
+      "latestPreview": {
+        "runId": "2108553120462053377",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 8,
+        "summary": {
+          "UNCHANGED": 8
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:40:13.596000",
+        "finishedAt": "2026-10-09 21:40:14.151000"
+      },
+      "targetTables": [
+        "system_dept"
+      ],
+      "sources": [
+        {
+          "object": "ehr_department",
+          "sourceObject": "ehr_department",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_department",
+            "ehr_login",
+            "fnd_department",
+            "fnd_user_info",
+            "t_user"
+          ],
+          "parameters": {
+            "departmentCode0": "167010",
+            "departmentCode1": "167020",
+            "departmentCode2": "167050",
+            "departmentCode3": "162007003",
+            "departmentCode4": "162012003",
+            "departmentCode5": "162022003",
+            "departmentCode6": "310409001",
+            "departmentCode7": "310422001"
+          },
+          "filters": [],
+          "sourceKey": "depID",
+          "primaryTarget": null,
+          "mappingCount": 40,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A03",
+      "group": "基础资料候选任务",
+      "purpose": "补充部门",
+      "recommendation": "当前仅 departmentCode0=163130；不能据任务名称视为部门整表任务。",
+      "id": "2108524501517955073",
+      "name": "DPPMS department-163130 来源迁移验证",
+      "version": 1,
+      "validatedVersion": 1,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_DEPARTMENTS",
+      "storedAdapter": "DPPMS_DEPARTMENTS",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 5,
+      "latestRun": {
+        "runId": "2109732078985281537",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 1,
+        "summary": {
+          "UNCHANGED": 1
+        },
+        "error": null,
+        "startedAt": "2026-10-13 03:44:59.214000",
+        "finishedAt": "2026-10-13 03:47:45.940000"
+      },
+      "latestSuccess": {
+        "runId": "2109732078985281537",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 1,
+        "summary": {
+          "UNCHANGED": 1
+        },
+        "error": null,
+        "startedAt": "2026-10-13 03:44:59.214000",
+        "finishedAt": "2026-10-13 03:47:45.940000"
+      },
+      "latestPreview": {
+        "runId": "2109731465169862657",
+        "version": 1,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 1,
+        "summary": {
+          "CREATED": 1
+        },
+        "error": null,
+        "startedAt": "2026-10-13 03:42:32.869000",
+        "finishedAt": "2026-10-13 03:42:33.056000"
+      },
+      "targetTables": [
+        "system_dept"
+      ],
+      "sources": [
+        {
+          "object": "fnd_department",
+          "sourceObject": "fnd_department",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_department",
+            "fnd_department"
+          ],
+          "parameters": {
+            "departmentCode0": "163130"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 11,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A04",
+      "group": "基础资料候选任务",
+      "purpose": "来源用户",
+      "recommendation": "先核对公司/部门；在新库重新形成来源用户绑定，保留原审计和同名账号规则。",
+      "id": "2108524822998773762",
+      "name": "DPPMS 已裁决 users",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_USERS",
+      "storedAdapter": "DPPMS_USERS",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 8,
+      "latestRun": {
+        "runId": "2108556946065764353",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 1566,
+        "summary": {
+          "SKIPPED": 39,
+          "UNCHANGED": 1525,
+          "REFERENCED": 2
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:55:25.689000",
+        "finishedAt": "2026-10-09 21:55:30.122000"
+      },
+      "latestSuccess": {
+        "runId": "2108554375892738049",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 1566,
+        "summary": {
+          "SKIPPED": 39,
+          "UPDATED": 676,
+          "UNCHANGED": 849,
+          "REFERENCED": 2
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:45:12.916000",
+        "finishedAt": "2026-10-09 21:45:15.981000"
+      },
+      "latestPreview": {
+        "runId": "2108556946065764353",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 1566,
+        "summary": {
+          "SKIPPED": 39,
+          "UNCHANGED": 1525,
+          "REFERENCED": 2
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:55:25.689000",
+        "finishedAt": "2026-10-09 21:55:30.122000"
+      },
+      "targetTables": [
+        "system_users"
+      ],
+      "sources": [
+        {
+          "object": "t_user",
+          "sourceObject": "t_user",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_employee",
+            "ehr_login",
+            "t_user"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "user_id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "t_user_info",
+          "sourceObject": "t_user_info",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_department",
+            "ehr_employee",
+            "ehr_job",
+            "t_company",
+            "t_user",
+            "t_user_info"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 30,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "fnd_user_info",
+          "sourceObject": "fnd_user_info",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_employee",
+            "ehr_login",
+            "fnd_user_info"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 24,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A05",
+      "group": "基础资料候选任务",
+      "purpose": "角色",
+      "recommendation": "依赖人员审计解析；保留18项来源角色编码映射，不推导新增权限。",
+      "id": "2108554583850524673",
+      "name": "DPPMS 已裁决 roles",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_ROLES",
+      "storedAdapter": "DPPMS_ROLES",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 2,
+      "latestRun": {
+        "runId": "2108559110330822657",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 31,
+        "summary": {
+          "ADOPTED": 6,
+          "CREATED": 25
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:04:01.693000",
+        "finishedAt": "2026-10-09 22:04:02.122000"
+      },
+      "latestSuccess": {
+        "runId": "2108559110330822657",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 31,
+        "summary": {
+          "ADOPTED": 6,
+          "CREATED": 25
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:04:01.693000",
+        "finishedAt": "2026-10-09 22:04:02.122000"
+      },
+      "latestPreview": {
+        "runId": "2108554584089600001",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 31,
+        "summary": {
+          "ADOPTED": 6,
+          "CREATED": 25
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:46:02.554000",
+        "finishedAt": "2026-10-09 21:46:02.967000"
+      },
+      "targetTables": [
+        "system_role"
+      ],
+      "sources": [
+        {
+          "object": "T_ROLE",
+          "sourceObject": "t_role",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "t_role",
+            "t_user"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "role_id",
+          "primaryTarget": null,
+          "mappingCount": 12,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "status",
+              "source": "status",
+              "conversion": "ENUM",
+              "valueCount": 1,
+              "valueShape": "int",
+              "constant": null
+            }
+          ]
+        },
+        {
+          "object": "FND_ROLE",
+          "sourceObject": "fnd_roles",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_roles",
+            "fnd_user_info"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 12,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "sourceCode",
+              "source": "id",
+              "conversion": "ENUM",
+              "valueCount": 18,
+              "valueShape": "str",
+              "constant": null
+            },
+            {
+              "target": "status",
+              "source": "status",
+              "conversion": "ENUM",
+              "valueCount": 1,
+              "valueShape": "int",
+              "constant": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "A06",
+      "group": "基础资料候选任务",
+      "purpose": "用户角色关系",
+      "recommendation": "先有正式用户、角色及相应来源绑定；历史关系不直接生成额外权限。",
+      "id": "2108568095503093761",
+      "name": "DPPMS 已裁决 user-roles",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_USER_ROLES",
+      "storedAdapter": "DPPMS_USER_ROLES",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 3,
+      "latestRun": {
+        "runId": "2108569187448197122",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 1709,
+        "summary": {
+          "SKIPPED": 51,
+          "UNCHANGED": 1932
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:44:04.266000",
+        "finishedAt": "2026-10-09 22:44:04.856000"
+      },
+      "latestSuccess": {
+        "runId": "2108569008816984065",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 1709,
+        "summary": {
+          "CREATED": 1932,
+          "SKIPPED": 51
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:43:21.677000",
+        "finishedAt": "2026-10-09 22:43:24.809000"
+      },
+      "latestPreview": {
+        "runId": "2108569187448197122",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 1709,
+        "summary": {
+          "SKIPPED": 51,
+          "UNCHANGED": 1932
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:44:04.266000",
+        "finishedAt": "2026-10-09 22:44:04.856000"
+      },
+      "targetTables": [
+        "system_user_role"
+      ],
+      "sources": [
+        {
+          "object": "T_USER_ROLE",
+          "sourceObject": "t_user_role",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "t_user",
+            "t_user_role"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 5,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "FND_USER_ROLE",
+          "sourceObject": "fnd_user_info",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_user_info"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 17,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A07",
+      "group": "基础资料候选任务",
+      "purpose": "用户公司部门范围",
+      "recommendation": "先有公司、部门、用户及所需角色；保留已批准的数据范围规则。",
+      "id": "2108569376783273985",
+      "name": "DPPMS 已裁决 user-scopes",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_USER_SCOPES",
+      "storedAdapter": "DPPMS_USER_SCOPES",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 3,
+      "latestRun": {
+        "runId": "2108571647373885441",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 3275,
+        "summary": {
+          "SKIPPED": 1329,
+          "UNCHANGED": 9492
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:53:50.758000",
+        "finishedAt": "2026-10-09 22:53:53.563000"
+      },
+      "latestSuccess": {
+        "runId": "2108571476367917057",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 3275,
+        "summary": {
+          "CREATED": 9492,
+          "SKIPPED": 1329
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:53:09.984000",
+        "finishedAt": "2026-10-09 22:53:26.332000"
+      },
+      "latestPreview": {
+        "runId": "2108571647373885441",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 3275,
+        "summary": {
+          "SKIPPED": 1329,
+          "UNCHANGED": 9492
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:53:50.758000",
+        "finishedAt": "2026-10-09 22:53:53.563000"
+      },
+      "targetTables": [
+        "system_user_company_department_scope"
+      ],
+      "sources": [
+        {
+          "object": "t_user",
+          "sourceObject": "t_user",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_employee",
+            "ehr_login",
+            "t_user"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "user_id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "t_user_info",
+          "sourceObject": "t_user_info",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_department",
+            "ehr_employee",
+            "ehr_job",
+            "t_company",
+            "t_user",
+            "t_user_info"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 30,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "fnd_user_info",
+          "sourceObject": "fnd_user_info",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "ehr_employee",
+            "ehr_login",
+            "fnd_user_info"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 24,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "t_user_role",
+          "sourceObject": "t_user_role",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "t_company",
+            "t_user",
+            "t_user_role"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 6,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "fnd_user_power",
+          "sourceObject": "fnd_user_power",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_user_power"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 10,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A08",
+      "group": "基础资料候选任务",
+      "purpose": "字典类型",
+      "recommendation": "保留原类型及补充49组的既定规则；先核对新库已有字典。",
+      "id": "2109351154645135362",
+      "name": "DPPMS 已裁决基础字典类型（原31＋缺失49）",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_DICTIONARY_TYPES",
+      "storedAdapter": "DPPMS_DICTIONARY_TYPES",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 4,
+      "latestRun": {
+        "runId": "2109352251665297409",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 80,
+        "summary": {
+          "UNCHANGED": 80
+        },
+        "error": null,
+        "startedAt": "2026-10-12 02:35:41.323000",
+        "finishedAt": "2026-10-12 02:35:42.559000"
+      },
+      "latestSuccess": {
+        "runId": "2109352251665297409",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 80,
+        "summary": {
+          "UNCHANGED": 80
+        },
+        "error": null,
+        "startedAt": "2026-10-12 02:35:41.323000",
+        "finishedAt": "2026-10-12 02:35:42.559000"
+      },
+      "latestPreview": {
+        "runId": "2109351862001872897",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 80,
+        "summary": {
+          "CREATED": 80
+        },
+        "error": null,
+        "startedAt": "2026-10-12 02:34:08.419000",
+        "finishedAt": "2026-10-12 02:34:09.622000"
+      },
+      "targetTables": [
+        "system_dict_type"
+      ],
+      "sources": [
+        {
+          "object": "fnd_basic_data_type",
+          "sourceObject": "fnd_basic_data_type",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_basic_data",
+            "fnd_basic_data_type"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "dataTypeCode",
+          "primaryTarget": null,
+          "mappingCount": 11,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A09",
+      "group": "基础资料候选任务",
+      "purpose": "字典项",
+      "recommendation": "依赖字典类型；保留531条承接及1条跳过规则。",
+      "id": "2109371486114320385",
+      "name": "DPPMS 已裁决字典项531条（保持14列）",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_DICTIONARY_DATA",
+      "storedAdapter": "DPPMS_DICTIONARY_DATA",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 3,
+      "latestRun": {
+        "runId": "2109371924867878913",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 532,
+        "summary": {
+          "SKIPPED": 1,
+          "UNCHANGED": 531
+        },
+        "error": null,
+        "startedAt": "2026-10-12 03:53:51.781000",
+        "finishedAt": "2026-10-12 03:53:53.633000"
+      },
+      "latestSuccess": {
+        "runId": "2109371924867878913",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 532,
+        "summary": {
+          "SKIPPED": 1,
+          "UNCHANGED": 531
+        },
+        "error": null,
+        "startedAt": "2026-10-12 03:53:51.781000",
+        "finishedAt": "2026-10-12 03:53:53.633000"
+      },
+      "latestPreview": {
+        "runId": "2109371486424698881",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 532,
+        "summary": {
+          "CREATED": 531,
+          "SKIPPED": 1
+        },
+        "error": null,
+        "startedAt": "2026-10-12 03:52:07.245000",
+        "finishedAt": "2026-10-12 03:52:09.882000"
+      },
+      "targetTables": [
+        "system_dict_data"
+      ],
+      "sources": [
+        {
+          "object": "fnd_basic_data",
+          "sourceObject": "fnd_basic_data",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_basic_data"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 12,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A10",
+      "group": "基础资料候选任务",
+      "purpose": "CRM客户",
+      "recommendation": "需重建CRM SQL Server连接；映射值域继续以CRM权威来源为准。",
+      "id": "2102221608959250434",
+      "name": "CRM客户信息同步",
+      "version": 2,
+      "validatedVersion": 2,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2102221331933859841",
+      "adapter": "CRM_CUSTOMER",
+      "storedAdapter": "CRM_CUSTOMER",
+      "taskKey": "crm-customer",
+      "sourceSystem": "CRM",
+      "mode": "INCREMENTAL",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 7,
+      "latestRun": {
+        "runId": "2102226982617640961",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 59601,
+        "summary": {
+          "ISSUE": 83,
+          "CREATED": 49525,
+          "UNCHANGED": 9993
+        },
+        "error": null,
+        "startedAt": "2026-09-22 10:42:24.802000",
+        "finishedAt": "2026-09-22 10:48:18.343000"
+      },
+      "latestSuccess": {
+        "runId": "2102226982617640961",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 59601,
+        "summary": {
+          "ISSUE": 83,
+          "CREATED": 49525,
+          "UNCHANGED": 9993
+        },
+        "error": null,
+        "startedAt": "2026-09-22 10:42:24.802000",
+        "finishedAt": "2026-09-22 10:48:18.343000"
+      },
+      "latestPreview": {
+        "runId": "2102226642040156162",
+        "version": 2,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 59601,
+        "summary": {
+          "ISSUE": 83,
+          "CREATED": 49525,
+          "UPDATED": 9993
+        },
+        "error": null,
+        "startedAt": "2026-09-22 10:41:03.601000",
+        "finishedAt": "2026-09-22 10:42:05.489000"
+      },
+      "targetTables": [
+        "cus_customer_master"
+      ],
+      "sources": [
+        {
+          "object": "CUSTOMER",
+          "sourceObject": "Account",
+          "readMode": "SQL",
+          "table": "Account",
+          "referencedTables": [
+            "Account"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "AccountId",
+          "primaryTarget": null,
+          "mappingCount": 19,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "lifecycleStatus",
+              "source": "StateCode",
+              "conversion": "ENUM",
+              "valueCount": 2,
+              "valueShape": "str",
+              "constant": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "A11",
+      "group": "基础资料候选任务",
+      "purpose": "CRM正式产品",
+      "recommendation": "需重建CRM SQL Server连接；与DPPMS产品名称/型号承接任务配合，避免重复覆盖。",
+      "id": "2102221608179109889",
+      "name": "CRM产品信息同步",
+      "version": 1,
+      "validatedVersion": 1,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2102221331933859841",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:crm-product",
+      "taskKey": "crm-product",
+      "sourceSystem": "CRM",
+      "mode": "INCREMENTAL",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 4,
+      "latestRun": {
+        "runId": "2102223719172337665",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 8441,
+        "summary": {
+          "CREATED": 8441
+        },
+        "error": null,
+        "startedAt": "2026-09-22 10:29:26.735000",
+        "finishedAt": "2026-09-22 10:29:47.826000"
+      },
+      "latestSuccess": {
+        "runId": "2102223719172337665",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 8441,
+        "summary": {
+          "CREATED": 8441
+        },
+        "error": null,
+        "startedAt": "2026-09-22 10:29:26.735000",
+        "finishedAt": "2026-09-22 10:29:47.826000"
+      },
+      "latestPreview": {
+        "runId": "2102223515756982274",
+        "version": 1,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 8441,
+        "summary": {
+          "CREATED": 8441
+        },
+        "error": null,
+        "startedAt": "2026-09-22 10:28:38.238000",
+        "finishedAt": "2026-09-22 10:28:52.580000"
+      },
+      "targetTables": [
+        "ast_product_official_info"
+      ],
+      "sources": [
+        {
+          "object": "PRODUCT",
+          "sourceObject": "DPtech_v_product_info_single",
+          "readMode": "SQL",
+          "table": "DPtech_v_product_info_single",
+          "referencedTables": [
+            "DPtech_v_product_info_single"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "itemCode",
+          "primaryTarget": "product",
+          "mappingCount": 12,
+          "targetTables": [
+            "ast_product_official_info"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "A12",
+      "group": "基础资料候选任务",
+      "purpose": "DPPMS产品名称、型号",
+      "recommendation": "需先准备同定义的实体扩展版本；migrationDefinitionRevisionId=2108533319597477890属于旧库，不能直接沿用。",
+      "id": "2108534088732168194",
+      "name": "DPPMS 已有正式产品整表原名称型号承接",
+      "version": 2,
+      "validatedVersion": 2,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PRODUCT_CATALOG",
+      "storedAdapter": "DPPMS_PRODUCT_CATALOG",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 11,
+      "latestRun": {
+        "runId": "2110077295412371457",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": "2110074470171082754",
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 34976,
+        "summary": {
+          "UNCHANGED": 34976
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:36:45.225000",
+        "finishedAt": "2026-10-14 02:47:00.830000"
+      },
+      "latestSuccess": {
+        "runId": "2110077295412371457",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": "2110074470171082754",
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 34976,
+        "summary": {
+          "UNCHANGED": 34976
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:36:45.225000",
+        "finishedAt": "2026-10-14 02:47:00.830000"
+      },
+      "latestPreview": {
+        "runId": "2110069776589717506",
+        "version": 2,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 34976,
+        "summary": {
+          "INSERT": 26558,
+          "UNCHANGED": 8418
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:06:52.595000",
+        "finishedAt": "2026-10-14 02:08:41.002000"
+      },
+      "targetTables": [
+        "ast_product_official_info"
+      ],
+      "sources": [
+        {
+          "object": "fb_items",
+          "sourceObject": "fb_items",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fb_items"
+          ],
+          "parameters": {
+            "productCodes": "",
+            "migrationDefinitionRevisionId": "2108533319597477890"
+          },
+          "filters": [],
+          "sourceKey": "item",
+          "primaryTarget": null,
+          "mappingCount": 5,
+          "targetTables": [],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "B01",
+      "group": "业务主线候选任务",
+      "purpose": "执行单",
+      "recommendation": "保留用服筛选及公司码规则；开启自动分页，查看根回执合计，不能只看最后136行。",
+      "id": "2101625228492091393",
+      "name": "DPPMS execution-canonical 来源迁移验证",
+      "version": 11,
+      "validatedVersion": 11,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_CRM_EXECUTION_ORDER",
+      "storedAdapter": "DPPMS_CRM_EXECUTION_ORDER",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": true,
+      "maxRows": 2000,
+      "runCount": 880,
+      "latestRun": {
+        "runId": "2110083758469812226",
+        "version": 11,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110082903624519682",
+        "pageNumber": 51,
+        "status": "PREVIEW_READY",
+        "readCount": 136,
+        "summary": {
+          "UNCHANGED": 136
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:02:26.136000",
+        "finishedAt": "2026-10-14 03:02:27.892000"
+      },
+      "latestSuccess": {
+        "runId": "2109759451957006338",
+        "version": 8,
+        "preview": false,
+        "full": true,
+        "parentRunId": "2109759128618110977",
+        "pageNumber": 52,
+        "status": "SUCCESS",
+        "readCount": 520,
+        "summary": {
+          "UNCHANGED": 520
+        },
+        "error": null,
+        "startedAt": "2026-10-13 05:33:45.439000",
+        "finishedAt": "2026-10-13 05:33:46.046000"
+      },
+      "latestPreview": {
+        "runId": "2110083758469812226",
+        "version": 11,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110082903624519682",
+        "pageNumber": 51,
+        "status": "PREVIEW_READY",
+        "readCount": 136,
+        "summary": {
+          "UNCHANGED": 136
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:02:26.136000",
+        "finishedAt": "2026-10-14 03:02:27.892000"
+      },
+      "targetTables": [
+        "com_crm_execution_order"
+      ],
+      "sources": [
+        {
+          "object": "EXECUTION_ORDER",
+          "sourceObject": "pm_project_property_from_sms",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_property_from_sms"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10",
+            "afterSalesType": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 63,
+          "targetTables": [],
+          "lookups": []
+        }
+      ],
+      "latestPreviewChain": {
+        "rootRunId": "2110082903624519682",
+        "childPageCount": 51,
+        "rootReadCount": 100136,
+        "rootSummary": {
+          "UNCHANGED": 100136
+        },
+        "childReadCount": 100136,
+        "statuses": {
+          "PREVIEW_READY": 52
+        },
+        "note": "Root receipt already aggregates child pages; never sum root and children together."
+      },
+      "currentSourceCounts": [
+        {
+          "object": "EXECUTION_ORDER",
+          "count": 100136,
+          "seconds": 4.016
+        }
+      ]
+    },
+    {
+      "number": "B02",
+      "group": "业务主线候选任务",
+      "purpose": "订单及订单行",
+      "recommendation": "当前含91,161项旧库字段承接证明，须另行准备新库首次承接配置；原映射和冲突保护保留。",
+      "id": "2101587859478949890",
+      "name": "DPPMS 订单原字段受保护承接 order-field-valid-efficient",
+      "version": 31,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_ERP_ORDER",
+      "storedAdapter": "DPPMS_ERP_ORDER",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 41,
+      "latestRun": {
+        "runId": "2110095270865473537",
+        "version": 31,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110085283409694721",
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 467235,
+        "summary": {
+          "ISSUE": 419,
+          "CREATED": 235295,
+          "UPDATED": 11,
+          "CONFLICT": 3,
+          "UNCHANGED": 231507
+        },
+        "error": "完整预览存在目标归属或字段冲突，未写入任何业务记录",
+        "startedAt": "2026-10-14 03:48:10.903000",
+        "finishedAt": "2026-10-14 03:59:33.378000"
+      },
+      "latestSuccess": {
+        "runId": "2110030355538575362",
+        "version": 28,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 50,
+        "summary": {
+          "UNCHANGED": 50
+        },
+        "error": null,
+        "startedAt": "2026-10-13 23:30:13.885000",
+        "finishedAt": "2026-10-13 23:30:38.502000"
+      },
+      "latestPreview": {
+        "runId": "2110095270865473537",
+        "version": 31,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110085283409694721",
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 467235,
+        "summary": {
+          "ISSUE": 419,
+          "CREATED": 235295,
+          "UPDATED": 11,
+          "CONFLICT": 3,
+          "UNCHANGED": 231507
+        },
+        "error": "完整预览存在目标归属或字段冲突，未写入任何业务记录",
+        "startedAt": "2026-10-14 03:48:10.903000",
+        "finishedAt": "2026-10-14 03:59:33.378000"
+      },
+      "targetTables": [
+        "com_sales_order",
+        "com_sales_order_line"
+      ],
+      "sources": [
+        {
+          "object": "ORDER",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_order_data_from_erp",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10",
+            "reviewedSourceIds": "",
+            "unreviewedSourceIds": ""
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 19,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "fieldCarryProof",
+              "source": "id",
+              "conversion": "LOOKUP",
+              "valueCount": 91161,
+              "valueShape": [
+                "targetId",
+                "expectedVersion",
+                "fieldsFingerprint",
+                "sourceFingerprint",
+                "protectedFingerprint"
+              ],
+              "constant": null
+            }
+          ]
+        },
+        {
+          "object": "LINE",
+          "sourceObject": "pm_order_line_from_erp",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_order_data_from_erp",
+            "pm_order_line_from_erp",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "sourceIds": "",
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 17,
+          "targetTables": [],
+          "lookups": []
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "ORDER",
+          "count": 90478,
+          "seconds": 19.695
+        },
+        {
+          "object": "LINE",
+          "count": 376757,
+          "seconds": 92.309
+        }
+      ]
+    },
+    {
+      "number": "B03",
+      "group": "业务主线候选任务",
+      "purpose": "项目主档",
+      "recommendation": "先有用户来源绑定及组织资料；当前还含6,570项旧恢复凭据和10项现值版本保护，不能直接用于空库首次创建。",
+      "id": "2108608417343934465",
+      "name": "DPPMS 项目主档整表迁移验证（续保多合同样本）",
+      "version": 10,
+      "validatedVersion": 10,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PROJECT_MASTER",
+      "storedAdapter": "DPPMS_PROJECT_MASTER",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 22,
+      "latestRun": {
+        "runId": "2110085474984529922",
+        "version": 10,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 80170,
+        "summary": {
+          "ISSUE": 10,
+          "CREATED": 73580,
+          "UNCHANGED": 6580
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:09:15.385000",
+        "finishedAt": "2026-10-14 03:45:09.601000"
+      },
+      "latestSuccess": {
+        "runId": "2110078518484000770",
+        "version": 9,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 6570,
+        "summary": {
+          "UNCHANGED": 6570
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:41:36.826000",
+        "finishedAt": "2026-10-14 02:48:57.989000"
+      },
+      "latestPreview": {
+        "runId": "2110085474984529922",
+        "version": 10,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 80170,
+        "summary": {
+          "ISSUE": 10,
+          "CREATED": 73580,
+          "UNCHANGED": 6580
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:09:15.385000",
+        "finishedAt": "2026-10-14 03:45:09.601000"
+      },
+      "targetTables": [
+        "proj_project"
+      ],
+      "sources": [
+        {
+          "object": "pm_project_header",
+          "sourceObject": "pm_project_header",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_user_info",
+            "pm_project",
+            "t_company",
+            "t_user"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10",
+            "excludedFndActorIds": ""
+          },
+          "filters": [],
+          "sourceKey": "projectId",
+          "primaryTarget": null,
+          "mappingCount": 53,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "expectedProjectVersion",
+              "source": "projectId",
+              "conversion": "LOOKUP",
+              "valueCount": 10,
+              "valueShape": "int",
+              "constant": null
+            },
+            {
+              "target": "creatorHistoricalCode",
+              "source": "createBy",
+              "conversion": "LOOKUP",
+              "valueCount": 2,
+              "valueShape": "str",
+              "constant": null
+            },
+            {
+              "target": "updaterHistoricalCode",
+              "source": "updateBy",
+              "conversion": "LOOKUP",
+              "valueCount": 2,
+              "valueShape": "str",
+              "constant": null
+            },
+            {
+              "target": "migrationRestoration",
+              "source": "projectId",
+              "conversion": "LOOKUP",
+              "valueCount": 6570,
+              "valueShape": [
+                "targetId",
+                "lastRunId",
+                "creationRunId",
+                "retiredBindingId",
+                "expectedFingerprint"
+              ],
+              "constant": null
+            }
+          ]
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_project_header",
+          "count": 80170,
+          "seconds": 19.443
+        }
+      ]
+    },
+    {
+      "number": "B04",
+      "group": "业务主线候选任务",
+      "purpose": "全部原项目身份",
+      "recommendation": "先有规范主档；保留所有原ID到规范主档的映射，不创建第二份同码项目。",
+      "id": "2109622534918856706",
+      "name": "DPPMS identity-carried 整表迁移验证",
+      "version": 6,
+      "validatedVersion": 6,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PROJECT_IDENTITY",
+      "storedAdapter": "DPPMS_PROJECT_IDENTITY",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 15,
+      "latestRun": {
+        "runId": "2110096852839501826",
+        "version": 6,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 80320,
+        "summary": {
+          "ISSUE": 73722,
+          "UNCHANGED": 6598
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:54:28.079000",
+        "finishedAt": "2026-10-14 03:57:33.781000"
+      },
+      "latestSuccess": {
+        "runId": "2110084859474612226",
+        "version": 5,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 6577,
+        "summary": {
+          "UNCHANGED": 6577
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:06:48.636000",
+        "finishedAt": "2026-10-14 03:08:35.465000"
+      },
+      "latestPreview": {
+        "runId": "2110096852839501826",
+        "version": 6,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 80320,
+        "summary": {
+          "ISSUE": 73722,
+          "UNCHANGED": 6598
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:54:28.079000",
+        "finishedAt": "2026-10-14 03:57:33.781000"
+      },
+      "targetTables": [
+        "proj_project"
+      ],
+      "sources": [
+        {
+          "object": "pm_project_identity",
+          "sourceObject": "pm_project",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "originalProjectId",
+          "primaryTarget": null,
+          "mappingCount": 4,
+          "targetTables": [],
+          "lookups": []
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_project_identity",
+          "count": 80320,
+          "seconds": 1.162
+        }
+      ]
+    },
+    {
+      "number": "B05",
+      "group": "业务主线候选任务",
+      "purpose": "项目合同关系",
+      "recommendation": "依赖项目身份和正式合同主档；当前保留18项已批准来源裁决。发货组合中的合同主档步骤须单独明确。",
+      "id": "2109363204544983041",
+      "name": "DPPMS contract-reference-ready 整表迁移验证",
+      "version": 12,
+      "validatedVersion": 12,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "storedAdapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 31,
+      "latestRun": {
+        "runId": "2110223047316934657",
+        "version": 12,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 83472,
+        "summary": {
+          "ISSUE": 76952,
+          "SKIPPED": 18,
+          "UNCHANGED": 6502
+        },
+        "error": null,
+        "startedAt": "2026-10-14 12:15:55.186000",
+        "finishedAt": "2026-10-14 12:22:05.007000"
+      },
+      "latestSuccess": {
+        "runId": "2110212969792782338",
+        "version": 11,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 6470,
+        "summary": {
+          "UNCHANGED": 6470
+        },
+        "error": null,
+        "startedAt": "2026-10-14 11:35:52.517000",
+        "finishedAt": "2026-10-14 11:38:26.189000"
+      },
+      "latestPreview": {
+        "runId": "2110223047316934657",
+        "version": 12,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 83472,
+        "summary": {
+          "ISSUE": 76952,
+          "SKIPPED": 18,
+          "UNCHANGED": 6502
+        },
+        "error": null,
+        "startedAt": "2026-10-14 12:15:55.186000",
+        "finishedAt": "2026-10-14 12:22:05.007000"
+      },
+      "targetTables": [
+        "com_project_contract_relation"
+      ],
+      "sources": [
+        {
+          "object": "pm_project_contract",
+          "sourceObject": "pm_project_contract",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "relationSourceKey",
+          "primaryTarget": null,
+          "mappingCount": 63,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "migrationDecision",
+              "source": "relationOriginalKey",
+              "conversion": "LOOKUP",
+              "valueCount": 18,
+              "valueShape": [
+                "action",
+                "decision",
+                "originalFields"
+              ],
+              "constant": null
+            }
+          ]
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_project_contract",
+          "count": 83472,
+          "seconds": 12.186
+        }
+      ]
+    },
+    {
+      "number": "B06",
+      "group": "业务主线候选任务",
+      "purpose": "合同回款计划",
+      "recommendation": "依赖正式合同及人员来源解析；保留540个未知审计编码，不默认补建账号。",
+      "id": "2108574253093683202",
+      "name": "DPPMS collection-approved-actors 整表迁移验证",
+      "version": 10,
+      "validatedVersion": 10,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "storedAdapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 20,
+      "latestRun": {
+        "runId": "2110077014557581314",
+        "version": 10,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110072721901289473",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 35451,
+        "summary": {
+          "CREATED": 30152,
+          "UNCHANGED": 5299
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:35:38.262000",
+        "finishedAt": "2026-10-14 02:37:41.896000"
+      },
+      "latestSuccess": {
+        "runId": "2110030444873056258",
+        "version": 7,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 0,
+        "summary": {},
+        "error": null,
+        "startedAt": "2026-10-13 23:30:35.185000",
+        "finishedAt": "2026-10-13 23:30:42.182000"
+      },
+      "latestPreview": {
+        "runId": "2110077014557581314",
+        "version": 10,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110072721901289473",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 35451,
+        "summary": {
+          "CREATED": 30152,
+          "UNCHANGED": 5299
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:35:38.262000",
+        "finishedAt": "2026-10-14 02:37:41.896000"
+      },
+      "targetTables": [
+        "com_contract_collection_plan"
+      ],
+      "sources": [
+        {
+          "object": "pm_pb_plan_from_sms",
+          "sourceObject": "pm_pb_plan_from_sms",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_user_info",
+            "pm_pb_plan_from_sms",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship",
+            "t_user"
+          ],
+          "parameters": {
+            "planIds": "",
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 28,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "creatorUnlinkedCode",
+              "source": "createBy",
+              "conversion": "LOOKUP",
+              "valueCount": 540,
+              "valueShape": "str",
+              "constant": null
+            },
+            {
+              "target": "updaterUnlinkedCode",
+              "source": "updateBy",
+              "conversion": "LOOKUP",
+              "valueCount": 540,
+              "valueShape": "str",
+              "constant": null
+            }
+          ]
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_pb_plan_from_sms",
+          "count": 35451,
+          "seconds": 8.534
+        }
+      ]
+    },
+    {
+      "number": "B07",
+      "group": "业务主线候选任务",
+      "purpose": "合同回款信息",
+      "recommendation": "依赖正式合同引用及既定回款字段映射；不以HTTP成功视为合同业务完成。",
+      "id": "2109967339937804289",
+      "name": "DPPMS 合同回款信息整表迁移与同步",
+      "version": 4,
+      "validatedVersion": 4,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_CONTRACT_RECEIVABLE",
+      "storedAdapter": "DPPMS_CONTRACT_RECEIVABLE",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 500,
+      "runCount": 15,
+      "latestRun": {
+        "runId": "2110077032022663169",
+        "version": 4,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110072735570526209",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 79321,
+        "summary": {
+          "CREATED": 79296,
+          "UNCHANGED": 25
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:35:42.425000",
+        "finishedAt": "2026-10-14 02:42:08.946000"
+      },
+      "latestSuccess": {
+        "runId": "2110025660233351169",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": "2110025659063140353",
+        "pageNumber": 1,
+        "status": "SUCCESS",
+        "readCount": 15,
+        "summary": {
+          "UNCHANGED": 15
+        },
+        "error": null,
+        "startedAt": "2026-10-13 23:11:34.438000",
+        "finishedAt": "2026-10-13 23:11:34.872000"
+      },
+      "latestPreview": {
+        "runId": "2110077032022663169",
+        "version": 4,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110072735570526209",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 79321,
+        "summary": {
+          "CREATED": 79296,
+          "UNCHANGED": 25
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:35:42.425000",
+        "finishedAt": "2026-10-14 02:42:08.946000"
+      },
+      "targetTables": [
+        "com_contract_receivable"
+      ],
+      "sources": [
+        {
+          "object": "sms_ofst_contract_head_sap",
+          "sourceObject": "sms_ofst_contract_head_sap",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "contractNos": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 39,
+          "targetTables": [],
+          "lookups": []
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "sms_ofst_contract_head_sap",
+          "count": 79321,
+          "seconds": 7.652
+        }
+      ]
+    },
+    {
+      "number": "B08",
+      "group": "业务主线候选任务",
+      "purpose": "项目实施范围",
+      "recommendation": "依赖项目、办事处、有效合同关系和精确订单行；当前105项baseline属于旧库，正数量规则继续有效。",
+      "id": "2109829769958453249",
+      "name": "DPPMS项目产品实施范围（整表，10项目验证）",
+      "version": 7,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "storedAdapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 18,
+      "latestRun": {
+        "runId": "2110224606482337794",
+        "version": 6,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 2,
+        "summary": {
+          "CONFLICT": 2
+        },
+        "error": "完整预览存在目标归属或字段冲突，未写入任何业务记录",
+        "startedAt": "2026-10-14 12:22:06.920000",
+        "finishedAt": "2026-10-14 12:22:07.320000"
+      },
+      "latestSuccess": {
+        "runId": "2110033455561269249",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 77,
+        "summary": {
+          "UNCHANGED": 77
+        },
+        "error": null,
+        "startedAt": "2026-10-13 23:42:32.987000",
+        "finishedAt": "2026-10-13 23:43:00.111000"
+      },
+      "latestPreview": {
+        "runId": "2110224606482337794",
+        "version": 6,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 2,
+        "summary": {
+          "CONFLICT": 2
+        },
+        "error": "完整预览存在目标归属或字段冲突，未写入任何业务记录",
+        "startedAt": "2026-10-14 12:22:06.920000",
+        "finishedAt": "2026-10-14 12:22:07.320000"
+      },
+      "targetTables": [
+        "com_delivery_scope"
+      ],
+      "sources": [
+        {
+          "object": "pm_project_product_line",
+          "sourceObject": "pm_project_product_line",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_product_line"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 14,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "baseline",
+              "source": "id",
+              "conversion": "LOOKUP",
+              "valueCount": 105,
+              "valueShape": "str",
+              "constant": null
+            }
+          ]
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_project_product_line",
+          "count": 345034,
+          "seconds": 1.383
+        }
+      ]
+    },
+    {
+      "number": "B09",
+      "group": "业务主线候选任务",
+      "purpose": "项目真实产品",
+      "recommendation": "先有项目来源绑定；保持原产品字段及来源修订关系。",
+      "id": "2109865269478027265",
+      "name": "DPPMS项目真实产品清单（整表，10项目验证）",
+      "version": 4,
+      "validatedVersion": 4,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PROJECT_REAL_PRODUCT",
+      "storedAdapter": "DPPMS_PROJECT_REAL_PRODUCT",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 8,
+      "latestRun": {
+        "runId": "2110084879938621442",
+        "version": 4,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110077069796564994",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 7848,
+        "summary": {
+          "ISSUE": 7310,
+          "CREATED": 538
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:06:53.515000",
+        "finishedAt": "2026-10-14 03:06:59.123000"
+      },
+      "latestSuccess": {
+        "runId": "2110030370134753281",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 0,
+        "summary": {},
+        "error": null,
+        "startedAt": "2026-10-13 23:30:17.365000",
+        "finishedAt": "2026-10-13 23:30:17.675000"
+      },
+      "latestPreview": {
+        "runId": "2110084879938621442",
+        "version": 4,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110077069796564994",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 7848,
+        "summary": {
+          "ISSUE": 7310,
+          "CREATED": 538
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:06:53.515000",
+        "finishedAt": "2026-10-14 03:06:59.123000"
+      },
+      "targetTables": [
+        "proj_project_real_product"
+      ],
+      "sources": [
+        {
+          "object": "pm_project_product_line_real",
+          "sourceObject": "pm_project_product_line_real",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_product_line_real",
+            "pm_project_real_product_line_from_sms"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 25,
+          "targetTables": [],
+          "lookups": []
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_project_product_line_real",
+          "count": 7848,
+          "seconds": 0.748
+        }
+      ]
+    },
+    {
+      "number": "B10",
+      "group": "业务主线候选任务",
+      "purpose": "项目租赁、产品配置",
+      "recommendation": "先有项目来源绑定；两类原表独立保留，原缺失项目继续报告问题。",
+      "id": "2109865270430134273",
+      "name": "DPPMS项目租赁及产品配置（整表，10项目验证）",
+      "version": 4,
+      "validatedVersion": 4,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "storedAdapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 8,
+      "latestRun": {
+        "runId": "2110085069114314754",
+        "version": 4,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110077089971167233",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 1402,
+        "summary": {
+          "ISSUE": 1401,
+          "CREATED": 1
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:07:38.618000",
+        "finishedAt": "2026-10-14 03:07:54.621000"
+      },
+      "latestSuccess": {
+        "runId": "2110030443258249218",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 0,
+        "summary": {},
+        "error": null,
+        "startedAt": "2026-10-13 23:30:34.800000",
+        "finishedAt": "2026-10-13 23:30:51.635000"
+      },
+      "latestPreview": {
+        "runId": "2110085069114314754",
+        "version": 4,
+        "preview": true,
+        "full": true,
+        "parentRunId": "2110077089971167233",
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 1402,
+        "summary": {
+          "ISSUE": 1401,
+          "CREATED": 1
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:07:38.618000",
+        "finishedAt": "2026-10-14 03:07:54.621000"
+      },
+      "targetTables": [
+        "proj_project_lease_product",
+        "proj_project_product_configuration"
+      ],
+      "sources": [
+        {
+          "object": "pm_project_product_lease_line_from_crm",
+          "sourceObject": "pm_project_product_lease_line_from_crm",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_product_lease_line_from_crm"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "rowKey",
+          "primaryTarget": null,
+          "mappingCount": 14,
+          "targetTables": [],
+          "lookups": []
+        },
+        {
+          "object": "pm_project_product_config_level_info_from_crm",
+          "sourceObject": "pm_project_product_config_level_info_from_crm",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_product_config_level_info_from_crm"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "rowKey",
+          "primaryTarget": null,
+          "mappingCount": 14,
+          "targetTables": [],
+          "lookups": []
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_project_product_lease_line_from_crm",
+          "count": 627,
+          "seconds": 4.809
+        },
+        {
+          "object": "pm_project_product_config_level_info_from_crm",
+          "count": 775,
+          "seconds": 5.492
+        }
+      ]
+    },
+    {
+      "number": "B11",
+      "group": "业务主线候选任务",
+      "purpose": "项目相关方、过程状态",
+      "recommendation": "先有项目绑定；55项旧前值证明和扩展定义ID 2109967949395320833需新库适配；不制造当前审批完成事实。",
+      "id": "2109968219214897153",
+      "name": "DPPMS 项目相关方及状态整表迁移与同步",
+      "version": 5,
+      "validatedVersion": 5,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_PROJECT_FACTS",
+      "storedAdapter": "DPPMS_PROJECT_FACTS",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 500,
+      "runCount": 11,
+      "latestRun": {
+        "runId": "2110097792346820610",
+        "version": 5,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 268878,
+        "summary": {
+          "ISSUE": 254345,
+          "CREATED": 14400,
+          "UNCHANGED": 133
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:58:12.073000",
+        "finishedAt": "2026-10-14 04:04:15.522000"
+      },
+      "latestSuccess": {
+        "runId": "2110024518287949825",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 68,
+        "summary": {
+          "UNCHANGED": 68
+        },
+        "error": null,
+        "startedAt": "2026-10-13 23:07:02.177000",
+        "finishedAt": "2026-10-13 23:07:03.584000"
+      },
+      "latestPreview": {
+        "runId": "2110097792346820610",
+        "version": 5,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 268878,
+        "summary": {
+          "ISSUE": 254345,
+          "CREATED": 14400,
+          "UNCHANGED": 133
+        },
+        "error": null,
+        "startedAt": "2026-10-14 03:58:12.073000",
+        "finishedAt": "2026-10-14 04:04:15.522000"
+      },
+      "targetTables": [
+        "proj_project",
+        "proj_project_party"
+      ],
+      "sources": [
+        {
+          "object": "pm_project_related_party",
+          "sourceObject": "pm_project_related_party",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_related_party"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 14,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "_expectedFingerprint",
+              "source": "id",
+              "conversion": "LOOKUP",
+              "valueCount": 55,
+              "valueShape": "str",
+              "constant": null
+            }
+          ]
+        },
+        {
+          "object": "pm_project_state",
+          "sourceObject": "pm_project_state",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_project",
+            "pm_project_state"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "projectId",
+          "primaryTarget": null,
+          "mappingCount": 12,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "_definitionId",
+              "source": null,
+              "conversion": "CONSTANT",
+              "valueCount": 0,
+              "valueShape": "NoneType",
+              "constant": "2109967949395320833"
+            }
+          ]
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "pm_project_related_party",
+          "count": 188770,
+          "seconds": 0.304
+        },
+        {
+          "object": "pm_project_state",
+          "count": 80108,
+          "seconds": 0.968
+        }
+      ]
+    },
+    {
+      "number": "B12",
+      "group": "业务主线候选任务",
+      "purpose": "设备续保记录",
+      "recommendation": "保持设备标识、合同号及既定续保映射；与主档及关联层分别核定实际写入范围。",
+      "id": "2110010787726274561",
+      "name": "DPPMS 设备续保记录整表迁移与同步",
+      "version": 5,
+      "validatedVersion": 5,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_WARRANTY_RENEWAL",
+      "storedAdapter": "DPPMS_WARRANTY_RENEWAL",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 10,
+      "latestRun": {
+        "runId": "2110070785730871298",
+        "version": 5,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 453454,
+        "summary": {
+          "CREATED": 453231,
+          "UNCHANGED": 223
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:10:53.195000",
+        "finishedAt": "2026-10-14 02:22:25.375000"
+      },
+      "latestSuccess": {
+        "runId": "2110024910384070658",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 222,
+        "summary": {
+          "UNCHANGED": 222
+        },
+        "error": null,
+        "startedAt": "2026-10-13 23:08:35.660000",
+        "finishedAt": "2026-10-13 23:08:36.955000"
+      },
+      "latestPreview": {
+        "runId": "2110070785730871298",
+        "version": 5,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 453454,
+        "summary": {
+          "CREATED": 453231,
+          "UNCHANGED": 223
+        },
+        "error": null,
+        "startedAt": "2026-10-14 02:10:53.195000",
+        "finishedAt": "2026-10-14 02:22:25.375000"
+      },
+      "targetTables": [
+        "ast_device_warranty_renewal_record"
+      ],
+      "sources": [
+        {
+          "object": "fb_service",
+          "sourceObject": "fb_service",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fb_service",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "deviceSns": "",
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "renewalSourceKey",
+          "primaryTarget": null,
+          "mappingCount": 10,
+          "targetTables": [],
+          "lookups": []
+        }
+      ],
+      "currentSourceCounts": [
+        {
+          "object": "fb_service",
+          "count": 453454,
+          "seconds": 91.605
+        }
+      ]
+    },
+    {
+      "number": "C01",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "当前合同/发货组合入口",
+      "recommendation": "当前v14、5个来源对象；按用户决定暂不执行。后续若仅迁合同主档，应基于此已复核CONTRACT段单独明确范围。",
+      "id": "2107037031219654657",
+      "name": "DPPMS 合同、装箱单与发货记录完整同步",
+      "version": 14,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "taskKey": "delivery-full-sync",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 14,
+      "latestRun": {
+        "runId": "2110101484592644098",
+        "version": 14,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 166370,
+        "summary": {
+          "ISSUE": 814,
+          "UPDATED": 13163,
+          "CONFLICT": 3562,
+          "UNCHANGED": 148831
+        },
+        "error": "运行进程中断，已核对业务提交状态；可创建关联重试",
+        "startedAt": "2026-10-14 04:12:52.373000",
+        "finishedAt": "2026-10-14 10:42:51.472000"
+      },
+      "latestSuccess": {
+        "runId": "2110025218778660865",
+        "version": 9,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 4,
+        "summary": {
+          "UNCHANGED": 4
+        },
+        "error": null,
+        "startedAt": "2026-10-13 23:09:49.186000",
+        "finishedAt": "2026-10-13 23:09:54.240000"
+      },
+      "latestPreview": {
+        "runId": "2110101484592644098",
+        "version": 14,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 166370,
+        "summary": {
+          "ISSUE": 814,
+          "UPDATED": 13163,
+          "CONFLICT": 3562,
+          "UNCHANGED": 148831
+        },
+        "error": "运行进程中断，已核对业务提交状态；可创建关联重试",
+        "startedAt": "2026-10-14 04:12:52.373000",
+        "finishedAt": "2026-10-14 10:42:51.472000"
+      },
+      "targetTables": [
+        "ast_device_relationship",
+        "ast_device_shipment",
+        "com_contract",
+        "com_shipment_contract_reference",
+        "com_shipment_package"
+      ],
+      "sources": [
+        {
+          "object": "CONTRACT",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": "pm_order_data_from_erp",
+          "referencedTables": [
+            "fb_contract",
+            "fnd_company",
+            "pm_order_data_from_erp",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "contractNos": "",
+            "projectTypes": "10",
+            "approvedContractNos": "31020181224A12,31020211228A12",
+            "customerCodeOverrides": "{\"31020220620A23\":\"C00013\",\"31120220620A37\":\"C00013\"}"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [
+            "com_contract"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "SHIPMENT_CONTRACT",
+          "sourceObject": "fb_contract",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "sync_evidence_key",
+          "primaryTarget": null,
+          "mappingCount": 21,
+          "targetTables": [
+            "com_contract",
+            "com_shipment_contract_reference"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "PACKAGE",
+          "sourceObject": "fb_shipment",
+          "readMode": "SQL",
+          "table": "fb_shipment",
+          "referencedTables": [
+            "fb_contract",
+            "fb_shipment",
+            "fnd_basic_data",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "packlist_id",
+          "primaryTarget": null,
+          "mappingCount": 10,
+          "targetTables": [
+            "com_shipment_package"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_SN",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_shipment_barcode",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 26,
+          "targetTables": [
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_RELATION",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation",
+            "pm_project",
+            "pm_project_contract",
+            "pm_project_group",
+            "pm_project_group_relationship"
+          ],
+          "parameters": {
+            "projectIds": "",
+            "projectTypes": "10"
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "relation",
+          "mappingCount": 10,
+          "targetTables": [
+            "ast_device_relationship"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "C02",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "旧发货合同入口",
+      "recommendation": "与当前组合入口重叠；原库无运行回执，不作为默认迁入入口。",
+      "id": "2101857698189352962",
+      "name": "发货合同同步",
+      "version": 5,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:shipment-contract",
+      "taskKey": "shipment-contract",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 0,
+      "latestRun": null,
+      "latestSuccess": null,
+      "latestPreview": null,
+      "targetTables": [
+        "com_contract",
+        "com_shipment_contract_reference"
+      ],
+      "sources": [
+        {
+          "object": "SHIPMENT_CONTRACT",
+          "sourceObject": "fb_contract",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "contract_id",
+          "primaryTarget": null,
+          "mappingCount": 21,
+          "targetTables": [
+            "com_contract",
+            "com_shipment_contract_reference"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "C03",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "旧合同主档入口",
+      "recommendation": "当前v4，最近成功仍为v3；不能替代当前组合入口中的已复核合同规则。",
+      "id": "2101875784317583361",
+      "name": "合同主档生成",
+      "version": 4,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:contract-master",
+      "taskKey": "contract-master",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 2,
+      "latestRun": {
+        "runId": "2104966820106629122",
+        "version": 3,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 20000,
+        "summary": {
+          "ISSUE": 442,
+          "UPDATED": 19029,
+          "UNCHANGED": 529
+        },
+        "error": null,
+        "startedAt": "2026-09-30 00:09:32.962000",
+        "finishedAt": "2026-09-30 00:11:39.181000"
+      },
+      "latestSuccess": {
+        "runId": "2104966820106629122",
+        "version": 3,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 20000,
+        "summary": {
+          "ISSUE": 442,
+          "UPDATED": 19029,
+          "UNCHANGED": 529
+        },
+        "error": null,
+        "startedAt": "2026-09-30 00:09:32.962000",
+        "finishedAt": "2026-09-30 00:11:39.181000"
+      },
+      "latestPreview": null,
+      "targetTables": [
+        "com_contract"
+      ],
+      "sources": [
+        {
+          "object": "CONTRACT",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": "pm_order_data_from_erp",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [
+            "com_contract"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "C04",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "旧装箱单入口",
+      "recommendation": "与当前组合入口重叠；原库无运行回执，保留配置供追溯。",
+      "id": "2101875784728625154",
+      "name": "合同装箱单同步",
+      "version": 1,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:shipment-package",
+      "taskKey": "shipment-package",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 0,
+      "latestRun": null,
+      "latestSuccess": null,
+      "latestPreview": null,
+      "targetTables": [
+        "com_shipment_package"
+      ],
+      "sources": [
+        {
+          "object": "PACKAGE",
+          "sourceObject": "fb_shipment",
+          "readMode": "SQL",
+          "table": "fb_shipment",
+          "referencedTables": [
+            "fb_shipment"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "packlist_id",
+          "primaryTarget": null,
+          "mappingCount": 9,
+          "targetTables": [
+            "com_shipment_package"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "C05",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "旧发货条码入口",
+      "recommendation": "当前v7，最近回执v6；包含设备主体写入，与当前发货事件/关系入口区分。",
+      "id": "2101875785110306818",
+      "name": "发货条码同步",
+      "version": 7,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:shipment-barcode",
+      "taskKey": "shipment-barcode",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 7,
+      "latestRun": {
+        "runId": "2104961139412668418",
+        "version": 6,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 5,
+        "summary": {
+          "UNCHANGED": 5
+        },
+        "error": null,
+        "startedAt": "2026-09-29 23:46:58.579000",
+        "finishedAt": "2026-09-29 23:47:02.218000"
+      },
+      "latestSuccess": {
+        "runId": "2104961139412668418",
+        "version": 6,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 5,
+        "summary": {
+          "UNCHANGED": 5
+        },
+        "error": null,
+        "startedAt": "2026-09-29 23:46:58.579000",
+        "finishedAt": "2026-09-29 23:47:02.218000"
+      },
+      "latestPreview": null,
+      "targetTables": [
+        "ast_device",
+        "ast_device_shipment"
+      ],
+      "sources": [
+        {
+          "object": "BARCODE",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_contract",
+            "fb_items",
+            "fb_shipment",
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 35,
+          "targetTables": [
+            "ast_device",
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "C06",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "旧五对象组合入口",
+      "recommendation": "当前v6，最近回执v4；与当前组合任务存在重复目标，保留为历史配置。",
+      "id": "2101891886242299906",
+      "name": "DPPMS 发货合同、主档、装箱单及条码完整同步",
+      "version": 6,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:shipment-complete",
+      "taskKey": "shipment-complete",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 5,
+      "latestRun": {
+        "runId": "2102020635650670594",
+        "version": 4,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 100000,
+        "summary": {
+          "ISSUE": 442,
+          "SKIPPED": 18049,
+          "UNCHANGED": 81509
+        },
+        "error": null,
+        "startedAt": "2026-09-21 21:02:27.849000",
+        "finishedAt": "2026-09-21 21:07:05.227000"
+      },
+      "latestSuccess": {
+        "runId": "2102020635650670594",
+        "version": 4,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 100000,
+        "summary": {
+          "ISSUE": 442,
+          "SKIPPED": 18049,
+          "UNCHANGED": 81509
+        },
+        "error": null,
+        "startedAt": "2026-09-21 21:02:27.849000",
+        "finishedAt": "2026-09-21 21:07:05.227000"
+      },
+      "latestPreview": null,
+      "targetTables": [
+        "ast_device",
+        "ast_device_shipment",
+        "com_contract",
+        "com_shipment_contract_reference",
+        "com_shipment_package"
+      ],
+      "sources": [
+        {
+          "object": "SHIPMENT_CONTRACT",
+          "sourceObject": "fb_contract",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "contract_id",
+          "primaryTarget": null,
+          "mappingCount": 21,
+          "targetTables": [
+            "com_contract",
+            "com_shipment_contract_reference"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "CONTRACT",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": "pm_order_data_from_erp",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 20,
+          "targetTables": [
+            "com_contract"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "SHIPMENT_CONTRACT_LINK",
+          "sourceObject": "fb_contract_master_link",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "contract_id",
+          "primaryTarget": "shipmentContractLink",
+          "mappingCount": 3,
+          "targetTables": [
+            "com_shipment_contract_reference"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "PACKAGE",
+          "sourceObject": "fb_shipment",
+          "readMode": "SQL",
+          "table": "fb_shipment",
+          "referencedTables": [
+            "fb_shipment"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "packlist_id",
+          "primaryTarget": null,
+          "mappingCount": 9,
+          "targetTables": [
+            "com_shipment_package"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "BARCODE",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_contract",
+            "fb_shipment",
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 33,
+          "targetTables": [
+            "ast_device",
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "C07",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "旧设备发货、关系入口",
+      "recommendation": "当前v10最后执行FAILED、读取0；保留历史成功回执与来源关系，不恢复为新库默认入口。",
+      "id": "2102825819916980226",
+      "name": "设备序列号同步",
+      "version": 10,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:device-sn",
+      "taskKey": "device-sn",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 5000,
+      "runCount": 27,
+      "latestRun": {
+        "runId": "2109856713554993154",
+        "version": 10,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 0,
+        "summary": {},
+        "error": "流式分块存在目标归属或字段冲突，当前分块已回滚",
+        "startedAt": "2026-10-13 12:00:14.410000",
+        "finishedAt": "2026-10-13 12:01:06.522000"
+      },
+      "latestSuccess": {
+        "runId": "2104769259756421121",
+        "version": 10,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 4259910,
+        "summary": {
+          "CREATED": 4259910
+        },
+        "error": null,
+        "startedAt": "2026-09-29 11:04:30.904000",
+        "finishedAt": "2026-09-29 12:02:47.432000"
+      },
+      "latestPreview": {
+        "runId": "2104169023652585474",
+        "version": 2,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 39706,
+        "summary": {
+          "CREATED": 3706,
+          "UNCHANGED": 36000
+        },
+        "error": null,
+        "startedAt": "2026-09-27 19:19:23.463000",
+        "finishedAt": "2026-09-27 19:21:40.223000"
+      },
+      "targetTables": [
+        "ast_device_relationship",
+        "ast_device_shipment"
+      ],
+      "sources": [
+        {
+          "object": "DEVICE_SN",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_contract",
+            "fb_shipment",
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 26,
+          "targetTables": [
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_RELATION",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "relation",
+          "mappingCount": 10,
+          "targetTables": [
+            "ast_device_relationship"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "C08",
+      "group": "发货与设备相关任务：暂缓执行",
+      "purpose": "旧条码原样承接",
+      "recommendation": "目标为imp_shipment_barcode及imp_shipment_barcode_relation旧表；最后FAILED，不迁为新功能入口。",
+      "id": "2104524842835423234",
+      "name": "发货条码原样承接",
+      "version": 0,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:shipment-barcode-raw",
+      "taskKey": "shipment-barcode-raw",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 2,
+      "latestRun": {
+        "runId": "2104535183266988034",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 0,
+        "summary": {},
+        "error": "目标表未开放同步: imp_shipment_barcode",
+        "startedAt": "2026-09-28 19:34:22.717000",
+        "finishedAt": "2026-09-28 19:34:22.927000"
+      },
+      "latestSuccess": null,
+      "latestPreview": null,
+      "targetTables": [
+        "imp_shipment_barcode",
+        "imp_shipment_barcode_relation"
+      ],
+      "sources": [
+        {
+          "object": "SHIPMENT_BARCODE_RAW",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "raw",
+          "mappingCount": 21,
+          "targetTables": [
+            "imp_shipment_barcode"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "SHIPMENT_BARCODE_RELATION_RAW",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "raw",
+          "mappingCount": 10,
+          "targetTables": [
+            "imp_shipment_barcode_relation"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "D01",
+      "group": "历史纠正与清理专项：不作为新库初始化任务",
+      "purpose": "557处用户更新人纠正",
+      "recommendation": "限定原成功迁入用户和完整保护证据；旧目标ID、绑定、回执不迁为新库执行凭据。",
+      "id": "2108545067259985922",
+      "name": "DPPMS 已裁决557处历史更新人纠正",
+      "version": 1,
+      "validatedVersion": 1,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_USER_AUDIT_CORRECTION",
+      "storedAdapter": "DPPMS_USER_AUDIT_CORRECTION",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 5,
+      "latestRun": {
+        "runId": "2108549489075621889",
+        "version": 1,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 557,
+        "summary": {
+          "UNCHANGED": 557
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:25:47.807000",
+        "finishedAt": "2026-10-09 21:25:49.512000"
+      },
+      "latestSuccess": {
+        "runId": "2108549172460195841",
+        "version": 1,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 557,
+        "summary": {
+          "UPDATED": 557
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:24:32.320000",
+        "finishedAt": "2026-10-09 21:24:35.063000"
+      },
+      "latestPreview": {
+        "runId": "2108549489075621889",
+        "version": 1,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 557,
+        "summary": {
+          "UNCHANGED": 557
+        },
+        "error": null,
+        "startedAt": "2026-10-09 21:25:47.807000",
+        "finishedAt": "2026-10-09 21:25:49.512000"
+      },
+      "targetTables": [
+        "system_users"
+      ],
+      "sources": [
+        {
+          "object": "fnd_user_info",
+          "sourceObject": "fnd_user_info",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_user_info"
+          ],
+          "parameters": {
+            "approvedId0": 10,
+            "approvedId1": 100,
+            "approvedId2": 101,
+            "approvedId3": 102,
+            "approvedId4": 103,
+            "approvedId5": 105,
+            "approvedId6": 106,
+            "approvedId7": 108,
+            "approvedId8": 109,
+            "approvedId9": 11,
+            "approvedId10": 110,
+            "approvedId11": 111,
+            "approvedId12": 112,
+            "approvedId13": 113,
+            "approvedId14": 114,
+            "approvedId15": 115,
+            "approvedId16": 116,
+            "approvedId17": 117,
+            "approvedId18": 118,
+            "approvedId19": 12,
+            "approvedId20": 120,
+            "approvedId21": 121,
+            "approvedId22": 122,
+            "approvedId23": 123,
+            "approvedId24": 124,
+            "approvedId25": 125,
+            "approvedId26": 126,
+            "approvedId27": 128,
+            "approvedId28": 129,
+            "approvedId29": 13,
+            "approvedId30": 130,
+            "approvedId31": 131,
+            "approvedId32": 133,
+            "approvedId33": 135,
+            "approvedId34": 136,
+            "approvedId35": 137,
+            "approvedId36": 138,
+            "approvedId37": 139,
+            "approvedId38": 140,
+            "approvedId39": 141,
+            "approvedId40": 142,
+            "approvedId41": 143,
+            "approvedId42": 144,
+            "approvedId43": 145,
+            "approvedId44": 146,
+            "approvedId45": 147,
+            "approvedId46": 149,
+            "approvedId47": 15,
+            "approvedId48": 150,
+            "approvedId49": 151,
+            "approvedId50": 152,
+            "approvedId51": 153,
+            "approvedId52": 154,
+            "approvedId53": 155,
+            "approvedId54": 156,
+            "approvedId55": 157,
+            "approvedId56": 158,
+            "approvedId57": 159,
+            "approvedId58": 16,
+            "approvedId59": 160,
+            "approvedId60": 161,
+            "approvedId61": 162,
+            "approvedId62": 164,
+            "approvedId63": 165,
+            "approvedId64": 166,
+            "approvedId65": 167,
+            "approvedId66": 168,
+            "approvedId67": 169,
+            "approvedId68": 17,
+            "approvedId69": 170,
+            "approvedId70": 172,
+            "approvedId71": 173,
+            "approvedId72": 174,
+            "approvedId73": 175,
+            "approvedId74": 176,
+            "approvedId75": 177,
+            "approvedId76": 178,
+            "approvedId77": 18,
+            "approvedId78": 180,
+            "approvedId79": 181,
+            "approvedId80": 182,
+            "approvedId81": 183,
+            "approvedId82": 184,
+            "approvedId83": 185,
+            "approvedId84": 186,
+            "approvedId85": 188,
+            "approvedId86": 189,
+            "approvedId87": 19,
+            "approvedId88": 190,
+            "approvedId89": 192,
+            "approvedId90": 193,
+            "approvedId91": 194,
+            "approvedId92": 195,
+            "approvedId93": 196,
+            "approvedId94": 197,
+            "approvedId95": 198,
+            "approvedId96": 2,
+            "approvedId97": 201,
+            "approvedId98": 204,
+            "approvedId99": 207,
+            "approvedId100": 209,
+            "approvedId101": 21,
+            "approvedId102": 210,
+            "approvedId103": 211,
+            "approvedId104": 212,
+            "approvedId105": 213,
+            "approvedId106": 214,
+            "approvedId107": 216,
+            "approvedId108": 218,
+            "approvedId109": 219,
+            "approvedId110": 22,
+            "approvedId111": 220,
+            "approvedId112": 221,
+            "approvedId113": 222,
+            "approvedId114": 224,
+            "approvedId115": 225,
+            "approvedId116": 226,
+            "approvedId117": 23,
+            "approvedId118": 230,
+            "approvedId119": 231,
+            "approvedId120": 232,
+            "approvedId121": 233,
+            "approvedId122": 234,
+            "approvedId123": 236,
+            "approvedId124": 237,
+            "approvedId125": 238,
+            "approvedId126": 239,
+            "approvedId127": 240,
+            "approvedId128": 241,
+            "approvedId129": 242,
+            "approvedId130": 243,
+            "approvedId131": 244,
+            "approvedId132": 245,
+            "approvedId133": 246,
+            "approvedId134": 247,
+            "approvedId135": 248,
+            "approvedId136": 249,
+            "approvedId137": 250,
+            "approvedId138": 251,
+            "approvedId139": 252,
+            "approvedId140": 253,
+            "approvedId141": 254,
+            "approvedId142": 255,
+            "approvedId143": 256,
+            "approvedId144": 257,
+            "approvedId145": 26,
+            "approvedId146": 260,
+            "approvedId147": 264,
+            "approvedId148": 265,
+            "approvedId149": 266,
+            "approvedId150": 267,
+            "approvedId151": 269,
+            "approvedId152": 27,
+            "approvedId153": 270,
+            "approvedId154": 271,
+            "approvedId155": 272,
+            "approvedId156": 274,
+            "approvedId157": 276,
+            "approvedId158": 277,
+            "approvedId159": 278,
+            "approvedId160": 279,
+            "approvedId161": 28,
+            "approvedId162": 280,
+            "approvedId163": 282,
+            "approvedId164": 283,
+            "approvedId165": 284,
+            "approvedId166": 289,
+            "approvedId167": 29,
+            "approvedId168": 290,
+            "approvedId169": 291,
+            "approvedId170": 292,
+            "approvedId171": 293,
+            "approvedId172": 294,
+            "approvedId173": 295,
+            "approvedId174": 296,
+            "approvedId175": 298,
+            "approvedId176": 299,
+            "approvedId177": 3,
+            "approvedId178": 30,
+            "approvedId179": 300,
+            "approvedId180": 302,
+            "approvedId181": 303,
+            "approvedId182": 304,
+            "approvedId183": 305,
+            "approvedId184": 306,
+            "approvedId185": 308,
+            "approvedId186": 31,
+            "approvedId187": 310,
+            "approvedId188": 311,
+            "approvedId189": 313,
+            "approvedId190": 314,
+            "approvedId191": 315,
+            "approvedId192": 316,
+            "approvedId193": 32,
+            "approvedId194": 320,
+            "approvedId195": 321,
+            "approvedId196": 322,
+            "approvedId197": 323,
+            "approvedId198": 324,
+            "approvedId199": 326,
+            "approvedId200": 328,
+            "approvedId201": 329,
+            "approvedId202": 330,
+            "approvedId203": 332,
+            "approvedId204": 333,
+            "approvedId205": 334,
+            "approvedId206": 336,
+            "approvedId207": 337,
+            "approvedId208": 338,
+            "approvedId209": 339,
+            "approvedId210": 34,
+            "approvedId211": 340,
+            "approvedId212": 341,
+            "approvedId213": 342,
+            "approvedId214": 343,
+            "approvedId215": 344,
+            "approvedId216": 345,
+            "approvedId217": 346,
+            "approvedId218": 347,
+            "approvedId219": 348,
+            "approvedId220": 349,
+            "approvedId221": 35,
+            "approvedId222": 350,
+            "approvedId223": 351,
+            "approvedId224": 354,
+            "approvedId225": 355,
+            "approvedId226": 356,
+            "approvedId227": 357,
+            "approvedId228": 358,
+            "approvedId229": 359,
+            "approvedId230": 36,
+            "approvedId231": 360,
+            "approvedId232": 361,
+            "approvedId233": 363,
+            "approvedId234": 364,
+            "approvedId235": 365,
+            "approvedId236": 366,
+            "approvedId237": 367,
+            "approvedId238": 369,
+            "approvedId239": 37,
+            "approvedId240": 370,
+            "approvedId241": 371,
+            "approvedId242": 372,
+            "approvedId243": 373,
+            "approvedId244": 375,
+            "approvedId245": 377,
+            "approvedId246": 378,
+            "approvedId247": 38,
+            "approvedId248": 380,
+            "approvedId249": 382,
+            "approvedId250": 385,
+            "approvedId251": 386,
+            "approvedId252": 388,
+            "approvedId253": 389,
+            "approvedId254": 39,
+            "approvedId255": 391,
+            "approvedId256": 392,
+            "approvedId257": 393,
+            "approvedId258": 396,
+            "approvedId259": 397,
+            "approvedId260": 398,
+            "approvedId261": 399,
+            "approvedId262": 4,
+            "approvedId263": 40,
+            "approvedId264": 400,
+            "approvedId265": 401,
+            "approvedId266": 402,
+            "approvedId267": 409,
+            "approvedId268": 410,
+            "approvedId269": 411,
+            "approvedId270": 418,
+            "approvedId271": 42,
+            "approvedId272": 420,
+            "approvedId273": 421,
+            "approvedId274": 422,
+            "approvedId275": 423,
+            "approvedId276": 424,
+            "approvedId277": 426,
+            "approvedId278": 429,
+            "approvedId279": 43,
+            "approvedId280": 430,
+            "approvedId281": 431,
+            "approvedId282": 432,
+            "approvedId283": 433,
+            "approvedId284": 434,
+            "approvedId285": 436,
+            "approvedId286": 437,
+            "approvedId287": 439,
+            "approvedId288": 44,
+            "approvedId289": 441,
+            "approvedId290": 443,
+            "approvedId291": 444,
+            "approvedId292": 445,
+            "approvedId293": 45,
+            "approvedId294": 451,
+            "approvedId295": 453,
+            "approvedId296": 454,
+            "approvedId297": 457,
+            "approvedId298": 46,
+            "approvedId299": 462,
+            "approvedId300": 465,
+            "approvedId301": 466,
+            "approvedId302": 467,
+            "approvedId303": 468,
+            "approvedId304": 469,
+            "approvedId305": 47,
+            "approvedId306": 470,
+            "approvedId307": 472,
+            "approvedId308": 477,
+            "approvedId309": 478,
+            "approvedId310": 48,
+            "approvedId311": 480,
+            "approvedId312": 481,
+            "approvedId313": 482,
+            "approvedId314": 483,
+            "approvedId315": 484,
+            "approvedId316": 488,
+            "approvedId317": 489,
+            "approvedId318": 49,
+            "approvedId319": 491,
+            "approvedId320": 494,
+            "approvedId321": 496,
+            "approvedId322": 5,
+            "approvedId323": 50,
+            "approvedId324": 504,
+            "approvedId325": 51,
+            "approvedId326": 514,
+            "approvedId327": 518,
+            "approvedId328": 52,
+            "approvedId329": 524,
+            "approvedId330": 525,
+            "approvedId331": 527,
+            "approvedId332": 529,
+            "approvedId333": 53,
+            "approvedId334": 530,
+            "approvedId335": 539,
+            "approvedId336": 54,
+            "approvedId337": 547,
+            "approvedId338": 548,
+            "approvedId339": 55,
+            "approvedId340": 551,
+            "approvedId341": 552,
+            "approvedId342": 558,
+            "approvedId343": 56,
+            "approvedId344": 561,
+            "approvedId345": 562,
+            "approvedId346": 564,
+            "approvedId347": 565,
+            "approvedId348": 566,
+            "approvedId349": 567,
+            "approvedId350": 57,
+            "approvedId351": 572,
+            "approvedId352": 575,
+            "approvedId353": 577,
+            "approvedId354": 578,
+            "approvedId355": 579,
+            "approvedId356": 58,
+            "approvedId357": 581,
+            "approvedId358": 586,
+            "approvedId359": 587,
+            "approvedId360": 588,
+            "approvedId361": 59,
+            "approvedId362": 592,
+            "approvedId363": 593,
+            "approvedId364": 595,
+            "approvedId365": 60,
+            "approvedId366": 602,
+            "approvedId367": 608,
+            "approvedId368": 61,
+            "approvedId369": 610,
+            "approvedId370": 619,
+            "approvedId371": 62,
+            "approvedId372": 626,
+            "approvedId373": 63,
+            "approvedId374": 630,
+            "approvedId375": 632,
+            "approvedId376": 633,
+            "approvedId377": 637,
+            "approvedId378": 639,
+            "approvedId379": 64,
+            "approvedId380": 643,
+            "approvedId381": 644,
+            "approvedId382": 648,
+            "approvedId383": 65,
+            "approvedId384": 654,
+            "approvedId385": 659,
+            "approvedId386": 66,
+            "approvedId387": 662,
+            "approvedId388": 663,
+            "approvedId389": 664,
+            "approvedId390": 665,
+            "approvedId391": 669,
+            "approvedId392": 67,
+            "approvedId393": 671,
+            "approvedId394": 674,
+            "approvedId395": 676,
+            "approvedId396": 677,
+            "approvedId397": 678,
+            "approvedId398": 679,
+            "approvedId399": 68,
+            "approvedId400": 681,
+            "approvedId401": 684,
+            "approvedId402": 686,
+            "approvedId403": 69,
+            "approvedId404": 70,
+            "approvedId405": 71,
+            "approvedId406": 719,
+            "approvedId407": 72,
+            "approvedId408": 722,
+            "approvedId409": 728,
+            "approvedId410": 729,
+            "approvedId411": 73,
+            "approvedId412": 731,
+            "approvedId413": 732,
+            "approvedId414": 733,
+            "approvedId415": 734,
+            "approvedId416": 735,
+            "approvedId417": 736,
+            "approvedId418": 737,
+            "approvedId419": 739,
+            "approvedId420": 74,
+            "approvedId421": 740,
+            "approvedId422": 741,
+            "approvedId423": 742,
+            "approvedId424": 743,
+            "approvedId425": 744,
+            "approvedId426": 746,
+            "approvedId427": 747,
+            "approvedId428": 749,
+            "approvedId429": 750,
+            "approvedId430": 751,
+            "approvedId431": 757,
+            "approvedId432": 758,
+            "approvedId433": 759,
+            "approvedId434": 76,
+            "approvedId435": 760,
+            "approvedId436": 762,
+            "approvedId437": 763,
+            "approvedId438": 764,
+            "approvedId439": 765,
+            "approvedId440": 766,
+            "approvedId441": 769,
+            "approvedId442": 77,
+            "approvedId443": 770,
+            "approvedId444": 771,
+            "approvedId445": 773,
+            "approvedId446": 774,
+            "approvedId447": 775,
+            "approvedId448": 777,
+            "approvedId449": 778,
+            "approvedId450": 779,
+            "approvedId451": 780,
+            "approvedId452": 781,
+            "approvedId453": 782,
+            "approvedId454": 783,
+            "approvedId455": 784,
+            "approvedId456": 786,
+            "approvedId457": 787,
+            "approvedId458": 788,
+            "approvedId459": 790,
+            "approvedId460": 796,
+            "approvedId461": 797,
+            "approvedId462": 798,
+            "approvedId463": 799,
+            "approvedId464": 8,
+            "approvedId465": 80,
+            "approvedId466": 800,
+            "approvedId467": 801,
+            "approvedId468": 802,
+            "approvedId469": 803,
+            "approvedId470": 805,
+            "approvedId471": 806,
+            "approvedId472": 807,
+            "approvedId473": 808,
+            "approvedId474": 809,
+            "approvedId475": 810,
+            "approvedId476": 811,
+            "approvedId477": 812,
+            "approvedId478": 813,
+            "approvedId479": 814,
+            "approvedId480": 816,
+            "approvedId481": 817,
+            "approvedId482": 818,
+            "approvedId483": 819,
+            "approvedId484": 82,
+            "approvedId485": 820,
+            "approvedId486": 821,
+            "approvedId487": 822,
+            "approvedId488": 823,
+            "approvedId489": 824,
+            "approvedId490": 825,
+            "approvedId491": 826,
+            "approvedId492": 827,
+            "approvedId493": 83,
+            "approvedId494": 830,
+            "approvedId495": 831,
+            "approvedId496": 832,
+            "approvedId497": 833,
+            "approvedId498": 834,
+            "approvedId499": 835,
+            "approvedId500": 836,
+            "approvedId501": 837,
+            "approvedId502": 838,
+            "approvedId503": 839,
+            "approvedId504": 84,
+            "approvedId505": 840,
+            "approvedId506": 841,
+            "approvedId507": 842,
+            "approvedId508": 846,
+            "approvedId509": 848,
+            "approvedId510": 849,
+            "approvedId511": 85,
+            "approvedId512": 850,
+            "approvedId513": 851,
+            "approvedId514": 852,
+            "approvedId515": 853,
+            "approvedId516": 854,
+            "approvedId517": 855,
+            "approvedId518": 856,
+            "approvedId519": 857,
+            "approvedId520": 858,
+            "approvedId521": 859,
+            "approvedId522": 86,
+            "approvedId523": 861,
+            "approvedId524": 862,
+            "approvedId525": 863,
+            "approvedId526": 864,
+            "approvedId527": 866,
+            "approvedId528": 867,
+            "approvedId529": 868,
+            "approvedId530": 869,
+            "approvedId531": 87,
+            "approvedId532": 871,
+            "approvedId533": 872,
+            "approvedId534": 873,
+            "approvedId535": 874,
+            "approvedId536": 875,
+            "approvedId537": 876,
+            "approvedId538": 877,
+            "approvedId539": 878,
+            "approvedId540": 879,
+            "approvedId541": 88,
+            "approvedId542": 880,
+            "approvedId543": 881,
+            "approvedId544": 883,
+            "approvedId545": 884,
+            "approvedId546": 89,
+            "approvedId547": 9,
+            "approvedId548": 90,
+            "approvedId549": 92,
+            "approvedId550": 93,
+            "approvedId551": 94,
+            "approvedId552": 95,
+            "approvedId553": 96,
+            "approvedId554": 97,
+            "approvedId555": 98,
+            "approvedId556": 99
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 18,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "migrationAuditCorrection",
+              "source": "id",
+              "conversion": "ENUM",
+              "valueCount": 557,
+              "valueShape": "str",
+              "constant": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "D02",
+      "group": "历史纠正与清理专项：不作为新库初始化任务",
+      "purpose": "13个角色25处审计纠正",
+      "recommendation": "原任务名仍写“待裁决”，但决策文档和成功回执确认已批准执行；仅旧批次13角色，不是新库初始化步骤。",
+      "id": "2108567804242235394",
+      "name": "DPPMS 13个角色25处空审计人员纠正（待裁决）",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_ROLE_AUDIT_CORRECTION",
+      "storedAdapter": "DPPMS_ROLE_AUDIT_CORRECTION",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 3,
+      "latestRun": {
+        "runId": "2108568455621840898",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 13,
+        "summary": {
+          "UNCHANGED": 13
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:41:09.784000",
+        "finishedAt": "2026-10-09 22:41:10.009000"
+      },
+      "latestSuccess": {
+        "runId": "2108568396289216514",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 13,
+        "summary": {
+          "UPDATED": 13
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:40:55.638000",
+        "finishedAt": "2026-10-09 22:40:55.917000"
+      },
+      "latestPreview": {
+        "runId": "2108568455621840898",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 13,
+        "summary": {
+          "UNCHANGED": 13
+        },
+        "error": null,
+        "startedAt": "2026-10-09 22:41:09.784000",
+        "finishedAt": "2026-10-09 22:41:10.009000"
+      },
+      "targetTables": [
+        "system_role"
+      ],
+      "sources": [
+        {
+          "object": "fnd_roles",
+          "sourceObject": "fnd_roles",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "fnd_roles"
+          ],
+          "parameters": {
+            "roleId0": 14,
+            "roleId1": 9,
+            "roleId2": 10,
+            "roleId3": 13,
+            "roleId4": 16,
+            "roleId5": 17,
+            "roleId6": 18,
+            "roleId7": 19,
+            "roleId8": 20,
+            "roleId9": 21,
+            "roleId10": 6,
+            "roleId11": 22,
+            "roleId12": 1
+          },
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 12,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "migrationAuditCorrection",
+              "source": "id",
+              "conversion": "ENUM",
+              "valueCount": 13,
+              "valueShape": "str",
+              "constant": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "D03",
+      "group": "历史纠正与清理专项：不作为新库初始化任务",
+      "purpose": "2条发货合同空保修年数纠正",
+      "recommendation": "限定原合同ID 11824、13560及旧正式目标/前值；不将纠正证明复制为新库业务数据。",
+      "id": "2108799116748152833",
+      "name": "已裁决发货合同空保修年数纠正",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_SHIPMENT_CONTRACT_WARRANTY_CORRECTION",
+      "storedAdapter": "DPPMS_SHIPMENT_CONTRACT_WARRANTY_CORRECTION",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 5,
+      "latestRun": {
+        "runId": "2108801809084485634",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2,
+        "summary": {
+          "UNCHANGED": 2
+        },
+        "error": null,
+        "startedAt": "2026-10-10 14:08:25.587000",
+        "finishedAt": "2026-10-10 14:08:25.962000"
+      },
+      "latestSuccess": {
+        "runId": "2108801809084485634",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2,
+        "summary": {
+          "UNCHANGED": 2
+        },
+        "error": null,
+        "startedAt": "2026-10-10 14:08:25.587000",
+        "finishedAt": "2026-10-10 14:08:25.962000"
+      },
+      "latestPreview": {
+        "runId": "2108801389591171074",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 2,
+        "summary": {
+          "UPDATED": 2
+        },
+        "error": null,
+        "startedAt": "2026-10-10 14:06:45.569000",
+        "finishedAt": "2026-10-10 14:06:46.264000"
+      },
+      "targetTables": [
+        "com_shipment_contract_reference"
+      ],
+      "sources": [
+        {
+          "object": "SHIPMENT_CONTRACT",
+          "sourceObject": "fb_contract",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract"
+          ],
+          "parameters": {
+            "contract1": "11824",
+            "contract2": "13560"
+          },
+          "filters": [],
+          "sourceKey": "contract_id",
+          "primaryTarget": null,
+          "mappingCount": 13,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "correctionEvidence",
+              "source": null,
+              "conversion": "CONSTANT",
+              "valueCount": 0,
+              "valueShape": "NoneType",
+              "constant": "[旧库证明内容保留在原任务定义中，本清单不复制完整前值]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "D04",
+      "group": "历史纠正与清理专项：不作为新库初始化任务",
+      "purpose": "设备关系审计纠正",
+      "recommendation": "65,406项逐键凭据含65,046项纠正、360项排除；依赖旧绑定及旧成功运行，不能平移执行。",
+      "id": "2109382583085117441",
+      "name": "DPPMS 已裁决65046条关系审计纠正＋360条明确排除",
+      "version": 3,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_DEVICE_RELATIONSHIP_AUDIT_CORRECTION",
+      "storedAdapter": "DPPMS_DEVICE_RELATIONSHIP_AUDIT_CORRECTION",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 500,
+      "runCount": 7,
+      "latestRun": {
+        "runId": "2109399267682521089",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 65406,
+        "summary": {
+          "SKIPPED": 360,
+          "UNCHANGED": 65046
+        },
+        "error": null,
+        "startedAt": "2026-10-12 05:42:30.814000",
+        "finishedAt": "2026-10-12 05:45:37.076000"
+      },
+      "latestSuccess": {
+        "runId": "2109399267682521089",
+        "version": 2,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 65406,
+        "summary": {
+          "SKIPPED": 360,
+          "UNCHANGED": 65046
+        },
+        "error": null,
+        "startedAt": "2026-10-12 05:42:30.814000",
+        "finishedAt": "2026-10-12 05:45:37.076000"
+      },
+      "latestPreview": {
+        "runId": "2109388797319745537",
+        "version": 2,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 65406,
+        "summary": {
+          "SKIPPED": 360,
+          "UPDATED": 65046
+        },
+        "error": null,
+        "startedAt": "2026-10-12 05:00:54.483000",
+        "finishedAt": "2026-10-12 05:09:03.882000"
+      },
+      "targetTables": [
+        "ast_device_relationship"
+      ],
+      "sources": [
+        {
+          "object": "fb_shipment_barcode_relation",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 10,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "auditCorrectionProof",
+              "source": "id",
+              "conversion": "LOOKUP",
+              "valueCount": 65406,
+              "valueShape": [
+                "targetId",
+                "bindingId",
+                "sourceFingerprint",
+                "targetFingerprint",
+                "bindingFingerprint"
+              ],
+              "constant": null
+            },
+            {
+              "target": "originalRunProof",
+              "source": null,
+              "conversion": "CONSTANT",
+              "valueCount": 0,
+              "valueShape": "NoneType",
+              "constant": "[旧库证明内容保留在原任务定义中，本清单不复制完整前值]"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "D05",
+      "group": "历史纠正与清理专项：不作为新库初始化任务",
+      "purpose": "旧01订单行绑定清理",
+      "recommendation": "指向原订单任务2101587859478949890；原执行删除236,259旧绑定。新库无这些旧绑定，不重放清理。",
+      "id": "2109968221270106114",
+      "name": "DPPMS 旧01订单行迁移绑定清理",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "DPPMS_OBSOLETE_ORDER_LINE_BINDING",
+      "storedAdapter": "DPPMS_OBSOLETE_ORDER_LINE_BINDING",
+      "taskKey": null,
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 500,
+      "runCount": 2,
+      "latestRun": {
+        "runId": "2109969877659475970",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 361032,
+        "summary": {
+          "DELETED": 236259,
+          "SKIPPED": 124773
+        },
+        "error": null,
+        "startedAt": "2026-10-13 19:29:54.835000",
+        "finishedAt": "2026-10-13 19:34:20.009000"
+      },
+      "latestSuccess": {
+        "runId": "2109969877659475970",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 361032,
+        "summary": {
+          "DELETED": 236259,
+          "SKIPPED": 124773
+        },
+        "error": null,
+        "startedAt": "2026-10-13 19:29:54.835000",
+        "finishedAt": "2026-10-13 19:34:20.009000"
+      },
+      "latestPreview": {
+        "runId": "2109968221513375746",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 361032,
+        "summary": {
+          "DELETED": 236259,
+          "SKIPPED": 124773
+        },
+        "error": null,
+        "startedAt": "2026-10-13 19:23:19.980000",
+        "finishedAt": "2026-10-13 19:27:23.951000"
+      },
+      "targetTables": [
+        "int_sync_binding"
+      ],
+      "sources": [
+        {
+          "object": "pm_order_line_from_erp",
+          "sourceObject": "pm_order_line_from_erp",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "pm_order_line_from_erp"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 3,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "_originalTaskId",
+              "source": null,
+              "conversion": "CONSTANT",
+              "valueCount": 0,
+              "valueShape": "NoneType",
+              "constant": "2101587859478949890"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "E01",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "项目详情回款验收隔离样本",
+      "recommendation": "连接直接指向原npdms_domain_test的codex_detail_*测试源；不复制到新库任务链。",
+      "id": "2101613039156846593",
+      "name": "DETAIL_ACCEPTANCE_ISOLATED",
+      "version": 0,
+      "validatedVersion": 0,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101613038573838337",
+      "adapter": "PAYMENT_PLAN_ACCEPTANCE",
+      "storedAdapter": "PAYMENT_PLAN_ACCEPTANCE",
+      "taskKey": null,
+      "sourceSystem": "DETAIL_ACCEPTANCE_20260920",
+      "mode": "SNAPSHOT",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 10000,
+      "runCount": 14,
+      "latestRun": {
+        "runId": "2102958773804687362",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 11,
+        "summary": {
+          "ISSUE": 5,
+          "UPDATED": 1,
+          "UNCHANGED": 5
+        },
+        "error": null,
+        "startedAt": "2026-09-24 11:10:17.416000",
+        "finishedAt": "2026-09-24 11:10:18.234000"
+      },
+      "latestSuccess": {
+        "runId": "2102958773804687362",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 11,
+        "summary": {
+          "ISSUE": 5,
+          "UPDATED": 1,
+          "UNCHANGED": 5
+        },
+        "error": null,
+        "startedAt": "2026-09-24 11:10:17.416000",
+        "finishedAt": "2026-09-24 11:10:18.234000"
+      },
+      "latestPreview": {
+        "runId": "2102779252270891009",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 10,
+        "summary": {
+          "ISSUE": 5,
+          "UPDATED": 1,
+          "UNCHANGED": 4
+        },
+        "error": null,
+        "startedAt": "2026-09-23 23:16:56.147000",
+        "finishedAt": "2026-09-23 23:16:56.439000"
+      },
+      "targetTables": [
+        "proj_payment_acceptance_binding"
+      ],
+      "sources": [
+        {
+          "object": "ACCEPTANCE",
+          "sourceObject": "codex_detail_payment_source",
+          "readMode": "SQL",
+          "table": null,
+          "referencedTables": [
+            "codex_detail_event_source",
+            "codex_detail_payment_source"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 5,
+          "targetTables": [],
+          "lookups": [
+            {
+              "target": "nodeType",
+              "source": "referenceEventName",
+              "conversion": "LOOKUP",
+              "valueCount": 4,
+              "valueShape": "str",
+              "constant": null
+            },
+            {
+              "target": "nodeCode",
+              "source": "referenceEventName",
+              "conversion": "LOOKUP",
+              "valueCount": 4,
+              "valueShape": "str",
+              "constant": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "number": "E02",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "组合预览样本，每来源500条",
+      "recommendation": "样本任务，且当前v1无同版本运行；不能替代当前全量组合任务。",
+      "id": "2107037031798468609",
+      "name": "DPPMS 完整同步专项预览（每来源500条）",
+      "version": 1,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:delivery-sync-preview-20261005",
+      "taskKey": "delivery-sync-preview-20261005",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 1,
+      "latestRun": {
+        "runId": "2107037032293396481",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 500,
+        "summary": {
+          "ISSUE": 335,
+          "UNCHANGED": 165
+        },
+        "error": "来源主键缺失或无效: SHIPMENT_CONTRACT",
+        "startedAt": "2026-10-05 17:15:50.010000",
+        "finishedAt": "2026-10-05 17:15:54.537000"
+      },
+      "latestSuccess": null,
+      "latestPreview": {
+        "runId": "2107037032293396481",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "FAILED",
+        "readCount": 500,
+        "summary": {
+          "ISSUE": 335,
+          "UNCHANGED": 165
+        },
+        "error": "来源主键缺失或无效: SHIPMENT_CONTRACT",
+        "startedAt": "2026-10-05 17:15:50.010000",
+        "finishedAt": "2026-10-05 17:15:54.537000"
+      },
+      "targetTables": [
+        "ast_device",
+        "ast_device_relationship",
+        "ast_device_shipment",
+        "com_contract",
+        "com_shipment_contract_reference",
+        "com_shipment_package"
+      ],
+      "sources": [
+        {
+          "object": "CONTRACT",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": "pm_order_data_from_erp",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [
+            "com_contract"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "SHIPMENT_CONTRACT",
+          "sourceObject": "fb_contract",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "contract_id",
+          "primaryTarget": null,
+          "mappingCount": 21,
+          "targetTables": [
+            "com_contract",
+            "com_shipment_contract_reference"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "PACKAGE",
+          "sourceObject": "fb_shipment",
+          "readMode": "SQL",
+          "table": "fb_shipment",
+          "referencedTables": [
+            "fb_shipment"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "packlist_id",
+          "primaryTarget": null,
+          "mappingCount": 9,
+          "targetTables": [
+            "com_shipment_package"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "BARCODE",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_contract",
+            "fb_shipment",
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 44,
+          "targetTables": [
+            "ast_device",
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_RELATION",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "relation",
+          "mappingCount": 10,
+          "targetTables": [
+            "ast_device_relationship"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "E03",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "有效主键样本，每来源500条",
+      "recommendation": "仅专项样本；当前v1，最近回执v0。",
+      "id": "2107040712333811713",
+      "name": "DPPMS 专项有效主键样本（每来源500条）",
+      "version": 1,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:delivery-valid-sample-20261005",
+      "taskKey": "delivery-valid-sample-20261005",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 2,
+      "latestRun": {
+        "runId": "2107041136130482178",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2500,
+        "summary": {
+          "ISSUE": 335,
+          "UNCHANGED": 2165
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:32:08.442000",
+        "finishedAt": "2026-10-05 17:32:17.621000"
+      },
+      "latestSuccess": {
+        "runId": "2107041136130482178",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2500,
+        "summary": {
+          "ISSUE": 335,
+          "UNCHANGED": 2165
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:32:08.442000",
+        "finishedAt": "2026-10-05 17:32:17.621000"
+      },
+      "latestPreview": {
+        "runId": "2107040784429703170",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 2500,
+        "summary": {
+          "ISSUE": 335,
+          "UNCHANGED": 2165
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:30:44.587000",
+        "finishedAt": "2026-10-05 17:30:52.546000"
+      },
+      "targetTables": [
+        "ast_device_relationship",
+        "ast_device_shipment",
+        "com_contract",
+        "com_shipment_contract_reference",
+        "com_shipment_package"
+      ],
+      "sources": [
+        {
+          "object": "CONTRACT",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": "pm_order_data_from_erp",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [
+            "com_contract"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "SHIPMENT_CONTRACT",
+          "sourceObject": "fb_contract",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "contract_id",
+          "primaryTarget": null,
+          "mappingCount": 21,
+          "targetTables": [
+            "com_contract",
+            "com_shipment_contract_reference"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "PACKAGE",
+          "sourceObject": "fb_shipment",
+          "readMode": "SQL",
+          "table": "fb_shipment",
+          "referencedTables": [
+            "fb_shipment"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "packlist_id",
+          "primaryTarget": null,
+          "mappingCount": 9,
+          "targetTables": [
+            "com_shipment_package"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_SN",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_contract",
+            "fb_shipment",
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 26,
+          "targetTables": [
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_RELATION",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "relation",
+          "mappingCount": 10,
+          "targetTables": [
+            "ast_device_relationship"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "E04",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "并发样本：合同2000条",
+      "recommendation": "仅原并发验证证据，不作为常规迁移步骤。",
+      "id": "2107041701187117058",
+      "name": "DPPMS 专项并发样本 CONTRACT（2000条）",
+      "version": 0,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:parallel-contract-20261005",
+      "taskKey": "parallel-contract-20261005",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 1,
+      "latestRun": {
+        "runId": "2107041702294413316",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "ISSUE": 357,
+          "UNCHANGED": 1643
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:36.035000"
+      },
+      "latestSuccess": {
+        "runId": "2107041702294413316",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "ISSUE": 357,
+          "UNCHANGED": 1643
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:36.035000"
+      },
+      "latestPreview": null,
+      "targetTables": [
+        "com_contract"
+      ],
+      "sources": [
+        {
+          "object": "CONTRACT",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": "pm_order_data_from_erp",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [
+            "com_contract"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "E05",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "并发样本：装箱单2000条",
+      "recommendation": "仅原并发验证证据，不作为常规迁移步骤。",
+      "id": "2107041701468135425",
+      "name": "DPPMS 专项并发样本 PACKAGE（2000条）",
+      "version": 0,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:parallel-package-20261005",
+      "taskKey": "parallel-package-20261005",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 1,
+      "latestRun": {
+        "runId": "2107041702294413315",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "UNCHANGED": 2000
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:25.694000"
+      },
+      "latestSuccess": {
+        "runId": "2107041702294413315",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "UNCHANGED": 2000
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:25.694000"
+      },
+      "latestPreview": null,
+      "targetTables": [
+        "com_shipment_package"
+      ],
+      "sources": [
+        {
+          "object": "PACKAGE",
+          "sourceObject": "fb_shipment",
+          "readMode": "SQL",
+          "table": "fb_shipment",
+          "referencedTables": [
+            "fb_shipment"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "packlist_id",
+          "primaryTarget": null,
+          "mappingCount": 9,
+          "targetTables": [
+            "com_shipment_package"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "E06",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "并发样本：设备发货2000条",
+      "recommendation": "仅原并发验证证据，不作为常规迁移步骤。",
+      "id": "2107041701736570882",
+      "name": "DPPMS 专项并发样本 DEVICE_SN（2000条）",
+      "version": 0,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:parallel-device_sn-20261005",
+      "taskKey": "parallel-device_sn-20261005",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 1,
+      "latestRun": {
+        "runId": "2107041702294413317",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "UNCHANGED": 2000
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:26.255000"
+      },
+      "latestSuccess": {
+        "runId": "2107041702294413317",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "UNCHANGED": 2000
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:26.255000"
+      },
+      "latestPreview": null,
+      "targetTables": [
+        "ast_device_shipment"
+      ],
+      "sources": [
+        {
+          "object": "DEVICE_SN",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_contract",
+            "fb_shipment",
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 26,
+          "targetTables": [
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "E07",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "并发样本：设备关系2000条",
+      "recommendation": "仅原并发验证证据，不作为常规迁移步骤。",
+      "id": "2107041701984034818",
+      "name": "DPPMS 专项并发样本 DEVICE_RELATION（2000条）",
+      "version": 0,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:parallel-device_relation-20261005",
+      "taskKey": "parallel-device_relation-20261005",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 1,
+      "latestRun": {
+        "runId": "2107041702294413314",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "UNCHANGED": 2000
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:25.670000"
+      },
+      "latestSuccess": {
+        "runId": "2107041702294413314",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2000,
+        "summary": {
+          "UNCHANGED": 2000
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:34:23.426000",
+        "finishedAt": "2026-10-05 17:34:25.670000"
+      },
+      "latestPreview": null,
+      "targetTables": [
+        "ast_device_relationship"
+      ],
+      "sources": [
+        {
+          "object": "DEVICE_RELATION",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "relation",
+          "mappingCount": 10,
+          "targetTables": [
+            "ast_device_relationship"
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "number": "E08",
+      "group": "验收与专项样本：保留证据，不作为全量迁移入口",
+      "purpose": "异常保留样本，每来源500条",
+      "recommendation": "仅异常保留验证；当前v1，最近回执v0。",
+      "id": "2107046961754501121",
+      "name": "DPPMS 专项异常保留样本（每来源500条）",
+      "version": 1,
+      "validatedVersion": null,
+      "enabled": false,
+      "activeRunId": null,
+      "connectionId": "2101561624635936769",
+      "adapter": "TABLE_MAPPING",
+      "storedAdapter": "TABLE_MAPPING:delivery-checked-sample-20261005",
+      "taskKey": "delivery-checked-sample-20261005",
+      "sourceSystem": "DPPMS",
+      "mode": "ONCE",
+      "loadingMode": "UPSERT",
+      "autoPaging": false,
+      "maxRows": 2000,
+      "runCount": 2,
+      "latestRun": {
+        "runId": "2107047315678261250",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2500,
+        "summary": {
+          "ISSUE": 336,
+          "UNCHANGED": 2164
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:56:41.760000",
+        "finishedAt": "2026-10-05 17:56:54.230000"
+      },
+      "latestSuccess": {
+        "runId": "2107047315678261250",
+        "version": 0,
+        "preview": false,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "SUCCESS",
+        "readCount": 2500,
+        "summary": {
+          "ISSUE": 336,
+          "UNCHANGED": 2164
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:56:41.760000",
+        "finishedAt": "2026-10-05 17:56:54.230000"
+      },
+      "latestPreview": {
+        "runId": "2107047110832648194",
+        "version": 0,
+        "preview": true,
+        "full": true,
+        "parentRunId": null,
+        "pageNumber": null,
+        "status": "PREVIEW_READY",
+        "readCount": 2500,
+        "summary": {
+          "ISSUE": 336,
+          "UNCHANGED": 2164
+        },
+        "error": null,
+        "startedAt": "2026-10-05 17:55:52.921000",
+        "finishedAt": "2026-10-05 17:56:02.365000"
+      },
+      "targetTables": [
+        "ast_device_relationship",
+        "ast_device_shipment",
+        "com_contract",
+        "com_shipment_contract_reference",
+        "com_shipment_package"
+      ],
+      "sources": [
+        {
+          "object": "CONTRACT",
+          "sourceObject": "pm_order_data_from_erp",
+          "readMode": "SQL",
+          "table": "pm_order_data_from_erp",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp",
+            "sms_ofst_contract_head_sap"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": null,
+          "mappingCount": 22,
+          "targetTables": [
+            "com_contract"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "SHIPMENT_CONTRACT",
+          "sourceObject": "fb_contract",
+          "readMode": "SQL",
+          "table": "fb_contract",
+          "referencedTables": [
+            "fb_contract",
+            "pm_order_data_from_erp"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "sync_evidence_key",
+          "primaryTarget": null,
+          "mappingCount": 21,
+          "targetTables": [
+            "com_contract",
+            "com_shipment_contract_reference"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "PACKAGE",
+          "sourceObject": "fb_shipment",
+          "readMode": "SQL",
+          "table": "fb_shipment",
+          "referencedTables": [
+            "fb_shipment"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "packlist_id",
+          "primaryTarget": null,
+          "mappingCount": 9,
+          "targetTables": [
+            "com_shipment_package"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_SN",
+          "sourceObject": "fb_shipment_barcode",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode",
+          "referencedTables": [
+            "fb_contract",
+            "fb_shipment",
+            "fb_shipment_barcode"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "event",
+          "mappingCount": 26,
+          "targetTables": [
+            "ast_device_shipment"
+          ],
+          "lookups": []
+        },
+        {
+          "object": "DEVICE_RELATION",
+          "sourceObject": "fb_shipment_barcode_relation",
+          "readMode": "SQL",
+          "table": "fb_shipment_barcode_relation",
+          "referencedTables": [
+            "fb_shipment_barcode_relation"
+          ],
+          "parameters": {},
+          "filters": [],
+          "sourceKey": "id",
+          "primaryTarget": "relation",
+          "mappingCount": 10,
+          "targetTables": [
+            "ast_device_relationship"
+          ],
+          "lookups": []
+        }
+      ]
+    }
+  ]
+}

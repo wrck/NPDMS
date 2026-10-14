@@ -1,0 +1,1141 @@
+{
+  "task": {
+    "key": "P28",
+    "name": "设备发货事实",
+    "businessOwners": [
+      "AST"
+    ],
+    "source": "C01/v14的DEVICE_SN：fb_shipment_barcode及合同/装箱单/产品目录",
+    "targetTables": [
+      "ast_device_shipment"
+    ],
+    "dependencies": [
+      "P12",
+      "P14",
+      "P26",
+      "P27"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "C01",
+        "originalTaskId": "2107037031219654657",
+        "originalVersion": 14,
+        "originalAdapter": "TABLE_MAPPING",
+        "sourceObjects": [
+          "DEVICE_SN"
+        ]
+      }
+    ],
+    "preparation": "OWNER_ENTRY_REQUIRED",
+    "configurationWork": "保留全部原业务字段，正式订单行引用经Owner精确解析；通用写表步骤改为AST入口。固定业务字段落正式列，原证据不得充当业务承接。",
+    "acceptance": "主附SN、订单行、产品、时间、保修、RMA及原审计完整；重复发货保留，不能自动生成安装或验收完成。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-ast-device-shipment-table-decision.md",
+      "2026-10-10-dppms-equipment-association-repair-decision.md"
+    ],
+    "existingExecutionHold": true,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fb_shipment_barcode"
+    ],
+    "adapterClass": "GenericSyncEngine",
+    "writerClasses": [],
+    "businessKey": "DPPMS来源＋原条码行id；SN不是唯一发货事件键",
+    "genericAssessment": "当前使用通用TABLE_MAPPING，承接的是发货事实。多次发货不能按SN合成当前设备；生产需AST发货Owner并保护订单行/装箱单/目录关系，P30另做设备身份及项目归属。",
+    "processing": [
+      "当前SQL通过装箱单/合同补充发货字段；当前targets.lookups为空，不声称已填写正式order_line_id。生产需按P14/P26/P27核实正式业务关联。",
+      "原条码行19字段分别承接既有发货事实列，保留主/副产品码和SN。",
+      "P12目录名称以CRM为准，不能以DPPMS异名或标签未保存阻断产品码关联。",
+      "当前通用写入尚不等于正式设备主档或项目归属完成。"
+    ],
+    "specialRules": [],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT STRAIGHT_JOIN b.*,p.packdate AS shipment_time,f.contract_code AS contract_no,\n CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 'UNCLASSIFIED' ELSE 'SHIPMENT' END AS event_type,\n CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 1 ELSE 0 END AS rma_marked\nFROM fb_shipment_barcode b\nSTRAIGHT_JOIN fb_shipment p ON p.packlist_id=b.pack_id\nSTRAIGHT_JOIN fb_contract f ON f.contract_id=p.con_id\nSTRAIGHT_JOIN (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m\n JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n JOIN pm_project p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND p.projectId=(SELECT MAX(newer.projectId) FROM pm_project newer\n WHERE newer.projectCode=p.projectCode AND newer.projectType=p.projectType\n AND CAST(newer.projectCode AS BINARY)=CAST(p.projectCode AS BINARY))) project_scope\n ON project_scope.contractNo=f.contract_code AND FIND_IN_SET(f.contract_code,project_scope.contractNo)",
+      "table": "fb_shipment_barcode",
+      "object": "DEVICE_SN",
+      "columns": [],
+      "filters": [],
+      "targets": [
+        {
+          "keys": [
+            "source_system",
+            "source_key"
+          ],
+          "mode": "UPSERT",
+          "name": "event",
+          "table": "ast_device_shipment",
+          "lookups": null,
+          "newerBy": null,
+          "mappings": [
+            {
+              "source": "barcode",
+              "target": "device_sn",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "shipment_time",
+              "target": "shipment_time",
+              "values": null,
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null
+            },
+            {
+              "source": "pack_id",
+              "target": "package_no",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "pack_id",
+              "target": "legacy_package_key",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "contract_no",
+              "target": "contract_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "event_type",
+              "target": "event_type",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "warrantyStartDate",
+              "target": "warranty_start_date",
+              "values": null,
+              "constant": null,
+              "conversion": "DATE",
+              "defaultValue": null
+            },
+            {
+              "source": "warrantyMonth",
+              "target": "warranty_months",
+              "values": null,
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null
+            },
+            {
+              "source": "rma_no",
+              "target": "rma_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "rmaBarcode",
+              "target": "rma_related_sn",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "rma_marked",
+              "target": "rma_marked",
+              "values": null,
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_KEY",
+              "target": "source_key",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "updateTime",
+              "target": "source_updated_at",
+              "values": null,
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null
+            },
+            {
+              "source": "$ROW",
+              "target": "source_payload",
+              "values": null,
+              "constant": null,
+              "conversion": "JSON",
+              "defaultValue": null
+            },
+            {
+              "source": "orderNumber",
+              "target": "order_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "lineNum",
+              "target": "line_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "item",
+              "target": "product_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "barcode2",
+              "target": "secondary_sn",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "item2",
+              "target": "secondary_item",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "com_barcode",
+              "target": "internal_serial_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "isRMA",
+              "target": "is_rma",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "profitCenter",
+              "target": "profit_center",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "soleAgentSuffix",
+              "target": "sole_agent_suffix",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "syncTime",
+              "target": "sync_time",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "uuid",
+              "target": "uuid",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            }
+          ],
+          "whenField": null,
+          "nullPolicy": "IGNORE",
+          "tieBreaker": null,
+          "updateColumns": []
+        }
+      ],
+      "mappings": [],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "fb_shipment_barcode",
+      "primaryTarget": "event",
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P28-01-DEVICE_SN.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fb_contract",
+        "fb_shipment",
+        "fb_shipment_barcode",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "id",
+      "sourceType": "bigint(20)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "pack_id",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.package_no；ast_device_shipment.legacy_package_key",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "item",
+      "sourceType": "varchar(16)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.product_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "barcode",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.device_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "com_barcode",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.internal_serial_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "rma_no",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.rma_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "isRMA",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.is_rma",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "item2",
+      "sourceType": "varchar(16)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.secondary_item",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "barcode2",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.secondary_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "orderNumber",
+      "sourceType": "varchar(32)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.order_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "lineNum",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.line_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "profitCenter",
+      "sourceType": "varchar(32)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.profit_center",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "soleAgentSuffix",
+      "sourceType": "varchar(32)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.sole_agent_suffix",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "warrantyStartDate",
+      "sourceType": "date",
+      "nullable": "YES",
+      "target": "ast_device_shipment.warranty_start_date",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "warrantyMonth",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.warranty_months",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "rmaBarcode",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.rma_related_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "ast_device_shipment.source_updated_at",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "syncTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "ast_device_shipment.sync_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode",
+      "sourceField": "uuid",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "ast_device_shipment.uuid",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_device_shipment",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "发货记录编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "device_sn",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备序列号",
+          "taskHandling": "fb_shipment_barcode.barcode；DEVICE_SN.barcode"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "shipment_time",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货时间",
+          "taskHandling": "DEVICE_SN.shipment_time"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "package_no",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "fb_shipment_barcode.pack_id；DEVICE_SN.pack_id"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "DEVICE_SN.contract_no"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "event_type",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货事件类型",
+          "taskHandling": "DEVICE_SN.event_type"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "warranty_start_date",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货约定维保开始日期",
+          "taskHandling": "fb_shipment_barcode.warrantyStartDate；DEVICE_SN.warrantyStartDate"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "warranty_months",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "发货约定维保月数",
+          "taskHandling": "fb_shipment_barcode.warrantyMonth；DEVICE_SN.warrantyMonth"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "rma_no",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "RMA编号",
+          "taskHandling": "fb_shipment_barcode.rma_no；DEVICE_SN.rma_no"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "related_device_sn",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "关联设备序列号",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "DEVICE_SN.$SOURCE_SYSTEM"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_key",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源键",
+          "taskHandling": "DEVICE_SN.$SOURCE_KEY"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源版本",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源更新时间",
+          "taskHandling": "fb_shipment_barcode.updateTime；DEVICE_SN.updateTime"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "synced_at",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最近成功同步时间",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "sync_status",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "同步状态",
+          "taskHandling": "通用目标目录insertDefault=SUCCESS"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "legacy_package_key",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源装箱单键，未解析时仍保留",
+          "taskHandling": "fb_shipment_barcode.pack_id；DEVICE_SN.pack_id"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "rma_related_sn",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源RMA关联SN候选，不生成替换关系",
+          "taskHandling": "fb_shipment_barcode.rmaBarcode；DEVICE_SN.rmaBarcode"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "rma_marked",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源RMA标识",
+          "taskHandling": "DEVICE_SN.rma_marked"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "order_line_id",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "唯一解析的ERP订单行ID",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "source_payload",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源条码记录",
+          "taskHandling": "DEVICE_SN.$ROW"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "order_no",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源订单号",
+          "taskHandling": "fb_shipment_barcode.orderNumber；DEVICE_SN.orderNumber"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "line_no",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源订单行号",
+          "taskHandling": "fb_shipment_barcode.lineNum；DEVICE_SN.lineNum"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源物料编码 item",
+          "taskHandling": "fb_shipment_barcode.item；DEVICE_SN.item"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "secondary_sn",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源附加SN barcode2",
+          "taskHandling": "fb_shipment_barcode.barcode2；DEVICE_SN.barcode2"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "secondary_item",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源附加物料 item2",
+          "taskHandling": "fb_shipment_barcode.item2；DEVICE_SN.item2"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "internal_serial_no",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源组合条码 com_barcode",
+          "taskHandling": "fb_shipment_barcode.com_barcode；DEVICE_SN.com_barcode"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "is_rma",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源RMA标识 isRMA",
+          "taskHandling": "fb_shipment_barcode.isRMA；DEVICE_SN.isRMA"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "profit_center",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源利润中心 profitCenter",
+          "taskHandling": "fb_shipment_barcode.profitCenter；DEVICE_SN.profitCenter"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "sole_agent_suffix",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源独家代理后缀 soleAgentSuffix",
+          "taskHandling": "fb_shipment_barcode.soleAgentSuffix；DEVICE_SN.soleAgentSuffix"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "sync_time",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间 syncTime",
+          "taskHandling": "fb_shipment_barcode.syncTime；DEVICE_SN.syncTime"
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "COLUMN_NAME": "uuid",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源UUID",
+          "taskHandling": "fb_shipment_barcode.uuid；DEVICE_SN.uuid"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "fk_ast_device_shipment_related_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "fk_ast_device_shipment_related_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "related_device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "shipment_time",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_package",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_package",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "package_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "idx_ast_device_shipment_package",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "uk_ast_device_shipment_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "uk_ast_device_shipment_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_shipment",
+          "INDEX_NAME": "uk_ast_device_shipment_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_key",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericSyncEngine.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/GenericSyncJdbcStore.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericTargetCatalog.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "TABLE_MAPPING",
+    "maxRows": 2000,
+    "taskKey": "delivery-full-sync",
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 2000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "CHECKPOINT_KEY",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "fb_contract",
+    "fb_shipment",
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+  "ownerSqlFiles": []
+}

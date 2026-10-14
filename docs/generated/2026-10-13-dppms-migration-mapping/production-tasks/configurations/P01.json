@@ -1,0 +1,1050 @@
+{
+  "task": {
+    "key": "P01",
+    "name": "公司与基础部门",
+    "businessOwners": [
+      "SYSTEM"
+    ],
+    "source": "ehr_company、ehr_department",
+    "targetTables": [
+      "system_company",
+      "system_dept"
+    ],
+    "dependencies": [],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "A01",
+        "originalTaskId": "2101562667583217666",
+        "originalVersion": 16,
+        "originalAdapter": "EHR_ORGANIZATION",
+        "sourceObjects": [
+          "COMPANY",
+          "DEPARTMENT"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "沿用公司映射与 depGrade<=2、LENGTH(depCode)=6 的基础部门条件；它不是全组织树。核对生产公司编码、父部门及目录种子。",
+    "acceptance": "公司与部门逐来源有处置；父部门唯一；不按旧库数值ID关联，不自动扩大目录筛选。",
+    "ruleDocuments": [],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "ehr_company",
+      "ehr_department"
+    ],
+    "adapterClass": "EhrOrganizationAdapter",
+    "writerClasses": [
+      "ManagedOrganizationApi"
+    ],
+    "businessKey": "租户＋公司/部门业务编码；来源compID/depID维护INT绑定，父部门通过原adminID引用解析",
+    "genericAssessment": "有专用适配器。公司、部门必须作为组织树交给SYSTEM Owner核对父级、来源归属和缓存；通用引擎虽可做查找，不能代替组织整树校验和Owner缓存刷新。当前任务基础筛选不是全组织树。",
+    "processing": [
+      "先读取公司，再读取depGrade<=2且LENGTH(depCode)=6的部门。",
+      "转换编码、名称、启停、排序；parentKey/companyKey通过同次来源及既有绑定核验，父级缺失不猜建。",
+      "ManagedOrganizationApi.preview/apply处理正式节点和冲突，完成后refreshCaches；来源缺失按本任务RETAIN保留。"
+    ],
+    "specialRules": [
+      "P01只采集配置列；EHR其他任职/组织字段在本包逐列标明未采集，不能算作迁入。",
+      "P01的companyKey是来源公司核验引用；不能据此宣称system_dept已有公司外键列。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": null,
+      "table": "ehr_company",
+      "object": "COMPANY",
+      "columns": [
+        "compID",
+        "compCode",
+        "compName",
+        "isDisabled"
+      ],
+      "filters": [],
+      "mappings": [
+        {
+          "source": "compCode",
+          "target": "code",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "compName",
+          "target": "name",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "isDisabled",
+          "target": "status",
+          "values": {
+            "0": 0,
+            "1": 1,
+            "NULL": 0,
+            "true": 1,
+            "false": 0
+          },
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "TABLE",
+      "sourceKey": "compID",
+      "updatedAt": null,
+      "parameters": {},
+      "sourceObject": "ehr_company",
+      "syncPrimaryKey": true,
+      "queryFile": "sql/P01-01-COMPANY.sql",
+      "queryProvenance": "TABLE_COMPILED_EQUIVALENT",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "ehr_company"
+      ],
+      "historicalProofsOmitted": []
+    },
+    {
+      "sql": null,
+      "table": "ehr_department",
+      "object": "DEPARTMENT",
+      "columns": [
+        "depID",
+        "depCode",
+        "depName",
+        "isDisabled",
+        "adminID",
+        "compID",
+        "depGrade"
+      ],
+      "filters": [
+        {
+          "value": "2",
+          "column": "depGrade",
+          "function": null,
+          "operator": "<="
+        },
+        {
+          "value": "6",
+          "column": "depCode",
+          "function": "LENGTH",
+          "operator": "="
+        }
+      ],
+      "mappings": [
+        {
+          "source": "depCode",
+          "target": "code",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "depName",
+          "target": "name",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "isDisabled",
+          "target": "status",
+          "values": {
+            "0": 0,
+            "1": 1,
+            "NULL": 0,
+            "true": 1,
+            "false": 0
+          },
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null
+        },
+        {
+          "source": "adminID",
+          "target": "parentKey",
+          "values": {},
+          "constant": null,
+          "conversion": "REFERENCE",
+          "defaultValue": null
+        },
+        {
+          "source": "compID",
+          "target": "companyKey",
+          "values": {},
+          "constant": null,
+          "conversion": "REFERENCE",
+          "defaultValue": null
+        },
+        {
+          "source": "depID",
+          "target": "sort",
+          "values": {},
+          "constant": null,
+          "conversion": "LONG",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "TABLE",
+      "sourceKey": "depID",
+      "updatedAt": null,
+      "parameters": {},
+      "sourceObject": "ehr_department",
+      "syncPrimaryKey": true,
+      "queryFile": "sql/P01-02-DEPARTMENT.sql",
+      "queryProvenance": "TABLE_COMPILED_EQUIVALENT",
+      "tableFilterParameters": {
+        "filter0": "2",
+        "filter1": "6"
+      },
+      "physicalSourceTables": [
+        "ehr_department"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "compID",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "INT来源绑定",
+      "rule": "原公司身份；不直接套用正式id。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "compCode",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "system_company.code",
+      "rule": "配置TRIM；以已保存编码语义承接，不擅自套DPPMS四码转换。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "compName",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "system_company.name",
+      "rule": "配置TRIM。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "compAbbr",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "adminID",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "compGrade",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "compType",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "compArea",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "effectDate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "lawyer",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "address",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "regAddress",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "tel",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "fax",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "postCode",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "webSite",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "isDisabled",
+      "sourceType": "bit(1)",
+      "nullable": "YES",
+      "target": "system_company.status",
+      "rule": "按当前完整ENUM映射；未定义值阻断。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "disabledDate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_company",
+      "sourceField": "remark",
+      "sourceType": "varchar(500)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depID",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "INT来源绑定",
+      "rule": "原部门身份。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCode",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "system_dept.code",
+      "rule": "配置TRIM。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depName",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "system_dept.name",
+      "rule": "配置TRIM。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depAbbr",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "compID",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "公司来源关联核验",
+      "rule": "作为companyKey验证来源公司存在；system_dept没有公司外键列，不声称落库。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "adminID",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_dept.parent_id",
+      "rule": "先作为parentKey，经来源/正式绑定解析；0或空为根。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depGrade",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_dept.sort；来源筛选",
+      "rule": "本任务LONG映射sort并按depGrade<=2筛选；不是固定树层级设计。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depType",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depProperty",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCost",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "director",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "director2",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depEmp",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depNum",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "effectDate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "xOrder",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "isDisabled",
+      "sourceType": "bit(1)",
+      "nullable": "YES",
+      "target": "system_dept.status",
+      "rule": "按当前完整ENUM转换。",
+      "fieldStatus": "当前配置/Owner"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "disabledDate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "remark",
+      "sourceType": "varchar(500)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom1",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom2",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom3",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom4",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom5",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P01未采集",
+      "rule": "现P01仅采集配置中列；本字段无P01映射。P03八码的排除裁决不自动泛化为全EHR永久排除。",
+      "fieldStatus": "本任务未采集"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "system_company",
+      "columns": [
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "1",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "code",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "ehr_company.compCode"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "name",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "ehr_company.compName"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "ehr_company.isDisabled"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "system_company",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "INDEX_NAME": "uk_system_company_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "INDEX_NAME": "uk_system_company_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_company",
+          "INDEX_NAME": "uk_system_company_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "system_dept",
+      "columns": [
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "部门id",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "code",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "统一部门编码",
+          "taskHandling": "ehr_department.depCode"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "name",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(30)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "部门名称",
+          "taskHandling": "ehr_department.depName"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "parent_id",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父部门id",
+          "taskHandling": "ehr_department.adminID"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "sort",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "显示顺序",
+          "taskHandling": "ehr_department.depGrade"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "leader_user_id",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "负责人",
+          "taskHandling": "P01没有来源映射；新增不提供，已有目录值不由本任务补写；主管补关联见P03"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "phone",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系电话",
+          "taskHandling": "P01没有来源映射；新增不提供，已有目录值不由本任务补写；主管补关联见P03"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "email",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "邮箱",
+          "taskHandling": "P01没有来源映射；新增不提供，已有目录值不由本任务补写；主管补关联见P03"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "部门状态（0正常 1停用）",
+          "taskHandling": "ehr_department.isDisabled"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建者",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新者",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "uk_system_dept_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "uk_system_dept_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "uk_system_dept_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/EhrOrganizationAdapter.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/organization/ManagedOrganizationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/organization/ManagedOrganizationApiImpl.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/company/CompanyMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/dept/DeptMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/organization/ManagedOrganizationMapper.java",
+    "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 * * * ?",
+    "mode": "SNAPSHOT",
+    "adapter": "EHR_ORGANIZATION",
+    "maxRows": 10000,
+    "fullCron": "0 0 2 * * ?",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "SNAPSHOT",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "DISABLE",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 300,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": true
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "EHR_ORGANIZATION",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/ManagedOrganizationMapper.xml"
+  ]
+}

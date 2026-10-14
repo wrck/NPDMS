@@ -1,0 +1,1736 @@
+{
+  "task": {
+    "key": "P18",
+    "name": "项目合同关系及正式商务关联",
+    "businessOwners": [
+      "COM",
+      "PROJ"
+    ],
+    "source": "pm_project_contract、pm_project_group、pm_project_group_relationship",
+    "targetTables": [
+      "com_project_contract_relation"
+    ],
+    "dependencies": [
+      "P04",
+      "P13",
+      "P14",
+      "P15",
+      "P17"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B05",
+        "originalTaskId": "2109363204544983041",
+        "originalVersion": 12,
+        "originalAdapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+        "sourceObjects": [
+          "pm_project_contract"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "保持正式项目+合同归并、当前/历史及审计裁决，保留18项逐源排除。原组及成员只按Q015/Q016规则参与关系，smsProjectCode须沿正式合同/订单/执行单链核对。",
+    "acceptance": "所有原合同/组成员身份和正式关系可追溯；历史不参与当前授权。商务链缺失/多义保留为问题，不用项目扩展数组代替。",
+    "ruleDocuments": [
+      "2026-10-12-dppms-project-contract-relation-table-proposal.md",
+      "2026-10-14-dppms-full-preview-blocker-repair.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project_contract",
+      "pm_project_group",
+      "pm_project_group_relationship"
+    ],
+    "adapterClass": "DppmsProjectContractRelationSyncAdapter",
+    "writerClasses": [
+      "ProjectContractRelationMigrationApi"
+    ],
+    "businessKey": "正式project_id＋contract_id共用一条关系；每条原合同/组成员独立绑定",
+    "genericAssessment": "有专用适配器。原组展开、多源归并、ACTIVE/HISTORICAL边界、审计归并和完整目标前值保护属于COM关系Owner；通用字段UPSERT会丢掉独立来源证明或误授当前关系。",
+    "processing": [
+      "原合同→组成员→同类型同码规范项目展开，使用P17全部身份核实正式项目。",
+      "按公司＋合同号精确解析合同，再核实订单/执行单商务链。",
+      "同一正式关系按已批准最早创建/最近非空更新时间归并；同时间人员冲突阻断。",
+      "保留18项逐源裁决、独立来源绑定和历史关系隔离，COM Owner同事务写入。"
+    ],
+    "specialRules": [
+      "不能用项目扩展数组代替正式合同关系；历史关系不参与当前授权或新项目创建。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT c.id AS id,\n  c.contractNo AS contractNo,\n  c.projectGroupCode AS projectGroupCode,\n  c.createTime AS createTime,\n  c.createBy AS createBy,\n  c.updateTime AS updateTime,\n  c.updateBy AS updateBy,\n  m.id AS member_id,\n  m.projectGroupCode AS member_projectGroupCode,\n  m.projectCode AS member_projectCode,\n  m.mergeBranchMark AS member_mergeBranchMark,\n  m.smsProjectCode AS member_smsProjectCode,\n  m.createTime AS member_createTime,\n  m.createBy AS member_createBy,\n  m.updateTime AS member_updateTime,\n  m.updateBy AS member_updateBy,\n  g.id AS group_id,\n  g.projectGroupCode AS group_projectGroupCode,\n  g.projectGroupName AS group_projectGroupName,\n  g.projectType AS group_projectType,\n  g.createTime AS group_createTime,\n  g.createBy AS group_createBy,\n  g.updateTime AS group_updateTime,\n  g.updateBy AS group_updateBy,\n  p.projectId AS originalProjectId,\n  p.projectCode AS originalProjectCode,\n  IF(p.projectId IS NULL,0,1) AS projectCandidateCount,\n  CONCAT(c.id,':',COALESCE(m.id,0)) AS relationOriginalKey,\n  a.formalGroupSize,\n  IF(SUBSTRING(a.createdPick,1,1)='0','ACTIVE','HISTORICAL') AS formalStatus,\n  COALESCE(kc.createTime,km.createTime) AS formalCreatedAt,\n  COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS formalCreator,\n  COALESCE(uc.updateTime,um.updateTime) AS formalUpdatedAt,\n  COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS formalUpdater,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.createTime,dm.createTime) <=> COALESCE(kc.createTime,km.createTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.createBy,''),NULLIF(dm.createBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(kc.createBy,''),NULLIF(km.createBy,'')) AS BINARY)))) AS formalCreateConflicts,\n  IF(a.formalGroupSize=1,0,(SELECT COUNT(*) FROM pm_project_contract d\n  LEFT JOIN pm_project_group dg ON dg.projectGroupCode=d.projectGroupCode AND CAST(dg.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship dm ON dm.projectGroupCode=d.projectGroupCode AND CAST(dm.projectGroupCode AS BINARY)=CAST(d.projectGroupCode AS BINARY)\n  WHERE d.contractNo <=> c.contractNo AND CAST(d.contractNo AS BINARY) <=> CAST(c.contractNo AS BINARY)\n    AND CAST(dg.projectType AS BINARY) <=> CAST(g.projectType AS BINARY)\n    AND CAST(REPLACE(dm.projectCode,'-his','') AS BINARY) <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n    AND IF(RIGHT(CAST(dm.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0)=SUBSTRING(a.createdPick,1,1)\n    AND COALESCE(d.updateTime,dm.updateTime) <=> COALESCE(uc.updateTime,um.updateTime)\n    AND NOT (CAST(COALESCE(NULLIF(d.updateBy,''),NULLIF(dm.updateBy,'')) AS BINARY) <=> CAST(COALESCE(NULLIF(uc.updateBy,''),NULLIF(um.updateBy,'')) AS BINARY)))) AS formalUpdateConflicts,\n  kc.id AS canonical_id,\n  kc.contractNo AS canonical_contractNo,\n  kc.projectGroupCode AS canonical_projectGroupCode,\n  kc.createTime AS canonical_createTime,\n  kc.createBy AS canonical_createBy,\n  kc.updateTime AS canonical_updateTime,\n  kc.updateBy AS canonical_updateBy,\n  km.id AS canonical_member_id,\n  km.projectGroupCode AS canonical_member_projectGroupCode,\n  km.projectCode AS canonical_member_projectCode,\n  km.mergeBranchMark AS canonical_member_mergeBranchMark,\n  km.smsProjectCode AS canonical_member_smsProjectCode,\n  km.createTime AS canonical_member_createTime,\n  km.createBy AS canonical_member_createBy,\n  km.updateTime AS canonical_member_updateTime,\n  km.updateBy AS canonical_member_updateBy,\n  kg.id AS canonical_group_id,\n  kg.projectGroupCode AS canonical_group_projectGroupCode,\n  kg.projectGroupName AS canonical_group_projectGroupName,\n  kg.projectType AS canonical_group_projectType,\n  kg.createTime AS canonical_group_createTime,\n  kg.createBy AS canonical_group_createBy,\n  kg.updateTime AS canonical_group_updateTime,\n  kg.updateBy AS canonical_group_updateBy,\n  p.projectId AS canonical_originalProjectId,\n  p.projectCode AS canonical_originalProjectCode,\n  CONCAT(LPAD(kc.id,20,'0'),':',LPAD(COALESCE(km.id,0),20,'0'),':',\n    IF(c.id=kc.id AND COALESCE(m.id,0)=COALESCE(km.id,0),0,1),':',\n    LPAD(c.id,20,'0'),':',LPAD(COALESCE(m.id,0),20,'0')) AS relationSourceKey\nFROM pm_project_contract c\nLEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nLEFT JOIN (SELECT CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS projectIdentity,\n  MAX(projectId) AS projectId FROM pm_project\n  GROUP BY CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY))) canonical\n  ON canonical.projectIdentity=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))\nLEFT JOIN pm_project p ON p.projectId=canonical.projectId\nJOIN (\n  -- Aggregate the full formal identity before applying task scope or streaming chunks.\n  -- Picks encode status priority (1), timestamp (20), contract ID (20), member ID (20).\n  SELECT CAST(g.projectType AS BINARY) AS projectType,CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AS projectCode,\n    CAST(c.contractNo AS BINARY) AS contractNo,COUNT(*) AS formalGroupSize,\n    MIN(CONCAT(IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.createTime,m.createTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS createdPick,\n    MAX(CONCAT(1-IF(RIGHT(CAST(m.projectCode AS BINARY),4)=CAST('-his' AS BINARY),1,0),\n      COALESCE(DATE_FORMAT(COALESCE(c.updateTime,m.updateTime),'%Y%m%d%H%i%s%f'),'00000000000000000000'),\n      LPAD(c.id,20,'0'),LPAD(COALESCE(m.id,0),20,'0'))) AS updatedPick\n  FROM pm_project_contract c\n  LEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\n  GROUP BY CAST(g.projectType AS BINARY),CAST(REPLACE(m.projectCode,'-his','') AS BINARY),CAST(c.contractNo AS BINARY)\n) a ON a.projectType <=> CAST(g.projectType AS BINARY)\n  AND a.projectCode <=> CAST(REPLACE(m.projectCode,'-his','') AS BINARY) AND a.contractNo <=> CAST(c.contractNo AS BINARY)\nLEFT JOIN pm_project_contract kc ON kc.id=CAST(SUBSTRING(a.createdPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship km ON km.id=CAST(SUBSTRING(a.createdPick,42,20) AS UNSIGNED)\nLEFT JOIN pm_project_group kg ON kg.projectGroupCode=kc.projectGroupCode AND CAST(kg.projectGroupCode AS BINARY)=CAST(kc.projectGroupCode AS BINARY)\nLEFT JOIN pm_project_contract uc ON uc.id=CAST(SUBSTRING(a.updatedPick,22,20) AS UNSIGNED)\nLEFT JOIN pm_project_group_relationship um ON um.id=CAST(SUBSTRING(a.updatedPick,42,20) AS UNSIGNED)\nWHERE (g.id IS NULL OR FIND_IN_SET(g.projectType,:projectTypes))\n  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_contract",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectGroupCode",
+          "target": "projectGroupCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_id",
+          "target": "member_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_projectGroupCode",
+          "target": "member_projectGroupCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_projectCode",
+          "target": "member_projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_mergeBranchMark",
+          "target": "member_mergeBranchMark",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_smsProjectCode",
+          "target": "member_smsProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_createTime",
+          "target": "member_createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_createBy",
+          "target": "member_createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_updateTime",
+          "target": "member_updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "member_updateBy",
+          "target": "member_updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_id",
+          "target": "group_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_projectGroupCode",
+          "target": "group_projectGroupCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_projectGroupName",
+          "target": "group_projectGroupName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_projectType",
+          "target": "group_projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_createTime",
+          "target": "group_createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_createBy",
+          "target": "group_createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_updateTime",
+          "target": "group_updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "group_updateBy",
+          "target": "group_updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalProjectId",
+          "target": "originalProjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalGroupSize",
+          "target": "formalGroupSize",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalStatus",
+          "target": "formalStatus",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalCreatedAt",
+          "target": "formalCreatedAt",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalCreator",
+          "target": "formalCreator",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalUpdatedAt",
+          "target": "formalUpdatedAt",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalUpdater",
+          "target": "formalUpdater",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalCreateConflicts",
+          "target": "formalCreateConflicts",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "formalUpdateConflicts",
+          "target": "formalUpdateConflicts",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_id",
+          "target": "canonical_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_contractNo",
+          "target": "canonical_contractNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_projectGroupCode",
+          "target": "canonical_projectGroupCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_createTime",
+          "target": "canonical_createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_createBy",
+          "target": "canonical_createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_updateTime",
+          "target": "canonical_updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_updateBy",
+          "target": "canonical_updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_id",
+          "target": "canonical_member_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_projectGroupCode",
+          "target": "canonical_member_projectGroupCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_projectCode",
+          "target": "canonical_member_projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_mergeBranchMark",
+          "target": "canonical_member_mergeBranchMark",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_smsProjectCode",
+          "target": "canonical_member_smsProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_createTime",
+          "target": "canonical_member_createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_createBy",
+          "target": "canonical_member_createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_updateTime",
+          "target": "canonical_member_updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_member_updateBy",
+          "target": "canonical_member_updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_id",
+          "target": "canonical_group_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_projectGroupCode",
+          "target": "canonical_group_projectGroupCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_projectGroupName",
+          "target": "canonical_group_projectGroupName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_projectType",
+          "target": "canonical_group_projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_createTime",
+          "target": "canonical_group_createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_createBy",
+          "target": "canonical_group_createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_updateTime",
+          "target": "canonical_group_updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_group_updateBy",
+          "target": "canonical_group_updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_originalProjectId",
+          "target": "canonical_originalProjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_originalProjectCode",
+          "target": "canonical_originalProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectCandidateCount",
+          "target": "projectCandidateCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "relationOriginalKey",
+          "target": "reviewedBefore",
+          "values": {},
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        },
+        {
+          "source": "relationOriginalKey",
+          "target": "migrationDecision",
+          "values": {
+            "11542:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "decision": "Q-LEGACY-CONTRACT-MISSING-BRIDGES-20261013-019",
+              "originalFields": {
+                "id": 11542,
+                "createBy": "x01861",
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "31120160125A",
+                "createTime": "2016-03-14 10:40:03",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp11187_bak",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "28588:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "decision": "Q-LEGACY-CONTRACT-MISSING-BRIDGES-20261013-019",
+              "originalFields": {
+                "id": 28588,
+                "createBy": null,
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "31220190213A07-C",
+                "createTime": "2019-07-17 09:41:34",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp27995",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "28589:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "decision": "Q-LEGACY-CONTRACT-MISSING-BRIDGES-20261013-019",
+              "originalFields": {
+                "id": 28589,
+                "createBy": null,
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "31220190213A02-C",
+                "createTime": "2019-07-17 09:43:55",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp27995",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "28590:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "decision": "Q-LEGACY-CONTRACT-MISSING-BRIDGES-20261013-019",
+              "originalFields": {
+                "id": 28590,
+                "createBy": null,
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "31220190213A04-C",
+                "createTime": "2019-07-17 09:45:15",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp27995",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "28591:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "decision": "Q-LEGACY-CONTRACT-MISSING-BRIDGES-20261013-019",
+              "originalFields": {
+                "id": 28591,
+                "createBy": null,
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "31220190524A01-C",
+                "createTime": "2019-07-17 09:46:49",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp27995",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "42366:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "originalFields": {
+                "id": 42366,
+                "createBy": "x00270",
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "16210120062918N-L",
+                "createTime": "2021-06-15 14:02:53",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp41755",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "42367:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "originalFields": {
+                "id": 42367,
+                "createBy": "x00270",
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "16210120062918N-L",
+                "createTime": "2021-06-15 14:02:53",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp41755",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "42368:0": {
+              "action": "SKIP_MISSING_GROUP",
+              "originalFields": {
+                "id": 42368,
+                "createBy": "x00270",
+                "group_id": null,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "16210120062918N-L",
+                "createTime": "2021-06-15 14:02:53",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": null,
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp41755",
+                "group_projectType": null,
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": null,
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "42501:0": {
+              "action": "SKIP_MISSING_GROUP_MEMBER",
+              "decision": "Q-LEGACY-CONTRACT-MISSING-BRIDGES-20261013-019",
+              "originalFields": {
+                "id": 42501,
+                "createBy": "sys",
+                "group_id": 41882,
+                "updateBy": null,
+                "member_id": null,
+                "contractNo": "16210120070715N",
+                "createTime": "2021-06-18 23:52:32",
+                "updateTime": null,
+                "group_createBy": "sys",
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": null,
+                "group_createTime": "2021-06-18 23:52:32",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp41882",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": null,
+                "originalProjectId": null,
+                "member_projectCode": null,
+                "originalProjectCode": null,
+                "member_smsProjectCode": null,
+                "group_projectGroupCode": "prj_gp41882",
+                "group_projectGroupName": "总代借货项目合同合并",
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": null
+              }
+            },
+            "24269:23878": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 24269,
+                "createBy": null,
+                "group_id": 23987,
+                "updateBy": null,
+                "member_id": 23878,
+                "contractNo": "31020180920A16",
+                "createTime": "2018-09-21 00:31:26",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": "sys",
+                "group_createTime": "2018-09-21 00:31:26",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp23863",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:54:57",
+                "originalProjectId": null,
+                "member_projectCode": "16202117082801N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16202117082801N",
+                "group_projectGroupCode": "prj_gp23863",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp23863"
+              }
+            },
+            "24413:24017": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 24413,
+                "createBy": null,
+                "group_id": 24129,
+                "updateBy": null,
+                "member_id": 24017,
+                "contractNo": "31020180928A01",
+                "createTime": "2018-09-29 00:32:10",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": "sys",
+                "group_createTime": "2018-09-29 00:32:10",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp24001",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:55:03",
+                "originalProjectId": null,
+                "member_projectCode": "16202318080302N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16202318080302N",
+                "group_projectGroupCode": "prj_gp24001",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp24001"
+              }
+            },
+            "24973:24554": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 24973,
+                "createBy": "x00270",
+                "group_id": 24670,
+                "updateBy": null,
+                "member_id": 24554,
+                "contractNo": "31020181101A02",
+                "createTime": "2018-11-02 08:09:16",
+                "updateTime": null,
+                "group_createBy": "x00270",
+                "group_updateBy": null,
+                "member_createBy": "x00270",
+                "member_updateBy": "sys",
+                "group_createTime": "2018-11-02 08:09:16",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp24537",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:55:23",
+                "originalProjectId": null,
+                "member_projectCode": "16200916012906N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16200916012906N",
+                "group_projectGroupCode": "prj_gp24537",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp24537"
+              }
+            },
+            "25020:24601": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 25020,
+                "createBy": "x00270",
+                "group_id": 24717,
+                "updateBy": null,
+                "member_id": 24601,
+                "contractNo": "31020181105A02",
+                "createTime": "2018-11-06 08:08:38",
+                "updateTime": null,
+                "group_createBy": "x00270",
+                "group_updateBy": null,
+                "member_createBy": "x00270",
+                "member_updateBy": "sys",
+                "group_createTime": "2018-11-06 08:08:38",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp24584",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:55:29",
+                "originalProjectId": null,
+                "member_projectCode": "16030018102901N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16030018102901N",
+                "group_projectGroupCode": "prj_gp24584",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp24584"
+              }
+            },
+            "25235:24808": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 25235,
+                "createBy": null,
+                "group_id": 24924,
+                "updateBy": null,
+                "member_id": 24808,
+                "contractNo": "31020181116A06",
+                "createTime": "2018-11-17 00:37:27",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": "sys",
+                "group_createTime": "2018-11-17 00:37:27",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp24791",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:55:46",
+                "originalProjectId": null,
+                "member_projectCode": "16200318110802N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16200318110802N",
+                "group_projectGroupCode": "prj_gp24791",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp24791"
+              }
+            },
+            "25930:25469": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 25930,
+                "createBy": "x00270",
+                "group_id": 25589,
+                "updateBy": null,
+                "member_id": 25469,
+                "contractNo": "31020181227A01",
+                "createTime": "2018-12-28 08:29:53",
+                "updateTime": null,
+                "group_createBy": "x00270",
+                "group_updateBy": null,
+                "member_createBy": "x00270",
+                "member_updateBy": "sys",
+                "group_createTime": "2018-12-28 08:29:53",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp25452",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:56:11",
+                "originalProjectId": null,
+                "member_projectCode": "16202418030101N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16202418030101N",
+                "group_projectGroupCode": "prj_gp25452",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp25452"
+              }
+            },
+            "26004:25539": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 26004,
+                "createBy": null,
+                "group_id": 25659,
+                "updateBy": null,
+                "member_id": 25539,
+                "contractNo": "31020190102A18",
+                "createTime": "2019-01-03 00:40:16",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": "sys",
+                "group_createTime": "2019-01-03 00:40:16",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp25522",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:56:14",
+                "originalProjectId": null,
+                "member_projectCode": "16202418112302N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16202418112302N",
+                "group_projectGroupCode": "prj_gp25522",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp25522"
+              }
+            },
+            "29749:29161": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 29749,
+                "createBy": null,
+                "group_id": 29299,
+                "updateBy": null,
+                "member_id": 29161,
+                "contractNo": "311020190910A97",
+                "createTime": "2019-09-11 03:25:00",
+                "updateTime": null,
+                "group_createBy": null,
+                "group_updateBy": null,
+                "member_createBy": null,
+                "member_updateBy": "sys",
+                "group_createTime": "2019-09-11 03:25:00",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp28937",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2019-11-22 23:58:14",
+                "originalProjectId": null,
+                "member_projectCode": "16202718112801N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16202718112801N",
+                "group_projectGroupCode": "prj_gp28937",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp28937"
+              }
+            },
+            "36974:36307": {
+              "action": "SKIP_MISSING_PROJECT_MEMBER",
+              "originalFields": {
+                "id": 36974,
+                "createBy": "x00270",
+                "group_id": 36446,
+                "updateBy": null,
+                "member_id": 36307,
+                "contractNo": "31020200904A10",
+                "createTime": "2020-09-07 08:29:50",
+                "updateTime": null,
+                "group_createBy": "x00270",
+                "group_updateBy": null,
+                "member_createBy": "x00270",
+                "member_updateBy": "sys",
+                "group_createTime": "2020-09-07 08:29:50",
+                "group_updateTime": null,
+                "projectGroupCode": "prj_gp36010",
+                "group_projectType": "10",
+                "member_createTime": null,
+                "member_updateTime": "2020-09-17 00:04:01",
+                "originalProjectId": null,
+                "member_projectCode": "16210120082702N-0-his",
+                "originalProjectCode": null,
+                "member_smsProjectCode": "16210120082702N",
+                "group_projectGroupCode": "prj_gp36010",
+                "group_projectGroupName": null,
+                "member_mergeBranchMark": null,
+                "member_projectGroupCode": "prj_gp36010"
+              }
+            }
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "relationSourceKey",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_project_contract",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P18-01-pm_project_contract.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project_contract",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project_contract",
+      "sourceField": "contractNo",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "com_project_contract_relation.contract_id",
+      "rule": "公司＋原合同号精确解析正式合同，禁止同号跨公司任选",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_contract",
+      "sourceField": "projectGroupCode",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "com_project_contract_relation.project_id；com_project_contract_relation.contract_id",
+      "rule": "原组→成员→同类型编码MAX(projectId)→正式项目，展开合同关系；旧组不是新模型权威",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_contract",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.create_time",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_contract",
+      "sourceField": "createBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.creator",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_contract",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.update_time",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_contract",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.updater",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "projectGroupCode",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "com_project_contract_relation的精确展开依据",
+      "rule": "仅组身份用于展开，不创建新合同组或项目组合",
+      "fieldStatus": "关联依据"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "projectGroupName",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户批准不独立承接：旧组只用于共享合同查询，组名称/审计不是正式关系同一主体；不创建组实体",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "projectType",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "proj_project.project_type（原查询匹配约束）",
+      "rule": "按原类型匹配规范项目；不独立复制组类型",
+      "fieldStatus": "关联依据"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户批准不独立承接：旧组只用于共享合同查询，组名称/审计不是正式关系同一主体；不创建组实体",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "createBy",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户批准不独立承接：旧组只用于共享合同查询，组名称/审计不是正式关系同一主体；不创建组实体",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户批准不独立承接：旧组只用于共享合同查询，组名称/审计不是正式关系同一主体；不创建组实体",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project_group",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户批准不独立承接：旧组只用于共享合同查询，组名称/审计不是正式关系同一主体；不创建组实体",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "projectGroupCode",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "com_project_contract_relation.contract_id",
+      "rule": "关联pm_project_contract.contractNo后精确正式合同绑定",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.project_id；com_project_contract_relation.status",
+      "rule": "还原所有-his；类型＋编码最大projectId；-his表示HISTORICAL不造解除日期，当前来源优先；跨组完整归并规则尚未完成",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "mergeBranchMark",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户不迁入旧拆分备注；拆分采用新系统正式主子项目功能，不据旧备注改名/造树",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "smsProjectCode",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.project_code（正式合同→订单→执行单链）",
+      "rule": "原CRM商务编码及尾号依据；该完整正式链尚待核对，不加项目扩展/列",
+      "fieldStatus": "正式链映射尚未闭合"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.create_time",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "createBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.creator",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.update_time",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_group_relationship",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_project_contract_relation.updater",
+      "rule": "合同关系审计为主、成员同名补缺；归并最早创建/最近非空更新；时间并列人员不同阻断；未选不同值逐字段列原因；sys/异常数据处理保留原码",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_project_contract_relation",
+      "columns": [
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目ID",
+          "taskHandling": "pm_project_contract.projectGroupCode；pm_project_group_relationship.projectCode"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "contract_id",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同ID",
+          "taskHandling": "pm_project_contract.contractNo；pm_project_contract.projectGroupCode；pm_project_group_relationship.projectGroupCode"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "relation_role",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "RELATED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "关系角色编码",
+          "taskHandling": "适配器和COM Owner要求RELATED"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "当前DPPMS迁移来源标识；逐原来源另有独立INT绑定"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "source_table",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统物理表名",
+          "taskHandling": "按已批准来源/归并代表记录写正式关系；不能据代表记录删除其他来源绑定"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源记录稳定唯一键",
+          "taskHandling": "按已批准来源/归并代表记录写正式关系；不能据代表记录删除其他来源绑定"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "effective_from",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效开始时间",
+          "taskHandling": "取已批准归并后的原最早创建时间，与create_time一致"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "effective_to",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效结束时间",
+          "taskHandling": "该迁入契约要求NULL；历史隔离使用HISTORICAL，不伪造结束日期"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "ACTIVE",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "按逐源批准规则区分ACTIVE/HISTORICAL；HISTORICAL不得参与当前授权和新建绑定"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "pm_project_contract.createBy；pm_project_group_relationship.createBy"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "pm_project_contract.createTime；pm_project_group_relationship.createTime"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "pm_project_contract.updateBy；pm_project_group_relationship.updateBy"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "pm_project_contract.updateTime；pm_project_group_relationship.updateTime"
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "idx_project_contract_reverse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "idx_project_contract_reverse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "idx_project_contract_reverse",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "uk_project_contract",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "uk_project_contract",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "uk_project_contract",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "contract_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "uk_project_contract",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "relation_role",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "uk_project_contract_rel_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_project_contract_relation",
+          "INDEX_NAME": "uk_project_contract_rel_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectContractRelationSyncAdapter.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/migration/ProjectContractRelationMigrationApi.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/migration/ProjectContractRelationMigrationService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "pms-module-integration/pms-module-integration-api/src/main/java/cn/iocoder/yudao/module/pms/integration/api/sync/DppmsProjectBindingApi.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/migration/ProjectContractRelationMigrationMapper.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/contract/ContractMapper.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMigrationIdentityContextApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/OrganizationScopeApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/user/AdminUserApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMasterMigrationApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncBindingMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "pms-module-commerce/src/main/resources/mapper/migration/ProjectContractRelationMigrationMapper.xml",
+    "pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 500,
+    "fetchSize": 1000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/ProjectContractRelationMigrationMapper.xml",
+    "owner-sql/ContractMapper.xml"
+  ]
+}

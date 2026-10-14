@@ -1,0 +1,561 @@
+{
+  "task": {
+    "key": "P12",
+    "name": "DPPMS缺失产品补齐与编码关联",
+    "businessOwners": [
+      "AST"
+    ],
+    "source": "fb_items",
+    "targetTables": [
+      "ast_product_official_info"
+    ],
+    "dependencies": [
+      "P11"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "A12",
+        "originalTaskId": "2108534088732168194",
+        "originalVersion": 2,
+        "originalAdapter": "DPPMS_PRODUCT_CATALOG",
+        "sourceObjects": [
+          "fb_items"
+        ]
+      }
+    ],
+    "preparation": "ADAPT_FIRST_IMPORT",
+    "configurationWork": "按2026-10-14最新裁决，以租户+产品编码关联；同编码名称不同以CRM为准，既有正式字段保持。缺失产品仍按item/itemname/describe_补齐编码、型号、名称和描述并设ACTIVE，原id不作业务键。生产模板、适配器及AST Owner的迁入/解析路径须移除产品扩展定义、标签匹配及扩展读写依赖，不再要求migrationDefinitionRevisionId或创建dppms_catalog_labels；不转存到其他扩展或描述字段。现有代码仍依赖扩展，属于本任务待改项。",
+    "acceptance": "全部来源编码有处置；CRM同编码异名时正式字段保持且不新增/更新产品扩展，缺失产品按批准规则创建，重放不重复写入。同编码解析不以DPPMS标签齐备为前提；租户、权限、删除及身份冲突保护保持。原库已有扩展、绑定和历史证据保留。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-official-product-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fb_items"
+    ],
+    "adapterClass": "DppmsProductCatalogSyncAdapter",
+    "writerClasses": [
+      "ProductCatalogMigrationApi"
+    ],
+    "businessKey": "租户＋product_code；原fb_items.id不作业务身份",
+    "genericAssessment": "有专用适配器，但当前实现仍依赖产品扩展。最新规则要求以CRM同编码名称为准、仅补缺；不能直接用会更新已有名称的通用UPSERT。若复用通用采集/映射，仍须由AST Owner实现只关联/补缺及现值保护。",
+    "processing": [
+      "读取原4列；按产品编码查找同租户正式产品，已删除或身份多义阻断。",
+      "已有产品保持CRM正式字段；缺失产品按item/itemname/describe_创建并设ACTIVE。",
+      "未来生产不读写dppms_catalog_labels、不要求definitionRevisionId；模板、适配器和Owner解析均待调整。"
+    ],
+    "specialRules": [
+      "附当前SQL及移除扩展参数后的生产规则SQL；后者尚未接入或执行。",
+      "旧库已有扩展、不可变定义及绑定保留；不把异名转存到其他字段。",
+      "DeviceShipmentProductQueryService当前还读取并返回DPPMS标签扩展，ProductCatalogMigrationApi.resolve也要求标签齐备；最新规则需同步调整这些消费入口，不能只删迁入参数。"
+    ],
+    "materialQueries": [],
+    "additionalClasses": [
+      "DeviceShipmentProductQueryService",
+      "ProductCatalogPropertyController"
+    ]
+  },
+  "sources": [
+    {
+      "sql": "SELECT i.id,i.item,i.itemname,i.describe_,:migrationDefinitionRevisionId AS migrationDefinitionRevisionId FROM fb_items i WHERE (:productCodes='' OR FIND_IN_SET(i.item,:productCodes))",
+      "table": null,
+      "object": "fb_items",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "item",
+          "target": "item",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemname",
+          "target": "itemname",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "describe_",
+          "target": "describe_",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDefinitionRevisionId",
+          "target": "migrationDefinitionRevisionId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "item",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "productCodes": "",
+        "migrationDefinitionRevisionId": "2108533319597477890"
+      },
+      "sourceObject": "fb_items",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P12-01-fb_items.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fb_items"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fb_items",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入业务字段",
+      "rule": "原技术id没有产品业务含义；来源按item绑定，不覆盖正式ID。",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "fb_items",
+      "sourceField": "item",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "ast_product_official_info.product_code",
+      "rule": "租户＋产品编码唯一解析，已删除/多义不自动复活或任选。",
+      "fieldStatus": "最新裁决；实现待调整"
+    },
+    {
+      "sourceTable": "fb_items",
+      "sourceField": "describe_",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "ast_product_official_info.product_name；ast_product_official_info.product_desc",
+      "rule": "仅缺失产品填写名称和描述；同编码以CRM为准，异名不转存扩展、备注或其他字段。",
+      "fieldStatus": "最新裁决；实现待调整"
+    },
+    {
+      "sourceTable": "fb_items",
+      "sourceField": "itemname",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "ast_product_official_info.product_model",
+      "rule": "仅缺失产品按来源填写；已有正式字段保持，不再写产品目录扩展。",
+      "fieldStatus": "最新裁决；实现待调整"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_product_official_info",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "官网产品信息编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品编码",
+          "taskHandling": "fb_items.item"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "product_model",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品型号",
+          "taskHandling": "fb_items.itemname"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "product_name",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品名称",
+          "taskHandling": "fb_items.describe_"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "product_desc",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "产品描述",
+          "taskHandling": "fb_items.describe_"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "technical_spec",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "技术规格",
+          "taskHandling": "原fb_items没有相应字段；新增不提供，已有正式产品保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "document_id",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "官方文档稳定引用",
+          "taskHandling": "原fb_items没有相应字段；新增不提供，已有正式产品保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "缺失产品由AST Owner创建时固定DPPMS；已有CRM产品来源保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "source_key",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源键",
+          "taskHandling": "缺失产品创建时用原产品编码item；已有正式来源键保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源版本",
+          "taskHandling": "原fb_items没有相应字段；新增不提供，已有正式产品保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源更新时间",
+          "taskHandling": "原fb_items没有相应字段；新增不提供，已有正式产品保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "synced_at",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最近成功同步时间",
+          "taskHandling": "仅创建缺失产品时记录Owner当前处理时间，不冒充来源业务时间"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "sync_status",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "同步状态",
+          "taskHandling": "缺失产品创建时SUCCESS；已有CRM产品保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "缺失产品按批准ACTIVE；已有正式启停保持"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "idx_ast_product_official_info_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "idx_ast_product_official_info_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "product_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "idx_ast_product_official_info_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "product_model",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "idx_ast_product_official_info_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "idx_ast_product_official_info_product",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "uk_ast_product_official_info_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "uk_ast_product_official_info_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_product_official_info",
+          "INDEX_NAME": "uk_ast_product_official_info_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_key",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProductCatalogSyncAdapter.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/ProductCatalogMigrationApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/migration/ProductCatalogMigrationApiImpl.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/device/DeviceShipmentProductQueryService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/controller/admin/product/ProductCatalogPropertyController.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/product/AssetProductOfficialMapper.java",
+    "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/entity/EntityExtensionApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/product/AssetProductOfficialMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_PRODUCT_CATALOG",
+    "maxRows": 2000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_PRODUCT_CATALOG",
+  "approvedQueryAdjustment": {
+    "queryFile": "sql/P12-production-rule-no-extension.sql",
+    "parameters": {
+      "productCodes": ""
+    },
+    "status": "RULE_CONFIRMED_IMPLEMENTATION_PENDING",
+    "removedInputFields": [
+      "migrationDefinitionRevisionId"
+    ]
+  },
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/AssetProductOfficialMapper.xml"
+  ]
+}

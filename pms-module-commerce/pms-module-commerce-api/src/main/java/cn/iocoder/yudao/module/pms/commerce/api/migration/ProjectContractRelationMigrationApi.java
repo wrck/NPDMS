@@ -12,13 +12,26 @@ public interface ProjectContractRelationMigrationApi {
                     String sourceSystem, String sourceTable, String sourceRecordKey,
                     LocalDateTime effectiveFrom, LocalDateTime effectiveTo, String status, Integer version,
                     String creator, LocalDateTime createTime, String updater, LocalDateTime updateTime, Boolean deleted) {}
+    /** Separately approved withdrawal snapshot; only its deletion marker and concurrency version may change. */
+    record Restoration(Relation withdrawnBefore) {
+        public Relation restored() {
+            var row=withdrawnBefore;
+            return new Relation(row.id(),row.tenantId(),row.projectId(),row.contractId(),row.relationRole(),
+                    row.sourceSystem(),row.sourceTable(),row.sourceRecordKey(),row.effectiveFrom(),row.effectiveTo(),
+                    row.status(),Math.addExact(row.version(),1),row.creator(),row.createTime(),row.updater(),row.updateTime(),false);
+        }
+    }
     /** reviewedBefore is a complete, separately adjudicated existing row, never an audit-ignore option. */
     record Entry(String sourceKey, Long targetId, Relation lastApplied, Relation reviewedBefore,
                  Relation incoming, String sourceProjectKey, String sourceProjectCode,
-                 Long expectedProjectVersion, String contractNo,Long sourceConnectionId) {
+                 Long expectedProjectVersion, String contractNo,Long sourceConnectionId,Restoration restoration) {
+        public Entry(String sourceKey,Long targetId,Relation lastApplied,Relation reviewedBefore,Relation incoming,
+                     String sourceProjectKey,String sourceProjectCode,Long expectedProjectVersion,String contractNo,Long sourceConnectionId) {
+            this(sourceKey,targetId,lastApplied,reviewedBefore,incoming,sourceProjectKey,sourceProjectCode,expectedProjectVersion,contractNo,sourceConnectionId,null);
+        }
         public Entry(String sourceKey,Long targetId,Relation lastApplied,Relation reviewedBefore,Relation incoming,
                      String sourceProjectKey,String sourceProjectCode,Long expectedProjectVersion,String contractNo) {
-            this(sourceKey,targetId,lastApplied,reviewedBefore,incoming,sourceProjectKey,sourceProjectCode,expectedProjectVersion,contractNo,null);
+            this(sourceKey,targetId,lastApplied,reviewedBefore,incoming,sourceProjectKey,sourceProjectCode,expectedProjectVersion,contractNo,null,null);
         }
     }
     record Request(Long tenantId, Long actorId, String owner, List<Entry> entries, boolean adoptExisting) {}

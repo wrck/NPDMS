@@ -1,0 +1,859 @@
+{
+  "task": {
+    "key": "P17",
+    "name": "全部原项目身份桥接",
+    "businessOwners": [
+      "PROJ",
+      "INT"
+    ],
+    "source": "pm_project原ID、类型和编码",
+    "targetTables": [
+      "int_sync_binding"
+    ],
+    "dependencies": [
+      "P16"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B04",
+        "originalTaskId": "2109622534918856706",
+        "originalVersion": 6,
+        "originalAdapter": "DPPMS_PROJECT_IDENTITY",
+        "sourceObjects": [
+          "pm_project_identity"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "把所有原ID绑定到规范主档；本任务负责身份，不再创建同码项目。对P16的依赖仅要求主档身份就绪，不以最终客户资料子步骤完成为条件。",
+    "acceptance": "原ID、规范ID、类型和绑定一一可查；来源多ID不变成多份正式项目。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-identity-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project"
+    ],
+    "adapterClass": "DppmsProjectIdentitySyncAdapter",
+    "writerClasses": [
+      "ProjectMasterMigrationApi"
+    ],
+    "businessKey": "全部原projectId逐条绑定到同类型同码规范正式项目",
+    "genericAssessment": "有专用适配器。该任务不迁一张新业务表，而是经PROJ核实身份后写INT来源绑定；通用业务表UPSERT不能替代跨来源项目身份与多源共目标的校验。",
+    "processing": [
+      "读取每个原projectId及其同类型同码规范projectId/code。",
+      "通过PROJ正式身份解析和既有运行/配置校验确认目标。",
+      "仅维护int_sync_binding，覆盖全部原ID，不再创建同码项目。"
+    ],
+    "specialRules": [
+      "后续成员、软件等明细必须遍历全部原ID，不能只读每组最大projectId的明细。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT original.projectId AS originalProjectId,original.projectType,original.projectCode,\r\n  canonical.projectId AS canonicalProjectId\r\nFROM pm_project original\r\nJOIN (SELECT CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS projectIdentity,\r\n  MAX(projectId) AS projectId FROM pm_project\r\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical\r\n  ON canonical.projectIdentity <=> CONCAT(CAST(original.projectType AS BINARY),0x00,CAST(original.projectCode AS BINARY))\r\nWHERE FIND_IN_SET(original.projectType,:projectTypes)\r\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_identity",
+      "columns": [
+        "originalProjectId",
+        "projectType",
+        "projectCode",
+        "canonicalProjectId"
+      ],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "originalProjectId",
+          "target": "originalProjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "projectType",
+          "target": "projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "canonicalProjectId",
+          "target": "canonicalProjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "originalProjectId",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_project",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P17-01-pm_project_identity.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectId",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding.source_key；int_sync_binding.target_id",
+      "rule": "每个原projectId绑定同类型同码规范正式项目；目标id经Owner解析。",
+      "fieldStatus": "身份桥接"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectType",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "正式项目身份核验及绑定字段",
+      "rule": "类型＋编码核实同一规范项目；不重复写项目业务字段。",
+      "fieldStatus": "身份核验"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "正式项目身份核验及绑定字段",
+      "rule": "类型＋编码核实同一规范项目；不重复写项目业务字段。",
+      "fieldStatus": "身份核验"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectName",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectState",
+      "sourceType": "varchar(11)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "isback",
+      "sourceType": "varchar(11)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column001",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column002",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column003",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column004",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column005",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column006",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column007",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column008",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column009",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column010",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column011",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column012",
+      "sourceType": "varchar(2)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "columno12_readonly",
+      "sourceType": "int(2)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column013",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column014",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "customerProjectName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "salesType",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "majorProjectLevel",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "compId",
+      "sourceType": "int(2)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "createBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "effectiveFrom",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "effectiveTo",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "disabled",
+      "sourceType": "bit(1)",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectStartTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectRefreshTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectCloseTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "customInfo",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "customConfig",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "本任务不写；主档资料由P16承接",
+      "rule": "P17只迁身份，原其他列不重复写项目主档。",
+      "fieldStatus": "其他任务/参考"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "int_sync_binding",
+      "columns": [
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "task_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "生产新任务id；不复制原环境任务id作为当前Owner"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "object_key",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前来源对象/绑定对象，见原任务sources.object/sourceObject"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "source_object",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前来源对象/绑定对象，见原任务sources.object/sourceObject"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "source_key",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project.projectId"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "target_id",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "通过PROJ核实的同类型同码规范正式项目id；全部原ID允许共同指向一个正式项目"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "fields_json",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "统一INT保存适配器返回的已应用身份快照；不是项目固定业务字段的平行存储"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "last_run_id",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前INT运行id，由统一运行服务维护"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "target_shared",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "tinyint(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "身份桥接适配器允许独立来源共享规范项目，按框架目标共享契约保存"
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "COLUMN_NAME": "exclusive_target_id",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "STORED GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "数据库生成列，按target_shared派生排他约束，不从旧系统赋值"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_target",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_target",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "task_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_target",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "object_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_target",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "target_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_task_page",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_task_page",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "task_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_task_page",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "idx_int_binding_task_page",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "task_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_object",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "source_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "task_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "object_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "int_sync_binding",
+          "INDEX_NAME": "uk_int_binding_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "exclusive_target_id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectIdentitySyncAdapter.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMasterMigrationApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectMasterMigrationService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/legacydetail/ProjectMasterMigrationMapper.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/legacydetail/ProjectLegacyDetailMapper.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/company/CompanyApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/dept/DeptApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/user/AdminUserApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemDepartmentMigrationApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectCreationAuthorizationService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/OrganizationScopeApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeProjectionService.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncBindingMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+    "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectMasterMapper.java",
+    "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttree/ProjectTreeVersionMapper.java",
+    "pms-module-project/src/main/resources/mapper/projecttree/ProjectTreeVersionMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttree/ProjectTreePathMapper.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttree/ProjectTreeChangeMapper.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_PROJECT_IDENTITY",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 500,
+    "fetchSize": 1000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_PROJECT_IDENTITY",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/SyncBindingMapper.xml"
+  ]
+}

@@ -1,0 +1,1160 @@
+{
+  "task": {
+    "key": "P21",
+    "name": "项目租赁产品与产品配置",
+    "businessOwners": [
+      "PROJ"
+    ],
+    "source": "pm_project_product_lease_line_from_crm、pm_project_product_config_level_info_from_crm",
+    "targetTables": [
+      "proj_project_lease_product",
+      "proj_project_product_configuration"
+    ],
+    "dependencies": [
+      "P04",
+      "P17"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B10",
+        "originalTaskId": "2109865270430134273",
+        "originalVersion": 4,
+        "originalAdapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+        "sourceObjects": [
+          "pm_project_product_lease_line_from_crm",
+          "pm_project_product_config_level_info_from_crm"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "两个来源对象分别保留原字段、键与结果；沿同一已有适配器，不拆出重复Owner。",
+    "acceptance": "两表分别对账；已发现3条原项目缺失仍登记，不能挂靠同名项目。",
+    "ruleDocuments": [
+      "2026-10-10-dppms-lease-product-table-decision.md",
+      "2026-10-10-dppms-product-configuration-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project_product_lease_line_from_crm",
+      "pm_project_product_config_level_info_from_crm"
+    ],
+    "adapterClass": "DppmsProjectAssociatedProductSyncAdapter",
+    "writerClasses": [
+      "ProjectAssociatedProductMigrationApi"
+    ],
+    "businessKey": "分别使用原rowKey及已批准租赁/配置业务身份，不能用跨表相同技术ID合并",
+    "genericAssessment": "有专用适配器。两个对象共用PROJ Owner，但字段、来源身份、区间和父项目解析独立；通用插表不能替代历史数据、权限和同源重放保护。",
+    "processing": [
+      "按完整原11列和查询辅助列区分租赁产品与配置级别。",
+      "通过P17核实正式项目，保留原产品、数量、日期及审计。",
+      "分别写入正式租赁/配置表并维护独立来源绑定；重复、缺身份或变更阻断。"
+    ],
+    "specialRules": [],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT l.*, p.projectId AS sourceProjectId, p.projectCode AS originalProjectCode, p.projectType\r\nFROM pm_project_product_lease_line_from_crm l\r\nLEFT JOIN (\r\n    SELECT p.projectId, p.projectCode, p.projectType,\r\n           CAST(SUBSTRING_INDEX(p.projectCode,'-',1) AS BINARY) AS queryProjectCode\r\n    FROM pm_project p\r\n    INNER JOIN (\r\n        SELECT projectType, projectCode, MAX(projectId) AS projectId\r\n        FROM pm_project GROUP BY projectType, projectCode\r\n    ) selected ON selected.projectId=p.projectId\r\n    GROUP BY p.projectId, p.projectCode, p.projectType\r\n) p ON p.queryProjectCode=CAST(l.projectCode AS BINARY)\r\nWHERE (p.projectId IS NULL OR FIND_IN_SET(p.projectType,:projectTypes))\r\n  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_product_lease_line_from_crm",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderExecNumber",
+          "target": "orderExecNumber",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "productFirstName",
+          "target": "productFirstName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "productName",
+          "target": "productName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "productSubCode",
+          "target": "productSubCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "productSubModel",
+          "target": "productSubModel",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "productSubName",
+          "target": "productSubName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "num",
+          "target": "num",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "memo",
+          "target": "memo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "leaseDuration",
+          "target": "leaseDuration",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataSource",
+          "target": "dataSource",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "sourceProjectId",
+          "target": "sourceProjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectType",
+          "target": "projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "rowKey",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_project_product_lease_line_from_crm",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": [
+        "projectCode",
+        "orderExecNumber",
+        "productFirstName",
+        "productName",
+        "productSubCode",
+        "productSubModel",
+        "productSubName",
+        "num",
+        "memo",
+        "leaseDuration",
+        "dataSource",
+        "sourceProjectId"
+      ],
+      "queryFile": "sql/P21-01-pm_project_product_lease_line_from_crm.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_product_lease_line_from_crm"
+      ],
+      "historicalProofsOmitted": []
+    },
+    {
+      "sql": "SELECT l.*, p.projectId AS sourceProjectId, p.projectCode AS originalProjectCode, p.projectType\r\nFROM pm_project_product_config_level_info_from_crm l\r\nLEFT JOIN (\r\n    SELECT p.projectId, p.projectCode, p.projectType,\r\n           CAST(SUBSTRING_INDEX(p.projectCode,'-',1) AS BINARY) AS queryProjectCode\r\n    FROM pm_project p\r\n    INNER JOIN (\r\n        SELECT projectType, projectCode, MAX(projectId) AS projectId\r\n        FROM pm_project GROUP BY projectType, projectCode\r\n    ) selected ON selected.projectId=p.projectId\r\n    GROUP BY p.projectId, p.projectCode, p.projectType\r\n) p ON p.queryProjectCode=CAST(l.projectCode AS BINARY)\r\nWHERE (p.projectId IS NULL OR FIND_IN_SET(p.projectType,:projectTypes))\r\n  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_product_config_level_info_from_crm",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "orderExecNumber",
+          "target": "orderExecNumber",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemGroup",
+          "target": "itemGroup",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemCode",
+          "target": "itemCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "parentCode",
+          "target": "parentCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "quantity",
+          "target": "quantity",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "bomPaths",
+          "target": "bomPaths",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemModel",
+          "target": "itemModel",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemDesc",
+          "target": "itemDesc",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "level",
+          "target": "level",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataSource",
+          "target": "dataSource",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "sourceProjectId",
+          "target": "sourceProjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectType",
+          "target": "projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "rowKey",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_project_product_config_level_info_from_crm",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": [
+        "projectCode",
+        "orderExecNumber",
+        "itemGroup",
+        "itemCode",
+        "parentCode",
+        "quantity",
+        "bomPaths",
+        "itemModel",
+        "itemDesc",
+        "level",
+        "dataSource",
+        "sourceProjectId"
+      ],
+      "queryFile": "sql/P21-02-pm_project_product_config_level_info_from_crm.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_product_config_level_info_from_crm"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(255)",
+      "nullable": "NO",
+      "target": "proj_project_lease_product.project_code ＋ project_id关联依据",
+      "rule": "旧查询用主码首段，共享首段不能自行指派项目；需精确规范项目绑定，不仅迁页面最大执行单",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "orderExecNumber",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project_lease_product.execution_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "productFirstName",
+      "sourceType": "varchar(255)",
+      "nullable": "NO",
+      "target": "proj_project_lease_product.product_category",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "productName",
+      "sourceType": "varchar(128)",
+      "nullable": "NO",
+      "target": "proj_project_lease_product.product_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "productSubCode",
+      "sourceType": "varchar(255)",
+      "nullable": "NO",
+      "target": "proj_project_lease_product.product_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "productSubModel",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project_lease_product.product_model",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "productSubName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project_lease_product.product_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "num",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "proj_project_lease_product.quantity",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "memo",
+      "sourceType": "mediumtext",
+      "nullable": "YES",
+      "target": "proj_project_lease_product.memo",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "leaseDuration",
+      "sourceType": "decimal(16,2)",
+      "nullable": "YES",
+      "target": "proj_project_lease_product.lease_duration",
+      "rule": "DECIMAL(16,2)，单位租赁月数；不截成整数或按天",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_lease_line_from_crm",
+      "sourceField": "dataSource",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "proj_project_lease_product.data_source",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.project_code ＋ project_id关联依据",
+      "rule": "旧查询用主码首段，共享首段不能自行指派项目；需精确规范项目绑定，不仅迁页面最大执行单",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "orderExecNumber",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.execution_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "itemGroup",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.item_group",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "itemCode",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.product_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "parentCode",
+      "sourceType": "varchar(1000)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.parent_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "quantity",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.quantity",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "bomPaths",
+      "sourceType": "varchar(1000)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.bom_path",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "itemModel",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.product_model",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "itemDesc",
+      "sourceType": "varchar(500)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.product_description",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "level",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.level",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_product_config_level_info_from_crm",
+      "sourceField": "dataSource",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "proj_project_product_configuration.data_source",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "proj_project_lease_product",
+      "columns": [
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "经P17全部原项目身份绑定解析，不直接使用原projectId"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.projectCode"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "execution_no",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.orderExecNumber"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "product_category",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.productFirstName"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "product_type",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.productName"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.productSubCode"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "product_model",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.productSubModel"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "product_name",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.productSubName"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "quantity",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "decimal(24,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.num"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "memo",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.memo"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "lease_duration",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "decimal(16,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.leaseDuration"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "data_source",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(25)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_lease_line_from_crm.dataSource"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_lease_product",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "columns": [
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "经P17全部原项目身份绑定解析，不直接使用原projectId"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.projectCode"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "execution_no",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.orderExecNumber"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "item_group",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.itemGroup"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "product_code",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.itemCode"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "parent_code",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.parentCode"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "quantity",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "decimal(24,6)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.quantity"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "bom_path",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.bomPaths"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "product_model",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.itemModel"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "product_description",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.itemDesc"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "level",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.level"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "data_source",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(25)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_product_config_level_info_from_crm.dataSource"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "INDEX_NAME": "idx_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_product_configuration",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectAssociatedProductSyncAdapter.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectAssociatedProductMigrationApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectAssociatedProductMigrationService.java",
+    "pms-module-integration/pms-module-integration-api/src/main/java/cn/iocoder/yudao/module/pms/integration/api/sync/DppmsProjectBindingApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMasterMigrationApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMigrationIdentityContextApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLeaseProductImportService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectProductConfigurationImportService.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/associated/ProjectLeaseProductMapper.java",
+    "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/associated/ProjectProductConfigurationMapper.java",
+    "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "SNAPSHOT",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/ProjectLeaseProductMapper.xml",
+    "owner-sql/ProjectProductConfigurationMapper.xml"
+  ]
+}

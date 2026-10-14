@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper">
+    <!-- Include deleted identities so migration cannot resurrect an explicitly removed party. -->
+    <select id="selectSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectPartyDO">
+        SELECT * FROM proj_project_party
+        WHERE tenant_id = #{query.tenantId} AND source_system = #{query.sourceSystem}
+          AND source_table = #{query.sourceTable} AND source_record_key = #{query.sourceRecordKey}
+          AND party_role = #{query.partyRole}
+        FOR UPDATE
+    </select>
+    <select id="selectMigrationSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectPartyDO">
+        SELECT * FROM proj_project_party WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'
+          AND source_table=#{query.sourceTable} AND source_record_key=#{query.sourceKey} FOR UPDATE
+    </select>
+    <insert id="insertMigrationParty">
+        INSERT INTO proj_project_party (id, tenant_id, project_id, party_role, party_code, party_name, contact_name, phone, source_system, source_table, source_record_key, effective_from, effective_to, status, version, creator, create_time, updater, update_time, deleted)
+        VALUES (#{command.row.id}, #{command.row.tenantId}, #{command.row.projectId}, #{command.row.partyRole}, #{command.row.partyCode}, #{command.row.partyName}, #{command.row.contactName}, #{command.row.phone}, #{command.row.sourceSystem}, #{command.row.sourceTable}, #{command.row.sourceRecordKey}, #{command.row.effectiveFrom}, #{command.row.effectiveTo}, #{command.row.status}, #{command.row.version}, #{command.creator}, #{command.row.createTime}, #{command.updater}, #{command.row.updateTime}, #{command.row.deleted})
+    </insert>
+    <update id="updateMigrationParty">
+        UPDATE proj_project_party SET project_id=#{command.row.projectId}, party_role=#{command.row.partyRole}, party_code=#{command.row.partyCode}, party_name=#{command.row.partyName}, contact_name=#{command.row.contactName}, phone=#{command.row.phone}, source_system=#{command.row.sourceSystem}, source_table=#{command.row.sourceTable}, source_record_key=#{command.row.sourceRecordKey}, effective_from=#{command.row.effectiveFrom}, effective_to=#{command.row.effectiveTo}, status=#{command.row.status}, version=#{command.row.version}, creator=#{command.creator}, create_time=#{command.row.createTime}, updater=#{command.updater}, update_time=#{command.row.updateTime}, deleted=#{command.row.deleted}
+        WHERE tenant_id=#{command.row.tenantId} AND id=#{command.row.id} AND deleted=FALSE
+    </update>
+</mapper>

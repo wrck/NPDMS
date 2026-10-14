@@ -1,0 +1,3 @@
+-- P10 / CUSTOMER | 原任务 2102221608959250434 v2
+-- EXACT_SAVED_SQL；只读整理，未执行；当前参数和完整业务映射见对应task JSON。
+SELECT AccountId,AccountNumber,Name,Telephone1,EMailAddress1,Address1_Composite,new_mkt_unit_id,new_mkt_unit_idName,new_industry_level1_id,new_industry_level1_idName,new_industry_level2_id,new_industry_level2_idName,new_industry_level3_id,new_industry_level3_idName,new_industry_level4_id,new_industry_level4_idName,StateCode,ModifiedOn,CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY AccountNumber)>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migrationIssue FROM Account;

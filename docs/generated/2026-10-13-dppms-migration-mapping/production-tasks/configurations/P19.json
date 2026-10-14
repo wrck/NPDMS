@@ -1,0 +1,1184 @@
+{
+  "task": {
+    "key": "P19",
+    "name": "项目相关方与发货/执行状态资料",
+    "businessOwners": [
+      "PROJ",
+      "PLT"
+    ],
+    "source": "pm_project_related_party、pm_project_state",
+    "targetTables": [
+      "proj_project_party",
+      "plt_entity_extension_value"
+    ],
+    "dependencies": [
+      "P04",
+      "P09",
+      "P17"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B11",
+        "originalTaskId": "2109968219214897153",
+        "originalVersion": 5,
+        "originalAdapter": "DPPMS_PROJECT_FACTS",
+        "sourceObjects": [
+          "pm_project_related_party",
+          "pm_project_state"
+        ]
+      }
+    ],
+    "preparation": "ADAPT_FIRST_IMPORT",
+    "configurationWork": "重建正式状态扩展定义；55项旧_expectedFingerprint不当生产前值。状态更新时间保留原含义，审批及工程计划缓存不承接。",
+    "acceptance": "相关方原角色、审计、区间及两类状态/更新时间完整；不触发生命周期、审批或任务完成。",
+    "ruleDocuments": [
+      "2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project_related_party",
+      "pm_project_state"
+    ],
+    "adapterClass": "DppmsProjectFactsSyncAdapter",
+    "writerClasses": [
+      "ProjectFactsMigrationApi"
+    ],
+    "businessKey": "相关方：原id来源身份＋正式项目；状态：原projectId经P17归到正式项目",
+    "genericAssessment": "有专用适配器。相关方原审计显式写入及PROJ调用PLT正式实体扩展需在Owner事务内完成；通用表映射不应直接写PLT JSON或把过程状态当生命周期。",
+    "processing": [
+      "按P17精确解析项目，角色10/20/30保持原服务渠道/出货渠道/代理商含义。",
+      "相关方11原字段进入既有正式字段；NULL审计显式保留，更新时间空时取原创建时间。",
+      "仅发货状态/更新时间及执行状态/更新时间进入已批准4个扩展属性。",
+      "生产发布/解析自己的扩展定义；55项旧前值仅原环境追溯，首次迁入重新保护目标。"
+    ],
+    "specialRules": [
+      "工程计划缓存暂缓、审批过程状态不迁；状态更新时间不是业务完成时间。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT r.*, p.projectCode AS originalProjectCode, p.projectType\nFROM pm_project_related_party r\nJOIN pm_project p ON p.projectId=r.projectId\nWHERE FIND_IN_SET(p.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(r.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_related_party",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectId",
+          "target": "projectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "partyRole",
+          "target": "partyRole",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "partyCode",
+          "target": "partyCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "partyName",
+          "target": "partyName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectType",
+          "target": "projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "id",
+          "target": "_expectedFingerprint",
+          "values": {
+            "_historicalTargetProofOmitted": true,
+            "entries": 55
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_project_related_party",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P19-01-pm_project_related_party.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_related_party"
+      ],
+      "historicalProofsOmitted": [
+        {
+          "field": "_expectedFingerprint",
+          "entries": 55,
+          "originalTaskId": "2109968219214897153",
+          "originalVersion": 5,
+          "disposition": "OLD_TARGET_PROOF_NOT_PORTABLE"
+        }
+      ]
+    },
+    {
+      "sql": "SELECT s.*, p.projectCode AS originalProjectCode, p.projectType\nFROM pm_project_state s\nJOIN pm_project p ON p.projectId=s.projectId\nWHERE FIND_IN_SET(p.projectType,:projectTypes)\n  AND p.projectId=(SELECT MAX(c.projectId) FROM pm_project c\n                  WHERE c.projectType=p.projectType AND c.projectCode=p.projectCode)\n  AND (:projectIds='' OR FIND_IN_SET(s.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_state",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "projectId",
+          "target": "projectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectPlanState",
+          "target": "projectPlanState",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectplanTime",
+          "target": "projectplanTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "shipmentState",
+          "target": "shipmentState",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "shipmentTime",
+          "target": "shipmentTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "executionState",
+          "target": "executionState",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "executionStateTime",
+          "target": "executionStateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "closeProcessState",
+          "target": "closeProcessState",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "closeProcessStateTime",
+          "target": "closeProcessStateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectType",
+          "target": "projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": null,
+          "target": "_definitionId",
+          "values": null,
+          "constant": "2109967949395320833",
+          "conversion": "CONSTANT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "projectId",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "pm_project_state",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P19-02-pm_project_state.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_state"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "proj_project_party.source_record_key",
+      "rule": "原id作为正式来源记录键及INT绑定，不冒充目标主键。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "projectId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "proj_project_party.project_id",
+      "rule": "通过P17或本任务已批准的PROJ原项目身份解析正式project_id；不将原数值直接落正式外键。 经P17原项目绑定解析，不自动新建项目。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "partyRole",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "proj_project_party.party_role",
+      "rule": "原10服务渠道、20出货渠道、30代理商，保留原角色。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "partyCode",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "proj_project_party.party_code",
+      "rule": "原值保留，按PROJ Owner及完整前值保护承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "partyName",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "proj_project_party.party_name",
+      "rule": "原值保留，按PROJ Owner及完整前值保护承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project_party.create_time",
+      "rule": "原值保留，按PROJ Owner及完整前值保护承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "createBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "proj_project_party.creator",
+      "rule": "能精确关联则存正式用户ID字符串，否则保留批准原码；NULL保持。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project_party.update_time",
+      "rule": "原更新时间；NULL时用本行原创建时间。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "proj_project_party.updater",
+      "rule": "能精确关联则存正式用户ID字符串，否则保留批准原码；NULL保持。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "effectiveFrom",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project_party.effective_from",
+      "rule": "原值保留，按PROJ Owner及完整前值保护承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_related_party",
+      "sourceField": "effectiveTo",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project_party.effective_to",
+      "rule": "原值保留，按PROJ Owner及完整前值保护承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "projectId",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "PROJ项目扩展entity_id",
+      "rule": "通过P17精确解析正式项目ID，不直写旧ID。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "projectPlanState",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "暂不迁入",
+      "rule": "工程过程缓存随原工程过程范围暂缓。",
+      "fieldStatus": "已批准暂缓"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "projectplanTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "暂不迁入",
+      "rule": "工程过程缓存随原工程过程范围暂缓。",
+      "fieldStatus": "已批准暂缓"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "shipmentState",
+      "sourceType": "varchar(11)",
+      "nullable": "YES",
+      "target": "plt_entity_extension_value.values_json.shipment_status",
+      "rule": "PROJ项目正式扩展；原状态/更新时间保持，不推断业务完成。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "shipmentTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "plt_entity_extension_value.values_json.shipment_status_updated_at",
+      "rule": "PROJ项目正式扩展；原状态/更新时间保持，不推断业务完成。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "executionState",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "plt_entity_extension_value.values_json.execution_status",
+      "rule": "PROJ项目正式扩展；原状态/更新时间保持，不推断业务完成。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "executionStateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "plt_entity_extension_value.values_json.execution_status_updated_at",
+      "rule": "PROJ项目正式扩展；原状态/更新时间保持，不推断业务完成。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "closeProcessState",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "审批过程状态已明确不承接，不解释为项目闭环日期。",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project_state",
+      "sourceField": "closeProcessStateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "审批过程状态已明确不承接，不解释为项目闭环日期。",
+      "fieldStatus": "已批准排除"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "proj_project_party",
+      "columns": [
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目ID",
+          "taskHandling": "pm_project_related_party.projectId"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "party_role",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "参与方角色编码",
+          "taskHandling": "pm_project_related_party.partyRole"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "party_code",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "参与方编码",
+          "taskHandling": "pm_project_related_party.partyCode"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "party_name",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "参与方名称",
+          "taskHandling": "pm_project_related_party.partyName"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "contact_name",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系人名称",
+          "taskHandling": "原11列相关方无联系人/电话来源，此任务不从P32客户联系人填充"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "phone",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系人电话",
+          "taskHandling": "原11列相关方无联系人/电话来源，此任务不从P32客户联系人填充"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "固定DPPMS"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "source_table",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统物理表名",
+          "taskHandling": "固定pm_project_related_party"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源记录稳定唯一键",
+          "taskHandling": "pm_project_related_party.id"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "effective_from",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效开始时间",
+          "taskHandling": "pm_project_related_party.effectiveFrom"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "effective_to",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效结束时间",
+          "taskHandling": "pm_project_related_party.effectiveTo"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "ACTIVE",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "沿正式相关方迁入Owner初始化，不从结束时间推断审批状态"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "pm_project_related_party.createBy"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "pm_project_related_party.createTime"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "pm_project_related_party.updateBy"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "pm_project_related_party.updateTime"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "party_role",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "party_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "party_role",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_table",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "party_role",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "plt_entity_extension_value",
+      "columns": [
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "owner_module",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "由PROJ以正式项目实体类型调用PLT EntityExtensionApi；禁止INT直接插扩展表"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "entity_type",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "由PROJ以正式项目实体类型调用PLT EntityExtensionApi；禁止INT直接插扩展表"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "entity_id",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "P17解析的正式projectId"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "revision_id",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "0=current; positive=Owner history record ID",
+          "taskHandling": "PLT在当前实体和生产已发布定义下管理值/定义修订；旧definitionId与原值版本不可复制"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "definition_revision_id",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "PLT在当前实体和生产已发布定义下管理值/定义修订；旧definitionId与原值版本不可复制"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "values_json",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project_state.shipmentState；pm_project_state.shipmentTime；pm_project_state.executionState；pm_project_state.executionStateTime"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "1",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "INDEX_NAME": "fk_extension_definition",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "definition_revision_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "INDEX_NAME": "uk_entity_extension_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "INDEX_NAME": "uk_entity_extension_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "owner_module",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "INDEX_NAME": "uk_entity_extension_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "entity_type",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "INDEX_NAME": "uk_entity_extension_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "entity_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "plt_entity_extension_value",
+          "INDEX_NAME": "uk_entity_extension_target",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "revision_id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectFactsSyncAdapter.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectFactsMigrationApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectFactsMigrationService.java",
+    "pms-module-integration/pms-module-integration-api/src/main/java/cn/iocoder/yudao/module/pms/integration/api/sync/DppmsProjectBindingApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMasterMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMigrationIdentityContextApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectPartyMapper.java",
+    "pms-module-platform/pms-module-platform-api/src/main/java/cn/iocoder/yudao/module/pms/platform/api/entity/EntityExtensionApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_PROJECT_FACTS",
+    "maxRows": 500,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 8388608,
+    "chunkSize": 500,
+    "fetchSize": 1000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_PROJECT_FACTS",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/ProjectPartyMapper.xml"
+  ]
+}

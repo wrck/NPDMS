@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper">
+    <!-- These are existing global SYSTEM tables. Real collation governs business-key uniqueness. -->
+    <select id="selectConflictingValuesForUpdate" resultType="cn.iocoder.yudao.module.system.api.migration.SystemDictionaryDataMigrationApi$Item">
+        SELECT id,sort,label,value,dict_type,status,color_type,css_class,remark,creator,create_time,updater,update_time,deleted
+        FROM system_dict_data
+        WHERE (deleted=b'0' AND dict_type=#{query.dictType} AND value=#{query.value})
+        <if test="query.targetId != null">OR id=#{query.targetId}</if>
+        ORDER BY id FOR UPDATE
+    </select>
+    <select id="selectTypesForUpdate" resultType="cn.iocoder.yudao.module.system.api.migration.SystemDictionaryTypeMigrationApi$Type">
+        SELECT id,name,type,status,remark,creator,create_time,updater,update_time,deleted,deleted_time
+        FROM system_dict_type WHERE type=#{query.type} AND deleted=b'0' ORDER BY id FOR UPDATE
+    </select>
+    <insert id="insertHistorical">
+        INSERT INTO system_dict_data
+            (id,sort,label,value,dict_type,status,color_type,css_class,remark,creator,create_time,updater,update_time,deleted)
+        VALUES (#{command.row.id},#{command.row.sort},#{command.row.label},#{command.row.value},#{command.row.dictType},
+            #{command.row.status},#{command.row.colorType},#{command.row.cssClass},#{command.row.remark},#{command.row.creator},
+            #{command.row.createTime},#{command.row.updater},#{command.row.updateTime},#{command.row.deleted})
+    </insert>
+</mapper>

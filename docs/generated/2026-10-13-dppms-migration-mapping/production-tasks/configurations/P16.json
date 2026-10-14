@@ -1,0 +1,2660 @@
+{
+  "task": {
+    "key": "P16",
+    "name": "规范项目主档与基础最终客户资料",
+    "businessOwners": [
+      "PROJ"
+    ],
+    "source": "pm_project_header/pm_project，当前规范项目SQL",
+    "targetTables": [
+      "proj_project",
+      "proj_project_party"
+    ],
+    "dependencies": [
+      "P01",
+      "P02",
+      "P03",
+      "P04",
+      "P09",
+      "P10"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B03",
+        "originalTaskId": "2108608417343934465",
+        "originalVersion": 10,
+        "originalAdapter": "DPPMS_PROJECT_MASTER",
+        "sourceObjects": [
+          "pm_project_header"
+        ]
+      }
+    ],
+    "preparation": "ADAPT_FIRST_IMPORT",
+    "configurationWork": "同类型同码最大projectId规则及原NULL/空名称裁决保持；首次创建不带6570项旧恢复凭据及10项旧目标版本。当前主档任务只承接主档，需补第二子步骤：原column013经已批准的ProjectHeaderFinalCustomerService所属PROJ Owner承接FINAL_CUSTOMER相关方；不把现有主档任务当作已实现此步。最终客户原文保留不等于已准确归集客户主档，不能据名称或购货方猜配客户ID。主档与最终客户资料分步验收，后者不作为P17身份桥接或P32历史成员迁入的前置。生产已有项目重新核对接管与冲突。",
+    "acceptance": "全部规范项目有处置；主档、公司/办事处、审计及最终客户原始资料可追溯，客户身份未核实不强行归集；创建范围单独批准，不因映射已批准就创建空项目。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-proj-project-table-decision.md",
+      "2026-10-12-dppms-whole-table-task-correction.md",
+      "2026-10-14-dppms-full-preview-blocker-repair.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project"
+    ],
+    "adapterClass": "DppmsProjectMasterSyncAdapter",
+    "writerClasses": [
+      "ProjectMasterMigrationApi",
+      "ProjectMasterMigrationService",
+      "ProjectHeaderFinalCustomerService"
+    ],
+    "businessKey": "同原projectType＋projectCode取最大projectId为规范主档；正式项目ID独立生成或按Owner精确关联",
+    "genericAssessment": "有专用适配器。项目创建/历史状态初始化、主档身份、公司权限和恢复保护属于PROJ Owner，不能由通用映射直接写生命周期或复制旧项目ID。",
+    "processing": [
+      "按同类型同码最大projectId提取完整37原列，保留原NULL公司/办事处及空名称裁决。",
+      "通过ProjectMasterMigrationApi创建或核实正式主档；生命周期按已批准历史初始化契约，不生成审批或任务完成。",
+      "column013最终客户原文由单独子步骤承接，不能据名称猜客户ID；P17只需主档身份就绪。",
+      "首次迁入不带6,570项旧恢复证明及10项旧版本；生产已有主档重新取前值。"
+    ],
+    "specialRules": [
+      "当前主档适配器尚未统一接入最终客户资料子步骤；准确客户归集不是P32前提。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT p.*, c.compCode AS migrationCompanyCode, fc.actorId AS creatorFndSourceKey, tc.actorId AS creatorTSourceKey, fu.actorId AS updaterFndSourceKey, tu.actorId AS updaterTSourceKey, COALESCE(fc.matchCount,0) AS creatorFndMatchCount, COALESCE(tc.matchCount,0) AS creatorTMatchCount, COALESCE(fu.matchCount,0) AS updaterFndMatchCount, COALESCE(tu.matchCount,0) AS updaterTMatchCount,fc.actorIds AS creatorFndSourceKeys,fu.actorIds AS updaterFndSourceKeys\r\nFROM pm_project p\r\nJOIN (SELECT MAX(projectId) AS projectId FROM pm_project\r\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical ON canonical.projectId=p.projectId\r\nLEFT JOIN t_company c ON c.id=p.compId\r\nLEFT JOIN (SELECT CAST(u.username AS BINARY) AS loginKey,COUNT(*) AS matchCount,CASE WHEN COUNT(*)=1 THEN MAX(u.id) ELSE NULL END AS actorId,GROUP_CONCAT(u.id ORDER BY u.id) AS actorIds FROM fnd_user_info u WHERE NOT FIND_IN_SET(u.id,:excludedFndActorIds) GROUP BY CAST(u.username AS BINARY)) fc ON fc.loginKey=CAST(p.createBy AS BINARY)\r\nLEFT JOIN (SELECT CAST(u.user_name AS BINARY) AS loginKey,COUNT(*) AS matchCount,CASE WHEN COUNT(*)=1 THEN MAX(u.user_id) ELSE NULL END AS actorId FROM t_user u GROUP BY CAST(u.user_name AS BINARY)) tc ON tc.loginKey=CAST(p.createBy AS BINARY)\r\nLEFT JOIN (SELECT CAST(u.username AS BINARY) AS loginKey,COUNT(*) AS matchCount,CASE WHEN COUNT(*)=1 THEN MAX(u.id) ELSE NULL END AS actorId,GROUP_CONCAT(u.id ORDER BY u.id) AS actorIds FROM fnd_user_info u WHERE NOT FIND_IN_SET(u.id,:excludedFndActorIds) GROUP BY CAST(u.username AS BINARY)) fu ON fu.loginKey=CAST(p.updateBy AS BINARY)\r\nLEFT JOIN (SELECT CAST(u.user_name AS BINARY) AS loginKey,COUNT(*) AS matchCount,CASE WHEN COUNT(*)=1 THEN MAX(u.user_id) ELSE NULL END AS actorId FROM t_user u GROUP BY CAST(u.user_name AS BINARY)) tu ON tu.loginKey=CAST(p.updateBy AS BINARY)\r\nWHERE FIND_IN_SET(p.projectType,:projectTypes) AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))",
+      "table": null,
+      "object": "pm_project_header",
+      "columns": [
+        "projectId",
+        "projectType",
+        "projectCode",
+        "projectName",
+        "projectState",
+        "isback",
+        "column001",
+        "column002",
+        "column003",
+        "column004",
+        "column005",
+        "column006",
+        "column007",
+        "column008",
+        "column009",
+        "column010",
+        "column011",
+        "column012",
+        "columno12_readonly",
+        "column013",
+        "column014",
+        "customerProjectName",
+        "salesType",
+        "majorProjectLevel",
+        "compId",
+        "createTime",
+        "createBy",
+        "updateTime",
+        "updateBy",
+        "effectiveFrom",
+        "effectiveTo",
+        "disabled",
+        "projectStartTime",
+        "projectRefreshTime",
+        "projectCloseTime",
+        "customInfo",
+        "customConfig",
+        "creatorFndSourceKey",
+        "creatorTSourceKey",
+        "updaterFndSourceKey",
+        "updaterTSourceKey",
+        "creatorFndMatchCount",
+        "creatorTMatchCount",
+        "updaterFndMatchCount",
+        "updaterTMatchCount",
+        "creatorFndSourceKeys",
+        "updaterFndSourceKeys",
+        "migrationCompanyCode"
+      ],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "projectId",
+          "target": "projectId",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "projectType",
+          "target": "projectType",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "projectName",
+          "target": "projectName",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "projectState",
+          "target": "projectState",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "isback",
+          "target": "isback",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column001",
+          "target": "column001",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column002",
+          "target": "column002",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column003",
+          "target": "column003",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column004",
+          "target": "column004",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column005",
+          "target": "column005",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column006",
+          "target": "column006",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column007",
+          "target": "column007",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column008",
+          "target": "column008",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column009",
+          "target": "column009",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "column010",
+          "target": "column010",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column011",
+          "target": "column011",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column012",
+          "target": "column012",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "columno12_readonly",
+          "target": "columno12_readonly",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column013",
+          "target": "column013",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "column014",
+          "target": "column014",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "customerProjectName",
+          "target": "customerProjectName",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "salesType",
+          "target": "salesType",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "majorProjectLevel",
+          "target": "majorProjectLevel",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "compId",
+          "target": "compId",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "disabled",
+          "target": "disabled",
+          "values": null,
+          "constant": null,
+          "conversion": "BOOLEAN",
+          "defaultValue": null
+        },
+        {
+          "source": "projectStartTime",
+          "target": "projectStartTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "projectRefreshTime",
+          "target": "projectRefreshTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "projectCloseTime",
+          "target": "projectCloseTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null
+        },
+        {
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "customConfig",
+          "target": "customConfig",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "creatorFndSourceKey",
+          "target": "creatorFndSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "creatorTSourceKey",
+          "target": "creatorTSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "updaterFndSourceKey",
+          "target": "updaterFndSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "updaterTSourceKey",
+          "target": "updaterTSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "creatorFndMatchCount",
+          "target": "creatorFndMatchCount",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "creatorTMatchCount",
+          "target": "creatorTMatchCount",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "updaterFndMatchCount",
+          "target": "updaterFndMatchCount",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "updaterTMatchCount",
+          "target": "updaterTMatchCount",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "creatorFndSourceKeys",
+          "target": "creatorFndSourceKeys",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "updaterFndSourceKeys",
+          "target": "updaterFndSourceKeys",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationCompanyCode",
+          "target": "migrationCompanyCode",
+          "values": null,
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null
+        },
+        {
+          "source": "projectId",
+          "target": "expectedProjectVersion",
+          "values": {
+            "_historicalTargetProofOmitted": true,
+            "entries": 10
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        },
+        {
+          "source": "projectId",
+          "target": "migrationCodeAllocation",
+          "values": {},
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "creatorHistoricalCode",
+          "values": {
+            "sys": "sys",
+            "jiangyating": "jiangyating"
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updaterHistoricalCode",
+          "values": {
+            "sys": "sys",
+            "jiangyating": "jiangyating"
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        },
+        {
+          "source": "projectId",
+          "target": "migrationRestoration",
+          "values": {
+            "_historicalTargetProofOmitted": true,
+            "entries": 6570
+          },
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "projectId",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10",
+        "excludedFndActorIds": ""
+      },
+      "sourceObject": "pm_project_header",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P16-01-pm_project_header.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fnd_user_info",
+        "pm_project",
+        "t_company",
+        "t_user"
+      ],
+      "historicalProofsOmitted": [
+        {
+          "field": "expectedProjectVersion",
+          "entries": 10,
+          "originalTaskId": "2108608417343934465",
+          "originalVersion": 10,
+          "disposition": "OLD_TARGET_PROOF_NOT_PORTABLE"
+        },
+        {
+          "field": "migrationRestoration",
+          "entries": 6570,
+          "originalTaskId": "2108608417343934465",
+          "originalVersion": 10,
+          "disposition": "OLD_TARGET_PROOF_NOT_PORTABLE"
+        }
+      ]
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectId",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectType",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "proj_project.project_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(45)",
+      "nullable": "NO",
+      "target": "proj_project.project_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectName",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "proj_project.project_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectState",
+      "sourceType": "varchar(11)",
+      "nullable": "YES",
+      "target": "proj_project.lifecycle_status；proj_project.current_stage；proj_project.closed_at",
+      "rule": "按类型及原状态已批准初始化：用服100正常闭环S6、20异常闭环、30/31/32沿规则；关闭时间缺失保持NULL，不生成任务/审批完成",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "isback",
+      "sourceType": "varchar(11)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户明确删除回退/退回镜像，不新增业务列；来源证据留存但不是业务承接",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column001",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.department_id；proj_project.department_code；proj_project.department_name",
+      "rule": "精确正式目录；原NULL可保留，未知非空编码阻断；不授区域全部项目权限",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column002",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_sales_order.customer_code；com_sales_order.customer_id",
+      "rule": "仅经正式合同/订单链精确核对；不加项目ERP客户镜像，不能据名称猜匹配",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column003",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_sales_order.customer_name",
+      "rule": "同一精确订单客户事实，不替代最终用户；全历史链路尚未完成逐行验证",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column004",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.market_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column005",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.system_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column006",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.expend_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column007",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.industry_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column008",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.not_track_reason",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column009",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.order_create_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column010",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "proj_project.project_category",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column011",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "proj_project.signing_method",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column012",
+      "sourceType": "varchar(2)",
+      "nullable": "YES",
+      "target": "proj_project.implementation_mode",
+      "rule": "原空NULL/空串优先Readonly回退；0/1/3沿既有转换，2=DIRECT_SUBCONTRACT、4=FACTORY_INTEGRATION，两项均承接",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "columno12_readonly",
+      "sourceType": "int(2)",
+      "nullable": "YES",
+      "target": "proj_project.implementation_mode（仅主值缺失时）",
+      "rule": "用户明确同名Readonly回退；不存第二份控制字段",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column013",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project_party.party_name（party_role=FINAL_CUSTOMER）",
+      "rule": "实际最终产品用户，经PROJ相关方Owner承接；不覆盖购货方",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "column014",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "用户明确删除回退/退回镜像，不新增业务列；来源证据留存但不是业务承接",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "customerProjectName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.customer_project_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "salesType",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "proj_project.sales_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "majorProjectLevel",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "proj_project.major_project_level",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "compId",
+      "sourceType": "int(2)",
+      "nullable": "YES",
+      "target": "proj_project.company_id；proj_project.company_code；proj_project.company_name",
+      "rule": "原公司外键→实际公司编码→01/02/03/04转001/002/003/004；不将旧ID当新ID，原NULL按裁决保留",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.create_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "createBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "proj_project.creator",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.update_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "proj_project.updater",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "effectiveFrom",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.effective_from",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "effectiveTo",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.effective_to",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "disabled",
+      "sourceType": "bit(1)",
+      "nullable": "YES",
+      "target": "proj_project.disabled",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectStartTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.project_start_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectRefreshTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.project_refresh_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "projectCloseTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "proj_project.project_close_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "customInfo",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "proj_project.custom_info",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project",
+      "sourceField": "customConfig",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "—",
+      "rule": "已审查来源全NULL，没有实际业务值；全历史遇非空无批准同义承接点时阻断",
+      "fieldStatus": "无值未落业务字段"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "proj_project",
+      "columns": [
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "项目主档编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编码",
+          "taskHandling": "pm_project.projectCode"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "code_root_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建时命名空间根项目ID",
+          "taskHandling": "首次历史根项目取新生成正式project.id，不取旧projectId；重放保护既有树"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_sequence",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "永久流水号：0表示独立命名空间",
+          "taskHandling": "insertHistoricalRoot首次固定0；不推导原固定层级树"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "code_rule_version",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "V1",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编码生成规则版本",
+          "taskHandling": "insertHistoricalRoot首次固定V1；保留原项目业务编码"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_name",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目名称",
+          "taskHandling": "pm_project.projectName"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "parent_id",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父记录ID",
+          "taskHandling": "首次作为独立历史根项目，parent_id不填；不根据项目组合或旧名称创建父子树"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "root_id",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目树根节点项目ID",
+          "taskHandling": "首次历史根项目取新生成正式project.id，不取旧projectId；重放保护既有树"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "tree_path",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目祖先路径缓存",
+          "taskHandling": "插入初值为空串，随后正式ProjectTreeProjectionService初始化树投影"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "tree_depth",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "节点层级深度缓存：根节点为0",
+          "taskHandling": "insertHistoricalRoot首次固定0；不推导原固定层级树"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "tree_sort",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "排序值",
+          "taskHandling": "insertHistoricalRoot首次固定0；不推导原固定层级树"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "business_level_code",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "业务层级标签编码（与结构层级 tree_depth 分离；字典 pms_project_business_level）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "business_level_name",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "业务层级标签名称（拆分/移动时可指定）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "customer_id",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "直接客户主档ID",
+          "taskHandling": "P16不把原column002/003购货方强塞项目客户；购货方从正式商务链核对，column013最终客户原文落相关方子步骤"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "customer_code",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户编码",
+          "taskHandling": "P16不把原column002/003购货方强塞项目客户；购货方从正式商务链核对，column013最终客户原文落相关方子步骤"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "customer_name",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户名称",
+          "taskHandling": "P16不把原column002/003购货方强塞项目客户；购货方从正式商务链核对，column013最终客户原文落相关方子步骤"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "manager_id",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主负责人用户ID",
+          "taskHandling": "P16不建立当前经理；后续P31须按逐项目授权和资格执行正式主责承接"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "manager_employee_no",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "负责人工号",
+          "taskHandling": "P16不建立当前经理；后续P31须按逐项目授权和资格执行正式主责承接"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "manager_name",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "负责人姓名",
+          "taskHandling": "P16不建立当前经理；后续P31须按逐项目授权和资格执行正式主责承接"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主责公司ID",
+          "taskHandling": "pm_project.compId"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司编码",
+          "taskHandling": "pm_project.compId"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司名称",
+          "taskHandling": "pm_project.compId"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "department_id",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主责部门ID",
+          "taskHandling": "pm_project.column001"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "部门编码",
+          "taskHandling": "pm_project.column001"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "部门名称",
+          "taskHandling": "pm_project.column001"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_type",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "STANDARD",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目类型编码",
+          "taskHandling": "pm_project.projectType"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "signing_method",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "签约方式（字典 pms_signing_method；SDS 08 四维分列，前向扩列）",
+          "taskHandling": "pm_project.column011"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_category",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目分类",
+          "taskHandling": "pm_project.column010"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "implementation_mode",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "实施模式编码",
+          "taskHandling": "pm_project.column012；pm_project.columno12_readonly"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "major_project_level",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "重大项目级别",
+          "taskHandling": "pm_project.majorProjectLevel"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "market_code",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部编码",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "market_name",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部名称",
+          "taskHandling": "pm_project.column004"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "system_code",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部编码",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "system_name",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部名称",
+          "taskHandling": "pm_project.column005"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "expend_code",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部编码",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "expend_name",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部名称",
+          "taskHandling": "pm_project.column006"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "industry_code",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业编码",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "industry_name",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业名称",
+          "taskHandling": "pm_project.column007"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "customer_project_name",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户项目名称",
+          "taskHandling": "pm_project.customerProjectName"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "sales_type",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "销售类型编码",
+          "taskHandling": "pm_project.salesType"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "business_type",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "业务类型编码",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "service_level_code",
+          "ORDINAL_POSITION": 42,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "服务级别编码",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "not_track_reason",
+          "ORDINAL_POSITION": 43,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "不跟踪原因",
+          "taskHandling": "pm_project.column008"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 44,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "手工登记合同号（正式商业关系随 INT-02 接管；前向扩列）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "implementation_location",
+          "ORDINAL_POSITION": 45,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "实施地点（多地点拆分属 PM-02；前向扩列）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "location_resolution_status",
+          "ORDINAL_POSITION": 46,
+          "COLUMN_TYPE": "varchar(16)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "UNRESOLVED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "地点解析状态：RESOLVED/UNRESOLVED",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "creation_reason",
+          "ORDINAL_POSITION": 47,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "手工创建原因（BR-2 必填，应用层校验；前向扩列）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "lifecycle_template_id",
+          "ORDINAL_POSITION": 48,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生命周期模板ID",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "lifecycle_template_revision_no",
+          "ORDINAL_POSITION": 49,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "冻结的模板版本号（创建时快照；前向扩列）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "lifecycle_template_revision_id",
+          "ORDINAL_POSITION": 50,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建时冻结的生命周期模板修订ID；仅来源追溯/冻结身份，不作为运行时设计态反查入口",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "template_load_method",
+          "ORDINAL_POSITION": 51,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "模板加载方式：AUTO_DEFAULT唯一默认命中/MANUAL_SELECTED人工选择（前向扩列）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "process_definition_key",
+          "ORDINAL_POSITION": 52,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "冻结的流程定义引用（取自绑定版本，创建时快照；前向扩列）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "process_definition_version",
+          "ORDINAL_POSITION": 53,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "冻结的流程定义版本引用（前向扩列）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_start_time",
+          "ORDINAL_POSITION": 54,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目开始时间",
+          "taskHandling": "pm_project.projectStartTime"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_refresh_time",
+          "ORDINAL_POSITION": 55,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目刷新时间",
+          "taskHandling": "pm_project.projectRefreshTime"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_close_time",
+          "ORDINAL_POSITION": 56,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目关闭时间",
+          "taskHandling": "pm_project.projectCloseTime"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "source_type",
+          "ORDINAL_POSITION": 57,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "MANUAL",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目创建来源类型",
+          "taskHandling": "首次历史项目固定MIGRATION"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 58,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "首次插入沿已批准历史lifecycleStatus；后续初始化使用专用Owner及版本/原状态条件"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "progress",
+          "ORDINAL_POSITION": 59,
+          "COLUMN_TYPE": "decimal(5,2)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0.00",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目进度百分比（来源属 PM-11 阶段推进/任务闭环，本 Feature 仅消费做汇总）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "aggregation_weight",
+          "ORDINAL_POSITION": 60,
+          "COLUMN_TYPE": "decimal(5,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "相对直接父项目的权重（NULL=等权，读时按直接子项目数归一化）",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "weight_source",
+          "ORDINAL_POSITION": 61,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "权重来源：DEFAULT_EQUAL 默认等权 / MANUAL 人工设置",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 62,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 63,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "pm_project.createBy"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 64,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "pm_project.createTime"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 65,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "pm_project.updateBy"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 66,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "pm_project.updateTime"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 67,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "deleted_time",
+          "ORDINAL_POSITION": 68,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 69,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "lifecycle_status",
+          "ORDINAL_POSITION": 70,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生命周期：ACTIVE/NORMAL_CLOSED/EXCEPTION_CLOSED",
+          "taskHandling": "pm_project.projectState"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "current_stage",
+          "ORDINAL_POSITION": 71,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "当前阶段：S0～S6",
+          "taskHandling": "pm_project.projectState"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "assignment_status",
+          "ORDINAL_POSITION": 72,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主责指派状态：UNASSIGNED/ASSIGNED",
+          "taskHandling": "首次历史根项目UNASSIGNED；真实获准成员/主责由P31另行处理"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "task_tree_version",
+          "ORDINAL_POSITION": 73,
+          "COLUMN_TYPE": "bigint unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目内任务树结构版本水位",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "task_progress_version",
+          "ORDINAL_POSITION": 74,
+          "COLUMN_TYPE": "bigint unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目内任务进度事实版本水位",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "project_end_date",
+          "ORDINAL_POSITION": 75,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "工勘提供的项目结束日期，工期倒排截止日期",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "closure_policy_snapshot",
+          "ORDINAL_POSITION": 76,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "Explicit closure policy frozen from published template",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "closure_type",
+          "ORDINAL_POSITION": 77,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "closed_from_stage",
+          "ORDINAL_POSITION": 78,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "closed_at",
+          "ORDINAL_POSITION": 79,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project.projectState"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "active_plan_version_id",
+          "ORDINAL_POSITION": 80,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "insertHistoricalRoot/initializeFormalIfMatch没有此来源赋值；新增使用本页物理默认/NULL，已有值保护，不补造运行时、模板、任务、计划或闭环结果"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "custom_info",
+          "ORDINAL_POSITION": 81,
+          "COLUMN_TYPE": "json",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project.customInfo"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "order_create_time",
+          "ORDINAL_POSITION": 82,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project.column009"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "disabled",
+          "ORDINAL_POSITION": 83,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project.disabled"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "effective_from",
+          "ORDINAL_POSITION": 84,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project.effectiveFrom"
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "COLUMN_NAME": "effective_to",
+          "ORDINAL_POSITION": 85,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "pm_project.effectiveTo"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_company_department",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_company_department",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_company_department",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "department_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_company_department",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_company_department",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "customer_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_manager",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_manager",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "manager_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_manager",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_parent",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_parent",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "parent_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_parent",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "tree_sort",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_parent",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_path",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_path",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "root_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_proj_project_path",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "tree_path",
+          "SUB_PART": 191
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_project_active_plan",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_project_active_plan",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "active_plan_version_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_project_lifecycle_template_revision",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "idx_project_lifecycle_template_revision",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "lifecycle_template_revision_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "uk_proj_project_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "uk_proj_project_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "uk_proj_project_code_sequence",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "uk_proj_project_code_sequence",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "code_root_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "uk_proj_project_code_sequence",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "project_sequence",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "uk_proj_project_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project",
+          "INDEX_NAME": "uk_proj_project_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    },
+    {
+      "table": "proj_project_party",
+      "columns": [
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主键ID",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "project_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目ID",
+          "taskHandling": "P16正式项目id；最终客户原文子步骤尚待统一任务接入"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "party_role",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "参与方角色编码",
+          "taskHandling": "最终客户原文子步骤固定FINAL_CUSTOMER，不表示已准确关联CUS主档"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "party_code",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "参与方编码",
+          "taskHandling": "原column013仅客户名称，不能猜客户编码或联系人；这些字段新增NULL"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "party_name",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "参与方名称",
+          "taskHandling": "pm_project.column013"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "contact_name",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系人名称",
+          "taskHandling": "原column013仅客户名称，不能猜客户编码或联系人；这些字段新增NULL"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "phone",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系人电话",
+          "taskHandling": "原column013仅客户名称，不能猜客户编码或联系人；这些字段新增NULL"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "最终客户原文子步骤固定DPPMS"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "source_table",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统物理表名",
+          "taskHandling": "沿既有主档证据对象pm_project_header"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "source_record_key",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源记录稳定唯一键",
+          "taskHandling": "主档来源projectId的独立来源键"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "effective_from",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效开始时间",
+          "taskHandling": "沿主档来源有效区间，由ProjectHeaderFinalCustomerService核验"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "effective_to",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效结束时间",
+          "taskHandling": "沿主档来源有效区间，由ProjectHeaderFinalCustomerService核验"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "ACTIVE",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "最终客户原文子步骤新增ACTIVE；不生成联系人或客户主档"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "party_role",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "party_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "party_role",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "idx_project_party_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_table",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "party_role",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "proj_project_party",
+          "INDEX_NAME": "uk_project_party_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectMasterSyncAdapter.java",
+    "pms-module-project/pms-module-project-api/src/main/java/cn/iocoder/yudao/module/pms/project/api/migration/ProjectMasterMigrationApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectMasterMigrationService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectHeaderFinalCustomerService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/legacydetail/ProjectMasterMigrationMapper.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/legacydetail/ProjectLegacyDetailMapper.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectManualCreationService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/company/CompanyApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/dept/DeptApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/user/AdminUserApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemDepartmentMigrationApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projectmanual/ProjectCreationAuthorizationService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/OrganizationScopeApi.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/projecttree/ProjectTreeProjectionService.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectPartyMapper.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncBindingMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+    "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+    "pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projectmanual/ProjectMasterMapper.java",
+    "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttree/ProjectTreeVersionMapper.java",
+    "pms-module-project/src/main/resources/mapper/projecttree/ProjectTreeVersionMapper.xml",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttree/ProjectTreePathMapper.java",
+    "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/dal/mysql/projecttree/ProjectTreeChangeMapper.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_PROJECT_MASTER",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 500,
+    "fetchSize": 1000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_PROJECT_MASTER",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "fnd_user_info",
+    "t_company",
+    "t_user"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/ProjectMasterMigrationMapper.xml",
+    "owner-sql/ProjectPartyMapper.xml",
+    "owner-sql/ProjectMasterMapper.xml"
+  ]
+}

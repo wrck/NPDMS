@@ -1,0 +1,595 @@
+{
+  "task": {
+    "key": "P25",
+    "name": "设备逐次续保记录",
+    "businessOwners": [
+      "AST"
+    ],
+    "source": "fb_service",
+    "targetTables": [
+      "ast_device_warranty_renewal_record"
+    ],
+    "dependencies": [],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B12",
+        "originalTaskId": "2110010787726274561",
+        "originalVersion": 5,
+        "originalAdapter": "DPPMS_WARRANTY_RENEWAL",
+        "sourceObjects": [
+          "fb_service"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "沿17列及id+barcode来源身份，全部原state值承接；不要求当前设备/合同主档必先存在。项目展示与计算依赖另核对。",
+    "acceptance": "每次续保起止、等级、原state完整；并列日期不任选最新；不复制view_warranty派生结果。",
+    "ruleDocuments": [
+      "2026-10-13-dppms-renewal-and-warranty-table-proposal.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fb_service"
+    ],
+    "adapterClass": "DppmsWarrantyRenewalSyncAdapter",
+    "writerClasses": [
+      "DeviceWarrantyRenewalMigrationApi"
+    ],
+    "businessKey": "原id＋原SN复合身份；允许同id不同SN，不强制当前设备/合同主档",
+    "genericAssessment": "有专用适配器。逐次续保与当前维保结果分离、年转月精度、空SN和原最新标志的语义须由AST续保Owner核实；通用列映射不能自行生成当前在保或完成事实。",
+    "processing": [
+      "原id与SN组成来源键；保留全部原10列，SN为空仍保存历史。",
+      "原年数乘12为参考月数，空值保持NULL、0保持0；起止日期不按月数重算。",
+      "日期非零时分秒、非法枚举、精度及后续修改冲突阻断；AST Owner写正式续保记录。"
+    ],
+    "specialRules": [
+      "state只承接原is_latest，isyb承接extended；不映射成当前设备在保状态。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT r.id,r.con_xb,r.barcode,r.grade,r.begin_date,r.end_date,r.warranty,r.remark,r.isyb,r.state,\n CONCAT('fb_service:',r.id,':',COALESCE(r.barcode,'')) AS renewalSourceKey\n FROM fb_service r WHERE :projectTypes='' AND :projectIds=''\n AND (:deviceSns='' OR FIND_IN_SET(r.barcode,:deviceSns))\n UNION ALL\n SELECT r.id,r.con_xb,r.barcode,r.grade,r.begin_date,r.end_date,r.warranty,r.remark,r.isyb,r.state,\n CONCAT('fb_service:',r.id,':',COALESCE(r.barcode,'')) AS renewalSourceKey\n FROM (\n SELECT DISTINCT rn.barcode FROM (SELECT DISTINCT barcode FROM fb_service\n WHERE barcode IS NOT NULL AND barcode<>'' AND (:deviceSns='' OR FIND_IN_SET(barcode,:deviceSns))) rn\n STRAIGHT_JOIN fb_shipment_barcode sb ON sb.barcode=rn.barcode\n STRAIGHT_JOIN (SELECT DISTINCT s.packlist_id FROM (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m\n JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n JOIN pm_project p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND p.projectId=(SELECT MAX(newer.projectId) FROM pm_project newer\n WHERE newer.projectCode=p.projectCode AND newer.projectType=p.projectType\n AND CAST(newer.projectCode AS BINARY)=CAST(p.projectCode AS BINARY))) pc STRAIGHT_JOIN fb_contract c ON c.contract_code=pc.contractNo STRAIGHT_JOIN fb_shipment s ON s.con_id=c.contract_id WHERE c.contract_type IN (0,11)) packages ON packages.packlist_id=sb.pack_id\n WHERE (:projectTypes<>'' OR :projectIds<>'')\n AND (sb.rma_no IS NULL OR sb.rma_no='' OR sb.rma_no='null')\n ) selected STRAIGHT_JOIN fb_service r ON r.barcode=selected.barcode\n WHERE :deviceSns='' OR FIND_IN_SET(r.barcode,:deviceSns)\n",
+      "table": null,
+      "object": "fb_service",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "con_xb",
+          "target": "con_xb",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "barcode",
+          "target": "barcode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "grade",
+          "target": "grade",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "begin_date",
+          "target": "begin_date",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "end_date",
+          "target": "end_date",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "warranty",
+          "target": "warranty",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "remark",
+          "target": "remark",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "isyb",
+          "target": "isyb",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "state",
+          "target": "state",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "renewalSourceKey",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "deviceSns": "",
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "fb_service",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P25-01-fb_service.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fb_contract",
+        "fb_service",
+        "fb_shipment",
+        "fb_shipment_barcode",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "id",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "int_sync_binding.source_key",
+      "rule": "与原SN组成复合技术身份，保留同ID不同SN；正式记录ID由Owner生成",
+      "fieldStatus": "技术绑定"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "con_xb",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.warranty_contract_no",
+      "rule": "原续保合同号原样保存，不替换项目销售合同关系",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "barcode",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.device_sn",
+      "rule": "原SN原样保存；可为空且不强制设备主档外键，空SN不参与项目/设备查询",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "grade",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.warranty_grade",
+      "rule": "保存原等级编码；等级目录的完整承接仍单列待处理",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "begin_date",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.warranty_start_date",
+      "rule": "实际开始日期原值；原非零时分秒阻断，不能无声截断",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "end_date",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.warranty_end_date",
+      "rule": "实际结束日期原值，不以参考月数重算",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "warranty",
+      "sourceType": "char(1)",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.warranty_months",
+      "rule": "原年数乘12；空值/空串为NULL，0保留0，仅作参考",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "remark",
+      "sourceType": "text",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.remark",
+      "rule": "原TEXT及NULL原样保存",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "isyb",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.extended",
+      "rule": "1为true，0为false，NULL保持；不据此生成当前完成事实",
+      "fieldStatus": "正式字段承接"
+    },
+    {
+      "sourceTable": "fb_service",
+      "sourceField": "state",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "ast_device_warranty_renewal_record.is_latest",
+      "rule": "1为true，NULL保持；仅原最新选择标记，不是当前在保状态",
+      "fieldStatus": "正式字段承接"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "device_sn",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "设备序列号",
+          "taskHandling": "fb_service.barcode"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "warranty_contract_no",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "续保合同号",
+          "taskHandling": "fb_service.con_xb"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "warranty_grade",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "维保等级编码",
+          "taskHandling": "fb_service.grade"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "warranty_start_date",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "实际开始日期",
+          "taskHandling": "fb_service.begin_date"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "warranty_end_date",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "实际结束日期",
+          "taskHandling": "fb_service.end_date"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "warranty_months",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "参考月数，不据此重算实际日期",
+          "taskHandling": "fb_service.warranty"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "extended",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否延保，NULL为未记录",
+          "taskHandling": "fb_service.isyb"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "is_latest",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "原最新选择标记，不代表在保状态",
+          "taskHandling": "fb_service.state"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "remark",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "续保备注",
+          "taskHandling": "fb_service.remark"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "idx_renewal_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "idx_renewal_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "warranty_contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "idx_renewal_contract",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "idx_renewal_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "idx_renewal_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "idx_renewal_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "warranty_start_date",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "idx_renewal_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_warranty_renewal_record",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsWarrantyRenewalSyncAdapter.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DeviceWarrantyRenewalMigrationApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/warranty/DeviceWarrantyRenewalMigrationService.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/warranty/DeviceWarrantyRenewalRecordMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/user/AdminUserApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_WARRANTY_RENEWAL",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 500,
+    "fetchSize": 1000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_WARRANTY_RENEWAL",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "fb_contract",
+    "fb_shipment",
+    "fb_shipment_barcode",
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/DeviceWarrantyRenewalRecordMapper.xml"
+  ]
+}

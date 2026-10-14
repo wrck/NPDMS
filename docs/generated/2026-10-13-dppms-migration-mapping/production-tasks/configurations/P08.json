@@ -1,0 +1,458 @@
+{
+  "task": {
+    "key": "P08",
+    "name": "基础字典类型",
+    "businessOwners": [
+      "SYSTEM"
+    ],
+    "source": "fnd_basic_data_type；已批准的缺失分组",
+    "targetTables": [
+      "system_dict_type"
+    ],
+    "dependencies": [
+      "P04"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "A08",
+        "originalTaskId": "2109351154645135362",
+        "originalVersion": 0,
+        "originalAdapter": "DPPMS_DICTIONARY_TYPES",
+        "sourceObjects": [
+          "fnd_basic_data_type"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "沿用原31类加49缺失组的80类规则；核对生产已有字典及业务种子。",
+    "acceptance": "编码唯一、停用与原审计保留；不覆盖生产人工维护值。",
+    "ruleDocuments": [
+      "2026-10-12-dppms-system-dictionary-table-proposal.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fnd_basic_data_type"
+    ],
+    "adapterClass": "DppmsDictionaryTypeSyncAdapter",
+    "writerClasses": [
+      "SystemDictionaryTypeMigrationApi"
+    ],
+    "businessKey": "正式字典类型type；来源分组码",
+    "genericAssessment": "有专用适配器。31个原定义与49个从字典项发现的缺失分组需要合成、去重、审计和SYSTEM字典缓存处理；不是复制一张表全部行。",
+    "processing": [
+      "采集类型原10列和配置中的辅助来源，按既定规则生成缺失分组。",
+      "同码正式字典精确复用，冲突保留；Owner写入原审计。",
+      "新增/复用结果维护来源绑定，字典缓存通过Owner刷新。"
+    ],
+    "specialRules": [],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT t.id,t.dataTypeCode,t.dataTypeName,t.status,t.createTime,t.createBy,t.updateTime,t.updateBy,t.effectiveFrom,t.effectiveTo,0 AS definitionMissing FROM fnd_basic_data_type t UNION ALL SELECT NULL,g.dataTypeCode,g.dataTypeCode,NULL,NULL,NULL,NULL,NULL,NULL,NULL,1 AS definitionMissing FROM (SELECT DISTINCT dataTypeCode FROM fnd_basic_data) g LEFT JOIN fnd_basic_data_type t ON t.dataTypeCode=g.dataTypeCode WHERE t.id IS NULL",
+      "table": null,
+      "object": "fnd_basic_data_type",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataTypeCode",
+          "target": "dataTypeCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataTypeName",
+          "target": "dataTypeName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "status",
+          "target": "status",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "definitionMissing",
+          "target": "definitionMissing",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "dataTypeCode",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "fnd_basic_data_type",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryFile": "sql/P08-01-fnd_basic_data_type.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fnd_basic_data",
+        "fnd_basic_data_type"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "dataTypeCode",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "system_dict_type.type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "dataTypeName",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "system_dict_type.name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "status",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原status是前台管理标记而非启停；既有结构无同义字段，用户明确三属性不迁入",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "createTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_dict_type.create_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "createBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "system_dict_type.creator",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "updateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "system_dict_type.update_time",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "updateBy",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "system_dict_type.updater",
+      "rule": "原审计日期保持；可精确关联人员保存user_id字符串；仅按各表裁决允许NULL更新时间取原创建时间，NULL人员不自动填管理员",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "effectiveFrom",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原status是前台管理标记而非启停；既有结构无同义字段，用户明确三属性不迁入",
+      "fieldStatus": "已批准排除"
+    },
+    {
+      "sourceTable": "fnd_basic_data_type",
+      "sourceField": "effectiveTo",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "不迁入",
+      "rule": "原status是前台管理标记而非启停；既有结构无同义字段，用户明确三属性不迁入",
+      "fieldStatus": "已批准排除"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "system_dict_type",
+      "columns": [
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "字典主键",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "name",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "字典名称",
+          "taskHandling": "fnd_basic_data_type.dataTypeName"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "type",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "字典类型",
+          "taskHandling": "fnd_basic_data_type.dataTypeCode"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态（0正常 1停用）",
+          "taskHandling": "SYS Owner要求0（启用）"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "remark",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(500)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "备注",
+          "taskHandling": "当前迁入契约要求NULL"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建者",
+          "taskHandling": "fnd_basic_data_type.createBy"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "fnd_basic_data_type.createTime"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新者",
+          "taskHandling": "fnd_basic_data_type.updateBy"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "fnd_basic_data_type.updateTime"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "system_dict_type",
+          "COLUMN_NAME": "deleted_time",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除时间",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "system_dict_type",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsDictionaryTypeSyncAdapter.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemDictionaryTypeMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemDictionaryTypeMigrationApiImpl.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/dict/DictionaryTypeMigrationMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_DICTIONARY_TYPES",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "SNAPSHOT",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_DICTIONARY_TYPES",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "fnd_basic_data"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/DictionaryTypeMigrationMapper.xml"
+  ]
+}

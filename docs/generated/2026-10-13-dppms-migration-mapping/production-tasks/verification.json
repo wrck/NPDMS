@@ -1,0 +1,52 @@
+{
+  "checkedAt": "2026-10-14T20:26:33",
+  "checkKind": "DOCUMENT_AND_CODE_PROVENANCE_ONLY",
+  "businessSqlExecuted": false,
+  "businessWrites": 0,
+  "tasks": 37,
+  "sourceSqlFiles": 51,
+  "ownerMapperXmlFiles": 43,
+  "originalBusinessDictionariesPreserved": 11,
+  "historicalTargetProofFields": [
+    [
+      "P14",
+      "fieldCarryProof",
+      91161
+    ],
+    [
+      "P16",
+      "expectedProjectVersion",
+      10
+    ],
+    [
+      "P16",
+      "migrationRestoration",
+      6570
+    ],
+    [
+      "P19",
+      "_expectedFingerprint",
+      55
+    ],
+    [
+      "P22",
+      "baseline",
+      105
+    ]
+  ],
+  "checkResults": {
+    "physicalTargetColumns": "PASS",
+    "sourceSqlFileContent": "PASS",
+    "frozenTaskVersions": "PASS",
+    "businessMappings": "PASS",
+    "sourceReferenceTableCoverage": "PASS",
+    "ownerSqlCopies": "PASS",
+    "links": "PASS",
+    "documentWhitespace": "PASS"
+  },
+  "limitations": [
+    "CRM SQL Server full schema was not re-read",
+    "No production baseline bound",
+    "No business preview, migration, DDL, build, service operation or browser acceptance"
+  ]
+}

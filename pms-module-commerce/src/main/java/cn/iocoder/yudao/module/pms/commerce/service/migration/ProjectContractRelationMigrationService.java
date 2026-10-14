@@ -123,6 +123,8 @@ public class ProjectContractRelationMigrationService implements ProjectContractR
                 actorIds.add(Long.valueOf(actor));
             }
             if(entry.reviewedBefore()!=null && (!request.adoptExisting() || entry.lastApplied()!=null)) fail("存量限定纠正未批准或已被绑定");
+            if(entry.restoration()!=null && (request.adoptExisting() || entry.reviewedBefore()!=null))
+                fail("限定恢复不授权接管或修改存量关系");
         }
         if(!actorIds.isEmpty()) {
             var actual=historicalUsers.getHistoricalIdentities(tenant,actorIds);
@@ -144,6 +146,24 @@ public class ProjectContractRelationMigrationService implements ProjectContractR
                     && Objects.equals(scope.getCompanyCode(),contract.getCompanyCode()))) fail("合同号、公司或授权不一致");
             var identity=new ProjectContractRelationMigrationMapper.IdentityQuery(tenant,incoming.projectId(),incoming.contractId());
             var before=apply?relations.selectIdentityForUpdate(identity):relations.selectIdentity(identity);
+            if(entry.restoration()!=null) {
+                var withdrawn=entry.restoration().withdrawnBefore();var last=entry.lastApplied();
+                if(withdrawn==null || last==null || entry.targetId()==null || !entry.targetId().equals(last.id())
+                        || !Objects.equals(last.tenantId(),tenant) || !Boolean.FALSE.equals(last.deleted())
+                        || last.version()==null || last.version()<0 || !Boolean.TRUE.equals(withdrawn.deleted())
+                        || !Objects.equals(withdrawn.version(),Math.addExact(last.version(),1))
+                        || !"RELATED".equals(last.relationRole()) || last.effectiveTo()!=null
+                        || !"DPPMS".equals(last.sourceSystem()) || !"pm_project_contract".equals(last.sourceTable()))
+                    fail("原迁入回执或撤回版本无效，禁止恢复");
+                var restored=entry.restoration().restored();
+                if(!canonical(last,last,last.id(),restored.version()).equals(restored)
+                        || !canonical(incoming,last,last.id(),restored.version()).equals(restored))
+                    fail("原迁入、撤回快照或当前来源业务字段不一致，禁止恢复");
+                if(!withdrawn.equals(before) && !restored.equals(before))
+                    fail("限定恢复的全部17列已有后续变化");
+                result.add(new Result(entry.sourceKey(),restored.equals(before)?"UNCHANGED":"UPDATED",before,restored));
+                continue;
+            }
             if(before!=null && (!Boolean.FALSE.equals(before.deleted()) || !incoming.status().equals(before.status())
                     || before.effectiveTo()!=null || before.version()==null)) {
                 if(apply) fail("现存关系已删除、失效或版本缺失，禁止复活");
@@ -169,8 +189,9 @@ public class ProjectContractRelationMigrationService implements ProjectContractR
             if("UNCHANGED".equals(item.action())) continue;
             var after=item.after();
             if("CREATED".equals(item.action())) after=canonical(after,null,IdWorker.getId(),0);
-            int count=item.before()==null?relations.insertHistorical(after):relations.correctHistorical(
-                    new ProjectContractRelationMigrationMapper.HistoricalWrite(item.before(),after));
+            var write=new ProjectContractRelationMigrationMapper.HistoricalWrite(item.before(),after);
+            int count=item.before()==null?relations.insertHistorical(after):Boolean.TRUE.equals(item.before().deleted())
+                    ?relations.restoreWithdrawn(write):relations.correctHistorical(write);
             if(count!=1) throw new IllegalStateException("PROJECT_CONTRACT_RELATION_WRITE_CONFLICT");
             int index=result.indexOf(item);result.set(index,new Result(item.sourceKey(),item.action(),item.before(),after));
         }

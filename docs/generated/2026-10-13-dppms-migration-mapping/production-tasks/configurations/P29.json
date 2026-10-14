@@ -1,0 +1,669 @@
+{
+  "task": {
+    "key": "P29",
+    "name": "主SN与附加SN关系",
+    "businessOwners": [
+      "AST"
+    ],
+    "source": "C01/v14的DEVICE_RELATION：fb_shipment_barcode_relation",
+    "targetTables": [
+      "ast_device_relationship"
+    ],
+    "dependencies": [
+      "P12",
+      "P15"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "C01",
+        "originalTaskId": "2107037031219654657",
+        "originalVersion": 14,
+        "originalAdapter": "TABLE_MAPPING",
+        "sourceObjects": [
+          "DEVICE_RELATION"
+        ]
+      }
+    ],
+    "preparation": "OWNER_ENTRY_REQUIRED",
+    "configurationWork": "沿当前来源范围，接已有DPPMS_DEVICE_RELATIONSHIP适配器及AST Owner；保留8原字段、19正式列、360项自关联排除及正确历史审计。",
+    "acceptance": "原关系、合同及两侧产品逐项对账；不恢复旧设备缓存/当前投影步骤，不自动改变设备归属或授权。",
+    "ruleDocuments": [
+      "2026-10-12-dppms-device-relationship-table-decision.md",
+      "2026-10-12-dppms-device-relationship-self-exclusions.md"
+    ],
+    "existingExecutionHold": true,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "fb_shipment_barcode_relation"
+    ],
+    "adapterClass": "GenericSyncEngine",
+    "writerClasses": [
+      "DppmsDeviceRelationshipSyncAdapter",
+      "DppmsDeviceSourceRelationshipApi"
+    ],
+    "businessKey": "原关系id；正式主SN＋附加SN＋原产品关系按AST Owner核验",
+    "genericAssessment": "当前C01仍用通用TABLE_MAPPING；仓库已经存在DPPMS_DEVICE_RELATIONSHIP专用适配器，应优先复用其AST Owner而非再造同义适配器。它处理自关联排除、原8字段审计及关系身份保护。",
+    "processing": [
+      "读取8原列，保留主/附SN与产品编码关系。",
+      "仅按已批准规则排除360项自关联；其他关系冲突不自动去重。",
+      "通过现有专用适配器调用AST关系Owner，显式承接审计并保护历史。"
+    ],
+    "specialRules": [
+      "目标ast_device_relationship是主附SN关系，不是ast_device_project_relationship项目指派。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT after_sales_scope.* FROM (SELECT * FROM fb_shipment_barcode_relation WHERE sn1 <> sn2) after_sales_scope\nJOIN (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m\n JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n JOIN pm_project p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND p.projectId=(SELECT MAX(newer.projectId) FROM pm_project newer\n WHERE newer.projectCode=p.projectCode AND newer.projectType=p.projectType\n AND CAST(newer.projectCode AS BINARY)=CAST(p.projectCode AS BINARY))) project_scope ON project_scope.contractNo=after_sales_scope.`contract` AND FIND_IN_SET(after_sales_scope.`contract`,project_scope.contractNo)\n",
+      "table": "fb_shipment_barcode_relation",
+      "object": "DEVICE_RELATION",
+      "columns": [],
+      "filters": [],
+      "targets": [
+        {
+          "keys": [
+            "source_system",
+            "source_key"
+          ],
+          "mode": "UPSERT",
+          "name": "relation",
+          "table": "ast_device_relationship",
+          "lookups": null,
+          "newerBy": null,
+          "mappings": [
+            {
+              "source": "sn1",
+              "target": "source_device_sn",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "sn2",
+              "target": "target_device_sn",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": null,
+              "target": "relationship_type",
+              "values": null,
+              "constant": "EXTRA_SN",
+              "conversion": "CONSTANT",
+              "defaultValue": null
+            },
+            {
+              "source": "contract",
+              "target": "contract_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "createtime",
+              "target": "effective_from",
+              "values": null,
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_KEY",
+              "target": "source_key",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "updatetime",
+              "target": "source_version",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "item1",
+              "target": "source_item",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "item2",
+              "target": "target_item",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            }
+          ],
+          "whenField": null,
+          "nullPolicy": "IGNORE",
+          "tieBreaker": null,
+          "updateColumns": []
+        }
+      ],
+      "mappings": [],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "sourceObject": "fb_shipment_barcode_relation",
+      "primaryTarget": "relation",
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P29-01-DEVICE_RELATION.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fb_shipment_barcode_relation",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "sn1",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_relationship.source_device_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "item1",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "ast_device_relationship.source_item",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "sn2",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_relationship.target_device_sn",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "item2",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "ast_device_relationship.target_item",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "contract",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "ast_device_relationship.contract_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "createtime",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_relationship.create_time；ast_device_relationship.effective_from",
+      "rule": "保留原日期；正式操作者保留真实迁入人，不编造旧操作者",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "fb_shipment_barcode_relation",
+      "sourceField": "updatetime",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "ast_device_relationship.update_time；ast_device_relationship.source_version",
+      "rule": "原NULL取本条createtime，原版本字符串保持；65046限定纠正通过，360双方SN＋产品同值排除",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "ast_device_relationship",
+      "columns": [
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "设备关系编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "source_device_sn",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源设备序列号",
+          "taskHandling": "fb_shipment_barcode_relation.sn1；DEVICE_RELATION.sn1"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "target_device_sn",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(100)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "目标设备序列号",
+          "taskHandling": "fb_shipment_barcode_relation.sn2；DEVICE_RELATION.sn2"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "relationship_type",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "关系类型",
+          "taskHandling": "CONSTANT EXTRA_SN"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "fb_shipment_barcode_relation.contract；DEVICE_RELATION.contract"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "effective_from",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效时间",
+          "taskHandling": "fb_shipment_barcode_relation.createtime；DEVICE_RELATION.createtime"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "effective_to",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "失效时间",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "DEVICE_RELATION.$SOURCE_SYSTEM"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "source_key",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源键",
+          "taskHandling": "DEVICE_RELATION.$SOURCE_KEY"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "source_version",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源版本",
+          "taskHandling": "fb_shipment_barcode_relation.updatetime；DEVICE_RELATION.updatetime"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "fb_shipment_barcode_relation.createtime"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "fb_shipment_barcode_relation.updatetime"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "source_item",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(15)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源主SN物料 item1",
+          "taskHandling": "fb_shipment_barcode_relation.item1；DEVICE_RELATION.item1"
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "COLUMN_NAME": "target_item",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(15)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源目标SN物料 item2",
+          "taskHandling": "fb_shipment_barcode_relation.item2；DEVICE_RELATION.item2"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_source_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_source_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_source_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "relationship_type",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_source_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "effective_to",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_source_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_target_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_target_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "target_device_sn",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_target_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "relationship_type",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_target_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "effective_to",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "idx_ast_device_relationship_target_device",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "uk_ast_device_relationship_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "uk_ast_device_relationship_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "ast_device_relationship",
+          "INDEX_NAME": "uk_ast_device_relationship_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "source_key",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericSyncEngine.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsDeviceRelationshipSyncAdapter.java",
+    "pms-module-asset/pms-module-asset-api/src/main/java/cn/iocoder/yudao/module/pms/asset/api/migration/DppmsDeviceSourceRelationshipApi.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/migration/DppmsDeviceSourceRelationshipService.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/GenericSyncJdbcStore.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericTargetCatalog.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/assembly/DeviceSourceRelationshipMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/dal/mysql/device/DeviceMapper.java",
+    "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/security/DeviceAccessScopeService.java",
+    "pms-module-commerce/pms-module-commerce-api/src/main/java/cn/iocoder/yudao/module/pms/commerce/api/scope/ProjectContractQueryApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/permission/PermissionApi.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-asset/src/main/resources/mapper/assembly/DeviceSourceRelationshipMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "TABLE_MAPPING",
+    "maxRows": 2000,
+    "taskKey": "delivery-full-sync",
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 2000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "CHECKPOINT_KEY",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+  "ownerSqlFiles": [
+    "owner-sql/DeviceSourceRelationshipMapper.xml"
+  ]
+}

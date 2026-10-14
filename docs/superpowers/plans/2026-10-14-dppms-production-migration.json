@@ -1,0 +1,1551 @@
+{
+  "schemaVersion": 1,
+  "title": "DPPMS生产迁移最终任务集",
+  "organizedAt": "2026-10-14T20:23:37",
+  "artifactKind": "TASK_CATALOGUE_NOT_EXECUTABLE_CONFIG",
+  "status": "ORGANIZED_PRODUCTION_READINESS_PENDING",
+  "sourceInventory": "../../generated/2026-10-14-dppms-original-task-migration-inventory.json",
+  "sourceInventoryCapturedAt": "2026-10-14T18:01:18.729001",
+  "scope": {
+    "projectTypes": "10",
+    "projectIds": "",
+    "basis": "沿用已批准的用服范围；其他类型、工程过程和审批事实不因此扩大",
+    "targetEnvironment": "PRODUCTION_NOT_BOUND",
+    "assumeEmptyTarget": false,
+    "businessWritesAuthorizedByThisCatalogue": false,
+    "resumeNewDatabasePreviewQueue": false
+  },
+  "counts": {
+    "originalTasks": 45,
+    "originalTasksUsed": 25,
+    "originalTasksEvidenceOnly": 20,
+    "unchangedTaskUnits": 24,
+    "unitsSplitFromCurrentComposite": 5,
+    "unitsRequiringTaskEntry": 8,
+    "businessMigrationTasks": 37,
+    "deliveryActivities": 6
+  },
+  "tasks": [
+    {
+      "key": "P01",
+      "name": "公司与基础部门",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "ehr_company、ehr_department",
+      "targetTables": [
+        "system_company",
+        "system_dept"
+      ],
+      "dependencies": [],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A01",
+          "originalTaskId": "2101562667583217666",
+          "originalVersion": 16,
+          "originalAdapter": "EHR_ORGANIZATION",
+          "sourceObjects": [
+            "COMPANY",
+            "DEPARTMENT"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "沿用公司映射与 depGrade<=2、LENGTH(depCode)=6 的基础部门条件；它不是全组织树。核对生产公司编码、父部门及目录种子。",
+      "acceptance": "公司与部门逐来源有处置；父部门唯一；不按旧库数值ID关联，不自动扩大目录筛选。",
+      "ruleDocuments": [],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P02",
+      "name": "已批准的FND补充部门",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "fnd_department，精确参考 ehr_department",
+      "targetTables": [
+        "system_dept"
+      ],
+      "dependencies": [
+        "P01"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A03",
+          "originalTaskId": "2108524501517955073",
+          "originalVersion": 1,
+          "originalAdapter": "DPPMS_DEPARTMENTS",
+          "sourceObjects": [
+            "fnd_department"
+          ]
+        }
+      ],
+      "preparation": "RESTORE_APPROVED_SCOPE",
+      "configurationWork": "当前任务只取163130；生产配置复用 DppmsDepartmentSyncTemplate 的已批准28码，再纳入已单独批准的163130，共29码。不得只复制当前单码参数，也不扩为所有部门。",
+      "acceptance": "29个选定编码逐项核对来源、父级、启停和审计；生产已有项按Owner规则处理，冲突保留。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-system-dept-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P03",
+      "name": "八个EHR补充部门及主管补关联",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "ehr_department，精确参考 fnd_department 和原主管账号",
+      "targetTables": [
+        "system_dept"
+      ],
+      "dependencies": [
+        "P01",
+        "P02"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A02",
+          "originalTaskId": "2108538095265562625",
+          "originalVersion": 0,
+          "originalAdapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+          "sourceObjects": [
+            "ehr_department"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "保留8码及各自主来源规则。先创建部门，主管未绑定时保留待关联；P04完成后在同任务重跑主管补关联。",
+      "acceptance": "8项齐全，主管只按正式用户来源绑定解析；重跑不改已有历史审计或生成新授权。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-system-dept-eight-missing-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P04",
+      "name": "账号与任职资料",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "t_user、t_user_info、fnd_user_info；EHR精确人员参考",
+      "targetTables": [
+        "system_users"
+      ],
+      "dependencies": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A04",
+          "originalTaskId": "2108524822998773762",
+          "originalVersion": 0,
+          "originalAdapter": "DPPMS_USERS",
+          "sourceObjects": [
+            "t_user",
+            "t_user_info",
+            "fnd_user_info"
+          ]
+        }
+      ],
+      "preparation": "ADAPT_FIRST_IMPORT",
+      "configurationWork": "保留已批准账号范围、合并优先级和三项EHR例外；不读取旧密码。旧admin审计关联的正式身份须在生产核实，不能照搬ID1。首次写入即保留原NULL审计，不重放557项旧纠正证明。",
+      "acceptance": "账号资料和来源别名完整；原NULL/历史日期不被自动填充改写；角色、项目访问及认证激活分别受控。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-system-users-table-decision.md",
+        "2026-10-09-dppms-user-contact-and-login-decision.md",
+        "2026-10-09-dppms-user-null-updater-correction.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P05",
+      "name": "角色定义及来源角色绑定",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "t_role、fnd_roles",
+      "targetTables": [
+        "system_role"
+      ],
+      "dependencies": [
+        "P04"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A05",
+          "originalTaskId": "2108554583850524673",
+          "originalVersion": 0,
+          "originalAdapter": "DPPMS_ROLES",
+          "sourceObjects": [
+            "T_ROLE",
+            "FND_ROLE"
+          ]
+        }
+      ],
+      "preparation": "ADAPT_FIRST_IMPORT",
+      "configurationWork": "保留18项原角色编码映射、既有角色引用及停用排除；首次迁入即使用已裁决的原审计，不带13角色旧纠正目标ID。",
+      "acceptance": "来源角色到正式角色唯一可追溯；不由角色名称猜权限，不新增未批准菜单授权。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-role-identity-mapping-decision.md",
+        "2026-10-09-dppms-role-audit-correction-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P06",
+      "name": "用户角色关系",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "t_user_role、fnd_user_info.roleIds",
+      "targetTables": [
+        "system_user_role"
+      ],
+      "dependencies": [
+        "P04",
+        "P05"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A06",
+          "originalTaskId": "2108568095503093761",
+          "originalVersion": 0,
+          "originalAdapter": "DPPMS_USER_ROLES",
+          "sourceObjects": [
+            "T_USER_ROLE",
+            "FND_USER_ROLE"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "通过新环境用户/角色绑定构建已批准关系；保持原停用、空公司及关系去重规则。",
+      "acceptance": "有效授权、只作引用和排除分别对账；不把历史关系自动扩为全部项目访问。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-user-selected-scope-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P07",
+      "name": "用户公司与部门范围",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "t_user、t_user_info、fnd_user_info、t_user_role、fnd_user_power",
+      "targetTables": [
+        "system_user_company_department_scope"
+      ],
+      "dependencies": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P05",
+        "P06"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A07",
+          "originalTaskId": "2108569376783273985",
+          "originalVersion": 0,
+          "originalAdapter": "DPPMS_USER_SCOPES",
+          "sourceObjects": [
+            "t_user",
+            "t_user_info",
+            "fnd_user_info",
+            "t_user_role",
+            "fnd_user_power"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "保留已批准的公司转换、多任职及主范围裁决；所有正式引用在生产重新解析。",
+      "acceptance": "原范围与主标记逐项一致；公司/部门范围不自动替代按项目授权。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-user-company-department-scope-table-decision.md",
+        "2026-10-09-dppms-user-scope-primary-conflicts.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P08",
+      "name": "基础字典类型",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "fnd_basic_data_type；已批准的缺失分组",
+      "targetTables": [
+        "system_dict_type"
+      ],
+      "dependencies": [
+        "P04"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A08",
+          "originalTaskId": "2109351154645135362",
+          "originalVersion": 0,
+          "originalAdapter": "DPPMS_DICTIONARY_TYPES",
+          "sourceObjects": [
+            "fnd_basic_data_type"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "沿用原31类加49缺失组的80类规则；核对生产已有字典及业务种子。",
+      "acceptance": "编码唯一、停用与原审计保留；不覆盖生产人工维护值。",
+      "ruleDocuments": [
+        "2026-10-12-dppms-system-dictionary-table-proposal.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P09",
+      "name": "基础字典项",
+      "businessOwners": [
+        "SYSTEM"
+      ],
+      "source": "fnd_basic_data",
+      "targetTables": [
+        "system_dict_data"
+      ],
+      "dependencies": [
+        "P08"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A09",
+          "originalTaskId": "2109371486114320385",
+          "originalVersion": 0,
+          "originalAdapter": "DPPMS_DICTIONARY_DATA",
+          "sourceObjects": [
+            "fnd_basic_data"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "保留531项承接及原ID114一项排除；普通字典字段、状态及NULL处理沿已批准规则。",
+      "acceptance": "来源项、正式类型、启停、审计逐项对账；排除有原ID和理由。",
+      "ruleDocuments": [
+        "2026-10-12-dppms-system-dictionary-table-proposal.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P10",
+      "name": "CRM客户主档",
+      "businessOwners": [
+        "CUS"
+      ],
+      "source": "CRM SQL Server：Account及原任务查询",
+      "targetTables": [
+        "cus_customer_master"
+      ],
+      "dependencies": [],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A10",
+          "originalTaskId": "2102221608959250434",
+          "originalVersion": 2,
+          "originalAdapter": "CRM_CUSTOMER",
+          "sourceObjects": [
+            "CUSTOMER"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "重建只读CRM连接，沿用CRM权威值域及身份规则；核对生产已有客户，不按名称合并。",
+      "acceptance": "客户编码/CRM身份及属性完整；来源到目标唯一可追溯；连接未验证前不称可执行。",
+      "ruleDocuments": [],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P11",
+      "name": "CRM正式产品目录",
+      "businessOwners": [
+        "AST"
+      ],
+      "source": "CRM SQL Server：DPtech_v_product_info_single",
+      "targetTables": [
+        "ast_product_official_info"
+      ],
+      "dependencies": [],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A11",
+          "originalTaskId": "2102221608179109889",
+          "originalVersion": 1,
+          "originalAdapter": "TABLE_MAPPING",
+          "sourceObjects": [
+            "PRODUCT"
+          ]
+        }
+      ],
+      "preparation": "OWNER_ENTRY_REQUIRED",
+      "configurationWork": "复用现有源查询和字段映射；当前TABLE_MAPPING直接写AST表，生产入口须接AST正式Owner并核对产品唯一键。",
+      "acceptance": "同编码沿用CRM正式字段；已有产品碰撞、权限、空集合和事务边界保持。",
+      "ruleDocuments": [],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P12",
+      "name": "DPPMS缺失产品补齐与编码关联",
+      "businessOwners": [
+        "AST"
+      ],
+      "source": "fb_items",
+      "targetTables": [
+        "ast_product_official_info"
+      ],
+      "dependencies": [
+        "P11"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "A12",
+          "originalTaskId": "2108534088732168194",
+          "originalVersion": 2,
+          "originalAdapter": "DPPMS_PRODUCT_CATALOG",
+          "sourceObjects": [
+            "fb_items"
+          ]
+        }
+      ],
+      "preparation": "ADAPT_FIRST_IMPORT",
+      "configurationWork": "按2026-10-14最新裁决，以租户+产品编码关联；同编码名称不同以CRM为准，既有正式字段保持。缺失产品仍按item/itemname/describe_补齐编码、型号、名称和描述并设ACTIVE，原id不作业务键。生产模板、适配器及AST Owner的迁入/解析路径须移除产品扩展定义、标签匹配及扩展读写依赖，不再要求migrationDefinitionRevisionId或创建dppms_catalog_labels；不转存到其他扩展或描述字段。现有代码仍依赖扩展，属于本任务待改项。",
+      "acceptance": "全部来源编码有处置；CRM同编码异名时正式字段保持且不新增/更新产品扩展，缺失产品按批准规则创建，重放不重复写入。同编码解析不以DPPMS标签齐备为前提；租户、权限、删除及身份冲突保护保持。原库已有扩展、绑定和历史证据保留。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-official-product-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P13",
+      "name": "CRM执行单",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "pm_project_property_from_sms及原任务关联SQL",
+      "targetTables": [
+        "com_crm_execution_order"
+      ],
+      "dependencies": [
+        "P01",
+        "P10"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B01",
+          "originalTaskId": "2101625228492091393",
+          "originalVersion": 11,
+          "originalAdapter": "DPPMS_CRM_EXECUTION_ORDER",
+          "sourceObjects": [
+            "EXECUTION_ORDER"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "沿用用服类型参数、公司码转换及自动分页；原项目ID参数为空表示全量来源。",
+      "acceptance": "根回执合计与分页来源闭合；按业务键/完整来源身份核对，不把最后一页当全量。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-crm-execution-order-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P14",
+      "name": "销售订单与订单行",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "pm_order_data_from_erp、pm_order_line_from_erp",
+      "targetTables": [
+        "com_sales_order",
+        "com_sales_order_line"
+      ],
+      "dependencies": [
+        "P01",
+        "P10",
+        "P12",
+        "P13"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B02",
+          "originalTaskId": "2101587859478949890",
+          "originalVersion": 31,
+          "originalAdapter": "DPPMS_ERP_ORDER",
+          "sourceObjects": [
+            "ORDER",
+            "LINE"
+          ]
+        }
+      ],
+      "preparation": "ADAPT_FIRST_IMPORT",
+      "configurationWork": "准备首次迁入配置，旧91161项fieldCarryProof仅留原环境追溯；生产已有订单必须重新取得Owner前值证明。保留头/行顺序、精确ERP公司业务键及Q023/Q025冲突保护。",
+      "acceptance": "完整原字段、公司、父单、执行单及来源绑定对账；410条来源执行单冲突不能任取一条；不复活236259条旧清理绑定。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-sales-order-table-decision.md",
+        "2026-10-09-dppms-sales-order-line-table-decision.md",
+        "2026-10-14-dppms-full-preview-blocker-repair.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P15",
+      "name": "正式合同主档",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "当前C01/v14的CONTRACT来源：ERP订单分组及已批准合同补充",
+      "targetTables": [
+        "com_contract"
+      ],
+      "dependencies": [
+        "P01",
+        "P10"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "C01",
+          "originalTaskId": "2107037031219654657",
+          "originalVersion": 14,
+          "originalAdapter": "TABLE_MAPPING",
+          "sourceObjects": [
+            "CONTRACT"
+          ]
+        }
+      ],
+      "preparation": "OWNER_ENTRY_REQUIRED",
+      "configurationWork": "仅抽出当前组合的CONTRACT段，不能用旧C03/v3成功回执替代。保留两份批准合同和两项客户码特例的精确范围；经COM Owner承接，Q024客户冲突继续阻断。",
+      "acceptance": "合同来源、公司、客户和全部批准字段可追溯；194个缺合同案例按权威来源解决，不从MIN客户号猜配。",
+      "ruleDocuments": [
+        "2026-10-13-dppms-migration-mapping/contract-master-approved-source-mapping.json",
+        "2026-10-14-dppms-full-preview-blocker-repair.md"
+      ],
+      "existingExecutionHold": true,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P16",
+      "name": "规范项目主档与基础最终客户资料",
+      "businessOwners": [
+        "PROJ"
+      ],
+      "source": "pm_project_header/pm_project，当前规范项目SQL",
+      "targetTables": [
+        "proj_project",
+        "proj_project_party"
+      ],
+      "dependencies": [
+        "P01",
+        "P02",
+        "P03",
+        "P04",
+        "P09",
+        "P10"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B03",
+          "originalTaskId": "2108608417343934465",
+          "originalVersion": 10,
+          "originalAdapter": "DPPMS_PROJECT_MASTER",
+          "sourceObjects": [
+            "pm_project_header"
+          ]
+        }
+      ],
+      "preparation": "ADAPT_FIRST_IMPORT",
+      "configurationWork": "同类型同码最大projectId规则及原NULL/空名称裁决保持；首次创建不带6570项旧恢复凭据及10项旧目标版本。当前主档任务只承接主档，需补第二子步骤：原column013经已批准的ProjectHeaderFinalCustomerService所属PROJ Owner承接FINAL_CUSTOMER相关方；不把现有主档任务当作已实现此步。最终客户原文保留不等于已准确归集客户主档，不能据名称或购货方猜配客户ID。主档与最终客户资料分步验收，后者不作为P17身份桥接或P32历史成员迁入的前置。生产已有项目重新核对接管与冲突。",
+      "acceptance": "全部规范项目有处置；主档、公司/办事处、审计及最终客户原始资料可追溯，客户身份未核实不强行归集；创建范围单独批准，不因映射已批准就创建空项目。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-proj-project-table-decision.md",
+        "2026-10-12-dppms-whole-table-task-correction.md",
+        "2026-10-14-dppms-full-preview-blocker-repair.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P17",
+      "name": "全部原项目身份桥接",
+      "businessOwners": [
+        "PROJ",
+        "INT"
+      ],
+      "source": "pm_project原ID、类型和编码",
+      "targetTables": [
+        "int_sync_binding"
+      ],
+      "dependencies": [
+        "P16"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B04",
+          "originalTaskId": "2109622534918856706",
+          "originalVersion": 6,
+          "originalAdapter": "DPPMS_PROJECT_IDENTITY",
+          "sourceObjects": [
+            "pm_project_identity"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "把所有原ID绑定到规范主档；本任务负责身份，不再创建同码项目。对P16的依赖仅要求主档身份就绪，不以最终客户资料子步骤完成为条件。",
+      "acceptance": "原ID、规范ID、类型和绑定一一可查；来源多ID不变成多份正式项目。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-identity-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P18",
+      "name": "项目合同关系及正式商务关联",
+      "businessOwners": [
+        "COM",
+        "PROJ"
+      ],
+      "source": "pm_project_contract、pm_project_group、pm_project_group_relationship",
+      "targetTables": [
+        "com_project_contract_relation"
+      ],
+      "dependencies": [
+        "P04",
+        "P13",
+        "P14",
+        "P15",
+        "P17"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B05",
+          "originalTaskId": "2109363204544983041",
+          "originalVersion": 12,
+          "originalAdapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+          "sourceObjects": [
+            "pm_project_contract"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "保持正式项目+合同归并、当前/历史及审计裁决，保留18项逐源排除。原组及成员只按Q015/Q016规则参与关系，smsProjectCode须沿正式合同/订单/执行单链核对。",
+      "acceptance": "所有原合同/组成员身份和正式关系可追溯；历史不参与当前授权。商务链缺失/多义保留为问题，不用项目扩展数组代替。",
+      "ruleDocuments": [
+        "2026-10-12-dppms-project-contract-relation-table-proposal.md",
+        "2026-10-14-dppms-full-preview-blocker-repair.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P19",
+      "name": "项目相关方与发货/执行状态资料",
+      "businessOwners": [
+        "PROJ",
+        "PLT"
+      ],
+      "source": "pm_project_related_party、pm_project_state",
+      "targetTables": [
+        "proj_project_party",
+        "plt_entity_extension_value"
+      ],
+      "dependencies": [
+        "P04",
+        "P09",
+        "P17"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B11",
+          "originalTaskId": "2109968219214897153",
+          "originalVersion": 5,
+          "originalAdapter": "DPPMS_PROJECT_FACTS",
+          "sourceObjects": [
+            "pm_project_related_party",
+            "pm_project_state"
+          ]
+        }
+      ],
+      "preparation": "ADAPT_FIRST_IMPORT",
+      "configurationWork": "重建正式状态扩展定义；55项旧_expectedFingerprint不当生产前值。状态更新时间保留原含义，审批及工程计划缓存不承接。",
+      "acceptance": "相关方原角色、审计、区间及两类状态/更新时间完整；不触发生命周期、审批或任务完成。",
+      "ruleDocuments": [
+        "2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P20",
+      "name": "项目真实产品",
+      "businessOwners": [
+        "PROJ"
+      ],
+      "source": "pm_project_product_line_real及其原上游引用",
+      "targetTables": [
+        "proj_project_real_product"
+      ],
+      "dependencies": [
+        "P04",
+        "P17"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B09",
+          "originalTaskId": "2109865269478027265",
+          "originalVersion": 4,
+          "originalAdapter": "DPPMS_PROJECT_REAL_PRODUCT",
+          "sourceObjects": [
+            "pm_project_product_line_real"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "保留完整原字段及来源修订关系；缺项目不创建项目，未形成项目清单的独立上游资料不混入。",
+      "acceptance": "所有来源行与正式清单逐项对账，后续人工变更受保护。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-real-product-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P21",
+      "name": "项目租赁产品与产品配置",
+      "businessOwners": [
+        "PROJ"
+      ],
+      "source": "pm_project_product_lease_line_from_crm、pm_project_product_config_level_info_from_crm",
+      "targetTables": [
+        "proj_project_lease_product",
+        "proj_project_product_configuration"
+      ],
+      "dependencies": [
+        "P04",
+        "P17"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B10",
+          "originalTaskId": "2109865270430134273",
+          "originalVersion": 4,
+          "originalAdapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+          "sourceObjects": [
+            "pm_project_product_lease_line_from_crm",
+            "pm_project_product_config_level_info_from_crm"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "两个来源对象分别保留原字段、键与结果；沿同一已有适配器，不拆出重复Owner。",
+      "acceptance": "两表分别对账；已发现3条原项目缺失仍登记，不能挂靠同名项目。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-lease-product-table-decision.md",
+        "2026-10-10-dppms-product-configuration-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P22",
+      "name": "项目产品实施范围",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "pm_project_product_line及已批准的项目/合同/订单行解析",
+      "targetTables": [
+        "com_delivery_scope",
+        "com_delivery_scope_detail"
+      ],
+      "dependencies": [
+        "P01",
+        "P02",
+        "P03",
+        "P12",
+        "P14",
+        "P17",
+        "P18"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B08",
+          "originalTaskId": "2109829769958453249",
+          "originalVersion": 7,
+          "originalAdapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+          "sourceObjects": [
+            "pm_project_product_line"
+          ]
+        }
+      ],
+      "preparation": "ADAPT_FIRST_IMPORT",
+      "configurationWork": "105项旧baseline不带入生产；按新目标生成保护前值。保留精确订单行、办事处和正数量约束，不用默认数量消除来源缺项。",
+      "acceptance": "每条来源有准确项目、合同、订单行及数量；原330781/330782仍受正数量保护，其他缺办事处/订单行逐项闭合。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-delivery-scope-table-decision.md",
+        "2026-10-14-dppms-full-preview-blocker-repair.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P23",
+      "name": "合同回款计划",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "pm_pb_plan_from_sms",
+      "targetTables": [
+        "com_contract_collection_plan"
+      ],
+      "dependencies": [
+        "P04"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B06",
+          "originalTaskId": "2108574253093683202",
+          "originalVersion": 10,
+          "originalAdapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+          "sourceObjects": [
+            "pm_pb_plan_from_sms"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "保留540个已批准未关联审计编码的原码承接，不因无账号过滤原行或补造账号。Owner允许未唯一匹配合同的计划保留NULL合同ID，P15不是全部计划的强制入库前置；原缓存键仅用于本次冻结基线，禁止跨刷新自动重绑。",
+      "acceptance": "计划原字段、原合同号及审计一致；与实际回款信息分开对账，不制造收款完成事实；正式合同引用仅精确唯一时补关联。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-contract-collection-plan-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P24",
+      "name": "合同实际回款信息",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "sms_ofst_contract_head_sap",
+      "targetTables": [
+        "com_contract_receivable"
+      ],
+      "dependencies": [
+        "P04"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B07",
+          "originalTaskId": "2109967339937804289",
+          "originalVersion": 4,
+          "originalAdapter": "DPPMS_CONTRACT_RECEIVABLE",
+          "sourceObjects": [
+            "sms_ofst_contract_head_sap"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "保留39原字段、金额比例及7条空合同号的原裁决。合同ID只在精确唯一时补关联，缺唯一主档按批准保留NULL，不阻断该原始回款事实。",
+      "acceptance": "金额/比例精度、NULL和原合同号完整；项目展示另须P18正式合同关系，不把P15强行变成所有回款行的入库前置。",
+      "ruleDocuments": [
+        "2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P25",
+      "name": "设备逐次续保记录",
+      "businessOwners": [
+        "AST"
+      ],
+      "source": "fb_service",
+      "targetTables": [
+        "ast_device_warranty_renewal_record"
+      ],
+      "dependencies": [],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "B12",
+          "originalTaskId": "2110010787726274561",
+          "originalVersion": 5,
+          "originalAdapter": "DPPMS_WARRANTY_RENEWAL",
+          "sourceObjects": [
+            "fb_service"
+          ]
+        }
+      ],
+      "preparation": "REUSE_AND_REVALIDATE",
+      "configurationWork": "沿17列及id+barcode来源身份，全部原state值承接；不要求当前设备/合同主档必先存在。项目展示与计算依赖另核对。",
+      "acceptance": "每次续保起止、等级、原state完整；并列日期不任选最新；不复制view_warranty派生结果。",
+      "ruleDocuments": [
+        "2026-10-13-dppms-renewal-and-warranty-table-proposal.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P26",
+      "name": "发货合同引用与保修年数",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "C01/v14的SHIPMENT_CONTRACT：fb_contract",
+      "targetTables": [
+        "com_shipment_contract_reference",
+        "com_contract"
+      ],
+      "dependencies": [
+        "P01",
+        "P02",
+        "P03",
+        "P15"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "C01",
+          "originalTaskId": "2107037031219654657",
+          "originalVersion": 14,
+          "originalAdapter": "TABLE_MAPPING",
+          "sourceObjects": [
+            "SHIPMENT_CONTRACT"
+          ]
+        }
+      ],
+      "preparation": "OWNER_ENTRY_REQUIRED",
+      "configurationWork": "抽出该来源及两个写入步骤，接COM Owner；保留合同原字段与年数转换、NULL裁决，不能把旧2条纠正证明平移执行。",
+      "acceptance": "发货引用、正式合同补充字段及年数单位准确；空业务身份问题单列，原合同权威字段受保护。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-shipment-contract-reference-table-decision.md"
+      ],
+      "existingExecutionHold": true,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P27",
+      "name": "装箱单与物流",
+      "businessOwners": [
+        "COM"
+      ],
+      "source": "C01/v14的PACKAGE：fb_shipment及物流参考",
+      "targetTables": [
+        "com_shipment_package"
+      ],
+      "dependencies": [
+        "P26"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "C01",
+          "originalTaskId": "2107037031219654657",
+          "originalVersion": 14,
+          "originalAdapter": "TABLE_MAPPING",
+          "sourceObjects": [
+            "PACKAGE"
+          ]
+        }
+      ],
+      "preparation": "OWNER_ENTRY_REQUIRED",
+      "configurationWork": "复用当前来源SQL与8原字段规则，改经COM Owner；物流编码与名称分别保存。",
+      "acceptance": "原装箱单、发货合同引用、日期及物流一致；缺引用不猜配，不把物流送达当业务完成。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-shipment-package-table-decision.md"
+      ],
+      "existingExecutionHold": true,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P28",
+      "name": "设备发货事实",
+      "businessOwners": [
+        "AST"
+      ],
+      "source": "C01/v14的DEVICE_SN：fb_shipment_barcode及合同/装箱单/产品目录",
+      "targetTables": [
+        "ast_device_shipment"
+      ],
+      "dependencies": [
+        "P12",
+        "P14",
+        "P26",
+        "P27"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "C01",
+          "originalTaskId": "2107037031219654657",
+          "originalVersion": 14,
+          "originalAdapter": "TABLE_MAPPING",
+          "sourceObjects": [
+            "DEVICE_SN"
+          ]
+        }
+      ],
+      "preparation": "OWNER_ENTRY_REQUIRED",
+      "configurationWork": "保留全部原业务字段，正式订单行引用经Owner精确解析；通用写表步骤改为AST入口。固定业务字段落正式列，原证据不得充当业务承接。",
+      "acceptance": "主附SN、订单行、产品、时间、保修、RMA及原审计完整；重复发货保留，不能自动生成安装或验收完成。",
+      "ruleDocuments": [
+        "2026-10-09-dppms-ast-device-shipment-table-decision.md",
+        "2026-10-10-dppms-equipment-association-repair-decision.md"
+      ],
+      "existingExecutionHold": true,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P29",
+      "name": "主SN与附加SN关系",
+      "businessOwners": [
+        "AST"
+      ],
+      "source": "C01/v14的DEVICE_RELATION：fb_shipment_barcode_relation",
+      "targetTables": [
+        "ast_device_relationship"
+      ],
+      "dependencies": [
+        "P12",
+        "P15"
+      ],
+      "sourceTaskReferences": [
+        {
+          "inventoryNumber": "C01",
+          "originalTaskId": "2107037031219654657",
+          "originalVersion": 14,
+          "originalAdapter": "TABLE_MAPPING",
+          "sourceObjects": [
+            "DEVICE_RELATION"
+          ]
+        }
+      ],
+      "preparation": "OWNER_ENTRY_REQUIRED",
+      "configurationWork": "沿当前来源范围，接已有DPPMS_DEVICE_RELATIONSHIP适配器及AST Owner；保留8原字段、19正式列、360项自关联排除及正确历史审计。",
+      "acceptance": "原关系、合同及两侧产品逐项对账；不恢复旧设备缓存/当前投影步骤，不自动改变设备归属或授权。",
+      "ruleDocuments": [
+        "2026-10-12-dppms-device-relationship-table-decision.md",
+        "2026-10-12-dppms-device-relationship-self-exclusions.md"
+      ],
+      "existingExecutionHold": true,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P30",
+      "name": "设备主档及项目归属衔接",
+      "businessOwners": [
+        "AST",
+        "PROJ"
+      ],
+      "source": "已迁发货事实及可核实的原项目/合同/设备关联",
+      "targetTables": [
+        "ast_device",
+        "ast_device_project_relationship"
+      ],
+      "dependencies": [
+        "P12",
+        "P14",
+        "P17",
+        "P18",
+        "P28"
+      ],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "现C01的DEVICE_SN只写发货事实，不能计为设备主档完成。复用已有DppmsAssetEntityImportApi和正式设备指派Owner边界，补统一任务入口；不得复活C05/C06旧通用条码写法。",
+      "acceptance": "SN身份、最新发货及当前项目归属分别核对；多项目竞争、较新归属或已删除主档冲突阻断，不按任务先后抢占SN。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-equipment-association-repair-decision.md"
+      ],
+      "existingExecutionHold": true,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P31",
+      "name": "项目成员历史与获准授权",
+      "businessOwners": [
+        "PROJ",
+        "SYSTEM"
+      ],
+      "source": "pm_project_member：已批准账号成员角色，与P32历史联系人分批承接",
+      "targetTables": [
+        "proj_project_member_assignment"
+      ],
+      "dependencies": [
+        "P04",
+        "P05",
+        "P06",
+        "P07",
+        "P17"
+      ],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "把已批准34列及迁移Owner接为整表参数化任务；历史保存与有效授权、主责变更分别核验。原10项目的主责裁决不能扩展为全历史。与P32共用PROJ成员Owner，来源角色筛选互斥、同项目串行，不把原角色60归入账号授权批次。",
+      "acceptance": "原人员、联系方式、来源、区间和审计完整；每条当前授权经资格核验；未关联/不合格只作历史，其他角色及重复区间不猜配。",
+      "ruleDocuments": [
+        "2026-10-11-dppms-project-member-table-decision.md",
+        "2026-10-11-dppms-project-member-owner-conflicts.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P32",
+      "name": "历史最终客户联系人作为项目成员",
+      "businessOwners": [
+        "PROJ"
+      ],
+      "source": "pm_project_member：memberRole=60，按原项目身份关联",
+      "targetTables": [
+        "proj_project_member_assignment"
+      ],
+      "dependencies": [
+        "P04",
+        "P17"
+      ],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "按2026-10-14用户裁决，通过P17原项目身份归入项目成员历史，复用现成员表34列及PROJ成员Owner；不依赖准确最终客户、FINAL_CUSTOMER相关方或CUS联系人主档，不写cus_project_customer_contact_relation。保留原姓名、人员编码、电话、邮箱、登记来源、有效期和审计；原角色60保留历史最终客户联系人的含义，不改成经理、销售或普通账号成员角色。采用既有authorization_confirmed=false，无法精确关联账号时user_id保持NULL。现有成员迁入仍排除角色60、旧联系人入口仍强制最终客户相关方，须补成员历史承接、显示及统一任务入口；P04仅用于既定审计人员核对，不要求这些联系人具备账号。",
+      "acceptance": "逐原15字段与项目来源绑定核对；缺最终客户或联系人账号仍能保存和查询成员历史。原NULL操作者和有效区间保持，更新时间沿既定规则使用原更新时间、缺失时取原创建时间、二者均空保持NULL，来源原NULL由既有证据保留。不生成账号、系统角色、当前项目授权、主责或客户联系人完成事实；当前成员与正常业务维护保护保持。与P31来源不重复，重放不重复新增；原库已迁9条CUS联系人及其绑定、回执保留，不在本轮搬移或删除。",
+      "ruleDocuments": [
+        "2026-10-11-dppms-project-member-table-decision.md",
+        "2026-10-12-dppms-final-customer-contact-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P33",
+      "name": "普通安装历史及获准当前位置",
+      "businessOwners": [
+        "IMP",
+        "AST"
+      ],
+      "source": "pm_project_shipment：已批准普通安装范围",
+      "targetTables": [
+        "imp_eng_installation",
+        "ast_device_location",
+        "ast_address",
+        "ast_device"
+      ],
+      "dependencies": [
+        "P04",
+        "P17",
+        "P30"
+      ],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "沿32列安装实体及正式位置Owner补首次迁入任务；旧DppmsInstallationAddressImportService对非空命令已拒绝，现DppmsInstallationRecordMigrationService要求已有安装及完整baseline，不能作为首次创建入口。须接正式安装/地址Owner完成首次创建与快照，再复用已批准的历史状态/区间和位置保护规则。空地址、超长地址另受既有未决约束，串货本轮不迁。",
+      "acceptance": "每条安装的项目、设备、原地址、区间及审计准确；历史承接与当前位置写入分别对账，不覆盖较新位置。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-existing-installation-table-decision.md",
+        "2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P34",
+      "name": "出厂软件版本记录",
+      "businessOwners": [
+        "AST"
+      ],
+      "source": "fb_soft_version",
+      "targetTables": [
+        "ast_device_factory_version_record"
+      ],
+      "dependencies": [
+        "P17",
+        "P28"
+      ],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "沿已批准13列和完整重复保留规则补一次性任务。原表无稳定主键，以冻结来源和同值出现次数保留逐行身份；持续修订/消失处理不启用。",
+      "acceptance": "五原字段及重复次数完整；项目引用仅保留可核实关联，缺当前设备不丢记录；不任选最新、不自动覆盖唯一出厂主档。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-factory-version-record-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P35",
+      "name": "项目软件变更批次",
+      "businessOwners": [
+        "AST",
+        "PROJ"
+      ],
+      "source": "pm_project_soft_change_logs",
+      "targetTables": [
+        "ast_device_software_change_batch"
+      ],
+      "dependencies": [
+        "P04",
+        "P17"
+      ],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "沿正式11列、9原字段和NULL审计规则补整表任务；不携带原6条纠正目标ID。",
+      "acceptance": "批次身份、版本、日期及原审计逐项一致；旧latest/登记时间不生成每台设备升级完成事实。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-software-batch-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P36",
+      "name": "设备软件版本历史",
+      "businessOwners": [
+        "AST",
+        "PLT"
+      ],
+      "source": "pm_project_soft_version",
+      "targetTables": [
+        "ast_device_software_version_record",
+        "plt_entity_extension_value"
+      ],
+      "dependencies": [
+        "P04",
+        "P17",
+        "P35"
+      ],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "沿正式31列、28原字段及8项批准扩展补一次性任务；重建扩展定义引用，logId精确关联P35。正式设备ID仅精确核实，缺失按批准保留SN。",
+      "acceptance": "历史版本、原Bak/Change和审计完整；不使用旧software_observation/network_version_event承接，不刷新当前设备版本。",
+      "ruleDocuments": [
+        "2026-10-10-dppms-software-version-maintenance-table-decision.md",
+        "2026-10-10-dppms-software-existing-record-correction-decision.md",
+        "2026-10-11-dppms-obsolete-software-event-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    },
+    {
+      "key": "P37",
+      "name": "设备许可历史",
+      "businessOwners": [
+        "AST"
+      ],
+      "source": "pm_project_license_info_from_license，受控加密采集",
+      "targetTables": [
+        "ast_device_license_record"
+      ],
+      "dependencies": [],
+      "sourceTaskReferences": [],
+      "preparation": "TASK_ENTRY_MISSING",
+      "configurationWork": "沿16列和专用受控加密Owner补一次性任务；不得用普通原文采集/日志保存licenseCode。生产密钥由部署身份配置并验证恢复；缓存自增ID不用于持续同步。",
+      "acceptance": "8原字段以受控内存核验，秘密只存认证密文；缺设备/合同按批准保持NULL和原业务值；页面不泄露秘密，不激活许可。",
+      "ruleDocuments": [
+        "2026-10-11-dppms-license-record-table-decision.md"
+      ],
+      "existingExecutionHold": false,
+      "runtimeTaskId": null,
+      "enabled": false,
+      "businessWriteAuthorized": false
+    }
+  ],
+  "originalTasksKeptAsEvidence": [
+    {
+      "inventoryNumber": "C02",
+      "originalTaskId": "2101857698189352962",
+      "originalVersion": 5,
+      "name": "发货合同同步",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "历史重复入口，业务由P15/P26至P30收敛；原配置及回执保留"
+    },
+    {
+      "inventoryNumber": "C03",
+      "originalTaskId": "2101875784317583361",
+      "originalVersion": 4,
+      "name": "合同主档生成",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "历史重复入口，业务由P15/P26至P30收敛；原配置及回执保留"
+    },
+    {
+      "inventoryNumber": "C04",
+      "originalTaskId": "2101875784728625154",
+      "originalVersion": 1,
+      "name": "合同装箱单同步",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "历史重复入口，业务由P15/P26至P30收敛；原配置及回执保留"
+    },
+    {
+      "inventoryNumber": "C05",
+      "originalTaskId": "2101875785110306818",
+      "originalVersion": 7,
+      "name": "发货条码同步",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "历史重复入口，业务由P15/P26至P30收敛；原配置及回执保留"
+    },
+    {
+      "inventoryNumber": "C06",
+      "originalTaskId": "2101891886242299906",
+      "originalVersion": 6,
+      "name": "DPPMS 发货合同、主档、装箱单及条码完整同步",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "历史重复入口，业务由P15/P26至P30收敛；原配置及回执保留"
+    },
+    {
+      "inventoryNumber": "C07",
+      "originalTaskId": "2102825819916980226",
+      "originalVersion": 10,
+      "name": "设备序列号同步",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "历史重复入口，业务由P15/P26至P30收敛；原配置及回执保留"
+    },
+    {
+      "inventoryNumber": "C08",
+      "originalTaskId": "2104524842835423234",
+      "originalVersion": 0,
+      "name": "发货条码原样承接",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "历史重复入口，业务由P15/P26至P30收敛；原配置及回执保留"
+    },
+    {
+      "inventoryNumber": "D01",
+      "originalTaskId": "2108545067259985922",
+      "originalVersion": 1,
+      "name": "DPPMS 已裁决557处历史更新人纠正",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "旧目标纠正或绑定清理，不是生产首次迁入任务"
+    },
+    {
+      "inventoryNumber": "D02",
+      "originalTaskId": "2108567804242235394",
+      "originalVersion": 0,
+      "name": "DPPMS 13个角色25处空审计人员纠正（待裁决）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "旧目标纠正或绑定清理，不是生产首次迁入任务"
+    },
+    {
+      "inventoryNumber": "D03",
+      "originalTaskId": "2108799116748152833",
+      "originalVersion": 0,
+      "name": "已裁决发货合同空保修年数纠正",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "旧目标纠正或绑定清理，不是生产首次迁入任务"
+    },
+    {
+      "inventoryNumber": "D04",
+      "originalTaskId": "2109382583085117441",
+      "originalVersion": 3,
+      "name": "DPPMS 已裁决65046条关系审计纠正＋360条明确排除",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "旧目标纠正或绑定清理，不是生产首次迁入任务"
+    },
+    {
+      "inventoryNumber": "D05",
+      "originalTaskId": "2109968221270106114",
+      "originalVersion": 0,
+      "name": "DPPMS 旧01订单行迁移绑定清理",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "旧目标纠正或绑定清理，不是生产首次迁入任务"
+    },
+    {
+      "inventoryNumber": "E01",
+      "originalTaskId": "2101613039156846593",
+      "originalVersion": 0,
+      "name": "DETAIL_ACCEPTANCE_ISOLATED",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    },
+    {
+      "inventoryNumber": "E02",
+      "originalTaskId": "2107037031798468609",
+      "originalVersion": 1,
+      "name": "DPPMS 完整同步专项预览（每来源500条）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    },
+    {
+      "inventoryNumber": "E03",
+      "originalTaskId": "2107040712333811713",
+      "originalVersion": 1,
+      "name": "DPPMS 专项有效主键样本（每来源500条）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    },
+    {
+      "inventoryNumber": "E04",
+      "originalTaskId": "2107041701187117058",
+      "originalVersion": 0,
+      "name": "DPPMS 专项并发样本 CONTRACT（2000条）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    },
+    {
+      "inventoryNumber": "E05",
+      "originalTaskId": "2107041701468135425",
+      "originalVersion": 0,
+      "name": "DPPMS 专项并发样本 PACKAGE（2000条）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    },
+    {
+      "inventoryNumber": "E06",
+      "originalTaskId": "2107041701736570882",
+      "originalVersion": 0,
+      "name": "DPPMS 专项并发样本 DEVICE_SN（2000条）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    },
+    {
+      "inventoryNumber": "E07",
+      "originalTaskId": "2107041701984034818",
+      "originalVersion": 0,
+      "name": "DPPMS 专项并发样本 DEVICE_RELATION（2000条）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    },
+    {
+      "inventoryNumber": "E08",
+      "originalTaskId": "2107046961754501121",
+      "originalVersion": 1,
+      "name": "DPPMS 专项异常保留样本（每来源500条）",
+      "disposition": "KEEP_AS_EVIDENCE",
+      "reason": "验收/抽样任务，保留证据，不进入全量生产清单"
+    }
+  ],
+  "deliveryActivities": [
+    {
+      "key": "R01",
+      "name": "生产环境与数据库基线",
+      "requirement": "确认租户、目标实例、生产已有业务/种子、来源截止时点和备份恢复；新安装与已有库升级分别核对。新验证库建库成功不能证明已有库升级通过；原Flyway差异不得以repair/clean覆盖。"
+    },
+    {
+      "key": "R02",
+      "name": "来源连接与目录依赖",
+      "requirement": "建立DPPMS、CRM只读连接，使用受保护凭据；不迁原验证库自连接。核对公司、全部批准补充部门、岗位/字典、真实执行人和适用数据范围。P03在P04后补关联主管。"
+    },
+    {
+      "key": "R03",
+      "name": "首次迁入配置与正式Owner",
+      "requirement": "将旧恢复/纠正凭据与业务映射分开；重绑连接及当前目标引用，P19/P36按批准定义重绑正式实体扩展。P12移除产品扩展定义、标签匹配及扩展读写依赖。P32接入PROJ历史成员承接，取消最终客户相关方及CUS联系人入口依赖。P11/P15/P26至P29不能把GenericSyncJdbcStore跨域直接写表当成生产Owner入口；补齐P30至P37的任务化。"
+    },
+    {
+      "key": "R04",
+      "name": "完整预览与问题闭合",
+      "requirement": "在匹配生产基线的隔离环境按任务依赖演练；完整来源身份逐项有处置、根分页总量对账。PREVIEW_READY带ISSUE不等于全部可迁，带未解决行的分批范围须明确。来源冲突、目标人工变化、权限/租户、失败回滚和重放按实际改动验证；批准排除与未解决问题分别列清。"
+    },
+    {
+      "key": "R05",
+      "name": "生产批次执行",
+      "requirement": "形成冻结任务版本、来源范围、预计新增/更新/接管实体数量及每层关联清单后，按已批准批次经任务API和领域Owner执行。全部任务默认停用，首次运行手动发起；不复制旧运行、断点或来源绑定，不自动启用定时同步。"
+    },
+    {
+      "key": "R06",
+      "name": "正式页面验收与交接",
+      "requirement": "按项目/合同/设备真实登录操作并重开查询，覆盖授权、当前/历史成员（含P32历史联系人）、主责/联系人、安装、软件及许可；与Owner回执和逐字段对账闭合。发货与续保输入齐备后按批准原规则核对维保计算，既有投影变化单独预览，不直接覆盖。"
+    }
+  ],
+  "notIncludedAsNewMigrationTasks": [
+    {
+      "domain": "view_warranty计算结果",
+      "handling": "不独立迁移；依发货/期限/续保正式输入计算；既有记录和结构保留"
+    },
+    {
+      "domain": "维护记录、串货、工程事件、审批过程",
+      "handling": "按已批准范围暂缓或不迁；不制造办理/完成事实"
+    },
+    {
+      "domain": "回访问卷、周报、通知、指导、监理、ITR、分包报价/付款等",
+      "handling": "原专项暂缓；不因本目录以生产为目标自动纳入"
+    },
+    {
+      "domain": "warranty_info、warranty_change_logs",
+      "handling": "正式承接主体仍待确认，BLOCKED_BY_SPEC；不是已批准丢弃，也不算37项已覆盖"
+    },
+    {
+      "domain": "PM项目组合/父子树及旧合同组模型",
+      "handling": "不从旧组/拆分备注制造新组合或项目树；只按既定关系规则承接"
+    }
+  ]
+}

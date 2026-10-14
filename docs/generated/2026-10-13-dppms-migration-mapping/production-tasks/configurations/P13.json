@@ -1,0 +1,1897 @@
+{
+  "task": {
+    "key": "P13",
+    "name": "CRM执行单",
+    "businessOwners": [
+      "COM"
+    ],
+    "source": "pm_project_property_from_sms及原任务关联SQL",
+    "targetTables": [
+      "com_crm_execution_order"
+    ],
+    "dependencies": [
+      "P01",
+      "P10"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "B01",
+        "originalTaskId": "2101625228492091393",
+        "originalVersion": 11,
+        "originalAdapter": "DPPMS_CRM_EXECUTION_ORDER",
+        "sourceObjects": [
+          "EXECUTION_ORDER"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "沿用用服类型参数、公司码转换及自动分页；原项目ID参数为空表示全量来源。",
+    "acceptance": "根回执合计与分页来源闭合；按业务键/完整来源身份核对，不把最后一页当全量。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-crm-execution-order-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_project_property_from_sms"
+    ],
+    "adapterClass": "DppmsExecutionOrderSyncAdapter",
+    "writerClasses": [
+      "DppmsExecutionOrganizationReferences"
+    ],
+    "businessKey": "租户＋source_system＋execution_no；原id逐条绑定，多来源同业务键必须同值",
+    "genericAssessment": "有专用适配器，写入位于COM模块本身。它负责同业务键来源冲突、组织引用精确解析、所有权及前次结果保护；通用映射的列转换不能代替这些执行单接收规则。",
+    "processing": [
+      "SQL选已批准用服来源及其CRM/SMS属性，不把项目名称当业务键。",
+      "解析公司及市场/办事处等正式组织引用；同执行单多来源值不一致生成问题。",
+      "COM Owner内批量写正式执行单，完整来源与目标变化保护后维护INT绑定。"
+    ],
+    "specialRules": [
+      "同业务键不允许任选第一条；来源原32列与查询辅助列分别列示。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT r.id, r.orderExecNumber, r.dataSource, r.projectCode, r.projectName,\n  r.salesManCode, r.salesManName, r.marketCode, r.marketName, r.systemId, r.systemName,\n  r.expendId, r.expendName, r.industryId, r.industryName, r.officeCode, r.officeName,\n  r.serviceTypeName, r.channelName, r.engineeFee, r.objId, r.applyType, r.corporationCode,\n  r.customerProjectName, r.finalCustomerName, r.agentName, r.majorProjectLevel,\n  r.projectMoney, r.submitTime, r.predBidDate, r.linkmanName, r.linkmanTel,\n  latest.id AS canonicalId, latest.orderExecNumber AS canonical_orderExecNumber,\n  latest.dataSource AS canonical_dataSource, latest.projectCode AS canonical_projectCode,\n  latest.projectName AS canonical_projectName, latest.salesManCode AS canonical_salesManCode,\n  latest.salesManName AS canonical_salesManName, latest.marketCode AS canonical_marketCode,\n  latest.marketName AS canonical_marketName, latest.systemId AS canonical_systemId,\n  latest.systemName AS canonical_systemName, latest.expendId AS canonical_expendId,\n  latest.expendName AS canonical_expendName, latest.industryId AS canonical_industryId,\n  latest.industryName AS canonical_industryName, latest.officeCode AS canonical_officeCode,\n  latest.officeName AS canonical_officeName, latest.serviceTypeName AS canonical_serviceTypeName,\n  latest.channelName AS canonical_channelName, latest.engineeFee AS canonical_engineeFee,\n  latest.objId AS canonical_objId, latest.applyType AS canonical_applyType,\n  latest.corporationCode AS canonical_corporationCode, latest.customerProjectName AS canonical_customerProjectName,\n  latest.finalCustomerName AS canonical_finalCustomerName, latest.agentName AS canonical_agentName,\n  latest.majorProjectLevel AS canonical_majorProjectLevel, latest.projectMoney AS canonical_projectMoney,\n  latest.submitTime AS canonical_submitTime, latest.predBidDate AS canonical_predBidDate,\n  latest.linkmanName AS canonical_linkmanName, latest.linkmanTel AS canonical_linkmanTel\nFROM pm_project_property_from_sms r\nJOIN (\n  SELECT dataSource, orderExecNumber, CAST(dataSource AS BINARY) AS systemKey,\n    CAST(orderExecNumber AS BINARY) AS executionKey, MAX(id) AS canonicalId\n  FROM pm_project_property_from_sms\n  GROUP BY dataSource, orderExecNumber, CAST(dataSource AS BINARY), CAST(orderExecNumber AS BINARY)\n) selected ON selected.dataSource <=> r.dataSource AND selected.orderExecNumber <=> r.orderExecNumber\n  AND selected.systemKey <=> CAST(r.dataSource AS BINARY)\n  AND selected.executionKey <=> CAST(r.orderExecNumber AS BINARY)\nJOIN pm_project_property_from_sms latest ON latest.id=selected.canonicalId\nLEFT JOIN (\n  SELECT MIN(SUBSTRING_INDEX(projectCode,'-',1)) AS projectCode\n  FROM pm_project\n  WHERE (:projectTypes='' OR FIND_IN_SET(projectType,:projectTypes))\n    AND (:projectIds='' OR FIND_IN_SET(projectId,:projectIds))\n  GROUP BY CAST(SUBSTRING_INDEX(projectCode,'-',1) AS BINARY)\n) project_scope ON project_scope.projectCode=r.projectCode\n  AND CAST(project_scope.projectCode AS BINARY)=CAST(r.projectCode AS BINARY)\nWHERE (:projectTypes='' AND :projectIds='') OR project_scope.projectCode IS NOT NULL\n",
+      "table": null,
+      "object": "EXECUTION_ORDER",
+      "columns": [
+        "id",
+        "orderExecNumber",
+        "dataSource",
+        "projectCode",
+        "projectName",
+        "salesManCode",
+        "salesManName",
+        "marketCode",
+        "marketName",
+        "systemId",
+        "systemName",
+        "expendId",
+        "expendName",
+        "industryId",
+        "industryName",
+        "officeCode",
+        "officeName",
+        "serviceTypeName",
+        "channelName",
+        "engineeFee",
+        "objId",
+        "applyType",
+        "corporationCode",
+        "customerProjectName",
+        "finalCustomerName",
+        "agentName",
+        "majorProjectLevel",
+        "projectMoney",
+        "submitTime",
+        "predBidDate",
+        "linkmanName",
+        "linkmanTel",
+        "canonicalId",
+        "canonical_orderExecNumber",
+        "canonical_dataSource",
+        "canonical_projectCode",
+        "canonical_projectName",
+        "canonical_salesManCode",
+        "canonical_salesManName",
+        "canonical_marketCode",
+        "canonical_marketName",
+        "canonical_systemId",
+        "canonical_systemName",
+        "canonical_expendId",
+        "canonical_expendName",
+        "canonical_industryId",
+        "canonical_industryName",
+        "canonical_officeCode",
+        "canonical_officeName",
+        "canonical_serviceTypeName",
+        "canonical_channelName",
+        "canonical_engineeFee",
+        "canonical_objId",
+        "canonical_applyType",
+        "canonical_corporationCode",
+        "canonical_customerProjectName",
+        "canonical_finalCustomerName",
+        "canonical_agentName",
+        "canonical_majorProjectLevel",
+        "canonical_projectMoney",
+        "canonical_submitTime",
+        "canonical_predBidDate",
+        "canonical_linkmanName",
+        "canonical_linkmanTel"
+      ],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "orderExecNumber",
+          "target": "executionNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_orderExecNumber",
+          "target": "canonical_executionNo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataSource",
+          "target": "sourceSystem",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_dataSource",
+          "target": "canonical_sourceSystem",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_projectCode",
+          "target": "canonical_projectCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectName",
+          "target": "projectName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_projectName",
+          "target": "canonical_projectName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "salesManCode",
+          "target": "salesRepCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_salesManCode",
+          "target": "canonical_salesRepCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "salesManName",
+          "target": "salesRepName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_salesManName",
+          "target": "canonical_salesRepName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "marketCode",
+          "target": "marketCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_marketCode",
+          "target": "canonical_marketCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "marketName",
+          "target": "marketName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_marketName",
+          "target": "canonical_marketName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "systemId",
+          "target": "systemSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_systemId",
+          "target": "canonical_systemSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "systemName",
+          "target": "systemName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_systemName",
+          "target": "canonical_systemName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "expendId",
+          "target": "expendSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_expendId",
+          "target": "canonical_expendSourceKey",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "expendName",
+          "target": "expendName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_expendName",
+          "target": "canonical_expendName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "industryId",
+          "target": "industryCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_industryId",
+          "target": "canonical_industryCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "industryName",
+          "target": "industryName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_industryName",
+          "target": "canonical_industryName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "officeCode",
+          "target": "departmentCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_officeCode",
+          "target": "canonical_departmentCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "officeName",
+          "target": "departmentName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_officeName",
+          "target": "canonical_departmentName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "serviceTypeName",
+          "target": "serviceTypeName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_serviceTypeName",
+          "target": "canonical_serviceTypeName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "channelName",
+          "target": "channelName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_channelName",
+          "target": "canonical_channelName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "engineeFee",
+          "target": "engineeringFeeRaw",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_engineeFee",
+          "target": "canonical_engineeringFeeRaw",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "objId",
+          "target": "sourceObjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_objId",
+          "target": "canonical_sourceObjectId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "applyType",
+          "target": "applyType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_applyType",
+          "target": "canonical_applyType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "corporationCode",
+          "target": "companyCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_corporationCode",
+          "target": "canonical_companyCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null
+        },
+        {
+          "source": "customerProjectName",
+          "target": "customerProjectName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_customerProjectName",
+          "target": "canonical_customerProjectName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "finalCustomerName",
+          "target": "finalCustomerName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_finalCustomerName",
+          "target": "canonical_finalCustomerName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "agentName",
+          "target": "agentName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_agentName",
+          "target": "canonical_agentName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "majorProjectLevel",
+          "target": "majorProjectLevel",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_majorProjectLevel",
+          "target": "canonical_majorProjectLevel",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "projectMoney",
+          "target": "projectAmount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_projectMoney",
+          "target": "canonical_projectAmount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "submitTime",
+          "target": "submitTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_submitTime",
+          "target": "canonical_submitTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "predBidDate",
+          "target": "predictedBidTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_predBidDate",
+          "target": "canonical_predictedBidTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "linkmanName",
+          "target": "contactName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_linkmanName",
+          "target": "canonical_contactName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "linkmanTel",
+          "target": "contactPhone",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonical_linkmanTel",
+          "target": "canonical_contactPhone",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "canonicalId",
+          "target": "canonicalSourceId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10",
+        "afterSalesType": "10"
+      },
+      "sourceObject": "pm_project_property_from_sms",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P13-01-EXECUTION_ORDER.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "pm_project",
+        "pm_project_property_from_sms"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "orderExecNumber",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.execution_no",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.project_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "projectName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.project_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "salesManCode",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.sales_rep_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "salesManName",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.sales_rep_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "marketCode",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.market_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "marketName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.market_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "systemId",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.system_source_key",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "systemName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.system_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "expendId",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.expend_source_key",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "expendName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.expend_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "industryId",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.industry_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "industryName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.industry_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "officeCode",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.department_code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "officeName",
+      "sourceType": "varchar(15)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.department_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "serviceTypeName",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.service_type_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "channelName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.channel_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "engineeFee",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.engineering_fee_raw；com_crm_execution_order.engineering_fee",
+      "rule": "完整原文与合法金额分开，非数值不冒充金额",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "objId",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.source_object_id",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "applyType",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.apply_type",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "corporationCode",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.company_code；com_crm_execution_order.company_id",
+      "rule": "同四项显式码转换；NULL保持，未知非空码阻断",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "customerProjectName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.customer_project_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "finalCustomerName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.final_customer_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "agentName",
+      "sourceType": "varchar(500)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.agent_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "projectMoney",
+      "sourceType": "decimal(16,2)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.project_amount",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "submitTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.submit_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "majorProjectLevel",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.major_project_level",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "predBidDate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.predicted_bid_time",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "linkmanName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.contact_name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "linkmanTel",
+      "sourceType": "varchar(64)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.contact_phone",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "pm_project_property_from_sms",
+      "sourceField": "dataSource",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_crm_execution_order.source_system",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_crm_execution_order",
+      "columns": [
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "执行单编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "source_system",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CRM",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源系统",
+          "taskHandling": "pm_project_property_from_sms.dataSource"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "execution_no",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "执行单编号",
+          "taskHandling": "pm_project_property_from_sms.orderExecNumber"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编码",
+          "taskHandling": "pm_project_property_from_sms.projectCode"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "project_name",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目名称",
+          "taskHandling": "pm_project_property_from_sms.projectName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "primary_project_id",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主项目ID",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "sales_rep_code",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "销售代表编码",
+          "taskHandling": "pm_project_property_from_sms.salesManCode"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "sales_rep_name",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "销售代表名称",
+          "taskHandling": "pm_project_property_from_sms.salesManName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "sales_rep_phone",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(300)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "销售代表电话",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "market_code",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部编码",
+          "taskHandling": "pm_project_property_from_sms.marketCode"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "market_name",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部名称",
+          "taskHandling": "pm_project_property_from_sms.marketName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "system_source_key",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部来源键",
+          "taskHandling": "pm_project_property_from_sms.systemId"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "system_code",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部编码",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "system_name",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部名称",
+          "taskHandling": "pm_project_property_from_sms.systemName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "expend_source_key",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部来源键",
+          "taskHandling": "pm_project_property_from_sms.expendId"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "expend_code",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部编码",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "expend_name",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部名称",
+          "taskHandling": "pm_project_property_from_sms.expendName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "industry_code",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业编码",
+          "taskHandling": "pm_project_property_from_sms.industryId"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "industry_name",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业名称",
+          "taskHandling": "pm_project_property_from_sms.industryName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "department_id",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处ID",
+          "taskHandling": "DppmsExecutionOrganizationReferences按正式公司/部门目录精确补关联，未知值不能猜配"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处编码",
+          "taskHandling": "pm_project_property_from_sms.officeCode"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处名称",
+          "taskHandling": "pm_project_property_from_sms.officeName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "service_type_name",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "服务类型名称",
+          "taskHandling": "pm_project_property_from_sms.serviceTypeName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "channel_name",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "渠道名称",
+          "taskHandling": "pm_project_property_from_sms.channelName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "engineering_fee_raw",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "工程费用原始",
+          "taskHandling": "pm_project_property_from_sms.engineeFee"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "engineering_fee",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "decimal(20,4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "工程费用",
+          "taskHandling": "原engineeringFeeRaw去千分位逗号并精确解析DECIMAL；最多4位小数、16位整数，格式/精度不符阻断，原文本另存"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "source_object_id",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源对象ID",
+          "taskHandling": "pm_project_property_from_sms.objId"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "apply_type",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "申请类型编码",
+          "taskHandling": "pm_project_property_from_sms.applyType"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司ID",
+          "taskHandling": "DppmsExecutionOrganizationReferences按正式公司/部门目录精确补关联，未知值不能猜配"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司编码",
+          "taskHandling": "pm_project_property_from_sms.corporationCode"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "公司名称",
+          "taskHandling": "DppmsExecutionOrganizationReferences按正式公司/部门目录精确补关联，未知值不能猜配"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "customer_project_name",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户项目名称",
+          "taskHandling": "pm_project_property_from_sms.customerProjectName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "final_customer_name",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "最终客户名称",
+          "taskHandling": "pm_project_property_from_sms.finalCustomerName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "agent_name",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "代理商名称",
+          "taskHandling": "pm_project_property_from_sms.agentName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "project_manager_code",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目负责人编码",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "project_manager_name",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目负责人名称",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "decision_path",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "决策路径",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "required_in_date",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "要求入场日期",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "receiver_name",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "收件人名称",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "receiver_contact",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "varchar(300)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "收件人联系人",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "receiver_address",
+          "ORDINAL_POSITION": 42,
+          "COLUMN_TYPE": "varchar(1024)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "收件人地址",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "loan_reason",
+          "ORDINAL_POSITION": 43,
+          "COLUMN_TYPE": "text",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "借用原因",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "project_type",
+          "ORDINAL_POSITION": 44,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目类型编码",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "major_project_level",
+          "ORDINAL_POSITION": 45,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "重大项目级别",
+          "taskHandling": "pm_project_property_from_sms.majorProjectLevel"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "project_amount",
+          "ORDINAL_POSITION": 46,
+          "COLUMN_TYPE": "decimal(20,4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目金额",
+          "taskHandling": "pm_project_property_from_sms.projectMoney"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "af_project_amount",
+          "ORDINAL_POSITION": 47,
+          "COLUMN_TYPE": "decimal(20,4)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "安服项目金额",
+          "taskHandling": "当前迁入payload未提供这些正式业务字段；新增按默认/NULL，已有非来源业务事实由Mapper保护，不从当前29项来源字段猜填"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "submit_time",
+          "ORDINAL_POSITION": 48,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "提交时间",
+          "taskHandling": "pm_project_property_from_sms.submitTime"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "predicted_bid_time",
+          "ORDINAL_POSITION": 49,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "预计中标时间",
+          "taskHandling": "pm_project_property_from_sms.predBidDate"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "contact_name",
+          "ORDINAL_POSITION": 50,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系人名称",
+          "taskHandling": "pm_project_property_from_sms.linkmanName"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "contact_phone",
+          "ORDINAL_POSITION": 51,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系人电话",
+          "taskHandling": "pm_project_property_from_sms.linkmanTel"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "af_evidence_status",
+          "ORDINAL_POSITION": 52,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "UNKNOWN",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "安服证据状态：CONFIRMED已确认，UNKNOWN未知",
+          "taskHandling": "新增转换初始化UNKNOWN，不推断AF证据已齐备"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 53,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "写入时LocalDateTime.now，属于同步时间，不是来源业务日期"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 54,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "状态",
+          "taskHandling": "新增ACTIVE；已有执行单保持原status及af_evidence_status，不把迁入当作AF证据完成"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 55,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 56,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 57,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 58,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 59,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 60,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "department_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "department_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_company_office_code",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 5,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "primary_project_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_source_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_source_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "project_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "idx_crm_execution_source_project",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "execution_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "uk_crm_execution",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "uk_crm_execution",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "uk_crm_execution",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "execution_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "uk_crm_execution_order_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_crm_execution_order",
+          "INDEX_NAME": "uk_crm_execution_order_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/sync/DppmsExecutionOrderSyncAdapter.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/service/migration/DppmsExecutionOrganizationReferences.java",
+    "pms-module-commerce/src/main/java/cn/iocoder/yudao/module/pms/commerce/dal/mysql/executionorder/CrmExecutionOrderMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/organization/ManagedOrganizationApi.java",
+    "pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_CRM_EXECUTION_ORDER",
+    "maxRows": 2000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": true,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "SNAPSHOT",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_CRM_EXECUTION_ORDER",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "pm_project"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/CrmExecutionOrderMapper.xml"
+  ]
+}

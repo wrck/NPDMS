@@ -17,6 +17,7 @@ import static cn.iocoder.yudao.module.pms.integration.sync.DppmsProjectContractR
 
 @Component @RequiredArgsConstructor
 public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter {
+    record RestorationProof(Long retiredBindingId,Long creationRunId,Long lastRunId,Relation withdrawnBefore) {}
     private final ProjectContractRelationMigrationApi relations;
     private final SystemUserMigrationApi users;
     private final SyncTaskService tasks;
@@ -25,8 +26,9 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
     private final DppmsProjectBindingApi projectBindings;
     @Override public boolean supportsStreaming() { return true; }
     @Override public boolean requiresAllBindings() { return false; }
+    @Override public boolean restoresSourceBindings() { return true; }
     @Override public Descriptor descriptor() {
-        var columns=new ArrayList<>(columns());columns.addAll(List.of(DUPLICATE_GROUP_SIZE,"expectedProjectVersion","contractId","reviewedBefore","migrationDecision"));
+        var columns=new ArrayList<>(columns());columns.addAll(List.of(DUPLICATE_GROUP_SIZE,"expectedProjectVersion","contractId","reviewedBefore","migrationDecision","migrationRestoration"));
         columns.addAll(STREAM_COLUMNS);
         columns.addAll(DppmsProjectContractFormalDecision.columns().stream().filter(name->!columns.contains(name)).toList());
         return new Descriptor(ADAPTER,"DPPMS正式项目合同关系",List.of(new ObjectDescriptor(OBJECT,"原合同及完整组桥",
@@ -165,6 +167,16 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                     fail("规范来源绑定缺失或重复");
             }
         }
+        var restorationKeys=included.stream().filter(row->!previous.containsKey(row.sourceKey())
+                && row.fields().get("migrationRestoration")!=null).map(Row::sourceKey).toList();
+        var retired=new HashMap<String,cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO>();
+        if(!restorationKeys.isEmpty()) {
+            var source=definition.sources().stream().filter(item->OBJECT.equals(item.object())).findFirst().orElseThrow();
+            for(var binding:bindings.selectRetiredSourceKeysForUpdate(new SyncQueries.SourceKeys(
+                    tenant,task.getId(),OBJECT,source.sourceObject(),restorationKeys)))
+                if(retired.put(binding.getSourceKey(),binding)!=null) fail("同一来源存在多个撤回绑定");
+        }
+        var receipts=new HashMap<Long,cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO>();
         var entries=new LinkedHashMap<String,Entry>();var originals=new LinkedHashMap<String,Map<String,Object>>();
         var ownerKeys=new LinkedHashMap<String,String>();
         var countedSources=new HashSet<String>();
@@ -180,6 +192,34 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
             if(prior!=null) reviewed=null;
             if(reviewed!=null && !batch.adoptExisting()) fail("具体存量纠正未批准");
             Long targetId=prior==null?reviewed==null?null:reviewed.id():row.targetId();
+            Restoration restoration=null;
+            if(prior==null && f.get("migrationRestoration")!=null) {
+                var proof=JsonUtils.parseObject(JsonUtils.toJsonString(f.get("migrationRestoration")),RestorationProof.class);
+                var old=retired.get(row.sourceKey());
+                if(proof==null || proof.creationRunId()==null || proof.lastRunId()==null || proof.withdrawnBefore()==null
+                        || old==null || !Objects.equals(old.getId(),proof.retiredBindingId())
+                        || !Objects.equals(old.getTargetId(),proof.withdrawnBefore().id())
+                        || !Objects.equals(old.getLastRunId(),proof.lastRunId())) fail("原撤回绑定、目标或成功回执不匹配");
+                for(Long receiptId:List.of(proof.creationRunId(),proof.lastRunId())) {
+                    var receipt=receipts.computeIfAbsent(receiptId,id->runs.selectScoped(new SyncQueries.Id(tenant,id)));
+                    if(receipt==null || !Objects.equals(receipt.getTaskId(),task.getId())
+                            || !Objects.equals(receipt.getTenantId(),tenant) || !Boolean.FALSE.equals(receipt.getPreview())
+                            || !"SUCCESS".equals(receipt.getStatus())) fail("原创建或重放回执无效，禁止恢复");
+                }
+                var summary=JsonUtils.parseMap(receipts.get(proof.creationRunId()).getSummaryJson());
+                if(summary==null || !(summary.get("CREATED") instanceof Number count) || count.longValue()<=0)
+                    fail("缺少原成功创建回执");
+                var saved=JsonUtils.parseMap(old.getFieldsJson());
+                if(saved==null || !sameOriginal(raw,saved.get("originalFields"))) fail("撤回绑定的完整原字段已改变");
+                var selected=formalDecisions.get(row.sourceKey());
+                if(selected!=null && (!saved.containsKey("formalDecision")
+                        || !DppmsProjectContractFormalDecision.sameProof(selected,saved.get("formalDecision"))))
+                    fail("撤回绑定的完整身份归并事实已改变");
+                last=decode(saved.get("relation"));targetId=old.getTargetId();
+                if(last==null || !Objects.equals(last.id(),targetId) || !Objects.equals(last.tenantId(),tenant))
+                    fail("撤回绑定的完整正式前值缺失");
+                restoration=new Restoration(proof.withdrawnBefore());
+            }
             var duplicate=duplicates.get(row.sourceKey());
             var selection=formalDecisions.get(row.sourceKey());
             if(selection!=null && prior!=null && prior.lastFields().containsKey("formalDecision")
@@ -193,12 +233,15 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                     if(!sameOriginal(selection.canonical(),canonical.lastFields().get("originalFields"))
                             || canonical.lastFields().containsKey("formalDecision") && !DppmsProjectContractFormalDecision.sameProof(selection,canonical.lastFields().get("formalDecision")))
                         fail("跨块规范来源或完整身份归并事实已改变");
-                    last=decode(canonical.lastFields().get("relation"));
-                    if(last==null || !Objects.equals(canonical.targetId(),last.id())) fail("跨块规范绑定的完整正式前值缺失");
-                    targetId=canonical.targetId();
+                    var canonicalLast=decode(canonical.lastFields().get("relation"));
+                    if(canonicalLast==null || !Objects.equals(canonical.targetId(),canonicalLast.id())) fail("跨块规范绑定的完整正式前值缺失");
+                    if(restoration!=null) {
+                        if(!Objects.equals(targetId,canonical.targetId()) || !restoration.restored().equals(canonicalLast))
+                            fail("跨块已恢复关系与限定快照不一致");
+                    } else { last=canonicalLast;targetId=canonical.targetId(); }
                 }
             }
-            if(prior==null && f.containsKey("canonicalOriginalId")) {
+            if(prior==null && restoration==null && f.containsKey("canonicalOriginalId")) {
                 var canonical=canonicalBindings.get(DppmsProjectContractDuplicateDecision.canonicalBindingKey(row));
                 if(canonical==null) canonical=canonicalBindings.get(ownerKey);
                 if(canonical!=null) {
@@ -218,15 +261,25 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
                     actor(selection!=null?selection.creator():auditValue(f,"createBy"),actors),created,
                     actor(selection!=null?selection.updater():auditValue(f,"updateBy"),actors),updated,false);
             var entry=new Entry(ownerKey,targetId,last,reviewed,incoming,projectKey,projectReferences.get(projectKey).projectCode(),
-                    targetReference.projectVersion(),text(f.get("contractNo")),task.getConnectionId());
+                    targetReference.projectVersion(),text(f.get("contractNo")),task.getConnectionId(),restoration);
             var previousEntry=entries.putIfAbsent(ownerKey,entry);
-            if(previousEntry!=null && !previousEntry.equals(entry)) fail("获批重复记录的完整目标保护或绑定不一致");
+            if(previousEntry!=null && !previousEntry.equals(entry)) {
+                if(previousEntry.restoration()!=null && restoration!=null
+                        || !restoredEntry(previousEntry).equals(restoredEntry(entry))) fail("获批重复记录的完整目标保护或绑定不一致");
+                if(restoration!=null) entries.put(ownerKey,entry);
+            }
             ownerKeys.put(row.sourceKey(),ownerKey);
         }
         var request=new Request(tenant,SyncFieldMapper.primaryKey(run.getCreator()),batch.owner(),List.copyOf(entries.values()),batch.adoptExisting());
         var results=entries.isEmpty()?List.<Result>of():apply?relations.apply(request):relations.preview(request);
         if(results.size()!=entries.size() || !new HashSet<>(results.stream().map(Result::sourceKey).toList()).equals(entries.keySet())) fail("COM回执数量或来源身份不一致");
         var byKey=new HashMap<String,Result>();results.forEach(result->byKey.put(result.sourceKey(),result));
+        if(apply) for(var item:retired.entrySet()) {
+            var result=byKey.get(ownerKeys.get(item.getKey()));
+            if(result==null || !Set.of("UPDATED","UNCHANGED").contains(result.action()) || result.after()==null
+                    || !Objects.equals(result.after().id(),item.getValue().getTargetId())
+                    || bindings.restoreVerifiedBinding(item.getValue())!=1) fail("已核验来源绑定恢复冲突，当前块回滚");
+        }
         var changes=new HashMap<String,Change>(skipped);
         for(var item:ownerKeys.entrySet()) {
             var result=byKey.get(item.getValue());var duplicate=duplicates.get(item.getKey());
@@ -257,6 +310,11 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
             changes.put(item.getKey(),new Change(OBJECT,item.getKey(),result.after().id(),result.action(),encode(result.before()),after,message));
         }
         return batch.rows().stream().map(row->changes.get(row.sourceKey())).toList();
+    }
+    private static Entry restoredEntry(Entry entry) {
+        return entry.restoration()==null?entry:new Entry(entry.sourceKey(),entry.targetId(),entry.restoration().restored(),
+                entry.reviewedBefore(),entry.incoming(),entry.sourceProjectKey(),entry.sourceProjectCode(),
+                entry.expectedProjectVersion(),entry.contractNo(),entry.sourceConnectionId());
     }
     private static boolean approvedHistorical(Row row) {
         var f=row.fields();

@@ -1,0 +1,929 @@
+{
+  "task": {
+    "key": "P03",
+    "name": "八个EHR补充部门及主管补关联",
+    "businessOwners": [
+      "SYSTEM"
+    ],
+    "source": "ehr_department，精确参考 fnd_department 和原主管账号",
+    "targetTables": [
+      "system_dept"
+    ],
+    "dependencies": [
+      "P01",
+      "P02"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "A02",
+        "originalTaskId": "2108538095265562625",
+        "originalVersion": 0,
+        "originalAdapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+        "sourceObjects": [
+          "ehr_department"
+        ]
+      }
+    ],
+    "preparation": "REUSE_AND_REVALIDATE",
+    "configurationWork": "保留8码及各自主来源规则。先创建部门，主管未绑定时保留待关联；P04完成后在同任务重跑主管补关联。",
+    "acceptance": "8项齐全，主管只按正式用户来源绑定解析；重跑不改已有历史审计或生成新授权。",
+    "ruleDocuments": [
+      "2026-10-09-dppms-system-dept-eight-missing-table-decision.md"
+    ],
+    "existingExecutionHold": false,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "ehr_department"
+    ],
+    "adapterClass": "DppmsEhrDepartmentCompletionAdapter",
+    "writerClasses": [
+      "SystemDepartmentMigrationApi",
+      "SystemUserMigrationApi"
+    ],
+    "businessKey": "租户＋已批准8个EHR部门编码",
+    "genericAssessment": "有专用适配器。8码有EHR/FND主来源差异，并需先建部门、账号迁入后再补主管；它仍用统一任务机制，专用部分负责目录Owner、身份核对和同任务补关联。",
+    "processing": [
+      "保留8码精确范围和逐码主来源，不扩大全EHR部门。",
+      "先按来源父级/启停/审计建立部门，主管尚未有精确用户绑定时保持待关联。",
+      "P04完成后在原任务重跑，只由Owner核实主管绑定，不由姓名猜账号。"
+    ],
+    "specialRules": [
+      "本8码已明确不迁的EHR字段继续列明；旧清单中3/8、8/8等是非空统计，不是目标列。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT d.depID,d.depCode,d.depName,d.depAbbr,d.compID,d.adminID,d.depGrade,d.depType,d.depProperty,d.depCost,d.director,d.director2,d.depEmp,d.depNum,d.effectDate,d.xOrder,CAST(d.isDisabled AS UNSIGNED) AS isDisabled,d.disabledDate,d.remark,d.depCustom1,d.depCustom2,d.depCustom3,d.depCustom4,d.depCustom5,f.id AS migrationFnd_id,f.departmentNum AS migrationFnd_departmentNum,f.departmentName AS migrationFnd_departmentName,f.isparam AS migrationFnd_isparam,f.status AS migrationFnd_status,f.createTime AS migrationFnd_createTime,f.effectiveFrom AS migrationFnd_effectiveFrom,f.effectiveTo AS migrationFnd_effectiveTo,f.updateTime AS migrationFnd_updateTime,p.depCode AS migrationParentCode,l.loginCount AS migrationDirectorLoginCount,l.account AS migrationDirectorAccount,fu.matchCount AS migrationDirectorFndCount,fu.id AS migrationDirectorFndId,tu.matchCount AS migrationDirectorTCount,tu.id AS migrationDirectorTId FROM ehr_department d LEFT JOIN fnd_department f ON CAST(f.departmentNum AS BINARY)=CAST(d.depCode AS BINARY) LEFT JOIN ehr_department p ON p.depID=d.adminID LEFT JOIN (SELECT empID,COUNT(*) AS loginCount,MIN(account) AS account FROM ehr_login GROUP BY empID) l ON l.empID=d.director LEFT JOIN (SELECT username,COUNT(*) AS matchCount,MIN(id) AS id FROM fnd_user_info GROUP BY username) fu ON CAST(fu.username AS BINARY)=CAST(l.account AS BINARY) LEFT JOIN (SELECT user_name,COUNT(*) AS matchCount,MIN(user_id) AS id FROM t_user GROUP BY user_name) tu ON CAST(tu.user_name AS BINARY)=CAST(l.account AS BINARY) WHERE d.depCode IN (:departmentCode0,:departmentCode1,:departmentCode2,:departmentCode3,:departmentCode4,:departmentCode5,:departmentCode6,:departmentCode7)",
+      "table": null,
+      "object": "ehr_department",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "depID",
+          "target": "depID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCode",
+          "target": "depCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depName",
+          "target": "depName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depAbbr",
+          "target": "depAbbr",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "compID",
+          "target": "compID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "adminID",
+          "target": "adminID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depGrade",
+          "target": "depGrade",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depType",
+          "target": "depType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depProperty",
+          "target": "depProperty",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCost",
+          "target": "depCost",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "director",
+          "target": "director",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "director2",
+          "target": "director2",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depEmp",
+          "target": "depEmp",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depNum",
+          "target": "depNum",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectDate",
+          "target": "effectDate",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "xOrder",
+          "target": "xOrder",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "isDisabled",
+          "target": "isDisabled",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "disabledDate",
+          "target": "disabledDate",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "remark",
+          "target": "remark",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom1",
+          "target": "depCustom1",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom2",
+          "target": "depCustom2",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom3",
+          "target": "depCustom3",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom4",
+          "target": "depCustom4",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom5",
+          "target": "depCustom5",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_id",
+          "target": "migrationFnd_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_departmentNum",
+          "target": "migrationFnd_departmentNum",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_departmentName",
+          "target": "migrationFnd_departmentName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_isparam",
+          "target": "migrationFnd_isparam",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_status",
+          "target": "migrationFnd_status",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_createTime",
+          "target": "migrationFnd_createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_effectiveFrom",
+          "target": "migrationFnd_effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_effectiveTo",
+          "target": "migrationFnd_effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_updateTime",
+          "target": "migrationFnd_updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationParentCode",
+          "target": "migrationParentCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorLoginCount",
+          "target": "migrationDirectorLoginCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorAccount",
+          "target": "migrationDirectorAccount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorFndCount",
+          "target": "migrationDirectorFndCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorFndId",
+          "target": "migrationDirectorFndId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorTCount",
+          "target": "migrationDirectorTCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorTId",
+          "target": "migrationDirectorTId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "depID",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {
+        "departmentCode0": "167010",
+        "departmentCode1": "167020",
+        "departmentCode2": "167050",
+        "departmentCode3": "162007003",
+        "departmentCode4": "162012003",
+        "departmentCode5": "162022003",
+        "departmentCode6": "310409001",
+        "departmentCode7": "310422001"
+      },
+      "sourceObject": "ehr_department",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryFile": "sql/P03-01-ehr_department.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "ehr_department",
+        "ehr_login",
+        "fnd_department",
+        "fnd_user_info",
+        "t_user",
+        "Account"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depID",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "int_sync_binding / plt_migration_*（技术追溯）",
+      "rule": "原技术ID用于既有INT/PLT来源绑定，不覆盖正式主键；技术追溯不计为业务字段承接",
+      "fieldStatus": "技术身份"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCode",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "system_dept.code",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depName",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "system_dept.name",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depAbbr",
+      "sourceType": "varchar(100)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "compID",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "adminID",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_dept.parent_id",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depGrade",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depType",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depProperty",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】本8项全NULL；无可承接业务值，不新增字段。全历史出现非空需重新裁决。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCost",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "director",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "system_dept.leader_user_id",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "director2",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depEmp",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depNum",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】本8项全NULL，原部门人数无业务值。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "effectDate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "xOrder",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】本8项全NULL，不编造排序；正式sort建议0。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "isDisabled",
+      "sourceType": "bit(1)",
+      "nullable": "YES",
+      "target": "system_dept.status",
+      "rule": "同义业务值按本任务转换/Owner规则承接；按正式Owner及租户、权限、并发和来源保护处理",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "disabledDate",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "remark",
+      "sourceType": "varchar(500)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】本8项全NULL，既有正式表无备注列，不新增。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom1",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】本8项全NULL；无业务值。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom2",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom3",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】本8项全NULL；无业务值。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom4",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】既有16列无同义字段，用户不增列且不用扩展；已获用户确认不迁入；原因逐列登记。原值只保留来源核对证据，明确不计为业务承接。",
+      "fieldStatus": "业务字段/正式关系"
+    },
+    {
+      "sourceTable": "ehr_department",
+      "sourceField": "depCustom5",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "不迁入正式业务字段",
+      "rule": "原清单该格为非空统计，已校正为处理结果；【已批准不迁入】本8项全NULL；无业务值。",
+      "fieldStatus": "业务字段/正式关系"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "system_dept",
+      "columns": [
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "部门id",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "code",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "统一部门编码",
+          "taskHandling": "ehr_department.depCode"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "name",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "varchar(30)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "部门名称",
+          "taskHandling": "ehr_department.depName"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "parent_id",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "父部门id",
+          "taskHandling": "ehr_department.adminID"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "sort",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "int",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "显示顺序",
+          "taskHandling": "SystemDepartmentMigrationApi新增固定0；既有部门保持原值"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "leader_user_id",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "负责人",
+          "taskHandling": "ehr_department.director"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "phone",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(11)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "联系电话",
+          "taskHandling": "部门迁入Owner新增NULL，既有值保持；原人员联系方式不当作部门联系方式"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "email",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(50)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "邮箱",
+          "taskHandling": "部门迁入Owner新增NULL，既有值保持；原人员联系方式不当作部门联系方式"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "部门状态（0正常 1停用）",
+          "taskHandling": "ehr_department.isDisabled"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建者",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": "",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新者",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "datetime",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "有原审计映射时按逐字段规则显式承接；否则正常Owner审计；不得把原NULL自动填管理员"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "bit(1)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "b'0'",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "是否删除",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户编号",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "uk_system_dept_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "uk_system_dept_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "system_dept",
+          "INDEX_NAME": "uk_system_dept_code",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "deleted",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsEhrDepartmentCompletionAdapter.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemDepartmentMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemDepartmentMigrationApiImpl.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApi.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/api/migration/SystemUserMigrationApiImpl.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/dept/DepartmentMigrationMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/user/UserMigrationMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/dal/mysql/dept/UserPostMapper.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/tenant/TenantService.java",
+    "yudao-module-system/src/main/java/cn/iocoder/yudao/module/system/service/oauth2/OAuth2TokenService.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncRunMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/SyncBindingMapper.java",
+    "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml",
+    "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+    "maxRows": 10000,
+    "taskKey": null,
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 1000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "SNAPSHOT",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "RESTART_ALL",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 0,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "Account",
+    "ehr_login",
+    "fnd_department",
+    "fnd_user_info",
+    "t_user"
+  ],
+  "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
+  "ownerSqlFiles": [
+    "owner-sql/DepartmentMigrationMapper.xml",
+    "owner-sql/UserMigrationMapper.xml"
+  ]
+}

@@ -59,6 +59,23 @@ class DppmsProductScopeMapperMySqlTest {
         assertTrue(ids("selectAssociatedLines",new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"OTHER","SO064298","1","01100518")).isEmpty());
         assertTrue(ids("selectAssociatedLines",new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"31220230224A04","SO064298","1","OTHER")).isEmpty());
     }
+    @Test void indexedMatchingStillRejectsCaseAndTrailingSpaceDifferences() throws Exception {
+        for(String method:List.of("selectAssociatedLines","lockAssociatedLines")) {
+            for(var query:List.of(
+                    new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"31220230224A04","so064298","1","01100518"),
+                    new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"31220230224A04","SO064298 ","1","01100518"),
+                    new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"31220230224A04","SO064298","1 ","01100518"),
+                    new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"31220230224A04","SO064298","1","01100518 ")))
+                assertTrue(ids(method,query).isEmpty(),method+":"+query);
+        }
+        try(var sql=db.prepareStatement("UPDATE com_sales_order_line SET product_code='Pn-Alpha' WHERE id=?")) {
+            sql.setLong(1,lineId);assertEquals(1,sql.executeUpdate());
+        }
+        for(String method:List.of("selectAssociatedLines","lockAssociatedLines")) {
+            assertEquals(List.of(lineId),ids(method,new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"31220230224A04","SO064298","1","Pn-Alpha")));
+            assertTrue(ids(method,new DppmsProductScopeMapper.OrderLineQuery(1L,992203060198L,"31220230224A04","SO064298","1","PN-ALPHA")).isEmpty());
+        }
+    }
     DeliveryScopeDO row(long id,String evidence) {
         var row=new DeliveryScopeDO();row.setId(id);row.setTenantId(1L);row.setProjectId(992203060198L);row.setProjectCode("P");
         row.setOrderLineId(lineId);row.setOrderSourceSystem("D365");row.setOrderCompanyCode("001");row.setOrderType("0");row.setOrderNo("SO064298");row.setLineNo("1");

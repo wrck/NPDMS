@@ -1,0 +1,3 @@
+-- P05 / FND_ROLE | 原任务 2108554583850524673 v0
+-- EXACT_SAVED_SQL；只读整理，未执行；当前参数和完整业务映射见对应task JSON。
+SELECT r.*, 100+r.id AS migrationSort, COALESCE(r.updateTime,r.createTime) AS migrationVersion, (SELECT CASE WHEN COUNT(*)=1 THEN MAX(u.id) ELSE NULL END FROM fnd_user_info u WHERE u.username=r.createBy AND NOT (u.username='c00733' AND u.id=233) AND NOT (u.username='w02459' AND u.id=118)) AS creatorSourceKey, (SELECT CASE WHEN COUNT(*)=1 THEN MAX(u.id) ELSE NULL END FROM fnd_user_info u WHERE u.username=r.updateBy AND NOT (u.username='c00733' AND u.id=233) AND NOT (u.username='w02459' AND u.id=118)) AS updaterSourceKey FROM fnd_roles r WHERE r.status<>0 OR r.status IS NULL;

@@ -1,0 +1,49 @@
+# 当前正式Owner SQL证据
+
+本目录为当前工作树Mapper XML的只读文档副本。原SQL、动态条件、参数和锁保持；禁止脱离Owner事务直接执行其中写入。普通MyBatis-Plus实体写入及通用引擎动态SQL见每项代码链接。
+
+| 文件 | 所属任务 | 代码来源 |
+| --- | --- | --- |
+| [ManagedOrganizationMapper.xml](ManagedOrganizationMapper.xml) | P01 | [ManagedOrganizationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml) |
+| [DepartmentMigrationMapper.xml](DepartmentMigrationMapper.xml) | P02、P03 | [DepartmentMigrationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml) |
+| [UserMigrationMapper.xml](UserMigrationMapper.xml) | P03、P04 | [UserMigrationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml) |
+| [RoleMigrationMapper.xml](RoleMigrationMapper.xml) | P05 | [RoleMigrationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/permission/RoleMigrationMapper.xml) |
+| [UserRoleMigrationMapper.xml](UserRoleMigrationMapper.xml) | P06 | [UserRoleMigrationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/permission/UserRoleMigrationMapper.xml) |
+| [UserScopeMigrationMapper.xml](UserScopeMigrationMapper.xml) | P07 | [UserScopeMigrationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/permission/UserScopeMigrationMapper.xml) |
+| [DictionaryTypeMigrationMapper.xml](DictionaryTypeMigrationMapper.xml) | P08 | [DictionaryTypeMigrationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml) |
+| [DictionaryDataMigrationMapper.xml](DictionaryDataMigrationMapper.xml) | P09 | [DictionaryDataMigrationMapper.xml](../../../../../yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml) |
+| [CustomerMasterMapper.xml](CustomerMasterMapper.xml) | P10 | [CustomerMasterMapper.xml](../../../../../pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml) |
+| [AssetProductOfficialMapper.xml](AssetProductOfficialMapper.xml) | P12 | [AssetProductOfficialMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/product/AssetProductOfficialMapper.xml) |
+| [CrmExecutionOrderMapper.xml](CrmExecutionOrderMapper.xml) | P13 | [CrmExecutionOrderMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml) |
+| [ErpOrderSyncMapper.xml](ErpOrderSyncMapper.xml) | P14 | [ErpOrderSyncMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/order/ErpOrderSyncMapper.xml) |
+| [DppmsOrderFieldCarryMapper.xml](DppmsOrderFieldCarryMapper.xml) | P14 | [DppmsOrderFieldCarryMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/migration/DppmsOrderFieldCarryMapper.xml) |
+| [DppmsOrderLineFieldCarryMapper.xml](DppmsOrderLineFieldCarryMapper.xml) | P14 | [DppmsOrderLineFieldCarryMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/migration/DppmsOrderLineFieldCarryMapper.xml) |
+| [SalesOrderAuthorityMapper.xml](SalesOrderAuthorityMapper.xml) | P14 | [SalesOrderAuthorityMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/authority/SalesOrderAuthorityMapper.xml) |
+| [OrderLineAuthorityMapper.xml](OrderLineAuthorityMapper.xml) | P14 | [OrderLineAuthorityMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/authority/OrderLineAuthorityMapper.xml) |
+| [ProjectMasterMigrationMapper.xml](ProjectMasterMigrationMapper.xml) | P16 | [ProjectMasterMigrationMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml) |
+| [ProjectPartyMapper.xml](ProjectPartyMapper.xml) | P16、P19 | [ProjectPartyMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml) |
+| [ProjectMasterMapper.xml](ProjectMasterMapper.xml) | P16、P31 | [ProjectMasterMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml) |
+| [SyncBindingMapper.xml](SyncBindingMapper.xml) | P17 | [SyncBindingMapper.xml](../../../../../pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml) |
+| [ProjectContractRelationMigrationMapper.xml](ProjectContractRelationMigrationMapper.xml) | P18 | [ProjectContractRelationMigrationMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/migration/ProjectContractRelationMigrationMapper.xml) |
+| [ContractMapper.xml](ContractMapper.xml) | P18 | [ContractMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/contract/ContractMapper.xml) |
+| [ProjectRealProductMapper.xml](ProjectRealProductMapper.xml) | P20 | [ProjectRealProductMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml) |
+| [ProjectLeaseProductMapper.xml](ProjectLeaseProductMapper.xml) | P21 | [ProjectLeaseProductMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml) |
+| [ProjectProductConfigurationMapper.xml](ProjectProductConfigurationMapper.xml) | P21 | [ProjectProductConfigurationMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml) |
+| [DppmsProductScopeMapper.xml](DppmsProductScopeMapper.xml) | P22 | [DppmsProductScopeMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/migration/DppmsProductScopeMapper.xml) |
+| [DeliveryScopeMapper.xml](DeliveryScopeMapper.xml) | P22 | [DeliveryScopeMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/scope/DeliveryScopeMapper.xml) |
+| [ContractCollectionPlanMapper.xml](ContractCollectionPlanMapper.xml) | P23 | [ContractCollectionPlanMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/migration/ContractCollectionPlanMapper.xml) |
+| [ContractReceivableMigrationMapper.xml](ContractReceivableMigrationMapper.xml) | P24 | [ContractReceivableMigrationMapper.xml](../../../../../pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml) |
+| [DeviceWarrantyRenewalRecordMapper.xml](DeviceWarrantyRenewalRecordMapper.xml) | P25 | [DeviceWarrantyRenewalRecordMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml) |
+| [DeviceSourceRelationshipMapper.xml](DeviceSourceRelationshipMapper.xml) | P29 | [DeviceSourceRelationshipMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/assembly/DeviceSourceRelationshipMapper.xml) |
+| [DeviceMigrationIdentityMapper.xml](DeviceMigrationIdentityMapper.xml) | P30 | [DeviceMigrationIdentityMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml) |
+| [DeviceShipmentMapper.xml](DeviceShipmentMapper.xml) | P30 | [DeviceShipmentMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/shipment/DeviceShipmentMapper.xml) |
+| [DeviceAssignmentMapper.xml](DeviceAssignmentMapper.xml) | P30 | [DeviceAssignmentMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml) |
+| [DeviceOrganizationMapper.xml](DeviceOrganizationMapper.xml) | P30 | [DeviceOrganizationMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/device/DeviceOrganizationMapper.xml) |
+| [ProjectMemberAssignmentMapper.xml](ProjectMemberAssignmentMapper.xml) | P31、P32 | [ProjectMemberAssignmentMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml) |
+| [ProjectMemberHistoryMigrationMapper.xml](ProjectMemberHistoryMigrationMapper.xml) | P31、P32 | [ProjectMemberHistoryMigrationMapper.xml](../../../../../pms-module-project/src/main/resources/mapper/legacydetail/ProjectMemberHistoryMigrationMapper.xml) |
+| [InstallationMapper.xml](InstallationMapper.xml) | P33 | [InstallationMapper.xml](../../../../../pms-module-engineering/src/main/resources/mapper/installation/InstallationMapper.xml) |
+| [DeviceLocationMapper.xml](DeviceLocationMapper.xml) | P33 | [DeviceLocationMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/location/DeviceLocationMapper.xml) |
+| [DeviceFactoryVersionRecordMapper.xml](DeviceFactoryVersionRecordMapper.xml) | P34 | [DeviceFactoryVersionRecordMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml) |
+| [DeviceSoftwareChangeBatchMapper.xml](DeviceSoftwareChangeBatchMapper.xml) | P35 | [DeviceSoftwareChangeBatchMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml) |
+| [DeviceSoftwareVersionRecordMapper.xml](DeviceSoftwareVersionRecordMapper.xml) | P36 | [DeviceSoftwareVersionRecordMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml) |
+| [DeviceLicenseRecordMapper.xml](DeviceLicenseRecordMapper.xml) | P37 | [DeviceLicenseRecordMapper.xml](../../../../../pms-module-asset/src/main/resources/mapper/license/DeviceLicenseRecordMapper.xml) |

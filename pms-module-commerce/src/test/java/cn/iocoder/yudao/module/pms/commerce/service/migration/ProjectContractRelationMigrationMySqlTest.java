@@ -83,6 +83,19 @@ class ProjectContractRelationMigrationMySqlTest {
         assertThrows(RuntimeException.class,()->mapper.insertHistorical(row(88002,11L,null,null,0)));
         assertThrows(RuntimeException.class,()->mapper.insertHistorical(row(88003,null,null,null,0)));
     }
+    @Test void restorationOnlyChangesDeletionAndVersionAndKeepsOriginalAuditOnRollbackAndReplay() {
+        var before=new Relation(88001L,1L,10L,11L,"RELATED","DPPMS","pm_project_contract","100:200",
+                old,null,"HISTORICAL",1,null,old,null,old,true);
+        mapper.insertHistorical(before);session.commit();
+        var after=new cn.iocoder.yudao.module.pms.commerce.api.migration.ProjectContractRelationMigrationApi.Restoration(before).restored();
+        var write=new ProjectContractRelationMigrationMapper.HistoricalWrite(before,after);
+        assertEquals(1,mapper.restoreWithdrawn(write));session.clearCache();assertEquals(after,mapper.selectIdentityForUpdate(identity()));
+        assertEquals(0,mapper.restoreWithdrawn(write));session.rollback();session.clearCache();
+        assertEquals(before,mapper.selectIdentityForUpdate(identity()));
+        var otherTenant=new Relation(before.id(),2L,10L,11L,"RELATED",before.sourceSystem(),before.sourceTable(),before.sourceRecordKey(),
+                old,null,"HISTORICAL",1,null,old,null,old,true);
+        assertEquals(0,mapper.restoreWithdrawn(new ProjectContractRelationMigrationMapper.HistoricalWrite(otherTenant,after)));
+    }
     @Test void rollbackLeavesNoRelationship() {
         mapper.insertHistorical(row(88001,11L,null,null,0));session.rollback();session.clearCache();assertNull(mapper.selectIdentity(identity()));
     }

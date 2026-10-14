@@ -1,0 +1,1575 @@
+{
+  "task": {
+    "key": "P15",
+    "name": "正式合同主档",
+    "businessOwners": [
+      "COM"
+    ],
+    "source": "当前C01/v14的CONTRACT来源：ERP订单分组及已批准合同补充",
+    "targetTables": [
+      "com_contract"
+    ],
+    "dependencies": [
+      "P01",
+      "P10"
+    ],
+    "sourceTaskReferences": [
+      {
+        "inventoryNumber": "C01",
+        "originalTaskId": "2107037031219654657",
+        "originalVersion": 14,
+        "originalAdapter": "TABLE_MAPPING",
+        "sourceObjects": [
+          "CONTRACT"
+        ]
+      }
+    ],
+    "preparation": "OWNER_ENTRY_REQUIRED",
+    "configurationWork": "仅抽出当前组合的CONTRACT段，不能用旧C03/v3成功回执替代。保留两份批准合同和两项客户码特例的精确范围；经COM Owner承接，Q024客户冲突继续阻断。",
+    "acceptance": "合同来源、公司、客户和全部批准字段可追溯；194个缺合同案例按权威来源解决，不从MIN客户号猜配。",
+    "ruleDocuments": [
+      "2026-10-13-dppms-migration-mapping/contract-master-approved-source-mapping.json",
+      "2026-10-14-dppms-full-preview-blocker-repair.md"
+    ],
+    "existingExecutionHold": true,
+    "runtimeTaskId": null,
+    "enabled": false,
+    "businessWriteAuthorized": false
+  },
+  "implementation": {
+    "coreTables": [
+      "pm_order_data_from_erp",
+      "sms_ofst_contract_head_sap"
+    ],
+    "adapterClass": "GenericSyncEngine",
+    "writerClasses": [],
+    "businessKey": "租户＋转换公司码＋contract_no",
+    "genericAssessment": "当前使用通用TABLE_MAPPING:delivery-full-sync的CONTRACT段。分组和合同补充已经在SQL中表达；缺口是生产正式COM Owner接入及未解决客户来源冲突，不是通用任务不能处理多表SQL。",
+    "processing": [
+      "按ERP合同号/公司分组并核实客户，保留migration_issue。",
+      "仅两份批准合同及两项客户码特例按当前参数生效，不扩大到其他合同。",
+      "按配置唯一键和可更新列承接；已有主档权威字段保护，生产写入必须经COM Owner。"
+    ],
+    "specialRules": [
+      "194个旧缺合同中125个客户冲突、69个无ERP分组；这些是原环境发现，不代表新目标相同数量。",
+      "不取MIN客户号消除冲突，不恢复旧C03/v3作为当前来源。"
+    ],
+    "materialQueries": []
+  },
+  "sources": [
+    {
+      "sql": "SELECT master.* FROM (SELECT erp.*,'DPPMS_ERP' AS master_origin,'pm_order_data_from_erp' AS origin_table FROM (SELECT approved.* FROM (SELECT normalized.*,CASE WHEN company_code='01' THEN '001' ELSE company_code END AS normalized_company_code FROM (SELECT e.*,CASE WHEN u.company_code IS NOT NULL THEN r.`currency_name` ELSE NULL END AS `currency_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`currency_name` ELSE NULL END AS `currency_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`contract_money_amount` ELSE NULL END AS `contract_amount`,CASE WHEN u.company_code IS NOT NULL THEN r.`contract_create_date` ELSE NULL END AS `contract_create_time`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`project_name`,r.`project_name`) ELSE NULL END AS `project_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`projectCode` ELSE NULL END AS `project_code`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`marketCode`,r.`marketCode`) ELSE NULL END AS `market_code`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`marketName`,r.`maketing_department_name`) ELSE NULL END AS `market_name`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`office_code`,r.`officeCode`) ELSE NULL END AS `department_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`office_name` ELSE NULL END AS `department_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`industryId` ELSE NULL END AS `industry_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`industry_name` ELSE NULL END AS `industry_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`usernamec` ELSE NULL END AS `marketing_representative_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`marketing_representative_name` ELSE NULL END AS `marketing_representative_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`usernamec2` ELSE NULL END AS `secondary_representative_code`,CASE WHEN u.company_code IS NOT NULL THEN s.`systemName` ELSE NULL END AS `system_name` FROM (SELECT MIN(id) AS id,compCode AS company_code,contractNo AS contract_no,COALESCE(JSON_UNQUOTE(JSON_EXTRACT(:customerCodeOverrides,CONCAT('$.',JSON_QUOTE(contractNo)))),MIN(customerCode)) AS customer_code,MIN(customerName) AS customer_name, CASE WHEN (COUNT(DISTINCT NULLIF(customerCode,''))>1 AND JSON_UNQUOTE(JSON_EXTRACT(:customerCodeOverrides,CONCAT('$.',JSON_QUOTE(contractNo)))) IS NULL) OR COUNT(DISTINCT NULLIF(customerName,''))>1 THEN 'CONTRACT_CUSTOMER_CONFLICT' ELSE NULL END AS migration_issue FROM pm_order_data_from_erp WHERE contractNo IS NOT NULL AND contractNo<>'' AND compCode IS NOT NULL AND compCode<>'' GROUP BY compCode,contractNo) e LEFT JOIN (SELECT contractNo,MIN(compCode) AS company_code FROM pm_order_data_from_erp WHERE compCode IS NOT NULL AND compCode<>'' GROUP BY contractNo HAVING COUNT(DISTINCT compCode)=1) u ON u.contractNo=e.contract_no LEFT JOIN (SELECT contract_num,SUBSTRING(MAX(CASE WHEN `currency_name` IS NOT NULL AND CAST(`currency_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`currency_name` AS CHAR)) END),40) AS `currency_name`,SUBSTRING(MAX(CASE WHEN `contract_money_amount` IS NOT NULL AND CAST(`contract_money_amount` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`contract_money_amount` AS CHAR)) END),40) AS `contract_money_amount`,SUBSTRING(MAX(CASE WHEN `contract_create_date` IS NOT NULL AND CAST(`contract_create_date` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`contract_create_date` AS CHAR)) END),40) AS `contract_create_date`,SUBSTRING(MAX(CASE WHEN `project_name` IS NOT NULL AND CAST(`project_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`project_name` AS CHAR)) END),40) AS `project_name`,SUBSTRING(MAX(CASE WHEN `projectCode` IS NOT NULL AND CAST(`projectCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`projectCode` AS CHAR)) END),40) AS `projectCode`,SUBSTRING(MAX(CASE WHEN `marketCode` IS NOT NULL AND CAST(`marketCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`marketCode` AS CHAR)) END),40) AS `marketCode`,SUBSTRING(MAX(CASE WHEN `maketing_department_name` IS NOT NULL AND CAST(`maketing_department_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`maketing_department_name` AS CHAR)) END),40) AS `maketing_department_name`,SUBSTRING(MAX(CASE WHEN `officeCode` IS NOT NULL AND CAST(`officeCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`officeCode` AS CHAR)) END),40) AS `officeCode`,SUBSTRING(MAX(CASE WHEN `office_name` IS NOT NULL AND CAST(`office_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`office_name` AS CHAR)) END),40) AS `office_name`,SUBSTRING(MAX(CASE WHEN `industryId` IS NOT NULL AND CAST(`industryId` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`industryId` AS CHAR)) END),40) AS `industryId`,SUBSTRING(MAX(CASE WHEN `industry_name` IS NOT NULL AND CAST(`industry_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`industry_name` AS CHAR)) END),40) AS `industry_name`,SUBSTRING(MAX(CASE WHEN `usernamec` IS NOT NULL AND CAST(`usernamec` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`usernamec` AS CHAR)) END),40) AS `usernamec`,SUBSTRING(MAX(CASE WHEN `marketing_representative_name` IS NOT NULL AND CAST(`marketing_representative_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`marketing_representative_name` AS CHAR)) END),40) AS `marketing_representative_name`,SUBSTRING(MAX(CASE WHEN `usernamec2` IS NOT NULL AND CAST(`usernamec2` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`usernamec2` AS CHAR)) END),40) AS `usernamec2` FROM sms_ofst_contract_head_sap GROUP BY contract_num) r ON r.contract_num=e.contract_no LEFT JOIN (SELECT contract_code,SUBSTRING(MAX(CASE WHEN `project_name` IS NOT NULL AND CAST(`project_name` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`project_name` AS CHAR)) END),65) AS `project_name`,SUBSTRING(MAX(CASE WHEN `marketCode` IS NOT NULL AND CAST(`marketCode` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`marketCode` AS CHAR)) END),65) AS `marketCode`,SUBSTRING(MAX(CASE WHEN `marketName` IS NOT NULL AND CAST(`marketName` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`marketName` AS CHAR)) END),65) AS `marketName`,SUBSTRING(MAX(CASE WHEN `office_code` IS NOT NULL AND CAST(`office_code` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`office_code` AS CHAR)) END),65) AS `office_code`,SUBSTRING(MAX(CASE WHEN `systemName` IS NOT NULL AND CAST(`systemName` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`systemName` AS CHAR)) END),65) AS `systemName` FROM fb_contract GROUP BY contract_code) s ON s.contract_code=e.contract_no) normalized) approved WHERE (:contractNos='' OR FIND_IN_SET(approved.contract_no,:contractNos))) erp UNION ALL SELECT CONCAT('PROJECT_CONTRACT|',q.company_code,'|',q.contractNo) AS `id`,q.company_code AS `company_code`,q.contractNo AS `contract_no`,NULL AS `customer_code`,NULL AS `customer_name`,NULL AS `migration_issue`,NULL AS `currency_name`,NULL AS `currency_code`,NULL AS `contract_amount`,NULL AS `contract_create_time`,NULL AS `project_name`,NULL AS `project_code`,NULL AS `market_code`,NULL AS `market_name`,NULL AS `department_code`,NULL AS `department_name`,NULL AS `industry_code`,NULL AS `industry_name`,NULL AS `marketing_representative_code`,NULL AS `marketing_representative_name`,NULL AS `secondary_representative_code`,NULL AS `system_name`,NULL AS `normalized_company_code`,'DPPMS' AS master_origin,'pm_project_contract' AS origin_table FROM (SELECT DISTINCT f.code AS company_code,c.contractNo\nFROM pm_project_contract c\nJOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nJOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nJOIN (SELECT projectCode,projectType,CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS identity_key,MAX(projectId) AS projectId FROM pm_project GROUP BY projectCode,projectType,CAST(projectCode AS BINARY),CAST(projectType AS BINARY)) canonical\n ON canonical.projectType=g.projectType AND canonical.projectCode=REPLACE(m.projectCode,'-his','') AND canonical.identity_key=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))\nJOIN pm_project p ON p.projectId=canonical.projectId\nJOIN fnd_company f ON f.id=p.compId\nWHERE FIND_IN_SET(g.projectType,:projectTypes)\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND FIND_IN_SET(c.contractNo,:approvedContractNos)) q) master JOIN (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m\n JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n JOIN pm_project p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND p.projectId=(SELECT MAX(newer.projectId) FROM pm_project newer\n WHERE newer.projectCode=p.projectCode AND newer.projectType=p.projectType\n AND CAST(newer.projectCode AS BINARY)=CAST(p.projectCode AS BINARY))) project_scope ON project_scope.contractNo=master.contract_no",
+      "table": "pm_order_data_from_erp",
+      "object": "CONTRACT",
+      "columns": [],
+      "filters": [],
+      "targets": [
+        {
+          "keys": [
+            "company_code",
+            "contract_no"
+          ],
+          "mode": "UPSERT",
+          "name": "contract",
+          "table": "com_contract",
+          "lookups": [
+            {
+              "match": {
+                "code": "company_code"
+              },
+              "table": "system_company",
+              "outputs": {
+                "company_id": "id",
+                "company_name": "name"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "newerBy": null,
+          "mappings": [
+            {
+              "source": "company_code",
+              "target": "company_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DPPMS_COMPANY_CODE",
+              "defaultValue": null
+            },
+            {
+              "source": "contract_no",
+              "target": "contract_no",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "customer_code",
+              "target": "customer_code",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "customer_name",
+              "target": "customer_name",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "$SOURCE_KEY",
+              "target": "master_source_record_key",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "master_origin",
+              "target": "master_source_system",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "currency_name",
+              "target": "currency_name",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "currency_code",
+              "target": "currency_code",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "contract_amount",
+              "target": "contract_amount",
+              "values": null,
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null
+            },
+            {
+              "source": "contract_create_time",
+              "target": "contract_create_time",
+              "values": null,
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null
+            },
+            {
+              "source": "project_name",
+              "target": "project_name",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "project_code",
+              "target": "project_code",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "market_code",
+              "target": "market_code",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "market_name",
+              "target": "market_name",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "department_code",
+              "target": "department_code",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "department_name",
+              "target": "department_name",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "industry_code",
+              "target": "industry_code",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "industry_name",
+              "target": "industry_name",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "marketing_representative_code",
+              "target": "marketing_representative_code",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "marketing_representative_name",
+              "target": "marketing_representative_name",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "secondary_representative_code",
+              "target": "secondary_representative_code",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            },
+            {
+              "source": "system_name",
+              "target": "system_name",
+              "values": null,
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null
+            }
+          ],
+          "whenField": null,
+          "nullPolicy": "IGNORE",
+          "tieBreaker": null,
+          "updateColumns": [
+            "currency_name",
+            "contract_amount",
+            "currency_code",
+            "contract_create_time",
+            "project_name",
+            "project_code",
+            "market_code",
+            "market_name",
+            "department_code",
+            "department_name",
+            "industry_code",
+            "industry_name",
+            "marketing_representative_code",
+            "marketing_representative_name",
+            "secondary_representative_code",
+            "system_name"
+          ]
+        }
+      ],
+      "mappings": [],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": "migration_issue",
+      "parameters": {
+        "projectIds": "",
+        "contractNos": "",
+        "projectTypes": "10",
+        "approvedContractNos": "31020181224A12,31020211228A12",
+        "customerCodeOverrides": "{\"31020220620A23\":\"C00013\",\"31120220620A37\":\"C00013\"}"
+      },
+      "sourceObject": "pm_order_data_from_erp",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "sourceKeyColumns": null,
+      "queryFile": "sql/P15-01-CONTRACT.sql",
+      "queryProvenance": "EXACT_SAVED_SQL",
+      "tableFilterParameters": {},
+      "physicalSourceTables": [
+        "fb_contract",
+        "fnd_company",
+        "pm_order_data_from_erp",
+        "pm_project",
+        "pm_project_contract",
+        "pm_project_group",
+        "pm_project_group_relationship",
+        "sms_ofst_contract_head_sap"
+      ],
+      "historicalProofsOmitted": []
+    }
+  ],
+  "originalFieldMappings": [
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "id",
+      "sourceType": "int(11)",
+      "nullable": "NO",
+      "target": "com_contract.master_source_record_key",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderNumber",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "contractNo",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "com_contract.contract_no",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderExecNumber",
+      "sourceType": "varchar(50)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderCreateTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customerRequireTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customerCode",
+      "sourceType": "varchar(55)",
+      "nullable": "YES",
+      "target": "com_contract.customer_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customerName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "com_contract.customer_name",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "projectName",
+      "sourceType": "varchar(255)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderComment",
+      "sourceType": "varchar(2048)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "orderType",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "compCode",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_contract.company_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "salesType",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "source",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "customInfo",
+      "sourceType": "json",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "pm_order_data_from_erp",
+      "sourceField": "syncTime",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "id",
+      "sourceType": "bigint(20)",
+      "nullable": "NO",
+      "target": "来源排序参考，不单独写合同业务列",
+      "rule": "逐字段以update_time＋补零id取最近非空值；原完整回款事实属于P24。",
+      "fieldStatus": "查询归并参考"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "contract_num",
+      "sourceType": "varchar(45)",
+      "nullable": "YES",
+      "target": "com_contract.contract_no",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "batch_code",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "project_name",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "com_contract.project_name",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "order_num",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "client_supplier_code",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "client_supplier_name",
+      "sourceType": "varchar(200)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "contract_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "NO",
+      "target": "com_contract.contract_amount",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "delivered_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "NO",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "collected_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "NO",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "collected_money_ratio",
+      "sourceType": "double",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "receivables_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "over_due_money_amount",
+      "sourceType": "decimal(20,2)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "maketing_department_name",
+      "sourceType": "varchar(40)",
+      "nullable": "YES",
+      "target": "com_contract.market_name",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "office_name",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "com_contract.department_name",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "industry_name",
+      "sourceType": "varchar(40)",
+      "nullable": "YES",
+      "target": "com_contract.industry_name",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "marketing_representative_name",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "com_contract.marketing_representative_name",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "currency_name",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "com_contract.currency_name；com_contract.currency_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "create_by",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "create_time",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "update_by",
+      "sourceType": "varchar(20)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "update_time",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "来源排序参考，不单独写合同业务列",
+      "rule": "逐字段以update_time＋补零id取最近非空值；原完整回款事实属于P24。",
+      "fieldStatus": "查询归并参考"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "effective_from",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "effective_to",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "import_batch_num",
+      "sourceType": "varchar(12)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "contract_create_date",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "com_contract.contract_create_time",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "projectCode",
+      "sourceType": "varchar(80)",
+      "nullable": "YES",
+      "target": "com_contract.project_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "marketCode",
+      "sourceType": "varchar(80)",
+      "nullable": "YES",
+      "target": "com_contract.market_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "systemId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "industryId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "com_contract.industry_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "officeCode",
+      "sourceType": "varchar(80)",
+      "nullable": "YES",
+      "target": "com_contract.department_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "expendId",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "usernamec",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "com_contract.marketing_representative_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "latest_ship_date",
+      "sourceType": "datetime",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "usernamec2",
+      "sourceType": "varchar(10)",
+      "nullable": "YES",
+      "target": "com_contract.secondary_representative_code",
+      "rule": "按当前CONTRACT SQL先归并公司＋合同号；ERP客户冲突必须有批准裁决，补充字段仅单公司归属时按各字段最近非空值取值。fb_contract对项目/市场/办事处有COALESCE优先；完整表达式及更新白名单见本页SQL/配置。",
+      "fieldStatus": "P15当前正式合同映射"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "systemid_o",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "expendid_o",
+      "sourceType": "int(11)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "industry_name_o",
+      "sourceType": "varchar(40)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    },
+    {
+      "sourceTable": "sms_ofst_contract_head_sap",
+      "sourceField": "dataSource",
+      "sourceType": "varchar(25)",
+      "nullable": "YES",
+      "target": "P15不写该字段",
+      "rule": "当前合同SQL未将该原字段输出到合同步骤；订单本体见P14，原回款本体见P24，不能把其他任务目标误记为本任务写入。",
+      "fieldStatus": "其他任务/本任务未迁入"
+    }
+  ],
+  "targetSchemas": [
+    {
+      "table": "com_contract",
+      "columns": [
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "id",
+          "ORDINAL_POSITION": 1,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "PRI",
+          "EXTRA": "auto_increment",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "正式Owner/运行框架生成；原主键仅用来源绑定，不直接覆盖"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "tenant_id",
+          "ORDINAL_POSITION": 2,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "MUL",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "租户ID",
+          "taskHandling": "受控运行租户；Owner校验，不取来源表的任意租户"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "company_id",
+          "ORDINAL_POSITION": 3,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "签约公司ID",
+          "taskHandling": "LOOKUP system_company.id"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "company_code",
+          "ORDINAL_POSITION": 4,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "签约公司编码",
+          "taskHandling": "pm_order_data_from_erp.compCode；CONTRACT.company_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "company_name",
+          "ORDINAL_POSITION": 5,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "签约公司名称",
+          "taskHandling": "LOOKUP system_company.name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_no",
+          "ORDINAL_POSITION": 6,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同编号",
+          "taskHandling": "pm_order_data_from_erp.contractNo；sms_ofst_contract_head_sap.contract_num；CONTRACT.contract_no"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "master_source_system",
+          "ORDINAL_POSITION": 7,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主档来源系统",
+          "taskHandling": "CONTRACT.master_origin"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "master_source_record_key",
+          "ORDINAL_POSITION": 8,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "主档来源记录键",
+          "taskHandling": "pm_order_data_from_erp.id；CONTRACT.$SOURCE_KEY"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "master_source_version",
+          "ORDINAL_POSITION": 9,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_type",
+          "ORDINAL_POSITION": 10,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同类型编码",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "customer_id",
+          "ORDINAL_POSITION": 11,
+          "COLUMN_TYPE": "bigint",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户ID",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "customer_code",
+          "ORDINAL_POSITION": 12,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户编码",
+          "taskHandling": "pm_order_data_from_erp.customerCode；CONTRACT.customer_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "customer_name",
+          "ORDINAL_POSITION": 13,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "客户名称",
+          "taskHandling": "pm_order_data_from_erp.customerName；CONTRACT.customer_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_name",
+          "ORDINAL_POSITION": 14,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同名称",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_amount",
+          "ORDINAL_POSITION": 15,
+          "COLUMN_TYPE": "decimal(20,2)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "sms_ofst_contract_head_sap.contract_money_amount；CONTRACT.contract_amount"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "currency_code",
+          "ORDINAL_POSITION": 16,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "币种编码",
+          "taskHandling": "sms_ofst_contract_head_sap.currency_name；CONTRACT.currency_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "currency_name",
+          "ORDINAL_POSITION": 17,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "币种名称",
+          "taskHandling": "sms_ofst_contract_head_sap.currency_name；CONTRACT.currency_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "contract_create_time",
+          "ORDINAL_POSITION": 18,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "合同创建时间",
+          "taskHandling": "sms_ofst_contract_head_sap.contract_create_date；CONTRACT.contract_create_time"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "authority_status",
+          "ORDINAL_POSITION": 19,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CONFIRMED",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "通用目标目录insertDefault=PENDING_AUTHORITY"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "source_lifecycle_status",
+          "ORDINAL_POSITION": 20,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "通用目标目录insertDefault=NULL"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "effective_date",
+          "ORDINAL_POSITION": 21,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "生效日期",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "expiry_date",
+          "ORDINAL_POSITION": 22,
+          "COLUMN_TYPE": "date",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "失效日期",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "project_name",
+          "ORDINAL_POSITION": 23,
+          "COLUMN_TYPE": "varchar(512)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目名称",
+          "taskHandling": "sms_ofst_contract_head_sap.project_name；CONTRACT.project_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "project_code",
+          "ORDINAL_POSITION": 24,
+          "COLUMN_TYPE": "varchar(80)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "项目编码",
+          "taskHandling": "sms_ofst_contract_head_sap.projectCode；CONTRACT.project_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "market_code",
+          "ORDINAL_POSITION": 25,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部编码",
+          "taskHandling": "sms_ofst_contract_head_sap.marketCode；CONTRACT.market_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "market_name",
+          "ORDINAL_POSITION": 26,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场部名称",
+          "taskHandling": "sms_ofst_contract_head_sap.maketing_department_name；CONTRACT.market_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "department_code",
+          "ORDINAL_POSITION": 27,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处编码",
+          "taskHandling": "sms_ofst_contract_head_sap.officeCode；CONTRACT.department_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "department_name",
+          "ORDINAL_POSITION": 28,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "办事处名称",
+          "taskHandling": "sms_ofst_contract_head_sap.office_name；CONTRACT.department_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "system_code",
+          "ORDINAL_POSITION": 29,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部编码",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "system_name",
+          "ORDINAL_POSITION": 30,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "系统部名称",
+          "taskHandling": "CONTRACT.system_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "expend_code",
+          "ORDINAL_POSITION": 31,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部编码",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "expend_name",
+          "ORDINAL_POSITION": 32,
+          "COLUMN_TYPE": "varchar(255)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "拓展部名称",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "industry_code",
+          "ORDINAL_POSITION": 33,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业编码",
+          "taskHandling": "sms_ofst_contract_head_sap.industryId；CONTRACT.industry_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "industry_name",
+          "ORDINAL_POSITION": 34,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "行业名称",
+          "taskHandling": "sms_ofst_contract_head_sap.industry_name；CONTRACT.industry_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "marketing_representative_code",
+          "ORDINAL_POSITION": 35,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场代表编码",
+          "taskHandling": "sms_ofst_contract_head_sap.usernamec；CONTRACT.marketing_representative_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "marketing_representative_name",
+          "ORDINAL_POSITION": 36,
+          "COLUMN_TYPE": "varchar(128)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "市场代表名称",
+          "taskHandling": "sms_ofst_contract_head_sap.marketing_representative_name；CONTRACT.marketing_representative_name"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "secondary_representative_code",
+          "ORDINAL_POSITION": 37,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "辅助代表编码",
+          "taskHandling": "sms_ofst_contract_head_sap.usernamec2；CONTRACT.secondary_representative_code"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "source_sync_time",
+          "ORDINAL_POSITION": 38,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "来源同步时间",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "source_updated_at",
+          "ORDINAL_POSITION": 39,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "当前通用步骤无映射、LOOKUP或insertDefault；新增按表默认/NULL，更新保持原值，不计为已迁字段"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "status",
+          "ORDINAL_POSITION": 40,
+          "COLUMN_TYPE": "varchar(32)",
+          "IS_NULLABLE": "YES",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "",
+          "taskHandling": "通用目标目录insertDefault=NULL"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "version",
+          "ORDINAL_POSITION": 41,
+          "COLUMN_TYPE": "int unsigned",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "乐观锁版本",
+          "taskHandling": "正式Owner初始化/并发版本；生产不得照搬旧目标版本"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "creator",
+          "ORDINAL_POSITION": 42,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "创建人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "create_time",
+          "ORDINAL_POSITION": 43,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED",
+          "COLUMN_COMMENT": "创建时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "updater",
+          "ORDINAL_POSITION": 44,
+          "COLUMN_TYPE": "varchar(64)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": null,
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "更新人",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "update_time",
+          "ORDINAL_POSITION": 45,
+          "COLUMN_TYPE": "datetime(3)",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "CURRENT_TIMESTAMP(3)",
+          "COLUMN_KEY": "",
+          "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP(3)",
+          "COLUMN_COMMENT": "更新时间",
+          "taskHandling": "当前GenericSyncEngine新增/有变化时使用data_sync与运行时间；这不是原历史审计，生产如需原审计必须通过正式Owner显式承接"
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "COLUMN_NAME": "deleted",
+          "ORDINAL_POSITION": 46,
+          "COLUMN_TYPE": "tinyint",
+          "IS_NULLABLE": "NO",
+          "COLUMN_DEFAULT": "0",
+          "COLUMN_KEY": "",
+          "EXTRA": "",
+          "COLUMN_COMMENT": "删除标志：0否，1是",
+          "taskHandling": "按正式实体删除规则；不自动复活已删除目标"
+        }
+      ],
+      "indexes": [
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_company",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 4,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "customer_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_customer",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "status",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "idx_contract_no",
+          "NON_UNIQUE": 1,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "PRIMARY",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "company_code",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_business",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "contract_no",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_master_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_master_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "master_source_system",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_master_source",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 3,
+          "COLUMN_NAME": "master_source_record_key",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 1,
+          "COLUMN_NAME": "tenant_id",
+          "SUB_PART": null
+        },
+        {
+          "TABLE_NAME": "com_contract",
+          "INDEX_NAME": "uk_contract_tenant_row",
+          "NON_UNIQUE": 0,
+          "SEQ_IN_INDEX": 2,
+          "COLUMN_NAME": "id",
+          "SUB_PART": null
+        }
+      ]
+    }
+  ],
+  "codeEvidence": [
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericSyncEngine.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/GenericSyncJdbcStore.java",
+    "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericTargetCatalog.java"
+  ],
+  "businessWritesAuthorized": false,
+  "runtimeSettings": {
+    "cron": "0 0 2 * * ?",
+    "mode": "ONCE",
+    "adapter": "TABLE_MAPPING",
+    "maxRows": 2000,
+    "taskKey": "delivery-full-sync",
+    "fullCron": "0 0 2 ? * SUN",
+    "maxBytes": 67108864,
+    "chunkSize": 2000,
+    "fetchSize": 2000,
+    "autoPaging": false,
+    "retryCount": 0,
+    "loadingMode": "UPSERT",
+    "readStrategy": "STREAMING_CURSOR",
+    "sourceSystem": "DPPMS",
+    "missingPolicy": "RETAIN",
+    "restartPolicy": "CHECKPOINT_KEY",
+    "overlapSeconds": 0,
+    "clearBeforeLoad": false,
+    "queryTimeoutSeconds": 180,
+    "retryIntervalSeconds": 60,
+    "resetMappingsBeforeLoad": false
+  },
+  "currentConnectionId": "2101561624635936769",
+  "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+  "auxiliaryTargetTables": {},
+  "auxiliaryTargetSchemas": [],
+  "queryReferenceTables": [
+    "fb_contract",
+    "fnd_company",
+    "pm_project",
+    "pm_project_contract",
+    "pm_project_group",
+    "pm_project_group_relationship"
+  ],
+  "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
+  "ownerSqlFiles": []
+}
