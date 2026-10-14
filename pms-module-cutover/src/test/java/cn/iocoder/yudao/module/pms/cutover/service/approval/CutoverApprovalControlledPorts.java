@@ -25,16 +25,16 @@ public final class CutoverApprovalControlledPorts {
                 cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(source));
         if (source.checklistId() == null) sourceNode.putNull("checklistId");
         if (source.checklistVersion() == null) sourceNode.putNull("checklistVersion");
-        var codec = new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec();
-        var snapshot = new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec.ApprovalSourceSnapshot(
+        var codec = new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec();
+        var snapshot = new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot(
                 1, 100L, 5L, source.checklistId(), source.checklistVersion(),
-                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec.ProjectApprovalSnapshot(
+                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.ProjectApprovalSnapshot(
                 10L, 4, "P-001", "Project One", 4001L, "C-001", "Customer One", 5001L, "OFF-01", "Office One", 12L),
-                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec.CollectionAnalysisSnapshot(
+                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.CollectionAnalysisSnapshot(
                 "VERSION_UPGRADE", null, 1788585600000L), List.of(), List.of(),
-                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec.AssessmentApprovalSnapshot(
+                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.AssessmentApprovalSnapshot(
                 600L, 2L, 7001L, "HIGH", "MEDIUM", "LOW", false, "GOLD", grade, 202L, 1788458400000L),
-                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec.PlanApprovalSnapshot(
+                new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.PlanApprovalSnapshot(
                 900L, 1, 2L, sourceNode,
                 cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"editMode\":\"FULL_FILE_UPLOAD\",\"ownershipConfirmed\":true,\"fileArtifactFact\":{\"artifactId\":3301,\"versionNo\":1,\"referenceKey\":\"cut-plan-file\",\"fileFactVersion\":{\"artifactVersion\":1,\"referenceVersion\":1,\"availabilityVersion\":1},\"scopeVersion\":2,\"sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}}")));
         return codec.encode(snapshot);
@@ -75,7 +75,7 @@ public final class CutoverApprovalControlledPorts {
             }
             @Override public List<ActorMembership> inspectActor(ActorQuery query) {
                 if (query.actorId() != 201L && query.actorId() != 202L) return List.of();
-                return java.util.stream.Stream.of("CUT_SECOND_LINE_APPROVER", "CUT_RND_APPROVER", "probSupporter", "probRD")
+                return java.util.stream.Stream.of("probSupporter", "probRD")
                         .map(code -> new ActorMembership(new RoleReference(query.tenantId(), 31L, code),
                                 new Candidate(query.actorId(), 31L, query.actorId() == 201L ? 4L : 5L, query.actorId() == 201L ? 8L : 9L))).toList();
             }

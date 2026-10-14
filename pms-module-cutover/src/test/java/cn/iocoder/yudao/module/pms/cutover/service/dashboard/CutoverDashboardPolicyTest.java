@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.cutover.service.dashboard;
 
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
@@ -8,12 +7,9 @@ import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP2P3A
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP4ActionPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP6ActionPolicy;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort.BatchQuery;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort.CandidateNeed;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardOwnerFactException;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -59,22 +55,6 @@ class CutoverDashboardPolicyTest {
                 candidate(6L, "P6", "CLOSURE_IN_PROGRESS", "A"),
                 ActionFacts.p6("DRAFT", true, true, true), PermissionFacts.p6(true, true, true)))
                 .containsExactly("SAVE_CLOSURE", "REQUEST_COLLECTION", "LINK_MANUAL_RESULT", "SUBMIT_CLOSURE");
-    }
-
-    @Test
-    void controlledPortReturnsWholeNormalBatchInTaskOrder() {
-        CutoverDashboardActionFacts first = new CutoverDashboardActionFacts(10L,
-                ActionFacts.p2p3("DRAFT", true, null, true, true));
-        CutoverDashboardActionFacts second = new CutoverDashboardActionFacts(20L,
-                ActionFacts.p6("DRAFT", true, true, false));
-        ControlledCutoverDashboardActionFactPort port =
-                new ControlledCutoverDashboardActionFactPort(List.of(first, second));
-
-        List<CutoverDashboardActionFacts> result = port.inspectBatch(new BatchQuery(1L, 9L, List.of(
-                new CandidateNeed(10L, 100L, 1L, "P2", 1000L, 1),
-                new CandidateNeed(20L, 200L, 2L, "P6", 2000L, 3))));
-
-        assertThat(result).containsExactly(first, second);
     }
 
     @Test

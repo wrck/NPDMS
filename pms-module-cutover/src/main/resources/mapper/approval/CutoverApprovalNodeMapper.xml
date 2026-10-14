@@ -41,6 +41,19 @@
         <result column="decision_check_time" property="decisionCheckTime"/>
     </resultMap>
 
+    <sql id="currentActorCandidate">
+        (n.current_approver_user_id = #{query.currentUserId}
+         OR (n.approval_mode_code = 'ROLE' AND n.current_approver_user_id IS NULL
+             AND
+             <choose>
+                 <when test="query.candidateRoleIds != null and !query.candidateRoleIds.isEmpty()">
+                     n.candidate_role_id IN
+                     <foreach collection="query.candidateRoleIds" item="roleId" open="(" separator="," close=")">#{roleId}</foreach>
+                 </when>
+                 <otherwise>1 = 0</otherwise>
+             </choose>))
+    </sql>
+    <sql id="individualNode">n.approval_mode_code = 'PERSONAL'</sql>
     <select id="selectByInstanceAndNodeForUpdate"
             resultMap="structuredCutoverApprovalNodeDO">
         SELECT id, tenant_id, approval_instance_id, node_no, node_code, status_code, original_approver_user_id, current_approver_user_id, project_scope_version, assessment_review_decision_code, assessment_review_reason, feedback, decide_time, pending_marker, version, creator, create_time, updater, update_time, deleted, approval_mode_code, candidate_role_id, candidate_role_code, candidate_group_key, qualification_kind_code, qualification_outcome_code, qualification_role_code, qualification_project_version, qualification_participant_fact_version, qualification_required_action_code, qualification_allowed_flag, qualification_check_time, decision_actor_user_id, decision_role_id, decision_membership_version, decision_user_status_version, decision_check_time FROM cut_approval_node
@@ -56,12 +69,15 @@
         FROM cut_approval_node n
         JOIN cut_approval_instance i
           ON i.tenant_id = n.tenant_id AND i.id = n.approval_instance_id AND i.deleted = b'0'
+        JOIN cut_task t ON t.tenant_id = i.tenant_id AND t.id = i.task_id AND t.deleted = b'0'
         WHERE n.tenant_id = #{query.tenantId}
-          AND n.current_approver_user_id = #{query.currentUserId}
+          AND <include refid="currentActorCandidate" />
+          AND n.node_no = i.current_node_no
           AND n.status_code = 'PENDING'
           AND n.deleted = b'0'
           AND i.status_code = 'PENDING'
           AND i.hold_reason_code IS NULL
+          AND i.replacement_approval_instance_id IS NULL
         ORDER BY i.create_time ASC, i.id ASC, n.id ASC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
@@ -71,10 +87,13 @@
         FROM cut_approval_node n
         JOIN cut_approval_instance i
           ON i.tenant_id = n.tenant_id AND i.id = n.approval_instance_id AND i.deleted = b'0'
+        JOIN cut_task t ON t.tenant_id = i.tenant_id AND t.id = i.task_id AND t.deleted = b'0'
         WHERE n.tenant_id = #{query.tenantId}
           AND n.status_code IN ('WAITING','PENDING')
+          AND <include refid="individualNode" />
           AND n.deleted = b'0'
           AND i.status_code = 'PENDING'
+          AND i.replacement_approval_instance_id IS NULL
         ORDER BY i.create_time ASC, i.id ASC, n.node_no ASC, n.id ASC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
@@ -85,16 +104,21 @@
         FROM cut_approval_node n
         JOIN cut_approval_instance i ON i.tenant_id=n.tenant_id AND i.id=n.approval_instance_id AND i.deleted=b'0'
         JOIN cut_task t ON t.tenant_id=i.tenant_id AND t.id=i.task_id AND t.deleted=b'0'
-        WHERE n.tenant_id=#{query.tenantId} AND n.current_approver_user_id=#{query.currentUserId}
+        WHERE n.tenant_id=#{query.tenantId} AND <include refid="currentActorCandidate" />
+          AND n.node_no=i.current_node_no
           AND n.status_code='PENDING' AND n.deleted=b'0' AND i.status_code='PENDING' AND i.hold_reason_code IS NULL
+          AND i.replacement_approval_instance_id IS NULL
         ORDER BY i.create_time ASC, i.id ASC, n.id ASC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
     <select id="countTodos" resultType="java.lang.Long">
         SELECT COUNT(*) FROM cut_approval_node n
         JOIN cut_approval_instance i ON i.tenant_id=n.tenant_id AND i.id=n.approval_instance_id AND i.deleted=b'0'
-        WHERE n.tenant_id=#{query.tenantId} AND n.current_approver_user_id=#{query.currentUserId}
+        JOIN cut_task t ON t.tenant_id=i.tenant_id AND t.id=i.task_id AND t.deleted=b'0'
+        WHERE n.tenant_id=#{query.tenantId} AND <include refid="currentActorCandidate" />
+          AND n.node_no=i.current_node_no
           AND n.status_code='PENDING' AND n.deleted=b'0' AND i.status_code='PENDING' AND i.hold_reason_code IS NULL
+          AND i.replacement_approval_instance_id IS NULL
     </select>
     <select id="selectReassignmentProjectionPage"
             resultType="cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.ApprovalReassignmentPageRow">
@@ -106,15 +130,20 @@
         JOIN cut_approval_instance i ON i.tenant_id=n.tenant_id AND i.id=n.approval_instance_id AND i.deleted=b'0'
         JOIN cut_task t ON t.tenant_id=i.tenant_id AND t.id=i.task_id AND t.deleted=b'0'
         WHERE n.tenant_id=#{query.tenantId} AND n.status_code IN ('WAITING','PENDING')
+          AND <include refid="individualNode" />
           AND n.deleted=b'0' AND i.status_code='PENDING'
+          AND i.replacement_approval_instance_id IS NULL
         ORDER BY i.create_time ASC, i.id ASC, n.node_no ASC, n.id ASC
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
     <select id="countReassignmentCandidates" resultType="java.lang.Long">
         SELECT COUNT(*) FROM cut_approval_node n
         JOIN cut_approval_instance i ON i.tenant_id=n.tenant_id AND i.id=n.approval_instance_id AND i.deleted=b'0'
+        JOIN cut_task t ON t.tenant_id=i.tenant_id AND t.id=i.task_id AND t.deleted=b'0'
         WHERE n.tenant_id=#{query.tenantId} AND n.status_code IN ('WAITING','PENDING')
+          AND <include refid="individualNode" />
           AND n.deleted=b'0' AND i.status_code='PENDING'
+          AND i.replacement_approval_instance_id IS NULL
     </select>
     <update id="updateStatusIfMatch">
         UPDATE cut_approval_node

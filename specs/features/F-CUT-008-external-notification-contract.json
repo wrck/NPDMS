@@ -16,7 +16,7 @@
       "taskId": "positive Long",
       "approvalInstanceId": "positive Long",
       "nodeNo": "positive Integer",
-      "taskLink": "non-blank internal platform route without external contact data",
+      "taskLink": "canonical /pms/cutover/approvals/{approvalInstanceId}; internal route without external contact data, never taskId in the approval path",
       "variables": "exact non-sensitive map {taskCode,taskName,grade,nodeName}",
       "correlationId": "normalized non-blank String 1..128"
     },

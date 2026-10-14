@@ -307,19 +307,22 @@ PROJ继续拥有任务命令，ACC拥有验收业务命令与事实。修订018�
 
 | 路径 | 命令/查询 | 关键约束 |
 |---|---|---|
-| `/cutover-tasks` | create、list、detail | 来源键幂等；项目/设备归属校验 |
-| `/cutover-dashboard/kpis` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
-| `/cutover-tasks/{id}/assessment` | save draft、submit | 一线提交问卷与人工等级；用服经理在P5复核，不新增P2审批 |
+| `/cutover-tasks` | create、list | 来源键幂等；列表支持项目、P2～P6阶段、状态、listKind和分页，包含已归档任务；项目查看范围与当前审批资格分别校验，审批专属行只返回受限摘要 |
+| `/cutover-tasks/statistics` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
+| `/cutover-tasks/{id}` | GET detail | 按任务ID查询统一详情；不将审批资格扩展为普通项目查看权限 |
+| `/cutover-tasks/{id}/assessment` | PUT save draft；`actions/submit` POST | 一线提交问卷与人工等级；保存与提交均携带If-Match、Assessment-If-Match和Idempotency-Key；用服经理在P5复核，不新增P2审批 |
 | `/cutover-tasks/{id}/checklist` | detail、save draft、submit | P3同一工作台返回checklistId/version、inputSnapshotHash、匹配项、界面格式、当前选择结果、CollectionTask/结果引用和重新匹配差异；D级不存在该资源 | save/submit携带If-Match与Idempotency-Key；提交只读取当前适用项和当前选择结果，全部必填满足后冻结版本 |
 | `/cutover-tasks/{id}/checklist/actions/rematch` | POST | 输入checklistVersion、inputSnapshotHash和新维度，预览或应用差异 | 保留stableItemKey未变的有效答案；移出项仅留历史，不进入当前提交；已提交版本不得原位重匹配 |
 | `/cutover-tasks/{id}/checklist/actions/export` | POST | CUT-03 V2导出当前授权清单版本 | 按清单项、设备和字段权限裁剪；导出不改变清单、任务或流程状态 |
-| `/cutover-tasks/{id}/checklist/items/{itemId}/actions/request-collection` | POST | 输入checklistVersion、itemVersion、deviceId、commandTemplateId和Idempotency-Key，为设备采集项创建DAC CollectionTask | 绑定任务、清单版本、采集项、设备和命令模板；DAC回调只生成技术结果，CUT经版本匹配后追加/选择ItemResult，不直接判定采集项通过 |
-| `/cutover-tasks/{id}/plan-revisions` | create、submit、approve、reject | 文件/安全/归属/人工确认校验；不强制解析全部模板字段 |
-| `/cutover-tasks/{id}/support-arrangements` | update contacts / revise duties | 联系人、联系方式、到位时间变化留痕不重审；角色/职责变化必须生成新方案revision并重走P5 |
-| `/cutover-tasks/{id}/actions/request-collection` | POST | 兼容非清单级采集入口 | 新P3采集项使用item级入口；均不读取凭证明文，不创建独立采集阶段 |
-| `/cutover-tasks/{id}/approval-actions/{approve|reject}` | POST | 按人工等级和冻结路由校验节点；任一评审项为否必须驳回并填写原因；V2对A/B级校验专项提前时间并按INT-10/INT-05发送已定义提醒，提醒失败不改变审批状态 |
+| `/cutover-tasks/{id}/checklist/items/{stableItemKey}/collection-requests` | POST | 关联平台正式采集执行，携带现行任务、清单版本与Idempotency-Key；绑定清单项和冻结设备范围，技术成功不直接判定采集项通过 |
+| `/cutover-tasks/{id}/plan` | GET、PUT；`actions/{create-draft|download-draft|submit|revise}` POST | 文件/安全/归属/人工确认校验；不强制解析全部模板字段；审批使用独立审批实例资源 |
+| `/cutover-tasks/{id}/plan/support-arrangements/{arrangementId}` | PATCH contacts | 联系人、联系方式、到位时间变化留痕不重审；角色/职责变化必须生成新方案revision并重走P5，未裁决的P6回退仍保持规格阻塞 |
+| `/cutover-tasks/{id}/closure/actions/link-collection-execution` | POST | 以entry和executionId关联平台正式执行，携带If-Match、X-Task-Version和Idempotency-Key；CUT不接收凭证明文，失败无日志的执行保留失败事实 |
+| `/cutover-approvals/{approvalId}`、`/cutover-approvals/{approvalId}/actions/{approve|reject|reassign}` | GET、POST | 按审批实例及当前角色/人员资格校验；任一评审项为否必须驳回并填写原因；通知和审批队列进入同一审批实例详情，提醒失败不改变审批状态 |
 | `/cutover-tasks/{id}/closure` | save、submit、detail | 保存P6结果与INT-12证据引用；提交即归档；失败不发布CutoverCompleted |
-| `/cutover-config/{types|network-modes|checklist-items|binding-rules|navigation-rules}` | CRUD + `actions/publish` | CUT-07/09/10的V1动态模板、表单和匹配配置先于或不晚于首个消费能力交付；CUT-03 V2可增加受控跳转规则 | 发布版本不可覆盖；稳定编码、引用启用状态、条件可判定性和目标流程状态不合法时整版拒绝 |
+| `/cutover-configurations/revisions`、`/cutover-configurations/revisions/{revisionId}` | GET、POST、PUT；`actions/{copy|validate|publish|disable}` POST | 创建、保存、复制、发布、停用携带Idempotency-Key；修改既有修订携带If-Match；发布版本不可覆盖，校验为只读操作 |
+
+以上为真实物理前缀`/api/v1/pms`下的割接资源，不再叠加`/admin-api`。割接路径接入既有身份、租户、权限及访问日志链；其他模块的路径行为保持既有契约。HTTP响应由割接VO显式投影，Long和时间沿用Yudao序列化，错误携带稳定reasonCode/recoveryAction；版本冲突刷新，未确定结果以同一幂等键及原始载荷重试，刷新失败时暂停后续写入。旧任务、方案、风险接口已退役，不提供兼容读写入口。
 
 PROJ公开`ProjectCutoverContextFactApi.inspect(ProjectCutoverContextFactQuery)`与`lockAndRevalidate(ProjectCutoverContextFactRevalidationQuery)`。inspect Query固定携带正数`tenantId/projectId`；重验Query携带从前次`FOUND`原样复制的完整`ExpectedProjectCutoverContextFact`，tenant必须与受信运行时上下文一致。`FOUND`返回同一ProjectMaster行的`tenantId/projectId/projectVersion/projectCode/projectName/customerId/customerCode/customerName/departmentId/departmentCode/departmentName`完整事实；三个编码字段最大64字符，`projectName/customerName/departmentName`最大255字符。`NOT_FOUND/INACTIVE`无Fact，写重验的`VERSION_CONFLICT`返回当前完整Fact。锁定方法以`MANDATORY`加入CUT写事务并锁定项目当前行，锁后逐字段比较完整Expected与currentFact；任一字段变化均返回`VERSION_CONFLICT`，Expected只作并发守卫，CUT只冻结Owner返回的currentFact。Owner损坏和Provider不可用分别使用公共稳定失败。客户字段和部门字段是项目发生时展示快照，CUT仍分别以`ProjectScopeApi.treeVersion`做用户范围重验、以`CustomerServiceLevelFactApi`取得当前服务等级；不得跨Context读表、拼接Summary或以projectVersion替代treeVersion。精确机器合同见`specs/features/F-CUT-002-project-context-fact-contract.json`。当前master尚未包含公共Java接口或生产Provider。
 

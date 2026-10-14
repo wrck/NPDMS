@@ -1,0 +1,129 @@
+package cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan;
+
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverApprovedContactVersionUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanDraftUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanHistoryQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanReplacementUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanSuccessorQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanVersionUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverSupportContactUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskSourceInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskApprovalTransitionUpdate;
+import org.apache.ibatis.builder.xml.XMLMapperBuilder;
+import org.apache.ibatis.mapping.BoundSql;
+import org.apache.ibatis.session.Configuration;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class CutoverPlanMapperContractTest {
+    @Test
+    void parsesEveryScenarioQueryAndUpdateBinding() throws IOException {
+        Configuration configuration = configuration();
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectCurrentForUpdate",
+                new CutoverPlanRevisionQuery(1L, 2L, 3L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectByIdForUpdate",
+                new CutoverPlanRevisionQuery(1L, 2L, 3L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectListDirectSuccessors",
+                new CutoverPlanSuccessorQuery(1L, 2L, 3L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "selectMaxRevisionNo",
+                new CutoverPlanHistoryQuery(1L, 2L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "existsFrozenFileVersion",
+                new cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverFrozenPlanFileQuery(
+                        1L, 2L, 3L, 1, "plan-file"));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "advanceDraftVersionIfMatch",
+                new CutoverPlanVersionUpdate(1L, 3L, 0L, 1L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "advanceApprovedVersionIfMatch",
+                new CutoverApprovedContactVersionUpdate(1L, 3L, 0L, 1L, "9",
+                        LocalDateTime.parse("2026-09-01T09:00:00")));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceSubmittedIfMatch",
+                new CutoverPlanReplacementUpdate(1L, 3L, 0L, 1L, "9",
+                        LocalDateTime.parse("2026-09-01T09:00:00")));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceDraftIfMatch",
+                new CutoverPlanDraftUpdate(draftPlan(), 0L, 1L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "submitDraftIfMatch",
+                new CutoverPlanSubmitUpdate(1L, 3L, 0L, 1L, 9L,
+                        LocalDateTime.parse("2026-09-01T09:00:00"), 10L, 0L));
+        assertBindings(configuration, CutoverPlanRevisionMapper.class, "invalidateSubmittedIfMatch",
+                new CutoverPlanInvalidationUpdate(1L, 3L, 1L, 2L, 0L, 1L, 9L,
+                        LocalDateTime.parse("2026-09-01T10:00:00"), "SOURCE_FACT_INVALIDATED"));
+        assertBindings(configuration, CutoverTaskMapper.class, "submitPlanIfMatch",
+                new CutoverTaskPlanSubmitUpdate(1L, 2L, 3L));
+        assertBindings(configuration, CutoverTaskMapper.class, "returnToPlanForSourceInvalidation",
+                new CutoverTaskSourceInvalidationUpdate(1L, 2L, 4L));
+        assertBindings(configuration, CutoverTaskMapper.class, "transitionFromApprovalIfMatch",
+                new CutoverTaskApprovalTransitionUpdate(1L, 2L, 4L, "P6", "CLOSURE_IN_PROGRESS"));
+        assertBindings(configuration, CutoverTaskMapper.class, "selectMaxStageHistorySequence",
+                new CutoverTaskRowQuery(1L, 2L));
+        assertBindings(configuration, CutoverPlanStepMapper.class, "selectListByPlanForUpdate",
+                new CutoverPlanChildrenQuery(1L, 3L));
+        assertBindings(configuration, CutoverSupportArrangementMapper.class, "deleteDraftRows",
+                new CutoverPlanChildrenQuery(1L, 3L));
+        assertBindings(configuration, CutoverSupportArrangementMapper.class, "updateApprovedContactIfMatch",
+                new CutoverSupportContactUpdate(draftPlan(),
+                        supportBaseline(),
+                        cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverPlanSupportContactChangeDO.builder().id(5L).operateUserId(9L).operateTime(LocalDateTime.parse("2026-09-01T09:00:00")).build(), 0L));
+    }
+
+    private static cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO supportBaseline() {
+        var row = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO();
+        row.setId(4L); row.setTenantId(1L); row.setPlanRevisionId(3L); row.setVersion(0); return row;
+    }
+
+    private static cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO draftPlan() {
+        var plan = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO();
+        plan.setId(3L); plan.setTenantId(1L); plan.setEditModeCode("ONLINE_TEMPLATE_STANDARD");
+        plan.setUpdater("9"); plan.setUpdateTime(LocalDateTime.parse("2026-09-01T09:00:00")); return plan;
+    }
+
+    @Test
+    void keepsTenantDeleteLocksAndStableOrderingInXml() throws IOException {
+        String root = Files.readString(Path.of("src/main/resources/mapper/plan/CutoverPlanRevisionMapper.xml"));
+        String step = Files.readString(Path.of("src/main/resources/mapper/plan/CutoverPlanStepMapper.xml"));
+        String support = Files.readString(Path.of("src/main/resources/mapper/plan/CutoverSupportArrangementMapper.xml"));
+        assertThat(root).contains("tenant_id = #{query.tenantId}", "deleted = b'0'", "FOR UPDATE",
+                "ORDER BY revision_no ASC, id ASC", "current_marker = 1").doesNotContain("${");
+        assertThat(step).contains("tenant_id = #{query.tenantId}", "FOR UPDATE", "step_no ASC, id ASC")
+                .doesNotContain("${");
+        assertThat(support).contains("tenant_id = #{query.tenantId}", "FOR UPDATE", "role_code")
+                .doesNotContain("${");
+    }
+
+    private static Configuration configuration() throws IOException {
+        Configuration configuration = new Configuration();
+        parse(configuration, "CutoverPlanRevisionMapper.xml");
+        parse(configuration, "CutoverPlanStepMapper.xml");
+        parse(configuration, "CutoverSupportArrangementMapper.xml");
+        parse(configuration, "../task/CutoverTaskMapper.xml");
+        return configuration;
+    }
+
+    private static void parse(Configuration configuration, String file) throws IOException {
+        Path path = Path.of("src/main/resources/mapper/plan", file);
+        try (InputStream input = Files.newInputStream(path)) {
+            new XMLMapperBuilder(input, configuration, path.toString(), configuration.getSqlFragments()).parse();
+        }
+    }
+
+    private static void assertBindings(Configuration configuration, Class<?> mapper, String method, Object query) {
+        Map<String, Object> parameters = Map.of("query", query);
+        BoundSql boundSql = configuration.getMappedStatement(mapper.getName() + "." + method).getBoundSql(parameters);
+        assertThat(boundSql.getParameterMappings()).isNotEmpty();
+        boundSql.getParameterMappings().forEach(mapping ->
+                configuration.newMetaObject(parameters).getValue(mapping.getProperty()));
+    }
+}

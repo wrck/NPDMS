@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.closure;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 
 import java.time.Clock;
 import java.time.LocalDateTime;

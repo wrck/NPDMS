@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.checklist;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.*;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.LoadExternalChecklistCommand;
@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CutoverExternalChecklistServiceTest {
-    private final CutoverRuntimeChecklistApplicationService checklist = mock(CutoverRuntimeChecklistApplicationService.class);
+    private final CutoverChecklistApplicationService checklist = mock(CutoverChecklistApplicationService.class);
     private final CutoverExternalBulletinStore storage = mock(CutoverExternalBulletinStore.class);
     private final CutoverExternalDataDirectory directory = mock(CutoverExternalDataDirectory.class);
     private final CutoverChecklistMapper checklists = mock(CutoverChecklistMapper.class);
@@ -33,22 +33,39 @@ class CutoverExternalChecklistServiceTest {
     private final CutoverExternalDataPort provider = mock(CutoverExternalDataPort.class);
     private final TransactionTemplate transactions = new TransactionTemplate(new BoundaryTransactions());
     private final CutoverExternalChecklistService service = new CutoverExternalChecklistService(checklist, storage, directory,
-            checklists, items, results, mappings, queries, parameters, assessment, mutations, transactions);
-    private final LoadExternalChecklistCommand command = new LoadExternalChecklistCommand(1L, 2L, 3L, 4L, 5L, 6L, 7L, "RISK_CURRENT_VERSION_BULLETIN");
+            checklists, items, results, mappings, queries, parameters, assessment, mutations);
+    private final LoadExternalChecklistCommand command = new LoadExternalChecklistCommand(1L,
+                2L,
+                3L,
+                4L,
+                5L,
+                6L,
+                7L,
+                "RISK_CURRENT_VERSION_BULLETIN",
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent());
     private final CutoverChecklistItemDO item = new CutoverChecklistItemDO();
     private final CutoverChecklistItemDefinitionRevisionDO definition = new CutoverChecklistItemDefinitionRevisionDO();
     private final List<CutoverChecklistDeviceContextDO> devices = new ArrayList<>();
     private final List<CutoverChecklistExternalMappingDO> mappingRows = new ArrayList<>();
     private final List<CutoverChecklistExternalQueryDO> queryRows = new ArrayList<>();
+    private final List<CutoverChecklistExternalQueryParameterDO> parameterRows = new ArrayList<>();
 
     @BeforeEach void setup() {
+        var platform = new cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands() {
+            @Override public <T> ExecutionResult<T> execute(IdempotencyScope scope, String digest, Class<T> type,
+                    java.util.function.Supplier<T> action, java.util.function.Function<T, SuccessFacts> facts) {
+                return transactions.execute(status -> super.execute(scope, digest, type, action, facts));
+            }
+        };
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "commands",
+                new cn.iocoder.yudao.module.pms.cutover.service.support.CutoverCommandExecutor(platform));
         var task = new CutoverTaskDO(); task.setId(3L); task.setProjectId(33L);
         var root = new CutoverChecklistDO(); root.setId(5L); root.setAssessmentId(55L);
         item.setId(10L); item.setTenantId(1L); item.setChecklistId(5L); item.setStableItemKey(command.stableItemKey()); item.setApplicableFlag(true);
         definition.setId(30L); definition.setExternalInterfaceCode("FORMAL_BULLETIN"); definition.setBusinessCategoryCode("CURRENT_VERSION_BULLETIN");
         when(checklist.lockExternal(any())).thenAnswer(call -> {
             assertTrue(TransactionSynchronizationManager.isActualTransactionActive());
-            return new CutoverRuntimeChecklistApplicationService.ExternalDraft(task, root, List.of(item));
+            return new CutoverChecklistApplicationService.ExternalDraft(task, root, List.of(item));
         });
         when(storage.definition(item)).thenReturn(definition);
         when(storage.history(item)).thenReturn(List.of());
@@ -71,6 +88,15 @@ class CutoverExternalChecklistServiceTest {
         for (String field : List.of("number", "subject", "description", "solution")) mappingRows.add(mapping(100L + mappingRows.size(), "RETURN", field, field));
         when(mappings.selectListByParents(any())).thenAnswer(call -> List.copyOf(mappingRows));
         when(queries.insert(any(CutoverChecklistExternalQueryDO.class))).thenAnswer(call -> { queryRows.add(call.getArgument(0)); return 1; });
+        when(parameters.insert(any(CutoverChecklistExternalQueryParameterDO.class))).thenAnswer(call -> {
+            parameterRows.add(call.getArgument(0)); return 1;
+        });
+        when(parameters.selectListByParents(any())).thenAnswer(call -> List.copyOf(parameterRows));
+        when(queries.selectByIds(any())).thenAnswer(call -> {
+            Collection<Long> ids = call.getArgument(0);
+            return queryRows.stream().filter(row -> ids.contains(row.getId())).toList();
+        });
+        when(items.selectById(10L)).thenReturn(item);
         when(checklists.touchDraftIfMatch(any())).thenReturn(1);
         when(mutations.lockItem(any())).thenReturn(10L);
         when(mutations.finishQuery(any())).thenReturn(1);
@@ -87,10 +113,47 @@ class CutoverExternalChecklistServiceTest {
         assertEquals(0, success.queries().getFirst().returnedRowCount()); assertNull(success.queries().getFirst().failureCode());
         assertEquals(8L, success.checklistFactVersion());
         when(directory.find("FORMAL_BULLETIN")).thenReturn(Optional.empty());
-        var failed = service.load(command);
+        var failed = service.load(new LoadExternalChecklistCommand(command.tenantId(), command.actorId(),
+                command.taskId(), command.expectedTaskVersion(), command.checklistId(),
+                command.expectedChecklistVersion(), command.expectedProjectScopeVersion(), command.stableItemKey(),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
         assertFalse(failed.queries().getFirst().succeeded()); assertNull(failed.queries().getFirst().returnedRowCount());
         assertEquals("PROVIDER_UNAVAILABLE", failed.queries().getFirst().failureCode());
         verify(provider, times(1)).query(any());
+    }
+
+    @Test void retryAfterSuccessfulLoadReusesQueryIdentityAndCompletedResult() {
+        var first = service.load(command);
+        var replay = service.load(command);
+        assertEquals(first, replay);
+        assertEquals(1, queryRows.size());
+        assertEquals(first.resultId(), queryRows.getFirst().getLoadedChecklistResultId());
+        verify(provider, times(1)).query(any());
+        verify(storage, times(1)).createResult(any());
+        verify(mutations, times(1)).finishQuery(any());
+        verify(checklist, times(2)).authorizeDraftAccess(command);
+    }
+
+    @Test void changedRequestWithTheSameKeyCannotReserveOrCallAnotherQuery() {
+        service.load(command);
+        var changed = new LoadExternalChecklistCommand(command.tenantId(), command.actorId(), command.taskId(),
+                command.expectedTaskVersion(), command.checklistId(), command.expectedChecklistVersion() + 1,
+                command.expectedProjectScopeVersion(), command.stableItemKey(), command.intent());
+        var failure = assertThrows(cn.iocoder.yudao.module.pms.cutover.service.support.CutoverCommandException.class,
+                () -> service.load(changed));
+        assertEquals(cn.iocoder.yudao.module.pms.cutover.service.support.CutoverCommandException.Reason.IDEMPOTENCY_CONFLICT,
+                failure.reason());
+        assertEquals(1, queryRows.size());
+        verify(provider, times(1)).query(any());
+    }
+
+    @Test void replayStillChecksCurrentAuthorizationBeforeReturningFacts() {
+        service.load(command);
+        doThrow(new CutoverChecklistException(CutoverChecklistException.Code.DATA_SCOPE_FORBIDDEN, "权限已撤销"))
+                .when(checklist).authorizeDraftAccess(command);
+        assertThrows(CutoverChecklistException.class, () -> service.load(command));
+        verify(provider, times(1)).query(any());
+        verify(storage, times(1)).createResult(any());
     }
 
     @Test void exactPerDeviceTargetVersionsArePassedAndFrozen() {

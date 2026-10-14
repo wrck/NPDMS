@@ -1,6 +1,7 @@
 import { defineComponent, h, nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import CutoverTaskWorkbench from './index.vue'
+import CutoverTaskDetail from '../task-detail/index.vue'
 import {
   button,
   findByTestId,
@@ -19,6 +20,7 @@ const runtime = {
 
 const api = vi.hoisted(() => ({
   resolveCreateContext: vi.fn(),
+  getCreationOptions: vi.fn(),
   createCutoverTask: vi.fn(),
   getCutoverDashboardKpis: vi.fn(),
   getCutoverTaskPage: vi.fn(),
@@ -27,7 +29,7 @@ const api = vi.hoisted(() => ({
   getCutoverApprovalReassignmentCandidates: vi.fn(),
   saveCutoverAssessment: vi.fn(),
   submitCutoverAssessment: vi.fn(),
-  getCutoverChecklistMatchingOptions: vi.fn(async () => ({ selectedDeviceTypeCodes: [], deviceTypeOptions: [] })),
+  getCutoverChecklistMatchingOptions: vi.fn(),
   getCutoverExternalState: vi.fn(async () => null),
   getCutoverChecklist: vi.fn(),
   generateCutoverChecklist: vi.fn(),
@@ -50,6 +52,7 @@ const api = vi.hoisted(() => ({
   rejectCutoverApproval: vi.fn(),
   reassignCutoverApproval: vi.fn(),
   getCutoverClosure: vi.fn(),
+  getResultProgress: vi.fn(),
   saveCutoverClosure: vi.fn(),
   requestCutoverClosureCollection: vi.fn(),
   linkCutoverClosureManualResult: vi.fn(),
@@ -60,15 +63,23 @@ const fileApi = vi.hoisted(() => ({
   getVersions: vi.fn(),
   createAccessTicket: vi.fn()
 }))
+const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }))
+vi.mock('vue-router', () => ({ useRouter: () => router, useRoute: () => ({ query: {} }) }))
+vi.mock('@/api/pms/asset/device', () => ({ getDevice: vi.fn(async (deviceId) => ({ summary: { id: deviceId, productCode: 'ROUTER-01', productModel: 'Router' } })) }))
+vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({ default: defineComponent({ setup: () => () => null }) }))
+vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue', () => ({ default: defineComponent({ setup: () => () => null }) }))
 
-vi.mock('@/api/pms/cutover/workbench', () => api)
+vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({
   useMessage: () => ({ success: vi.fn(), warning: vi.fn() })
 }))
 vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
-    setup: () => () => h('button', { 'data-testid': 'controlled-file-uploader' }, 'upload')
+    setup: (_, { expose }) => {
+      expose({ isBusy: () => false, hasPendingFile: () => false })
+      return () => h('button', { 'data-testid': 'controlled-file-uploader' }, 'upload')
+    }
   })
 }))
 
@@ -113,9 +124,7 @@ describe('CUT P1-P6 controlled UI integration', () => {
     const mounted = mount(CutoverTaskWorkbench, {}, controls)
 
     await flush()
-    await click(mounted.root, 'toggle-kpis')
-    await flush()
-    await clickLabel(mounted.root, '创建割接任务')
+    await click(mounted.root, 'create-cutover-task')
     await flush()
 
     await update('create-serials', ' sn-001 ', mounted.root)
@@ -129,27 +138,31 @@ describe('CUT P1-P6 controlled UI integration', () => {
     await update('create-scheduled-time', '2026-09-03T10:00:00', mounted.root)
     await clickLabel(mounted.root, '创建并进入 P2')
     await flush()
-    await clickLabel(mounted.root, '详情')
+    expect(router.push).toHaveBeenLastCalledWith('/pms/cutover/tasks/101')
+    mounted.app.unmount()
+    const detail = mount(CutoverTaskDetail, { taskId: '101' }, controls)
     await flush()
 
-    await clickLabel(mounted.root, '保存草稿')
-    await clickLabel(mounted.root, '提交人工分级')
+    await clickLabel(detail.root, '保存')
+    await flush()
+    await clickLabel(detail.root, '下一步')
     await flush()
 
-    await click(mounted.root, 'checklist-submit')
+    await click(detail.root, 'checklist-submit')
     await flush()
-    await click(mounted.root, 'submit-plan')
+    await click(detail.root, 'submit-plan')
     await flush()
 
     for (let nodeNo = 1; nodeNo <= 4; nodeNo += 1) {
-      await update('approval-feedback', `第${nodeNo}节点通过`, mounted.root)
-      await click(mounted.root, 'approve-approval')
+      await update('approval-feedback', `第${nodeNo}节点通过`, detail.root)
+      await click(detail.root, 'approve-approval')
       await flush()
     }
 
-    await click(mounted.root, 'save-closure')
+    await click(detail.root, 'save-closure')
     await flush()
-    await click(mounted.root, 'submit-closure-success')
+    await update('closure-final-result', 'SUCCESS', detail.root)
+    await click(detail.root, 'submit-closure')
     await flush()
 
     expect(trace.filter((entry) => entry.startsWith('write:'))).toEqual([
@@ -167,12 +180,15 @@ describe('CUT P1-P6 controlled UI integration', () => {
     ])
     expect(runtime.stage).toBe('P6')
     expect(runtime.closureStatus).toBe('SUBMITTED')
-    expect(textOf(mounted.root)).toContain('ARCHIVED')
-    expect(textOf(mounted.root)).toContain('cutover-closure:801:1')
-    expect(api.getCutoverTaskPage.mock.calls.length).toBeGreaterThanOrEqual(7)
-    expect(api.getCutoverDashboardKpis.mock.calls.length).toBeGreaterThanOrEqual(7)
+    expect(textOf(detail.root)).toContain('已归档')
+    expect(textOf(detail.root)).toContain('cutover-closure:801:1')
+    expect(api.getCutoverTaskPage).toHaveBeenCalledWith(expect.objectContaining({ listKind: 'TODO' }))
+    expect(api.getCutoverTaskPage).toHaveBeenCalledWith(expect.objectContaining({ listKind: 'SELF_CREATED' }))
+    expect(api.getCutoverDashboardKpis).toHaveBeenCalled()
     expect(api.getCutoverTaskDetail.mock.calls.length).toBeGreaterThanOrEqual(7)
-    mounted.app.unmount()
+    expect(api.approveCutoverApproval).toHaveBeenCalledWith(expect.objectContaining({ approvalId: '701', data: expect.any(Object), idempotencyKey: expect.any(String) }))
+    expect(api.submitCutoverChecklist).toHaveBeenCalledWith(expect.objectContaining({ taskId: '101', data: expect.objectContaining({ expectedTaskVersion: 2 }), idempotencyKey: expect.any(String) }))
+    detail.app.unmount()
   })
 })
 
@@ -182,6 +198,12 @@ function configureControlledApi() {
   runtime.approvalNode = 1
   runtime.closureStatus = 'DRAFT'
   Object.values(api).forEach((mock) => mock.mockReset())
+  router.push.mockClear()
+  api.getCutoverChecklistMatchingOptions.mockResolvedValue({ selectedDeviceTypeCodes: ['ROUTER'], deviceTypes: [{ code: 'ROUTER', label: '路由器' }] })
+  api.getCutoverExternalState.mockResolvedValue(null)
+  api.getProjectContactChoices.mockResolvedValue([])
+  api.getCreationOptions.mockResolvedValue([{ revisionId: '41', code: 'CORE_STANDARD', name: '核心网标准配置', revisionNo: 2, cutoverTypes: [{ value: 'CORE_REPLACEMENT', label: '核心替换' }], networkModes: [], deviceTypes: [{ value: 'ROUTER', label: '路由器' }] }])
+  api.getResultProgress.mockResolvedValue({ assetReceipts: [], projectCoverage: { coveredDeviceIds: ['9007199254742001'], requiredDevices: [{ deviceId: '9007199254742001' }], complete: true } })
 
   api.resolveCreateContext.mockImplementation(async () => {
     trace.push('read:P1:owners')
@@ -260,8 +282,8 @@ function configureControlledApi() {
     return closureView()
   })
   api.submitCutoverClosure.mockImplementation(
-    async (_taskId, _taskVersion, _closureVersion, result) => {
-      trace.push(`write:P6:submit:${result}`)
+    async (command) => {
+      trace.push(`write:P6:submit:${command.finalResult}`)
       runtime.closureStatus = 'SUBMITTED'
       return closureView()
     }
@@ -399,6 +421,7 @@ const checklistView = () => ({
   checklistFactVersion: 1,
   status: 'DRAFT',
   inputSnapshotHash: 'controlled-input',
+  inputSnapshot: { deviceTypeCodes: ['ROUTER'] },
   configRevisionSnapshot: '{}',
   matchTrace: '{}',
   configGapSnapshot: '[]',
@@ -500,8 +523,6 @@ const planView = () =>
     planVersion: 1,
     originCode: 'NEW_PLATFORM',
     status: 'DRAFT',
-    legacyPlanId: null,
-    legacyStatusRaw: null,
     sourcePlanRevisionId: null,
     revisionReason: 'INITIAL',
     sourceSnapshot: planSource(),
@@ -604,7 +625,7 @@ const closureContent = () => ({
   rollbackSuccessful: null,
   rollbackReason: null,
   legacyItems: null,
-  finalResult: null,
+  finalResult: runtime.closureStatus === 'SUBMITTED' ? 'SUCCESS' : null,
   attachments: [
     closureFile('POST_COLLECTION_CHECKLIST', 'post-checklist', '901'),
     closureFile('IMPLEMENTATION_COMMITMENT', 'commitment', '902')
@@ -674,8 +695,5 @@ const update = async (testId: string, value: unknown, root: TestNode) => {
 }
 
 const flush = async () => {
-  await Promise.resolve()
-  await nextTick()
-  await Promise.resolve()
-  await nextTick()
+  for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
 }

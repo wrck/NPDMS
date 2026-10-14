@@ -1,10 +1,10 @@
 package cn.iocoder.yudao.module.pms.cutover.service.spare;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.spare.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.spare.query.SpareApplicationQueries;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.port.CutoverSpareFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.port.CutoverSpareFilePort.*;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.view.CutoverSpareViews;

@@ -2,11 +2,11 @@ package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
 import lombok.Builder;
 import tools.jackson.databind.node.ObjectNode;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverRuntimePlanContentCodec;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import org.apache.poi.xwpf.usermodel.*;
 import tools.jackson.databind.JsonNode;
 import java.io.ByteArrayOutputStream;
@@ -26,8 +26,8 @@ public final class CutoverPlanDocumentRenderer {
     public static byte[] render(RenderContext context) {
         var task = context.task(); var plan = context.plan();
         var steps = context.steps(); var supports = context.supports(); var fileName = context.fileName();
-        JsonNode content = new CutoverRuntimePlanContentCodec().assembleStored(
-                new CutoverRuntimePlanContentCodec.StoredPlanContent(context.content(), steps));
+        JsonNode content = new CutoverPlanContentCodec().assembleStored(
+                new CutoverPlanContentCodec.StoredPlanContent(context.content(), steps));
         try (var document = new XWPFDocument(); var output = new ByteArrayOutputStream()) {
             paragraph(document, task.getTaskName() + "割接方案", true);
             paragraph(document, "方案版本：" + plan.getRevisionNo() + "　割接等级：" + plan.getGradeCode(), false);

@@ -2,8 +2,8 @@ package cn.iocoder.yudao.module.pms.cutover.service.configuration;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationValidationRespVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationSaveReqVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationValidationRespVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationStorageMapper;

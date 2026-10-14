@@ -107,8 +107,8 @@ public final class CutoverApprovalSourceSnapshotCodec {
         String departmentNameField = modernKeys ? "departmentName" : "officeName";
         return new ProjectApprovalSnapshot(positiveLong(node, "projectId"), nonNegativeInt(node, "projectVersion"),
                 text(node, "projectCode", 64), text(node, "projectName", 255),
-                positiveLong(node, "customerId"), text(node, "customerCode", 64),
-                text(node, "customerName", 255), positiveLong(node, departmentIdField),
+                nullablePositiveLong(node.get("customerId"), "customerId"), nullableText(node, "customerCode", 64),
+                nullableText(node, "customerName", 255), positiveLong(node, departmentIdField),
                 text(node, departmentCodeField, 64), text(node, departmentNameField, 255),
                 nonNegativeLong(node, "projectScopeVersion"));
     }
@@ -117,7 +117,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
         ObjectNode node = JsonUtils.getObjectMapper().createObjectNode();
         putWireLong(node, "projectId", value.projectId()); node.put("projectVersion", value.projectVersion());
         node.put("projectCode", value.projectCode()); node.put("projectName", value.projectName());
-        putWireLong(node, "customerId", value.customerId()); node.put("customerCode", value.customerCode());
+        putNullableWireLong(node, "customerId", value.customerId()); node.put("customerCode", value.customerCode());
         node.put("customerName", value.customerName()); putWireLong(node, "departmentId", value.departmentId());
         node.put("departmentCode", value.departmentCode()); node.put("departmentName", value.departmentName());
         putWireLong(node, "projectScopeVersion", value.projectScopeVersion()); return node;
@@ -181,7 +181,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
                 positiveVersion(node, "assessmentVersion"), positiveLong(node, "questionnaireTemplateVersion"),
                 text(node, "businessImportanceLevel", 64), text(node, "operationComplexityLevel", 64),
                 text(node, "hiddenRiskLevel", 64), booleanValue(node, "sparePartApplied"),
-                text(node, "customerServiceLevelCode", 64), text(node, "manualGrade", 1),
+                nullableText(node, "customerServiceLevelCode", 64), text(node, "manualGrade", 1),
                 positiveLong(node, "submittedBy"), positiveLong(node, "submittedAt"));
     }
 
@@ -214,7 +214,7 @@ public final class CutoverApprovalSourceSnapshotCodec {
             exact(device, PLAN_DEVICE, "plan.device");
             devices.add(new CutoverPlanSourcePort.DeviceSnapshot(positiveLong(device, "deviceId"),
                     identityText(device, "serialNumber", 128), nonNegativeLong(device, "projectAssignmentVersion"),
-                    text(device, "deviceTypeCode", 64), text(device, "deviceTypeSourceVersion", 128)));
+                    nullableText(device, "deviceTypeCode", 64), nullableText(device, "deviceTypeSourceVersion", 128)));
         });
         List<CutoverPlanSourcePort.TemplateSectionSnapshot> sections = new ArrayList<>();
         JsonNode sectionArray = node.get("templateSections"); require(sectionArray != null && sectionArray.isArray(), "plan.templateSections");
@@ -347,10 +347,21 @@ public final class CutoverApprovalSourceSnapshotCodec {
     }
 
     public record ProjectApprovalSnapshot(long projectId,int projectVersion,String projectCode,String projectName,
-                                            long customerId,String customerCode,String customerName,long departmentId,
-                                            String departmentCode,String departmentName,long projectScopeVersion){public ProjectApprovalSnapshot{require(projectId>0&&projectVersion>=0&&customerId>0&&departmentId>0&&projectScopeVersion>=0,"project");requireText(projectCode,64,"projectCode");requireText(projectName,255,"projectName");requireText(customerCode,64,"customerCode");requireText(customerName,255,"customerName");requireText(departmentCode,64,"departmentCode");requireText(departmentName,255,"departmentName");}}
+                                          Long customerId,String customerCode,String customerName,long departmentId,
+                                          String departmentCode,String departmentName,long projectScopeVersion) {
+        public ProjectApprovalSnapshot {
+            require(projectId > 0 && projectVersion >= 0 && departmentId > 0 && projectScopeVersion >= 0, "project");
+            require(customerId == null || customerId > 0, "customerId");
+            requireText(projectCode, 64, "projectCode");
+            requireText(projectName, 255, "projectName");
+            if (customerCode != null) requireText(customerCode, 64, "customerCode");
+            if (customerName != null) requireText(customerName, 255, "customerName");
+            requireText(departmentCode, 64, "departmentCode");
+            requireText(departmentName, 255, "departmentName");
+        }
+    }
     public record CollectionAnalysisSnapshot(String cutoverType,String networkMode,long scheduledTime){public CollectionAnalysisSnapshot{requireText(cutoverType,64,"cutoverType");if(networkMode!=null)requireText(networkMode,64,"networkMode");require(scheduledTime>0,"scheduledTime");}}
     public record ChecklistResultSnapshot(long checklistItemId,String stableItemKey,Long itemDefinitionId,Integer itemDefinitionVersion,String itemTypeCode,String itemName,boolean required,int itemResultVersion,String resultSourceCode,String answerSnapshot,String factDescription,Long collectionTaskId,Long collectionResultReferenceId,Long collectionResultVersion,String externalSourceCode,String manualEvidenceFileReference){public ChecklistResultSnapshot{require(checklistItemId>0&&itemResultVersion>0,"checklistItem");requireText(stableItemKey,128,"stableItemKey");require(ITEM_TYPES.contains(itemTypeCode),"itemTypeCode");requireText(itemName,255,"itemName");require(RESULT_SOURCES.contains(resultSourceCode),"resultSourceCode");require(answerSnapshot!=null&&!answerSnapshot.isBlank(),"answerSnapshot");if(factDescription!=null)requireText(factDescription,4000,"factDescription");require((itemDefinitionId==null)==(itemDefinitionVersion==null),"itemDefinition");require(itemDefinitionId==null||itemDefinitionId>0,"itemDefinitionId");require(itemDefinitionVersion==null||itemDefinitionVersion>0,"itemDefinitionVersion");require(("COLLECTION".equals(resultSourceCode)&&collectionTaskId!=null&&collectionTaskId>0)||(!"COLLECTION".equals(resultSourceCode)&&collectionTaskId==null&&collectionResultReferenceId==null&&collectionResultVersion==null),"collectionIdentity");require(collectionResultReferenceId==null||collectionResultReferenceId>0,"collectionResultReferenceId");require(collectionResultVersion==null||collectionResultVersion>0,"collectionResultVersion");require(("EXTERNAL".equals(resultSourceCode))==(externalSourceCode!=null),"externalSourceCode");if(externalSourceCode!=null)requireText(externalSourceCode,64,"externalSourceCode");if(manualEvidenceFileReference!=null)require("MANUAL".equals(resultSourceCode)&&manualEvidenceFileReference.length()<=128&&!manualEvidenceFileReference.isBlank(),"manualEvidenceFileReference");}}
-    public record AssessmentApprovalSnapshot(long assessmentId,Long assessmentVersion,long questionnaireTemplateVersion,String businessImportanceLevel,String operationComplexityLevel,String hiddenRiskLevel,boolean sparePartApplied,String customerServiceLevelCode,String manualGrade,long submittedBy,long submittedAt){public AssessmentApprovalSnapshot{require(assessmentId>0&&assessmentVersion>0&&questionnaireTemplateVersion>0&&submittedBy>0&&submittedAt>0,"assessment");requireText(businessImportanceLevel,64,"businessImportanceLevel");requireText(operationComplexityLevel,64,"operationComplexityLevel");requireText(hiddenRiskLevel,64,"hiddenRiskLevel");requireText(customerServiceLevelCode,64,"customerServiceLevelCode");require(GRADES.contains(manualGrade),"manualGrade");}}
+    public record AssessmentApprovalSnapshot(long assessmentId,Long assessmentVersion,long questionnaireTemplateVersion,String businessImportanceLevel,String operationComplexityLevel,String hiddenRiskLevel,boolean sparePartApplied,String customerServiceLevelCode,String manualGrade,long submittedBy,long submittedAt){public AssessmentApprovalSnapshot{require(assessmentId>0&&assessmentVersion>0&&questionnaireTemplateVersion>0&&submittedBy>0&&submittedAt>0,"assessment");requireText(businessImportanceLevel,64,"businessImportanceLevel");requireText(operationComplexityLevel,64,"operationComplexityLevel");requireText(hiddenRiskLevel,64,"hiddenRiskLevel");if(customerServiceLevelCode!=null)requireText(customerServiceLevelCode,64,"customerServiceLevelCode");require(GRADES.contains(manualGrade),"manualGrade");}}
     public record PlanApprovalSnapshot(long planRevisionId,int planRevisionNo,Long planVersion,JsonNode sourceSnapshot,JsonNode content){public PlanApprovalSnapshot{require(planRevisionId>0&&planRevisionNo>0&&planVersion>=0,"plan");require(sourceSnapshot!=null&&sourceSnapshot.isObject()&&content!=null&&content.isObject(),"planContent");sourceSnapshot=canonical(sourceSnapshot);content=canonical(content);}}
 }

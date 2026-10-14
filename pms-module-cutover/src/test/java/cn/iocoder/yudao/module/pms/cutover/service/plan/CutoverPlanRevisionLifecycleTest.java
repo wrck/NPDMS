@@ -7,18 +7,18 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFact;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFactQuery;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalPauseCommand;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalStartCommand;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanReplacementUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverSupportContactUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanReplacementUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverSupportContactUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.PatchApprovedContactCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.ReviseCutoverPlanCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SubmitCutoverPlanCommand;
@@ -29,8 +29,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePo
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.PatchApprovedContactResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -121,7 +121,8 @@ class CutoverPlanRevisionLifecycleTest {
 
         PatchApprovedContactResult result = fixture.service.patchApprovedContact(new PatchApprovedContactCommand(
                 1L, 8L, 50L, 801L, 2L, "李工", "13800000000", arrival,
-                "patch-contact", "corr-contact"));
+                "patch-contact", "corr-contact"), new CutoverPlanContactPolicy.Change("测试联系人变更",
+                        new CutoverPlanContactPolicy.Selection(501L, 2)));
 
         assertThat(result.planVersion()).isEqualTo(3);
         assertThat(result.reasonCode()).isEqualTo("APPROVED_CONTACT_CHANGED");
@@ -228,9 +229,19 @@ class CutoverPlanRevisionLifecycleTest {
         when(taskMapper.submitPlanIfMatch(any())).thenReturn(1);
         when(historyMapper.insert(any(CutoverTaskStageHistoryDO.class))).thenReturn(1);
         DirectPlatform platform = new DirectPlatform();
-        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper,
-                supportMapper, project, sourcePort, filePort, new CutoverPlanContentCodec(), platform,
-                approval, historyMapper, Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC));
+        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                stepMapper,
+                supportMapper,
+                project,
+                sourcePort,
+                filePort,
+                new CutoverPlanContentCodec(),
+                platform,
+                approval,
+                historyMapper,
+                Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
         var storage = mock(CutoverPlanStorage.class);
         Map<Long, tools.jackson.databind.node.ObjectNode> contents = new HashMap<>();
         Map<Long, CutoverPlanSourcePort.SourceSnapshot> sources = new HashMap<>();
@@ -249,7 +260,11 @@ class CutoverPlanRevisionLifecycleTest {
             cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverPlanSupportContactChangeDO row = invocation.getArgument(0);
             row.setId(901L); return 1;
         });
-        var contactPolicy = new CutoverPlanContactPolicy(mock(cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.class),
+        var contactApi = mock(cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.class);
+        when(contactApi.lockAndInspect(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Revalidation(1L, 8L, 70L, 501L, 2)))
+                .thenReturn(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Reference(
+                        501L, 2, 70L, 401L, "李工", "13800000000", null, null, null));
+        var contactPolicy = new CutoverPlanContactPolicy(contactApi,
                 supportMapper, changes, storage, mock(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "contacts", contactPolicy);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);

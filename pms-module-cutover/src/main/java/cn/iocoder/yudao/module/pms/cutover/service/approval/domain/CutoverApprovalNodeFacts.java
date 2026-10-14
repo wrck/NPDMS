@@ -16,16 +16,6 @@ public final class CutoverApprovalNodeFacts {
         return row;
     }
 
-    public static CutoverApprovalNodeDO manager(ProjectCutoverRuntimeServiceManagerPort.ServiceManagerFact fact) {
-        var row = new CutoverApprovalNodeDO();
-        row.setApprovalModeCode("PERSONAL"); row.setCurrentApproverUserId(fact.userId());
-        row.setProjectScopeVersion(0L); row.setQualificationKindCode("SERVICE_MANAGER");
-        row.setQualificationOutcomeCode(fact.outcome().name()); row.setQualificationRoleCode(fact.roleCode());
-        row.setQualificationProjectVersion(fact.projectVersion() == null ? null : fact.projectVersion().longValue());
-        row.setQualificationParticipantFactVersion(fact.participantFactVersion()); row.setQualificationCheckTime(fact.checkedAt());
-        return row;
-    }
-
     public static CutoverApprovalNodeDO manager(ProjectCutoverServiceManagerPort.ServiceManagerFact fact) {
         var row = new CutoverApprovalNodeDO();
         row.setApprovalModeCode("PERSONAL"); row.setCurrentApproverUserId(fact.userId());
@@ -59,15 +49,7 @@ public final class CutoverApprovalNodeFacts {
     }
 
     public record Source(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node) { }
-    public static ProjectCutoverRuntimeServiceManagerPort.ServiceManagerFact manager(Source source) {
-        var row = source.node(); var root = source.instance();
-        return new ProjectCutoverRuntimeServiceManagerPort.ServiceManagerFact(
-                ProjectCutoverRuntimeServiceManagerPort.Outcome.valueOf(row.getQualificationOutcomeCode()),
-                root.getTenantId(), root.getProjectId(), row.getCurrentApproverUserId(), row.getQualificationRoleCode(),
-                row.getQualificationProjectVersion() == null ? null : Math.toIntExact(row.getQualificationProjectVersion()),
-                row.getQualificationParticipantFactVersion(), row.getQualificationCheckTime());
-    }
-    public static ProjectCutoverServiceManagerPort.ServiceManagerFact legacyManager(Source source) {
+    public static ProjectCutoverServiceManagerPort.ServiceManagerFact manager(Source source) {
         var row = source.node(); var root = source.instance();
         return new ProjectCutoverServiceManagerPort.ServiceManagerFact(
                 ProjectCutoverServiceManagerPort.Outcome.valueOf(row.getQualificationOutcomeCode()),

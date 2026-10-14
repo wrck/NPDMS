@@ -46,7 +46,7 @@ class CutoverApprovalSourceSnapshotCodecTest {
     @Test
     void controlledCandidatesKeepCompleteSetWhileProjectScopeSelectsOneUser() {
         var candidates = CutoverApprovalControlledPorts.roleCandidates()
-                .inspectCandidates(new CutoverApprovalRoleCandidatePort.RoleQuery(1L, "CUT_SECOND_LINE_APPROVER"));
+                .inspectCandidates(new CutoverApprovalRoleCandidatePort.RoleQuery(1L, "probSupporter"));
         var scope = CutoverApprovalControlledPorts.projectScope(202L);
 
         List<Long> visible = candidates.candidates().stream()

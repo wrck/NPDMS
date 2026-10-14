@@ -15,7 +15,8 @@ public final class CutoverApprovalViews {
     public record AssessmentReview(String decision, String reason) { }
     public record Node(Long nodeId, Integer nodeNo, String nodeCode, String status,
                        Long originalApproverUserId, Long currentApproverUserId, LocalDateTime decisionAt,
-                       String feedback, List<ReviewItem> reviewItems, AssessmentReview assessmentReview) { }
+                       String feedback, List<ReviewItem> reviewItems, AssessmentReview assessmentReview,
+                       String candidateRoleCode) { }
     public record ApprovalDetail(String viewMode, Long approvalInstanceId, Long approvalVersion,
                                  Long taskId, Long taskVersion, Long planRevisionId, Integer planRevisionNo,
                                  String grade, String status, String holdReason, Integer currentNodeNo,

@@ -9,9 +9,9 @@ public final class CutoverApprovalRules {
             "PREPARATION", "BUSINESS_TEST", "EXECUTION", "ROLLBACK", "OTHER");
     public static final List<String> GRADES = List.of("A", "B", "C", "D");
     public static final List<String> SERVICE_MANAGER_ROLES = List.of(
-            "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
+            "SERVICE_MANAGER", "SERVICE_MANAGER_L1", "SERVICE_MANAGER_L2");
     public static final List<String> ROLE_GROUP_CODES = List.of(
-            "CUT_SECOND_LINE_APPROVER", "CUT_RND_APPROVER");
+            "probSupporter", "probRD");
 
     private CutoverApprovalRules() {
     }

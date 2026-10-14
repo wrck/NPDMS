@@ -27,7 +27,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import CutoverWorkbench from '../workbench/index.vue'
-import { getProjectCoverage, type CutoverResultProgress, type WireLong } from '@/api/pms/cutover/workbench'
+import { getProjectCoverage, type CutoverResultProgress, type WireLong } from '@/api/pms/cutover'
 defineOptions({ name: 'ProjectCutoverCoverage' })
 const props = defineProps<{ projectId?: WireLong }>()
 const route = useRoute()

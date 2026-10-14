@@ -35,19 +35,19 @@
 </template>
 
 <script setup lang="ts">
-import '../workbench/cutoverWorkbench.css'
+import '../shared/cutover.css'
 import { checkPermi } from '@/utils/permission'
 import { useMessage } from '@/hooks/web/useMessage'
-import * as CutoverApi from '@/api/pms/cutover/workbench'
-import type { AssessmentAnswers, CutoverTaskDetail, ManualGrade, WireLong } from '@/api/pms/cutover/workbench'
-import { activeCutoverStagePanel, newIntentKey } from '../workbench/cutoverTaskInteraction'
-import CutoverProjectContextCard from '../workbench/components/CutoverProjectContextCard.vue'
-import CutoverAssessmentPanel from '../workbench/components/CutoverAssessmentPanel.vue'
-import CutoverApprovalPanel from '../workbench/components/CutoverApprovalPanel.vue'
-import CutoverChecklistPanel from '../workbench/components/CutoverChecklistPanel.vue'
-import CutoverClosurePanel from '../workbench/components/CutoverClosurePanel.vue'
-import CutoverPlanPanel from '../workbench/components/CutoverPlanPanel.vue'
-import CutoverWorkbenchSteps from '../workbench/components/CutoverWorkbenchSteps.vue'
+import * as CutoverApi from '@/api/pms/cutover'
+import type { AssessmentAnswers, CutoverTaskDetail, ManualGrade, WireLong } from '@/api/pms/cutover'
+import { activeCutoverStagePanel, createCutoverWriteCoordinator } from '../shared/cutoverTaskInteraction'
+import CutoverProjectContextCard from '../components/CutoverProjectContextCard.vue'
+import CutoverAssessmentPanel from '../components/CutoverAssessmentPanel.vue'
+import CutoverApprovalPanel from '../components/CutoverApprovalPanel.vue'
+import CutoverChecklistPanel from '../components/CutoverChecklistPanel.vue'
+import CutoverClosurePanel from '../components/CutoverClosurePanel.vue'
+import CutoverPlanPanel from '../components/CutoverPlanPanel.vue'
+import CutoverWorkbenchSteps from '../components/CutoverWorkbenchSteps.vue'
 
 const props = defineProps<{ taskId: WireLong; projectId?: WireLong; readonly?: boolean; approvalOnly?: boolean }>()
 const emit = defineEmits<{ close: []; changed: [] }>()
@@ -60,11 +60,12 @@ const approvalReload = ref(0)
 const saving = ref(false)
 const submitting = ref(false)
 let loadSequence = 0
+const assessmentWrites = createCutoverWriteCoordinator()
 const assessmentModel = reactive<{ answers: AssessmentAnswers; manualGrade: ManualGrade | null }>({ answers: emptyAnswers(), manualGrade: null })
 const activeStagePanel = computed(() => activeCutoverStagePanel(selectedStage.value || detail.value?.task.currentStage || null))
 const statusLabels: Record<string, string> = {
   GRADE_CONFIRMING: '人工分级中', SURVEYING: '现场调研', PLAN_DRAFTING: '方案编制',
-  APPROVING: '审批中', CLOSURE_IN_PROGRESS: '跟踪与闭环', ARCHIVED: '已归档', LEGACY_UNKNOWN: '历史状态'
+  APPROVING: '审批中', CLOSURE_IN_PROGRESS: '跟踪与闭环', ARCHIVED: '已归档'
 }
 
 function emptyAnswers(): AssessmentAnswers {
@@ -97,14 +98,25 @@ const refreshDetail = async () => {
 }
 const reloadDetail = async () => { try { await refreshDetail() } catch { /* 错误由详情页展示，历史数据不可继续办理。 */ } }
 
+const persistAssessment = async () => {
+  if (!detail.value) return false
+  const command = { taskId: detail.value.task.id, taskVersion: detail.value.task.version,
+    assessmentVersion: detail.value.assessment?.rowVersion || 0,
+    data: JSON.parse(JSON.stringify(assessmentModel)) }
+  const result = await assessmentWrites.run(JSON.stringify(['SAVE_ASSESSMENT', command]),
+    idempotencyKey => CutoverApi.saveCutoverAssessment({ ...command, idempotencyKey }), refreshDetail)
+  if (!result.writeCalled || !result.refreshSucceeded) {
+    message.warning(result.refreshSucceeded ? '已刷新上次操作结果，请按最新任务继续' : '评估操作已成功，详情尚未刷新，请先刷新后继续')
+    return false
+  }
+  emit('changed')
+  return true
+}
 const saveAssessment = async () => {
   if (!detail.value) return
   saving.value = true
   try {
-    await CutoverApi.saveCutoverAssessment(detail.value.task.id, detail.value.task.version, detail.value.assessment?.rowVersion || 0, assessmentModel)
-    message.success('人工评估草稿已保存，任务阶段未推进')
-    await refreshDetail()
-    emit('changed')
+    if (await persistAssessment()) message.success('人工评估草稿已保存，任务阶段未推进')
   } finally { saving.value = false }
 }
 const submitAssessment = async () => {
@@ -113,16 +125,20 @@ const submitAssessment = async () => {
   try {
     const stored = detail.value.assessment
     if (!stored || JSON.stringify(stored.answers) !== JSON.stringify(assessmentModel.answers) || stored.manualGrade !== assessmentModel.manualGrade) {
-      await CutoverApi.saveCutoverAssessment(detail.value.task.id, detail.value.task.version, stored?.rowVersion || 0, assessmentModel)
-      await refreshDetail()
+      if (!(await persistAssessment())) return
     }
     if (!detail.value?.assessment || !detail.value.allowedActions.includes('SUBMIT_ASSESSMENT')) {
       message.warning('评估信息已保存，当前尚未满足进入下一步的条件，请检查问卷及等级。')
       return
     }
-    await CutoverApi.submitCutoverAssessment(detail.value.task.id, detail.value.task.version, detail.value.assessment.rowVersion, newIntentKey())
+    const command = { taskId: detail.value.task.id, taskVersion: detail.value.task.version, assessmentVersion: detail.value.assessment.rowVersion }
+    const result = await assessmentWrites.run(JSON.stringify(['SUBMIT_ASSESSMENT', command]),
+      idempotencyKey => CutoverApi.submitCutoverAssessment({ ...command, idempotencyKey }), refreshDetail)
+    if (!result.writeCalled || !result.refreshSucceeded) {
+      message.warning(result.refreshSucceeded ? '已刷新上次操作结果，请按最新任务继续' : '评估提交已成功，详情尚未刷新，请先刷新后继续')
+      return
+    }
     message.success(assessmentModel.manualGrade === 'D' ? '已进入割接方案' : '已进入调研及风险考察')
-    await refreshDetail()
     emit('changed')
   } finally { submitting.value = false }
 }
@@ -142,6 +158,7 @@ watch(() => [props.taskId, props.projectId, props.approvalOnly], () => {
   detail.value = null
   detailError.value = ''
   selectedStage.value = null
+  assessmentWrites.reset()
   void reloadDetail()
 }, { immediate: true })
 onBeforeUnmount(() => { loadSequence++ })

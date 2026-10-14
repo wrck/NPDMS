@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.taskbusiness;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent;
 import cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi;
 import cn.iocoder.yudao.module.pms.project.api.runtime.ProjectRuleReevaluationRequested;

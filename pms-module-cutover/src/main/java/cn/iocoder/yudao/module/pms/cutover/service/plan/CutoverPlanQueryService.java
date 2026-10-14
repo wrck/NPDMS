@@ -10,24 +10,23 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFact;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFactQuery;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalInspectResult;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.InspectStatus;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHistoryQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSuccessorQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanHistoryQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanSuccessorQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP4ActionPolicy;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -40,7 +39,7 @@ import java.util.Objects;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationException.Code.NOT_FOUND;
 
-/** Task 4只读详情内核；不注册生产Bean。 */
+/** P4 方案运行查询，保留历史版本与批准事实。 */
 public class CutoverPlanQueryService {
     private static final CutoverP4ActionPolicy ACTION_POLICY = new CutoverP4ActionPolicy();
     @Resource
@@ -76,22 +75,14 @@ public class CutoverPlanQueryService {
         boolean editAllowed = inspectEditAllowed(actorId, task);
         CutoverApprovalFact approval = inspectApprovalFact(tenantId, plan);
         List<String> actions = allowedActions(context, task, plan, approval, editAllowed);
-        if (plan == null) return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(),
-                null, null, null, null, null, null, null, null, null,
-                null, null, null, actions);
-        boolean legacy = "LEGACY_FORWARD".equals(plan.getOriginCode());
+        if (plan == null) return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), null, null, null, null, null, null, null, null, null, null, actions);
         JsonNode sourceSnapshot = parseSourceSnapshot(plan);
         JsonNode content = assemble(tenantId, plan);
-        return new CutoverPlanView(taskId, legacy ? null : task.getCurrentStage(), task.getVersion(),
-                plan.getId(), plan.getRevisionNo(), plan.getVersion(), plan.getOriginCode(),
-                legacy ? "LEGACY_READ_ONLY" : plan.getStatusCode(), plan.getLegacyPlanId(),
-                plan.getLegacyStatusRaw(), plan.getSourcePlanRevisionId(), plan.getRevisionReasonCode(),
-                sourceSnapshot, content, approvalView(approval), actions);
+        return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), plan.getId(), plan.getRevisionNo(), plan.getVersion(), plan.getOriginCode(), plan.getStatusCode(), plan.getSourcePlanRevisionId(), plan.getRevisionReasonCode(), sourceSnapshot, content, approvalView(approval), actions);
     }
 
     private CutoverPlanRevisionDO selectReadablePlan(Long tenantId, CutoverTaskDO task) {
         CutoverPlanRevisionQuery query = new CutoverPlanRevisionQuery(tenantId, task.getId(), null);
-        if (!"LEGACY_FORWARD".equals(task.getTaskOrigin())) {
             CutoverPlanRevisionDO current = planMapper.selectCurrent(query);
             if (current != null || !CutoverTaskRules.STAGE_P4.equals(task.getCurrentStage())
                     || !CutoverTaskRules.STATUS_PLAN_DRAFTING.equals(task.getTaskStatus())) return current;
@@ -102,14 +93,9 @@ public class CutoverPlanQueryService {
                             && plan.getCurrentMarker() == null && positive(plan.getApprovalInstanceId())
                             && !hasDirectSuccessor(tenantId, task.getId(), plan.getId()))
                     .findFirst().orElse(null);
-        }
-        List<CutoverPlanRevisionDO> legacy = planMapper.selectListLegacyByTask(query);
-        if (legacy.size() > 1) throw corrupted("legacy方案身份不唯一");
-        return legacy.isEmpty() ? null : legacy.getFirst();
     }
 
     private boolean inspectEditAllowed(Long actorId, CutoverTaskDO task) {
-        if ("LEGACY_FORWARD".equals(task.getTaskOrigin())) return false;
         try {
             CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.inspect(actorId, task.getProjectId(), "ACTION_EDIT");
             return fact != null && fact.allowed();
@@ -119,10 +105,6 @@ public class CutoverPlanQueryService {
     }
 
     private JsonNode assemble(Long tenantId, CutoverPlanRevisionDO plan) {
-        if ("LEGACY_FORWARD".equals(plan.getOriginCode())) {
-            return codec.assembleLegacy(stepMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId()))
-                    .stream().map(this::step).toList());
-        }
         if ("FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
             ObjectNode root = JsonUtils.getObjectMapper().createObjectNode(); root.put("editMode", plan.getEditModeCode());
             ObjectNode file = root.putObject("fileArtifactFact"); putWireLong(file, "artifactId", plan.getFileArtifactId());
@@ -131,28 +113,13 @@ public class CutoverPlanQueryService {
             putWireLong(file, "scopeVersion", plan.getFileScopeVersion()); file.put("sha256", plan.getFileSha256());
             root.put("ownershipConfirmed", Boolean.TRUE.equals(plan.getOwnershipConfirmed())); return root;
         }
-        ObjectNode root = storage.content(plan);
-        ArrayNode steps = root.putArray("steps");
-        stepMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId())).stream()
-                .map(this::step).sorted(Comparator.comparingInt((CutoverPlanContentCodec.PlanStep value) ->
-                        cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules.STANDARD_SECTIONS
-                                .indexOf(value.sectionCode())).thenComparingInt(CutoverPlanContentCodec.PlanStep::stepNo))
-                .forEach(value -> {
-                    ObjectNode row = steps.addObject(); row.put("sectionCode", value.sectionCode());
-                    row.put("stepNo", value.stepNo()); row.put("content", value.content());
-                });
+        ObjectNode root = codec.assembleStored(new CutoverPlanContentCodec.StoredPlanContent(storage.content(plan),
+                stepMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId()))));
         if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
-            var customerContact = storage.currentCustomerContact(plan);
-            if (customerContact == null) root.remove("customerContactReference");
-            else root.set("customerContactReference", JsonUtils.getObjectMapper().valueToTree(customerContact));
+            root.remove("customerContactReference");
             ArrayNode support = root.putArray("supportArrangements");
             supportMapper.selectListByPlan(new CutoverPlanChildrenQuery(tenantId, plan.getId())).stream()
-                    .map(storage::currentSupport).forEach(value -> {
-                ObjectNode row = support.addObject(); putWireLong(row, "arrangementId", value.getId());
-                row.put("roleCode", value.getRoleCode()); row.put("personName", value.getPersonName());
-                row.put("dutyDescription", value.getDutyDescription()); row.put("phone", value.getPhone());
-                row.put("arrivalTime", value.getArrivalTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-            });
+                    .map(storage::currentSupport).forEach(value -> support.add(CutoverPlanStorage.supportContent(value)));
         }
         return root;
     }
@@ -283,10 +250,6 @@ public class CutoverPlanQueryService {
         } catch (RuntimeException ignored) {
             return false;
         }
-    }
-
-    private CutoverPlanContentCodec.PlanStep step(CutoverPlanStepDO row) {
-        return new CutoverPlanContentCodec.PlanStep(row.getSectionCode(), row.getStepNo(), row.getContent());
     }
 
     private static void putWireLong(ObjectNode node, String field, Long value) {

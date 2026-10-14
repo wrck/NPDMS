@@ -11,13 +11,13 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApiImpl;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactTransactionExecutor;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalRules;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
@@ -37,9 +37,9 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverAssessmentAnswers;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
@@ -224,8 +224,16 @@ class CutoverApprovalPositiveLoopMySqlTest {
     void rejectedRevisionIsImmutableAndReplacementStartsNewApproval() {
         SubmittedRoute first = submit("D", "reject");
         actor.use(8L);
-        approvalService.reject(new RejectCutoverApprovalCommand(tenantId, taskId, 5L, 0L,
-                noItems(), null, "回退步骤需修订", "reject-d", "corr-reject-d"));
+        approvalService.reject(new RejectCutoverApprovalCommand(tenantId,
+                taskId,
+                first.approvalInstanceId(),
+                5L,
+                0L,
+                noItems(),
+                null,
+                "回退步骤需修订",
+                "reject-d",
+                "corr-reject-d"));
         String frozen = jdbc.queryForObject("SELECT source_snapshot FROM cut_approval_instance WHERE tenant_id=? AND id=?",
                 String.class, tenantId, first.approvalInstanceId());
 
@@ -318,11 +326,17 @@ class CutoverApprovalPositiveLoopMySqlTest {
             Map<String, Object> node = nodes.get(index);
             actor.use(((Number) node.get("current_approver_user_id")).longValue());
             String code = String.valueOf(node.get("node_code"));
-            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId, taskId, 5L, (long) index,
-                    yesItems(), "SERVICE_MANAGER".equals(code)
+            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId,
+                taskId,
+                route.approvalInstanceId(),
+                5L,
+                (long) index,
+                yesItems(),
+                "SERVICE_MANAGER".equals(code)
                     ? new AssessmentReviewInput("CONFIRMED", null) : null,
-                    "节点审批通过", "approve-" + route.approvalInstanceId() + "-" + (index + 1),
-                    "corr-approve-" + route.approvalInstanceId() + "-" + (index + 1)));
+                "节点审批通过",
+                "approve-" + route.approvalInstanceId() + "-" + (index + 1),
+                "corr-approve-" + route.approvalInstanceId() + "-" + (index + 1)));
         }
     }
 
@@ -504,8 +518,8 @@ class CutoverApprovalPositiveLoopMySqlTest {
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
-            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.task",
+            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
@@ -554,8 +568,22 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 CutoverTaskStageHistoryMapper history, ProjectCutoverServiceManagerPort manager,
                 CutoverApprovalRoleCandidatePort candidates, CutoverApprovalProjectScopePort scope,
                 PlatformCommandExecutionApi platform, CurrentActor actor, Clock clock) {
-            return new CutoverApprovalApplicationService(assembler, instances, nodes, notifications, reviews,
-                    reassignments, tasks, history, manager, candidates, scope, platform, actor::current, clock);
+            return new CutoverApprovalApplicationService(assembler,
+                instances,
+                nodes,
+                notifications,
+                reviews,
+                reassignments,
+                tasks,
+                history,
+                manager,
+                candidates,
+                scope,
+                platform,
+                actor::current,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         }
         @Bean CutoverApprovalFactTransactionExecutor approvalTransactions(CutoverApprovalApplicationService service,
                 CutoverApprovalInstanceMapper instances) { return new CutoverApprovalFactTransactionExecutor(service, instances); }
@@ -566,8 +594,19 @@ class CutoverApprovalPositiveLoopMySqlTest {
                 CutoverPlanStepMapper steps, CutoverSupportArrangementMapper supports,
                 CutoverTaskStageHistoryMapper history, ControlledOwners owners, CutoverApprovalFactApi approvals,
                 PlatformCommandExecutionApi platform, Clock clock) {
-            return new CutoverPlanApplicationService(tasks, plans, steps, supports, owners, owners, owners,
-                    new CutoverPlanContentCodec(), platform, approvals, history, clock);
+            return new CutoverPlanApplicationService(tasks,
+                plans,
+                steps,
+                supports,
+                owners,
+                owners,
+                owners,
+                new CutoverPlanContentCodec(),
+                platform,
+                approvals,
+                history,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
         }
         @Bean NotifyMessageSendApi notifyApi() {
             return new NotifyMessageSendApi() {

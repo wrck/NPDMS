@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.checklist;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistStorageMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.*;

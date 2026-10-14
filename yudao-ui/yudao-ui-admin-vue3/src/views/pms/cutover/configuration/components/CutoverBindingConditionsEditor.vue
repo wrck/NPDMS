@@ -68,7 +68,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { CutoverDimension } from '@/api/pms/cutover/cutover-config'
+import type { CutoverDimension } from '@/api/pms/cutover/configuration'
 import { getStrDictOptions } from '@/utils/dict'
 
 type Scalar = string | number | boolean

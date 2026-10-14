@@ -3,24 +3,24 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverApprovalResultReferenceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistResultVersionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.CutoverApprovalResultReferenceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.query.CutoverApprovalResultReferenceListQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalSourceSnapshotCodec.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistResultStore;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCustomResultStore;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanStorage;
-import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverRuntimePlanContentCodec;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskSnapshotStore;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
+import cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskSnapshotStore;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,7 +39,7 @@ import java.util.stream.Stream;
 @Service
 @RequiredArgsConstructor
 public class CutoverApprovalStorage {
-    private static final CutoverRuntimeApprovalSourceSnapshotCodec CODEC = new CutoverRuntimeApprovalSourceSnapshotCodec();
+    private static final CutoverApprovalSourceSnapshotCodec CODEC = new CutoverApprovalSourceSnapshotCodec();
     private final CutoverApprovalResultReferenceMapper references;
     private final CutoverChecklistItemMapper items;
     private final CutoverChecklistItemResultMapper results;
@@ -174,7 +174,7 @@ public class CutoverApprovalStorage {
             root.put("ownershipConfirmed", Boolean.TRUE.equals(plan.getOwnershipConfirmed())); return root;
         }
         var query = new CutoverPlanChildrenQuery(plan.getTenantId(), plan.getId());
-        var root = new CutoverRuntimePlanContentCodec().assembleStored(new CutoverRuntimePlanContentCodec.StoredPlanContent(
+        var root = new CutoverPlanContentCodec().assembleStored(new CutoverPlanContentCodec.StoredPlanContent(
                 planStorage.content(plan), steps.selectListByPlan(query)));
         if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
             root.remove("customerContactReference");

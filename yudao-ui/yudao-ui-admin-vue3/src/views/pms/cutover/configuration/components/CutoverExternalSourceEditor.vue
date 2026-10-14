@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CutoverExternalCatalog, CutoverExternalField } from '@/api/pms/cutover/cutover-config'
+import type { CutoverExternalCatalog, CutoverExternalField } from '@/api/pms/cutover/configuration'
 type Mapping = { sourcePath: string; valueType: string; required: boolean }
 type Direction = 'parameterMapping' | 'returnMapping'
 const props = defineProps<{ modelValue: Record<string, unknown>; catalog: CutoverExternalCatalog | null; disabled?: boolean }>()

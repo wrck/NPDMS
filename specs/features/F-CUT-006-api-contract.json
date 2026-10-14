@@ -91,31 +91,6 @@
         "occurredAt": "WireDateTime"
       }
     },
-    "SavedCredentialCollectionRequest": {
-      "exactKeys": ["authenticationMode", "deviceId", "collectionStage", "credentialId", "credentialVersion", "templateCode", "templateVersion"],
-      "fields": {
-        "authenticationMode": "literal SAVED_CREDENTIAL",
-        "deviceId": "positive WireLong in frozen task scope; one request creates exactly one collectionTaskId",
-        "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
-        "credentialId": "positive WireLong",
-        "credentialVersion": "non-negative WireLong",
-        "templateCode": "non-blank String 1..64",
-        "templateVersion": "non-negative WireLong"
-      }
-    },
-    "TransientCredentialCollectionRequest": {
-      "exactKeys": ["authenticationMode", "deviceId", "collectionStage", "loginName", "transientSecret", "saveAsCredential", "templateCode", "templateVersion"],
-      "fields": {
-        "authenticationMode": "literal TRANSIENT_CREDENTIAL",
-        "deviceId": "positive WireLong in frozen task scope; one request creates exactly one collectionTaskId",
-        "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
-        "loginName": "non-blank String 1..128",
-        "transientSecret": "non-blank transient String accepted only for the synchronous INT-12 call and never persisted/logged/audited/returned",
-        "saveAsCredential": "Boolean; when true credential creation remains INT-12-owned",
-        "templateCode": "non-blank String 1..64",
-        "templateVersion": "non-negative WireLong"
-      }
-    },
     "LinkManualResultRequest": {
       "exactKeys": ["originalFailedCollectionTaskId", "deviceId", "collectionStage", "file"],
       "fields": {
@@ -123,6 +98,16 @@
         "deviceId": "positive WireLong in frozen task scope",
         "collectionStage": "PRE_CHECK|EXECUTION|TEST|ROLLBACK|POST_COLLECTION",
         "file": "FileArtifactExpectation with literal MANUAL_COLLECTION_RESULT"
+      }
+    },
+    "LinkCollectionExecutionRequest": {
+      "exactKeys": [
+        "entry",
+        "executionId"
+      ],
+      "fields": {
+        "entry": "cutover-pre-check|cutover-execution|cutover-test|cutover-rollback|cutover-post-collection",
+        "executionId": "positive WireLong; real PLT execution belonging to the same tenant, closure, project and frozen device scope"
       }
     }
   },
@@ -164,14 +149,44 @@
       "success": "CommonResult<ClosureView>",
       "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "APPROVAL_OR_PLAN_STALE", "PROJECT_SCOPE_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["FILE_FACT_INVALID", "CLOSURE_RESULT_INCOMPLETE", "ROLLBACK_DETAIL_INCOMPLETE"], "503": ["PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PLT_PROVIDER_UNAVAILABLE"]}
     },
-    "requestCollection": {
+    "linkCollectionExecution": {
       "method": "POST",
-      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/actions/request-collection",
+      "path": "/api/v1/pms/cutover-tasks/{taskId}/closure/actions/link-collection-execution",
       "permission": "pms:cutover-task:request-collection",
-      "headers": ["If-Match", "X-Task-Version", "Idempotency-Key"],
-      "request": "exactly SavedCredentialCollectionRequest or TransientCredentialCollectionRequest; existing DRAFT closure is required; transientSecret excluded from persistence, response and audit, while the digest includes authenticationMode, deviceId, stage, loginName, saveAsCredential and template identity",
-      "success": "CommonResult<ClosureView> with one appended dispatch evidence and incremented closureVersion",
-      "errors": {"400": ["REQUEST_SCHEMA_INVALID", "HEADER_REQUIRED_OR_INVALID"], "403": ["PROJECT_OR_TASK_SCOPE_DENIED", "NOT_TASK_OWNER"], "404": ["TASK_OR_CLOSURE_NOT_VISIBLE"], "409": ["TASK_NOT_IN_P6", "CLOSURE_ALREADY_SUBMITTED", "TASK_VERSION_STALE", "CLOSURE_VERSION_STALE", "DEVICE_SCOPE_STALE", "IDEMPOTENCY_PAYLOAD_CONFLICT", "IDEMPOTENCY_OPERATION_IN_PROGRESS"], "422": ["COLLECTION_EVIDENCE_MISMATCH"], "503": ["INT12_PROVIDER_UNAVAILABLE"]}
+      "headers": [
+        "If-Match",
+        "X-Task-Version",
+        "Idempotency-Key"
+      ],
+      "request": "LinkCollectionExecutionRequest; existing DRAFT required; PLT owns execution and credentials; CUT accepts no secret fields",
+      "success": "CommonResult<ClosureView>; append only missing evidence and advance closure version once; terminal failure without a file remains a failed evidence fact",
+      "errors": {
+        "400": [
+          "REQUEST_SCHEMA_INVALID",
+          "HEADER_REQUIRED_OR_INVALID"
+        ],
+        "403": [
+          "PROJECT_OR_TASK_SCOPE_DENIED",
+          "NOT_TASK_OWNER"
+        ],
+        "404": [
+          "TASK_OR_CLOSURE_NOT_VISIBLE"
+        ],
+        "409": [
+          "TASK_NOT_IN_P6",
+          "CLOSURE_ALREADY_SUBMITTED",
+          "TASK_VERSION_STALE",
+          "CLOSURE_VERSION_STALE",
+          "IDEMPOTENCY_PAYLOAD_CONFLICT",
+          "IDEMPOTENCY_OPERATION_IN_PROGRESS"
+        ],
+        "503": [
+          "PLT_PROVIDER_UNAVAILABLE"
+        ],
+        "500": [
+          "COLLECTION_EVIDENCE_MISMATCH"
+        ]
+      }
     },
     "linkManualResult": {
       "method": "POST",

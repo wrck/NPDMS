@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.service.closure;
 
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.CutoverTaskMutation;
+import cn.iocoder.yudao.module.pms.cutover.framework.adapter.CutoverCollectionSources;
+
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverTaskMutation;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -8,10 +10,10 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDeviceScopeDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceLockQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
@@ -23,33 +25,26 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosur
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureSubmitUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureVersionUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceListQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskDeviceListQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.HandleClosureCollectionCallbackCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.LinkClosureManualResultCommand;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.command.RequestClosureCollectionCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SubmitCutoverClosureCommand;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskArchiveUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskDeviceReleaseUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskArchiveUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskDeviceReleaseUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.CollectionIntentIdentity;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.CollectionRequest;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.DispatchFact;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.SavedCredential;
-import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.TransientCredential;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.result.CutoverClosureCommandResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi.BusinessEvent;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,7 +65,7 @@ import java.util.function.Supplier;
 import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Code.*;
 import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Reason.*;
 
-/** F-CUT-006 Task 3/4应用内核；跨模块Provider接通前不注册生产Bean。 */
+/** P6 运行服务；通过正式平台文件和采集事实形成归档。 */
 public class CutoverClosureApplicationService {
     @jakarta.annotation.Resource
     private CutoverClosureStorage storage;
@@ -87,9 +82,9 @@ public class CutoverClosureApplicationService {
     private final CutoverTaskStageHistoryMapper stageHistoryMapper;
     private final CutoverProjectScopePort projectScopePort;
     private final CutoverClosureFilePort filePort;
-    private final CutoverClosureCollectionPort collectionPort;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final Clock clock;
+    private final cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy readiness;
 
     public CutoverClosureApplicationService(CutoverTaskMapper taskMapper,
                                             CutoverApprovalInstanceMapper approvalMapper,
@@ -101,8 +96,8 @@ public class CutoverClosureApplicationService {
                                             CutoverTaskStageHistoryMapper stageHistoryMapper,
                                             CutoverProjectScopePort projectScopePort,
                                             CutoverClosureFilePort filePort,
-                                            CutoverClosureCollectionPort collectionPort,
-                                            PlatformCommandExecutionApi commandExecutionApi, Clock clock) {
+
+                                            PlatformCommandExecutionApi commandExecutionApi, Clock clock, cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy readiness) {
         this.taskMapper = taskMapper;
         this.approvalMapper = approvalMapper;
         this.planMapper = planMapper;
@@ -113,18 +108,11 @@ public class CutoverClosureApplicationService {
         this.stageHistoryMapper = stageHistoryMapper;
         this.projectScopePort = projectScopePort;
         this.filePort = filePort;
-        this.collectionPort = collectionPort;
         this.commandExecutionApi = commandExecutionApi;
-        this.clock = clock;
+        this.clock = clock; this.readiness = readiness;
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    public CutoverClosureCommandResult requestCollection(RequestClosureCollectionCommand command) {
-        requireCollectionCommand(command);
-        CollectionIntentIdentity identity = new CollectionIntentIdentity(command.tenantId(), command.taskId(),
-                command.closureId(), command.deviceId(), command.collectionStage(), command.idempotencyKey());
-        return executeCommand(new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(), "CUT:CLOSURE_COLLECTION_REQUEST:" + command.taskId(), command.actorId(), command.idempotencyKey()), collectionCommandDigest(command), command.correlationId(), "CUTOVER_CLOSURE_COLLECTION_REQUEST", () -> requestCollectionNew(command, identity));
-    }
+
 
     @Transactional(rollbackFor = Exception.class)
     public CutoverClosureCommandResult handleCollectionCallback(HandleClosureCollectionCallbackCommand command) {
@@ -211,51 +199,64 @@ public class CutoverClosureApplicationService {
                 : updateClosure(command, task, closure, lockedFiles);
     }
 
-    private CutoverClosureCommandResult requestCollectionNew(RequestClosureCollectionCommand command,
-                                                              CollectionIntentIdentity identity) {
-        CutoverTaskDO task = requireP6Task(taskMapper.selectForUpdate(
-                new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command);
-        CutoverClosureDO closure = requireDraftClosure(task, command.closureId(), command.expectedClosureVersion());
-        evidenceMapper.selectListByClosureForUpdate(new CutoverClosureChildrenQuery(command.tenantId(), closure.getId()));
-        requireActiveDevice(command.tenantId(), task, command.deviceId());
-        lockProjectScope(command.actorId(), task);
-        CollectionRequest request = new CollectionRequest(identity, command.actorId(), task.getProjectId(),
-                command.authentication(), command.templateCode(), command.templateVersion(), command.correlationId());
-        DispatchFact fact;
-        try {
-            var lookup = collectionPort.inspectByIntent(identity);
-            if (lookup.status() == CutoverClosureCollectionPort.LookupStatus.UNKNOWN) {
-                throw failure(OWNER_PROVIDER_UNAVAILABLE, INT12_PROVIDER_UNAVAILABLE,
-                        "INT-12", "采集Provider状态未知");
-            }
-            fact = lookup.status() == CutoverClosureCollectionPort.LookupStatus.FOUND
-                    ? lookup.fact() : collectionPort.request(request);
-        } catch (CutoverClosureOwnerFactException ex) {
-            throw ownerFailure(ex, "INT-12");
-        }
-        if (!Objects.equals(fact.requestDigest(), request.requestDigest())) {
-            throw failure(IDEMPOTENCY_CONFLICT, IDEMPOTENCY_PAYLOAD_CONFLICT, "采集意图载荷冲突");
-        }
-        insertEvidence(CutoverCollectionEvidenceDO.builder()
-                .tenantId(command.tenantId())
+
+
+    /** 只有采集平台的可信回执能形成采集证据；它不会提交闭环或决定最终业务结果。 */
+    @Transactional(rollbackFor = Exception.class)
+    public void receivePlatformResult(cn.iocoder.yudao.module.pms.platform.api.collection.CollectionBusinessResultReceiver.Result result) {
+        CutoverClosureDO snapshot = closureMapper.selectById(result.objectId());
+        if (snapshot == null || !Objects.equals(snapshot.getTenantId(), result.tenantId())) throw failure(
+                NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "闭环记录不存在");
+        CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(result.tenantId(), snapshot.getTaskId()));
+        CutoverClosureDO closure = closureMapper.selectByTaskForUpdate(new CutoverClosureRowQuery(result.tenantId(), task.getId()));
+        if (!"DRAFT".equals(closure.getStatusCode()) || !"P6".equals(task.getCurrentStage())) return;
+        String stage = cn.iocoder.yudao.module.pms.cutover.framework.adapter.CutoverCollectionSources.CLOSURE_STAGES.get(result.entry());
+        if (stage == null) throw failure(COLLECTION_INVALID, COLLECTION_EVIDENCE_MISMATCH, "采集阶段无效");
+        String event = "PLT-" + result.executionId() + "-" + result.resultVersion();
+        List<CutoverCollectionEvidenceDO> existing = evidenceMapper.selectListByClosureForUpdate(
+                new CutoverClosureChildrenQuery(result.tenantId(), closure.getId()));
+        if (existing.stream().anyMatch(e -> Objects.equals(event, e.getCallbackEventId())
+                || Objects.equals(result.platformTaskId(), e.getCollectionTaskId()) && e.getEvidenceTypeCode().startsWith("CALLBACK_"))) return;
+        LocalDateTime now = LocalDateTime.now(clock);
+        if (existing.stream().noneMatch(e -> "DISPATCH_ACCEPTED".equals(e.getEvidenceTypeCode())
+                && Objects.equals(e.getCollectionTaskId(), result.platformTaskId()))) {
+            insertEvidence(CutoverCollectionEvidenceDO.builder()
+                .tenantId(result.tenantId())
                 .closureId(closure.getId())
                 .taskId(task.getId())
                 .projectId(task.getProjectId())
-                .deviceId(command.deviceId())
-                .collectionStageCode(command.collectionStage().name())
-                .evidenceTypeCode(fact.outcome() == CutoverClosureCollectionPort.DispatchOutcome.ACCEPTED
-                        ? "DISPATCH_ACCEPTED" : "DISPATCH_FAILED")
-                .collectionTaskId(fact.collectionTaskId())
+                .deviceId(result.deviceId())
+                .collectionStageCode(stage)
+                .evidenceTypeCode("DISPATCH_ACCEPTED")
+                .collectionTaskId(result.platformTaskId())
                 .callbackEventId(null)
                 .resultRef(null)
                 .resultVersion(null)
                 .originalFailedCollectionTaskId(null)
                 .manualAttachmentId(null)
-                .occurredAt(fact.occurredAt())
-                .recordedBy(command.actorId())
+                .occurredAt(now)
+                .recordedBy(result.actorId())
                 .build());
-        advanceClosure(command.tenantId(), closure, command.actorId());
-        return result(task, closure.getId(), closure.getVersion() + 1);
+        }
+        boolean success = java.util.Set.of("SUCCESS", "SUCCEEDED").contains(result.externalStatus());
+        insertEvidence(CutoverCollectionEvidenceDO.builder()
+                .tenantId(result.tenantId())
+                .closureId(closure.getId())
+                .taskId(task.getId())
+                .projectId(task.getProjectId())
+                .deviceId(result.deviceId())
+                .collectionStageCode(stage)
+                .evidenceTypeCode(success ? "CALLBACK_SUCCEEDED" : "CALLBACK_FAILED")
+                .collectionTaskId(result.platformTaskId())
+                .callbackEventId(event)
+                .resultRef(result.fileVersionId().toString())
+                .resultVersion(result.resultVersion().toString())
+                .originalFailedCollectionTaskId(null)
+                .manualAttachmentId(null)
+                .occurredAt(now)
+                .recordedBy(result.actorId())
+                .build());
+        advanceClosure(result.tenantId(), closure, result.actorId());
     }
 
     private CutoverClosureCommandResult callbackNew(HandleClosureCollectionCallbackCommand command) {
@@ -363,6 +364,7 @@ public class CutoverClosureApplicationService {
         if (activeDevices.isEmpty()) throw failure(BUSINESS_INCOMPLETE, CLOSURE_RESULT_INCOMPLETE,
                 "闭环任务没有活动设备范围");
 
+        if ("SUCCESS".equals(command.finalResult())) readiness.requireCurrent(task);
         Long submittedVersion = closure.getVersion() + 1;
         String resultRef = "SUCCESS".equals(command.finalResult())
                 ? "CUTOVER_CLOSURE:" + closure.getId() + ":" + submittedVersion : null;
@@ -542,7 +544,7 @@ public class CutoverClosureApplicationService {
             }
         } catch (CutoverClosureApplicationException ex) {
             throw ex;
-        } catch (cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException ex) {
+        } catch (cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException ex) {
             throw switch (ex.code()) {
                 case PROVIDER_UNAVAILABLE -> failure(OWNER_PROVIDER_UNAVAILABLE,
                         PROJECT_SCOPE_PROVIDER_UNAVAILABLE, "PROJ", "项目范围Provider不可用");
@@ -711,19 +713,7 @@ public class CutoverClosureApplicationService {
         }
     }
 
-    private static void requireCollectionCommand(RequestClosureCollectionCommand command) {
-        if (command == null || command.tenantId() == null || command.tenantId() <= 0
-                || command.actorId() == null || command.actorId() <= 0 || command.taskId() == null || command.taskId() <= 0
-                || command.expectedTaskVersion() == null || command.expectedTaskVersion() < 0
-                || command.closureId() == null || command.closureId() <= 0
-                || command.expectedClosureVersion() == null || command.expectedClosureVersion() < 0
-                || command.deviceId() == null || command.deviceId() <= 0 || command.collectionStage() == null
-                || command.authentication() == null || command.templateVersion() == null || command.templateVersion() < 0
-                || !validText(command.templateCode(), 64) || !validText(command.idempotencyKey(), 128)
-                || !validText(command.correlationId(), 128)) {
-            throw failure(INVALID_REQUEST, REQUEST_SCHEMA_INVALID, "采集请求非法");
-        }
-    }
+
 
     private static void requireCallbackCommand(HandleClosureCollectionCallbackCommand command) {
         if (command == null || command.tenantId() == null || command.tenantId() <= 0
@@ -874,21 +864,7 @@ public class CutoverClosureApplicationService {
                 ? execution.response().replayedCopy() : execution.response();
     }
 
-    private static String collectionCommandDigest(RequestClosureCollectionCommand command) {
-        Map<String, Object> value = new LinkedHashMap<>();
-        value.put("taskId", command.taskId()); value.put("taskVersion", command.expectedTaskVersion());
-        value.put("closureId", command.closureId()); value.put("closureVersion", command.expectedClosureVersion());
-        value.put("deviceId", command.deviceId()); value.put("collectionStage", command.collectionStage());
-        value.put("templateCode", command.templateCode()); value.put("templateVersion", command.templateVersion());
-        value.put("authenticationMode", command.authentication().mode());
-        if (command.authentication() instanceof SavedCredential saved) {
-            value.put("credentialId", saved.credentialId()); value.put("credentialVersion", saved.credentialVersion());
-        } else if (command.authentication() instanceof TransientCredential transientCredential) {
-            value.put("loginName", transientCredential.loginName());
-            value.put("saveAsCredential", transientCredential.saveAsCredential());
-        }
-        return sha256(JsonUtils.toJsonString(value));
-    }
+
 
     private static String callbackCommandDigest(HandleClosureCollectionCallbackCommand command) {
         Map<String, Object> value = new LinkedHashMap<>();
@@ -933,6 +909,7 @@ public class CutoverClosureApplicationService {
             String eventId = "CUTOVER_COMPLETED:" + result.closureId() + ":" + result.closureVersion();
             Map<String, Object> payload = new LinkedHashMap<>();
             payload.put("eventId", eventId); payload.put("tenantId", command.tenantId());
+            payload.put("projectId", closure.getProjectId());
             payload.put("taskId", result.taskId()); payload.put("closureId", result.closureId());
             payload.put("closureRevision", result.closureVersion());
             payload.put("finalResult", command.finalResult()); payload.put("resultRef", resultRef);

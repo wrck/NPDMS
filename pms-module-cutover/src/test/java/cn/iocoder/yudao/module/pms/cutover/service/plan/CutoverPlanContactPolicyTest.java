@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi;
-import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverRuntimePlanContentCodec;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import org.junit.jupiter.api.Test;
 import java.util.List;
@@ -13,7 +13,7 @@ import static org.mockito.ArgumentMatchers.*;
 class CutoverPlanContactPolicyTest {
     final ProjectContactReferenceApi contacts = mock(ProjectContactReferenceApi.class);
     final CutoverPlanContactPolicy policy = new CutoverPlanContactPolicy(contacts,
-            mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper.class),
+            mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper.class),
             mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.CutoverPlanSupportContactChangeMapper.class),
             mock(CutoverPlanStorage.class), mock(OperationAuditApi.class));
 
@@ -51,9 +51,9 @@ class CutoverPlanContactPolicyTest {
             return new ProjectContactReferenceApi.Reference(21L, 4, 30L, 100L, "李工", "13900000000", null, null, null);
         });
         var first = content("张工", true);
-        var second = new CutoverRuntimePlanContentCodec.SupportArrangement(null, "CUSTOMER", "李工", "保障", "13900000000", 1,
+        var second = new CutoverPlanContentCodec.SupportArrangement(null, "CUSTOMER", "李工", "保障", "13900000000", 1,
                 new CutoverPlanContactPolicy.Selection(21L, 4));
-        var two = new CutoverRuntimePlanContentCodec.DecodedContent(first.rootSnapshot(), List.of(),
+        var two = new CutoverPlanContentCodec.DecodedContent(first.rootSnapshot(), List.of(),
                 List.of(first.supportArrangements().getFirst(), second), null, false);
         var query = new ProjectContactReferenceApi.Query(1L, 2L, 30L);
         policy.validate(query, two, true);
@@ -68,18 +68,18 @@ class CutoverPlanContactPolicyTest {
         when(contacts.lockAndInspect(any())).thenReturn(new ProjectContactReferenceApi.Reference(
                 20L, 3, 30L, 99L, "张工", null, null, null, null));
         var root = content("张工", true).rootSnapshot();
-        var draft = new CutoverRuntimePlanContentCodec.DecodedContent(root, List.of(), List.of(
-                new CutoverRuntimePlanContentCodec.SupportArrangement(null, "CUSTOMER", "张工", "", "", 0,
+        var draft = new CutoverPlanContentCodec.DecodedContent(root, List.of(), List.of(
+                new CutoverPlanContentCodec.SupportArrangement(null, "CUSTOMER", "张工", "", "", 0,
                         new CutoverPlanContactPolicy.Selection(20L, 3))), null, false);
         var query = new ProjectContactReferenceApi.Query(1L, 2L, 30L);
         assertDoesNotThrow(() -> policy.validate(query, draft, false));
         assertThrows(IllegalArgumentException.class, () -> policy.validate(query, draft, true));
     }
 
-    private CutoverRuntimePlanContentCodec.DecodedContent content(String name, boolean reference) {
+    private CutoverPlanContentCodec.DecodedContent content(String name, boolean reference) {
         var root = JsonUtils.getObjectMapper().createObjectNode(); root.put("editMode", "ONLINE_TEMPLATE_STANDARD");
-        return new CutoverRuntimePlanContentCodec.DecodedContent(root, List.of(), List.of(
-                new CutoverRuntimePlanContentCodec.SupportArrangement(null, "CUSTOMER", name, "保障", "13800000000", 1L,
+        return new CutoverPlanContentCodec.DecodedContent(root, List.of(), List.of(
+                new CutoverPlanContentCodec.SupportArrangement(null, "CUSTOMER", name, "保障", "13800000000", 1L,
                         reference ? new CutoverPlanContactPolicy.Selection(20L, 3) : null)), null, false);
     }
 }

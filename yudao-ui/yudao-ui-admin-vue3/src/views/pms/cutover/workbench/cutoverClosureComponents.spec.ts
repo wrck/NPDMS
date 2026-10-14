@@ -1,18 +1,30 @@
 import { defineComponent, h, nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import CutoverClosureEvidencePanel from './components/CutoverClosureEvidencePanel.vue'
-import CutoverClosureForm from './components/CutoverClosureForm.vue'
-import CutoverClosurePanel from './components/CutoverClosurePanel.vue'
+import CutoverClosureEvidencePanel from '../components/CutoverClosureEvidencePanel.vue'
+import CutoverClosureForm from '../components/CutoverClosureForm.vue'
+import CutoverClosurePanel from '../components/CutoverClosurePanel.vue'
 import { findByTestId, mount, passthrough, textOf } from '../cutoverTestHarness'
 
 const api = vi.hoisted(() => ({
-  getCutoverClosure: vi.fn(), saveCutoverClosure: vi.fn(), requestCutoverClosureCollection: vi.fn(),
-  linkCutoverClosureManualResult: vi.fn(), submitCutoverClosure: vi.fn()
+  getCutoverClosure: vi.fn(), saveCutoverClosure: vi.fn(),
+  linkClosureExecution: vi.fn(), linkCutoverClosureManualResult: vi.fn(), submitCutoverClosure: vi.fn()
 }))
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
-vi.mock('@/api/pms/cutover/workbench', () => api)
+vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
+vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({
+  default: defineComponent({
+    emits: ['observed'],
+    setup(_, { emit, expose }) {
+      expose({ open: vi.fn() })
+      return () => h('button', { 'data-testid': 'observe-platform-execution', onClick: () => emit('observed', [{
+        id: '9007199254740993', task: { status: 'COMPLETED', resultVersion: '2', fileVersionId: '3' }
+      }]) }, '读取平台采集执行')
+    }
+  })
+}))
+vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
     inheritAttrs: false,
@@ -57,8 +69,8 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     await flush()
 
     expect(api.saveCutoverClosure).toHaveBeenNthCalledWith(
-      1, '9007199254740995', 7, null,
-      expect.objectContaining({ attachments: [] }), expect.any(String)
+      1, { taskId: '9007199254740995', taskVersion: 7, closureVersion: null,
+        data: expect.objectContaining({ attachments: [] }), idempotencyKey: expect.any(String) }
     )
     await setValue(mounted.root, 'closure-precheck-normal', true)
     await setValue(mounted.root, 'closure-execution-normal', true)
@@ -70,39 +82,41 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     await flush()
 
     expect(api.saveCutoverClosure).toHaveBeenNthCalledWith(
-      2, '9007199254740995', 7, 1,
-      expect.objectContaining({
+      2, { taskId: '9007199254740995', taskVersion: 7, closureVersion: 1,
+      data: expect.objectContaining({
         preCheckNormal: true, executionNormal: true, testNormal: true, rollbackOccurred: false,
         finalResult: null,
         attachments: expect.arrayContaining([
           expect.objectContaining({ purposeCode: 'POST_COLLECTION_CHECKLIST', artifactId: '9007199254740993' }),
           expect.objectContaining({ purposeCode: 'IMPLEMENTATION_COMMITMENT', artifactId: '9007199254740993' })
         ])
-      }), expect.any(String)
+      }), idempotencyKey: expect.any(String) }
     )
     expect(fileApi.getArtifact).toHaveBeenCalledWith(
       '9007199254740993', expect.objectContaining({ objectId: '501' })
     )
-    expect(typeof api.saveCutoverClosure.mock.calls[1][3].attachments[0].artifactId).toBe('string')
+    expect(typeof api.saveCutoverClosure.mock.calls[1][0].data.attachments[0].artifactId).toBe('string')
     mounted.app.unmount()
   })
 
-  it('requests one device with a transient credential and clears the secret after emitting', async () => {
-    const requests: unknown[] = []
+  it('links formal platform execution ids and keeps the same intent after an uncertain response', async () => {
+    api.getCutoverClosure.mockReset().mockResolvedValue(view(['REQUEST_COLLECTION'], 2))
+    api.linkClosureExecution.mockRejectedValueOnce(new Error('response lost')).mockResolvedValue({})
     const mounted = mount(CutoverClosureEvidencePanel, {
-      closureId: '501', evidence: [], 'can-request': true, 'can-link-manual': false,
-      onRequest: (value: unknown) => requests.push(value)
+      taskId: '101', closureId: '501', evidence: [], canRequest: true, canLinkManual: false, devices: []
     }, controls)
-    await click(mounted.root, 'open-collection')
-    await setValue(mounted.root, 'collection-auth-mode', 'TRANSIENT_CREDENTIAL')
-    await setValue(mounted.root, 'collection-device', '9007199254740993')
-    await setValue(mounted.root, 'collection-secret', 'temporary-secret')
-    await click(mounted.root, 'request-collection')
-
-    expect(requests[0]).toMatchObject({
-      authenticationMode: 'TRANSIENT_CREDENTIAL', deviceId: '9007199254740993', transientSecret: 'temporary-secret'
+    await click(mounted.root, 'observe-platform-execution')
+    await flush()
+    await vi.waitFor(() => expect(api.linkClosureExecution).toHaveBeenCalledOnce())
+    await click(mounted.root, 'observe-platform-execution')
+    await flush()
+    await vi.waitFor(() => expect(api.linkClosureExecution).toHaveBeenCalledTimes(2))
+    expect(api.linkClosureExecution.mock.calls[0][0]).toEqual({
+      taskId: '101', taskVersion: 7, closureVersion: 2, entry: 'cutover-pre-check',
+      executionId: '9007199254740993', idempotencyKey: expect.any(String)
     })
-    expect(findByTestId(mounted.root, 'collection-secret')?.props?.modelValue).toBe('')
+    expect(api.linkClosureExecution.mock.calls[1][0]).toEqual(api.linkClosureExecution.mock.calls[0][0])
+    expect(api.getCutoverClosure).toHaveBeenCalledOnce()
     mounted.app.unmount()
   })
 
@@ -114,7 +128,7 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
       originalFailedCollectionTaskId: null, manualFile: null, occurredAt: 1788220800000
     }]
     const mounted = mount(CutoverClosureEvidencePanel, {
-      closureId: '501', evidence, 'can-request': false, 'can-link-manual': true,
+      taskId: '101', closureId: '501', devices: [], evidence, 'can-request': false, 'can-link-manual': true,
       onManual: (value: unknown) => results.push(value)
     }, controls)
     await click(mounted.root, 'open-manual-result')
@@ -140,19 +154,20 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     api.submitCutoverClosure.mockResolvedValue(view([], 3, 'SUBMITTED', 'ARCHIVED'))
     const mounted = mount(CutoverClosurePanel, { taskId: '101' }, controls)
     await flush()
-    await click(mounted.root, 'submit-closure-success')
+    await setValue(mounted.root, 'closure-final-result', 'SUCCESS')
+    await click(mounted.root, 'submit-closure')
     await flush()
 
-    expect(api.submitCutoverClosure).toHaveBeenCalledWith('101', 7, 2, 'SUCCESS', expect.any(String))
+    expect(api.submitCutoverClosure).toHaveBeenCalledWith({ taskId: '101', taskVersion: 7, closureVersion: 2, finalResult: 'SUCCESS', idempotencyKey: expect.any(String) })
     expect(findByTestId(mounted.root, 'save-closure')).toBeUndefined()
-    expect(textOf(mounted.root)).toContain('ARCHIVED')
+    expect(textOf(mounted.root)).toContain('已归档')
     mounted.app.unmount()
   })
 
   it('keeps the form and stage navigation responsive at the locked 320/768/1024/1440 breakpoints', () => {
     const mounted = mount(CutoverClosureForm, { modelValue: content(), closureId: '501', editable: false }, controls)
-    expect(textOf(mounted.root)).toContain('割接关闭记录')
-    expect(textOf(mounted.root)).toContain('割接后检查清单')
+    expect(textOf(mounted.root)).toContain('割接前检查')
+    expect(textOf(mounted.root)).toContain('割接后信息采集清单')
     expect(textOf(mounted.root)).toContain('实施承诺')
     mounted.app.unmount()
   })

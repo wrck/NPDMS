@@ -1,169 +1,140 @@
 package cn.iocoder.yudao.module.pms.cutover.service.dashboard;
 
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.dashboard.CutoverDashboardCandidateMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.dashboard.CutoverDashboardCandidateRow;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.dashboard.query.CutoverDashboardCandidateQuery;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP2P3ActionPolicy;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP4ActionPolicy;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP6ActionPolicy;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort.BatchQuery;
-import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardActionFactPort.CandidateNeed;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalQueryService;
+import cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureQueryService;
+import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardContext;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.view.CutoverDashboardKpiView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService;
+import cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskQueryService;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.query.CutoverTaskListQuery.ListKind;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
-import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-/** Read-only CUT dashboard aggregation. Production assembly waits for every Owner provider. */
+/** 统计和分类列表复用授权范围、审批待办及各阶段现行办理规则。 */
+@Service
+@RequiredArgsConstructor
 public class CutoverDashboardQueryService {
-    private static final String ACTION_VIEW = "ACTION_VIEW";
     private static final int BATCH_SIZE = 500;
-    private static final Set<String> TODO_ACTIONS = Set.of(
-            "SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT", "GENERATE_CHECKLIST", "SAVE_CHECKLIST",
-            "REQUEST_COLLECTION", "SUBMIT_CHECKLIST", "CREATE_DRAFT", "SAVE_DRAFT", "SUBMIT_PLAN",
-            "REVISE_PLAN", "APPROVE", "REJECT", "CREATE_CLOSURE", "SAVE_CLOSURE",
-            "LINK_MANUAL_RESULT", "SUBMIT_CLOSURE");
+    private final CutoverDashboardCandidateMapper candidates;
+    private final CutoverProjectScopePort scopes;
+    private final CutoverTaskQueryService tasks;
+    private final CutoverPlanQueryService plans;
+    private final CutoverApprovalQueryService approvals;
+    private final CutoverClosureQueryService closures;
 
-    private final CutoverDashboardCandidateMapper candidateMapper;
-    private final CutoverProjectScopePort projectScopePort;
-    private final CutoverDashboardActionFactPort actionFactPort;
-    private final Clock clock;
-    private final CutoverP2P3ActionPolicy p2p3Policy = new CutoverP2P3ActionPolicy();
-    private final CutoverP4ActionPolicy p4Policy = new CutoverP4ActionPolicy();
-    private final CutoverP5ActionPolicy p5Policy = new CutoverP5ActionPolicy();
-    private final CutoverP6ActionPolicy p6Policy = new CutoverP6ActionPolicy();
-
-    public CutoverDashboardQueryService(CutoverDashboardCandidateMapper candidateMapper,
-                                        CutoverProjectScopePort projectScopePort,
-                                        CutoverDashboardActionFactPort actionFactPort, Clock clock) {
-        this.candidateMapper = candidateMapper;
-        this.projectScopePort = projectScopePort;
-        this.actionFactPort = actionFactPort;
-        this.clock = clock;
+    public CutoverDashboardKpiView statistics(CutoverDashboardContext context) {
+        var groups = groups(new Selection(context, scope(context)));
+        return new CutoverDashboardKpiView(groups.get(ListKind.TODO).size(), groups.get(ListKind.ARCHIVED).size(),
+                groups.get(ListKind.APPROVING).size(), groups.get(ListKind.REJECTED).size(), LocalDateTime.now());
     }
 
-    public CutoverDashboardKpiView inspect(long tenantId, long actorId, PermissionFacts permissions) {
-        if (tenantId <= 0 || actorId <= 0 || permissions == null) {
-            throw corrupted("dashboard request identity is invalid");
-        }
-        Set<Long> visibleProjectIds = resolveVisibleProjects(actorId);
-        if (visibleProjectIds.isEmpty()) {
-            return new CutoverDashboardKpiView(0, 0, 0, 0, LocalDateTime.now(clock));
-        }
-        List<CutoverDashboardCandidateRow> rows = loadAll(tenantId, visibleProjectIds);
-        long archived = rows.stream().filter(row -> "ARCHIVED".equals(row.getTaskStatus())).count();
-        long approving = rows.stream().filter(row -> "P5".equals(row.getCurrentStage())
-                && "APPROVING".equals(row.getTaskStatus())).count();
-        long rejected = rows.stream().filter(row -> "P4".equals(row.getCurrentStage())
-                && "PLAN_DRAFTING".equals(row.getTaskStatus())
-                && "REJECTED".equals(row.getCurrentApprovalStatus())).count();
-
-        List<CutoverDashboardCandidateRow> todoCandidates = rows.stream()
-                .filter(CutoverDashboardQueryService::isTodoCandidate).toList();
-        long todo = todoCandidates.isEmpty() ? 0
-                : countTodos(tenantId, actorId, permissions, todoCandidates);
-        return new CutoverDashboardKpiView(todo, archived, approving, rejected, LocalDateTime.now(clock));
-    }
-
-    private Set<Long> resolveVisibleProjects(long actorId) {
+    public Scope scope(CutoverDashboardContext context) {
+        Set<Long> visible;
         try {
-            Set<Long> projectIds = projectScopePort.resolveAllCurrent(actorId, ACTION_VIEW);
-            if (projectIds == null || projectIds.stream().anyMatch(id -> id == null || id <= 0)) {
-                throw ownerCorrupted("PROJ", "project scope result is corrupted");
-            }
-            return Set.copyOf(projectIds);
-        } catch (CutoverOwnerFactException ex) {
-            throw switch (ex.code()) {
-                case PROVIDER_UNAVAILABLE -> new CutoverDashboardOwnerFactException(
-                        "OWNER_PROVIDER_UNAVAILABLE", "PROJECT_SCOPE_PROVIDER_UNAVAILABLE", "PROJ", ex);
-                case INVALID_FACT, DATA_SCOPE_FORBIDDEN, STALE -> new CutoverDashboardOwnerFactException(
-                        "OWNER_DATA_CORRUPTED", "OWNER_FACT_CORRUPTED", "PROJ", ex);
-            };
+            visible = scopes.resolveAllCurrent(context.task().actorId(), "ACTION_VIEW");
+        } catch (CutoverOwnerFactException failure) {
+            boolean unavailable = failure.code() == CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE;
+            throw new CutoverDashboardOwnerFactException(unavailable ? "OWNER_PROVIDER_UNAVAILABLE" : "OWNER_DATA_CORRUPTED",
+                    unavailable ? "PROJECT_SCOPE_PROVIDER_UNAVAILABLE" : "OWNER_FACT_CORRUPTED", "PROJ", failure);
         }
+        if (visible == null || visible.stream().anyMatch(id -> id == null || id <= 0))
+            throw corrupted("PROJ", "项目范围事实无效");
+        Map<Long, Long> approvalInstances = new LinkedHashMap<>();
+        if (context.approval().canQuery() && context.approval().canApprove()) {
+            for (int page = 1; ; page++) {
+                var pagination = new PageParam();
+                pagination.setPageNo(page); pagination.setPageSize(100);
+                var rows = approvals.myTodos(context.approval(), pagination);
+                rows.list().forEach(row -> approvalInstances.put(row.taskId(), row.approvalInstanceId()));
+                if (page * 100L >= rows.total()) break;
+                if (rows.list().isEmpty()) throw corrupted("CUT", "审批待办分页事实不完整");
+            }
+        }
+        return new Scope(visible, approvalInstances);
     }
 
-    private List<CutoverDashboardCandidateRow> loadAll(long tenantId, Set<Long> visibleProjectIds) {
-        ArrayList<CutoverDashboardCandidateRow> all = new ArrayList<>();
-        HashSet<Long> taskIds = new HashSet<>();
+    public Set<Long> taskIds(Selection selection, ListKind kind) {
+        if (kind == ListKind.ALL || kind == ListKind.SELF_CREATED) return null;
+        return Set.copyOf(groups(selection).get(kind));
+    }
+
+    private Map<ListKind, Set<Long>> groups(Selection selection) {
+        var context = selection.context();
+        var scope = selection.scope();
+        Map<ListKind, Set<Long>> groups = new EnumMap<>(ListKind.class);
+        for (var kind : List.of(ListKind.TODO, ListKind.ARCHIVED, ListKind.APPROVING, ListKind.REJECTED))
+            groups.put(kind, new LinkedHashSet<>());
+        if (scope.visibleProjectIds().isEmpty() && scope.approvalInstances().isEmpty()) return groups;
+        Set<Long> seen = new HashSet<>();
         long cursor = 0;
         while (true) {
-            List<CutoverDashboardCandidateRow> batch = candidateMapper.selectBatch(
-                    new CutoverDashboardCandidateQuery(tenantId, visibleProjectIds, cursor, BATCH_SIZE));
-            if (batch == null) throw corrupted("dashboard candidate batch is missing");
-            if (batch.isEmpty()) return List.copyOf(all);
-            for (CutoverDashboardCandidateRow row : batch) {
+            var rows = candidates.selectBatch(new CutoverDashboardCandidateQuery(context.task().tenantId(),
+                    scope.visibleProjectIds(), cursor, BATCH_SIZE, scope.approvalInstances().keySet()));
+            if (rows == null) throw corrupted("CUT", "割接统计候选批次缺失");
+            for (var row : rows) {
                 if (row == null || row.getTaskId() == null || row.getTaskId() <= cursor
-                        || row.getProjectId() == null || row.getProjectId() <= 0
-                        || row.getTaskVersion() == null || row.getTaskVersion() < 0
-                        || !taskIds.add(row.getTaskId())) {
-                    throw corrupted("dashboard candidate projection is corrupted");
-                }
+                        || row.getProjectId() == null || row.getTaskVersion() == null || row.getTaskVersion() < 0
+                        || !seen.add(row.getTaskId()) || (!scope.visibleProjectIds().contains(row.getProjectId())
+                        && !scope.approvalInstances().containsKey(row.getTaskId())))
+                    throw corrupted("CUT", "割接统计候选事实越界或无效");
                 cursor = row.getTaskId();
-                all.add(row);
+                if ("ARCHIVED".equals(row.getTaskStatus())) {
+                    groups.get(ListKind.ARCHIVED).add(row.getTaskId()); continue;
+                }
+                if ("P5".equals(row.getCurrentStage()) && "APPROVING".equals(row.getTaskStatus()))
+                    groups.get(ListKind.APPROVING).add(row.getTaskId());
+                if ("P4".equals(row.getCurrentStage()) && "PLAN_DRAFTING".equals(row.getTaskStatus())
+                        && "REJECTED".equals(row.getCurrentApprovalStatus()))
+                    groups.get(ListKind.REJECTED).add(row.getTaskId());
+                if (!"NEW_PLATFORM".equals(row.getTaskOrigin())) continue;
+                if (scope.approvalInstances().containsKey(row.getTaskId())
+                        || Objects.equals(context.task().actorId(), row.getOwnerUserId())
+                        && scope.visibleProjectIds().contains(row.getProjectId()) && actionable(row, context))
+                    groups.get(ListKind.TODO).add(row.getTaskId());
             }
-            if (batch.size() < BATCH_SIZE) return List.copyOf(all);
+            if (rows.size() < BATCH_SIZE) break;
         }
+        return groups;
     }
 
-    private long countTodos(long tenantId, long actorId, PermissionFacts permissions,
-                            List<CutoverDashboardCandidateRow> candidates) {
-        List<CandidateNeed> needs = candidates.stream().map(row -> new CandidateNeed(
-                row.getTaskId(), row.getProjectId(), row.getTaskVersion(), row.getCurrentStage(),
-                row.getStageFactId(), row.getStageFactVersion())).toList();
-        List<CutoverDashboardActionFacts> resolved = actionFactPort.inspectBatch(
-                new BatchQuery(tenantId, actorId, needs));
-        if (resolved == null || resolved.size() != candidates.size()) {
-            throw corrupted("dashboard action facts are incomplete");
-        }
-        Map<Long, CutoverDashboardActionFacts.ActionFacts> factsByTaskId = new HashMap<>();
-        for (CutoverDashboardActionFacts item : resolved) {
-            if (item == null || item.taskId() == null || item.facts() == null
-                    || factsByTaskId.putIfAbsent(item.taskId(), item.facts()) != null) {
-                throw corrupted("dashboard action facts are corrupted");
-            }
-        }
-        long count = 0;
-        for (CutoverDashboardCandidateRow row : candidates) {
-            CutoverDashboardActionFacts.ActionFacts facts = factsByTaskId.get(row.getTaskId());
-            if (facts == null) throw corrupted("dashboard action fact identity is missing");
-            CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(row.getTaskId(),
-                    row.getTaskOrigin(), row.getCurrentStage(), row.getTaskStatus(), row.getOwnerUserId(),
-                    actorId, row.getManualGrade());
-            HashSet<String> actions = new HashSet<>();
-            actions.addAll(p2p3Policy.allowedActions(candidate, facts, permissions));
-            actions.addAll(p4Policy.allowedActions(candidate, facts, permissions));
-            actions.addAll(p5Policy.allowedActions(candidate, facts, permissions));
-            actions.addAll(p6Policy.allowedActions(candidate, facts, permissions));
-            if (actions.stream().anyMatch(TODO_ACTIONS::contains)) count++;
-        }
-        return count;
+    private boolean actionable(CutoverDashboardCandidateRow row, CutoverDashboardContext context) {
+        if (row.getCurrentStage() == null) return false;
+        return switch (row.getCurrentStage()) {
+            case "P2", "P3" -> !tasks.detail(context.task(), row.getTaskId()).allowedActions().isEmpty();
+            case "P4" -> plans.detail(context.plan(), row.getTaskId()).allowedActions().stream()
+                    .anyMatch(Set.of("CREATE_DRAFT", "SAVE_DRAFT", "SUBMIT_PLAN", "REVISE_PLAN")::contains);
+            case "P6" -> !closures.detail(context.closure(), row.getTaskId()).allowedActions().isEmpty();
+            default -> false;
+        };
     }
 
-    private static boolean isTodoCandidate(CutoverDashboardCandidateRow row) {
-        return "NEW_PLATFORM".equals(row.getTaskOrigin()) && !"ARCHIVED".equals(row.getTaskStatus())
-                && row.getCurrentStage() != null
-                && Set.of("P2", "P3", "P4", "P5", "P6").contains(row.getCurrentStage());
-    }
-
-    private static CutoverDashboardOwnerFactException corrupted(String message) {
-        return ownerCorrupted("CUT", message);
-    }
-
-    private static CutoverDashboardOwnerFactException ownerCorrupted(String ownerContext, String message) {
+    private static CutoverDashboardOwnerFactException corrupted(String owner, String message) {
         return new CutoverDashboardOwnerFactException("OWNER_DATA_CORRUPTED", "OWNER_FACT_CORRUPTED",
-                ownerContext, new IllegalStateException(message));
+                owner, new IllegalStateException(message));
     }
+
+    public record Scope(Set<Long> visibleProjectIds, Map<Long, Long> approvalInstances) {
+        public Scope {
+            visibleProjectIds = Set.copyOf(visibleProjectIds);
+            approvalInstances = Map.copyOf(approvalInstances);
+        }
+    }
+    public record Selection(CutoverDashboardContext context, Scope scope) { }
 }

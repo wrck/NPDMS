@@ -1,14 +1,14 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.CreateCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.SaveCutoverPlanDraftCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
@@ -16,8 +16,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
@@ -218,7 +218,7 @@ class CutoverPlanApplicationServiceTest {
     }
 
     @Test
-    void preservesExistingSupportIdentityByRoleWhenClientOmitsId() {
+    void preservesExplicitSupportIdentityAcrossDraftSave() {
         Fixture fixture = fixture("A");
         fixture.service.createDraft(command("ONLINE_TEMPLATE_STANDARD", null, null));
         CutoverPlanRevisionDO plan = fixture.inserted.get();
@@ -234,7 +234,7 @@ class CutoverPlanApplicationServiceTest {
                 .thenAnswer(invocation -> { saved.set(invocation.getArgument(0)); return 1; });
 
         fixture.service.saveDraft(new SaveCutoverPlanDraftCommand(1L, 8L, 50L, 4L, 0L, 30L,
-                standardContent(null), "save-support", "corr-support"));
+                standardContent(91L), "save-support", "corr-support"));
 
         assertThat(saved.get().getId()).isEqualTo(91L);
         assertThat(saved.get().getRoleCode()).isEqualTo("CUSTOMER");
@@ -268,9 +268,19 @@ class CutoverPlanApplicationServiceTest {
         when(planMapper.insert(any(CutoverPlanRevisionDO.class)))
                 .thenAnswer(invocation -> { inserted.set(invocation.getArgument(0)); return 1; });
         DirectPlatform platform = new DirectPlatform();
-        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper,
-                supportMapper, project, source, file, new CutoverPlanContentCodec(), platform,
-                Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC));
+        CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                stepMapper,
+                supportMapper,
+                project,
+                source,
+                file,
+                new CutoverPlanContentCodec(),
+                platform,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper.class),
+                Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
         var storage = mock(CutoverPlanStorage.class);
         Map<Long, tools.jackson.databind.node.ObjectNode> contents = new HashMap<>();
         Map<Long, CutoverPlanSourcePort.SourceSnapshot> sources = new HashMap<>();

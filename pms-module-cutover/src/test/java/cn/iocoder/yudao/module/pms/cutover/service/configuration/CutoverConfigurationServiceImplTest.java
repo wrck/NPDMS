@@ -2,8 +2,8 @@ package cn.iocoder.yudao.module.pms.cutover.service.configuration;
 
 import cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationSaveReqVO;
-import cn.iocoder.yudao.module.pms.cutover.controller.admin.configuration.vo.CutoverConfigurationValidationRespVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationSaveReqVO;
+import cn.iocoder.yudao.module.pms.cutover.controller.business.configuration.vo.CutoverConfigurationValidationRespVO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistBindingRuleRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverChecklistItemDefinitionRevisionDO;
@@ -15,6 +15,14 @@ import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverRiskMatri
 import cn.iocoder.yudao.module.pms.cutover.domain.configuration.CutoverSurveyMatrixRules;
 import cn.iocoder.yudao.module.system.api.dict.DictDataApi;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands;
+import org.springframework.test.util.ReflectionTestUtils;
+import java.util.HashMap;
+import static org.mockito.Mockito.lenient;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -50,14 +58,38 @@ class CutoverConfigurationServiceImplTest {
     private CutoverChecklistBindingRuleRevisionMapper ruleMapper;
     @Mock
     private DictDataApi dictDataApi;
+    @Mock private CutoverConfigurationMetadataStore metadata;
+    @Mock private CutoverFieldDefinitionStore fields;
+    @Mock private CutoverExternalMappingStore externalMappings;
+    private final Map<Long, List<CutoverConfigurationSaveReqVO.DimensionVO>> dimensions = new HashMap<>();
+    private final Map<Long, List<CutoverConfigurationSaveReqVO.PlanTemplateSectionVO>> sections = new HashMap<>();
+    private final Map<Long, CutoverFieldSchemaCodec.Definition> schemas = new HashMap<>();
+    private final Map<Long, Map<String, Object>> conditions = new HashMap<>();
+    private MockedStatic<SecurityFrameworkUtils> security;
+
+    @BeforeEach
+    void prepareCurrentStorage() {
+        TenantContextHolder.setTenantId(1L);
+        security = mockStatic(SecurityFrameworkUtils.class);
+        security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(1L);
+        ReflectionTestUtils.setField(service, "commands", CutoverTestCommands.executor());
+        lenient().when(metadata.dimensionViews(any())).thenAnswer(call -> dimensions.getOrDefault(call.getArgument(0), List.of()));
+        lenient().when(metadata.sectionViews(any())).thenAnswer(call -> sections.getOrDefault(call.getArgument(0), List.of()));
+        lenient().when(metadata.conditionViews(any())).thenAnswer(call -> conditions);
+        lenient().when(fields.definitions(any())).thenAnswer(call -> schemas);
+    }
+
+    @AfterEach
+    void clearContext() { security.close(); TenantContextHolder.clear(); }
+
     @InjectMocks
     private CutoverConfigurationServiceImpl service;
 
     @Test
     void copyShouldPreserveAllMatrixChildren() {
         CutoverConfigurationRevisionDO source = draft(10L);
-        source.setNavigationRuleSnapshot("{\"target\":\"TASK_OVERVIEW\"}");
-        when(revisionMapper.selectById(10L)).thenReturn(source);
+        source.setNavigationTargetCode("TASK_OVERVIEW");
+        when(revisionMapper.selectForUpdate(any())).thenReturn(source);
         CutoverChecklistItemDefinitionRevisionDO item = new CutoverChecklistItemDefinitionRevisionDO();
         item.setId(20L);
         item.setStableItemKey("RISK-SYSTEM-LOG");
@@ -66,7 +98,7 @@ class CutoverConfigurationServiceImplTest {
         item.setBusinessCategoryCode("SYSTEM_LOG");
         item.setItemName("系统日志检查");
         item.setInterfaceFormatCode("TEXT");
-        item.setInterfaceSchema("{}");
+        schemas.put(20L, CutoverFieldSchemaCodec.encode(new CutoverFieldSchemaCodec.Write(1L, 20L, null, "SYSTEM_LOG", "RISK", Map.of())));
         item.setFeedbackFormatCode("TEXT");
         item.setRequiredFlag(false);
         item.setWorkModeCode("MANUAL");
@@ -76,7 +108,8 @@ class CutoverConfigurationServiceImplTest {
         CutoverChecklistBindingRuleRevisionDO rule = new CutoverChecklistBindingRuleRevisionDO();
         rule.setStableRuleKey("RULE-RISK-SYSTEM-LOG");
         rule.setItemDefinitionId(20L);
-        rule.setDimensionConditionSnapshot("{}");
+        rule.setId(30L);
+        conditions.put(30L, Map.of());
         rule.setPriority(10);
         rule.setRequiredResult(true);
         rule.setStatusCode("ENABLED");
@@ -87,7 +120,7 @@ class CutoverConfigurationServiceImplTest {
             return 1;
         });
 
-        service.copyRevision(10L, 0L);
+        service.copyRevision(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.RevisionAction(10L, 0L, cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
 
         ArgumentCaptor<CutoverChecklistItemDefinitionRevisionDO> copiedItem =
                 ArgumentCaptor.forClass(CutoverChecklistItemDefinitionRevisionDO.class);
@@ -100,8 +133,8 @@ class CutoverConfigurationServiceImplTest {
         ArgumentCaptor<CutoverConfigurationRevisionDO> copiedRoot =
                 ArgumentCaptor.forClass(CutoverConfigurationRevisionDO.class);
         verify(revisionMapper).insert(copiedRoot.capture());
-        org.junit.jupiter.api.Assertions.assertEquals("{\"target\":\"TASK_OVERVIEW\"}",
-                copiedRoot.getValue().getNavigationRuleSnapshot());
+        org.junit.jupiter.api.Assertions.assertEquals("TASK_OVERVIEW",
+                copiedRoot.getValue().getNavigationTargetCode());
     }
 
     @Test
@@ -125,7 +158,7 @@ class CutoverConfigurationServiceImplTest {
     @Test
     void validateShouldPrefixRiskAndSurveyLocations() {
         CutoverConfigurationRevisionDO incomplete = draft(10L);
-        incomplete.setPlanTemplateSectionSnapshot("[]");
+        sections.put(10L, List.of());
         when(revisionMapper.selectById(10L)).thenReturn(incomplete);
         when(itemMapper.selectListByRevision(any())).thenReturn(List.of());
         when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
@@ -141,6 +174,7 @@ class CutoverConfigurationServiceImplTest {
     @Test
     void publishShouldHaveNoWriteWhenDictionaryValidationFails() {
         when(revisionMapper.selectById(10L)).thenReturn(draft(10L));
+        when(revisionMapper.selectForUpdate(any())).thenReturn(draft(10L));
         when(itemMapper.selectListByRevision(any())).thenReturn(List.of());
         when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
         when(dictDataApi.getDictDataList(anyString())).thenReturn(List.of(new DictDataRespDTO()));
@@ -148,7 +182,7 @@ class CutoverConfigurationServiceImplTest {
                 .when(dictDataApi).validateDictDataList(eq("pms_cutover_type"),
                         argThat(values -> values.contains("UNKNOWN")));
 
-        assertThrows(ServiceException.class, () -> service.publish(10L, 0L));
+        assertThrows(ServiceException.class, () -> service.publish(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.RevisionAction(10L, 0L, cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
     }
@@ -156,13 +190,14 @@ class CutoverConfigurationServiceImplTest {
     @Test
     void publishShouldHaveNoWriteWhenRiskOrSurveyValidationFails() {
         CutoverConfigurationRevisionDO incomplete = draft(10L);
-        incomplete.setPlanTemplateSectionSnapshot("[]");
+        sections.put(10L, List.of());
         when(revisionMapper.selectById(10L)).thenReturn(incomplete);
+        when(revisionMapper.selectForUpdate(any())).thenReturn(incomplete);
         when(itemMapper.selectListByRevision(any())).thenReturn(List.of());
         when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
         when(dictDataApi.getDictDataList(anyString())).thenReturn(List.of(enabledDict("A")));
 
-        ServiceException exception = assertThrows(ServiceException.class, () -> service.publish(10L, 0L));
+        ServiceException exception = assertThrows(ServiceException.class, () -> service.publish(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.RevisionAction(10L, 0L, cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
 
         assertTrue(exception.getMessage().contains("risk."));
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
@@ -173,13 +208,14 @@ class CutoverConfigurationServiceImplTest {
     @Test
     void publishShouldKeepCurrentPublishedWhenMatrixValidationFails() {
         CutoverConfigurationRevisionDO incomplete = draft(10L);
-        incomplete.setPlanTemplateSectionSnapshot("[]");
+        sections.put(10L, List.of());
         when(revisionMapper.selectById(10L)).thenReturn(incomplete);
+        when(revisionMapper.selectForUpdate(any())).thenReturn(incomplete);
         when(itemMapper.selectListByRevision(any())).thenReturn(List.of());
         when(ruleMapper.selectListByRevision(any())).thenReturn(List.of());
         stubEnabledDictionaries();
 
-        assertThrows(ServiceException.class, () -> service.publish(10L, 0L));
+        assertThrows(ServiceException.class, () -> service.publish(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.RevisionAction(10L, 0L, cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
 
         verify(revisionMapper, never()).selectLatestByCode(argThat(query -> "PUBLISHED".equals(query.statusCode())));
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
@@ -189,9 +225,9 @@ class CutoverConfigurationServiceImplTest {
     void updateShouldRejectPublishedRevisionBeforeAnyWrite() {
         CutoverConfigurationRevisionDO published = draft(10L);
         published.setStatusCode("PUBLISHED");
-        when(revisionMapper.selectById(10L)).thenReturn(published);
+        when(revisionMapper.selectForUpdate(any())).thenReturn(published);
 
-        assertThrows(ServiceException.class, () -> service.update(10L, 0L, new CutoverConfigurationSaveReqVO()));
+        assertThrows(ServiceException.class, () -> service.update(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.Update(10L, 0L, new CutoverConfigurationSaveReqVO(), cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
         verify(itemMapper, never()).hardDeleteByRevisionId(any());
@@ -202,10 +238,10 @@ class CutoverConfigurationServiceImplTest {
     void updateShouldRejectStaleIfMatchBeforeReplacingChildren() {
         CutoverConfigurationRevisionDO current = draft(10L);
         current.setVersion(3L);
-        when(revisionMapper.selectById(10L)).thenReturn(current);
+        when(revisionMapper.selectForUpdate(any())).thenReturn(current);
 
         assertThrows(ServiceException.class,
-                () -> service.update(10L, 2L, new CutoverConfigurationSaveReqVO()));
+                () -> service.update(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.Update(10L, 2L, new CutoverConfigurationSaveReqVO(), cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
         verify(itemMapper, never()).hardDeleteByRevisionId(any());
@@ -214,7 +250,7 @@ class CutoverConfigurationServiceImplTest {
 
     @Test
     void updateShouldRejectStableItemKeyReusedAsAnotherTypeBeforeWrite() {
-        when(revisionMapper.selectById(10L)).thenReturn(draft(10L));
+        when(revisionMapper.selectForUpdate(any())).thenReturn(draft(10L));
         CutoverChecklistItemDefinitionRevisionDO history = new CutoverChecklistItemDefinitionRevisionDO();
         history.setStableItemKey("ITEM-1");
         history.setItemTypeCode("RISK");
@@ -227,7 +263,7 @@ class CutoverConfigurationServiceImplTest {
         item.setItemType("BUSINESS_SURVEY");
         request.setItems(List.of(item));
 
-        assertThrows(ServiceException.class, () -> service.update(10L, 0L, request));
+        assertThrows(ServiceException.class, () -> service.update(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.Update(10L, 0L, request, cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
 
         verify(revisionMapper, never()).updateById(any(CutoverConfigurationRevisionDO.class));
     }
@@ -235,8 +271,9 @@ class CutoverConfigurationServiceImplTest {
     @Test
     void publishShouldFreezeAuthoritativeDictionaryLabels() {
         CutoverConfigurationRevisionDO valid = draft(10L);
-        valid.setPlanTemplateSectionSnapshot("[]");
+        sections.put(10L, List.of());
         when(revisionMapper.selectById(10L)).thenReturn(valid);
+        when(revisionMapper.selectForUpdate(any())).thenReturn(valid);
         List<CutoverChecklistItemDefinitionRevisionDO> items = completeMatrixItems();
         when(itemMapper.selectListByRevision(any())).thenReturn(items);
         when(ruleMapper.selectListByRevision(any())).thenReturn(completeMatrixRules(items));
@@ -244,16 +281,16 @@ class CutoverConfigurationServiceImplTest {
         when(revisionMapper.selectLatestByCode(any())).thenReturn(null);
         when(revisionMapper.updateById(any(CutoverConfigurationRevisionDO.class))).thenReturn(1);
 
-        try (MockedStatic<SecurityFrameworkUtils> security = mockStatic(SecurityFrameworkUtils.class)) {
-            security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(1L);
-            service.publish(10L, 0L);
-        }
+        service.publish(new cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationCommands.RevisionAction(10L, 0L, cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
 
         ArgumentCaptor<CutoverConfigurationRevisionDO> update =
                 ArgumentCaptor.forClass(CutoverConfigurationRevisionDO.class);
         verify(revisionMapper).updateById(update.capture());
-        assertTrue(
-                update.getValue().getDictionarySnapshot().contains("割接类型A"));
+        assertTrue("PUBLISHED".equals(update.getValue().getStatusCode()));
+        ArgumentCaptor<CutoverConfigurationMetadataStore.DictionaryWrite> frozen =
+                ArgumentCaptor.forClass(CutoverConfigurationMetadataStore.DictionaryWrite.class);
+        verify(metadata).freezeDictionary(frozen.capture());
+        assertTrue(JsonUtils.toJsonString(frozen.getValue().values()).contains("割接类型A"));
     }
 
     private CutoverConfigurationRevisionDO draft(Long id) {
@@ -264,19 +301,18 @@ class CutoverConfigurationServiceImplTest {
         row.setRevisionNo(2);
         row.setStatusCode("DRAFT");
         row.setVersion(0L);
-        row.setDictionarySnapshot("{}");
-        row.setDimensionDefinitionSnapshot("""
+        dimensions.put(id, JsonUtils.parseArray("""
                 [
                   {"code":"CUTOVER_TYPE","name":"割接类型","dataType":"STRING","valueSource":"DICT:pms_cutover_type","owner":"CUT","contextPath":"task.cutoverType","enabled":true},
                   {"code":"NETWORK_MODE","name":"组网模式","dataType":"STRING","valueSource":"DICT:pms_network_mode","owner":"CUT","contextPath":"task.networkMode","enabled":true},
                   {"code":"DEVICE_TYPE","name":"设备类型","dataType":"STRING","valueSource":"DICT:pms_device_type","owner":"SYSTEM","contextPath":"task.deviceType","enabled":true},
                   {"code":"CUTOVER_LEVEL","name":"割接等级","dataType":"STRING","valueSource":"DICT:pms_risk_level","owner":"CUT","contextPath":"assessment.level","enabled":true}
                 ]
-                """);
-        row.setPlanTemplateSectionSnapshot("""
+                """, CutoverConfigurationSaveReqVO.DimensionVO.class));
+        sections.put(id, JsonUtils.parseArray("""
                 [{"stableSectionKey":"OVERVIEW","title":"割接概述","sortOrder":10,
                   "cutoverTypeCodes":["UNKNOWN"],"levelCodes":[],"required":true}]
-                """);
+                """, CutoverConfigurationSaveReqVO.PlanTemplateSectionVO.class));
         return row;
     }
 
@@ -334,7 +370,7 @@ class CutoverConfigurationServiceImplTest {
         item.setBusinessCategoryCode(category);
         item.setItemName(key);
         item.setInterfaceFormatCode("TABLE");
-        item.setInterfaceSchema(schema);
+        schemas.put(id, CutoverFieldSchemaCodec.encode(new CutoverFieldSchemaCodec.Write(1L, id, null, category, type, JsonUtils.parseObject(schema, Map.class))));
         item.setFeedbackFormatCode("BOOLEAN_REMARK");
         item.setRequiredFlag(true);
         item.setWorkModeCode("MANUAL");
@@ -379,7 +415,8 @@ class CutoverConfigurationServiceImplTest {
         CutoverChecklistBindingRuleRevisionDO rule = new CutoverChecklistBindingRuleRevisionDO();
         rule.setStableRuleKey("RULE_" + itemKey);
         rule.setItemDefinitionId(itemsByKey.get(itemKey).getId());
-        rule.setDimensionConditionSnapshot(conditions);
+        rule.setId((long) this.conditions.size() + 100L);
+        this.conditions.put(rule.getId(), JsonUtils.parseObject(conditions, Map.class));
         rule.setPriority(10);
         rule.setRequiredResult(required);
         rule.setStatusCode("ENABLED");

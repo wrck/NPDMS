@@ -24,9 +24,7 @@ public interface CutoverApprovalRoleCandidatePort {
 
     record RoleReference(long tenantId, long roleId, String roleGroupCode) {
         public RoleReference {
-            require(tenantId > 0 && roleId > 0 && (ROLE_GROUP_CODES.contains(roleGroupCode)
-                    || cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalRules
-                            .ROLE_GROUP_CODES.contains(roleGroupCode)), "roleReference");
+            require(tenantId > 0 && roleId > 0 && ROLE_GROUP_CODES.contains(roleGroupCode), "roleReference");
         }
         public String candidateGroupKey() { return "ROLE:" + roleId; }
     }
@@ -39,9 +37,7 @@ public interface CutoverApprovalRoleCandidatePort {
 
     record CandidateSet(long tenantId, String roleGroupCode, List<Candidate> candidates) {
         public CandidateSet {
-            require(tenantId > 0 && (ROLE_GROUP_CODES.contains(roleGroupCode)
-                            || cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalRules
-                                    .ROLE_GROUP_CODES.contains(roleGroupCode)) && candidates != null,
+            require(tenantId > 0 && ROLE_GROUP_CODES.contains(roleGroupCode) && candidates != null,
                     "candidateSet");
             candidates = candidates.stream().sorted(Comparator.comparingLong(Candidate::adminUserId)).toList();
             require(new HashSet<>(candidates.stream().map(Candidate::adminUserId).toList()).size()

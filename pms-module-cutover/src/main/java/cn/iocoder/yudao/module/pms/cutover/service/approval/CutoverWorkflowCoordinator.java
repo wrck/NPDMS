@@ -4,7 +4,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverAppro
 import cn.iocoder.yudao.module.bpm.api.cutover.CutoverWorkflowApi;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeRoleApprovalSnapshot;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRoleApprovalSnapshot;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -18,13 +18,13 @@ import java.util.Objects;
 public class CutoverWorkflowCoordinator {
     private final CutoverWorkflowApi workflow;
     private final CutoverApprovalWorkflowMapper links;
-    private final CutoverRuntimeApprovalNodeMapper nodes;
+    private final CutoverApprovalNodeMapper nodes;
 
     public void start(CutoverApprovalInstanceDO instance, Long actor) {
         if (links.selectById(instance.getId()) != null) throw new IllegalStateException("割接审批已关联BPM");
         var route = nodes.all(new CutoverApprovalNodesQuery(instance.getTenantId(), instance.getId())).stream()
                 .map(node -> {
-                    var role = CutoverRuntimeRoleApprovalSnapshot.from(node);
+                    var role = CutoverRoleApprovalSnapshot.from(node);
                     return role != null && role.byRole()
                             ? new CutoverWorkflowApi.Node(node.getNodeCode(), null,
                                     new CutoverWorkflowApi.RoleReference(role.roleGroupId(), role.roleGroupCode()))
@@ -38,7 +38,7 @@ public class CutoverWorkflowCoordinator {
         if (links.insert(link) != 1) throw new IllegalStateException("割接BPM运行身份保存失败");
     }
     public void decide(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node,
-            CutoverRuntimeApprovalApplicationService.DecisionBusinessInput command, Long actor) {
+            CutoverApprovalApplicationService.DecisionBusinessInput command, Long actor) {
         workflow.decide(new CutoverWorkflowApi.Decision(instance.getTenantId(), actor, link(instance).getProcessInstanceId(),
                 node.getNodeCode(), "APPROVE".equals(command.action()), command.feedback()));
     }

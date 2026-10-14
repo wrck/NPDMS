@@ -5,16 +5,16 @@ import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfigura
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.HandleClosureCollectionCallbackCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.LinkClosureManualResultCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.RequestClosureCollectionCommand;
@@ -31,7 +31,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCo
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.CollectionIntentIdentity;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureCollectionPort.CollectionRequest;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFilePort.FileFactVersion;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
@@ -76,6 +76,7 @@ class CutoverClosureApplicationMySqlTest {
     @Resource CutoverPlanRevisionMapper planMapper;
     @Resource CutoverApprovalInstanceMapper approvalMapper;
     @Resource CutoverClosureApplicationService service;
+    @Resource CutoverClosureTestExecutions executions;
     @Resource CutoverClosureControlledPorts.Collections collections;
 
     long tenantId;
@@ -196,7 +197,7 @@ class CutoverClosureApplicationMySqlTest {
     void collectionCallbackAndManualFallbackPersistPositiveClosureFacts() {
         Long closureId = prepareDraftWithDevice("create-collection");
 
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
+        executions.link(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "collect-ok", "corr-collect-ok"));
         String acceptedTaskId = jdbc.queryForObject("""
@@ -211,12 +212,12 @@ class CutoverClosureApplicationMySqlTest {
                 "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-replay"));
 
         collections.nextDispatch(DispatchOutcome.FAILED, "OWNER_REJECTED");
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 2L,
+        executions.link(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 2L,
                 deviceId, CollectionStage.TEST, new SavedCredential(71L, 3L),
                 "test-check", 2L, "collect-failed", "corr-collect-failed"));
         String failedTaskId = jdbc.queryForObject("""
                 SELECT collection_task_id FROM cut_cutover_collection_evidence
-                 WHERE tenant_id=? AND closure_id=? AND evidence_type_code='DISPATCH_FAILED'
+                 WHERE tenant_id=? AND closure_id=? AND evidence_type_code='CALLBACK_FAILED'
                 """, String.class, tenantId, closureId);
         service.linkManualResult(new LinkClosureManualResultCommand(tenantId, 8L, taskId, 7L, closureId, 3L,
                 failedTaskId, deviceId, CollectionStage.TEST,
@@ -238,7 +239,7 @@ class CutoverClosureApplicationMySqlTest {
     @Test
     void callbackFailureCanBeCompletedByOneManualResult() {
         Long closureId = prepareDraftWithDevice("create-callback-fallback");
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
+        executions.link(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.TEST, new SavedCredential(71L, 3L),
                 "test-check", 2L, "callback-fallback-dispatch", "corr-callback-fallback-dispatch"));
         String collectionTaskId = jdbc.queryForObject("""
@@ -278,13 +279,13 @@ class CutoverClosureApplicationMySqlTest {
                 closureId, 0L, deviceId, CollectionStage.PRE_CHECK, new SavedCredential(71L, 3L),
                 "pre-check", 2L, "collect-recovery", "corr-collect-recovery");
 
-        assertThrows(RuntimeException.class, () -> service.requestCollection(command));
+        assertThrows(RuntimeException.class, () -> executions.link(command));
         assertEquals(0, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='collect-recovery'", tenantId));
         assertEquals(0, count("SELECT version FROM cut_cutover_closure WHERE tenant_id=? AND id=?", tenantId, closureId));
         jdbc.update("DELETE FROM cut_cutover_collection_evidence WHERE tenant_id=? AND collection_task_id=?",
                 tenantId, externalFact.collectionTaskId());
 
-        service.requestCollection(command);
+        executions.link(command);
 
         assertEquals(1, count("SELECT COUNT(*) FROM cut_cutover_collection_evidence WHERE tenant_id=? AND collection_task_id=? AND evidence_type_code='DISPATCH_ACCEPTED'", tenantId, externalFact.collectionTaskId()));
         assertEquals(1, count("SELECT COUNT(*) FROM plt_idempotency_record WHERE tenant_id=? AND idempotency_key='collect-recovery' AND status='COMPLETED'", tenantId));
@@ -294,7 +295,7 @@ class CutoverClosureApplicationMySqlTest {
     @Test
     void submitsSuccessfulClosureAndPublishesCompletion() {
         Long closureId = prepareDraftWithDevice("create-success-submit");
-        service.requestCollection(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
+        executions.link(new RequestClosureCollectionCommand(tenantId, 8L, taskId, 7L, closureId, 0L,
                 deviceId, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "collect-submit", "corr-collect-submit"));
         String collectionTaskId = jdbc.queryForObject("""
@@ -395,8 +396,8 @@ class CutoverClosureApplicationMySqlTest {
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
-            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.task",
+            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
@@ -430,6 +431,12 @@ class CutoverClosureApplicationMySqlTest {
         @Bean CutoverClosureControlledPorts.Collections collectionPort(Clock clock) {
             return new CutoverClosureControlledPorts.Collections(clock);
         }
+        @Bean CutoverClosureTestExecutions executions(CutoverTaskMapper tasks,
+                CutoverClosureMapper closures, CutoverCollectionEvidenceMapper evidence,
+                CutoverProjectScopePort scopes, PlatformCommandExecutionApi platform,
+                CutoverClosureControlledPorts.Collections collections) {
+            return new CutoverClosureTestExecutions(tasks, closures, evidence, scopes, platform, collections);
+        }
         @Bean CutoverClosureApplicationService service(CutoverTaskMapper taskMapper,
                                                         CutoverApprovalInstanceMapper approvalMapper,
                                                         CutoverPlanRevisionMapper planMapper,
@@ -442,9 +449,19 @@ class CutoverClosureApplicationMySqlTest {
                                                         CutoverClosureFilePort filePort,
                                                         CutoverClosureCollectionPort collectionPort,
                                                         PlatformCommandExecutionApi platform, Clock clock) {
-            return new CutoverClosureApplicationService(taskMapper, approvalMapper, planMapper, closureMapper,
-                    attachmentMapper, evidenceMapper, deviceScopeMapper, stageHistoryMapper, projectScopePort, filePort,
-                    collectionPort, platform, clock);
+            return new CutoverClosureApplicationService(taskMapper,
+                approvalMapper,
+                planMapper,
+                closureMapper,
+                attachmentMapper,
+                evidenceMapper,
+                deviceScopeMapper,
+                stageHistoryMapper,
+                projectScopePort,
+                filePort,
+                platform,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         }
     }
 }

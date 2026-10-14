@@ -404,5 +404,17 @@
     "atomicity": "the claimed batch, all classified source rows, CUT target inserts, PLT mapping/issues and final counts commit or roll back together; pms_cut_task is never updated, deleted or dual-written",
     "evidenceOwner": "all source identity, target mapping and issue outcomes are written through PLT PlatformMigrationEvidenceApi; CUT never writes PLT tables directly",
     "implementationGate": "use the actual next free Flyway version only after this contract passes review; migration tests must cover each disposition and prove legacy rows cannot enter a writable F-CUT-002 state"
+  },
+  "legacyRetirement20261014": {
+    "authorization": "2026-10-14 approved CUT consolidation; legacy model history is deleted without import or read-only compatibility",
+    "supersedes": [
+      "legacyMigration",
+      "tables.cut_task legacy_* columns/index and LEGACY_FORWARD union",
+      "legacy device/read projections"
+    ],
+    "historicalContractStatus": "listed older definitions describe the original migration baseline only and no longer authorize a production path or new legacy data",
+    "currentModel": "NEW_PLATFORM only; existing current configuration/plan/approval/history and source evidence remain immutable",
+    "databaseStatus": "APPLIED_LOCAL_NPDMS_DOMAIN_TEST_20261014",
+    "preview": "docs/generated/2026-10-14-cutover-consolidation-preview.sql"
   }
 }

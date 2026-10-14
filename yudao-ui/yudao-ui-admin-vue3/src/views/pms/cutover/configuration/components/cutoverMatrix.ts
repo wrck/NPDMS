@@ -3,7 +3,7 @@ import type {
   CutoverChecklistItem,
   CutoverConfiguration,
   CutoverValidationError
-} from '@/api/pms/cutover/cutover-config'
+} from '@/api/pms/cutover/configuration'
 
 export const DUAL_BASELINES = {
   VSM: 17,

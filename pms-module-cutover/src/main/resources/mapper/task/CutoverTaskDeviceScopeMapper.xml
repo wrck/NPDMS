@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper">
+    <resultMap id="structuredCutoverTaskDeviceScopeDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDeviceScopeDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="task_id" property="cutoverTaskId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="sn" property="serialNumberSnapshot"/>
+        <result column="project_assignment_version" property="projectAssignmentVersion"/>
+        <result column="active_marker" property="activeMarker"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="device_type_code" property="deviceTypeCodeSnapshot"/>
+        <result column="device_type_source_version" property="deviceTypeSourceVersionSnapshot"/>
+    </resultMap>
+
+    <select id="selectActiveByTask" resultMap="structuredCutoverTaskDeviceScopeDO">
+        SELECT id, tenant_id, task_id, project_id, device_id, sn, project_assignment_version, active_marker, version, creator, create_time, updater, update_time, deleted, device_type_code, device_type_source_version
+        FROM cut_task_device_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND task_id = #{query.taskId}
+          AND active_marker = 1
+          AND deleted = b'0'
+        ORDER BY device_id ASC
+    </select>
+
+    <select id="selectActiveForUpdate" resultMap="structuredCutoverTaskDeviceScopeDO">
+        SELECT id, tenant_id, task_id, project_id, device_id, sn, project_assignment_version, active_marker, version, creator, create_time, updater, update_time, deleted, device_type_code, device_type_source_version
+        FROM cut_task_device_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND project_id = #{query.projectId}
+          AND active_marker = 1
+          AND deleted = b'0'
+          AND device_id IN
+          <foreach collection="query.deviceIds" item="deviceId" open="(" separator="," close=")">
+              #{deviceId}
+          </foreach>
+        ORDER BY device_id ASC
+        FOR UPDATE
+    </select>
+
+    <select id="selectActiveByTaskForUpdate" resultMap="structuredCutoverTaskDeviceScopeDO">
+        SELECT id, tenant_id, task_id, project_id, device_id, sn, project_assignment_version, active_marker, version, creator, create_time, updater, update_time, deleted, device_type_code, device_type_source_version
+        FROM cut_task_device_scope
+        WHERE tenant_id = #{query.tenantId}
+          AND task_id = #{query.taskId}
+          AND active_marker = 1
+          AND deleted = b'0'
+        ORDER BY device_id ASC
+        FOR UPDATE
+    </select>
+
+    <update id="releaseActiveByTask">
+        UPDATE cut_task_device_scope
+        SET active_marker = NULL, version = version + 1, update_time = NOW(3)
+        WHERE tenant_id = #{query.tenantId}
+          AND task_id = #{query.taskId}
+          AND active_marker = 1
+          AND deleted = b'0'
+    </update>
+</mapper>

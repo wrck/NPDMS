@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { findByTestId, mount, textOf } from '../cutoverTestHarness'
 import ProjectTasks from './index.vue'
 
-const api = vi.hoisted(() => ({ getCutoverTaskPage: vi.fn(), getWorkbenchTasks: vi.fn(), getCutoverDashboardKpis: vi.fn() }))
-vi.mock('@/api/pms/cutover/workbench', () => api)
-vi.mock('../workbench/components/CutoverCreateWizard.vue', () => ({ default: defineComponent({ render: () => null }) }))
+const api = vi.hoisted(() => ({ getCutoverTaskPage: vi.fn(), getCutoverDashboardKpis: vi.fn() }))
+vi.mock('@/api/pms/cutover', () => api)
+vi.mock('../components/CutoverCreateWizard.vue', () => ({ default: defineComponent({ render: () => null }) }))
 vi.mock('../task-detail/index.vue', () => ({ default: defineComponent({
   props: ['taskId', 'projectId', 'readonly'], emits: ['close'], setup(props, { emit }) {
     return () => h('section', { 'data-testid': 'shared-detail', ...props }, [
@@ -26,7 +26,7 @@ describe('项目内割接任务列表', () => {
     const page = mount(ProjectTasks, { projectId: '201', readonly: true })
     await flush()
     expect(api.getCutoverTaskPage).toHaveBeenCalledWith({ projectId: '201', pageNo: 1, pageSize: 10 })
-    expect(api.getWorkbenchTasks).not.toHaveBeenCalled()
+    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(1)
     expect(api.getCutoverDashboardKpis).not.toHaveBeenCalled()
     expect(textOf(page.root)).not.toContain('我的审批待办')
     await (findByTestId(page.root, 'open-project-cutover')!.props!.onClick as () => void)()

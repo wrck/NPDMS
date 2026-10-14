@@ -46,14 +46,16 @@ const remainingRouter: AppRouteRecordRaw[] = [
       meta: { hidden: true, canTo: true, title: '项目割接范围覆盖', activeMenu: '/pms/cutover/workbench' } }]
   },
   {
-    path: '/pms/cutover/workbench',
-    component: Layout,
-    name: 'CutoverWorkbenchRoot',
+    path: '/pms/cutover/tasks/:taskId', component: Layout, name: 'PmsCutoverTaskDetailRoot',
     meta: { hidden: true },
-    children: [{
-      path: '', name: 'CutoverWorkbench', component: () => import('@/views/pms/cutover/workbench/index.vue'),
-      meta: { hidden: true, canTo: true, title: '割接工作台', activeMenu: '/pms/cutover/workbench' }
-    }]
+    children: [{ path: '', name: 'PmsCutoverTaskDetail', component: () => import('@/views/pms/cutover/task-detail/route.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '割接任务详情', activeMenu: '/pms/cutover/tasks' } }]
+  },
+  {
+    path: '/pms/cutover/approvals/:approvalId', component: Layout, name: 'PmsCutoverApprovalDetailRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsCutoverApprovalDetail', component: () => import('@/views/pms/cutover/approval-form/route.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '割接审批详情', activeMenu: '/pms/cutover/workbench' } }]
   },
   {
     // 统一业务实体默认页面：目录驱动的独立入口，不进入生产菜单/字典，测试装配实体也由此承载。

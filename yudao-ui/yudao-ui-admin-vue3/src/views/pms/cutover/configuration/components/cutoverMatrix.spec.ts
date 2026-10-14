@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CutoverConfiguration } from '@/api/pms/cutover/cutover-config'
+import type { CutoverConfiguration } from '@/api/pms/cutover/configuration'
 import {
   DUAL_BASELINES,
   MATRIX_LEVEL_CODES,

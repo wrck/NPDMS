@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type {
   CutoverConfiguration,
   CutoverNavigationTarget
-} from '@/api/pms/cutover/cutover-config'
+} from '@/api/pms/cutover/configuration'
 import CutoverConfigurationEditor from '../configuration/components/CutoverConfigurationEditor.vue'
 import {
   findByTestId,

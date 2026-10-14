@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan.command;
 
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.CutoverTaskMutation;
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverTaskMutation;
 import tools.jackson.databind.JsonNode;
 
 public record SaveCutoverPlanDraftCommand(Long tenantId, Long actorId, Long taskId,

@@ -1,13 +1,12 @@
 package cn.iocoder.yudao.module.pms.cutover.service.closure;
 
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.collection.*;
 import cn.iocoder.yudao.module.pms.platform.api.collection.dto.CollectionTaskDTO;
-import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -24,19 +23,21 @@ class CutoverClosureExecutionLinkServiceTest {
     final CutoverCollectionEvidenceMapper evidence = mock(CutoverCollectionEvidenceMapper.class);
     final CutoverProjectScopePort scopes = mock(CutoverProjectScopePort.class);
     final CollectionExecutionQueryApi executions = mock(CollectionExecutionQueryApi.class);
-    final OperationAuditApi audit = mock(OperationAuditApi.class);
     final CutoverClosureDO closure = new CutoverClosureDO();
     CutoverClosureExecutionLinkService service;
     final CutoverClosureExecutionLinkService.Command command = new CutoverClosureExecutionLinkService.Command(
-            1L, 2L, 3L, 4L, 5L, 6L, "cutover-post-collection", 7L, "correlation");
+            1L, 2L, 3L, 4L, 5L, 6L, "cutover-post-collection", 7L,
+            cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent());
 
     @BeforeEach @SuppressWarnings("unchecked") void setup() {
         ObjectProvider<CollectionExecutionQueryApi> provider = mock(ObjectProvider.class);
         when(provider.getObject()).thenReturn(executions);
-        service = new CutoverClosureExecutionLinkService(tasks, closures, evidence, scopes, provider, audit);
+        service = new CutoverClosureExecutionLinkService(tasks, closures, evidence, scopes, provider,
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.executor());
         var task = new CutoverTaskDO(); task.setId(3L); task.setTenantId(1L); task.setProjectId(8L);
         task.setOwnerUserId(2L); task.setCurrentStage("P6"); task.setTaskStatus("CLOSURE_IN_PROGRESS"); task.setVersion(5L);
         when(tasks.selectForUpdate(any())).thenReturn(task);
+        when(tasks.selectById(3L)).thenReturn(task);
         closure.setId(4L); closure.setStatusCode("DRAFT"); closure.setVersion(6L);
         when(closures.selectByTaskForUpdate(any())).thenReturn(closure);
         var scope = new CutoverProjectScopePort.ProjectScopeFact(8L, 1L, true);
@@ -81,14 +82,47 @@ class CutoverClosureExecutionLinkServiceTest {
         execution("FAILED", "999");
         assertThrows(IllegalArgumentException.class, () -> service.link(command));
         execution("FAILED", "8"); closure.setVersion(8L);
-        assertThrows(IllegalArgumentException.class, () -> service.link(command));
+        assertEquals(CutoverClosureApplicationException.Reason.CLOSURE_VERSION_STALE,
+                assertThrows(CutoverClosureApplicationException.class, () -> service.link(command)).reason());
         verify(evidence, never()).insert(any(CutoverCollectionEvidenceDO.class));
     }
 
     @Test void platformBindingAuthorizationFailureCannotBeBypassed() {
         when(executions.get(any())).thenThrow(new CollectionOperationException("wrong business binding"));
         assertThrows(CollectionOperationException.class, () -> service.link(command));
-        verifyNoInteractions(tasks, closures, evidence, audit);
+        verify(tasks, never()).selectForUpdate(any());
+        verifyNoInteractions(closures, evidence);
+    }
+
+    @Test void currentTaskAndProjectAuthorityAreCheckedEvenWhenCommandIsReplayed() {
+        service.link(command);
+        when(scopes.inspect(2L, 8L, "ACTION_EDIT")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(8L, 2L, false));
+        assertThrows(org.springframework.security.access.AccessDeniedException.class, () -> service.link(command));
+        verify(executions, times(1)).get(any());
+        verify(evidence, times(2)).insert(any(CutoverCollectionEvidenceDO.class));
+    }
+
+    @Test void archivedTaskAndStaleTaskVersionCannotLinkNewEvidence() {
+        var task = tasks.selectById(3L);
+        task.setVersion(9L);
+        assertEquals(CutoverClosureApplicationException.Reason.TASK_VERSION_STALE,
+                assertThrows(CutoverClosureApplicationException.class, () -> service.link(command)).reason());
+        task.setVersion(5L); task.setTaskStatus("ARCHIVED");
+        assertEquals(CutoverClosureApplicationException.Reason.TASK_NOT_IN_P6,
+                assertThrows(CutoverClosureApplicationException.class, () -> service.link(command)).reason());
+        verify(evidence, never()).insert(any(CutoverCollectionEvidenceDO.class));
+    }
+
+    @Test void platformTaskCollisionWithOtherDeviceCannotBeAcceptedAsAnExistingLink() {
+        var collision = new CutoverCollectionEvidenceDO();
+        collision.setTenantId(1L); collision.setTaskId(3L); collision.setProjectId(8L);
+        collision.setDeviceId(999L); collision.setCollectionStageCode("POST_COLLECTION");
+        collision.setCollectionTaskId("PLT-7"); collision.setEvidenceTypeCode("DISPATCH_ACCEPTED");
+        when(evidence.selectListByClosureForUpdate(any())).thenReturn(List.of(collision));
+        assertEquals(CutoverClosureApplicationException.Reason.COLLECTION_EVIDENCE_MISMATCH,
+                assertThrows(CutoverClosureApplicationException.class, () -> service.link(command)).reason());
+        verify(evidence, never()).insert(any(CutoverCollectionEvidenceDO.class));
+        verify(closures, never()).advanceDraftVersionIfMatch(any());
     }
 
     private void execution(String status, String project) {

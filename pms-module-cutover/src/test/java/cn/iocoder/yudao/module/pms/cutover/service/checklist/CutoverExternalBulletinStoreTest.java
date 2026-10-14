@@ -153,8 +153,15 @@ class CutoverExternalBulletinStoreTest {
         TenantContextHolder.setTenantId(2L);
         assertThrows(CutoverChecklistException.class, () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)));
         TenantContextHolder.setTenantId(1L);
-        assertThrows(CutoverChecklistException.class, () -> store.saveVersions(new SaveChecklistDeviceVersionsCommand(
-                1L, 90L, 100L, 1L, 20L, 1L, 1L, List.of(new SaveChecklistDeviceVersionsCommand.Device(999L, null, "v1", "v2")))));
+        assertThrows(CutoverChecklistException.class, () -> store.saveVersions(new SaveChecklistDeviceVersionsCommand(1L,
+                90L,
+                100L,
+                1L,
+                20L,
+                1L,
+                1L,
+                List.of(new SaveChecklistDeviceVersionsCommand.Device(999L, null, "v1", "v2")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
         verify(mutations, never()).updateDevice(any());
     }
 

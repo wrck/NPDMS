@@ -1,32 +1,32 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.CutoverTaskMutation;
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverTaskMutation;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverApprovedContactVersionUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanDraftUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanHistoryQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanInvalidationUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanReplacementUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSuccessorQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanSubmitUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanVersionUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskPlanSubmitUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskSourceInvalidationUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverApprovedContactVersionUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanDraftUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanHistoryQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanReplacementUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanSuccessorQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanVersionUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskPlanSubmitUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskSourceInvalidationUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactException;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.ApprovalStatus;
@@ -60,8 +60,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.result.DownloadCutoverPl
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutoverPlanSourceResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.PatchApprovedContactResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
@@ -103,21 +103,9 @@ public class CutoverPlanApplicationService {
     private final CutoverApprovalFactApi approvalFactApi;
     private final CutoverTaskStageHistoryMapper historyMapper;
     private final Clock clock;
+    private final CutoverPlanContactPolicy contacts;
     @jakarta.annotation.Resource
     private CutoverPlanStorage storage;
-    @jakarta.annotation.Resource
-    private CutoverPlanContactPolicy contacts;
-
-    public CutoverPlanApplicationService(CutoverTaskMapper taskMapper, CutoverPlanRevisionMapper planMapper,
-                                         CutoverPlanStepMapper stepMapper,
-                                         CutoverSupportArrangementMapper supportMapper,
-                                         CutoverProjectScopePort projectScopePort,
-                                         CutoverPlanSourcePort sourcePort, CutoverPlanFilePort filePort,
-                                         CutoverPlanContentCodec codec,
-                                         PlatformCommandExecutionApi commandExecutionApi, Clock clock) {
-        this(taskMapper, planMapper, stepMapper, supportMapper, projectScopePort, sourcePort, filePort,
-                codec, commandExecutionApi, null, null, clock);
-    }
 
     public CutoverPlanApplicationService(CutoverTaskMapper taskMapper, CutoverPlanRevisionMapper planMapper,
                                          CutoverPlanStepMapper stepMapper,
@@ -127,7 +115,7 @@ public class CutoverPlanApplicationService {
                                          CutoverPlanContentCodec codec,
                                          PlatformCommandExecutionApi commandExecutionApi,
                                          CutoverApprovalFactApi approvalFactApi,
-                                         CutoverTaskStageHistoryMapper historyMapper, Clock clock) {
+                                         CutoverTaskStageHistoryMapper historyMapper, Clock clock, CutoverPlanContactPolicy contacts) {
         this.taskMapper = taskMapper;
         this.planMapper = planMapper;
         this.stepMapper = stepMapper;
@@ -140,6 +128,7 @@ public class CutoverPlanApplicationService {
         this.approvalFactApi = approvalFactApi;
         this.historyMapper = historyMapper;
         this.clock = clock;
+        this.contacts = java.util.Objects.requireNonNull(contacts);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -220,11 +209,12 @@ public class CutoverPlanApplicationService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public PatchApprovedContactResult patchApprovedContact(PatchApprovedContactCommand command) {
+    public PatchApprovedContactResult patchApprovedContact(PatchApprovedContactCommand command, CutoverPlanContactPolicy.Change change) {
         requirePatchApprovedContact(command);
         Map<String, Object> digest = new LinkedHashMap<>();
         digest.put("taskId", command.taskId());
         digest.put("arrangementId", command.arrangementId());
+        digest.put("contactChange", change);
         digest.put("planVersion", command.expectedPlanVersion());
         digest.put("personName", command.personName());
         digest.put("phone", command.phone());
@@ -234,7 +224,7 @@ public class CutoverPlanApplicationService {
                         "CUT:PLAN_APPROVED_CONTACT_PATCH:" + command.taskId() + ":" + command.arrangementId(),
                         command.actorId(), command.idempotencyKey()),
                 sha256(JsonUtils.toJsonString(digest)), PatchApprovedContactResult.class,
-                () -> patchApprovedContactNew(command),
+                () -> patchApprovedContactNew(command, change),
                 result -> new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_PLAN_APPROVED_CONTACT_PATCH",
                         "CutoverPlanRevision", String.valueOf(result.planRevisionId()), command.correlationId(),
                         JsonUtils.toJsonString(result), List.of()));
@@ -262,7 +252,7 @@ public class CutoverPlanApplicationService {
                 ? execution.response().replayedCopy() : execution.response();
     }
 
-    private PatchApprovedContactResult patchApprovedContactNew(PatchApprovedContactCommand command) {
+    private PatchApprovedContactResult patchApprovedContactNew(PatchApprovedContactCommand command, CutoverPlanContactPolicy.Change change) {
         CutoverTaskDO inspectedTask = requireOwnedP6(taskMapper.selectById(command.taskId()), command);
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(command.actorId(),
                 inspectedTask.getProjectId(), ACTION_EDIT);
@@ -288,6 +278,7 @@ public class CutoverPlanApplicationService {
         CutoverSupportArrangementDO target = arrangements.stream()
                 .filter(row -> Objects.equals(row.getId(), command.arrangementId()))
                 .findFirst().orElseThrow(() -> failure(NOT_FOUND, "保障联系人不存在"));
+        contacts.validateChange(task, target, command, change);
 
         LocalDateTime now = LocalDateTime.now(clock);
         Long newPlanVersion = plan.getVersion() + 1;
@@ -299,7 +290,7 @@ public class CutoverPlanApplicationService {
         }
         CutoverSupportArrangementDO currentTarget = storage.currentSupport(target);
         contacts.recordChange(CutoverPlanContactPolicy.ChangeWrite.builder().plan(plan).baseline(target)
-                .command(command).newPlanVersion(newPlanVersion).time(now).build());
+                .command(command).change(change).newPlanVersion(newPlanVersion).time(now).build());
         PatchApprovedContactResult.ContactSnapshot before = new PatchApprovedContactResult.ContactSnapshot(
                 currentTarget.getPersonName(), currentTarget.getPhone(), currentTarget.getArrivalTime());
         PatchApprovedContactResult.ContactSnapshot after = new PatchApprovedContactResult.ContactSnapshot(
@@ -421,7 +412,9 @@ public class CutoverPlanApplicationService {
         CutoverPlanChildrenQuery children = new CutoverPlanChildrenQuery(command.tenantId(), plan.getId());
         stepMapper.selectListByPlanForUpdate(children);
         supportMapper.selectListByPlanForUpdate(children);
-        requireComplete(storedContent(command.tenantId(), plan, currentSource), currentSource);
+        var lockedContent = storedContent(command.tenantId(), plan, currentSource);
+        requireComplete(lockedContent, currentSource);
+        contacts.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(command.tenantId(), command.actorId(), task.getProjectId()), lockedContent, true);
 
         LocalDateTime now = LocalDateTime.now(clock);
         CutoverApprovalStartResult approval = startApproval(command, task, plan, currentSource.snapshot(), now);
@@ -527,6 +520,9 @@ public class CutoverPlanApplicationService {
         }
         CutoverPlanContentCodec.DecodedContent decoded = file == null
                 ? codec.createInitialOnlineDraft(command.editMode(), lockedFacts) : null;
+        if (decoded != null && "ONLINE_TEMPLATE_STANDARD".equals(command.editMode())) {
+            ((ObjectNode) decoded.rootSnapshot().path("overview")).put("projectDescription", task.getBackground());
+        }
         Integer maxRevision = planMapper.selectMaxRevisionNo(new CutoverPlanHistoryQuery(command.tenantId(), command.taskId()));
         CutoverPlanRevisionDO row = newPlan(command, task, lockedFacts, decoded, file,
                 (maxRevision == null ? 0 : maxRevision) + 1);
@@ -553,6 +549,7 @@ public class CutoverPlanApplicationService {
         stepMapper.selectListByPlanForUpdate(children);
         List<CutoverSupportArrangementDO> existingSupport = supportMapper.selectListByPlanForUpdate(children);
         LocalDateTime now = LocalDateTime.now(clock);
+        contacts.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(command.tenantId(), command.actorId(), task.getProjectId()), decoded, false);
         Long newVersion = command.expectedPlanVersion() + 1;
         plan.setEditModeCode(command.content().path("editMode").asText());
         CutoverPlanStorage.applyContent(plan, decoded.rootSnapshot());
@@ -637,11 +634,13 @@ public class CutoverPlanApplicationService {
             row.setSectionCode(source.sectionCode());
             row.setStepNo(source.stepNo());
             row.setContent(source.content());
+            CutoverPlanContentCodec.applyDetails(row, source.details());
             row.setVersion(0);
             row.setCreator(String.valueOf(command.actorId()));
             row.setUpdater(String.valueOf(command.actorId()));
             if (stepMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "修订步骤复制失败");
         }
+        int supportOrder = 0;
         for (CutoverPlanContentCodec.SupportArrangement source : content.supportArrangements()) {
             CutoverSupportArrangementDO row = new CutoverSupportArrangementDO();
             row.setId(nextId());
@@ -651,8 +650,11 @@ public class CutoverPlanApplicationService {
             row.setPersonName(source.personName());
             row.setDutyDescription(source.dutyDescription());
             row.setPhone(source.phone());
-            row.setArrivalTime(LocalDateTime.ofInstant(Instant.ofEpochMilli(source.arrivalTime()),
+            row.setArrivalTime(source.arrivalTime() == 0 ? null : LocalDateTime.ofInstant(Instant.ofEpochMilli(source.arrivalTime()),
                     ZoneId.systemDefault()));
+            row.setCustomerContactId(source.customerContactReference() == null ? null : source.customerContactReference().contactId());
+            row.setCustomerContactVersion(source.customerContactReference() == null ? null : source.customerContactReference().contactVersion().longValue());
+            row.setSortOrder(supportOrder++);
             row.setVersion(0);
             row.setCreator(String.valueOf(command.actorId()));
             row.setUpdater(String.valueOf(command.actorId()));
@@ -678,29 +680,30 @@ public class CutoverPlanApplicationService {
             CutoverPlanStepDO row = new CutoverPlanStepDO();
             row.setId(nextId()); row.setTenantId(command.tenantId()); row.setPlanRevisionId(planId);
             row.setSectionCode(source.sectionCode()); row.setStepNo(source.stepNo()); row.setContent(source.content());
+            CutoverPlanContentCodec.applyDetails(row, source.details());
             row.setVersion(0); row.setCreator(String.valueOf(command.actorId())); row.setUpdater(String.valueOf(command.actorId()));
             if (stepMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "步骤保存失败");
         }
-        Map<String, CutoverSupportArrangementDO> existingByRole = new LinkedHashMap<>();
+        Map<Long, CutoverSupportArrangementDO> existingById = new LinkedHashMap<>();
         for (CutoverSupportArrangementDO existing : existingSupport) {
-            if (existingByRole.put(existing.getRoleCode(), existing) != null) {
-                throw failure(OWNER_DATA_CORRUPTED, "保障安排角色身份重复");
+            if (existingById.put(existing.getId(), existing) != null) {
+                throw failure(OWNER_DATA_CORRUPTED, "保障安排身份重复");
             }
         }
+        int supportOrder = 0;
         for (CutoverPlanContentCodec.SupportArrangement source : decoded.supportArrangements()) {
-            CutoverSupportArrangementDO existing = existingByRole.get(source.roleCode());
+            CutoverSupportArrangementDO existing = existingById.get(source.arrangementId());
             if (existing == null && source.arrangementId() != null) {
                 throw failure(INVALID_REQUEST, "新增保障安排不得指定身份");
-            }
-            if (existing != null && source.arrangementId() != null
-                    && !Objects.equals(source.arrangementId(), existing.getId())) {
-                throw failure(INVALID_REQUEST, "保障安排身份与角色不匹配");
             }
             CutoverSupportArrangementDO row = new CutoverSupportArrangementDO();
             row.setId(existing == null ? nextId() : existing.getId());
             row.setTenantId(command.tenantId()); row.setPlanRevisionId(planId); row.setRoleCode(source.roleCode());
             row.setPersonName(source.personName()); row.setDutyDescription(source.dutyDescription()); row.setPhone(source.phone());
-            row.setArrivalTime(LocalDateTime.ofInstant(Instant.ofEpochMilli(source.arrivalTime()), ZoneId.systemDefault()));
+            row.setArrivalTime(source.arrivalTime() == 0 ? null : LocalDateTime.ofInstant(Instant.ofEpochMilli(source.arrivalTime()), ZoneId.systemDefault()));
+            row.setCustomerContactId(source.customerContactReference() == null ? null : source.customerContactReference().contactId());
+            row.setCustomerContactVersion(source.customerContactReference() == null ? null : source.customerContactReference().contactVersion().longValue());
+            row.setSortOrder(supportOrder++);
             row.setVersion(0); row.setCreator(String.valueOf(command.actorId())); row.setUpdater(String.valueOf(command.actorId()));
             if (supportMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "保障安排保存失败");
         }
@@ -1008,26 +1011,11 @@ public class CutoverPlanApplicationService {
                     Boolean.TRUE.equals(plan.getOwnershipConfirmed()));
         }
         try {
-            ObjectNode root = storage.content(plan);
-            ArrayNode steps = root.putArray("steps");
-            storedSteps.forEach(value -> {
-                ObjectNode row = steps.addObject();
-                row.put("sectionCode", value.getSectionCode());
-                row.put("stepNo", value.getStepNo());
-                row.put("content", value.getContent());
-            });
+            ObjectNode root = codec.assembleStored(new CutoverPlanContentCodec.StoredPlanContent(storage.content(plan), storedSteps));
             if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
                 ArrayNode support = root.putArray("supportArrangements");
-                storedSupport.forEach(value -> {
-                    ObjectNode row = support.addObject();
-                    putWireLong(row, "arrangementId", value.getId());
-                    row.put("roleCode", value.getRoleCode());
-                    row.put("personName", value.getPersonName());
-                    row.put("dutyDescription", value.getDutyDescription());
-                    row.put("phone", value.getPhone());
-                    row.put("arrivalTime", value.getArrivalTime().atZone(ZoneId.systemDefault())
-                            .toInstant().toEpochMilli());
-                });
+                root.remove("customerContactReference");
+                storedSupport.forEach(value -> support.add(CutoverPlanStorage.supportContent(value)));
             }
             return codec.decodeWritable(root, sourceFacts);
         } catch (CutoverPlanApplicationException ex) {
@@ -1074,7 +1062,7 @@ public class CutoverPlanApplicationService {
         if (content.rootSnapshot().path("riskMitigations").size() != sourceFacts.failedRiskFacts().size()) {
             throw failure(RISK_MITIGATION_INCOMPLETE, "风险措施不完整");
         }
-        if (content.supportArrangements().size() != CutoverPlanRules.SUPPORT_ROLES.size()) {
+        if (!CutoverPlanContentCodec.supportComplete(content.supportArrangements())) {
             throw failure(SUPPORT_ARRANGEMENT_INCOMPLETE, "保障安排不完整");
         }
     }

@@ -6,5 +6,6 @@ public record SelectManualResultCommand(Long tenantId, Long actorId, Long taskId
                                         Long expectedTaskVersion, Long checklistId,
                                         Long expectedChecklistVersion, Long expectedProjectScopeVersion,
                                         String stableItemKey, CutoverChecklistFilePort.FileHandle fileHandle,
-                                        String factDescription) implements CutoverChecklistDraftMutation {
+                                        String factDescription,
+        @com.fasterxml.jackson.annotation.JsonIgnore cn.iocoder.yudao.module.pms.cutover.service.support.CutoverWriteIntent intent) implements CutoverChecklistDraftMutation {
 }

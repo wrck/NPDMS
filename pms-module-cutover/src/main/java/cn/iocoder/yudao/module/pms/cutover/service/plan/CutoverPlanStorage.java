@@ -4,16 +4,16 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistResultVersionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStorageMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStorageMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.query.*;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistResultStore;
@@ -181,24 +181,7 @@ public class CutoverPlanStorage {
     }
 
     public JsonNode sourceView(CutoverPlanRevisionDO plan) {
-        requireTenant(plan.getTenantId());
-        if (!"LEGACY_FORWARD".equals(plan.getOriginCode())) return JsonUtils.getObjectMapper().valueToTree(source(plan));
-        if (plan.getLegacyPlanId() == null || plan.getLegacyPlanId() <= 0 || plan.getLegacyTaskId() == null || plan.getLegacyTaskId() <= 0
-                || plan.getLegacySourceVersion() == null || plan.getLegacySourceVersion() < 0
-                || plan.getLegacyStatusRaw() == null || plan.getLegacyStatusRaw() < 0 || plan.getLegacyStatusRaw() > 4
-                || !validText(plan.getLegacyCode(), 64) || !validText(plan.getLegacyName(), 128)
-                || plan.getLegacyGradeCode() == null || !List.of("A", "B", "C", "D").contains(plan.getLegacyGradeCode())
-                || plan.getLegacyRemark() != null && (!plan.getLegacyRemark().equals(plan.getLegacyRemark().trim()) || plan.getLegacyRemark().length() > 4000)
-                || !"FCUT004_LEGACY_V1".equals(plan.getLegacyMappingVersion())) {
-            throw new IllegalArgumentException("旧方案来源投影不完整");
-        }
-        ObjectNode row = JsonUtils.getObjectMapper().createObjectNode();
-        row.put("sourceTable", "pms_cut_plan_retired"); row.put("sourceId", plan.getLegacyPlanId());
-        row.put("sourceTenantId", plan.getTenantId()); row.put("sourceTaskId", plan.getLegacyTaskId());
-        row.put("sourceVersion", plan.getLegacySourceVersion()); row.put("sourceStatusRaw", plan.getLegacyStatusRaw());
-        row.put("mappingVersion", plan.getLegacyMappingVersion()); row.put("code", plan.getLegacyCode());
-        row.put("name", plan.getLegacyName()); row.put("level", plan.getLegacyGradeCode()); row.put("remark", plan.getLegacyRemark());
-        return row;
+        return JsonUtils.getObjectMapper().valueToTree(source(plan));
     }
 
     public ObjectNode content(CutoverPlanRevisionDO plan) {

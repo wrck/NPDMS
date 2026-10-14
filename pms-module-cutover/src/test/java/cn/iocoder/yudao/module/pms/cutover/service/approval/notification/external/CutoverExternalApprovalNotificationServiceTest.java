@@ -4,12 +4,12 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ExternalApprovalNotificationDeliveryUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.support.AopUtils;
@@ -56,7 +56,7 @@ class CutoverExternalApprovalNotificationServiceTest {
             assertThat(request.correlationId()).isEqualTo("corr-node-1");
             assertThat(request.variables()).containsExactlyInAnyOrderEntriesOf(java.util.Map.of(
                     "taskCode", "CUT-10", "taskName", "核心割接", "grade", "A", "nodeName", "发起人"));
-            assertThat(request.taskLink()).isEqualTo("/pms/cutover/cutover-task?taskId=10");
+            assertThat(request.taskLink()).isEqualTo("/pms/cutover/approvals/100");
         });
         verify(fixture.notifications).updateExternalDeliveryIfMatch(argThat(update ->
                 matches(update, 501L, "ACCEPTED", "sms-accepted", 0, null)));

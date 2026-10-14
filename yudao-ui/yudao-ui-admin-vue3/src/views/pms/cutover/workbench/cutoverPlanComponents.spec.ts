@@ -1,9 +1,9 @@
 import { defineComponent, h, nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CutoverPlanView } from '@/api/pms/cutover/workbench'
-import CutoverPlanPanel from './components/CutoverPlanPanel.vue'
-import CutoverPlanEditor from './components/CutoverPlanEditor.vue'
-import CutoverWorkbenchSteps from './components/CutoverWorkbenchSteps.vue'
+import type { CutoverPlanView } from '@/api/pms/cutover'
+import CutoverPlanPanel from '../components/CutoverPlanPanel.vue'
+import CutoverPlanEditor from '../components/CutoverPlanEditor.vue'
+import CutoverWorkbenchSteps from '../components/CutoverWorkbenchSteps.vue'
 import {
   findByTestId,
   mount,
@@ -23,10 +23,10 @@ const api = vi.hoisted(() => ({
   reviseCutoverPlan: vi.fn()
 }))
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), createAccessTicket: vi.fn() }))
-vi.mock('@/api/pms/cutover/workbench', () => api)
+vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({
-  useMessage: () => ({ success: vi.fn(), warning: vi.fn() })
+  useMessage: () => ({ success: vi.fn(), warning: vi.fn(), prompt: vi.fn(async () => ({ value: '值班人员变更' })) })
 }))
 vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
@@ -77,15 +77,12 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await click(mounted.root, 'save-plan')
     await flush()
 
-    expect(api.saveCutoverPlanDraft).toHaveBeenCalledWith(
-      '101', 7, 1,
-      expect.objectContaining({
+    expect(api.saveCutoverPlanDraft).toHaveBeenCalledWith({ taskId: '101', taskVersion: 7, planVersion: 1, data: expect.objectContaining({
         editMode: 'ONLINE_TEMPLATE_STANDARD',
         overview: expect.objectContaining({ projectDescription: '核心网割接实施方案' }),
         steps: expect.arrayContaining([expect.objectContaining({ sectionCode: 'OPERATION', content: '执行割接命令' })]),
         supportArrangements: expect.arrayContaining([expect.objectContaining({ roleCode: 'CUSTOMER' })])
-      }),
-      expect.any(String)
+      }), idempotencyKey: expect.any(String) }
     )
     expect(textOf(mounted.root)).toContain('基本信息部分')
     mounted.app.unmount()
@@ -136,13 +133,16 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await nextTick()
     await (findByTestId(mounted.root, 'create-plan-uploader')!.props?.onClick as () => Promise<void>)()
     await flush()
+    expect(findByTestId(mounted.root, 'create-plan-uploader')!.props).toMatchObject({
+      'artifact-id': '9007199254740993', 'expected-reference-version': 3
+    })
     const ownership = findByTestId(mounted.root, 'create-plan-ownership')!
     await (ownership.props?.['onUpdate:modelValue'] as (value: boolean) => void)(true)
     await nextTick()
     await click(mounted.root, 'create-plan')
     await flush()
 
-    expect(api.createCutoverPlanDraft).toHaveBeenCalledWith('101', 7, {
+    expect(api.createCutoverPlanDraft).toHaveBeenCalledWith({ taskId: '101', taskVersion: 7, data: {
       editMode: 'FULL_FILE_UPLOAD',
       fileArtifactFact: {
         artifactId: '9007199254740993',
@@ -150,11 +150,11 @@ describe('F-CUT-004 mounted plan workbench', () => {
         referenceKey: 'cutover-plan-101',
         scopeVersion: 17,
         sha256: 'a'.repeat(64),
-        fileFactVersion: { allowedActions: ['READ'], artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
+        fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
       },
       ownershipConfirmed: true
-    }, expect.any(String))
-    expect(typeof api.createCutoverPlanDraft.mock.calls[0][2].fileArtifactFact.artifactId).toBe('string')
+    }, idempotencyKey: expect.any(String) })
+    expect(typeof api.createCutoverPlanDraft.mock.calls[0][0].data.fileArtifactFact.artifactId).toBe('string')
     mounted.app.unmount()
   })
 
@@ -174,17 +174,57 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await click(mounted.root, 'submit-plan'); await flush()
     await click(mounted.root, 'revise-plan'); await flush()
 
-    expect(api.downloadCutoverPlanDraft).toHaveBeenCalledWith('101', 1, expect.any(String))
+    expect(api.downloadCutoverPlanDraft).toHaveBeenCalledWith({ taskId: '101', planVersion: 1, idempotencyKey: expect.any(String) })
     expect(fileApi.createAccessTicket).toHaveBeenCalledWith(
       '9007199254740993', 4, 'DOWNLOAD',
       expect.objectContaining({ ownerContext: 'CUT', purposeCode: 'FULL_PLAN', referenceKey: 'cutover-plan-file' })
     )
     expect(accessTarget.location.replace).toHaveBeenCalledWith('https://download.local/ticket')
-    expect(api.submitCutoverPlan).toHaveBeenCalledWith('101', 7, 1, expect.any(String))
-    expect(api.reviseCutoverPlan).toHaveBeenCalledWith('101', 7,
-      { sourcePlanRevisionId: '501', reason: 'APPROVAL_REJECTED' }, expect.any(String))
+    expect(api.submitCutoverPlan).toHaveBeenCalledWith({ taskId: '101', taskVersion: 7, planVersion: 1, idempotencyKey: expect.any(String) })
+    expect(api.reviseCutoverPlan).toHaveBeenCalledWith({ taskId: '101', taskVersion: 7, data: { sourcePlanRevisionId: '501', reason: 'APPROVAL_REJECTED' }, idempotencyKey: expect.any(String) })
     mounted.app.unmount()
   })
+
+  it('replaces the uploaded revision using its existing reference while keeping the old fact immutable', async () => {
+    const frozenFact = { ...uploadedFact(), versionNo: 3 }
+    const content = { editMode: 'FULL_FILE_UPLOAD' as const, fileArtifactFact: frozenFact, ownershipConfirmed: true }
+    const updates: any[] = []
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 3, reference: { scopeVersion: 17, referenceVersion: 4 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'b'.repeat(64) }] })
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: null, taskId: '101', editable: true,
+      'onUpdate:modelValue': (value: unknown) => updates.push(value)
+    }, controls)
+
+    expect(findByTestId(mounted.root, 'plan-file-uploader')!.props).toMatchObject({
+      'artifact-id': frozenFact.artifactId,
+      'reference-key': frozenFact.referenceKey,
+      'expected-reference-version': 3
+    })
+    await click(mounted.root, 'plan-file-uploader'); await flush()
+    expect(updates.at(-1).fileArtifactFact).toMatchObject({
+      artifactId: frozenFact.artifactId, referenceKey: frozenFact.referenceKey,
+      versionNo: 4, fileFactVersion: { referenceVersion: 4 }
+    })
+    expect(frozenFact.versionNo).toBe(3)
+    expect(frozenFact.fileFactVersion.referenceVersion).toBe(3)
+    mounted.app.unmount()
+  })
+
+  it.each(['preTopologyFile', 'postTopologyFile', 'networkConfigurationFile'] as const)(
+    'retains the existing file identity and reference version when replacing %s', (field) => {
+      const content = standardPlan([]).content!
+      if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+      content.overview[field] = uploadedFact()
+      const mounted = mount(CutoverPlanEditor, {
+        modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true
+      }, controls)
+      expect(findByTestId(mounted.root, `plan-file-${field}`)!.props).toMatchObject({
+        'artifact-id': '9007199254740993', 'reference-key': 'cutover-plan-file', 'expected-reference-version': 3
+      })
+      mounted.app.unmount()
+    }
+  )
 
   it('patches an approved P6 support contact with the frozen arrangement identity', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan(['UPDATE_APPROVED_CONTACTS'], 'APPROVED', 'P6'))
@@ -199,9 +239,9 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await click(mounted.root, 'patch-support-CUSTOMER')
     await flush()
 
-    expect(api.patchApprovedCutoverPlanContact).toHaveBeenCalledWith('101', '601', 1, {
-      personName: expect.any(String), phone: '13800000000', arrivalTime: 1788220801000
-    }, expect.any(String))
+    expect(api.patchApprovedCutoverPlanContact).toHaveBeenCalledWith({ taskId: '101', arrangementId: '601', planVersion: 1, data: {
+      personName: expect.any(String), phone: '13800000000', arrivalTime: 1788220801000, reason: '值班人员变更', customerContactReference: { contactId: '801', contactVersion: 2 }
+    }, idempotencyKey: expect.any(String) })
     mounted.app.unmount()
   })
 
@@ -243,30 +283,11 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await click(mounted.root, 'save-plan')
     await flush()
 
-    expect(api.saveCutoverPlanDraft).toHaveBeenCalledWith('101', 7, 1,
-      expect.objectContaining({ overview: expect.objectContaining({
+    expect(api.saveCutoverPlanDraft).toHaveBeenCalledWith({ taskId: '101', taskVersion: 7, planVersion: 1, data: expect.objectContaining({ overview: expect.objectContaining({
         preTopologyFile: expect.objectContaining({ referenceKey: 'cutover-plan-101-pre-topology' }),
         postTopologyFile: expect.objectContaining({ referenceKey: 'cutover-plan-101-post-topology' }),
         networkConfigurationFile: expect.objectContaining({ referenceKey: 'cutover-plan-101-network-configuration' })
-      }) }), expect.any(String))
-    mounted.app.unmount()
-  })
-
-  it('renders migrated legacy plan steps without exposing a write action', async () => {
-    api.getCutoverPlan.mockResolvedValue({
-      ...standardPlan([]),
-      originCode: 'LEGACY_FORWARD',
-      status: 'LEGACY_READ_ONLY',
-      content: {
-        editMode: 'LEGACY_READ_ONLY',
-        steps: [{ sectionCode: 'OPERATION', stepNo: 1, content: '历史割接操作记录' }]
-      }
-    })
-    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 9, manualGrade: 'A' }, controls)
-    await flush()
-
-    expect(textOf(mounted.root)).toContain('历史割接操作记录')
-    expect(findByTestId(mounted.root, 'save-plan')).toBeUndefined()
+      }) }), idempotencyKey: expect.any(String) })
     mounted.app.unmount()
   })
 
@@ -303,7 +324,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     })
 
     expect(collect(mounted.root, (node) => node.type === 'li')).toHaveLength(5)
-    expect(textOf(mounted.root)).toContain('P4方案编制当前阶段')
+    expect(textOf(mounted.root)).toContain('割接方案')
     mounted.app.unmount()
   })
 })
@@ -314,7 +335,7 @@ const standardPlan = (
   taskStage: 'P4' | 'P6' = 'P4'
 ): CutoverPlanView => ({
   taskId: '101', taskStage, taskVersion: 7, planRevisionId: '501', revisionNo: 1, planVersion: 1,
-  originCode: 'NEW_PLATFORM', status: 'DRAFT', legacyPlanId: null, legacyStatusRaw: null,
+  originCode: 'NEW_PLATFORM', status: 'DRAFT',
   sourcePlanRevisionId: null, revisionReason: 'INITIAL', sourceSnapshot: sourceSnapshot(),
   content: {
     editMode: 'ONLINE_TEMPLATE_STANDARD',
@@ -329,7 +350,7 @@ const standardPlan = (
     riskMitigations: [],
     supportArrangements: [{
       arrangementId: '601', roleCode: 'CUSTOMER', personName: '客户经理',
-      dutyDescription: '现场确认', phone: '13800000000', arrivalTime: 1788220800000
+      dutyDescription: '现场确认', phone: '13800000000', arrivalTime: 1788220800000, customerContactReference: { contactId: '801', contactVersion: 2 }
     }]
   },
   approvalFact: approvalStatus ? {
@@ -341,7 +362,7 @@ const standardPlan = (
 
 const emptyPlan = (): CutoverPlanView => ({
   taskId: '101', taskStage: 'P4', taskVersion: 7, planRevisionId: null, revisionNo: null,
-  planVersion: null, originCode: null, status: null, legacyPlanId: null, legacyStatusRaw: null,
+  planVersion: null, originCode: null, status: null,
   sourcePlanRevisionId: null, revisionReason: null, sourceSnapshot: null, content: null,
   approvalFact: null, allowedActions: ['CREATE_DRAFT']
 })
@@ -356,7 +377,7 @@ const sourceSnapshot = () => ({
 })
 const uploadedFact = () => ({
   artifactId: '9007199254740993', versionNo: 4, referenceKey: 'cutover-plan-file',
-  fileFactVersion: { allowedActions: ['READ'], artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 },
+  fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 },
   scopeVersion: 17, sha256: 'a'.repeat(64)
 })
 

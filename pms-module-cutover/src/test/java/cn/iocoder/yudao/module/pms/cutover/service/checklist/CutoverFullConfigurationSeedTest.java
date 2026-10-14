@@ -44,7 +44,7 @@ class CutoverFullConfigurationSeedTest {
     @Test
     void examplesExerciseExactPartialPriorityGapAndDisabledRules() throws Exception {
         var config = frozen(seed("cut_seed"));
-        var matcher = new CutoverRuntimeChecklistMatcher();
+        var matcher = new CutoverChecklistMatcher();
         var exact = matcher.match(config, input("VERSION_UPGRADE", "VSM", "FW", "A"));
         assertTrue(exact.conflicts().isEmpty());
         assertTrue(exact.readyItems().stream().anyMatch(v -> v.item().stableItemKey().equals("EXAMPLE_EXACT")));
@@ -58,8 +58,8 @@ class CutoverFullConfigurationSeedTest {
         assertTrue(matcher.match(config, input("VERSION_UPGRADE", "VSM", "FW", "D")).gap());
     }
 
-    private static CutoverRuntimeChecklistMatcher.MatchInput input(String type, String mode, String device, String level) {
-        return new CutoverRuntimeChecklistMatcher.MatchInput(Map.of("CUTOVER_TYPE", List.of(type), "NETWORK_MODE", List.of(mode),
+    private static CutoverChecklistMatcher.MatchInput input(String type, String mode, String device, String level) {
+        return new CutoverChecklistMatcher.MatchInput(Map.of("CUTOVER_TYPE", List.of(type), "NETWORK_MODE", List.of(mode),
                 "DEVICE_TYPE", List.of(device), "CUTOVER_LEVEL", List.of(level)));
     }
 

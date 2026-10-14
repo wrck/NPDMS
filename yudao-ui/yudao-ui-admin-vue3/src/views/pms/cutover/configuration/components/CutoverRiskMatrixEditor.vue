@@ -218,7 +218,7 @@ import type {
   CutoverBindingRule,
   CutoverConfiguration,
   CutoverValidationError
-} from '@/api/pms/cutover/cutover-config'
+} from '@/api/pms/cutover/configuration'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
 import {
   DUAL_BASELINES,

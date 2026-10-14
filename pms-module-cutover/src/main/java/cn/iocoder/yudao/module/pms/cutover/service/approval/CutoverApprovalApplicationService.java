@@ -2,7 +2,8 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
 import jakarta.annotation.Resource;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.CutoverOperationContext;
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverOperationContext;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverApprovalNodesQuery;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -12,8 +13,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalReviewItemDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalReassignmentDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
@@ -22,21 +23,20 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalRea
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeLockQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeStatusUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceStateUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskApprovalTransitionUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskApprovalTransitionUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalInstanceLockQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
-import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalRules;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRoleApprovalSnapshot;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.CutoverExternalNotificationRequestFactory;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeRoleApprovalSnapshot;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -57,8 +57,9 @@ import java.util.function.LongSupplier;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.*;
 
-/** P5审批应用内核；跨模块事实只经端口消费，完整生产装配留待依赖Gate。 */
+/** P5生产编排：CUT评审、冻结快照和状态机与平台BPM在同一事务完成。 */
 public class CutoverApprovalApplicationService {
+    @Resource private cn.iocoder.yudao.module.pms.cutover.service.taskbusiness.CutoverApprovalTaskEvents taskFactEvents;
     private static final Snowflake IDS = IdUtil.getSnowflake();
     private static final CutoverLeadTimeCalculator LEAD_TIME_CALCULATOR = new CutoverLeadTimeCalculator();
     private static final CutoverExternalNotificationRequestFactory EXTERNAL_NOTIFICATION_FACTORY =
@@ -80,37 +81,10 @@ public class CutoverApprovalApplicationService {
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final LongSupplier currentUserId;
     private final Clock clock;
+    private final CutoverWorkflowCoordinator workflow;
+    private final cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy readiness;
 
-    public CutoverApprovalApplicationService(CutoverApprovalSourceAssembler sourceAssembler,
-            CutoverApprovalInstanceMapper instanceMapper, CutoverApprovalNodeMapper nodeMapper,
-            CutoverApprovalNotificationMapper notificationMapper,
-            ProjectCutoverServiceManagerPort serviceManagerPort,
-            CutoverApprovalRoleCandidatePort roleCandidatePort,
-            CutoverApprovalProjectScopePort projectScopePort,
-            PlatformCommandExecutionApi commandExecutionApi, LongSupplier currentUserId, Clock clock) {
-        this.sourceAssembler = sourceAssembler; this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper;
-        this.notificationMapper = notificationMapper; this.serviceManagerPort = serviceManagerPort;
-        this.roleCandidatePort = roleCandidatePort; this.projectScopePort = projectScopePort;
-        this.commandExecutionApi = commandExecutionApi; this.currentUserId = currentUserId; this.clock = clock;
-        this.reviewItemMapper = null; this.taskMapper = null; this.historyMapper = null; this.reassignmentMapper = null;
-    }
 
-    public CutoverApprovalApplicationService(CutoverApprovalSourceAssembler sourceAssembler,
-            CutoverApprovalInstanceMapper instanceMapper, CutoverApprovalNodeMapper nodeMapper,
-            CutoverApprovalNotificationMapper notificationMapper, CutoverApprovalReviewItemMapper reviewItemMapper,
-            CutoverTaskMapper taskMapper, CutoverTaskStageHistoryMapper historyMapper,
-            ProjectCutoverServiceManagerPort serviceManagerPort,
-            CutoverApprovalRoleCandidatePort roleCandidatePort,
-            CutoverApprovalProjectScopePort projectScopePort,
-            PlatformCommandExecutionApi commandExecutionApi, LongSupplier currentUserId, Clock clock) {
-        this.sourceAssembler = sourceAssembler; this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper;
-        this.notificationMapper = notificationMapper; this.reviewItemMapper = reviewItemMapper;
-        this.taskMapper = taskMapper; this.historyMapper = historyMapper;
-        this.reassignmentMapper = null;
-        this.serviceManagerPort = serviceManagerPort; this.roleCandidatePort = roleCandidatePort;
-        this.projectScopePort = projectScopePort; this.commandExecutionApi = commandExecutionApi;
-        this.currentUserId = currentUserId; this.clock = clock;
-    }
 
     public CutoverApprovalApplicationService(CutoverApprovalSourceAssembler sourceAssembler,
             CutoverApprovalInstanceMapper instanceMapper, CutoverApprovalNodeMapper nodeMapper,
@@ -118,17 +92,18 @@ public class CutoverApprovalApplicationService {
             CutoverApprovalReassignmentMapper reassignmentMapper, CutoverTaskMapper taskMapper,
             CutoverTaskStageHistoryMapper historyMapper, ProjectCutoverServiceManagerPort serviceManagerPort,
             CutoverApprovalRoleCandidatePort roleCandidatePort, CutoverApprovalProjectScopePort projectScopePort,
-            PlatformCommandExecutionApi commandExecutionApi, LongSupplier currentUserId, Clock clock) {
+            PlatformCommandExecutionApi commandExecutionApi, LongSupplier currentUserId, Clock clock,
+            CutoverWorkflowCoordinator workflow, cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy readiness) {
         this.sourceAssembler = sourceAssembler; this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper;
         this.notificationMapper = notificationMapper; this.reviewItemMapper = reviewItemMapper;
         this.reassignmentMapper = reassignmentMapper; this.taskMapper = taskMapper; this.historyMapper = historyMapper;
         this.serviceManagerPort = serviceManagerPort; this.roleCandidatePort = roleCandidatePort;
         this.projectScopePort = projectScopePort; this.commandExecutionApi = commandExecutionApi;
-        this.currentUserId = currentUserId; this.clock = clock;
+        this.currentUserId = currentUserId; this.clock = clock; this.workflow = workflow; this.readiness = readiness;
     }
 
     public CutoverApprovalDecisionResult approve(ApproveCutoverApprovalCommand command) {
-        var input = new DecisionBusinessInput(command.tenantId(), command.taskId(), command.expectedTaskVersion(),
+        var input = new DecisionBusinessInput(command.tenantId(), command.taskId(), command.approvalInstanceId(), command.expectedTaskVersion(),
                 command.expectedApprovalVersion(), "APPROVE", command.reviewItems(), command.assessmentReview(), command.feedback());
         validateDecisionCommand(input, command.idempotencyKey(), command.correlationId());
         require(command.reviewItems().stream().allMatch(item -> "YES".equals(item.decision())),
@@ -137,7 +112,7 @@ public class CutoverApprovalApplicationService {
     }
 
     public CutoverApprovalDecisionResult reject(RejectCutoverApprovalCommand command) {
-        var input = new DecisionBusinessInput(command.tenantId(), command.taskId(), command.expectedTaskVersion(),
+        var input = new DecisionBusinessInput(command.tenantId(), command.taskId(), command.approvalInstanceId(), command.expectedTaskVersion(),
                 command.expectedApprovalVersion(), "REJECT", command.reviewItems(), command.assessmentReview(), command.feedback());
         validateDecisionCommand(input, command.idempotencyKey(), command.correlationId());
         boolean anyNo = command.reviewItems().stream().anyMatch(item -> "NO".equals(item.decision()));
@@ -198,9 +173,12 @@ public class CutoverApprovalApplicationService {
                 command.tenantId(), command.approvalInstanceId(), command.nodeNo()));
         require(node != null && List.of("WAITING", "PENDING").contains(node.getStatusCode()),
                 STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标节点未开放");
+        require(!CutoverRoleApprovalSnapshot.isRole(node), STATE_CONFLICT,
+                "REASSIGN_TARGET_NOT_OPEN", "角色审批节点按角色办理，不指定人员");
         require(!Objects.equals(node.getCurrentApproverUserId(), command.newApproverUserId()),
                 STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标未变化");
         ReassignmentCandidate candidate = lockReassignmentCandidate(root, node, command.newApproverUserId());
+        workflow.reassign(root, node, command, actorId);
         LocalDateTime now = LocalDateTime.now(clock);
         Long from = node.getCurrentApproverUserId();
         CutoverApprovalNodeFacts.apply(node, candidate.qualification());
@@ -217,13 +195,10 @@ public class CutoverApprovalApplicationService {
         history.setOperatedBy(actorId); history.setOperatedAt(now); history.setCreator(String.valueOf(actorId));
         history.setUpdater(String.valueOf(actorId)); history.setCreateTime(now); history.setUpdateTime(now);
         require(reassignmentMapper.insert(history) == 1, STATE_CONFLICT, "改派历史创建失败");
-        List<CutoverApprovalNodeDO> openNodes = nodeMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
-                .eq(CutoverApprovalNodeDO::getTenantId, command.tenantId())
-                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, root.getId())
-                .in(CutoverApprovalNodeDO::getStatusCode, List.of("WAITING", "PENDING"))
-                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+        List<CutoverApprovalNodeDO> openNodes = nodeMapper.open(new CutoverApprovalNodesQuery(command.tenantId(), root.getId()));
         Long oldRootVersion = root.getVersion();
-        boolean allOpenNodesAssigned = openNodes.stream().allMatch(value -> value.getCurrentApproverUserId() != null);
+        boolean allOpenNodesAssigned = openNodes.stream().allMatch(value -> value.getCurrentApproverUserId() != null
+                || CutoverRoleApprovalSnapshot.isRole(value));
         if (allOpenNodesAssigned && ("ROUTE_CANDIDATE_NOT_UNIQUE".equals(root.getHoldReasonCode())
                 || ("APPROVER_UNAVAILABLE".equals(root.getHoldReasonCode())
                 && Objects.equals(root.getCurrentNodeNo(), node.getNodeNo())))) root.setHoldReasonCode(null);
@@ -270,6 +245,8 @@ public class CutoverApprovalApplicationService {
         CutoverApprovalInstanceDO currentInstance = instanceMapper.selectCurrentByTask(
                 new ApprovalTaskQuery(tenantId, taskId));
         require(currentInstance != null, STATE_CONFLICT, "APPROVAL_NOT_PENDING", "审批实例不存在");
+        require(Objects.equals(currentInstance.getId(), input.approvalInstanceId()), STATE_CONFLICT,
+                "APPROVAL_NOT_PENDING", "所选审批实例已被替换，请重新进入当前审批");
         CutoverApprovalInstanceDO instance = instanceMapper.selectByIdForUpdate(
                 new ApprovalInstanceLockQuery(tenantId, currentInstance.getId(), null, null));
         require(instance != null && Objects.equals(instance.getTaskId(), taskId), STATE_CONFLICT,
@@ -280,11 +257,13 @@ public class CutoverApprovalApplicationService {
             throw failure(VERSION_CONFLICT, "APPROVAL_VERSION_STALE", null, instance.getVersion(), task.getVersion(), "审批版本已变化");
         CutoverApprovalNodeDO current = nodeMapper.selectByInstanceAndNodeForUpdate(
                 new ApprovalNodeLockQuery(tenantId, instance.getId(), instance.getCurrentNodeNo()));
+        boolean byRole = CutoverRoleApprovalSnapshot.isRole(current);
         require(current != null && "PENDING".equals(current.getStatusCode())
-                && Objects.equals(current.getCurrentApproverUserId(), actorId), STATE_CONFLICT,
+                && (byRole || Objects.equals(current.getCurrentApproverUserId(), actorId)), STATE_CONFLICT,
                 "NOT_CURRENT_NODE", "当前用户不是待审批人");
         var qualification = revalidateApprover(instance, current, actorId);
         if (!qualification.allowed()) {
+            require(!byRole, STATE_CONFLICT, "NOT_CURRENT_NODE", "当前用户不具备本角色审批资格");
             instance.setHoldReasonCode("APPROVER_UNAVAILABLE");
             instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(LocalDateTime.now(clock));
             updateInstance(instance);
@@ -294,11 +273,13 @@ public class CutoverApprovalApplicationService {
         LocalDateTime now = LocalDateTime.now(clock);
         var operation = new CutoverOperationContext(actorId, correlationId, now);
         insertReviewItems(current, reviewItems, operation);
+        workflow.decide(instance, current, input, actorId);
         updateNode(current, input, new DecisionAuditContext(operation, qualification.roleCandidate()));
         if (!approve) return rejectNew(instance, task, current, input, operation);
         CutoverApprovalNodeDO next = nodeMapper.selectByInstanceAndNodeForUpdate(
                 new ApprovalNodeLockQuery(tenantId, instance.getId(), current.getNodeNo() + 1));
         if (next != null) return approveIntermediate(instance, task, current, next, operation);
+        readiness.requireCurrent(task);
         return approveFinal(instance, task, current, operation);
     }
 
@@ -352,14 +333,11 @@ public class CutoverApprovalApplicationService {
                         && Objects.equals(instance.getSourceSnapshotVersion(), command.expectedSourceSnapshotVersion()),
                 VERSION_CONFLICT, "审批事实已变化");
         LocalDateTime now = LocalDateTime.now(clock);
+        workflow.cancel(instance, actorId);
         instance.setStatusCode("PAUSED_SOURCE_INVALIDATED"); instance.setHoldReasonCode(null);
         instance.setDecisionAt(null); instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
         updateInstance(instance);
-        List<CutoverApprovalNodeDO> nodes = nodeMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
-                .eq(CutoverApprovalNodeDO::getTenantId, command.tenantId())
-                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, command.approvalInstanceId())
-                .in(CutoverApprovalNodeDO::getStatusCode, List.of("WAITING", "PENDING"))
-                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+        List<CutoverApprovalNodeDO> nodes = nodeMapper.open(new CutoverApprovalNodesQuery(command.tenantId(), command.approvalInstanceId()));
         for (CutoverApprovalNodeDO node : nodes) {
             node.setStatusCode("CANCELLED"); node.setUpdater(String.valueOf(actorId)); node.setUpdateTime(now);
             require(nodeMapper.updateById(node) == 1, VERSION_CONFLICT, "审批节点并发变化");
@@ -373,8 +351,7 @@ public class CutoverApprovalApplicationService {
                 command.taskId(), command.planRevisionId())) != null) throw failure(STATE_CONFLICT, "审批实例已存在");
         long projectId = source.task().getProjectId();
         List<NodeDraft> route = resolveRoute(command, projectId, actorId);
-        String hold = route.stream().anyMatch(value -> value.approverUserId() == null)
-                ? "ROUTE_CANDIDATE_NOT_UNIQUE" : null;
+        String hold = route.stream().map(NodeDraft::unresolvedReason).filter(Objects::nonNull).findFirst().orElse(null);
         long instanceId = IDS.nextId();
         LocalDateTime now = LocalDateTime.now(clock);
         CutoverApprovalInstanceDO instance = new CutoverApprovalInstanceDO();
@@ -410,6 +387,7 @@ public class CutoverApprovalApplicationService {
             require(nodeMapper.insert(node) == 1, STATE_CONFLICT, "审批节点创建失败");
             if (index == 0) firstNode = node;
         }
+        workflow.start(instance, actorId);
         if (hold == null) insertPendingNotifications(instance, firstNode, 0, new CutoverOperationContext(actorId, command.correlationId(), now), "首节点通知创建失败");
         return new CutoverApprovalStartResult(StartOutcome.STARTED, fact(instance));
     }
@@ -449,7 +427,7 @@ public class CutoverApprovalApplicationService {
         route.add(new NodeDraft("INITIATOR", initiatorFact, null));
         for (String code : CutoverApprovalRules.routeFor(grade).subList(1, CutoverApprovalRules.routeFor(grade).size())) {
             route.add("SERVICE_MANAGER".equals(code) ? serviceManager(tenantId, projectId, code)
-                    : roleCandidate(tenantId, projectId, code));
+                    : roleCandidate(tenantId, code));
         }
         return route;
     }
@@ -467,32 +445,12 @@ public class CutoverApprovalApplicationService {
                 userId == null ? "SERVICE_MANAGER_NOT_UNIQUE" : null);
     }
 
-    private NodeDraft roleCandidate(long tenantId, long projectId, String code) {
-        String group = "SECOND_LINE".equals(code) ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
-        var query = new CutoverApprovalRoleCandidatePort.RoleQuery(tenantId, group);
-        var reference = roleCandidatePort.inspectRole(query);
+    private NodeDraft roleCandidate(long tenantId, String code) {
+        String group = "SECOND_LINE".equals(code) ? "probSupporter" : "probRD";
+        var reference = roleCandidatePort.inspectRole(new CutoverApprovalRoleCandidatePort.RoleQuery(tenantId, group));
         require(reference != null && reference.tenantId() == tenantId && group.equals(reference.roleGroupCode()),
                 OWNER_DATA_CORRUPTED, "审批角色配置不存在或已停用");
-        var candidates = roleCandidatePort.inspectCandidates(query);
-        var lockedCandidates = roleCandidatePort.lockAndRevalidate(candidates);
-        require(lockedCandidates.outcome() == CutoverApprovalRoleCandidatePort.Revalidation.VALID,
-                SOURCE_STALE, "角色候选事实已变化");
-        List<CutoverApprovalProjectScopePort.ProjectScopeFact> allowed = new ArrayList<>();
-        for (var candidate : candidates.candidates()) {
-            require(candidate.roleGroupId() == reference.roleId(), OWNER_DATA_CORRUPTED, "审批候选角色身份损坏");
-            var scope = projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
-                    .tenantId(tenantId).projectId(projectId).subjectUserId(candidate.adminUserId())
-                    .requiredAction("ACTION_VIEW").build());
-            var locked = projectScopePort.lockAndRevalidate(scope);
-            require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                    SOURCE_STALE, "候选项目范围已变化");
-            if (locked.current().allowed()) allowed.add(locked.current());
-        }
-        var selected = allowed.size() == 1 ? allowed.getFirst() : null;
-        var qualification = CutoverApprovalNodeFacts.personalRole(CutoverApprovalNodeFacts.PersonalRole.builder()
-                .role(reference).scope(selected).build());
-        qualification.setQualificationCheckTime(LocalDateTime.now(clock));
-        return new NodeDraft(code, qualification, selected == null ? "PROJECT_CANDIDATE_NOT_UNIQUE" : null);
+        return new NodeDraft(code, CutoverApprovalNodeFacts.role(reference), null);
     }
 
     private void linkPrevious(CutoverApprovalStartCommand command, long replacementId) {
@@ -510,22 +468,37 @@ public class CutoverApprovalApplicationService {
                                             int committedNodeVersion, CutoverOperationContext operation, String failureMessage) {
         long actorId = operation.actorId(); String correlationId = operation.correlationId();
         LocalDateTime now = operation.occurredAt();
-        CutoverApprovalNotificationDO row = new CutoverApprovalNotificationDO();
-        row.setId(IDS.nextId()); row.setTenantId(instance.getTenantId()); row.setApprovalInstanceId(instance.getId());
-        row.setApprovalNodeId(node.getId()); row.setRecipientUserId(node.getCurrentApproverUserId());
-        row.setDeliveryKey("CUT_APPROVAL:" + instance.getId() + ":" + node.getNodeNo() + ":" + committedNodeVersion);
-        row.setCorrelationId(correlationId);
-        row.setTemplateCode("CUT_APPROVAL_PENDING");
-        row.setChannelCode("IN_PLATFORM"); row.setStatusCode("PENDING"); row.setRetryCount(0);
-        row.setNextRetryAt(null); row.setVersion(0);
-        row.setCreator(String.valueOf(actorId)); row.setUpdater(String.valueOf(actorId));
-        row.setCreateTime(now); row.setUpdateTime(now);
-        require(notificationMapper.insert(row) == 1, STATE_CONFLICT, failureMessage);
-        for (CutoverApprovalNotificationDO external :
-                EXTERNAL_NOTIFICATION_FACTORY.createForActivatedNode(instance, node, committedNodeVersion,
-                        correlationId, actorId, now)) {
-            external.setId(IDS.nextId());
-            require(notificationMapper.insert(external) == 1, STATE_CONFLICT, "外部提醒请求创建失败");
+        var role = CutoverRoleApprovalSnapshot.from(node);
+        boolean byRole = role != null && role.byRole();
+        List<Long> recipients = byRole ? roleCandidatePort.inspectCandidates(
+                new CutoverApprovalRoleCandidatePort.RoleQuery(instance.getTenantId(), role.roleGroupCode())).candidates().stream()
+                .filter(candidate -> candidate.roleGroupId() == role.roleGroupId())
+                .map(CutoverApprovalRoleCandidatePort.Candidate::adminUserId).toList()
+                : List.of(node.getCurrentApproverUserId());
+        for (Long recipient : recipients) {
+            String recipientSuffix = byRole ? ":" + recipient : "";
+            CutoverApprovalNotificationDO row = new CutoverApprovalNotificationDO();
+            row.setId(IDS.nextId()); row.setTenantId(instance.getTenantId()); row.setApprovalInstanceId(instance.getId());
+            row.setApprovalNodeId(node.getId()); row.setRecipientUserId(recipient);
+            row.setDeliveryKey("CUT_APPROVAL:" + instance.getId() + ":" + node.getNodeNo() + ":" + committedNodeVersion + recipientSuffix);
+            row.setCorrelationId(correlationId);
+            row.setTemplateCode("CUT_APPROVAL_PENDING");
+            row.setChannelCode("IN_PLATFORM"); row.setStatusCode("PENDING"); row.setRetryCount(0);
+            row.setNextRetryAt(null); row.setVersion(0);
+            row.setCreator(String.valueOf(actorId)); row.setUpdater(String.valueOf(actorId));
+            row.setCreateTime(now); row.setUpdateTime(now);
+            require(notificationMapper.insert(row) == 1, STATE_CONFLICT, failureMessage);
+            // 通知收件人投影不写回角色节点；角色节点办理前仍未指定人员。
+            var recipientNode = new CutoverApprovalNodeDO();
+            recipientNode.setId(node.getId()); recipientNode.setNodeNo(node.getNodeNo());
+            recipientNode.setCurrentApproverUserId(recipient);
+            for (CutoverApprovalNotificationDO external :
+                    EXTERNAL_NOTIFICATION_FACTORY.createForActivatedNode(instance, recipientNode, committedNodeVersion,
+                            correlationId, actorId, now)) {
+                external.setId(IDS.nextId());
+                external.setDeliveryKey(external.getDeliveryKey() + recipientSuffix);
+                require(notificationMapper.insert(external) == 1, STATE_CONFLICT, "外部提醒请求创建失败");
+            }
         }
     }
 
@@ -541,7 +514,7 @@ public class CutoverApprovalApplicationService {
                 yield ApproverQualification.of(true);
             }
             case "SERVICE_MANAGER" -> {
-                var expected = CutoverApprovalNodeFacts.legacyManager(new CutoverApprovalNodeFacts.Source(instance, node));
+                var expected = CutoverApprovalNodeFacts.manager(new CutoverApprovalNodeFacts.Source(instance, node));
                 var locked = serviceManagerPort.lockAndRevalidate(expected);
                 if (locked.current().outcome() != ProjectCutoverServiceManagerPort.Outcome.FOUND
                         || !Objects.equals(locked.current().userId(), actorId)) yield ApproverQualification.of(false);
@@ -550,7 +523,7 @@ public class CutoverApprovalApplicationService {
                 yield ApproverQualification.of(true);
             }
             case "SECOND_LINE", "RND" -> {
-                var role = CutoverRuntimeRoleApprovalSnapshot.from(node);
+                var role = CutoverRoleApprovalSnapshot.from(node);
                 String group = "SECOND_LINE".equals(node.getNodeCode()) ? "probSupporter" : "probRD";
                 String personalGroup = "SECOND_LINE".equals(node.getNodeCode()) ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
                 require(role != null && (group.equals(role.roleGroupCode())
@@ -597,7 +570,7 @@ public class CutoverApprovalApplicationService {
                 yield CutoverApprovalNodeFacts.manager(locked.current());
             }
             case "SECOND_LINE", "RND" -> {
-                var role = CutoverRuntimeRoleApprovalSnapshot.from(node);
+                var role = CutoverRoleApprovalSnapshot.from(node);
                 require(role != null && !role.byRole(), STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "角色审批不指定人员");
                 var query = new CutoverApprovalRoleCandidatePort.ActorQuery(root.getTenantId(), targetUserId);
                 require(role.currentActor(query, roleCandidatePort.lockAndInspectActor(query)) != null,
@@ -650,7 +623,7 @@ public class CutoverApprovalApplicationService {
         var operation = context.operation();
         String expectedStatus = node.getStatusCode();
         node.setStatusCode("APPROVE".equals(input.action()) ? "APPROVED" : "REJECTED");
-        if (CutoverRuntimeRoleApprovalSnapshot.isRole(node)) node.setCurrentApproverUserId(operation.actorId());
+        if (CutoverRoleApprovalSnapshot.isRole(node)) node.setCurrentApproverUserId(operation.actorId());
         node.setAssessmentReviewDecisionCode(input.assessmentReview() == null ? null : input.assessmentReview().decision());
         node.setAssessmentReviewReason(input.assessmentReview() == null ? null : input.assessmentReview().reason());
         node.setFeedback(input.feedback()); node.setDecisionAt(operation.occurredAt());
@@ -692,12 +665,7 @@ public class CutoverApprovalApplicationService {
         String feedback = input.feedback();
         long actorId = operation.actorId(); String correlationId = operation.correlationId();
         LocalDateTime now = operation.occurredAt();
-        List<CutoverApprovalNodeDO> future = nodeMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
-                .eq(CutoverApprovalNodeDO::getTenantId, instance.getTenantId())
-                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, instance.getId())
-                .gt(CutoverApprovalNodeDO::getNodeNo, current.getNodeNo())
-                .eq(CutoverApprovalNodeDO::getStatusCode, "WAITING")
-                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+        List<CutoverApprovalNodeDO> future = nodeMapper.waitingAfter(new CutoverApprovalNodeMapper.FutureNodesQuery(instance.getTenantId(), instance.getId(), current.getNodeNo()));
         for (CutoverApprovalNodeDO node : future) cancelNode(node, actorId, now);
         instance.setStatusCode("REJECTED"); instance.setDecisionAt(now); instance.setRejectionReason(feedback);
         instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
@@ -731,6 +699,7 @@ public class CutoverApprovalApplicationService {
                 .correlationId(correlationId)
                 .occurredAt(now)
                 .build());
+        taskFactEvents.approved(task);
         return decisionResult(instance, task, decidedNodeNo);
     }
 
@@ -801,6 +770,7 @@ public class CutoverApprovalApplicationService {
         Long expectedTaskVersion = input.expectedTaskVersion(); Long expectedApprovalVersion = input.expectedApprovalVersion();
         var items = input.reviewItems(); String feedback = input.feedback();
         require(tenantId != null && tenantId > 0 && taskId != null && taskId > 0
+                && input.approvalInstanceId() != null && input.approvalInstanceId() > 0
                 && expectedTaskVersion != null && expectedTaskVersion >= 0
                 && expectedApprovalVersion != null && expectedApprovalVersion >= 0,
                 INVALID_REQUEST, "REQUEST_SCHEMA_INVALID", "审批命令身份或版本非法");
@@ -906,7 +876,7 @@ public class CutoverApprovalApplicationService {
                                       LocalDateTime planSubmittedAt, Long previousApprovalInstanceId) { }
     private record PauseBusinessInput(long tenantId, long approvalInstanceId, Long expectedApprovalVersion,
                                       long planRevisionId, int expectedSourceSnapshotVersion, String reasonCode) { }
-    record DecisionBusinessInput(Long tenantId, Long taskId, Long expectedTaskVersion,
+    record DecisionBusinessInput(Long tenantId, Long taskId, Long approvalInstanceId, Long expectedTaskVersion,
                                          Long expectedApprovalVersion, String action,
                                          List<ReviewItemInput> reviewItems,
                                          AssessmentReviewInput assessmentReview, String feedback) { }

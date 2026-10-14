@@ -2,9 +2,10 @@ package cn.iocoder.yudao.module.pms.cutover.service.checklist.command;
 
 public record LoadExternalChecklistCommand(Long tenantId, Long actorId, Long taskId,
         Long expectedTaskVersion, Long checklistId, Long expectedChecklistVersion,
-        Long expectedProjectScopeVersion, String stableItemKey) implements CutoverChecklistDraftMutation {
+        Long expectedProjectScopeVersion, String stableItemKey,
+        @com.fasterxml.jackson.annotation.JsonIgnore cn.iocoder.yudao.module.pms.cutover.service.support.CutoverWriteIntent intent) implements CutoverChecklistDraftMutation {
     public LoadExternalChecklistCommand afterReservation() {
         return new LoadExternalChecklistCommand(tenantId, actorId, taskId, expectedTaskVersion,
-                checklistId, expectedChecklistVersion + 1, expectedProjectScopeVersion, stableItemKey);
+                checklistId, expectedChecklistVersion + 1, expectedProjectScopeVersion, stableItemKey, intent);
     }
 }

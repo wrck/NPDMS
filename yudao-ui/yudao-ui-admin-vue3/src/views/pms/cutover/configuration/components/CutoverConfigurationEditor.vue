@@ -362,9 +362,9 @@ import type {
   CutoverExternalCatalog,
   CutoverNavigationTarget,
   CutoverValidationError
-} from '@/api/pms/cutover/cutover-config'
+} from '@/api/pms/cutover/configuration'
 import { DICT_TYPE, getStrDictOptions } from '@/utils/dict'
-import { getExternalInterfaces } from '@/api/pms/cutover/cutover-config'
+import { getExternalInterfaces } from '@/api/pms/cutover/configuration'
 import CutoverRiskMatrixEditor from './CutoverRiskMatrixEditor.vue'
 import CutoverSurveyMatrixEditor from './CutoverSurveyMatrixEditor.vue'
 import CutoverSchemaEditor from './CutoverSchemaEditor.vue'

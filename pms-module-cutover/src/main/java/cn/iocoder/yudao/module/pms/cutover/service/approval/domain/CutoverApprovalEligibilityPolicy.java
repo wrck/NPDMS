@@ -31,8 +31,9 @@ public final class CutoverApprovalEligibilityPolicy {
     }
 
     public boolean eligible(CutoverApprovalInstanceDO root, CutoverApprovalNodeDO node, long actorId) {
-        if (node == null || !Objects.equals(root.getTenantId(), node.getTenantId())
-                || !Objects.equals(node.getCurrentApproverUserId(), actorId)) return false;
+        if (node == null || !Objects.equals(root.getTenantId(), node.getTenantId())) return false;
+        boolean byRole = CutoverRoleApprovalSnapshot.isRole(node);
+        if (!byRole && !Objects.equals(node.getCurrentApproverUserId(), actorId)) return false;
         return switch (node.getNodeCode()) {
             case "INITIATOR" -> projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                 .tenantId(root.getTenantId())
@@ -46,7 +47,7 @@ public final class CutoverApprovalEligibilityPolicy {
                         && Objects.equals(fact.userId(), actorId);
             }
             case "SECOND_LINE", "RND" -> {
-                var role = CutoverRuntimeRoleApprovalSnapshot.from(node);
+                var role = CutoverRoleApprovalSnapshot.from(node);
                 var query = new CutoverApprovalRoleCandidatePort.ActorQuery(root.getTenantId(), actorId);
                 if (role == null || role.currentActor(query, roleCandidatePort.inspectActor(query)) == null) yield false;
                 yield role.byRole() || projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()

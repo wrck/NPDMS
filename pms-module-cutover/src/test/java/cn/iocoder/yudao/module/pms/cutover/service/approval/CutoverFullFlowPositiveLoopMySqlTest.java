@@ -20,11 +20,11 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEv
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverChecklistBindingRuleRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverChecklistItemDefinitionRevisionMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.ApproveCutoverApprovalCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.AssessmentReviewInput;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.ReviewItemInput;
@@ -55,18 +55,18 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.CutoverPlanCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationService;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.CreateCutoverTaskCommand;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.SaveCutoverAssessmentCommand;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.SubmitCutoverAssessmentCommand;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverCustomerLevelPort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverDeviceProductTypePort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverDeviceScopePort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverReadinessPort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.result.CutoverAssessmentCommandResult;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.result.CutoverTaskCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskApplicationService;
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.CreateCutoverTaskCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.SaveCutoverAssessmentCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.task.command.SubmitCutoverAssessmentCommand;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverAssessmentAnswers;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverCustomerLevelPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverDeviceProductTypePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverDeviceScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverReadinessPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.result.CutoverAssessmentCommandResult;
+import cn.iocoder.yudao.module.pms.cutover.service.task.result.CutoverTaskCommandResult;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
@@ -174,16 +174,21 @@ class CutoverFullFlowPositiveLoopMySqlTest {
         CutoverTaskCommandResult created = taskService.create(createCommand());
         CutoverAssessmentCommandResult assessment = taskService.saveAssessment(new SaveCutoverAssessmentCommand(
                 tenantId, ACTOR_ID, created.taskId(), created.version(), 0L,
-                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), "A", "corr-assessment-save"));
+                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), "A", "assessment-save", "corr-assessment-save"));
         CutoverTaskCommandResult p3 = taskService.submitAssessment(new SubmitCutoverAssessmentCommand(
                 tenantId, ACTOR_ID, created.taskId(), assessment.taskVersion(), assessment.assessmentRowVersion(),
                 "assessment-submit", "corr-assessment-submit"));
 
         ChecklistCommandResult generated = checklistService.generate(new GenerateChecklistCommand(tenantId, ACTOR_ID, created.taskId(), p3.version(), assessment.assessmentVersion(), PROJECT_SCOPE_VERSION, List.of(), Map.of(), "checklist-generate", "corr-checklist-generate"));
-        ChecklistCommandResult savedChecklist = checklistService.save(new SaveChecklistCommand(
-                tenantId, ACTOR_ID, created.taskId(), p3.version(), generated.checklistId(),
-                generated.checklistFactVersion(), PROJECT_SCOPE_VERSION,
-                List.of(new SaveChecklistCommand.DirectAnswer("PRECHECK-READY", "{\"value\":\"YES\"}"))));
+        ChecklistCommandResult savedChecklist = checklistService.save(new SaveChecklistCommand(tenantId,
+                ACTOR_ID,
+                created.taskId(),
+                p3.version(),
+                generated.checklistId(),
+                generated.checklistFactVersion(),
+                PROJECT_SCOPE_VERSION,
+                List.of(new SaveChecklistCommand.DirectAnswer("PRECHECK-READY", "{\"value\":\"YES\"}")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
         ChecklistCommandResult p4 = checklistService.submit(new SubmitChecklistCommand(
                 tenantId, ACTOR_ID, created.taskId(), p3.version(), assessment.assessmentVersion(),
                 generated.checklistId(), savedChecklist.checklistFactVersion(), PROJECT_SCOPE_VERSION,
@@ -271,10 +276,17 @@ class CutoverFullFlowPositiveLoopMySqlTest {
             Map<String, Object> node = nodes.get(index);
             actor.use(((Number) node.get("current_approver_user_id")).longValue());
             String nodeCode = String.valueOf(node.get("node_code"));
-            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId, taskId, expectedTaskVersion,
-                    (long) index, yesItems(), "SERVICE_MANAGER".equals(nodeCode)
+            approvalService.approve(new ApproveCutoverApprovalCommand(tenantId,
+                taskId,
+                approvalInstanceId,
+                expectedTaskVersion,
+                (long) index,
+                yesItems(),
+                "SERVICE_MANAGER".equals(nodeCode)
                     ? new AssessmentReviewInput("CONFIRMED", null) : null,
-                    "节点审批通过", "approval-" + (index + 1), "corr-approval-" + (index + 1)));
+                "节点审批通过",
+                "approval-" + (index + 1),
+                "corr-approval-" + (index + 1)));
         }
         actor.use(ACTOR_ID);
     }
@@ -508,8 +520,20 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                 CutoverProjectContextPort projects, CutoverDeviceScopePort deviceScopes,
                 CutoverDeviceProductTypePort productTypes, CutoverCustomerLevelPort customerLevels,
                 CutoverReadinessPort readiness, PlatformCommandExecutionApi platform, java.time.Clock clock) {
-            return new CutoverTaskApplicationService(tasks, devices, history, assessments, configurations,
-                    scopes, projects, deviceScopes, productTypes, customerLevels, readiness, platform, clock);
+            return new CutoverTaskApplicationService(tasks,
+                devices,
+                history,
+                assessments,
+                configurations,
+                scopes,
+                projects,
+                deviceScopes,
+                productTypes,
+                customerLevels,
+                readiness,
+                platform,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverIntakeConfigurationPolicy.class));
         }
 
         @Bean CutoverChecklistConfigurationQueryService checklistConfiguration(
@@ -600,8 +624,19 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                 CutoverApprovalPositiveLoopMySqlTest.ControlledOwners scopes,
                 CutoverClosureFilePort files, CutoverClosureCollectionPort collections,
                 PlatformCommandExecutionApi platform, java.time.Clock clock) {
-            return new CutoverClosureApplicationService(tasks, approvals, plans, closures, attachments, evidence,
-                    devices, history, scopes, files, collections, platform, clock);
+            return new CutoverClosureApplicationService(tasks,
+                approvals,
+                plans,
+                closures,
+                attachments,
+                evidence,
+                devices,
+                history,
+                scopes,
+                files,
+                platform,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         }
     }
 }

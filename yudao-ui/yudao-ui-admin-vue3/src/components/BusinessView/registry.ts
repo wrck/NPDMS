@@ -16,6 +16,7 @@ import ProjectSchedulePanel from '@/views/pms/project/project-master-detail/comp
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
 import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
 import ProjectCutoverCoverage from '@/views/pms/cutover/project-coverage/index.vue'
+import CutoverBusinessEntry from '@/views/pms/cutover/components/CutoverBusinessEntry.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {
@@ -76,10 +77,11 @@ const adapters: readonly Adapter[] = [
   },
   {
     ...businessPageRoutes.CUT_CUTOVER_APPROVAL,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(CutoverBusinessEntry),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '割接审批', tab: 'cutover' }
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, mode: 'APPROVAL' }
         : undefined
   },
   {
@@ -117,10 +119,11 @@ const adapters: readonly Adapter[] = [
   },
   {
     ...businessPageRoutes.CUT_CUTOVER_COMPLETION,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(CutoverBusinessEntry),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '割接上线', tab: 'cutover' }
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, mode: 'TASK' }
         : undefined
   },
   {

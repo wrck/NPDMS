@@ -5,8 +5,8 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTaskQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper;
@@ -14,9 +14,9 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMappe
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureChildrenQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.query.CutoverClosureRowQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.AttachmentInput;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules;
@@ -25,8 +25,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureFi
 import cn.iocoder.yudao.module.pms.cutover.service.closure.port.CutoverClosureOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.view.CutoverClosureView.CollectionEvidenceView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP6ActionPolicy;
 
@@ -38,7 +38,7 @@ import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosure
 import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Code.OWNER_PROVIDER_UNAVAILABLE;
 import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationException.Reason.*;
 
-/** F-CUT-006 Task 3只读详情内核；生产依赖接通前不注册Bean。 */
+/** 割接闭环详情、证据与当前办理资格。 */
 public class CutoverClosureQueryService {
     @jakarta.annotation.Resource
     private CutoverClosureStorage storage;
@@ -230,7 +230,8 @@ public class CutoverClosureQueryService {
         if (closure != null && (!Objects.equals(closure.getPlanRevisionId(), plan.getId())
                 || !Objects.equals(closure.getTaskId(), task.getId())
                 || !Objects.equals(closure.getProjectId(), task.getProjectId())
-                || !Objects.equals(closure.getTaskVersionAtP6(), task.getVersion())
+                || !Objects.equals(closure.getTaskVersionAtP6() == null ? null : closure.getTaskVersionAtP6()
+                        + ("ARCHIVED".equals(task.getTaskStatus()) && "SUBMITTED".equals(closure.getStatusCode()) ? 1L : 0L), task.getVersion())
                 || !Objects.equals(closure.getApprovalInstanceId(), approval.getId())
                 || !Objects.equals(closure.getApprovalVersion(), approval.getVersion())
                 || !Objects.equals(closure.getPlanRevisionNo(), plan.getRevisionNo())

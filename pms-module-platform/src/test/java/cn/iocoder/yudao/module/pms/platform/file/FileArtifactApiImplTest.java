@@ -15,6 +15,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollect
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetCollectionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetExpectation;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileReferenceSetKey;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FrozenFileVersionAccessQuery;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileArtifactDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileReferenceDO;
 import cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO;
@@ -53,6 +54,84 @@ import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class FileArtifactApiImplTest {
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"DOWNLOAD", "PREVIEW"})
+    void frozenContentAccessKeepsRequestedVersionAndRechecksOwnerUnderLock(String action) {
+        when(policyRegistry.inspect(any())).thenReturn(policy());
+        when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
+        when(policyRegistry.inspectFrozenFileVersion(any())).thenReturn(policy());
+        when(policyRegistry.lockAndRevalidateFrozenFileVersion(any())).thenReturn(policy());
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        var current = reference(); current.setFileVersionNo(3);
+        when(referenceMapper.selectExact(any())).thenReturn(current);
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact());
+        when(versionMapper.selectForUpdate(any())).thenReturn(version());
+        when(referenceMapper.selectForUpdate(any())).thenReturn(current);
+        var requested = new FileArtifactVersionQuery(11L, 2, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", action);
+
+        var inspected = api.inspect(requested);
+        var locked = api.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(11L, 2,
+                "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", action,
+                inspected.fileFactVersion(), inspected.scopeVersion()));
+
+        assertEquals(2, locked.versionNo());
+        assertEquals(3, current.getFileVersionNo());
+        var proof = org.mockito.ArgumentCaptor.forClass(FrozenFileVersionAccessQuery.class);
+        verify(policyRegistry).inspectFrozenFileVersion(proof.capture());
+        assertEquals(7L, proof.getValue().scope().tenantId());
+        assertEquals(9L, proof.getValue().scope().actorUserId());
+        assertEquals(11L, proof.getValue().artifactId());
+        assertEquals(2, proof.getValue().versionNo());
+        assertEquals(inspected.scopeVersion(), proof.getValue().expectedScopeVersion());
+        verify(policyRegistry).lockAndRevalidateFrozenFileVersion(proof.getValue());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"READ", "UPLOAD", "REFERENCE", "REPLACE"})
+    void historicalContentProofCannotBeUsedForBusinessConsumptionOrWrites(String action) {
+        when(policyRegistry.inspect(any())).thenReturn(policy());
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        var current = reference(); current.setFileVersionNo(3);
+        when(referenceMapper.selectExact(any())).thenReturn(current);
+
+        assertThrows(ServiceException.class, () -> api.inspect(new FileArtifactVersionQuery(
+                11L, 2, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", action)));
+
+        verify(policyRegistry, never()).inspectFrozenFileVersion(any());
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"DETACHED", "OTHER_ARTIFACT"})
+    void historicalContentStillRequiresActiveReferenceToTheSameArtifact(String mismatch) {
+        when(policyRegistry.inspect(any())).thenReturn(policy());
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        var current = reference(); current.setFileVersionNo(3);
+        if ("DETACHED".equals(mismatch)) current.setStatusCode("DETACHED");
+        else current.setArtifactId(12L);
+        when(referenceMapper.selectExact(any())).thenReturn(current);
+        assertThrows(ServiceException.class, () -> api.inspect(new FileArtifactVersionQuery(
+                11L, 2, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", "DOWNLOAD")));
+        verify(policyRegistry, never()).inspectFrozenFileVersion(any());
+    }
+
+    @Test
+    void revokedHistoricalOwnerGrantStopsTheLockedRead() {
+        when(policyRegistry.lockAndRevalidate(any())).thenReturn(policy());
+        when(artifactMapper.selectForUpdate(any())).thenReturn(artifact());
+        when(versionMapper.selectForUpdate(any())).thenReturn(version());
+        var current = reference(); current.setFileVersionNo(3);
+        when(referenceMapper.selectForUpdate(any())).thenReturn(current);
+        when(policyRegistry.lockAndRevalidateFrozenFileVersion(any())).thenThrow(
+                cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
+                        cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_SCOPE_FORBIDDEN));
+        assertThrows(ServiceException.class, () -> api.lockAndRevalidate(new FileArtifactVersionRevalidationQuery(
+                11L, 2, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", "DOWNLOAD",
+                new FileFactVersion(3, 4, 5), policy().scopeVersion())));
+    }
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(strings = {"READ", "DOWNLOAD", "PREVIEW"})

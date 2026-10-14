@@ -1,15 +1,15 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverSupportContactUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverSupportContactUpdate;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverPlanSupportContactChangeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.CutoverPlanSupportContactChangeMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.command.PatchApprovedContactCommand;
-import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverRuntimePlanContentCodec;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import lombok.RequiredArgsConstructor;
 import lombok.Builder;
@@ -36,7 +36,7 @@ public class CutoverPlanContactPolicy {
         return contacts.list(new ProjectContactReferenceApi.Query(tenant, actor, project));
     }
 
-    public void validate(ProjectContactReferenceApi.Query query, CutoverRuntimePlanContentCodec.DecodedContent content, boolean submitting) {
+    public void validate(ProjectContactReferenceApi.Query query, CutoverPlanContentCodec.DecodedContent content, boolean submitting) {
         if (content.rootSnapshot() == null || !"ONLINE_TEMPLATE_STANDARD".equals(content.rootSnapshot().path("editMode").asText())) return;
         var customers = content.supportArrangements().stream().filter(row -> "CUSTOMER".equals(row.roleCode())).toList();
         if (submitting && customers.isEmpty()) invalid("客户保障安排尚未填写");

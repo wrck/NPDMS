@@ -4,13 +4,13 @@ import { findByTestId, mount, textOf } from '../cutoverTestHarness'
 import Detail from './index.vue'
 
 const api = vi.hoisted(() => ({ getCutoverTaskDetail: vi.fn(), saveCutoverAssessment: vi.fn(), submitCutoverAssessment: vi.fn() }))
-vi.mock('@/api/pms/cutover/workbench', () => api)
+vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
-vi.mock('../workbench/components/CutoverProjectContextCard.vue', () => ({ default: defineComponent({ render: () => null }) }))
-vi.mock('../workbench/components/CutoverChecklistPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
-vi.mock('../workbench/components/CutoverPlanPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
-vi.mock('../workbench/components/CutoverApprovalPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
-vi.mock('../workbench/components/CutoverClosurePanel.vue', () => ({ default: defineComponent({
+vi.mock('../components/CutoverProjectContextCard.vue', () => ({ default: defineComponent({ render: () => null }) }))
+vi.mock('../components/CutoverChecklistPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
+vi.mock('../components/CutoverPlanPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
+vi.mock('../components/CutoverApprovalPanel.vue', () => ({ default: defineComponent({ render: () => null }) }))
+vi.mock('../components/CutoverClosurePanel.vue', () => ({ default: defineComponent({
   props: ['taskId', 'readonly'], setup(props) { return () => h('section', { 'data-testid': 'closure', readonly: props.readonly }, `闭环:${props.taskId}`) }
 }) }))
 

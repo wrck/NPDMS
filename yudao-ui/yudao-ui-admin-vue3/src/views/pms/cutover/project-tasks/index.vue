@@ -19,7 +19,7 @@
       <el-table-column label="状态" min-width="120"><template #default="{ row }"><el-tag :type="row.taskStatus === 'ARCHIVED' ? 'success' : 'info'">{{ statusLabels[row.taskStatus] || row.taskStatus }}</el-tag></template></el-table-column>
       <el-table-column label="生成时间" min-width="165"><template #default="{ row }">{{ formatWireDateTime(row.generatedAt) }}</template></el-table-column>
       <el-table-column label="操作" width="85" fixed="right"><template #default="{ row }">
-        <el-button link type="primary" data-testid="open-project-cutover" @click="selectedTaskId = row.id">{{ readonly || row.taskStatus === 'ARCHIVED' || row.intakeSourceType === 'LEGACY_FORWARD' ? '查看' : '办理' }}</el-button>
+        <el-button link type="primary" data-testid="open-project-cutover" @click="selectedTaskId = row.id">{{ readonly || row.taskStatus === 'ARCHIVED' ? '查看' : '办理' }}</el-button>
       </template></el-table-column>
     </el-table>
     <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="loadTasks" />
@@ -28,12 +28,12 @@
 </template>
 
 <script setup lang="ts">
-import * as CutoverApi from '@/api/pms/cutover/workbench'
-import type { CutoverTaskSummary, WireLong } from '@/api/pms/cutover/workbench'
+import * as CutoverApi from '@/api/pms/cutover'
+import type { CutoverTaskSummary, WireLong } from '@/api/pms/cutover'
 import { useOperationClient } from '@/components/BusinessView/operationHost'
-import { formatWireDateTime } from '../workbench/cutoverTaskInteraction'
+import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
 import CutoverTaskDetail from '../task-detail/index.vue'
-import CutoverCreateWizard from '../workbench/components/CutoverCreateWizard.vue'
+import CutoverCreateWizard from '../components/CutoverCreateWizard.vue'
 
 const props = defineProps<{ projectId: WireLong; objectId?: WireLong; readonly?: boolean; allowedActions?: string[] }>()
 const operationClient = useOperationClient()
@@ -46,9 +46,9 @@ const loading = ref(false)
 const error = ref('')
 const query = reactive({ pageNo: 1, pageSize: 10 })
 let loadSequence = 0
-const sourceLabels: Record<string, string> = { SELF_CREATED: '一线自建', ITR: 'ITR', PROJECT_EVENT: 'PMS', LEGACY_FORWARD: '历史只读' }
+const sourceLabels: Record<string, string> = { SELF_CREATED: '一线自建', ITR: 'ITR', PROJECT_EVENT: 'PMS' }
 const stageLabels: Record<string, string> = { P2: '割接等级确认', P3: '调研及风险考察', P4: '割接方案', P5: '割接审批', P6: '割接跟踪及闭环' }
-const statusLabels: Record<string, string> = { GRADE_CONFIRMING: '人工分级中', SURVEYING: '现场调研', PLAN_DRAFTING: '方案编制', APPROVING: '审批中', CLOSURE_IN_PROGRESS: '跟踪与闭环', ARCHIVED: '已归档', LEGACY_UNKNOWN: '历史状态' }
+const statusLabels: Record<string, string> = { GRADE_CONFIRMING: '人工分级中', SURVEYING: '现场调研', PLAN_DRAFTING: '方案编制', APPROVING: '审批中', CLOSURE_IN_PROGRESS: '跟踪与闭环', ARCHIVED: '已归档' }
 
 const loadTasks = async () => {
   const sequence = ++loadSequence

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import CutoverDashboardKpis from './components/CutoverDashboardKpis.vue'
+import CutoverDashboardKpis from '../components/CutoverDashboardKpis.vue'
 import { mount, textOf } from '../cutoverTestHarness'
 
 describe('F-CUT-007 dashboard KPI cards', () => {

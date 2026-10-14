@@ -6,20 +6,20 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.ApprovalStatus;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalFact;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalInspectResult;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.InspectStatus;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanRules;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanSourcePort;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -61,53 +61,6 @@ class CutoverPlanQueryServiceTest {
         assertThat(view.content().path("steps").get(0).path("sectionCode").asText()).isEqualTo("OPERATION");
         assertThat(view.content().path("supportArrangements")).hasSize(1);
         assertThat(view.content().path("supportArrangements").get(0).path("roleCode").asText()).isEqualTo("CUSTOMER");
-    }
-
-    @Test
-    void readsLegacyPlanByImmutableLegacyIdentityWithNoActions() {
-        CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
-        CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
-        CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
-        CutoverProjectScopePort projectScope = mock(CutoverProjectScopePort.class);
-        CutoverTaskDO task = task(); task.setTaskOrigin("LEGACY_FORWARD");
-        task.setCurrentStage(null); task.setTaskStatus("LEGACY_UNKNOWN"); task.setOwnerUserId(null);
-        CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO(); plan.setId(81L); plan.setTenantId(1L);
-        plan.setCutoverTaskId(50L); plan.setRevisionNo(1); plan.setOriginCode("LEGACY_FORWARD");
-        plan.setStatusCode(null); plan.setCurrentMarker(null); plan.setLegacyPlanId(701L); plan.setLegacyStatusRaw(2);
-        plan.setVersion(0L); plan.setSourceSnapshot("""
-                {"sourceTable":"pms_cut_plan_retired","sourceId":701,"sourceTenantId":1,"sourceTaskId":50,
-                 "sourceVersion":3,"sourceStatusRaw":2,"mappingVersion":"FCUT004_LEGACY_V1",
-                 "code":"CUT-LEGACY-001","name":"旧割接方案","level":"A","remark":"历史备注"}
-                """);
-        when(taskMapper.selectById(50L)).thenReturn(task);
-        when(projectScope.inspect(8L, 70L, "ACTION_VIEW"))
-                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
-        when(planMapper.selectListLegacyByTask(any())).thenReturn(List.of(plan));
-        when(stepMapper.selectListByPlan(any())).thenReturn(List.of(step(1L, "OPERATION", 1, "旧割接步骤")));
-        CutoverPlanQueryService service = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper,
-                mock(CutoverSupportArrangementMapper.class), projectScope, mock(CutoverPlanSourcePort.class),
-                null, new CutoverPlanContentCodec());
-
-        var legacyStorage = mock(CutoverPlanStorage.class);
-        when(legacyStorage.sourceView(plan)).thenReturn(JsonUtils.parseTree("""
-                {"sourceTable":"pms_cut_plan_retired","sourceId":701,"sourceTenantId":1,"sourceTaskId":50,
-                 "sourceVersion":3,"sourceStatusRaw":2,"mappingVersion":"FCUT004_LEGACY_V1",
-                 "code":"CUT-LEGACY-001","name":"旧割接方案","level":"A","remark":"历史备注"}
-                """));
-        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", legacyStorage);
-        CutoverPlanView view = service.detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "query-test", true, true, true, true), 50L);
-
-        assertThat(view.taskStage()).isNull();
-        assertThat(view.originCode()).isEqualTo("LEGACY_FORWARD");
-        assertThat(view.status()).isEqualTo("LEGACY_READ_ONLY");
-        assertThat(view.legacyPlanId()).isEqualTo(701L);
-        assertThat(view.legacyStatusRaw()).isEqualTo(2);
-        assertThat(view.sourceSnapshot().path("sourceId").asLong()).isEqualTo(701L);
-        assertThat(view.sourceSnapshot().path("mappingVersion").asText()).isEqualTo("FCUT004_LEGACY_V1");
-        assertThat(view.content().path("editMode").asText()).isEqualTo("LEGACY_READ_ONLY");
-        assertThat(view.allowedActions()).isEmpty();
-        verify(planMapper, never()).selectCurrent(any());
-        verify(projectScope, never()).inspect(8L, 70L, "ACTION_EDIT");
     }
 
     @Test

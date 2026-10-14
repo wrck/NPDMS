@@ -11,10 +11,10 @@ import cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChec
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverExternalDataPort;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverMetadataScalar;
+import cn.iocoder.yudao.module.pms.cutover.service.support.CutoverCommandExecutor;
 import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -27,7 +27,7 @@ import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCheck
 @Service
 @RequiredArgsConstructor
 public class CutoverExternalChecklistService {
-    private final CutoverRuntimeChecklistApplicationService checklist;
+    private final CutoverChecklistApplicationService checklist;
     private final CutoverExternalBulletinStore storage;
     private final CutoverExternalDataDirectory directory;
     private final CutoverChecklistMapper checklists;
@@ -38,7 +38,8 @@ public class CutoverExternalChecklistService {
     private final CutoverChecklistExternalQueryParameterMapper parameters;
     private final CutoverAssessmentDeviceMapper assessmentDevices;
     private final CutoverExternalChecklistMapper mutations;
-    private final TransactionTemplate transactions;
+    @jakarta.annotation.Resource
+    private CutoverCommandExecutor commands;
 
     public record State(Long checklistId, Long checklistFactVersion, List<DeviceView> devices, List<ItemView> items) { }
     public record DeviceView(Long deviceId, String sn, String productModel, String currentSoftwareVersion, String targetSoftwareVersion) { }
@@ -52,12 +53,15 @@ public class CutoverExternalChecklistService {
                            boolean contextCurrent, List<Long> selectedQueryIds, List<QueryView> queries, List<BulletinView> bulletins) { }
     public record LoadResult(Long checklistId, Long checklistFactVersion, Long resultId, Integer resultVersion,
                              boolean selected, List<QueryView> queries) { }
+    public record Preparation(Long checklistItemId, List<Long> queryIds) {
+        public Preparation { queryIds = List.copyOf(queryIds); }
+    }
     private record Prepared(LoadExternalChecklistCommand command, CutoverChecklistItemDO item,
                             List<CutoverChecklistExternalMappingDO> returnMappings, List<Invocation> invocations) { }
     private record Invocation(CutoverChecklistExternalQueryDO query, CutoverExternalDataPort.Request request,
                               String preparationFailure) { }
     private record Outcome(CutoverChecklistExternalQueryDO query, List<CutoverExternalBulletinStore.RawBulletin> rows) { }
-    private record ParameterContext(CutoverRuntimeChecklistApplicationService.ExternalDraft draft,
+    private record ParameterContext(CutoverChecklistApplicationService.ExternalDraft draft,
                                     CutoverChecklistDeviceContextDO device, CutoverAssessmentDeviceDO source, String version) { }
 
     public State state(CutoverChecklistContext context, Long taskId) {
@@ -101,16 +105,24 @@ public class CutoverExternalChecklistService {
     }
 
     public Long saveVersions(SaveChecklistDeviceVersionsCommand command) {
-        return transactions.execute(status -> {
+        checklist.authorizeDraftAccess(command);
+        return commands.execute(CutoverCommandExecutor.Write.<Long>builder()
+                .tenantId(command.tenantId()).actorId(command.actorId()).operationCode("CUTOVER_DEVICE_VERSIONS_SAVE")
+                .scopeKey(String.valueOf(command.taskId())).aggregateType("CutoverChecklist").intent(command.intent())
+                .businessInput(command).responseType(Long.class).operation(() -> {
             checklist.lockExternal(command);
             storage.saveVersions(command);
             touch(command);
             return command.expectedChecklistVersion() + 1;
-        });
+        }).resourceKey(value -> String.valueOf(command.checklistId())).build());
     }
 
     public ChecklistItemCommandResult feedback(SaveExternalChecklistFeedbackCommand command) {
-        return transactions.execute(status -> {
+        checklist.authorizeDraftAccess(command);
+        return commands.execute(CutoverCommandExecutor.Write.<ChecklistItemCommandResult>builder()
+                .tenantId(command.tenantId()).actorId(command.actorId()).operationCode("CUTOVER_EXTERNAL_FEEDBACK_SAVE")
+                .scopeKey(String.valueOf(command.taskId())).aggregateType("CutoverChecklist").intent(command.intent())
+                .businessInput(command).responseType(ChecklistItemCommandResult.class).operation(() -> {
             var draft = checklist.lockExternal(command);
             var item = requireItem(draft, command.stableItemKey());
             var prior = results.selectCurrentForUpdate(new CutoverChecklistCurrentResultQuery(command.tenantId(), item.getId()));
@@ -121,13 +133,72 @@ public class CutoverExternalChecklistService {
             storage.insertFeedback(new CutoverExternalBulletinStore.FeedbackWrite(new CutoverExternalBulletinStore.Read(item, prior), row, command.feedback()));
             touch(command);
             return new ChecklistItemCommandResult(command.checklistId(), command.expectedChecklistVersion() + 1, item.getId(), item.getStableItemKey(), row.getResultVersion());
-        });
+        }).resourceKey(value -> String.valueOf(command.checklistId())).build());
     }
 
     public LoadResult load(LoadExternalChecklistCommand command) {
-        Prepared prepared = Objects.requireNonNull(transactions.execute(status -> prepare(command)));
-        List<Outcome> outcomes = prepared.invocations().stream().map(invocation -> invoke(new Call(prepared, invocation))).toList();
-        return transactions.execute(status -> finish(prepared, outcomes));
+        checklist.authorizeDraftAccess(command);
+        // 只在短事务中预留受控查询身份。外部查询始终在事务外执行，重试复用已落列的参数与 requestId。
+        Preparation reservation = commands.execute(CutoverCommandExecutor.Write.<Preparation>builder()
+                .tenantId(command.tenantId()).actorId(command.actorId()).operationCode("CUTOVER_EXTERNAL_QUERY_PREPARE")
+                .scopeKey(String.valueOf(command.taskId())).aggregateType("CutoverChecklist").intent(command.intent())
+                .businessInput(command).responseType(Preparation.class).operation(() -> {
+                    var prepared = prepare(command);
+                    return new Preparation(prepared.item().getId(), prepared.invocations().stream()
+                            .map(value -> value.query().getId()).toList());
+                }).resourceKey(value -> String.valueOf(command.checklistId())).build());
+        Prepared prepared = restore(new Restore(command, reservation));
+        boolean completed = prepared.invocations().stream().allMatch(value -> value.query().getLoadedChecklistResultId() != null);
+        require(completed || prepared.invocations().stream().noneMatch(value -> value.query().getLoadedChecklistResultId() != null),
+                STATE_CONFLICT, "外部查询完成事实不完整，不能重放部分结果");
+        List<Outcome> outcomes = completed ? List.of() : prepared.invocations().stream()
+                .map(invocation -> invoke(new Call(prepared, invocation))).toList();
+        return commands.execute(CutoverCommandExecutor.Write.<LoadResult>builder()
+                .tenantId(command.tenantId()).actorId(command.actorId()).operationCode("CUTOVER_EXTERNAL_QUERY_COMPLETE")
+                .scopeKey(String.valueOf(command.taskId())).aggregateType("CutoverChecklist").intent(command.intent())
+                .businessInput(command).responseType(LoadResult.class).operation(() -> {
+                    if (completed) throw new IllegalStateException("外部查询完成事实缺少对应幂等结果");
+                    return finish(prepared, outcomes);
+                }).resourceKey(value -> String.valueOf(command.checklistId())).build());
+    }
+
+    private record Restore(LoadExternalChecklistCommand command, Preparation reservation) { }
+    private Prepared restore(Restore restore) {
+        var command = restore.command();
+        var reservation = restore.reservation();
+        var item = items.selectById(reservation.checklistItemId());
+        require(item != null && Objects.equals(item.getTenantId(), command.tenantId())
+                        && Objects.equals(item.getChecklistId(), command.checklistId())
+                        && Objects.equals(item.getStableItemKey(), command.stableItemKey()),
+                STATE_CONFLICT, "外部查询预留采集项不一致");
+        List<CutoverChecklistExternalQueryDO> rows = queries.selectByIds(reservation.queryIds());
+        require(!rows.isEmpty() && rows.size() == reservation.queryIds().size()
+                        && rows.stream().allMatch(row -> Objects.equals(row.getTenantId(), command.tenantId())
+                        && Objects.equals(row.getChecklistItemId(), item.getId()) && Objects.equals(row.getQueryUserId(), command.actorId())),
+                STATE_CONFLICT, "外部查询预留身份不完整");
+        rows = rows.stream().sorted(Comparator.comparing(CutoverChecklistExternalQueryDO::getQueryNo)).toList();
+        Long definitionId = rows.getFirst().getItemDefinitionRevisionId();
+        require(rows.stream().allMatch(row -> Objects.equals(row.getItemDefinitionRevisionId(), definitionId)),
+                STATE_CONFLICT, "外部查询冻结定义不一致");
+        var returnMappings = mappings.selectListByParents(CutoverChecklistExternalMappingListQuery.builder()
+                .tenantId(command.tenantId()).itemDefinitionRevisionIds(Set.of(definitionId)).build()).stream()
+                .filter(row -> "RETURN".equals(row.getMappingDirectionCode())).toList();
+        var parameterRows = parameters.selectListByParents(CutoverChecklistExternalQueryParameterListQuery.builder()
+                .tenantId(command.tenantId()).externalQueryIds(Set.copyOf(reservation.queryIds())).build());
+        List<Invocation> invocations = new ArrayList<>();
+        for (var row : rows) {
+            Map<String, Object> values = new LinkedHashMap<>();
+            for (var parameter : parameterRows) {
+                if (!Objects.equals(parameter.getExternalQueryId(), row.getId())) continue;
+                var scalar = new CutoverMetadataScalar(parameter.getValueTypeCode(), parameter.getValueText(),
+                        parameter.getValueNumber(), parameter.getValueBoolean(), parameter.getValueDatetime());
+                values.put(parameter.getParameterName(), scalar.value());
+            }
+            invocations.add(new Invocation(row, new CutoverExternalDataPort.Request(command.tenantId(), command.actorId(),
+                    command.taskId(), item.getId(), definitionId, row.getDeviceId(), row.getRequestId(),
+                    Collections.unmodifiableMap(values)), row.getFinishTime() == null ? row.getFailureCode() : null));
+        }
+        return new Prepared(command, item, returnMappings, List.copyOf(invocations));
     }
 
     private Prepared prepare(LoadExternalChecklistCommand command) {
@@ -156,7 +227,7 @@ public class CutoverExternalChecklistService {
                     .interfaceCode(definition.getExternalInterfaceCode()).queryNo(next++).versionContextCode(versionContext)
                     .queriedSoftwareVersion(version).productModel(device.getProductModel()).requestId(UUID.randomUUID().toString())
                     .queryUserId(command.actorId()).startTime(now).createUserId(command.actorId()).createTime(now).build();
-            queries.insert(query);
+            List<CutoverChecklistExternalQueryParameterDO> parameterRows = new ArrayList<>();
             Map<String, Object> values = new LinkedHashMap<>();
             String failure = provider.isEmpty() ? "PROVIDER_UNAVAILABLE" : null;
             try {
@@ -169,7 +240,7 @@ public class CutoverExternalChecklistService {
                     var scalar = CutoverMetadataScalar.from(value);
                     require(Objects.equals(scalar.type(), mapping.getValueTypeCode()), INVALID_REQUEST, "外部参数类型与配置不一致");
                     if (values.putIfAbsent(mapping.getTargetKey(), value) != null) throw new IllegalArgumentException("参数重复");
-                    parameters.insert(CutoverChecklistExternalQueryParameterDO.builder().tenantId(command.tenantId())
+                    parameterRows.add(CutoverChecklistExternalQueryParameterDO.builder().tenantId(command.tenantId())
                             .externalQueryId(query.getId()).mappingId(mapping.getId()).parameterName(mapping.getTargetKey())
                             .valueTypeCode(scalar.type()).valueText(scalar.text()).valueNumber(scalar.number())
                             .valueBoolean(scalar.bool()).valueDatetime(scalar.datetime()).createUserId(command.actorId()).createTime(now).build());
@@ -179,6 +250,9 @@ public class CutoverExternalChecklistService {
                         INVALID_REQUEST, "公告查询参数必须使用本项查询软件版本");
                 if (provider.isPresent()) validateParameters(provider.get().definition(), values);
             } catch (IllegalArgumentException | CutoverChecklistException invalid) { failure = "MAPPING_INVALID"; }
+            query.setFailureCode(failure);
+            queries.insert(query);
+            parameterRows.forEach(parameters::insert);
             invocations.add(new Invocation(query, new CutoverExternalDataPort.Request(command.tenantId(), command.actorId(), command.taskId(),
                     item.getId(), definition.getId(), device.getDeviceId(), query.getRequestId(), Collections.unmodifiableMap(values)), failure));
         }
@@ -301,7 +375,7 @@ public class CutoverExternalChecklistService {
         require(checklists.touchDraftIfMatch(new CutoverChecklistDraftTouchUpdate(command.tenantId(), command.checklistId(), command.expectedChecklistVersion())) == 1,
                 VERSION_CONFLICT, "清单版本已变化");
     }
-    private static CutoverChecklistItemDO requireItem(CutoverRuntimeChecklistApplicationService.ExternalDraft draft, String key) {
+    private static CutoverChecklistItemDO requireItem(CutoverChecklistApplicationService.ExternalDraft draft, String key) {
         return draft.items().stream().filter(item -> Objects.equals(item.getStableItemKey(), key) && Boolean.TRUE.equals(item.getApplicableFlag()))
                 .findFirst().orElseThrow(() -> new CutoverChecklistException(NOT_FOUND, "适用的清单项不存在"));
     }

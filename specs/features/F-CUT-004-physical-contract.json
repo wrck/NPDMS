@@ -206,5 +206,19 @@
   },
   "machineContractGate": "PASS / GO@87b0b066",
   "featureReadyGate": "REVIEW_REQUIRED",
-  "task4ExecutableAmendmentGate": "PASS / GO@94157db2"
+  "task4ExecutableAmendmentGate": "PASS / GO@94157db2",
+  "legacyRetirement20261014": {
+    "authorization": "2026-10-14 approved CUT consolidation; legacy model history is deleted without import or read-only compatibility",
+    "supersedes": [
+      "legacyMigration",
+      "jsonContracts.legacy_source_snapshot",
+      "tables.cut_plan_revision legacy_* columns/index and LEGACY_FORWARD union",
+      "lifecycles.legacyProjection",
+      "tables.cut_step.legacyRule"
+    ],
+    "historicalContractStatus": "listed older definitions describe the original migration baseline only and no longer authorize a production path or new legacy data",
+    "currentModel": "NEW_PLATFORM only; existing current configuration/plan/approval/history and source evidence remain immutable",
+    "databaseStatus": "APPLIED_LOCAL_NPDMS_DOMAIN_TEST_20261014",
+    "preview": "docs/generated/2026-10-14-cutover-consolidation-preview.sql"
+  }
 }

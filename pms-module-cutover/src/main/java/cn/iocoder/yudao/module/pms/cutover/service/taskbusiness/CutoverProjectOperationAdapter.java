@@ -3,10 +3,10 @@ package cn.iocoder.yudao.module.pms.cutover.service.taskbusiness;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.api.task.CutoverRuntimeTaskIntakeApiImpl;
+import cn.iocoder.yudao.module.pms.cutover.api.task.CutoverTaskIntakeApiImpl;
 import cn.iocoder.yudao.module.pms.cutover.api.task.CutoverTaskIntakeApi;
 import cn.iocoder.yudao.module.pms.cutover.api.task.dto.CutoverTaskIntakeCommand;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.*;
@@ -36,7 +36,7 @@ public class CutoverProjectOperationAdapter implements ProjectBusinessOperationP
     @Override public String objectType() { return "CUTOVER_TASK"; }
     @Override public List<ProjectBusinessOperationDescriptor> operations() {
         return List.of(new ProjectBusinessOperationDescriptor(CREATE, 1, ownerContext(), objectType(), "发起项目割接", "CREATE",
-                Set.of("PRE", "POST"), CutoverRuntimeTaskIntakeApiImpl.class, "create"));
+                Set.of("PRE", "POST"), CutoverTaskIntakeApiImpl.class, "create"));
     }
     @Override public Map<String, ProjectOperationControlScope> controlScopes() { return Map.of(CREATE, ProjectOperationControlScope.PROJECT_ENTRY_ONLY); }
     @Override public Map<String, String> permissionCodes() { return Map.of(CREATE, "pms:cutover-task:create"); }

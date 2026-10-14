@@ -48,7 +48,7 @@ const api = vi.hoisted(() => ({
   submitCutoverClosure: vi.fn()
 }))
 
-vi.mock('@/api/pms/cutover/workbench', () => api)
+vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => ({
   getArtifact: vi.fn(),
   getVersions: vi.fn(),
@@ -78,9 +78,13 @@ const controls = {
 }
 
 describe('CUT dashboard production page integration', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    api.getCutoverDashboardKpis.mockReset().mockResolvedValue(kpis('0', '0', '0', '0', 1788310800000))
+    api.getCutoverTaskPage.mockReset()
+  })
 
-  it('loads the main task list first and queries KPI facts only after explicit expansion', async () => {
+  it('loads both workbench lists and KPI facts, then refreshes them together', async () => {
     api.getCutoverTaskPage.mockResolvedValue({ list: [], total: 0, pageNo: 1, pageSize: 20 })
     api.getCutoverDashboardKpis
       .mockResolvedValueOnce(kpis('3', '1', '1', '2', 1788310800000))
@@ -89,26 +93,24 @@ describe('CUT dashboard production page integration', () => {
     const mounted = mount(CutoverTaskWorkbench, {}, controls)
     await flush()
 
-    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(1)
-    expect(api.getCutoverDashboardKpis).not.toHaveBeenCalled()
-    const toggle = findByTestId(mounted.root, 'toggle-kpis')
-    await (toggle!.props?.onClick as () => Promise<void>)()
-    await flush()
+    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(2)
+    expect(api.getCutoverTaskPage).toHaveBeenCalledWith(expect.objectContaining({ listKind: 'TODO' }))
+    expect(api.getCutoverTaskPage).toHaveBeenCalledWith(expect.objectContaining({ listKind: 'SELF_CREATED' }))
     expect(api.getCutoverDashboardKpis).toHaveBeenCalledTimes(1)
-    expect(textOf(mounted.root)).toContain('待办3')
-    expect(textOf(mounted.root)).toContain('已归档1')
-    expect(textOf(mounted.root)).toContain('审批中1')
-    expect(textOf(mounted.root)).toContain('驳回待修改2')
+    expect(textOf(mounted.root)).toContain('3待办割接任务')
+    expect(textOf(mounted.root)).toContain('1已完成割接')
+    expect(textOf(mounted.root)).toContain('1审批中')
+    expect(textOf(mounted.root)).toContain('2驳回待修改')
 
     const refresh = findByTestId(mounted.root, 'refresh-workbench')
     expect(refresh).toBeDefined()
     await (refresh!.props?.onClick as () => Promise<void>)()
     await flush()
 
-    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(2)
+    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(4)
     expect(api.getCutoverDashboardKpis).toHaveBeenCalledTimes(2)
-    expect(textOf(mounted.root)).toContain('待办0')
-    expect(textOf(mounted.root)).toContain('已归档4')
+    expect(textOf(mounted.root)).toContain('0待办割接任务')
+    expect(textOf(mounted.root)).toContain('4已完成割接')
     mounted.app.unmount()
   })
 
@@ -118,17 +120,13 @@ describe('CUT dashboard production page integration', () => {
     api.getCutoverDashboardKpis.mockImplementation(() => new Promise((_resolve, reject) => { rejectKpi = reject }))
     const mounted = mount(CutoverTaskWorkbench, {}, controls)
     await flush()
-    const toggle = findByTestId(mounted.root, 'toggle-kpis')
-    const pending = (toggle!.props?.onClick as () => Promise<void>)()
-    await flush()
     const refresh = findByTestId(mounted.root, 'refresh-workbench')
     await (refresh!.props?.onClick as () => Promise<void>)()
     await flush()
-    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(2)
+    expect(api.getCutoverTaskPage).toHaveBeenCalledTimes(4)
     expect(api.getCutoverDashboardKpis).toHaveBeenCalledTimes(1)
     expect(findByTestId(mounted.root, 'refresh-workbench')?.props?.loading).toBe(false)
     rejectKpi(new Error('KPI provider unavailable'))
-    await pending
     await flush()
     expect(textOf(mounted.root)).toContain('割接任务概览加载失败')
     mounted.app.unmount()
@@ -138,9 +136,8 @@ describe('CUT dashboard production page integration', () => {
     api.getCutoverTaskPage.mockRejectedValueOnce(new Error('endpoint not assembled'))
     const mounted = mount(CutoverTaskWorkbench, {}, controls)
     await flush()
-    expect(textOf(mounted.root)).toContain('任务列表未成功刷新')
-    expect(findByTestId(mounted.root, 'create-cutover-task')?.props?.disabled).toBe(true)
-    expect(api.getCutoverDashboardKpis).not.toHaveBeenCalled()
+    expect(textOf(mounted.root)).toContain('割接任务加载失败')
+    expect(api.getCutoverDashboardKpis).toHaveBeenCalledTimes(1)
     mounted.app.unmount()
   })
 })

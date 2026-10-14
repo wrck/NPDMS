@@ -1,8 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
 import org.apache.poi.xwpf.extractor.XWPFWordExtractor;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.junit.jupiter.api.Test;
@@ -26,14 +26,14 @@ class CutoverPlanDocumentRendererTest {
         var operation = new CutoverPlanStepDO(); operation.setSectionCode("OPERATION"); operation.setStepNo(1); operation.setContent("切换业务流量\n复核关键链路");
         var preparation = new CutoverPlanStepDO(); preparation.setSectionCode("PRE_OPERATION"); preparation.setStepNo(1); preparation.setContent("备份配置");
         var rollback = new CutoverPlanStepDO(); rollback.setSectionCode("ROLLBACK"); rollback.setStepNo(1); rollback.setContent("恢复光纤连接");
-        var task = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO(); task.setTaskName("表格方案");
-        var plan = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO();
+        var task = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO(); task.setTaskName("表格方案");
+        var plan = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO();
         plan.setRevisionNo(1); plan.setGradeCode("C");
         for (var details : root.path("stepDetails")) {
             var matching = List.of(operation, rollback, preparation).stream().filter(row ->
                     row.getSectionCode().equals(details.path("sectionCode").asText()) && row.getStepNo() == details.path("stepNo").asInt()).findFirst().orElseThrow();
-            cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverRuntimePlanContentCodec.applyDetails(matching,
-                    JsonUtils.parseObject(details.get("details").toString(), cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverRuntimePlanContentCodec.PlanStepDetails.class));
+            cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec.applyDetails(matching,
+                    JsonUtils.parseObject(details.get("details").toString(), cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec.PlanStepDetails.class));
         }
         ((tools.jackson.databind.node.ObjectNode) root).remove("stepDetails");
         byte[] bytes = CutoverPlanDocumentRenderer.render(CutoverPlanDocumentRenderer.RenderContext.builder().task(task).plan(plan)
@@ -57,9 +57,9 @@ class CutoverPlanDocumentRendererTest {
         var step = new CutoverPlanStepDO(); step.setSectionCode("ROLLBACK"); step.setStepNo(1); step.setContent("恢复原配置");
         var support = new CutoverSupportArrangementDO(); support.setRoleCode("DP_SECOND_LINE"); support.setPersonName("张工程师");
         support.setPhone("010-12345678"); support.setDutyDescription("远程保障"); support.setArrivalTime(LocalDateTime.of(2026, 10, 12, 18, 30));
-        var task = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO();
+        var task = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO();
         task.setTaskName("现场割接");
-        var plan = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO();
+        var plan = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO();
         plan.setRevisionNo(3); plan.setGradeCode("B");
         byte[] bytes = CutoverPlanDocumentRenderer.render(CutoverPlanDocumentRenderer.RenderContext.builder().task(task).plan(plan)
                 .content((tools.jackson.databind.node.ObjectNode) root).steps(List.of(step)).supports(List.of(support)).fileName(ignored -> "原网络拓扑.png").build());

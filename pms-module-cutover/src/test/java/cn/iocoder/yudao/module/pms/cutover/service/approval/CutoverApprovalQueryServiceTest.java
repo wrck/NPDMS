@@ -3,10 +3,10 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalRoleCandidatePort;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.ApprovalTodoPageRow;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
@@ -30,7 +30,7 @@ class CutoverApprovalQueryServiceTest {
         CutoverApprovalInstanceDO root = root("APPROVED"); root.setDecisionAt(LocalDateTime.now());
         when(f.instances.selectCurrentByTask(any())).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
-        when(f.nodes.selectList(any())).thenReturn(List.of());
+        when(f.nodes.all(any())).thenReturn(List.of());
         when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                 .tenantId(1L)
                 .projectId(20L)
@@ -50,7 +50,7 @@ class CutoverApprovalQueryServiceTest {
         CutoverApprovalInstanceDO root = root("PENDING");
         when(f.instances.selectCurrentByTask(any())).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
-        when(f.nodes.selectList(any())).thenReturn(List.of(node()));
+        when(f.nodes.all(any())).thenReturn(List.of(node()));
 
         var commandContext = f.service.reassignmentCommandContext(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 99L, "query-test", false, false, true), 10L);
         var view = commandContext.view();
@@ -105,12 +105,12 @@ class CutoverApprovalQueryServiceTest {
         cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.apply(node,
                 cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.personalRole(
                 cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.PersonalRole.builder()
-                .role(new CutoverApprovalRoleCandidatePort.RoleReference(1L, 2L, "CUT_SECOND_LINE_APPROVER"))
+                .role(new CutoverApprovalRoleCandidatePort.RoleReference(1L, 2L, "probSupporter"))
                 .scope(scope(22L, "ACTION_VIEW")).build()));
         when(f.candidates.inspectActor(any())).thenAnswer(invocation -> {
             CutoverApprovalRoleCandidatePort.ActorQuery query = invocation.getArgument(0);
             return List.of(new CutoverApprovalRoleCandidatePort.ActorMembership(
-                    new CutoverApprovalRoleCandidatePort.RoleReference(query.tenantId(), 2L, "CUT_SECOND_LINE_APPROVER"),
+                    new CutoverApprovalRoleCandidatePort.RoleReference(query.tenantId(), 2L, "probSupporter"),
                     new CutoverApprovalRoleCandidatePort.Candidate(query.actorId(), 2L, 1L, 1L)));
         });
         when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
@@ -150,8 +150,8 @@ class CutoverApprovalQueryServiceTest {
         next.setOriginalApproverUserId(22L); next.setCurrentApproverUserId(22L);
         when(f.instances.selectById(100L)).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
-        when(f.nodes.selectList(any())).thenReturn(List.of(decided, next));
-        when(f.reviews.selectList(any())).thenReturn(List.of());
+        when(f.nodes.all(any())).thenReturn(List.of(decided, next));
+        when(f.reviews.byInstance(any())).thenReturn(List.of());
 
         var response = f.service.decisionResponse(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 11L, "query-test", true, true, false), new cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult(1L, 100L, 1L, 10L, 5L, 70L, 1, "PENDING", null, 1, 2, "P5", "APPROVING", null));
 
@@ -173,8 +173,8 @@ class CutoverApprovalQueryServiceTest {
                 LocalDateTime.of(2026, 9, 2, 18, 0)));
         when(f.instances.selectCurrentByTask(any())).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
-        when(f.nodes.selectList(any())).thenReturn(List.of());
-        when(f.reviews.selectList(any())).thenReturn(List.of());
+        when(f.nodes.all(any())).thenReturn(List.of());
+        when(f.reviews.byInstance(any())).thenReturn(List.of());
         when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                 .tenantId(1L)
                 .projectId(20L)
@@ -197,8 +197,8 @@ class CutoverApprovalQueryServiceTest {
         CutoverApprovalInstanceDO root = root("PENDING");
         when(f.instances.selectCurrentByTask(any())).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
-        when(f.nodes.selectList(any())).thenReturn(List.of());
-        when(f.reviews.selectList(any())).thenReturn(List.of());
+        when(f.nodes.all(any())).thenReturn(List.of());
+        when(f.reviews.byInstance(any())).thenReturn(List.of());
         when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                 .tenantId(1L)
                 .projectId(20L)

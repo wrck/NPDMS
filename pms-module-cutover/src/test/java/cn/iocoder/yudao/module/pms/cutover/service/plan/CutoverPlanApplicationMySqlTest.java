@@ -5,12 +5,12 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
 import cn.iocoder.yudao.framework.mybatis.config.YudaoMybatisAutoConfiguration;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.CutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.ControlledCutoverApprovalFactApi;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
@@ -30,8 +30,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.result.InvalidateCutover
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.PatchApprovedContactResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.result.SubmitCutoverPlanResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverTaskRules;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverTaskRules;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformCommandExecutionApiImpl;
 import cn.iocoder.yudao.module.pms.platform.service.command.PlatformTransactionalOutboxWriter;
@@ -359,7 +359,7 @@ class CutoverPlanApplicationMySqlTest {
 
         PatchApprovedContactResult patched = service.patchApprovedContact(new PatchApprovedContactCommand(
                 tenantId, 8L, taskId, arrangementId, submitted.planVersion(), "李工", "13900000000",
-                arrival, "patch-approved-contact", "corr-patch-approved-contact"));
+                arrival, "patch-approved-contact", "corr-patch-approved-contact"), new cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.Change("测试联系人变更", null));
 
         assertEquals(submitted.planVersion() + 1, patched.planVersion());
         assertEquals("APPROVED_CONTACT_CHANGED", patched.reasonCode());
@@ -502,8 +502,8 @@ class CutoverPlanApplicationMySqlTest {
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
-            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.task",
+            "cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
@@ -523,8 +523,19 @@ class CutoverPlanApplicationMySqlTest {
                                                     ControlledOwners owners,
                                                     ControlledCutoverApprovalFactApi approval,
                                                     PlatformCommandExecutionApi platform, Clock clock) {
-            return new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper, supportMapper,
-                    owners, owners, owners, new CutoverPlanContentCodec(), platform, approval, historyMapper, clock);
+            return new CutoverPlanApplicationService(taskMapper,
+                planMapper,
+                stepMapper,
+                supportMapper,
+                owners,
+                owners,
+                owners,
+                new CutoverPlanContentCodec(),
+                platform,
+                approval,
+                historyMapper,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
         }
     }
 }

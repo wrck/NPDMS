@@ -5,36 +5,35 @@ import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDef
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCustomResultStore;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistResultStore;
 import jakarta.annotation.Resource;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskSnapshotStore;
+import cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskSnapshotStore;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalStartCommand;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanStepDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistResultsQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanStepMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverSupportArrangementMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanChildrenQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query.CutoverPlanRevisionQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverAssessmentRowQuery;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverTaskRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanChildrenQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanRevisionQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverAssessmentRowQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskRowQuery;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.*;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.domain.CutoverAssessmentAnswers;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectContextPort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.domain.CutoverAssessmentAnswers;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -124,7 +123,7 @@ public class CutoverApprovalSourceAssembler {
 
         CutoverProjectContextPort.ProjectContextFact project = CutoverTaskSnapshotStore.project(task);
         CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
-        String serviceLevel = assessment.getServiceLevelCode() == null ? "" : assessment.getServiceLevelCode();
+        String serviceLevel = assessment.getServiceLevelCode();
         ApprovalSourceSnapshot snapshot = new ApprovalSourceSnapshot(command.sourceSnapshotVersion(), task.getId(),
                 task.getVersion(), command.checklistId(), command.checklistVersion(),
                 new ProjectApprovalSnapshot(project.projectId(), project.projectVersion(), project.projectCode(),
@@ -165,13 +164,10 @@ public class CutoverApprovalSourceAssembler {
             content.put("ownershipConfirmed", Boolean.TRUE.equals(plan.getOwnershipConfirmed()));
             return content;
         }
-        ObjectNode content = planStorage.content(plan);
         CutoverPlanChildrenQuery query = new CutoverPlanChildrenQuery(tenantId, plan.getId());
-        var steps = content.putArray("steps");
-        for (CutoverPlanStepDO row : stepMapper.selectListByPlanForUpdate(query)) {
-            steps.addObject().put("sectionCode", row.getSectionCode()).put("stepNo", row.getStepNo())
-                    .put("content", row.getContent());
-        }
+        ObjectNode content = new cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec()
+                .assembleStored(new cn.iocoder.yudao.module.pms.cutover.service.plan.domain.CutoverPlanContentCodec.StoredPlanContent(
+                        planStorage.content(plan), stepMapper.selectListByPlanForUpdate(query)));
         if ("ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) {
             var supports = content.putArray("supportArrangements");
             for (CutoverSupportArrangementDO row : supportMapper.selectListByPlanForUpdate(query)) {

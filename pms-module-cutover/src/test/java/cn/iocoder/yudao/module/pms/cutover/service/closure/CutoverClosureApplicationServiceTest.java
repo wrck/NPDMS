@@ -4,17 +4,17 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureAttachmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDeviceScopeDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureAttachmentMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverClosureMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanRevisionMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.HandleClosureCollectionCallbackCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.LinkClosureManualResultCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.RequestClosureCollectionCommand;
@@ -69,6 +69,7 @@ class CutoverClosureApplicationServiceTest {
         List<CutoverClosureAttachmentDO> attachments = new ArrayList<>();
 
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
+        when(taskMapper.selectById(100L)).thenReturn(task);
         when(closureMapper.selectByTaskForUpdate(any())).thenReturn(closure);
         when(deviceScopeMapper.selectActiveByTaskForUpdate(any())).thenReturn(List.of(device));
         when(evidenceMapper.selectListByClosureForUpdate(any())).thenAnswer(ignored -> List.copyOf(evidence));
@@ -87,14 +88,25 @@ class CutoverClosureApplicationServiceTest {
 
         Clock clock = Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC);
         CutoverClosureControlledPorts.Collections collections = new CutoverClosureControlledPorts.Collections(clock);
-        CutoverClosureApplicationService service = new CutoverClosureApplicationService(taskMapper, approvalMapper,
-                planMapper, closureMapper, attachmentMapper, evidenceMapper, deviceScopeMapper, stageHistoryMapper,
+        var executions = new CutoverClosureTestExecutions(taskMapper, closureMapper, evidenceMapper,
+                new CutoverClosureControlledPorts.ProjectScopes(10L, 5L), new DirectPlatform(), collections);
+        CutoverClosureApplicationService service = new CutoverClosureApplicationService(taskMapper,
+                approvalMapper,
+                planMapper,
+                closureMapper,
+                attachmentMapper,
+                evidenceMapper,
+                deviceScopeMapper,
+                stageHistoryMapper,
                 new CutoverClosureControlledPorts.ProjectScopes(10L, 5L),
-                new CutoverClosureControlledPorts.Files(), collections, new DirectPlatform(), clock);
+                new CutoverClosureControlledPorts.Files(),
+                new DirectPlatform(),
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         var storage = mock(CutoverClosureStorage.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
 
-        service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7L, 400L, 0L,
+        executions.link(new RequestClosureCollectionCommand(1L, 9L, 100L, 7L, 400L, 0L,
                 11L, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
                 "post-check", 2L, "collect-ok", "corr-collect-ok"));
         String acceptedTaskId = evidence.getFirst().getCollectionTaskId();
@@ -106,7 +118,7 @@ class CutoverClosureApplicationServiceTest {
                 "result-ref", "result-v1", LocalDateTime.of(2026, 9, 2, 8, 1), "corr-callback-replay"));
 
         collections.nextDispatch(DispatchOutcome.FAILED, "OWNER_REJECTED");
-        service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7L, 400L, 2L,
+        executions.link(new RequestClosureCollectionCommand(1L, 9L, 100L, 7L, 400L, 2L,
                 11L, CollectionStage.TEST, new SavedCredential(71L, 3L),
                 "test-check", 2L, "collect-failed", "corr-collect-failed"));
         String failedTaskId = evidence.get(2).getCollectionTaskId();
@@ -121,7 +133,7 @@ class CutoverClosureApplicationServiceTest {
 
         assertThat(closure.getVersion()).isEqualTo(4);
         assertThat(evidence).extracting(CutoverCollectionEvidenceDO::getEvidenceTypeCode)
-                .containsExactly("DISPATCH_ACCEPTED", "CALLBACK_SUCCEEDED", "DISPATCH_FAILED", "MANUAL_UPLOAD");
+                .containsExactly("DISPATCH_ACCEPTED", "CALLBACK_SUCCEEDED", "DISPATCH_ACCEPTED", "CALLBACK_FAILED", "MANUAL_UPLOAD");
         assertThat(evidence.getLast().getOriginalFailedCollectionTaskId()).isEqualTo(failedTaskId);
         assertThat(attachments).extracting(CutoverClosureAttachmentDO::getPurposeCode)
                 .containsExactly("MANUAL_COLLECTION_RESULT");
@@ -178,12 +190,19 @@ class CutoverClosureApplicationServiceTest {
         });
 
         DirectPlatform platform = new DirectPlatform();
-        CutoverClosureApplicationService service = new CutoverClosureApplicationService(taskMapper, approvalMapper,
-                planMapper, closureMapper, attachmentMapper, evidenceMapper, deviceScopeMapper, stageHistoryMapper,
+        CutoverClosureApplicationService service = new CutoverClosureApplicationService(taskMapper,
+                approvalMapper,
+                planMapper,
+                closureMapper,
+                attachmentMapper,
+                evidenceMapper,
+                deviceScopeMapper,
+                stageHistoryMapper,
                 new CutoverClosureControlledPorts.ProjectScopes(10L, 5L),
-                new CutoverClosureControlledPorts.Files(), new CutoverClosureControlledPorts.Collections(
-                Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC)), platform,
-                Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC));
+                new CutoverClosureControlledPorts.Files(),
+                platform,
+                Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         var storage = mock(CutoverClosureStorage.class);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
 

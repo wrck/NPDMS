@@ -1,6 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.api.approval;
 
-import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverApprovalNodesQuery;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
@@ -31,10 +31,7 @@ public class CutoverApprovalFactTransactionExecutor {
 
     @Transactional(readOnly = true)
     public CutoverApprovalInspectResult inspect(CutoverApprovalFactQuery query) {
-        CutoverApprovalInstanceDO row = instanceMapper.selectOne(new LambdaQueryWrapperX<CutoverApprovalInstanceDO>()
-                .eq(CutoverApprovalInstanceDO::getTenantId, query.tenantId())
-                .eq(CutoverApprovalInstanceDO::getTaskId, query.taskId())
-                .eq(CutoverApprovalInstanceDO::getPlanRevisionId, query.planRevisionId()));
+        CutoverApprovalInstanceDO row = instanceMapper.byPlan(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverApprovalPlanQuery(query.tenantId(), query.taskId(), query.planRevisionId()));
         return row == null ? new CutoverApprovalInspectResult(InspectStatus.NOT_FOUND, null)
                 : new CutoverApprovalInspectResult(InspectStatus.FOUND, CutoverApprovalApplicationService.fact(row));
     }

@@ -135,26 +135,27 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
-import * as CutoverConfigApi from '@/api/pms/cutover/cutover-config'
-import request from '@/config/axios'
+import * as CutoverConfigApi from '@/api/pms/cutover/configuration'
+import { createCutoverWriteCoordinator } from '../shared/cutoverTaskInteraction'
 import type {
   CutoverConfiguration,
   CutoverConfigStatus,
   CutoverValidationError
-} from '@/api/pms/cutover/cutover-config'
+} from '@/api/pms/cutover/configuration'
 import CutoverConfigurationEditor from './components/CutoverConfigurationEditor.vue'
 
 defineOptions({ name: 'PmsCutoverConfiguration' })
 
 const message = useMessage()
+const writes = createCutoverWriteCoordinator()
 const isSmallScreen = useMediaQuery('(max-width: 768px)')
 const loading = ref(false)
 const initializingWorkflow = ref(false)
 const initializeWorkflow = async () => {
   initializingWorkflow.value = true
   try {
-    await request.post({ url: '/api/v1/pms/cutover-config/approval-workflow/actions/initialize' })
-    message.success('割接分级审批流程已就绪')
+    const result = await writes.run('workflow-initialize', CutoverConfigApi.initializeApprovalWorkflow, async () => {})
+    if (result.writeCalled) message.success('割接分级审批流程已就绪')
   } finally { initializingWorkflow.value = false }
 }
 const saving = ref(false)
@@ -260,11 +261,13 @@ const reload = () => {
   load()
 }
 const openCreate = () => {
+  writes.reset()
   form.value = newDraft()
   validationErrors.value = []
   editorVisible.value = true
 }
 const openDetail = async (row: CutoverConfiguration) => {
+  writes.reset()
   form.value = await CutoverConfigApi.getDetail(row.id!)
   validationErrors.value = form.value.validationErrors || []
   editorVisible.value = true
@@ -273,16 +276,19 @@ const save = async () => {
   await editorRef.value?.validate()
   saving.value = true
   try {
-    if (form.value.id) {
-      await CutoverConfigApi.updateDraft(form.value.id, form.value.version!, form.value)
-      message.success('草稿已保存')
-    } else {
-      const id = await CutoverConfigApi.createDraft(form.value)
-      form.value = await CutoverConfigApi.getDetail(id)
-      message.success('草稿已创建')
-    }
-    validationErrors.value = []
-    await load()
+    const data = JSON.parse(JSON.stringify(form.value)) as CutoverConfiguration
+    let savedId = data.id
+    const result = await writes.run(`save:${JSON.stringify(data)}`, async (idempotencyKey) => {
+      if (data.id) return CutoverConfigApi.updateDraft({ revisionId: data.id, expectedVersion: data.version!, data, idempotencyKey })
+      savedId = await CutoverConfigApi.createDraft({ data, idempotencyKey })
+      return savedId
+    }, async () => {
+      form.value = await CutoverConfigApi.getDetail(savedId!)
+      validationErrors.value = []
+      await load()
+    })
+    if (result.writeCalled) message.success(data.id ? '草稿已保存' : '草稿已创建')
+    if (!result.refreshSucceeded) message.warning('写入已完成，页面刷新失败；再次操作将先刷新。')
   } finally {
     saving.value = false
   }
@@ -301,23 +307,33 @@ const prevalidate = async (row: CutoverConfiguration) => {
 }
 const publish = async (row: CutoverConfiguration) => {
   await message.confirm(`确认发布 ${row.configurationCode} 修订${row.revisionNo}？`)
-  await CutoverConfigApi.publishRevision(row.id!, row.version!)
-  message.success('配置已发布')
-  await load()
+  const result = await writes.run(`publish:${row.id}:${row.version}`,
+    idempotencyKey => CutoverConfigApi.publishRevision({ revisionId: row.id!, expectedVersion: row.version!, idempotencyKey }), load)
+  if (result.writeCalled) message.success('配置已发布')
+  if (!result.refreshSucceeded) message.warning('发布已完成，列表刷新失败；再次操作将先刷新。')
 }
 const copy = async (row: CutoverConfiguration) => {
-  const id = await CutoverConfigApi.copyRevision(row.id!, row.version!)
-  message.success('已复制为新草稿')
-  await load()
-  await openDetail({ id } as CutoverConfiguration)
+  let copiedId: CutoverConfiguration['id']
+  const result = await writes.run(`copy:${row.id}:${row.version}`, async idempotencyKey => {
+    copiedId = await CutoverConfigApi.copyRevision({ revisionId: row.id!, expectedVersion: row.version!, idempotencyKey })
+    return copiedId
+  }, async () => {
+    await load()
+    form.value = await CutoverConfigApi.getDetail(copiedId!)
+    validationErrors.value = form.value.validationErrors || []
+    editorVisible.value = true
+  })
+  if (result.writeCalled) message.success('已复制为新草稿')
+  if (!result.refreshSucceeded) message.warning('复制已完成，页面刷新失败；再次操作将先刷新。')
 }
 const disable = async (row: CutoverConfiguration) => {
   await message.confirm(
     `确认停用 ${row.configurationCode} 修订${row.revisionNo}？停用后仅保留历史读取。`
   )
-  await CutoverConfigApi.disableRevision(row.id!, row.version!)
-  message.success('配置已停用')
-  await load()
+  const result = await writes.run(`disable:${row.id}:${row.version}`,
+    idempotencyKey => CutoverConfigApi.disableRevision({ revisionId: row.id!, expectedVersion: row.version!, idempotencyKey }), load)
+  if (result.writeCalled) message.success('配置已停用')
+  if (!result.refreshSucceeded) message.warning('停用已完成，列表刷新失败；再次操作将先刷新。')
 }
 
 onMounted(load)

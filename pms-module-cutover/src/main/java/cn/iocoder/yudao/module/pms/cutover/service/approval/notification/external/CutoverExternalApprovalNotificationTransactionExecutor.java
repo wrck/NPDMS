@@ -3,13 +3,13 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval.notification.extern
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ExternalApprovalNotificationClaimQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ExternalApprovalNotificationDeliveryUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.notification.CutoverApprovalNotificationService;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -139,7 +139,7 @@ public class CutoverExternalApprovalNotificationTransactionExecutor {
         variables.put("nodeName", nodeName(node.getNodeCode()));
         return new ExternalApprovalNotificationRequest(tenantId, row.getRecipientUserId(), row.getChannelCode(),
                 row.getTemplateCode(), row.getDeliveryKey(), task.getId(), root.getId(), node.getNodeNo(),
-                "/pms/cutover/cutover-task?taskId=" + task.getId(), variables, row.getCorrelationId());
+                "/pms/cutover/approvals/" + root.getId(), variables, row.getCorrelationId());
     }
 
     private void retry(CutoverApprovalNotificationDO row, LocalDateTime dueAt, String errorCode) {

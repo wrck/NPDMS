@@ -43,7 +43,9 @@ public final class CutoverChecklistMatcher {
                 });
         List<MatchedItem> ready = new ArrayList<>();
         List<Conflict> conflicts = new ArrayList<>();
-        matchesByKey.forEach((stableItemKey, matches) -> {
+        matchesByKey.forEach((stableItemKey, allMatches) -> {
+            Integer winningPriority = allMatches.getFirst().rule().priority();
+            List<RuleMatch> matches = allMatches.stream().filter(m -> java.util.Objects.equals(winningPriority, m.rule().priority())).toList();
             Map<String, List<RuleMatch>> byDefinition = matches.stream().collect(java.util.stream.Collectors.groupingBy(
                     match -> match.item().id() + ":" + match.item().itemDefinitionVersion(),
                     LinkedHashMap::new, java.util.stream.Collectors.toList()));

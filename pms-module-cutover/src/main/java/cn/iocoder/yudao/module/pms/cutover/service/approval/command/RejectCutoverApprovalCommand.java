@@ -2,7 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval.command;
 
 import java.util.List;
 
-public record RejectCutoverApprovalCommand(Long tenantId, Long taskId, Long expectedTaskVersion,
+public record RejectCutoverApprovalCommand(Long tenantId, Long taskId, Long approvalInstanceId, Long expectedTaskVersion,
                                            Long expectedApprovalVersion,
                                            List<ReviewItemInput> reviewItems,
                                            AssessmentReviewInput assessmentReview, String feedback,

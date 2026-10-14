@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanStepMapper">
+    <resultMap id="structuredCutoverPlanStepDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanStepDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="plan_revision_id" property="planRevisionId"/>
+        <result column="section_code" property="sectionCode"/>
+        <result column="step_no" property="stepNo"/>
+        <result column="content" property="content"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="step_name" property="stepName"/>
+        <result column="test_result" property="testResult"/>
+        <result column="business_impact_time" property="businessImpactTime"/>
+        <result column="operator_name" property="operatorName"/>
+        <result column="operation_time" property="operationTime"/>
+    </resultMap>
+
+    <select id="selectListByPlan" resultMap="structuredCutoverPlanStepDO">
+        SELECT id, tenant_id, plan_revision_id, section_code, step_no, content, version, creator, create_time, updater, update_time, deleted, step_name, test_result, business_impact_time, operator_name, operation_time FROM cut_step WHERE tenant_id = #{query.tenantId}
+          AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
+        ORDER BY FIELD(section_code,'PRE_OPERATION','OPERATION','CLOSING_COLLECTION','POST_BUSINESS_TEST','ROLLBACK','POST_CUTOVER_SUPPORT'), step_no ASC, id ASC
+    </select>
+    <select id="selectListByPlanForUpdate" resultMap="structuredCutoverPlanStepDO">
+        SELECT id, tenant_id, plan_revision_id, section_code, step_no, content, version, creator, create_time, updater, update_time, deleted, step_name, test_result, business_impact_time, operator_name, operation_time FROM cut_step WHERE tenant_id = #{query.tenantId}
+          AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
+        ORDER BY FIELD(section_code,'PRE_OPERATION','OPERATION','CLOSING_COLLECTION','POST_BUSINESS_TEST','ROLLBACK','POST_CUTOVER_SUPPORT'), step_no ASC, id ASC FOR UPDATE
+    </select>
+    <delete id="deleteDraftRows">
+        DELETE s FROM cut_step s JOIN cut_plan_revision p ON p.id = s.plan_revision_id AND p.tenant_id = s.tenant_id
+        WHERE s.tenant_id = #{query.tenantId} AND s.plan_revision_id = #{query.planRevisionId}
+          AND p.status_code = 'DRAFT' AND p.current_marker = 1
+    </delete>
+</mapper>

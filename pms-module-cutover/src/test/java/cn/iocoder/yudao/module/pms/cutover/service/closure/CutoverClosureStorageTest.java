@@ -3,9 +3,9 @@ package cn.iocoder.yudao.module.pms.cutover.service.closure;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverClosureDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverClosureDeviceDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.CutoverClosureDeviceMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.*;
 import org.junit.jupiter.api.*;
 
 import java.time.LocalDateTime;

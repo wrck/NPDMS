@@ -5,12 +5,12 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalReviewItemDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeStatusUpdate;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
@@ -38,8 +38,16 @@ class CutoverApprovalDecisionServiceTest {
         CutoverApprovalNodeDO next = node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L);
         doReturn(next).when(f.nodes).selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
 
-        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                yesItems(), null, "同意进入下一节点", "key-1", "corr-1"));
+        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                yesItems(),
+                null,
+                "同意进入下一节点",
+                "key-1",
+                "corr-1"));
 
         assertThat(result.approvalStatus()).isEqualTo("PENDING");
         assertThat(result.currentNodeNo()).isEqualTo(2);
@@ -67,8 +75,16 @@ class CutoverApprovalDecisionServiceTest {
         f.givenRoot(1, "INITIATOR");
         CutoverApprovalNodeDO next = node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L);
         doReturn(next).when(f.nodes).selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
-        var command = new ApproveCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                yesItems(), null, "同意进入下一节点", "key-replay", "corr-replay");
+        var command = new ApproveCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                yesItems(),
+                null,
+                "同意进入下一节点",
+                "key-replay",
+                "corr-replay");
 
         var first = f.service.approve(command);
         var replay = f.service.approve(command);
@@ -88,8 +104,16 @@ class CutoverApprovalDecisionServiceTest {
         next.setVersion(1);
         doReturn(next).when(f.nodes).selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
 
-        f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                yesItems(), null, "同意进入已改派节点", "key-reassigned-next", "corr-reassigned-next"));
+        f.service.approve(new ApproveCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                yesItems(),
+                null,
+                "同意进入已改派节点",
+                "key-reassigned-next",
+                "corr-reassigned-next"));
 
         verify(f.notifications).insert(argThat((CutoverApprovalNotificationDO row) ->
                 row.getRecipientUserId().equals(44L)
@@ -105,8 +129,16 @@ class CutoverApprovalDecisionServiceTest {
         when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
         when(f.tasks.selectMaxStageHistorySequence(any())).thenReturn(4);
 
-        var result = f.service.reject(new RejectCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                noItems(), null, "方案需修改", "key-2", "corr-2"));
+        var result = f.service.reject(new RejectCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                noItems(),
+                null,
+                "方案需修改",
+                "key-2",
+                "corr-2"));
 
         assertThat(result.approvalStatus()).isEqualTo("REJECTED");
         assertThat(result.taskStage()).isEqualTo("P4");
@@ -129,8 +161,16 @@ class CutoverApprovalDecisionServiceTest {
         when(f.managers.lockAndRevalidate(manager)).thenReturn(new ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
                 ProjectCutoverServiceManagerPort.Revalidation.VALID, manager));
 
-        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                yesItems(), new AssessmentReviewInput("CONFIRMED", null), "全部通过", "key-3", "corr-3"));
+        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                yesItems(),
+                new AssessmentReviewInput("CONFIRMED", null),
+                "全部通过",
+                "key-3",
+                "corr-3"));
 
         assertThat(result.approvalStatus()).isEqualTo("APPROVED");
         assertThat(result.taskStage()).isEqualTo("P6");
@@ -149,8 +189,16 @@ class CutoverApprovalDecisionServiceTest {
         when(f.nodes.selectList(any())).thenReturn(List.of());
         when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
 
-        var result = f.service.reject(new RejectCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                noItems(), new AssessmentReviewInput("CONFIRMED", null), "准备项需完善", "key-4", "corr-4"));
+        var result = f.service.reject(new RejectCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                noItems(),
+                new AssessmentReviewInput("CONFIRMED", null),
+                "准备项需完善",
+                "key-4",
+                "corr-4"));
 
         assertThat(result.approvalStatus()).isEqualTo("REJECTED");
         assertThat(result.taskStage()).isEqualTo("P4");
@@ -168,8 +216,16 @@ class CutoverApprovalDecisionServiceTest {
                 .selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
         doReturn(node(102L, 2, "SERVICE_MANAGER", "WAITING", 22L)).when(onTime.nodes)
                 .selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == 2));
-        var command = new ApproveCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                yesItems(), null, "同意进入下一节点", "same-decision", "same-correlation");
+        var command = new ApproveCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                yesItems(),
+                null,
+                "同意进入下一节点",
+                "same-decision",
+                "same-correlation");
 
         var lateResult = late.service.approve(command);
         var onTimeResult = onTime.service.approve(command);
@@ -184,14 +240,30 @@ class CutoverApprovalDecisionServiceTest {
         Fixture f = new Fixture(11L);
         f.givenRoot(1, "INITIATOR");
 
-        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 2L, 0L,
-                yesItems(), null, "同意", "key-version", "corr-version")))
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                2L,
+                0L,
+                yesItems(),
+                null,
+                "同意",
+                "key-version",
+                "corr-version")))
                 .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, ex -> {
                     assertThat(ex.reasonCode()).isEqualTo("TASK_VERSION_STALE");
                     assertThat(ex.currentTaskVersion()).isEqualTo(3);
                 });
-        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 3L, 0L,
-                List.of(), null, "同意", "key-items", "corr-items")))
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L,
+                10L,
+                100L,
+                3L,
+                0L,
+                List.of(),
+                null,
+                "同意",
+                "key-items",
+                "corr-items")))
                 .isInstanceOfSatisfying(CutoverApprovalApplicationException.class, ex ->
                         assertThat(ex.reasonCode()).isEqualTo("REVIEW_ITEMS_INCOMPLETE"));
     }
@@ -255,8 +327,24 @@ class CutoverApprovalDecisionServiceTest {
                 Object response = operation.get(); completedResponse = response; successFacts = facts.apply(response);
                 return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
             }).when(platform).execute(any(), anyString(), any(), any(), any());
-            service = new CutoverApprovalApplicationService(null, instances, nodes, notifications, reviews, tasks,
-                    history, managers, candidates, scopes, platform, () -> actor, clock);
+            service = new CutoverApprovalApplicationService(null,
+                instances,
+                nodes,
+                notifications,
+                reviews,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReassignmentMapper.class),
+                tasks,
+                history,
+                managers,
+                candidates,
+                scopes,
+                platform,
+                () -> actor,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "taskFactEvents",
+                    mock(cn.iocoder.yudao.module.pms.cutover.service.taskbusiness.CutoverApprovalTaskEvents.class));
         }
 
         void givenRoot(int currentNo, String nodeCode) {

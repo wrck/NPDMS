@@ -2,9 +2,9 @@ package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.*;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.ReassignCutoverApprovalCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -44,7 +44,7 @@ class CutoverApprovalReassignmentTest {
         when(reassignments.insert(any(CutoverApprovalReassignmentDO.class))).thenReturn(1);
         when(instances.updateAfterReassignmentIfMatch(any())).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
-        when(nodes.selectList(any())).thenAnswer(ignored -> List.of(node));
+        when(nodes.open(any())).thenAnswer(ignored -> List.of(node));
         var scope = new CutoverApprovalProjectScopePort.ProjectScopeFact(1L, 20L, 44L, "ACTION_EDIT", true, 8L);
         when(scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                 .tenantId(1L)
@@ -59,9 +59,22 @@ class CutoverApprovalReassignmentTest {
             Object response = operation.get();
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, response);
         });
-        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null, instances, nodes,
-                notifications, reviews, reassignments, tasks, histories, managers, candidates, scopes, platform,
-                () -> 99L, clock);
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null,
+                instances,
+                nodes,
+                notifications,
+                reviews,
+                reassignments,
+                tasks,
+                histories,
+                managers,
+                candidates,
+                scopes,
+                platform,
+                () -> 99L,
+                clock,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
 
         var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3L, 100L, 0L,
                 1, 44L, "转交当前项目负责人", "key-r1", "corr-r1"));
@@ -107,7 +120,7 @@ class CutoverApprovalReassignmentTest {
         when(reassignments.selectMaxReassignmentNo(any())).thenReturn(0);
         when(reassignments.insert(any(CutoverApprovalReassignmentDO.class))).thenReturn(1);
         when(instances.updateAfterReassignmentIfMatch(any())).thenReturn(1);
-        when(nodes.selectList(any())).thenAnswer(ignored -> List.of(current, future));
+        when(nodes.open(any())).thenAnswer(ignored -> List.of(current, future));
         var manager = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
                 ProjectCutoverServiceManagerPort.Outcome.FOUND, 1L, 20L, 44L,
                 "SERVICE_MANAGER_L1", 3, 4L, java.time.LocalDateTime.now());
@@ -119,11 +132,22 @@ class CutoverApprovalReassignmentTest {
             return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW, operation.get());
         });
         CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
-        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null, instances, nodes,
-                notifications, mock(CutoverApprovalReviewItemMapper.class),
-                reassignments, tasks, mock(CutoverTaskStageHistoryMapper.class), managers,
-                mock(CutoverApprovalRoleCandidatePort.class), scopes, platform, () -> 99L,
-                Clock.fixed(Instant.parse("2026-09-02T01:00:00Z"), ZoneOffset.UTC));
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(null,
+                instances,
+                nodes,
+                notifications,
+                mock(CutoverApprovalReviewItemMapper.class),
+                reassignments,
+                tasks,
+                mock(CutoverTaskStageHistoryMapper.class),
+                managers,
+                mock(CutoverApprovalRoleCandidatePort.class),
+                scopes,
+                platform,
+                () -> 99L,
+                Clock.fixed(Instant.parse("2026-09-02T01:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
 
         var result = service.reassign(new ReassignCutoverApprovalCommand(1L, 10L, 3L, 100L, 0L,
                 2, 44L, "补齐后续服务经理", "key-r2", "corr-r2"));

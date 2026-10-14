@@ -5,17 +5,19 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApproval
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult;
-import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverApprovalNodesQuery;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.*;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalEligibilityPolicy;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRoleApprovalSnapshot;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
@@ -27,7 +29,7 @@ import java.util.*;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.*;
 
-/** P5审批只读编排；生产Bean留待Owner依赖接通。 */
+/** P5 审批只读编排，读取冻结版本与当前候选资格。 */
 public class CutoverApprovalQueryService {
     private static final CutoverP5ActionPolicy ACTION_POLICY = new CutoverP5ActionPolicy();
     private static final int SCAN_SIZE = 100;
@@ -36,6 +38,7 @@ public class CutoverApprovalQueryService {
     @Resource
     private CutoverApprovalStorage storage;
 
+    private final CutoverApprovalRoleCandidatePort roleCandidatePort;
     private final CutoverApprovalInstanceMapper instanceMapper;
     private final CutoverApprovalNodeMapper nodeMapper;
     private final CutoverApprovalReviewItemMapper reviewMapper;
@@ -64,6 +67,7 @@ public class CutoverApprovalQueryService {
             CutoverSpareQueryService spareQueryService) {
         this.instanceMapper = instanceMapper; this.nodeMapper = nodeMapper; this.reviewMapper = reviewMapper;
         this.taskMapper = taskMapper; this.projectScopePort = projectScopePort;
+        this.roleCandidatePort = roleCandidatePort;
         this.snapshotCodec = snapshotCodec;
         this.spareQueryService = spareQueryService;
         this.eligibilityPolicy = new CutoverApprovalEligibilityPolicy(serviceManagerPort, roleCandidatePort,
@@ -75,22 +79,42 @@ public class CutoverApprovalQueryService {
         require(tenantId > 0 && taskId > 0 && actorId > 0, INVALID_REQUEST, "审批详情身份非法");
         CutoverApprovalInstanceDO root = instanceMapper.selectCurrentByTask(new ApprovalTaskQuery(tenantId, taskId));
         require(root != null, STATE_CONFLICT, "审批实例不存在");
+        return detail(root, context);
+    }
+
+    public CutoverApprovalViews.ApprovalView detailByInstance(CutoverApprovalContext context, long approvalId) {
+        long tenantId = context.tenantId(); long actorId = context.actorId();
+        require(tenantId > 0 && approvalId > 0 && actorId > 0, INVALID_REQUEST, "审批详情身份非法");
+        var root = instanceMapper.selectById(approvalId);
+        require(root != null && Objects.equals(root.getTenantId(), tenantId), STATE_CONFLICT, "审批实例不存在");
+        return detail(root, context);
+    }
+
+    private CutoverApprovalViews.ApprovalView detail(CutoverApprovalInstanceDO root, CutoverApprovalContext context) {
+        long actorId = context.actorId();
+        long tenantId = root.getTenantId(); long taskId = root.getTaskId();
         CutoverTaskDO task = taskMapper.selectById(taskId);
         require(task != null && Objects.equals(task.getTenantId(), tenantId), STATE_CONFLICT, "审批任务不存在");
         List<CutoverApprovalNodeDO> nodes = nodes(tenantId, root.getId());
         CutoverApprovalNodeDO current = nodes.stream()
                 .filter(node -> Objects.equals(node.getNodeNo(), root.getCurrentNodeNo())).findFirst().orElse(null);
-        boolean projectView = context.canQuery() && projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+        boolean roleView = context.canQuery() && CutoverRoleApprovalSnapshot.currentRoleTodo(root, current)
+                && eligibilityPolicy.eligible(root, current, actorId);
+        boolean projectView = !roleView && context.canQuery() && projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                 .tenantId(tenantId)
                 .projectId(root.getProjectId())
                 .subjectUserId(actorId)
                 .requiredAction("ACTION_VIEW")
                 .build()).allowed();
-        boolean full = projectView && Objects.equals(root.getInitiatorUserId(), actorId);
+        boolean full = roleView || projectView && Objects.equals(root.getInitiatorUserId(), actorId);
         boolean currentEligible = false;
-        if (!full && context.canQuery() && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
+        var currentRole = CutoverRoleApprovalSnapshot.from(current);
+        boolean candidate = current != null && (currentRole != null && currentRole.byRole()
+                ? !currentRole.tenantRole() || CutoverRoleApprovalSnapshot.currentRoleTodo(root, current)
+                : Objects.equals(current.getCurrentApproverUserId(), actorId));
+        if (!full && context.canQuery() && candidate)
             full = currentEligible = eligibilityPolicy.eligible(root, current, actorId);
-        else if (full && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
+        else if (full && candidate)
             currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         if (full) return full(root, task, nodes, current, currentEligible, actorId);
         if (projectView && List.of("APPROVED", "REJECTED").contains(root.getStatusCode())) return finalResult(root);
@@ -102,10 +126,15 @@ public class CutoverApprovalQueryService {
         page(context, pagination);
         long tenantId = context.tenantId(); long actorId = context.actorId();
         int pageNo = pagination.getPageNo(); int pageSize = pagination.getPageSize();
+        Set<Long> candidateRoleIds = roleCandidatePort.inspectActor(
+                new CutoverApprovalRoleCandidatePort.ActorQuery(tenantId, actorId)).stream()
+                .filter(member -> member.role().tenantId() == tenantId && member.candidate().adminUserId() == actorId)
+                .filter(member -> Set.of("probSupporter", "probRD").contains(member.role().roleGroupCode()))
+                .map(member -> member.role().roleId()).collect(java.util.stream.Collectors.toSet());
         List<CutoverApprovalViews.TodoItem> eligible = new ArrayList<>();
         for (int offset = 0; ; offset += SCAN_SIZE) {
             ApprovalTodoPageQuery query = ApprovalTodoPageQuery.builder().tenantId(tenantId).currentUserId(actorId)
-                    .offset(offset).pageSize(SCAN_SIZE).candidateRoleIds(Set.of()).build();
+                    .offset(offset).pageSize(SCAN_SIZE).candidateRoleIds(candidateRoleIds).build();
             List<CutoverApprovalNodeDO> nodes = nodeMapper.selectTodoPage(query);
             List<ApprovalTodoPageRow> rows = nodeMapper.selectTodoProjectionPage(query);
             require(nodes.size() == rows.size(), OWNER_DATA_CORRUPTED, "待办投影身份损坏");
@@ -176,17 +205,15 @@ public class CutoverApprovalQueryService {
 
     private CutoverApprovalViews.ApprovalDetail full(CutoverApprovalInstanceDO root, CutoverTaskDO task,
             List<CutoverApprovalNodeDO> nodes, CutoverApprovalNodeDO current, boolean currentEligible, long viewerId) {
-        Map<Long, List<CutoverApprovalReviewItemDO>> reviews = reviewMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalReviewItemDO>()
-                .eq(CutoverApprovalReviewItemDO::getTenantId, root.getTenantId())
-                .eq(CutoverApprovalReviewItemDO::getApprovalInstanceId, root.getId())
-                .orderByAsc(CutoverApprovalReviewItemDO::getApprovalNodeId, CutoverApprovalReviewItemDO::getId))
+        Map<Long, List<CutoverApprovalReviewItemDO>> reviews = reviewMapper.byInstance(new CutoverApprovalNodesQuery(root.getTenantId(), root.getId()))
                 .stream().collect(java.util.stream.Collectors.groupingBy(CutoverApprovalReviewItemDO::getApprovalNodeId));
-        Long actorId = currentEligible && current != null ? current.getCurrentApproverUserId() : null;
+        Long actorId = currentEligible && current != null ? viewerId : null;
         CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
                 task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
         var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts
                 .p5(root.getStatusCode(), current == null ? null : current.getStatusCode(), root.getHoldReasonCode(),
-                        current == null ? null : current.getCurrentApproverUserId(), currentEligible);
+                        current == null ? null : CutoverRoleApprovalSnapshot.isRole(current)
+                                ? actorId : current.getCurrentApproverUserId(), currentEligible);
         List<String> actions = List.copyOf(ACTION_POLICY.allowedActions(candidate, facts,
                 cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
                         .p5()));
@@ -208,10 +235,7 @@ public class CutoverApprovalQueryService {
     }
 
     private List<CutoverApprovalNodeDO> nodes(long tenantId, long instanceId) {
-        return nodeMapper.selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
-                .eq(CutoverApprovalNodeDO::getTenantId, tenantId)
-                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, instanceId)
-                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+        return nodeMapper.all(new CutoverApprovalNodesQuery(tenantId, instanceId));
     }
 
     private CutoverApprovalViews.Node node(CutoverApprovalNodeDO row, List<CutoverApprovalReviewItemDO> reviews) {
@@ -222,7 +246,8 @@ public class CutoverApprovalQueryService {
         CutoverApprovalViews.AssessmentReview assessment = row.getAssessmentReviewDecisionCode() == null ? null
                 : new CutoverApprovalViews.AssessmentReview(row.getAssessmentReviewDecisionCode(), row.getAssessmentReviewReason());
         return new CutoverApprovalViews.Node(row.getId(), row.getNodeNo(), row.getNodeCode(), row.getStatusCode(),
-                row.getOriginalApproverUserId(), row.getCurrentApproverUserId(), row.getDecisionAt(), row.getFeedback(), items, assessment);
+                row.getOriginalApproverUserId(), row.getCurrentApproverUserId(), row.getDecisionAt(), row.getFeedback(), items, assessment,
+                CutoverRoleApprovalSnapshot.roleCode(row));
     }
 
     private CutoverApprovalViews.ApprovalFinalResult finalResult(CutoverApprovalInstanceDO root) {
@@ -234,7 +259,8 @@ public class CutoverApprovalQueryService {
     private CutoverApprovalViews.ApprovalReassignmentView reassignment(CutoverApprovalInstanceDO root,
             CutoverTaskDO task, List<CutoverApprovalNodeDO> nodes) {
         List<CutoverApprovalViews.ReassignmentNode> open = nodes.stream()
-                .filter(node -> List.of("WAITING", "PENDING").contains(node.getStatusCode()))
+                .filter(node -> List.of("WAITING", "PENDING").contains(node.getStatusCode())
+                        && !CutoverRoleApprovalSnapshot.isRole(node))
                 .map(node -> new CutoverApprovalViews.ReassignmentNode(node.getId(), node.getNodeNo(), node.getNodeCode(),
                         node.getStatusCode(), node.getCurrentApproverUserId(), node.getVersion())).toList();
         return new CutoverApprovalViews.ApprovalReassignmentView("REASSIGNMENT_ONLY", root.getId(), root.getVersion(),

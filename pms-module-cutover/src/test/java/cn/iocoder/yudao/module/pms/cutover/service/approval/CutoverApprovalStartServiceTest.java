@@ -4,8 +4,8 @@ import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalInstanceMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
@@ -47,10 +47,22 @@ class CutoverApprovalStartServiceTest {
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
         DirectPlatform platform = new DirectPlatform();
-        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(assembler, instances,
-                nodes, notifications, CutoverApprovalControlledPorts.serviceManager(301L),
-                CutoverApprovalControlledPorts.roleCandidates(), CutoverApprovalControlledPorts.projectScope(202L),
-                platform, () -> 202L, Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(assembler,
+                instances,
+                nodes,
+                notifications,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReviewItemMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReassignmentMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper.class),
+                CutoverApprovalControlledPorts.serviceManager(301L),
+                CutoverApprovalControlledPorts.roleCandidates(),
+                CutoverApprovalControlledPorts.projectScope(202L),
+                platform,
+                () -> 202L,
+                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", mock(CutoverApprovalStorage.class));
         CutoverApprovalStartCommand command = new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
                 "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-1");
@@ -79,7 +91,8 @@ class CutoverApprovalStartServiceTest {
         assertEquals("A", instanceCaptor.getValue().getGradeCode());
         assertNull(instanceCaptor.getValue().getRouteSnapshot());
         assertTrue(nodeCaptor.getAllValues().stream().filter(node -> List.of("SECOND_LINE", "RND").contains(node.getNodeCode()))
-                .allMatch(node -> "PERSONAL".equals(node.getApprovalModeCode()) && node.getCandidateRoleId() == 31L && Long.valueOf(202L).equals(node.getCurrentApproverUserId()) && node.getCandidateFactSnapshot() == null));
+                .allMatch(node -> "ROLE".equals(node.getApprovalModeCode()) && node.getCandidateRoleId() == 31L
+                        && node.getCurrentApproverUserId() == null && node.getCandidateFactSnapshot() == null));
         assertTrue(instanceCaptor.getValue().getLeadTimeEnabled());
         var leadTime = CutoverApprovalStorage.leadTime(instanceCaptor.getValue());
         assertEquals("VERSION_UPGRADE", leadTime.cutoverType());
@@ -114,11 +127,22 @@ class CutoverApprovalStartServiceTest {
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
-        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(assembler, instances,
-                nodes, notifications, CutoverApprovalControlledPorts.serviceManager(301L),
-                CutoverApprovalControlledPorts.roleCandidates(), CutoverApprovalControlledPorts.projectScope(202L),
-                new DirectPlatform(), () -> 202L,
-                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(assembler,
+                instances,
+                nodes,
+                notifications,
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReviewItemMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReassignmentMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper.class),
+                CutoverApprovalControlledPorts.serviceManager(301L),
+                CutoverApprovalControlledPorts.roleCandidates(),
+                CutoverApprovalControlledPorts.projectScope(202L),
+                new DirectPlatform(),
+                () -> 202L,
+                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
 
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", mock(CutoverApprovalStorage.class));
         service.start(new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
@@ -142,12 +166,22 @@ class CutoverApprovalStartServiceTest {
         when(instances.selectByIdForUpdate(any())).thenReturn(pending);
         when(instances.updateStateIfMatch(any())).thenReturn(1);
         when(nodes.selectList(any())).thenReturn(List.of());
-        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(
-                mock(CutoverApprovalSourceAssembler.class), instances, nodes,
-                mock(CutoverApprovalNotificationMapper.class), CutoverApprovalControlledPorts.serviceManager(301L),
-                CutoverApprovalControlledPorts.roleCandidates(), CutoverApprovalControlledPorts.projectScope(202L),
-                new DirectPlatform(), () -> 202L,
-                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
+        CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(mock(CutoverApprovalSourceAssembler.class),
+                instances,
+                nodes,
+                mock(CutoverApprovalNotificationMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReviewItemMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReassignmentMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper.class),
+                CutoverApprovalControlledPorts.serviceManager(301L),
+                CutoverApprovalControlledPorts.roleCandidates(),
+                CutoverApprovalControlledPorts.projectScope(202L),
+                new DirectPlatform(),
+                () -> 202L,
+                Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverWorkflowCoordinator.class),
+                org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
 
         CutoverApprovalCommandResult result = service.pause(new CutoverApprovalPauseCommand(
                 1L, 500L, 3L, 900L, 1, "SOURCE_FACT_INVALIDATED", "pause-1", "corr-1"));

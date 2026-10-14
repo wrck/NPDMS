@@ -3,17 +3,17 @@ package cn.iocoder.yudao.module.pms.cutover.service.checklist;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemResultDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
-import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskStageHistoryDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverAssessmentDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDeviceScopeDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskStageHistoryDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemResultMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverAssessmentMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskDeviceScopeMapper;
-import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHistoryMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverAssessmentMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskDeviceScopeMapper;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.AddCustomItemCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.GenerateChecklistCommand;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.command.RematchChecklistCommand;
@@ -27,7 +27,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.checklist.port.CutoverCollect
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.ChecklistItemCommandResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
-import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
 import org.junit.jupiter.api.Test;
 
@@ -57,46 +57,96 @@ class CutoverChecklistApplicationServiceTest {
     void completesP3WithDirectCustomAndControlledManualEvidence() {
         Fixture fixture = fixture();
 
-        ChecklistCommandResult generated = fixture.service.generate(new GenerateChecklistCommand(1L, 8L, 1000L, 2L, 1L, 7L, List.of(), Map.of(), "generate-1", "corr-generate-1"));
-        ChecklistItemCommandResult transientCustom = fixture.service.addCustomItem(new AddCustomItemCommand(
-                1L, 8L, 1000L, 2L, generated.checklistId(), 0L, 7L,
-                "TEXT", "临时核查项", null, "TEXT", "{\"type\":\"string\"}", false, null));
-        ChecklistItemCommandResult removed = fixture.service.removeCustomItem(new RemoveCustomItemCommand(
-                1L, 8L, 1000L, 2L, generated.checklistId(), transientCustom.checklistVersion(), 7L,
-                transientCustom.stableItemKey()));
-        ChecklistCommandResult saved = fixture.service.save(new SaveChecklistCommand(
-                1L, 8L, 1000L, 2L, generated.checklistId(), removed.checklistVersion(), 7L,
-                List.of(new SaveChecklistCommand.DirectAnswer("SYS-IP", "{\"value\":\"10.0.0.1\"}"))));
-        ChecklistItemCommandResult custom = fixture.service.addCustomItem(new AddCustomItemCommand(
-                1L, 8L, 1000L, 2L, generated.checklistId(), saved.checklistFactVersion(), 7L,
-                "TEXT", "现场补充项", null, "TEXT", "{\"type\":\"string\"}", true,
-                "{\"value\":\"已核对\"}"));
+        ChecklistCommandResult generated = fixture.service.generate(new GenerateChecklistCommand(1L, 8L, 1000L, 2L, 1L, 7L, List.of("ROUTER"), Map.of(), "generate-1", "corr-generate-1"));
+        ChecklistItemCommandResult transientCustom = fixture.service.addCustomItem(new AddCustomItemCommand(1L,
+                8L,
+                1000L,
+                2L,
+                generated.checklistId(),
+                0L,
+                7L,
+                "TEXT",
+                "临时核查项",
+                null,
+                "TEXT",
+                "{\"type\":\"string\"}",
+                false,
+                null,
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
+        ChecklistItemCommandResult removed = fixture.service.removeCustomItem(new RemoveCustomItemCommand(1L,
+                8L,
+                1000L,
+                2L,
+                generated.checklistId(),
+                transientCustom.checklistVersion(),
+                7L,
+                transientCustom.stableItemKey(),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
+        ChecklistCommandResult saved = fixture.service.save(new SaveChecklistCommand(1L,
+                8L,
+                1000L,
+                2L,
+                generated.checklistId(),
+                removed.checklistVersion(),
+                7L,
+                List.of(new SaveChecklistCommand.DirectAnswer("SYS-IP", "{\"value\":\"10.0.0.1\"}")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
+        ChecklistItemCommandResult custom = fixture.service.addCustomItem(new AddCustomItemCommand(1L,
+                8L,
+                1000L,
+                2L,
+                generated.checklistId(),
+                saved.checklistFactVersion(),
+                7L,
+                "TEXT",
+                "现场补充项",
+                null,
+                "TEXT",
+                "{\"type\":\"string\"}",
+                true,
+                "{\"value\":\"已核对\"}",
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
         CutoverChecklistFilePort.FileFactVersion fileVersion =
                 new CutoverChecklistFilePort.FileFactVersion(3, 4, 5);
-        ChecklistItemCommandResult manual = fixture.service.selectManual(new SelectManualResultCommand(
-                1L, 8L, 1000L, 2L, generated.checklistId(), custom.checklistVersion(), 7L,
-                "SYS-IP", CutoverChecklistFilePort.FileHandle.builder()
+        ChecklistItemCommandResult manual = fixture.service.selectManual(new SelectManualResultCommand(1L,
+                8L,
+                1000L,
+                2L,
+                generated.checklistId(),
+                custom.checklistVersion(),
+                7L,
+                "SYS-IP",
+                CutoverChecklistFilePort.FileHandle.builder()
                         .artifactId(90L)
                         .versionNo(2)
                         .referenceKey("ref-90")
                         .fileFactVersion(fileVersion)
                         .scopeVersion(7L)
                         .build(),
-                "现场截图"));
+                "现场截图",
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
         CutoverChecklistView beforeRematch = fixture.service.getView(1L, 8L, 1000L);
-        ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(1L, 8L, 1000L, 2L, 1L, generated.checklistId(), manual.checklistVersion(), beforeRematch.inputSnapshotHash(), 7L, List.of(), Map.of(), "rematch-1", "corr-rematch-1"));
+        ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(1L, 8L, 1000L, 2L, 1L, generated.checklistId(), manual.checklistVersion(), beforeRematch.inputSnapshotHash(), 7L, List.of("ROUTER"), Map.of(), "rematch-1", "corr-rematch-1"));
         var accepted = fixture.service.requestCollection(new RequestCollectionCommand(
                 1L, 8L, 1000L, 2L, generated.checklistId(), rematched.checklistFactVersion(), 7L,
                 "SYS-COLLECT", 400L, 700L, "collect-1", "corr-collect-1"));
         var collection = fixture.service.requestCollection(new RequestCollectionCommand(
                 1L, 8L, 1000L, 2L, generated.checklistId(), accepted.checklistVersion(), 7L,
                 "SYS-COLLECT", 400L, 700L, "collect-refresh-1", "corr-collect-refresh-1"));
+        var incomplete = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
+                () -> fixture.service.submit(new SubmitChecklistCommand(1L, 8L, 1000L, 2L, 1L,
+                        generated.checklistId(), collection.checklistVersion(), 7L, "before-analysis", "corr-analysis")));
+        assertEquals(CutoverChecklistException.Code.STATE_CONFLICT, incomplete.getCode());
+        var analyzed = fixture.service.save(new SaveChecklistCommand(1L, 8L, 1000L, 2L,
+                generated.checklistId(), collection.checklistVersion(), 7L,
+                List.of(new SaveChecklistCommand.DirectAnswer("SYS-COLLECT", "{\"value\":{\"status\":\"ok\"}}")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
         CutoverChecklistView view = fixture.service.getView(1L, 8L, 1000L);
         ChecklistCommandResult submitted = fixture.service.submit(new SubmitChecklistCommand(
-                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), collection.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), analyzed.checklistFactVersion(), 7L,
                 "submit-1", "corr-submit-1"));
         ChecklistCommandResult replayed = fixture.service.submit(new SubmitChecklistCommand(
-                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), collection.checklistVersion(), 7L,
+                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), analyzed.checklistFactVersion(), 7L,
                 "submit-1", "corr-submit-1"));
 
         assertEquals("DRAFT", generated.checklistStatus());
@@ -177,7 +227,8 @@ class CutoverChecklistApplicationServiceTest {
         assessment.setSimpleFlow(false);
         assessment.setVersion(1L);
         CutoverFrozenConfiguration configuration = new CutoverFrozenConfiguration(3000L, "CUT-CONFIG", 1,
-                "PUBLISHED", "{}", "{}", List.of(
+                "PUBLISHED", "{\"pms_device_type\":[{\"value\":\"ROUTER\",\"label\":\"路由器\"}]}",
+                "[{\"code\":\"DEVICE_TYPE\",\"valueSource\":\"DICT:pms_device_type\",\"enabled\":true}]", List.of(
                 new CutoverFrozenConfiguration.ItemDefinition(4000L, "SYS-IP", 1, "TEXT", "管理地址", null,
                         "TEXT", "{\"type\":\"string\"}", "DIRECT", true, 10),
                 new CutoverFrozenConfiguration.ItemDefinition(4001L, "SYS-COLLECT", 1, "TEXT", "设备采集", null,
@@ -324,11 +375,12 @@ class CutoverChecklistApplicationServiceTest {
                     cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldSchemaCodec.Write.builder()
                     .tenantId(item.getTenantId()).itemDefinitionRevisionId(item.getItemDefinitionId())
                     .customChecklistItemId(item.getItemDefinitionId() == null ? item.getId() : null)
-                    .itemTypeCode(item.getItemTypeCode()).schema(Map.of("type", "string")).build());
+                    .itemTypeCode(item.getItemTypeCode()).schema(Map.of("type", "COLLECTION".equals(item.getWorkModeCode()) ? "object" : "string")).build());
         });
         when(fields.withSchema(any())).thenAnswer(invocation -> {
             CutoverChecklistItemDO item = invocation.getArgument(0);
-            item.setInterfaceSchemaSnapshot("{\"type\":\"string\"}"); return item;
+            item.setInterfaceSchemaSnapshot("COLLECTION".equals(item.getWorkModeCode())
+                    ? "{\"type\":\"object\"}" : "{\"type\":\"string\"}"); return item;
         });
         org.mockito.Mockito.doAnswer(invocation -> {
             CutoverChecklistResultStore.Write write = invocation.getArgument(0);
@@ -346,12 +398,20 @@ class CutoverChecklistApplicationServiceTest {
                     "MANUAL".equals(read.result().getResultSourceCode())
                     ? Map.of("file", storedFiles.get(read.result().getId())) : Map.of("value", "collection-result"));
         });
+        when(resultStore.value(any())).thenAnswer(invocation -> {
+            CutoverChecklistResultStore.Read read = invocation.getArgument(0);
+            return cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(
+                    storedAnswers.get(read.result().getId()), Map.class).get("value");
+        });
         when(itemMapper.selectById(any())).thenAnswer(invocation -> items.stream()
                 .filter(item -> item.getId().equals(invocation.getArgument(0))).findFirst().orElse(null));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "fieldDefinitions", fields);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "resultStorage", resultStore);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "customResultStorage", customStore);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "checklistMetadata", metadata);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "commands",
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.executor());
+        when(metadata.dimensions(any())).thenReturn(Map.of("DEVICE_TYPE", List.of("ROUTER")));
         return new Fixture(service, task, results, history, platform, collectionPort);
     }
 

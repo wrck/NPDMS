@@ -1,6 +1,5 @@
 <template>
   <main class="cutover-task-workbench">
-    <template v-if="!detailVisible">
       <el-alert type="info" :closable="false" show-icon class="flow-intro">
         <template #title>
           <div><strong>标准流程：</strong>新增／待办割接任务 → 割接等级确认 → 调研及风险考察 → 割接方案 → 割接审批 → 割接跟踪及闭环。</div>
@@ -32,15 +31,7 @@
       <el-alert v-if="listError" :title="listError" type="error" :closable="false" show-icon />
       <section v-if="selectedCategory" class="cut-card">
         <header class="cut-card__header"><h2><Icon icon="ep:document" />{{ categoryLabels[selectedCategory] }}割接任务</h2><small>共 {{ total }} 项</small></header>
-        <el-table v-loading="loading" :data="rows" :empty-text="listError ? '任务列表未加载成功' : '暂无符合条件的割接任务'" row-key="id" @row-dblclick="openDetail">
-          <el-table-column prop="projectName" label="项目名称" min-width="230" show-overflow-tooltip />
-          <el-table-column prop="taskName" label="割接任务" min-width="190" show-overflow-tooltip />
-          <el-table-column label="割接来源" width="110"><template #default="{ row }"><el-tag size="small" effect="light">{{ sourceLabels[row.intakeSourceType] }}</el-tag></template></el-table-column>
-          <el-table-column label="办事处" min-width="120"><template #default="{ row }">{{ row.departmentName || '—' }}</template></el-table-column>
-          <el-table-column label="当前步骤" min-width="160"><template #default="{ row }"><el-tag size="small" :type="row.taskStatus === 'ARCHIVED' ? 'success' : 'warning'">{{ row.taskStatus === 'ARCHIVED' ? '已归档' : stageLabels[row.currentStage] || '历史记录' }}</el-tag></template></el-table-column>
-          <el-table-column label="任务生成时间" min-width="160"><template #default="{ row }">{{ formatWireDateTime(row.generatedAt) }}</template></el-table-column>
-          <el-table-column label="操作" width="88" fixed="right"><template #default="{ row }"><el-button size="small" type="primary" @click="openDetail(row)">{{ row.taskStatus === 'ARCHIVED' ? '查看' : '办理' }}</el-button></template></el-table-column>
-        </el-table>
+        <CutoverTaskTable :rows="rows" :loading="loading" :error="listError" @open="openDetail" />
         <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="loadPage" />
       </section>
       <template v-else>
@@ -71,10 +62,6 @@
           <Pagination v-model:page="selfCreatedQuery.pageNo" v-model:limit="selfCreatedQuery.pageSize" :total="selfCreatedTotal" @pagination="loadPage" />
         </section>
       </template>
-    </template>
-
-    <CutoverTaskDetail v-if="requestedTaskId" :key="`${requestedTaskId}:${approvalOnly}`" :task-id="requestedTaskId"
-      :approval-only="approvalOnly" @changed="refreshListAndKpis" @close="closeDetail" />
     <CutoverCreateWizard v-model="createVisible" @created="createdTask" />
 
     <el-dialog v-model="todoVisible" title="我的审批待办" width="min(920px, 94vw)">
@@ -94,7 +81,7 @@
               data-testid="open-approval-from-todo"
               link
               type="primary"
-              @click="openApprovalFromQueue(row.taskId)"
+              @click="openApprovalFromQueue(row.approvalInstanceId)"
               >办理</el-button
             ></template
           ></el-table-column
@@ -126,7 +113,7 @@
               data-testid="open-approval-from-reassignment"
               link
               type="primary"
-              @click="openApprovalFromQueue(row.taskId)"
+              @click="openApprovalFromQueue(row.approvalInstanceId)"
               >改派</el-button
             ></template
           ></el-table-column
@@ -145,15 +132,18 @@
 </template>
 
 <script setup lang="ts">
-import './cutoverWorkbench.css'
+import '../shared/cutover.css'
 import { checkPermi } from '@/utils/permission'
 import { getProject, getProjectPage, type ProjectMasterVO } from '@/api/pms/project/projects'
-import * as CutoverApi from '@/api/pms/cutover/workbench'
-import type { CutoverDashboardKpiData, CutoverTaskSummary } from '@/api/pms/cutover/workbench'
-import CutoverTaskDetail from '../task-detail/index.vue'
-import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
-import CutoverDashboardKpis from './components/CutoverDashboardKpis.vue'
-import { formatWireDateTime } from './cutoverTaskInteraction'
+import * as CutoverApi from '@/api/pms/cutover'
+import type { CutoverDashboardKpiData } from '@/api/pms/cutover'
+import CutoverCreateWizard from '../components/CutoverCreateWizard.vue'
+import CutoverDashboardKpis from '../components/CutoverDashboardKpis.vue'
+import CutoverTaskTable from '../components/CutoverTaskTable.vue'
+import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
+import { sourceLabels, stageLabels, statusLabels } from '../shared/taskPresentation'
+
+defineOptions({ name: 'PmsCutoverWorkbench' })
 
 const loading = ref(false)
 const listError = ref<string | null>(null)
@@ -165,16 +155,13 @@ const route = useRoute()
 const kpiLoading = ref(false)
 const kpis = ref<CutoverDashboardKpiData | null>(null)
 const kpiError = ref<string | null>(null)
-const requestedTaskId = ref<CutoverApi.WireLong | null>(null)
-const approvalOnly = ref(false)
-const detailVisible = computed(() => requestedTaskId.value !== null)
 const createVisible = ref(false)
 const todoVisible = ref(false)
 const reassignmentQueueVisible = ref(false)
 const approvalQueueLoading = ref(false)
-const rows = ref<CutoverTaskSummary[]>([])
-const workbenchTodos = ref<CutoverApi.CutoverWorkbenchTaskSummary[]>([])
-const selfCreatedTasks = ref<CutoverApi.CutoverWorkbenchTaskSummary[]>([])
+const rows = ref<CutoverApi.CutoverTaskListItem[]>([])
+const workbenchTodos = ref<CutoverApi.CutoverTaskListItem[]>([])
+const selfCreatedTasks = ref<CutoverApi.CutoverTaskListItem[]>([])
 const workbenchTodoTotal = ref(0)
 const selfCreatedTotal = ref(0)
 const workbenchTodoQuery = reactive({ pageNo: 1, pageSize: 10 })
@@ -184,10 +171,14 @@ const reassignmentCandidates = ref<CutoverApi.CutoverApprovalReassignmentCandida
 const total = ref(0)
 const projectChoices = ref<ProjectMasterVO[]>([])
 const projectsLoading = ref(false)
+let projectSequence = 0
 const searchProjects = async (projectName: string) => {
+  const request = ++projectSequence
   projectsLoading.value = true
-  try { projectChoices.value = (await getProjectPage({ pageNo: 1, pageSize: 30, projectName })).list }
-  finally { projectsLoading.value = false }
+  try {
+    const result = await getProjectPage({ pageNo: 1, pageSize: 30, projectName })
+    if (request === projectSequence) projectChoices.value = result.list
+  } finally { if (request === projectSequence) projectsLoading.value = false }
 }
 
 const todoTotal = ref(0)
@@ -201,43 +192,42 @@ const query = reactive({
 })
 const todoQuery = reactive({ pageNo: 1, pageSize: 10 })
 const reassignmentQuery = reactive({ pageNo: 1, pageSize: 10 })
-const stageLabels: Record<string, string> = { P2: '割接等级确认', P3: '调研及风险考察', P4: '割接方案', P5: '割接审批', P6: '割接跟踪及闭环' }
-const sourceLabels: Record<string, string> = {
-  SELF_CREATED: '一线自建',
-  ITR: 'ITR',
-  PROJECT_EVENT: 'PMS',
-  LEGACY_FORWARD: '历史只读'
-}
+let listSequence = 0
 const loadPage = async () => {
+  const request = ++listSequence
   loading.value = true
   listError.value = null
   try {
     if (selectedCategory.value) {
-      const result = await CutoverApi.getDashboardTasks(selectedCategory.value, query.pageNo, query.pageSize)
+      const result = await CutoverApi.getCutoverTaskPage({ ...query, projectId: query.projectId || undefined, listKind: selectedCategory.value.toUpperCase() as CutoverApi.CutoverTaskListQuery['listKind'] })
+      if (request !== listSequence) return
       rows.value = result.list
       total.value = Number(result.total)
     } else {
       const filters = { projectId: query.projectId || undefined, currentStage: query.currentStage, taskStatus: query.taskStatus }
       const [todos, selfCreated] = await Promise.all([
-        CutoverApi.getWorkbenchTasks({ listKind: 'TODO', ...filters, ...workbenchTodoQuery }),
-        CutoverApi.getWorkbenchTasks({ listKind: 'SELF_CREATED', ...filters, ...selfCreatedQuery })
+        CutoverApi.getCutoverTaskPage({ listKind: 'TODO', ...filters, ...workbenchTodoQuery }),
+        CutoverApi.getCutoverTaskPage({ listKind: 'SELF_CREATED', ...filters, ...selfCreatedQuery })
       ])
+      if (request !== listSequence) return
       if (checkPermi(['pms:project:query'])) {
         const projects = await Promise.allSettled([...new Set([...todos.list, ...selfCreated.list].filter(row => !row.approvalOnly).map(row => String(row.projectId)))].map(id => getProject(id)))
         const managers = new Map(projects.flatMap(result => result.status === 'fulfilled' && result.value.id ? [[String(result.value.id), result.value.managerName] as const] : []))
         for (const row of [...todos.list, ...selfCreated.list]) row.projectManagerName = managers.get(String(row.projectId)) || null
       }
+      if (request !== listSequence) return
       workbenchTodos.value = todos.list
       workbenchTodoTotal.value = Number(todos.total)
       selfCreatedTasks.value = selfCreated.list
       selfCreatedTotal.value = Number(selfCreated.total)
     }
   } catch {
+    if (request !== listSequence) return
     listError.value = '割接任务加载失败，请重试；如持续失败，请联系管理员。'
     rows.value = []; workbenchTodos.value = []; selfCreatedTasks.value = []
     total.value = 0; workbenchTodoTotal.value = 0; selfCreatedTotal.value = 0
   } finally {
-    loading.value = false
+    if (request === listSequence) loading.value = false
   }
 }
 
@@ -299,33 +289,26 @@ const openReassignmentQueue = async () => {
   reassignmentQueueVisible.value = true
   await loadReassignmentQueue()
 }
-const openApproval = (taskId: CutoverApi.WireLong) => {
-  void openDetail({ id: taskId, approvalOnly: true })
-}
-const openApprovalFromQueue = async (taskId: CutoverApi.WireLong) => {
+const openApprovalFromQueue = async (approvalId: CutoverApi.WireLong) => {
   todoVisible.value = false
   reassignmentQueueVisible.value = false
-  openApproval(taskId)
+  await router.push(`/pms/cutover/approvals/${approvalId}`)
 }
-
-const openDetail = async (row: { id: CutoverApi.WireLong; approvalOnly?: boolean }) => {
-  requestedTaskId.value = row.id
-  approvalOnly.value = !!row.approvalOnly
-  const { mode: _mode, ...query } = route.query
-  await router.replace({ query: { ...query, taskId: String(row.id), ...(row.approvalOnly ? { mode: 'approval' } : {}) } })
-}
-const closeDetail = async () => {
-  requestedTaskId.value = null
-  approvalOnly.value = false
-  const { taskId: _taskId, mode: _mode, ...query } = route.query
-  await router.replace({ query })
-  await refreshListAndKpis()
+const openDetail = async (row: { id: CutoverApi.WireLong; approvalOnly?: boolean; approvalInstanceId?: CutoverApi.WireLong | null }) => {
+  if (row.approvalOnly) {
+    const approvalId = row.approvalInstanceId || (await CutoverApi.getCutoverApproval(row.id)).approvalInstanceId
+    await router.push(`/pms/cutover/approvals/${approvalId}`)
+  } else await router.push(`/pms/cutover/tasks/${row.id}`)
 }
 const createdTask = async (id: CutoverApi.WireLong) => { await refreshListAndKpis(); await openDetail({ id }) }
-onMounted(async () => {
-  await refreshListAndKpis()
-  if (route.query.taskId) await openDetail({ id: String(route.query.taskId), approvalOnly: route.query.mode === 'approval' })
-})
+onMounted(refreshListAndKpis)
+onActivated(() => { if (!loading.value) void refreshListAndKpis() })
+onBeforeUnmount(() => { listSequence++; projectSequence++ })
+// 已发送的现行通知保留原链接；进入后定位到唯一详情路由。
+watch(() => [route.query.taskId, route.query.mode], () => {
+  if (typeof route.query.taskId === 'string' && /^[1-9]\d*$/.test(route.query.taskId))
+    void openDetail({ id: route.query.taskId, approvalOnly: route.query.mode === 'approval' })
+}, { immediate: true })
 const selectKpi = async (key: string) => {
   selectedCategory.value = key
   query.projectId = ''

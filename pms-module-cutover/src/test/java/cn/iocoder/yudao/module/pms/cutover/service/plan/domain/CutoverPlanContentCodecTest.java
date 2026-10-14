@@ -23,7 +23,7 @@ class CutoverPlanContentCodecTest {
             assertThat(decoded.steps()).extracting(CutoverPlanContentCodec.PlanStep::sectionCode)
                     .containsExactlyElementsOf(CutoverPlanRules.STANDARD_SECTIONS);
             assertThat(decoded.supportArrangements()).extracting(CutoverPlanContentCodec.SupportArrangement::roleCode)
-                    .containsExactlyElementsOf(CutoverPlanRules.SUPPORT_ROLES);
+                    .containsExactly("DP_RND", "CUSTOMER", "DP_SECOND_LINE", "DP_FIRST_LINE");
             assertThat(decoded.rootSnapshot().path("overview").path("deviceSummary").get(0).path("serialNumber").asText())
                     .isEqualTo("Sn-001");
             assertThat(decoded.rootSnapshot().path("riskMitigations").get(0).path("riskFact").path("itemName").asText())
@@ -74,7 +74,7 @@ class CutoverPlanContentCodecTest {
     }
 
     @Test
-    void acceptsWireLongStringsAndAssemblesLegacyReadOnlyProjection() {
+    void acceptsWireLongStrings() {
         var decoded = codec.decodeWritable(JsonUtils.parseTree("""
                 {"editMode":"FULL_FILE_UPLOAD","fileArtifactFact":{"artifactId":"9007199254740991","versionNo":2,
                 "referenceKey":"CUT/PLAN/SAFE","fileFactVersion":{"artifactVersion":3,"referenceVersion":4,"availabilityVersion":5},
@@ -82,11 +82,6 @@ class CutoverPlanContentCodecTest {
                 """), source("D"));
         assertThat(decoded.fileFact().artifactId()).isEqualTo(9_007_199_254_740_991L);
         assertThat(decoded.fileFact().scopeVersion()).isEqualTo(9_007_199_254_740_992L);
-        var legacy = codec.assembleLegacy(List.of(
-                new CutoverPlanContentCodec.PlanStep("ROLLBACK", 1, "回退"),
-                new CutoverPlanContentCodec.PlanStep("PRE_OPERATION", 1, "检查")));
-        assertThat(legacy.path("editMode").asText()).isEqualTo("LEGACY_READ_ONLY");
-        assertThat(legacy.path("steps").get(0).path("sectionCode").asText()).isEqualTo("PRE_OPERATION");
     }
 
     @Test

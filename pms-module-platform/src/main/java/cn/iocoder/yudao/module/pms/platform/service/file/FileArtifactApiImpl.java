@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSet
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArchiveReferenceSetFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionQuery;
+import cn.iocoder.yudao.module.pms.platform.api.file.dto.FrozenFileVersionAccessQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionRevalidationQuery;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyFact;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileBusinessObjectPolicyQuery;
@@ -117,7 +118,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                 new FileVersionLockQuery(actor.tenantId(), query.artifactId(), query.versionNo())));
         FileReferenceDO reference = requireReference(referenceMapper.selectExact(
                 new ExactFileReferenceQuery(actor.tenantId(), query.ownerContext(), query.objectType(),
-                        query.objectId(), query.purposeCode(), query.referenceKey())), query, policy);
+                        query.objectId(), query.purposeCode(), query.referenceKey())), query, policy, false);
         return toFact(artifact, version, reference, policy.scopeVersion());
     }
 
@@ -135,7 +136,7 @@ public class FileArtifactApiImpl implements FileArtifactApi {
                 new FileVersionLockQuery(actor.tenantId(), query.artifactId(), query.versionNo())));
         FileReferenceDO reference = requireReference(referenceMapper.selectForUpdate(
                 new FileReferenceLockQuery(actor.tenantId(), query.ownerContext(), query.objectType(),
-                        query.objectId(), query.purposeCode(), query.referenceKey())), query.toInspectionQuery(), policy);
+                        query.objectId(), query.purposeCode(), query.referenceKey())), query.toInspectionQuery(), policy, true);
         FileArtifactVersionFact fact = toFact(artifact, version, reference, policy.scopeVersion());
         if (!query.expectedFileFactVersion().equals(fact.fileFactVersion())) {
             throw exception(FILE_FACT_VERSION_CONFLICT);
@@ -419,15 +420,25 @@ public class FileArtifactApiImpl implements FileArtifactApi {
     }
 
     private FileReferenceDO requireReference(FileReferenceDO reference, FileArtifactVersionQuery query,
-                                             FileBusinessObjectPolicyFact policy) {
+                                              FileBusinessObjectPolicyFact policy, boolean lock) {
         if (reference == null || !"ACTIVE".equals(reference.getStatusCode())) {
             throw exception(FILE_REFERENCE_NOT_FOUND);
         }
         if (!query.artifactId().equals(reference.getArtifactId())
-                || !query.versionNo().equals(reference.getFileVersionNo())
                 || !READ_ACTIONS.contains(query.requiredAction())
                     && !policy.scopeVersion().equals(reference.getScopeVersion())) {
             throw exception(FILE_REFERENCE_NOT_FOUND);
+        }
+        if (!query.versionNo().equals(reference.getFileVersionNo())) {
+            // READ is also used when consuming evidence in business writes and stays exact.
+            if (!Set.of(FileActionCodes.DOWNLOAD, FileActionCodes.PREVIEW).contains(query.requiredAction())) {
+                throw exception(FILE_REFERENCE_NOT_FOUND);
+            }
+            var frozen = FrozenFileVersionAccessQuery.builder().scope(policyQuery(trustedActor(), query))
+                    .artifactId(query.artifactId()).versionNo(query.versionNo())
+                    .expectedScopeVersion(policy.scopeVersion()).build();
+            if (lock) policyRegistry.lockAndRevalidateFrozenFileVersion(frozen);
+            else policyRegistry.inspectFrozenFileVersion(frozen);
         }
         return reference;
     }
