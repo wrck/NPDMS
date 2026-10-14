@@ -10,20 +10,26 @@ It is not a throughput optimization or a full four-phase acceptance result.
   ports, image or volumes. Record current MySQL/Redis identity in runtime-epoch.json.
 - Copy these scripts to a new external artifact directory, record the fetched
   commit in candidate-head.txt, and verify runner-manifest.json before use.
-- First run the Python unit tests and Java InitialMigrationReviewTest.
+- First run all 17 Python unit tests and Java InitialMigrationReviewTest.
   No database benchmark is started by either unit test.
 - preflight.py verifies exact production/test hashes, retained source, original
   global configuration, no competing JVMs/transactions, and a 19,984,437,248-byte
   capacity budget. It creates one empty target only after these checks.
-- launch.py runs one Maven initial-only invocation. There is no automatic elapsed-time
-  or arbitrary multiplier cutoff. The operator first verifies identical task stages,
-  source filters, order, row counts and actions, then reviews matching stage progress
-  and SQL timings. Small fluctuations are normal. Confirmed significant regression
-  is stopped with stop.py and a recorded reason. After the native initial task ends,
-  the fixture waits for initial-review.txt before expensive correctness verification.
-  Write CONTINUE_INITIAL_VERIFICATION only after the comparison; STOP_PERFORMANCE
-  fails before verification. The review wait is after native task timing and must
-  not be presented as migration time. It never proceeds to later phases.
+- launch.py runs one Maven initial-only invocation. The user explicitly approved
+  a **1.5x** stop tolerance on 2026-10-14 after requiring equivalent work first.
+  initial_comparison.py checks the exact retained V7 task definition, normalizing
+  only the three known run-specific source-helper names. Source order, row counts,
+  business actions, SQL, mappings and all other fields remain part of the comparison.
+  The four completed source limits are their historical times times 1.5; the task
+  limit is 6394.131082329 seconds (historical 4262.754054886 remains unchanged).
+  Small fluctuations do not stop the run. Invalid comparison or significant
+  regression signals only the identified isolated test group and skips verification.
+  At native task end, identical actions/counts and acceptable timings authorize the
+  Java review gate with CONTINUE_INITIAL_VERIFICATION. The wait is outside native
+  task time. No later reconciliation, stable replay or changed-source phase runs.
+  Before launch, save the original V7 FULL_CHAIN_DEFINITION as baseline-definition.json
+  and original INITIAL_MIGRATION FULL_CHAIN_TASK as baseline-task.json in the external
+  artifact directory. These are local evidence inputs, not repository uploads.
 - Periodic observation uses /proc CPU/RSS and pressure/cgroup counters. No periodic
   heap attach and no jcmd calls are issued. JFR profile records at JVM start and
   writes its rolling 64 MiB recording on exit. This observer change is a diagnostic

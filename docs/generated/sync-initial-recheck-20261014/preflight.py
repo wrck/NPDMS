@@ -8,6 +8,11 @@ def main():
     assert not (c.ROOT/'preflight-intent.json').exists(),'No automatic preflight/creation retry'
     assert not (c.ROOT/'initial-review.txt').exists(),'No stale review decision'
     assert not (c.ROOT/'performance-regression.json').exists(),'No stale stop decision'
+    from initial_comparison import InitialComparison
+    baseline_definition=json.loads((c.ROOT/'baseline-definition.json').read_text())
+    baseline_task=json.loads((c.ROOT/'baseline-task.json').read_text())
+    InitialComparison(baseline_definition,baseline_task,'initialv15r20261014')
+    c.save('comparison-inputs.json',{'definition_sha256':c.sha(c.ROOT/'baseline-definition.json'),'task_sha256':c.sha(c.ROOT/'baseline-task.json'),'stop_multiplier':'1.5','basis':'User confirmed 2026-10-14; preserve historical limits, compare equivalent work first'})
     c.save('preflight-intent.json',{'at':c.now(),'database':c.DB,'source':c.SOURCE,'budget_bytes':c.BUDGET})
     assert shutil.disk_usage('/workspace').free>=c.BUDGET,'Insufficient budget before source checks'
     assert c.run(['git','-C',str(c.REPO),'rev-parse','HEAD']).strip()==HEAD

@@ -1,6 +1,8 @@
 import concurrent.futures,csv,gzip,io,json,os,pathlib,re,shutil,signal,subprocess,threading,time,traceback
 import common as c
 from performance_guard import stop_test_group
+from initial_comparison import InitialComparison
+comparison=InitialComparison(json.loads((c.ROOT/"baseline-definition.json").read_text()),json.loads((c.ROOT/"baseline-task.json").read_text()),"initialv15r20261014")
 LOG=pathlib.Path(str(c.PREFIX)+'-test.log')
 REF=c.ROOT/'test-process.json'
 DONE=c.ROOT/'test-execution.json'
@@ -121,6 +123,24 @@ def main():
     try:event=json.loads(v)
     except Exception as e:error('native-event-parse',e);continue
     latest_event={'at':c.now(),'tag':tag,'event':event};append('native-events.jsonl',latest_event)
+    try:
+     decision=comparison.observe(tag,event)
+    except Exception as e:
+     comparison.stopped=True
+     decision={'status':'INVALID_COMPARISON','error':str(e),'event':event,'stopRemainingAcceptance':True}
+    if decision:
+     append('comparison-decisions.jsonl',{'at':c.now(),'tag':tag,**decision})
+     if decision['status'] in ('PERFORMANCE_REGRESSION','INVALID_COMPARISON'):
+      name='performance-regression.json' if decision['status']=='PERFORMANCE_REGRESSION' else 'comparison-failure.json'
+      if not (c.ROOT/name).exists():c.save(name,{'at':c.now(),**decision})
+      stopping=stop_test_group(reference(),cpu(surefire) if surefire else None)
+      c.save('automatic-stop-result.json',{'at':c.now(),**stopping})
+      print('INITIAL_COMPARISON_STOP='+json.dumps(decision),flush=True)
+     elif decision['status']=='ALLOW_INITIAL_VERIFICATION':
+      review=c.ROOT/'initial-review.txt'
+      with review.open('x') as f:f.write('CONTINUE_INITIAL_VERIFICATION\n')
+      c.save('initial-comparison-review.json',{'at':c.now(),**decision})
+
     if tag=='FULL_CHAIN_PERFORMANCE_STOP':
      if not (c.ROOT/'performance-regression.json').exists():c.save('performance-regression.json',latest_event)
      print('PERFORMANCE_STOP_OBSERVED='+json.dumps(event),flush=True)
