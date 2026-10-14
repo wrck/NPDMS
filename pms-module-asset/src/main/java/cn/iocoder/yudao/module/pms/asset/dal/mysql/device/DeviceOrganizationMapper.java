@@ -12,4 +12,5 @@ public interface DeviceOrganizationMapper {
     List<DeviceDO> selectBatchForUpdate(@Param("query") DeviceOrganizationBatchQuery query);
     List<DeviceDO> selectStoredOrganizations(@Param("query") DeviceOrganizationBatchQuery query);
     int updateOrganizationBatch(@Param("query") DeviceOrganizationUpdate query, @Param("deviceIds") Collection<Long> deviceIds);
+    int updateOrganizationRows(@Param("tenantId") Long tenantId, @Param("rows") List<DeviceOrganizationUpdate> rows);
 }

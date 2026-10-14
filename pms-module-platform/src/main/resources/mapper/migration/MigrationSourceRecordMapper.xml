@@ -59,19 +59,25 @@
                COALESCE(SUM(has_mapped + has_issue + has_retained &gt; 1), 0) AS conflicting_count
         FROM (
             SELECT s.id,
-                   EXISTS (SELECT 1 FROM plt_external_key_mapping m
+                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)
                            WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id
                              AND m.result_type = 'MAPPED' AND m.deleted = b'0') AS has_mapped,
-                   EXISTS (SELECT 1 FROM plt_migration_issue i
+                   EXISTS (SELECT 1 FROM plt_migration_issue i FORCE INDEX (uk_plt_migration_issue_key)
                            WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id
                              AND i.deleted = b'0') AS has_issue,
-                   EXISTS (SELECT 1 FROM plt_external_key_mapping m
+                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)
                            WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id
                              AND m.result_type = 'RETAINED' AND m.deleted = b'0') AS has_retained
-            FROM plt_migration_source_record s
+            FROM plt_migration_source_record s FORCE INDEX (idx_plt_migration_source_cursor)
             WHERE s.tenant_id = #{query.tenantId}
               AND s.batch_id = #{query.batchId}
               AND s.deleted = b'0'
         ) classified
     </select>
+  <!-- Staging freezes source cardinality only. Classification belongs to the
+       later reconciliation step; do not probe three result indexes per source. -->
+  <select id="countBatchSources" resultType="long">
+    SELECT COUNT(*) FROM plt_migration_source_record
+    WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0
+  </select>
 </mapper>

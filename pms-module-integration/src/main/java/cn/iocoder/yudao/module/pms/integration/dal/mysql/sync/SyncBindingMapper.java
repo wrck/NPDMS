@@ -12,9 +12,9 @@ public interface SyncBindingMapper extends BaseMapperX<SyncBindingDO> {
     List<SyncBindingDO> selectObsoleteOrderLinesForUpdate(@org.apache.ibatis.annotations.Param("query") SyncQueries.ObsoleteOrderLines query);
     int deleteObsoleteOrderLines(@org.apache.ibatis.annotations.Param("query") SyncQueries.ObsoleteOrderLineDelete query);
     default boolean hasTaskBindings(SyncQueries.Task query) {
-        return selectCount(new LambdaQueryWrapperX<SyncBindingDO>().eq(SyncBindingDO::getTenantId,query.tenantId())
-            .eq(SyncBindingDO::getTaskId,query.taskId())) > 0;
+        return selectFirstTaskBindingId(query) != null;
     }
+    Long selectFirstTaskBindingId(SyncQueries.Task query);
     default List<SyncBindingDO> selectSourceKeys(SyncQueries.SourceKeys query) {
         if(query.sourceKeys()==null || query.sourceKeys().isEmpty()) return List.of();
         return selectList(new LambdaQueryWrapperX<SyncBindingDO>()

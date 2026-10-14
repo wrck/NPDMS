@@ -34,6 +34,7 @@ public class SyncDefinition {
     /** Legacy compatibility flag. New configurations should use readStrategy=KEYSET_PAGING. */
     private boolean autoPaging;
     private long maxBytes;
+    @Builder.Default private String evidencePolicy = "FULL";
     @Builder.Default private String readStrategy = "SNAPSHOT";
     @Builder.Default private int fetchSize = 2000;
     @Builder.Default private int chunkSize = 1000;
@@ -41,6 +42,10 @@ public class SyncDefinition {
     /** 0 means use the JDBC driver's timeout/default and allows expensive analytical SQL to finish. */
     @Builder.Default private int queryTimeoutSeconds = 0;
     private List<Source> sources;
+
+    public String effectiveEvidencePolicy() {
+        return evidencePolicy == null || evidencePolicy.isBlank() ? "FULL" : evidencePolicy;
+    }
 
     public String effectiveReadStrategy() {
         if (autoPaging) return "KEYSET_PAGING";

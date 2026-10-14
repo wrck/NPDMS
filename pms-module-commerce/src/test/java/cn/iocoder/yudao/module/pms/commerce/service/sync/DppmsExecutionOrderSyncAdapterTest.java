@@ -45,6 +45,14 @@ class DppmsExecutionOrderSyncAdapterTest {
         assertTrue(change.message().contains("projectAmount"));
     }
 
+    @Test void mixedGoodAndInvalidRowsFailTheChunkInsteadOfReportingUnwrittenCreates() {
+        var bad=new LinkedHashMap<>(row("2","错误项目").fields());bad.put("projectAmount","bad");
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row("1","正常项目"),
+                new Row("EXECUTION_ORDER","2",bad,null))));
+        verify(mapper,never()).insertBatch(anyCollection(),anyInt());
+        verify(mapper,never()).updateBatch(anyCollection(),anyInt());
+    }
+
     @Test void batchesDistinctTargetsAndReturnsGeneratedIdsForEveryRevision() {
         doAnswer(invocation -> {
             Collection<CrmExecutionOrderDO> rows = invocation.getArgument(0);
@@ -134,9 +142,11 @@ class DppmsExecutionOrderSyncAdapterTest {
 
     @Test void unknownCompanyAndOverPrecisionMoneyNeverWrite() {
         var fields=new LinkedHashMap<>(row("1","项目").fields());fields.put("companyCode","99");
-        assertEquals("ISSUE",adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst().action());
+        assertEquals("ISSUE",adapter.preview(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst().action());
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))));
         fields.remove("companyCode");fields.put("engineeringFeeRaw","0.12345");
-        assertEquals("ISSUE",adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst().action());
+        assertEquals("ISSUE",adapter.preview(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst().action());
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))));
         verify(mapper,never()).insertBatch(anyCollection(),anyInt());
         verify(mapper,never()).updateBatch(anyCollection(),anyInt());
     }
@@ -157,8 +167,9 @@ class DppmsExecutionOrderSyncAdapterTest {
     }
     @Test void wholeTableSelectionCannotSubstituteAnotherExecutionIdentity() {
         var fields=canonicalFields("1","早期项目");fields.put("canonical_executionNo","FOREIGN-EXECUTION");
-        var change=adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst();
+        var change=adapter.preview(batch(new Row("EXECUTION_ORDER","1",fields,null))).getFirst();
         assertEquals("ISSUE",change.action());assertTrue(change.message().contains("修订身份"));
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null))));
         verify(mapper,never()).updateBatch(anyCollection(),anyInt());verify(mapper,never()).insertBatch(anyCollection(),anyInt());
     }
     private Map<String,Object> canonicalFields(String id,String originalName) {

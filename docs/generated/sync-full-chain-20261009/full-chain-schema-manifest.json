@@ -1,0 +1,362 @@
+[
+  {
+    "file": "sql/migrations/V1__yudao_platform.sql",
+    "table": "system_dept",
+    "sha256": "20cb13ebec433afef5327b599bcf141f4ff8b8d3632a8781b332ce6aa9e0d27a",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V63__fproj001_v18_atomic_project_creation.sql",
+    "table": "plt_idempotency_record",
+    "sha256": "02b8c153d2a7a3cf2da38d78ad6e3de2ef170b782c30530bd60072ee81aaea94",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V63__fproj001_v18_atomic_project_creation.sql",
+    "table": "plt_operation_audit",
+    "sha256": "a097e9652b809f507b8b42db4b8b190e28d1951720dbf5de8d953d177dd604d8",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V63__fproj001_v18_atomic_project_creation.sql",
+    "table": "plt_outbox_event",
+    "sha256": "3eb121d484f2ad693130f02f639b8a46af956ae45f6fd5ec36a1ee94194901d7",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V64__system_company_department_scope.sql",
+    "table": "system_dept",
+    "sha256": "e38e912239f7d7f0b7aa1ee03aaf2de5edc2550cd38c1ef13e951bb800e02f65",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V64__system_company_department_scope.sql",
+    "table": "system_company",
+    "sha256": "cfea520536936d0ace6a389f44743a99f9ab121af6e3d02d30e4c9ca9cffaf3f",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V69__organization_location_single_tenant_defaults.sql",
+    "table": "system_company",
+    "sha256": "b45362359d27a6fdf59cb6887d1af7e07078ac0368daa7be14cd36b9709ba7c1",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V109__fast001_device_master_and_source_facts.sql",
+    "table": "ast_device",
+    "sha256": "175ca5168e8ac3894dd283314f767ffd488856552059680d996b16d94cf104db",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V110__fast001_device_shipments_and_software_versions.sql",
+    "table": "ast_device_shipment",
+    "sha256": "70b444e77ebd44a5c72e750faa56af8412bcad2743aff7e5dedd69fa72ec73c7",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V112__fast001_device_relationship_location_warranty.sql",
+    "table": "ast_device_relationship",
+    "sha256": "f1d4385459d525bf67df00953c7648e05f61ba3640735b7cac445dbc1dc23d50",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V160__fcom001_contract_order_scope_forward_migration.sql",
+    "table": "com_contract",
+    "sha256": "8622606d3a146fdc092b6008f9dbede56cc4cff76702caab926bd3e742237d92",
+    "canonicalShadowRename": true
+  },
+  {
+    "file": "sql/migrations/V160__fcom001_contract_order_scope_forward_migration.sql",
+    "table": "com_sales_order",
+    "sha256": "425aaf11a85ab44befc863ee39b194e321ae2c79be5160d85a608e5ccde2cee2",
+    "canonicalShadowRename": true
+  },
+  {
+    "file": "sql/migrations/V160__fcom001_contract_order_scope_forward_migration.sql",
+    "table": "com_sales_order_line",
+    "sha256": "7456312f9c0f9ea818c244a9908b303e93d7d1d7160f3e53f963e8938e94aa9a",
+    "canonicalShadowRename": true
+  },
+  {
+    "file": "sql/migrations/V161__fcom001_permissions_menu_and_acceptance_seed.sql",
+    "table": "com_sales_order_line",
+    "sha256": "4264180f05c51c42a35452a01330c28b6562fb253703ad4daab20623e5a3a179",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V176__platform_migration_evidence.sql",
+    "table": "plt_migration_batch",
+    "sha256": "37270f7c5d2ae6ada5067a31c5d253de62949e7bd2958f5e738e9c5574bbf8b6",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V176__platform_migration_evidence.sql",
+    "table": "plt_migration_source_record",
+    "sha256": "62251bad04b73cb4879003ad2a29a906bff907fe13429727a3073d768ae12d10",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V176__platform_migration_evidence.sql",
+    "table": "plt_external_key_mapping",
+    "sha256": "f2b335824859ac820ef22e61782c483145347e64f2c1a8f8c38d7a225be9b684",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V176__platform_migration_evidence.sql",
+    "table": "plt_migration_issue",
+    "sha256": "f010a374ba352e0c4aa595579017f92f70fdf502f21877d4a91badf61f4d89a4",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V237__integration_data_sync_foundation.sql",
+    "table": "int_sync_connection",
+    "sha256": "b89e8aaa84969f44b8eba300bbc13ac913280f20c08e773b0ed1e97dbdb1dce1",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V237__integration_data_sync_foundation.sql",
+    "table": "int_sync_task",
+    "sha256": "6d7edf5d87e80ca90213be7b7f253cba435d339b6d3a01837a1565eee9d046ae",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V237__integration_data_sync_foundation.sql",
+    "table": "int_sync_run",
+    "sha256": "e288ab7730443b9e729449e92d392f9c4a5140e1c3df1f08c77227cf90ed6c1c",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V237__integration_data_sync_foundation.sql",
+    "table": "int_sync_binding",
+    "sha256": "6f3c3350e23c4f88ee16ed771f84bd304c924d70c10aa4c3f1907fe7756cc862",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V243__commerce_order_line_unknown_unit.sql",
+    "table": "com_sales_order_line",
+    "sha256": "16eebcdd17a269b0e6993d48506f7a7b734cbc0bd089f95b07d5c536628b2867",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V243__commerce_order_line_unknown_unit.sql",
+    "table": "com_sales_order_line",
+    "sha256": "c014814e74f7449f41db75863b9cb5c3b39bdcd62c8cd4f3543ea90803de7a88",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V243_1__integration_shared_target_bindings.sql",
+    "table": "int_sync_binding",
+    "sha256": "fd7f2d36dcec6f2270fdf80adb6a9ddc31a59d7b11ef7bcdfae1f746ca281c3a",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V243_2__integration_automatic_paging.sql",
+    "table": "int_sync_run",
+    "sha256": "1737733bfc9ef60629d6d494bf3ca802ecaab9faf239d251696192bb59a7903e",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V258__project_party_and_contract_source_tables.sql",
+    "table": "com_shipment_contract_reference",
+    "sha256": "5e0a1ee99c24dfc318cffe93d7b8b9e821b81e5e11ec25e86dcacfd21ed55a38",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V258__project_party_and_contract_source_tables.sql",
+    "table": "com_shipment_package",
+    "sha256": "9fbb4de4a4b3a6ffbf0794e1e013e76f9938b34766a90daf7a52e5ab29eeb85e",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "com_contract",
+    "sha256": "63f3f4289c9488e6d129aa27caf39f075a425499222894b5376ed8e73fddf586",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "com_sales_order",
+    "sha256": "01ffb78dcdbeed8a4b9587fc7c53e3fd151685945e43c309f3ba73c1527f5412",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "com_sales_order_line",
+    "sha256": "2e8ad917bf56c20071829b7cb16a9b0692639ae29c01bb6049470df30d4a5e22",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "com_shipment_contract_reference",
+    "sha256": "01c5333b3aac855d9273c9589ff59880296ca65a89fe322cd8a5b366f6943786",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "com_shipment_package",
+    "sha256": "18ed988431b71d92c3f0e17a9d577a4620642ebd0ff047249323508fb6236780",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "plt_external_key_mapping",
+    "sha256": "79238bcc1c2a4242b04ee8f3b8f18bf9ead850d0a459c25ae1f2a503d1262c13",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "plt_migration_issue",
+    "sha256": "8b83c1f237de8f6cbbd096f6af0b032f4b2bb9d3902237582b92dacdbcb77ba2",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V294__migration_field_naming_and_comment_alignment.sql",
+    "table": "plt_migration_source_record",
+    "sha256": "a774ddad63e4dcb198d05fe307bd84c309c46f6a8142de665e88d08761cb8e6b",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V300__contract_master_field_consolidation.sql",
+    "table": "com_contract",
+    "sha256": "8f1e90924868afb71d03e3e12d0fdd17ad997aaa4310ac948a95183ad89c33e8",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V324__configurable_shipment_sync_fields.sql",
+    "table": "com_contract",
+    "sha256": "c26e912943283e849c8f2c1f7f6d6516863f44409546a9e278af3d4d11b8ff3c",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V324__configurable_shipment_sync_fields.sql",
+    "table": "ast_device",
+    "sha256": "8ca3e0c8d80a2ffa0e2aaae7c0cd2d3d85c96c00cce99b15a4518e5e536edee9",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V324__configurable_shipment_sync_fields.sql",
+    "table": "ast_device_shipment",
+    "sha256": "6536f79616e7d67521e52d586ae526ce09e1e2e55f0560b5dd3f682429b28883",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V337__device_organization_projection.sql",
+    "table": "ast_device",
+    "sha256": "c6554ce68d2f92353854049def6c4be00dd4ce82232de0ef9195383791cfeb4e",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V351__drop_device_sn_foreign_keys.sql",
+    "table": "ast_device_shipment",
+    "sha256": "17f8e17c9a3a913b193fb04a84dac12638050796dfb195f476f85971b5cccec4",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V351__drop_device_sn_foreign_keys.sql",
+    "table": "ast_device_shipment",
+    "sha256": "47bf9dd3ca12079ceb9936c75816c6b318492d699c2cb6b9e0fe098595df3e02",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V351__drop_device_sn_foreign_keys.sql",
+    "table": "ast_device_relationship",
+    "sha256": "2cfafacdfb457ab1c95cbcfc62b24448eb25c8609f2315c3de1ee5af9109363b",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V351__drop_device_sn_foreign_keys.sql",
+    "table": "ast_device_relationship",
+    "sha256": "47d10f46e41c5233a92e85e6a779cda3ccc23105aab971ea30f7606375619a86",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V367__ubmc009_b4_aggregate_id_autoincrement.sql",
+    "table": "com_contract",
+    "sha256": "94c5a453348fcd76950658b92e8ef65660ef3aecc182cacf4d2336809b4800a5",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V367__ubmc009_b4_aggregate_id_autoincrement.sql",
+    "table": "com_sales_order",
+    "sha256": "4ecfee570ffe6efc9753a6d018405ea107d3743aa879f20b97b317430948ea1d",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V367__ubmc009_b4_aggregate_id_autoincrement.sql",
+    "table": "ast_device",
+    "sha256": "112e46350902db1decc38e4b6bb3f031ee0cd6b70bea884c9f1a144678eef2b9",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order",
+    "sha256": "c702d160459f7b2b45e0bbe8ba961d9f043dd5237996ed268475b4d647a6abcc",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order_line",
+    "sha256": "6f5a7a90b317e744cead7fb9cc15652d87cc64b19409901bbf93ab079066f1ac",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order_line",
+    "sha256": "ea0146a1b812137989dc04da48647da79e27d81a1df3b959b6c3ffb74118b5c4",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order_line",
+    "sha256": "ce83cb8b428cc83a41041e9fdf29157b4ab19caea89a60254587bd37d254c7cf",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order_line",
+    "sha256": "4536887b6b6f10da121a82f2fa3d44b97d11ee1e81b4ef26ca4403231d77c6ed",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order_line",
+    "sha256": "9007b1d8eda6ec948088904aa07f5361fb1409ba4041a4ce646138c763cec9cc",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order_line",
+    "sha256": "6fa41f880e97e3663e8c5e7a477bd245bca4cba1105afc3822eb902577bb5a90",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V378__fcom001_order_line_material_dedup_and_custom_info.sql",
+    "table": "com_sales_order_line",
+    "sha256": "f183a27f2b0a630984564ae4b4b125f5fd949bcda257eca1d49125d3e22c2c89",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V381__shipment_event_source_order_columns.sql",
+    "table": "ast_device_shipment",
+    "sha256": "301bfc6f3d8fbd57ac15aa0db85d92b238b76951f67535fc9595fb0a4a57917a",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V382__shipment_barcode_raw_landing.sql",
+    "table": "ast_device_shipment",
+    "sha256": "fa071102372484f1a520b734eb5d8b6c95044539d4e6eed26a365054ffc7f96c",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V382__shipment_barcode_raw_landing.sql",
+    "table": "ast_device_relationship",
+    "sha256": "5f074fb73f37e60beaf1a44f4523ed7e63ffe2c2ce90495a71cf51aefe4b7ad6",
+    "canonicalShadowRename": false
+  },
+  {
+    "file": "sql/migrations/V383__sales_order_primary_contract_execution_columns.sql",
+    "table": "com_sales_order",
+    "sha256": "39f6c29d98c683ad0f872d849921c6b1d5ba628c95987e8596d212dfdd076651",
+    "canonicalShadowRename": false
+  }
+]

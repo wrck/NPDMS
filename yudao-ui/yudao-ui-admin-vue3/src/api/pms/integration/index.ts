@@ -56,6 +56,7 @@ export interface Definition {
   autoPaging?: boolean
   maxBytes: number
   readStrategy?: 'SNAPSHOT' | 'KEYSET_PAGING' | 'STREAMING_CURSOR'
+  evidencePolicy?: 'FULL' | 'REUSE_UNCHANGED'
   fetchSize?: number
   chunkSize?: number
   restartPolicy?: 'RESTART_ALL' | 'CHECKPOINT_KEY' | 'NO_RESTART'
@@ -262,6 +263,7 @@ export const runLabels: Record<string, string> = {
   FAILED: '失败（未提交）'
 }
 export const changeLabels: Record<string, string> = {
+  EVIDENCE_REUSED: '复用既有证据（未变化子集）',
   CLEARED: '加载前清空',
   CREATED: '新增',
   UPDATED: '更新',

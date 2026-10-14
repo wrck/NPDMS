@@ -1,0 +1,754 @@
+{
+  "evidence": "specs/001-project-delivery-platform/evidence/migration/legacy-physical-field-canonical.jsonl",
+  "evidenceSha256": "75719a913042dbd9e4e86a1781a5934fc1eade3dd0a6a0fddc2a5f416ff96473",
+  "limitations": [
+    "Historical field evidence, not current DPPMS DDL export",
+    "Original index names/composite index grouping and table collation unavailable; use declared per-column key flags and MySQL default collation"
+  ],
+  "tables": [
+    {
+      "name": "fb_contract",
+      "columns": [
+        {
+          "name": "contract_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "contract_code",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "office_code",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "contract_type",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "customer_name",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "project_name",
+          "type": "varchar(512)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "warranty",
+          "type": "varchar(2)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "marketCode",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "marketName",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "systemId",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "systemName",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "remark",
+          "type": "varchar(4096)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        }
+      ]
+    },
+    {
+      "name": "pm_order_data_from_erp",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "nullable": "NO",
+          "default": "-",
+          "keyFlag": "PRI, AUTO_INCREMENT"
+        },
+        {
+          "name": "orderNumber",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "contractNo",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "orderExecNumber",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "orderCreateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "customerRequireTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "customerCode",
+          "type": "varchar(55)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "customerName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "projectName",
+          "type": "varchar(255)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "orderComment",
+          "type": "varchar(2048)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "orderType",
+          "type": "int",
+          "nullable": "YES",
+          "default": "0",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "compCode",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "0",
+          "keyFlag": "397"
+        },
+        {
+          "name": "salesType",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "01",
+          "keyFlag": "397"
+        },
+        {
+          "name": "source",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "SAP",
+          "keyFlag": "397"
+        },
+        {
+          "name": "customInfo",
+          "type": "json",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "syncTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "CURRENT_TIMESTAMP",
+          "keyFlag": "397"
+        }
+      ]
+    },
+    {
+      "name": "sms_ofst_contract_head_sap",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": "NO",
+          "default": "-",
+          "keyFlag": "PRI, AUTO_INCREMENT"
+        },
+        {
+          "name": "contract_num",
+          "type": "varchar(45)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "batch_code",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "project_name",
+          "type": "varchar(200)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "order_num",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "client_supplier_code",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "client_supplier_name",
+          "type": "varchar(200)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "contract_money_amount",
+          "type": "decimal(20,2)",
+          "nullable": "NO",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "delivered_money_amount",
+          "type": "decimal(20,2)",
+          "nullable": "NO",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "collected_money_amount",
+          "type": "decimal(20,2)",
+          "nullable": "NO",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "collected_money_ratio",
+          "type": "double",
+          "nullable": "YES",
+          "default": "0",
+          "keyFlag": "397"
+        },
+        {
+          "name": "receivables_money_amount",
+          "type": "decimal(20,2)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "over_due_money_amount",
+          "type": "decimal(20,2)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "maketing_department_name",
+          "type": "varchar(40)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "office_name",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "industry_name",
+          "type": "varchar(40)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "marketing_representative_name",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "currency_name",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "create_by",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "create_time",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "update_by",
+          "type": "varchar(20)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "update_time",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "effective_from",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "effective_to",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "import_batch_num",
+          "type": "varchar(12)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "contract_create_date",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "projectCode",
+          "type": "varchar(80)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "marketCode",
+          "type": "varchar(80)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "systemId",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "industryId",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "officeCode",
+          "type": "varchar(80)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "expendId",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "usernamec",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "latest_ship_date",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "usernamec2",
+          "type": "varchar(10)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "systemid_o",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "expendid_o",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "industry_name_o",
+          "type": "varchar(40)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "397"
+        },
+        {
+          "name": "dataSource",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "CRM",
+          "keyFlag": "397"
+        }
+      ]
+    },
+    {
+      "name": "fb_shipment",
+      "columns": [
+        {
+          "name": "packlist_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "con_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "packdate",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "warrantyStartTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "warrantyEndTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "receiveName",
+          "type": "text",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "emsNum",
+          "type": "text",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "emsCompany",
+          "type": "text",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        }
+      ]
+    },
+    {
+      "name": "fb_shipment_barcode",
+      "columns": [
+        {
+          "name": "id",
+          "type": "bigint",
+          "nullable": "NO",
+          "default": "-",
+          "keyFlag": "PRI, AUTO_INCREMENT"
+        },
+        {
+          "name": "pack_id",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "item",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "barcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "com_barcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "rma_no",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "isRMA",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "item2",
+          "type": "varchar(16)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "barcode2",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "orderNumber",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "lineNum",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "profitCenter",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "soleAgentSuffix",
+          "type": "varchar(32)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "warrantyStartDate",
+          "type": "date",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "warrantyMonth",
+          "type": "int",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "rmaBarcode",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "updateTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "syncTime",
+          "type": "datetime",
+          "nullable": "YES",
+          "default": "CURRENT_TIMESTAMP",
+          "keyFlag": "-"
+        },
+        {
+          "name": "uuid",
+          "type": "varchar(64)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "UNI"
+        }
+      ]
+    },
+    {
+      "name": "fb_shipment_barcode_relation",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int",
+          "nullable": "NO",
+          "default": "-",
+          "keyFlag": "PRI"
+        },
+        {
+          "name": "sn1",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "item1",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "sn2",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "item2",
+          "type": "varchar(15)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "contract",
+          "type": "varchar(25)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "MUL"
+        },
+        {
+          "name": "createtime",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        },
+        {
+          "name": "updatetime",
+          "type": "varchar(50)",
+          "nullable": "YES",
+          "default": "-",
+          "keyFlag": "-"
+        }
+      ]
+    }
+  ]
+}

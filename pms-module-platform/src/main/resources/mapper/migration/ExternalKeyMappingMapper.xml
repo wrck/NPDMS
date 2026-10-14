@@ -11,4 +11,20 @@
              #{r.targetId},#{r.targetRole},#{r.targetSequence},#{r.creator},#{r.updater},#{r.createTime},#{r.updateTime},FALSE)
         </foreach>
     </insert>
+    <!-- V176 guarantees this index. Keep pre-insert negative lookups bounded by
+         tenant and batch when transient bulk-load statistics favor a tenant-wide scan. -->
+    <select id="selectSourcePage" resultType="cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.ExternalKeyMappingDO">
+        SELECT id,batch_id,source_record_id,result_type,target_context,target_object_type,
+               target_table,target_id,target_role,target_sequence,tenant_id,create_time,
+               update_time,creator,updater,deleted
+        FROM plt_external_key_mapping FORCE INDEX (idx_plt_external_mapping_batch)
+        WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0
+        <choose>
+            <when test="query.sourceRecordIds != null and query.sourceRecordIds.size() > 0">
+                AND source_record_id IN
+                <foreach collection="query.sourceRecordIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+    </select>
 </mapper>

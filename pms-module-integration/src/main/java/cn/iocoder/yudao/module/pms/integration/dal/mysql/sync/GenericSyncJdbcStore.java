@@ -56,7 +56,7 @@ public class GenericSyncJdbcStore {
                 + " LIMIT 2" + (query.lock() ? " FOR UPDATE" : ""), args.toArray());
     }
     /** 行内列形状一致的键集合一次往返取回全部现存行（不过滤删除行）；键元组较多时分段执行。
-     * 组内恒定列提升为等值、仅一列变化时改写为 IN；多列变化用派生表 JOIN 逐键索引探测，避免 OR 析取链的劣化计划。 */
+     * 组内恒定列提升为等值、仅一列变化时改写为 IN；多列变化用参数化元组 IN；由组合业务键索引支撑，避免长 OR 析取链。 */
     public List<Map<String,Object>> findByKeys(GenericTargetCatalog.Table table, List<Map<String,Object>> keys, boolean lock) {
         if (keys.isEmpty()) return List.of();
         var sample = keys.getFirst();
@@ -87,23 +87,16 @@ public class GenericSyncJdbcStore {
                 all.addAll(jdbc.queryForList("SELECT * FROM " + identifier(table.table()) + " WHERE " + where
                         + (lock ? " FOR UPDATE" : ""), args.toArray()));
             } else if (varying.size() > 1) {
-                StringJoiner branches = new StringJoiner(" UNION ALL ");
-                List<Object> branchArgs = new ArrayList<>();
-                for (int index = 0; index < page.size(); index++) {
-                    var key = page.get(index);
-                    for (var column : varying) branchArgs.add(key.get(column));
-                    branches.add("SELECT " + String.join(",", index == 0
-                            ? varying.stream().map(GenericTargetCatalog::identifier).map(alias -> "? AS " + alias).toList()
-                            : Collections.nCopies(varying.size(), "?")) + " FROM dual");
-                }
-                StringJoiner on = new StringJoiner(" AND ");
-                for (var column : varying) on.add("t." + identifier(column) + " = req." + identifier(column));
-                StringJoiner joinWhere = new StringJoiner(" AND ");
-                if (table.tenantColumn() != null) { joinWhere.add("t." + identifier(table.tenantColumn()) + " = ?"); branchArgs.add(TenantContextHolder.getRequiredTenantId()); }
-                fixed.forEach((column,value) -> { joinWhere.add("t." + identifier(column) + " = ?"); branchArgs.add(value); });
-                all.addAll(jdbc.queryForList("SELECT t.* FROM " + identifier(table.table()) + " t JOIN ("
-                        + branches + ") req ON " + on + " WHERE " + joinWhere
-                        + (lock ? " FOR UPDATE" : ""), branchArgs.toArray()));
+                // Tuple membership keeps composite-key matching set based and does not multiply
+                // result rows when multiple request keys are equal under the database collation.
+                // Unlike a parameter-only UNION derived table, it also has target-column types.
+                varying.forEach(column -> requireColumn(table,column));
+                String tuple="("+String.join(",",varying.stream().map(GenericTargetCatalog::identifier).toList())+")";
+                String placeholders="("+String.join(",",Collections.nCopies(varying.size(),"?"))+")";
+                where.add(tuple+" IN ("+String.join(",",Collections.nCopies(page.size(),placeholders))+")");
+                for(var key:page)for(var column:varying)args.add(key.get(column));
+                all.addAll(jdbc.queryForList("SELECT * FROM " + identifier(table.table()) + " WHERE " + where
+                        + (lock ? " FOR UPDATE" : ""), args.toArray()));
             } else {
                 all.addAll(jdbc.queryForList("SELECT * FROM " + identifier(table.table()) + " WHERE " + where
                         + (lock ? " FOR UPDATE" : ""), args.toArray()));

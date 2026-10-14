@@ -40,6 +40,12 @@ public class SyncDefinitionValidator {
         var adapter=adapter(d);
         var descriptor=adapter.descriptor();
         String readStrategy=d.effectiveReadStrategy();
+        if(!Set.of("FULL","REUSE_UNCHANGED").contains(d.effectiveEvidencePolicy()))
+            throw new IllegalArgumentException("同步证据策略无效");
+        if("REUSE_UNCHANGED".equals(d.effectiveEvidencePolicy()) && (!"TABLE_MAPPING".equals(d.adapter())
+                || !"STREAMING_CURSOR".equals(readStrategy) || !"RETAIN".equals(d.missingPolicy())
+                || d.clearBeforeLoad() || d.resetMappingsBeforeLoad()))
+            throw new IllegalArgumentException("复用未变化证据仅支持保留策略的通用流式同步");
         if(!Set.of("SNAPSHOT","KEYSET_PAGING","STREAMING_CURSOR").contains(readStrategy))
             throw new IllegalArgumentException("来源读取策略无效");
         if("KEYSET_PAGING".equals(readStrategy) && (!Set.of("ONCE","SNAPSHOT").contains(d.mode()) || adapter.requiresAllBindings()
