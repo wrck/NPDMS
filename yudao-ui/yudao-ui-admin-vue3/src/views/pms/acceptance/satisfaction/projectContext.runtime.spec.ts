@@ -450,7 +450,8 @@ describe('ACC-02 existing panels in a project context', () => {
   it('forwards the same project and readonly restriction through the existing top-level page', async () => {
     const view = renderPanel(Workbench, { projectId: 51, readonly: true })
     await flush()
-    expect(confirmations.getConfirmationPage).toHaveBeenCalledWith(expect.objectContaining({ projectId: 51, survey: true }))
+    expect(confirmations.getConfirmationPage).toHaveBeenCalledWith(expect.objectContaining({ projectId: 51 }))
+    expect(confirmations.getConfirmationPage.mock.calls.at(-1)?.[0].survey).not.toBe(true)
     expect(view.state().workbench.$props.readonly).toBe(true)
     expect(view.state().workbench.$props.projectId).toBe(51)
     expect(view.child.value.isDirty()).toBe(false)

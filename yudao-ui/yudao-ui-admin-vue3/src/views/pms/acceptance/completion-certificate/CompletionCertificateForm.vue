@@ -104,35 +104,23 @@
               ></td
             >
           </tr>
-          <tr>
-            <th scope="row">设备名称和数量</th>
-            <td colspan="3">
-              <div class="device-table">
-                <div class="device-row device-header"
-                  ><span>设备名称</span><span>数量</span><span></span
-                ></div>
-                <div v-for="(device, index) in devices" :key="index" class="device-row">
-                  <el-input
-                    v-model="device.deviceType"
-                    :aria-label="`第${index + 1}行设备名称`"
-                    placeholder="设备名称"
-                  />
-                  <el-input-number
-                    v-model="device.quantity"
-                    :min="1"
-                    controls-position="right"
-                    class="!w-full"
-                    :aria-label="`第${index + 1}行设备数量`"
-                  />
-                  <el-button link type="danger" @click="emit('remove-device', index)"
-                    >删除</el-button
-                  >
-                </div>
-                <el-button link type="primary" @click="emit('add-device')"
-                  ><Icon icon="ep:plus" />添加一行</el-button
-                >
-                <p class="template-hint">按项目设备清单的产品名称和设备数量带入，可调整。</p>
+          <tr v-for="(device, index) in devices" :key="index" class="cert-device-row">
+            <th v-if="index === 0" scope="rowgroup" :rowspan="devices.length + 1">设备名称和数量</th>
+            <td colspan="2">
+              <el-input v-model="device.deviceType" :aria-label="`第${index + 1}行设备名称`" placeholder="设备名称" />
+            </td>
+            <td>
+              <div class="device-quantity">
+                <el-input-number v-model="device.quantity" :min="1" controls-position="right" class="!w-full" :aria-label="`第${index + 1}行设备数量`" />
+                <el-button link type="danger" @click="emit('remove-device', index)">删除</el-button>
               </div>
+            </td>
+          </tr>
+          <tr>
+            <th v-if="!devices.length" scope="row">设备名称和数量</th>
+            <td colspan="3">
+              <el-button link type="primary" @click="emit('add-device')"><Icon icon="ep:plus" />添加一行</el-button>
+              <p class="template-hint">按项目设备清单的产品名称和设备数量带入，可调整。</p>
             </td>
           </tr>
           <tr
@@ -335,16 +323,20 @@ defineExpose({ validate: () => formRef.value.validate() })
 .required {
   color: var(--el-color-danger);
 }
-.device-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 100px 48px;
+.cert-service-row > td:last-child,
+.cert-device-row > td:last-child {
+  text-align: center;
+  vertical-align: middle;
+}
+.cert-service-row > td:last-child :deep(.el-form-item__content),
+.cert-service-row > td:last-child :deep(.el-radio-group) {
+  justify-content: center;
+}
+.device-quantity {
+  display: flex;
   gap: 8px;
   align-items: center;
-  margin-bottom: 8px;
-}
-.device-header {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
+  justify-content: center;
 }
 .completion-form-signatures {
   display: grid;

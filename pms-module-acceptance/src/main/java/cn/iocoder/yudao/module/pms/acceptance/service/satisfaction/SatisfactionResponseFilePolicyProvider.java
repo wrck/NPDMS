@@ -61,9 +61,12 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
                 || !Objects.equals(task.getAssignedToUserId(), query.actorUserId())) {
             throw new IllegalStateException("SATISFACTION_RESPONSE_ARCHIVE_OWNER_CONFLICT");
         }
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                query.tenantId(), query.actorUserId(), task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
-                query.expectedScopeVersion()));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
         if (scope == null || !Objects.equals(scope.treeVersion(), query.expectedScopeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_RESPONSE_ARCHIVE_SCOPE_CONFLICT");
@@ -175,8 +178,12 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
         assistedReservationService.requireReserved(tenantId, actorUserId, task, questionnaire,
                 requestId, responseId);
         Long expected = expectedScopeVersion == null ? questionnaire.getAccessScopeVersion() : expectedScopeVersion;
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT, expected));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(expected).build());
         if (scope == null || !Objects.equals(expected, scope.treeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_ASSISTED_FILE_SCOPE_CONFLICT");
@@ -201,9 +208,12 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
         var reservation = reservationService.requireReserved(tenantId, grant, questionnaire, task,
                 requestId, responseId);
         Long expected = expectedScopeVersion == null ? questionnaire.getAccessScopeVersion() : expectedScopeVersion;
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, reservation.grantIssuerUserId(), task.getProjectId(),
-                ProjectScopeApi.ACTION_EDIT, expected));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(reservation.grantIssuerUserId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(expected).build());
         if (scope == null || !Objects.equals(expected, scope.treeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_GRANT_FILE_SCOPE_CONFLICT");

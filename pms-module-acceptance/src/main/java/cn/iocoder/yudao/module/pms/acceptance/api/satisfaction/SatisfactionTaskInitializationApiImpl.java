@@ -78,8 +78,11 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
         if (!positive(projectId) || !positive(actorUserId) || blank(operationId)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_EDIT));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
@@ -88,8 +91,12 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
                 ? workBindingFactApi.lockCurrentSatisfactionTaskByProject(new ProjectSatisfactionTaskProjectQuery(projectId))
                 : manualProjects.freeze(new cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectManualSatisfactionApi.Selection(
                         projectId, projectTaskId, templateId, revisionId, actorUserId));
-        var lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_EDIT, scope.treeVersion()));
+        var lockedScope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (lockedScope == null || !Objects.equals(scope.treeVersion(), lockedScope.treeVersion())
                 || lockedScope.fullProjectIds() == null || !lockedScope.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
@@ -165,8 +172,11 @@ public class SatisfactionTaskInitializationApiImpl implements SatisfactionTaskIn
                     first.getCollectionKey(), first.getTaskRevisionNo(), first.getVersion());
         }
 
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(tenantId,
-                taskFact.currentAssigneeUserId(), command.projectId(), ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(taskFact.currentAssigneeUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.treeVersion() == null || scope.treeVersion() < 0
                 || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(command.projectId())) {
             throw exception(PROJECT_TASK_QUERY_INVALID);

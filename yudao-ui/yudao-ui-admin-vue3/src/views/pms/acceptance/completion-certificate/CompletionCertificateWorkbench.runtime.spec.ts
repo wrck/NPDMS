@@ -63,6 +63,8 @@ vi.mock('./CompletionCertificateForm.vue', () => ({
 vi.mock('../satisfaction/CompletionCertificateSheet.vue', () => ({
   default: { render: () => null }
 }))
+vi.mock('../satisfaction/TemplatePanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('../satisfaction/TaskPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({
   default: { render: () => null }
 }))
@@ -165,6 +167,33 @@ afterEach(() => {
 })
 
 describe('completion workbench save and context protection', () => {
+  it('issues the saved completion once while the linked survey is being prepared', async () => {
+    const issued = deferred<any>()
+    api.issueConfirmation.mockReturnValueOnce(issued.promise)
+    const page = renderPage()
+    await flush()
+    const command = { row: draft(), action: 'issueConfirmation', actionText: '发起调查' }
+    const pending = page.state().handleAction(command).catch((error: Error) => error)
+    await flush()
+    expect(api.issueConfirmation).toHaveBeenCalledExactlyOnceWith(410)
+    await page.state().handleAction(command)
+    expect(api.issueConfirmation).toHaveBeenCalledOnce()
+    issued.resolve({ id: 410, taskId: 510, signPath: '/fixture-only', tokenExpiresAt: '2026-10-20' })
+    expect(await pending).toBeUndefined()
+    expect(page.state().pendingActions.size).toBe(0)
+  })
+  it('does not issue a linked survey when the project becomes readonly during confirmation', async () => {
+    const confirm = deferred<void>()
+    message.confirm.mockReturnValueOnce(confirm.promise)
+    const page = renderPage()
+    await flush()
+    const pending = page.state().handleAction({ row: draft(), action: 'issueConfirmation', actionText: '发起调查' })
+    page.props.readonly = true
+    await flush()
+    confirm.resolve()
+    await pending
+    expect(api.issueConfirmation).not.toHaveBeenCalled()
+  })
   it('prefills all seven original equipment products and device counts when only two order lines exist', async () => {
     const products = [8, 4, 4, 16, 4, 2, 2].map((quantity, index) => ({
       deviceType: `原清单产品${index + 1}`, deviceModel: `MODEL-${index + 1}`, quantity

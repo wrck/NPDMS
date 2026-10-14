@@ -13,7 +13,7 @@ public class ProjectDocumentSourceRegistry {
         return providers.orderedStream().flatMap(p -> p.descriptors().stream()).sorted(Comparator.comparing(FileDocumentSourceProvider.Descriptor::code)).toList();
     }
     public FileDocumentSourceProvider.Scope resolve(Long tenant, FileEvidenceApi.Document file) {
-        var matches = providers.orderedStream().map(p -> p.resolve(tenant, file.ownerContext(), file.objectType(), file.objectId(), file.purposeCode()))
+        var matches = providers.orderedStream().map(p -> p.resolve(tenant, file))
                 .filter(Objects::nonNull).toList();
         if (matches.size() > 1) throw new IllegalStateException("DOCUMENT_OWNER_AMBIGUOUS");
         return matches.isEmpty() ? null : matches.getFirst();

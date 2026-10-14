@@ -194,8 +194,11 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
         Set<String> actions = new LinkedHashSet<>(Set.of("QUERY"));
         if (canManage(context)) {
             actions.add("MANAGE");
-            var relationScope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(),
-                    context.projectId(), ProjectScopeApi.ACTION_MANAGE));
+            var relationScope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
             if (relationScope != null && relationScope.fullProjectIds() != null
                     && relationScope.fullProjectIds().contains(context.projectId())) actions.addAll(Set.of("LINK", "UNLINK"));
             boolean direct = "DIRECT".equals(activity.originKind());
@@ -342,13 +345,20 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
                 || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())
                 || !Objects.equals(context.actorId(), SecurityFrameworkUtils.getLoginUserId())) throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
         if (!permissionApi.hasAnyPermissions(context.actorId(), "pms:acceptance:report:query")) throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(),
-                context.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(context.projectId())) throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
         if (lock) {
-            var locked = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(context.tenantId(), context.actorId(),
-                    context.projectId(), ProjectScopeApi.ACTION_VIEW, scope.treeVersion()));
+            var locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(scope.treeVersion()).build());
             if (locked == null || !Objects.equals(scope.treeVersion(), locked.treeVersion())
                     || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(context.projectId())) {
                 throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
@@ -359,8 +369,11 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
     private boolean canManage(Context context) {
         // Existing report commands use PROJECT_EDIT, not a guessed role or template configuration permission.
         if (!permissionApi.hasAnyPermissions(context.actorId(), "pms:acceptance:report:write")) return false;
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(),
-                context.projectId(), ProjectScopeApi.ACTION_EDIT));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(context.projectId());
     }
 

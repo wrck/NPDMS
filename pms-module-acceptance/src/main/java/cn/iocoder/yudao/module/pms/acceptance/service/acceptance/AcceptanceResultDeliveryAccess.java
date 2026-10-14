@@ -63,11 +63,19 @@ public class AcceptanceResultDeliveryAccess implements DeliveryMaterialUploadPol
         }
         if (project == null || version == null || version < 0
                 || !permissions.hasAnyPermissions(actor, permission)) throw denied();
-        var current = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, ProjectScopeApi.ACTION_VIEW));
+        var current = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (!visible(current, project) || expectedScope != null && !Objects.equals(expectedScope, current.treeVersion())) throw denied();
         if (lock) {
-            var checked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, project,
-                    ProjectScopeApi.ACTION_VIEW, current.treeVersion()));
+            var checked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(current.treeVersion()).build());
             if (!visible(checked, project) || !Objects.equals(current.treeVersion(), checked.treeVersion())) throw denied();
         }
         return current.treeVersion();

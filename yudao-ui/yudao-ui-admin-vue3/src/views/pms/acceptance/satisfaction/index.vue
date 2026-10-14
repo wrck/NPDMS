@@ -2,7 +2,7 @@
   <CompletionConfirmationWorkbench ref="workbench" :project-id="props.projectId" :readonly="props.readonly" @changed="emit('changed')" @dirty-change="value => emit('dirty-change', value)" />
 </template>
 <script setup lang="ts">
-import CompletionConfirmationWorkbench from '../completion-certificate/CompletionConfirmationWorkbench.vue'
+import CompletionConfirmationWorkbench from '../completion-certificate/index.vue'
 defineOptions({ name: 'PmsSatisfactionWorkbench' })
 const props = defineProps<{ projectId?: number; readonly?: boolean }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()

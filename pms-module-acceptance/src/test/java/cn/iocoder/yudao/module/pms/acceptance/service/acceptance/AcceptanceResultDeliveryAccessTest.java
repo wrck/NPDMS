@@ -40,7 +40,11 @@ class AcceptanceResultDeliveryAccessTest {
   else {var r=new SatisfactionCollectionTaskDO();r.setId(9L);r.setTenantId(tenant);r.setProjectId(20L);r.setVersion(2L);r.setAssignedToUserId(actor);when(tasks.selectById(9L)).thenReturn(r);}
  }
  void granted(){when(permissions.hasAnyPermissions(eq(10L),any(String[].class))).thenReturn(true);when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(20L,3L,Set.of(20L),Set.of()));}
- @Test void exactAdapterRoutesAllThreeActualControllerReads(){for(String type:List.of("deliverableChecklist","acceptanceActivity","satisfactionCollectionTask")){root(type,7,10);granted();assertFalse(template.supportsEntityType(type));assertTrue(adapter.supportsEntityType(type));assertDoesNotThrow(()->controller.listMaterials("ACC",type,9L,null));assertDoesNotThrow(()->controller.listRequirements("ACC",type,9L));}verify(scopes,times(6)).resolveCurrent(new ProjectCurrentScopeQuery(7L,10L,20L,ProjectScopeApi.ACTION_VIEW));}
+ @Test void exactAdapterRoutesAllThreeActualControllerReads(){for(String type:List.of("deliverableChecklist","acceptanceActivity","satisfactionCollectionTask")){root(type,7,10);granted();assertFalse(template.supportsEntityType(type));assertTrue(adapter.supportsEntityType(type));assertDoesNotThrow(()->controller.listMaterials("ACC",type,9L,null));assertDoesNotThrow(()->controller.listRequirements("ACC",type,9L));}verify(scopes,times(6)).resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(7L)
+                .subjectUserId(10L)
+                .anchorProjectId(20L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());}
  @Test void noFunctionPermissionDeniesActualControllerBeforeMaterialQuery(){root("acceptanceActivity",7,10);assertThrows(Exception.class,()->controller.listMaterials("ACC","acceptanceActivity",9L,null));verifyNoInteractions(materials,scopes);}
  @Test void otherProjectScopeDeniesActualRequirementsController(){root("deliverableChecklist",7,10);when(permissions.hasAnyPermissions(10L,"pms:acc-deliverable-checklist:query")).thenReturn(true);when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(21L,3L,Set.of(21L),Set.of()));assertThrows(Exception.class,()->controller.listRequirements("ACC","deliverableChecklist",9L));verifyNoInteractions(requirements);}
  @Test void foreignTenantDeniesBeforeScope(){root("acceptanceActivity",8,10);assertThrows(Exception.class,()->controller.listMaterials("ACC","acceptanceActivity",9L,null));verifyNoInteractions(permissions,scopes,materials);}

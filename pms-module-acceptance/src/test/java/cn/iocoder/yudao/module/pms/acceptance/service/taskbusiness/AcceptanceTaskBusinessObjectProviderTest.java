@@ -74,8 +74,17 @@ class AcceptanceTaskBusinessObjectProviderTest {
         login.setId(9L); login.setTenantId(3L);
         SecurityFrameworkUtils.setLoginUser(login, new MockHttpServletRequest());
         var visible = new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of());
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW))).thenReturn(visible);
-        when(scope.lockAndRevalidate(new ProjectScopeRevalidationQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW, 1L))).thenReturn(visible);
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build())).thenReturn(visible);
+        when(scope.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(1L).build())).thenReturn(visible);
         when(permissions.hasAnyPermissions(9L, "pms:acceptance:report:query")).thenReturn(true);
         activity.setId(42L); activity.setTenantId(3L); activity.setProjectId(100L);
         activity.setProjectTaskId(300L); activity.setExecutionContractId(400L);
@@ -289,14 +298,22 @@ class AcceptanceTaskBusinessObjectProviderTest {
         assertEquals(Set.of("QUERY"), provider.inspectContext(context));
         when(permissions.hasAnyPermissions(9L, "pms:acceptance:report:write")).thenReturn(true);
         assertEquals(Set.of("QUERY"), provider.inspectContext(context));
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_EDIT)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         assertEquals(Set.of("QUERY", "MANAGE"), provider.inspectContext(context),
                 () -> "permissions=" + mockingDetails(permissions).getInvocations()
                         + "; scope=" + mockingDetails(scope).getInvocations());
         verifyNoInteractions(activities, reports, attachments, platform, files);
         assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "REVOKE", "FILE_WRITE", "PUBLISH"), provider.inspect(context, "42").allowedActions());
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         assertEquals(Set.of("QUERY", "MANAGE", "UPDATE", "REVOKE", "LINK", "UNLINK", "FILE_WRITE", "PUBLISH"), provider.inspect(context, "42").allowedActions());
         activity.setActivityStatus("COMPLETED");
@@ -320,7 +337,11 @@ class AcceptanceTaskBusinessObjectProviderTest {
 
     @Test
     void emptyScopeNeverGrantsPlaceholderAccess() {
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(), Set.of(100L)));
         assertThrows(ServiceException.class, () -> provider.candidates(context));
         verifyNoInteractions(activities, reports, files);
@@ -331,7 +352,11 @@ class AcceptanceTaskBusinessObjectProviderTest {
         activity.setTenantId(4L);
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
         activity.setTenantId(3L); activity.setProjectId(101L);
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 101L, ProjectScopeApi.ACTION_VIEW)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(101L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L, 101L), Set.of()));
         assertThrows(ServiceException.class, () -> provider.inspect(context, "42"));
         verifyNoInteractions(reports, files);

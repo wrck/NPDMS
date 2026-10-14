@@ -49,7 +49,7 @@ const detail = (): CompletionConfirmationDetail => ({
 describe('Word V2.0 completion print data', () => {
   it('prints saved device quantities and each service choice without exposing the internal code', () => {
     const host = render(CompletionPrint, printValues(detail()).completionPrintData)
-    const rows = nodes(withClass(host, 'word-device-table')[0]).filter(node => node.type === 'tr' && node.children.some(child => child.type === 'td')).slice(0, 2)
+    const rows = withClass(host, 'word-device-row').slice(0, 2)
     expect(rows.map(row => row.children.filter(child => child.type === 'td').map(text))).toEqual([
       ['防火墙', '2'], ['交换机', '3']
     ])

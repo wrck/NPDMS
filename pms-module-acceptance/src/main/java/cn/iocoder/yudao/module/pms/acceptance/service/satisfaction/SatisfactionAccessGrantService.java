@@ -59,8 +59,11 @@ public class SatisfactionAccessGrantService {
                 || !("PENDING_COLLECTION".equals(task.getTaskStatus()) || "ASSIGNED".equals(task.getTaskStatus()))) {
             throw new IllegalStateException("SATISFACTION_TASK_NOT_GRANTABLE");
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_PROJECT_SCOPE_FORBIDDEN");
         }

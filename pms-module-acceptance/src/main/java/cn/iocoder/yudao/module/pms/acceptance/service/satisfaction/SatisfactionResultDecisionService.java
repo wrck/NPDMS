@@ -91,9 +91,12 @@ public class SatisfactionResultDecisionService {
                 || !questionnaire.getRuleVersion().equals(evaluation.ruleVersion())) {
             throw new IllegalStateException("SATISFACTION_QUESTIONNAIRE_PROJECTION_CONFLICT");
         }
-        var scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(command.tenantId(),
-                actorUserId, task.getProjectId(), ProjectScopeApi.ACTION_EDIT,
-                questionnaire.getAccessScopeVersion()));
+        var scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(actorUserId)
+                .anchorProjectId(task.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(questionnaire.getAccessScopeVersion()).build());
         if (scope == null || !questionnaire.getAccessScopeVersion().equals(scope.treeVersion())
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_RESULT_SCOPE_CONFLICT");

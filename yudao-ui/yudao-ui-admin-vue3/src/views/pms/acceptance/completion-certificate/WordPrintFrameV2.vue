@@ -24,7 +24,7 @@ defineProps<{ title: string }>()
   box-sizing: border-box;
   width: 794px;
   min-height: 1122px;
-  padding: 25mm 20mm 28mm 25mm;
+  padding: 22mm 15mm 22mm 15mm;
   background: #fff;
   color: #000;
   font-family: SimSun, '宋体', 'Times New Roman', serif;
@@ -34,8 +34,8 @@ defineProps<{ title: string }>()
 .word-print-header {
   position: absolute;
   top: 8mm;
-  left: 25mm;
-  right: 20mm;
+  left: 15mm;
+  right: 15mm;
   height: 12mm;
   border-bottom: 1px solid #000;
   text-align: center;
@@ -59,9 +59,9 @@ defineProps<{ title: string }>()
 .word-print-body { position: relative; }
 .word-print-footer {
   position: absolute;
-  bottom: 20mm;
-  left: 25mm;
-  right: 20mm;
+  bottom: 12mm;
+  left: 15mm;
+  right: 15mm;
   display: flex;
   justify-content: space-between;
   gap: 8px;

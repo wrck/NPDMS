@@ -102,10 +102,17 @@ public class AcceptanceReportFileBusinessObjectPolicyProvider implements FileBus
             String projectAction = READ_ACTIONS.contains(action)
                     ? ProjectScopeApi.ACTION_VIEW : ProjectScopeApi.ACTION_EDIT;
             ProjectScopeResult scope = lock
-                    ? projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                    tenantId, actorUserId, report.projectId(), projectAction, expectedScopeVersion))
-                    : projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    tenantId, actorUserId, report.projectId(), projectAction));
+                    ? projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(report.projectId())
+                .actionCode(projectAction)
+                .expectedScopeVersion(expectedScopeVersion).build())
+                    : projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(report.projectId())
+                .actionCode(projectAction).build());
             if (!validScope(report.projectId(), expectedScopeVersion, lock, scope)) return denied();
             String mutability = "DRAFT".equals(report.reportStatus()) ? "MUTABLE" : "IMMUTABLE";
             return new FileBusinessObjectPolicyFact(true, scope.treeVersion(), mutability, "MULTIPLE",

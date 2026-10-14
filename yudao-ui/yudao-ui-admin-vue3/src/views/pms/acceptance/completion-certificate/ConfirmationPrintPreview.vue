@@ -221,7 +221,7 @@ const exportPdf = async () => {
       pagebreak: { mode: string[]; avoid: string[] }
     } = {
       filename: filename.value,
-      margin: wordPrint.value ? [25, 23, 25, 18] : [10, 10, 10, 10],
+      margin: wordPrint.value ? [22, 15, 22, 15] : [10, 10, 10, 10],
       image: { type: 'png', quality: 1 },
       html2canvas: {
         scale: 2,

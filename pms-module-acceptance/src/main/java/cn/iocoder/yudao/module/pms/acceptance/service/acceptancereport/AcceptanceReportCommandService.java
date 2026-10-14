@@ -275,8 +275,11 @@ public class AcceptanceReportCommandService {
             throw exception(ACC_REPORT_VERSION_CONFLICT);
         }
         try {
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.userId(), row.getProjectId(), ProjectScopeApi.ACTION_EDIT));
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
             if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(row.getProjectId())) {
                 throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
             }

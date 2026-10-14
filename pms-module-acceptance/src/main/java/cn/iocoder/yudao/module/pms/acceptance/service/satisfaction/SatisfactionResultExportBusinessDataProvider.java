@@ -36,8 +36,11 @@ public class SatisfactionResultExportBusinessDataProvider implements ExportBusin
         try { filter = JsonUtils.parseObject(query.normalizedFilter(), Filter.class); }
         catch (RuntimeException invalid) { return unavailable(); }
         if (filter == null || filter.projectId() == null || filter.projectId() <= 0) return unavailable();
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorUserId(),
-                filter.projectId(), ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(filter.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(filter.projectId())
                 || scope.treeVersion() == null || (query.expectedScopeVersion() != null
                 && !query.expectedScopeVersion().equals(scope.treeVersion()))) return unavailable();

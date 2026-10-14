@@ -100,8 +100,11 @@ public class AcceptanceReportQueryService {
 
     private Set<Long> requireProjectScope(Long projectId, Actor actor, String action) {
         try {
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.userId(), projectId, action));
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
             if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
                 throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
             }

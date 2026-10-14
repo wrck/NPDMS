@@ -98,7 +98,7 @@ const answerText = (question: QuestionnaireQuestion) => {
 <style scoped>
 .greeting { margin: 8px 0 16px; font-size: 18.7px; font-weight: 700; line-height: 28px; }
 .introduction { margin: 0 0 12px; text-indent: 2em; font-size: 18.7px; line-height: 32px; }
-.satisfaction-word-table { width: 169mm; max-width: calc(100% + 4mm); margin-left: -2mm; border: 1px solid #000; border-collapse: collapse; table-layout: fixed; font-size: 14px; line-height: 20px; }
+.satisfaction-word-table { width: 100%; max-width: 100%; margin: 0; border: 1px solid #000; border-collapse: collapse; table-layout: fixed; font-size: 14px; line-height: 20px; }
 .word-print-table th, .word-print-table td { padding: 0 5px; border: 1px solid #000; vertical-align: middle; text-align: center; overflow-wrap: anywhere; white-space: pre-wrap; }
 .word-print-table tr { break-inside: avoid; }
 .word-print-table th { font-weight: 400; }
