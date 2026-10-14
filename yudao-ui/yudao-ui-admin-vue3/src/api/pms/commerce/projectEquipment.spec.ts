@@ -23,14 +23,14 @@ describe('project equipment order fields and device quantities', () => {
     }).mockResolvedValueOnce({ total: 101, list: [{ id: 101, orderLineId: lineB,
       orderNo: 'SO-A', lineNo: '2', productCode: 'B', allocatedQuantity: 2, details: [] }] })
     commerceApi.getSalesOrderLinePage.mockResolvedValueOnce({ total: 101, list: [
-      { id: lineA, productCode: 'A', deliveredQty: 4, openQty: 6 },
+      { id: lineA, productCode: 'A', orderQty: 10, deliveredQty: 4, openQty: 6 },
       ...Array.from({ length: 99 }, (_, index) => ({ id: `OTHER-${index}`, productCode: 'OTHER', deliveredQty: 99, openQty: 99 }))
-    ] }).mockResolvedValueOnce({ total: 101, list: [{ id: lineB, productCode: 'B', deliveredQty: 2, openQty: 0 }] })
+    ] }).mockResolvedValueOnce({ total: 101, list: [{ id: lineB, productCode: 'B', orderQty: 2, deliveredQty: 2, openQty: 0 }] })
     const result = await loadProjectEquipmentList(198)
     expect(result?.list).toEqual([
-      { productCode: 'A', productName: '设备A', productModel: 'MODEL-A', deviceCount: 4, orderNo: 'SO-A', projectQty: 100, deliveredQty: 4, openQty: 6 },
-      { productCode: 'B', productName: '设备B', productModel: 'MODEL-B', deviceCount: 2, orderNo: 'SO-A', projectQty: 2, deliveredQty: 2, openQty: 0 },
-      { productCode: 'C', productName: '设备C', productModel: 'MODEL-C', deviceCount: 1, orderNo: undefined, deliveredQty: undefined, openQty: undefined }
+      { productCode: 'A', productName: '设备A', productModel: 'MODEL-A', deviceCount: 4, orderNo: 'SO-A', projectQty: 100, orderQty: 10, deliveredQty: 4, openQty: 6 },
+      { productCode: 'B', productName: '设备B', productModel: 'MODEL-B', deviceCount: 2, orderNo: 'SO-A', projectQty: 2, orderQty: 2, deliveredQty: 2, openQty: 0 },
+      { productCode: 'C', productName: '设备C', productModel: 'MODEL-C', deviceCount: 1, orderNo: undefined, orderQty: undefined, deliveredQty: undefined, openQty: undefined }
     ])
     expect(commerceApi.getDeliveryScopePage).toHaveBeenLastCalledWith({ projectId: 198, pageNo: 2, pageSize: 100, includeHistory: false })
     expect(commerceApi.getSalesOrderLinePage).toHaveBeenLastCalledWith({ orderNo: 'SO-A', pageNo: 2, pageSize: 100 })

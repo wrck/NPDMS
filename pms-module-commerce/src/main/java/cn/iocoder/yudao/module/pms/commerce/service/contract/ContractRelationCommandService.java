@@ -88,8 +88,11 @@ public class ContractRelationCommandService {
     private void requireProjectManageScope(ContractRelationCommand command) {
         ProjectScopeResult scope;
         try {
-            scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    command.tenantId(), command.subjectUserId(), command.projectId(), ProjectScopeApi.ACTION_MANAGE));
+            scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.subjectUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         } catch (RuntimeException exception) {
             throw ContractAccessService.inaccessible();
         }

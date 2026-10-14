@@ -346,7 +346,7 @@ public class DeliveryScopeCompatibilityService {
 
     private void validateAllocationShape(List<SplitScopePreviewCommand.Allocation> allocations,
                                          List<String> errors) {
-        Set<String> keys = new HashSet<>();
+        Set<AllocationKey> keys = new HashSet<>();
         Set<String> serials = new HashSet<>();
         for (SplitScopePreviewCommand.Allocation item : allocations) {
             if (item.clientItemKey() == null || item.clientItemKey().isBlank()
@@ -355,7 +355,7 @@ public class DeliveryScopeCompatibilityService {
                 errors.add("INVALID_ALLOCATION");
                 continue;
             }
-            if (!keys.add(item.clientItemKey())) {
+            if (!keys.add(new AllocationKey(item.clientItemKey(), item.orderLineId()))) {
                 errors.add("DUPLICATE_ALLOCATION:" + item.clientItemKey());
             }
             List<String> itemSerials = normalizedSerials(item.serialNumbers());
@@ -370,6 +370,9 @@ public class DeliveryScopeCompatibilityService {
                 }
             }
         }
+    }
+
+    private record AllocationKey(String clientItemKey, Long orderLineId) {
     }
 
     private void validateTenant(Long tenantId, List<String> errors) {

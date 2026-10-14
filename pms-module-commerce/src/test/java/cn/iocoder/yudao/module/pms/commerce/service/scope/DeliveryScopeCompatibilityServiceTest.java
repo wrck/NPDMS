@@ -4,12 +4,14 @@ import cn.iocoder.yudao.module.pms.asset.api.device.AssetDeviceScopeApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.SerialScopeValidationResult;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyCommand;
 import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopeApplyResult;
+import cn.iocoder.yudao.module.pms.commerce.api.scope.dto.SplitScopePreviewCommand;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.outbox.CommerceOutboxEventDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeDetailDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.dataobject.scope.DeliveryScopeProjectVersionDO;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper;
+import cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.query.SalesOrderLineIdsQuery;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.outbox.CommerceOutboxEventMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeDetailMapper;
 import cn.iocoder.yudao.module.pms.commerce.dal.mysql.scope.DeliveryScopeMapper;
@@ -69,6 +71,94 @@ class DeliveryScopeCompatibilityServiceTest {
         row.setPayloadVersion(projectId == 100L ? 4 : 0);
         row.setVersion(0);
         return row;
+    }
+
+    @Test
+    void shouldPreviewDifferentOrderLinesForTheSameChild() {
+        SalesOrderLineDO first = line("SAME-PRODUCT");
+        SalesOrderLineDO second = line("SAME-PRODUCT");
+        second.setId(20L);
+        second.setOrderNo("SO-2");
+        DeliveryScopeDO secondParent = parentScope("5", 4L);
+        secondParent.setOrderLineId(20L);
+        when(orderLineMapper.selectByIds(any(SalesOrderLineIdsQuery.class))).thenReturn(List.of(first, second));
+        when(scopeMapper.selectActiveByProjectId(100L)).thenReturn(List.of(parentScope("5", 4L), secondParent));
+
+        SplitScopeApplyResult result = service.previewSplit(new SplitScopePreviewCommand(1L, 100L, 4L,
+                List.of(new SplitScopePreviewCommand.Allocation("A", 10L, new BigDecimal("2"), null, List.of()),
+                        new SplitScopePreviewCommand.Allocation("A", 20L, BigDecimal.ONE, null, List.of()))));
+
+        assertTrue(result.valid(), result.errors().toString());
+        assertEquals(2, result.scopes().size());
+        verify(scopeMapper, never()).insert(any(DeliveryScopeDO.class));
+    }
+
+    @Test
+    void shouldApplyAndReplayMultipleOrderLinesWithoutAdvancingAChildTwice() {
+        stubProjectFacts();
+        SalesOrderLineDO first = line("SAME-PRODUCT");
+        SalesOrderLineDO second = line("SAME-PRODUCT");
+        second.setId(20L);
+        second.setOrderNo("SO-2");
+        DeliveryScopeDO firstParent = parentScope("5", 4L);
+        DeliveryScopeDO secondParent = parentScope("5", 4L);
+        secondParent.setId(401L);
+        secondParent.setOrderLineId(20L);
+        when(orderLineMapper.selectByIdsForUpdate(any())).thenReturn(List.of(first, second));
+        when(scopeMapper.selectActiveByProjectIdForUpdate(any())).thenReturn(List.of(firstParent, secondParent));
+        AtomicLong ids = new AtomicLong(500L);
+        doAnswer(invocation -> { invocation.<DeliveryScopeDO>getArgument(0).setId(ids.getAndIncrement()); return 1; })
+                .when(scopeMapper).insert(any(DeliveryScopeDO.class));
+        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 3L, 4L, "idem",
+                Map.of("A", 101L), Map.of("A", 0L), List.of(allocation("A", "2", List.of()),
+                new SplitScopeApplyCommand.Allocation("A", 20L, BigDecimal.ONE, null, List.of())));
+
+        SplitScopeApplyResult result = service.applySplit(command);
+
+        assertTrue(result.valid(), result.errors().toString());
+        assertEquals(2, result.scopes().size());
+        ArgumentCaptor<DeliveryScopeDO> created = ArgumentCaptor.forClass(DeliveryScopeDO.class);
+        verify(scopeMapper, times(4)).insert(created.capture());
+        List<DeliveryScopeDO> children = created.getAllValues().stream().filter(scope -> scope.getProjectId() == 101L).toList();
+        assertEquals(List.of(10L, 20L), children.stream().map(DeliveryScopeDO::getOrderLineId).toList());
+        assertEquals(List.of(new BigDecimal("2"), BigDecimal.ONE), children.stream().map(DeliveryScopeDO::getAllocatedQty).toList());
+        assertTrue(children.stream().allMatch(scope -> scope.getAllocationVersion() == 1L));
+        verify(projectVersionService, times(1)).advance(argThat(row -> row.getProjectId() == 101L), anyString(), anyString(), any());
+        assertEquals(new BigDecimal("5"), firstParent.getAllocatedQty());
+        assertEquals(new BigDecimal("5"), secondParent.getAllocatedQty());
+        assertEquals("RELEASED", firstParent.getScopeStatus());
+        assertEquals("RELEASED", secondParent.getScopeStatus());
+
+        CommerceOutboxEventDO replay = new CommerceOutboxEventDO();
+        replay.setScopeVersion(5L);
+        when(outboxMapper.selectByEventId(anyString())).thenReturn(replay);
+        when(scopeMapper.selectBySourceEvidencePrefix(1L, "F-PROJ-002:idem:")).thenReturn(created.getAllValues());
+        SplitScopeApplyResult replayed = service.applySplit(command);
+        assertTrue(replayed.replayed());
+        assertEquals(result.scopes(), replayed.scopes());
+        verify(scopeMapper, times(4)).insert(any(DeliveryScopeDO.class));
+        verify(scopeMapper, times(2)).updateById(any(DeliveryScopeDO.class));
+        verify(outboxMapper, times(4)).insert(any(CommerceOutboxEventDO.class));
+    }
+
+    @Test
+    void shouldStillRejectRepeatedChildAndOrderLineBeforeWrites() {
+        SplitScopeApplyCommand command = new SplitScopeApplyCommand(1L, 100L, 3L, 4L, "idem",
+                Map.of("A", 101L), Map.of("A", 0L), List.of(allocation("A", "2", List.of()), allocation("A", "1", List.of())));
+        SplitScopeApplyResult result = service.applySplit(command);
+        assertFalse(result.valid());
+        assertTrue(result.errors().contains("DUPLICATE_ALLOCATION:A"));
+        verifyNoInteractions(orderLineMapper, scopeMapper, detailMapper, outboxMapper, projectOfficeFactApi);
+    }
+
+    @Test
+    void shouldStillRejectTheSameSerialAcrossDifferentOrderLines() {
+        SplitScopeApplyResult result = service.previewSplit(new SplitScopePreviewCommand(1L, 100L, 4L,
+                List.of(new SplitScopePreviewCommand.Allocation("A", 10L, BigDecimal.ONE, null, List.of("SN-1")),
+                        new SplitScopePreviewCommand.Allocation("A", 20L, BigDecimal.ONE, null, List.of("SN-1")))));
+        assertFalse(result.valid());
+        assertTrue(result.errors().contains("DUPLICATE_SERIAL:SN-1"));
+        verifyNoInteractions(orderLineMapper, scopeMapper, detailMapper, outboxMapper, assetDeviceScopeApi);
     }
 
     @Test

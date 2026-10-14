@@ -12,6 +12,7 @@ export interface ProjectEquipmentProduct {
   productName: string
   orderNo?: string
   projectQty?: number
+  orderQty?: number
   deliveredQty?: number
   openQty?: number
   deviceCount: number
@@ -108,6 +109,7 @@ export const loadProjectEquipmentList = async (
     return {
       ...row,
       orderNo: orderNos.size ? [...orderNos].join('、') : undefined,
+      orderQty: complete ? matched.reduce((sum, line) => sum + Number(line!.orderQty), 0) : undefined,
       deliveredQty: complete ? matched.reduce((sum, line) => sum + Number(line!.deliveredQty), 0) : undefined,
       openQty: complete ? matched.reduce((sum, line) => sum + Number(line!.openQty), 0) : undefined
     }

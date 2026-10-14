@@ -250,8 +250,12 @@ public class CommerceDeliveryScopeCommandService {
 
     private ProjectOfficeFact lockProject(Long tenantId, Long subjectUserId, Long projectId,
                                           Long projectVersion, Long projectScopeVersion) {
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, subjectUserId, projectId, ProjectScopeApi.ACTION_MANAGE, projectScopeVersion));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(subjectUserId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(projectScopeVersion).build());
         if (scope == null || !Objects.equals(scope.treeVersion(), projectScopeVersion)
                 || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw conflict("PROJECT_SCOPE_FORBIDDEN");
