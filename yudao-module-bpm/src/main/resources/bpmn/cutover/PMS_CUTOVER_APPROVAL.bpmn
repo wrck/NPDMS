@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="https://npdms/pms/cutover">
+  <process id="PMS_CUTOVER_APPROVAL" name="割接分级评审" isExecutable="true">
+    <extensionElements><flowable:executionListener event="start" expression="${cutoverBpmGuard.freeze(execution)}"/></extensionElements>
+    <startEvent id="start" name="提交割接方案"/>
+    <userTask id="INITIATOR" name="发起人确认" flowable:assignee="${cutoverUser_INITIATOR}">
+      <extensionElements>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy><flowable:candidateParam>${cutoverUser_INITIATOR}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${cutoverBpmGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <userTask id="SERVICE_MANAGER" name="服务经理审核" flowable:assignee="${cutoverUser_SERVICE_MANAGER}">
+      <extensionElements>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy><flowable:candidateParam>${cutoverUser_SERVICE_MANAGER}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${cutoverBpmGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <userTask id="SECOND_LINE" name="二线审核" flowable:assignee="${cutoverUser_SECOND_LINE}" flowable:candidateGroups="${cutoverGroup_SECOND_LINE}">
+      <extensionElements>
+        <flowable:cutoverRoleGroup>probSupporter</flowable:cutoverRoleGroup>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy><flowable:candidateParam>${cutoverUser_SECOND_LINE}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${cutoverBpmGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <userTask id="RND" name="研发审核" flowable:assignee="${cutoverUser_RND}" flowable:candidateGroups="${cutoverGroup_RND}">
+      <extensionElements>
+        <flowable:cutoverRoleGroup>probRD</flowable:cutoverRoleGroup>
+        <flowable:candidateStrategy>60</flowable:candidateStrategy><flowable:candidateParam>${cutoverUser_RND}</flowable:candidateParam>
+        <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
+        <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
+        <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>
+        <flowable:taskListener event="delete" expression="${cutoverBpmGuard.validate(task)}"/>
+      </extensionElements>
+    </userTask>
+    <exclusiveGateway id="SECOND_LINE_REQUIRED" name="A/B级"/>
+    <exclusiveGateway id="RND_REQUIRED" name="A级"/>
+    <endEvent id="end" name="评审通过"/>
+    <sequenceFlow id="f0" sourceRef="start" targetRef="INITIATOR"></sequenceFlow>
+    <sequenceFlow id="f1" sourceRef="INITIATOR" targetRef="SERVICE_MANAGER"></sequenceFlow>
+    <sequenceFlow id="f2" sourceRef="SERVICE_MANAGER" targetRef="SECOND_LINE_REQUIRED"></sequenceFlow>
+    <sequenceFlow id="f3" sourceRef="SECOND_LINE_REQUIRED" targetRef="SECOND_LINE"><conditionExpression xsi:type="tFormalExpression"><![CDATA[${cutoverGrade == 'A' || cutoverGrade == 'B'}]]></conditionExpression></sequenceFlow>
+    <sequenceFlow id="f4" sourceRef="SECOND_LINE_REQUIRED" targetRef="end"><conditionExpression xsi:type="tFormalExpression"><![CDATA[${cutoverGrade == 'C' || cutoverGrade == 'D'}]]></conditionExpression></sequenceFlow>
+    <sequenceFlow id="f5" sourceRef="SECOND_LINE" targetRef="RND_REQUIRED"></sequenceFlow>
+    <sequenceFlow id="f6" sourceRef="RND_REQUIRED" targetRef="RND"><conditionExpression xsi:type="tFormalExpression"><![CDATA[${cutoverGrade == 'A'}]]></conditionExpression></sequenceFlow>
+    <sequenceFlow id="f7" sourceRef="RND_REQUIRED" targetRef="end"><conditionExpression xsi:type="tFormalExpression"><![CDATA[${cutoverGrade == 'B'}]]></conditionExpression></sequenceFlow>
+    <sequenceFlow id="f8" sourceRef="RND" targetRef="end"></sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="diagram"><bpmndi:BPMNPlane id="plane" bpmnElement="PMS_CUTOVER_APPROVAL">
+    <bpmndi:BPMNShape id="shape_start" bpmnElement="start"><dc:Bounds x="40" y="132" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="shape_end" bpmnElement="end"><dc:Bounds x="1140" y="132" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="shape_SECOND_LINE_REQUIRED" bpmnElement="SECOND_LINE_REQUIRED"><dc:Bounds x="540" y="125" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="shape_RND_REQUIRED" bpmnElement="RND_REQUIRED"><dc:Bounds x="830" y="125" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="shape_INITIATOR" bpmnElement="INITIATOR"><dc:Bounds x="140" y="110" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="shape_SERVICE_MANAGER" bpmnElement="SERVICE_MANAGER"><dc:Bounds x="340" y="110" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="shape_SECOND_LINE" bpmnElement="SECOND_LINE"><dc:Bounds x="630" y="110" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="shape_RND" bpmnElement="RND"><dc:Bounds x="920" y="110" width="140" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="edge_f0" bpmnElement="f0"><di:waypoint x="76" y="150"/><di:waypoint x="140" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f1" bpmnElement="f1"><di:waypoint x="280" y="150"/><di:waypoint x="340" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f2" bpmnElement="f2"><di:waypoint x="480" y="150"/><di:waypoint x="540" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f3" bpmnElement="f3"><di:waypoint x="590" y="150"/><di:waypoint x="630" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f4" bpmnElement="f4"><di:waypoint x="590" y="150"/><di:waypoint x="1140" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f5" bpmnElement="f5"><di:waypoint x="770" y="150"/><di:waypoint x="830" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f6" bpmnElement="f6"><di:waypoint x="880" y="150"/><di:waypoint x="920" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f7" bpmnElement="f7"><di:waypoint x="880" y="150"/><di:waypoint x="1140" y="150"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="edge_f8" bpmnElement="f8"><di:waypoint x="1060" y="150"/><di:waypoint x="1140" y="150"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

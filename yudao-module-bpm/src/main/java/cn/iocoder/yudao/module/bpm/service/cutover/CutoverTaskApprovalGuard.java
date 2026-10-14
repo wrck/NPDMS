@@ -90,9 +90,18 @@ public class CutoverTaskApprovalGuard {
             throw new IllegalArgumentException("项目必须配置唯一有效服务经理，且审批期间不能替换");
         Long reviewer = fact.userId();
         users.validateUser(reviewer);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, reviewer, project, ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(reviewer)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || !scope.fullProjectIds().contains(project)) throw new IllegalArgumentException("服务经理无项目访问权限");
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, reviewer, project, ProjectScopeApi.ACTION_VIEW, scope.treeVersion()));
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(reviewer)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (locked == null || !Objects.equals(scope.treeVersion(), locked.treeVersion()) || !locked.fullProjectIds().contains(project))
             throw new IllegalArgumentException("服务经理项目权限已变化");
         participants.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(project, reviewer, fact.projectVersion(), "ACTIVE", null, ProjectMemberRoles.SERVICE_CODES));
