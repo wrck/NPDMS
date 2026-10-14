@@ -6,6 +6,8 @@ BRANCH='fix/visio-template-followup'
 def longrows(name,q):return c.rows(name,q,timeout=900)
 def main():
     assert not (c.ROOT/'preflight-intent.json').exists(),'No automatic preflight/creation retry'
+    assert not (c.ROOT/'initial-review.txt').exists(),'No stale review decision'
+    assert not (c.ROOT/'performance-regression.json').exists(),'No stale stop decision'
     c.save('preflight-intent.json',{'at':c.now(),'database':c.DB,'source':c.SOURCE,'budget_bytes':c.BUDGET})
     assert shutil.disk_usage('/workspace').free>=c.BUDGET,'Insufficient budget before source checks'
     assert c.run(['git','-C',str(c.REPO),'rev-parse','HEAD']).strip()==HEAD

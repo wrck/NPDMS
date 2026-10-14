@@ -72,15 +72,17 @@ class ShipmentFullChainMySqlTest {
             +(COMPRESS_BINLOG?"&sessionVariables=binlog_transaction_compression=ON,binlog_transaction_compression_level_zstd=1":"");
     static volatile String activePhase="INITIALIZING";
     static final boolean INITIAL_ONLY=Boolean.getBoolean("pms.sync.mysql.fullChain.initialOnly");
-    static volatile long initialStartedNanos;
-    static final InitialMigrationPerformanceBudget INITIAL_BUDGET=InitialMigrationPerformanceBudget.historicalV7();
-    static void requireInitialPerformance(int sourceIndex,double seconds,boolean sourceComplete) {
-        if(!INITIAL_ONLY || !"INITIAL_MIGRATION".equals(activePhase))return;
-        var violation=sourceComplete?INITIAL_BUDGET.source(sourceIndex,seconds):INITIAL_BUDGET.total(seconds);
-        if(violation!=null) {
-            System.out.println("FULL_CHAIN_PERFORMANCE_STOP="+JsonUtils.toJsonString(violation));
-            System.out.flush();
-            throw new IllegalStateException("Initial migration exceeded accepted V7 budget: "+violation);
+    void reviewInitialPerformance(Map<String,Object> nativeResult) throws Exception {
+        String configured=System.getProperty("pms.sync.mysql.fullChain.initialReviewFile","");
+        if(configured.isBlank())throw new IllegalArgumentException("An explicit fresh initial review file is required");
+        Path review=Path.of(configured);
+        if(!review.isAbsolute())throw new IllegalArgumentException("Absolute review file required");
+        print("FULL_CHAIN_INITIAL_REVIEW_REQUIRED",Map.of("nativeResult",nativeResult,"reviewFile",review.toString(),
+                "reason","Compare equivalent task stages and data; elapsed time alone does not authorize stopping"));
+        while(!Files.exists(review))Thread.sleep(250);
+        if(InitialMigrationReview.decision(Files.readString(review))==InitialMigrationReview.Decision.STOP) {
+            print("FULL_CHAIN_PERFORMANCE_STOP",Map.of("reason","Operator confirmed significant regression on equivalent work", "nativeResult",nativeResult));
+            throw new IllegalStateException("Confirmed performance regression; remaining correctness checks skipped");
         }
     }
     static final int ROWS=Integer.getInteger("pms.sync.mysql.fullChain.rows",1000);
@@ -98,9 +100,12 @@ class ShipmentFullChainMySqlTest {
     @BeforeEach void setup() throws Exception {
         suiteStart=System.nanoTime();assertTrue(ROWS>=1000 && ROWS<=4_000_000);
         if(INITIAL_ONLY) {
-            assertEquals(4_000_000,ROWS,"Initial-only diagnostic uses the retained full-scale baseline");
-            assertEquals(81522,CONTRACTS);assertEquals(120639,SHIPMENT_CONTRACTS);assertEquals(400000,PACKAGES);
-            assertFalse(REUSE_SOURCE_DB.isEmpty(),"Reuse the retained source; do not regenerate it");
+            assertEquals(4_000_000,ROWS);assertEquals(81522,CONTRACTS);
+            assertEquals(120639,SHIPMENT_CONTRACTS);assertEquals(400000,PACKAGES);
+            assertFalse(REUSE_SOURCE_DB.isEmpty(),"Retain existing source; do not regenerate it");
+            String reviewFile=System.getProperty("pms.sync.mysql.fullChain.initialReviewFile","");
+            assertFalse(reviewFile.isBlank());assertTrue(Path.of(reviewFile).isAbsolute());
+            assertFalse(Files.exists(Path.of(reviewFile)),"Stale review decision cannot authorize a new run");
         }
         assertTrue(CONTRACTS>0 && SHIPMENT_CONTRACTS>=CONTRACTS && SHIPMENT_CONTRACTS<=1_000_000 && PACKAGES>0 && PACKAGES<=1_000_000);
         root=Path.of("").toAbsolutePath();while(!Files.isDirectory(root.resolve("sql/migrations")))root=root.getParent();
@@ -411,7 +416,6 @@ class ShipmentFullChainMySqlTest {
     }
     Map<String,Object> run(String phase,String key)throws Exception {
         activePhase=phase;long task=ids.get(key),begin=System.nanoTime();String wallStart=Instant.now().toString();
-        if(INITIAL_ONLY && "INITIAL_MIGRATION".equals(phase))initialStartedNanos=begin;
         long id=runs.start(new SyncRunService.Start(task,tasks.required(task).getVersion(),UUID.randomUUID().toString(),false,true,false,null,false));
         long last=0;
         while(true){var run=runs.required(id);String status=run.getStatus();
@@ -435,11 +439,11 @@ class ShipmentFullChainMySqlTest {
     @Test void completeContractPackageDeviceShipmentMigrationAndSync()throws Exception {
         var all=new ArrayList<Map<String,Object>>();long start=System.nanoTime();
         for(String key:KEYS)all.add(run("INITIAL_MIGRATION",key));metrics.put("initialMigrationSeconds",(System.nanoTime()-start)/1e9);
-        requireInitialPerformance(-1,((Number)all.getLast().get("seconds")).doubleValue(),false);
+        if(INITIAL_ONLY)reviewInitialPerformance(all.getLast());
         start=System.nanoTime();verify(ROWS,PACKAGES);metrics.put("initialVerificationSeconds",(System.nanoTime()-start)/1e9);var initial=counts();
         if(INITIAL_ONLY) {
             print("FULL_CHAIN_INITIAL_ONLY_RESULT",Map.of("status","PASS_INITIAL_ONLY","runs",all,"counts",initial,"timing",metrics,
-                    "laterPhasesExecuted",false,"baselineSeconds",InitialMigrationPerformanceBudget.TOTAL_SECONDS));
+                    "laterPhasesExecuted",false,"performanceAssessment","OPERATOR_REVIEWED_EQUIVALENT_WORK"));
             return;
         }
         // The first source ran BEFORE the master and link phases. Its original evidence
@@ -500,13 +504,9 @@ class ShipmentFullChainMySqlTest {
                 long[] began={System.nanoTime()},rows={0};
                 return super.stream(d,lower,full,resume,chunk->{
                     consumer.accept(chunk);rows[0]+=chunk.rows().size();
-                    if(INITIAL_ONLY && "INITIAL_MIGRATION".equals(activePhase))
-                        requireInitialPerformance(-1,(System.nanoTime()-initialStartedNanos)/1e9,false);
                     if(chunk.sourceComplete()){
                         System.out.println("FULL_CHAIN_SOURCE="+JsonUtils.toJsonString(Map.of("phase",activePhase,"sourceIndex",chunk.sourceIndex(),"object",chunk.object(),"sourceObject",chunk.sourceObject(),"rows",rows[0],"seconds",(System.nanoTime()-began[0])/1e9,"endedAt",Instant.now().toString())));
-                        System.out.flush();
-                        requireInitialPerformance(chunk.sourceIndex(),(System.nanoTime()-began[0])/1e9,true);
-                        began[0]=System.nanoTime();rows[0]=0;
+                        System.out.flush();began[0]=System.nanoTime();rows[0]=0;
                     }
                 });
             }

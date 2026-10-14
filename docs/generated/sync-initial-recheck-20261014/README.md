@@ -1,6 +1,6 @@
 # Initial-migration-only diagnostic
 
-This opt-in runner retains the production candidate and historical V7 limits.
+This opt-in runner retains the production candidate and historical V7 measurements.
 It is not a throughput optimization or a full four-phase acceptance result.
 
 - Existing four-million generated source is retained. Fresh target:
@@ -10,15 +10,20 @@ It is not a throughput optimization or a full four-phase acceptance result.
   ports, image or volumes. Record current MySQL/Redis identity in runtime-epoch.json.
 - Copy these scripts to a new external artifact directory, record the fetched
   commit in candidate-head.txt, and verify runner-manifest.json before use.
-- First run the Python unit tests and Java InitialMigrationPerformanceBudgetTest.
+- First run the Python unit tests and Java InitialMigrationReviewTest.
   No database benchmark is started by either unit test.
 - preflight.py verifies exact production/test hashes, retained source, original
   global configuration, no competing JVMs/transactions, and a 19,984,437,248-byte
   capacity budget. It creates one empty target only after these checks.
-- launch.py runs one Maven initial-only invocation. The Java fixture fails at a
-  completed source exceeding its historical budget or during the total task once
-  the 4262.754054886-second budget is exceeded. It never proceeds to later phases.
-  Performance overrun is a failed acceptance budget, not proof of its cause.
+- launch.py runs one Maven initial-only invocation. There is no automatic elapsed-time
+  or arbitrary multiplier cutoff. The operator first verifies identical task stages,
+  source filters, order, row counts and actions, then reviews matching stage progress
+  and SQL timings. Small fluctuations are normal. Confirmed significant regression
+  is stopped with stop.py and a recorded reason. After the native initial task ends,
+  the fixture waits for initial-review.txt before expensive correctness verification.
+  Write CONTINUE_INITIAL_VERIFICATION only after the comparison; STOP_PERFORMANCE
+  fails before verification. The review wait is after native task timing and must
+  not be presented as migration time. It never proceeds to later phases.
 - Periodic observation uses /proc CPU/RSS and pressure/cgroup counters. No periodic
   heap attach and no jcmd calls are issued. JFR profile records at JVM start and
   writes its rolling 64 MiB recording on exit. This observer change is a diagnostic

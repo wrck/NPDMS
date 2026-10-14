@@ -36,7 +36,7 @@ def main():
     identity_ok=all(mysql[k]==pre['mysql'][k] for k in immutable) and all(mysql['State'][k]==pre['mysql']['State'][k] for k in ['Pid','StartedAt','Running','OOMKilled'])
     observer=json.loads((c.ROOT/'observer-result.json').read_text())
     result=events.get('FULL_CHAIN_INITIAL_ONLY_RESULT',[None])[-1]
-    regression=bool(events.get('FULL_CHAIN_PERFORMANCE_STOP'))
+    regression=bool(events.get('FULL_CHAIN_PERFORMANCE_STOP')) or (c.ROOT/'performance-regression.json').exists()
     passed=(not regression and execution['exit_code']==0 and not execution['disk_guard_triggered']
             and junit=={'tests':1,'failures':0,'errors':0,'skipped':0}
             and result is not None and result['status']=='PASS_INITIAL_ONLY'
