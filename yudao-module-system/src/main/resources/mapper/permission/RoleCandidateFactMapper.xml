@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.system.dal.mysql.permission.RoleCandidateFactMapper">
+    <select id="selectActorMemberships" resultType="cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi$ActorMembership">
+        SELECT u.id AS userId, r.id AS roleId, r.code AS roleCode,
+               <!-- 旧导入成员关系未提供时间；使用现有角色时间，不补写历史或伪造成员版本。 -->
+               CAST(UNIX_TIMESTAMP(GREATEST(r.update_time, COALESCE(ur.update_time, ur.create_time, r.update_time))) * 1000000 AS UNSIGNED) AS membershipWatermark,
+               CAST(UNIX_TIMESTAMP(u.update_time) * 1000000 AS UNSIGNED) AS userWatermark
+        FROM system_users u
+        INNER JOIN system_user_role ur ON ur.user_id = u.id AND ur.deleted = b'0'
+        INNER JOIN system_role r ON r.id = ur.role_id AND r.deleted = b'0'
+        WHERE u.tenant_id = #{query.tenantId} AND ur.tenant_id = #{query.tenantId}
+          AND r.tenant_id = #{query.tenantId} AND u.id = #{query.actorUserId}
+          AND u.deleted = b'0' AND u.status = 0 AND r.status = 0
+        ORDER BY r.id, ur.id
+        <if test="query.locking">FOR UPDATE</if>
+    </select>
+    <select id="selectCandidates" resultType="cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi$Candidate">
+        SELECT u.id AS userId, r.id AS roleId,
+               CAST(UNIX_TIMESTAMP(GREATEST(r.update_time, COALESCE(ur.update_time, ur.create_time, r.update_time))) * 1000000 AS UNSIGNED) AS membershipWatermark,
+               CAST(UNIX_TIMESTAMP(u.update_time) * 1000000 AS UNSIGNED) AS userWatermark
+        FROM system_users u
+        INNER JOIN system_user_role ur ON ur.user_id = u.id AND ur.deleted = b'0'
+        INNER JOIN system_role r ON r.id = ur.role_id AND r.deleted = b'0'
+        WHERE u.tenant_id = #{query.tenantId} AND ur.tenant_id = #{query.tenantId}
+          AND r.tenant_id = #{query.tenantId}
+          AND u.deleted = b'0' AND u.status = 0 AND r.status = 0 AND r.code = #{query.roleCode}
+        ORDER BY u.id, r.id, ur.id
+        <if test="query.locking">FOR UPDATE</if>
+    </select>
+</mapper>
