@@ -58,7 +58,11 @@ vi.mock('@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue',
 vi.mock('@/views/pms/engineering/configuration/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '配置实施') }) }))
 vi.mock('@/views/pms/engineering/joint-test/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '联调测试') }) }))
 vi.mock('@/views/pms/engineering/training/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '培训') }) }))
-vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '客户联系人') }) }))
+vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({
+  emits: ['changed', 'updated'],
+  setup: (_, { emit }) => () => h('div', [h('button', { onClick: () => emit('changed') }, '保存联系人'),
+    h('button', { onClick: () => emit('updated') }, '更新联系人')])
+}) }))
 vi.mock('../../project-master-detail/components/ProjectNormalClosurePanel.vue', () => ({ default: defineComponent({
   props: { projectId: [Number, String], readonly: Boolean },
   setup: (props) => () => h('div', `正常闭环办理:${props.projectId}:${props.readonly}`)
@@ -67,14 +71,15 @@ const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
 const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}) => {
   const child = ref<any>()
+  const changed = vi.fn()
   const wrapper = defineComponent({ setup: () => () => h(FlowPanel, {
-    ref: child, projectId: 9, project: { id: 9 }, selection,
+    ref: child, projectId: 9, project: { id: 9 }, selection, onChanged: changed,
     instances: { stages: [{ stageCode: 'S2', entryCriteria: '真实准入', exitCriteria: '真实准出' }], gates: stageGates, ...instancesExtra }
   } as any) })
   const view = mount(wrapper, {}, { ElDescriptions: passthrough, ElDescriptionsItem: passthrough,
     ElTable: passthrough, ElTableColumn: tableColumn, DictTag: passthrough })
   apps.push(view.app)
-  return { ...view, state: () => child.value.$.setupState, exposed: () => child.value }
+  return { ...view, changed, state: () => child.value.$.setupState, exposed: () => child.value }
 }
 beforeEach(() => {
   vi.clearAllMocks()
@@ -84,7 +89,65 @@ beforeEach(() => {
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '任务A', version: 1 }, bindingType: 'BUSINESS_OBJECT' })
   projects.getProjectStageAdvanceReadiness.mockResolvedValue({ currentStage: 'S2', nextStage: null, advanceAllowed: false, gates: [] })
 })
-afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+afterEach(() => { apps.splice(0).forEach(app => app.unmount()); vi.useRealTimers() })
+
+const findContactAction = (node: TestNode, label: string): TestNode | undefined =>
+  node.type === 'button' && textOf(node) === label ? node : node.children.map(child => findContactAction(child, label)).find(Boolean)
+const findTaskActions = (node: TestNode): TestNode | undefined =>
+  node.props?.['aria-label'] === '任务状态操作' ? node : node.children.map(findTaskActions).find(Boolean)
+const contactWorkbench = (version = 1, status = 'IN_PROGRESS') => ({
+  task: { taskId: 10, name: '用户信息录入', version, status, progress: status === 'DONE' ? 100 : 0 },
+  bindingType: 'PAGE', trustedTargetRef: '/customer-asset/customer-contact', allowedActions: status === 'DONE' ? [] : ['SUBMIT']
+})
+
+it.each(['保存联系人', '更新联系人'])('refreshes task actions and notifies the project after %s', async label => {
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench(2, 'DONE'))
+  await (findContactAction(view.root, label)!.props!.onClick as Function)(); await flush()
+  expect(view.state().workbench.task).toMatchObject({ version: 2, status: 'DONE', progress: 100 })
+  expect(view.state().workbench.allowedActions).toEqual([])
+  expect(view.changed).toHaveBeenCalledTimes(1)
+})
+
+it('waits for the committed contact event and hides stale task actions while synchronizing', async () => {
+  vi.useFakeTimers()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  await (findContactAction(view.root, '保存联系人')!.props!.onClick as Function)(); await flush()
+  expect(textOf(view.root)).toContain('正在同步任务状态')
+  expect(findTaskActions(view.root)).toBeUndefined()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench(2, 'DONE'))
+  await vi.advanceTimersByTimeAsync(2000); await flush()
+  expect(view.state().workbench.task.status).toBe('DONE')
+  expect(view.state().pageSyncing).toBe(false)
+  expect(view.changed).toHaveBeenCalledTimes(1)
+})
+
+it('does not restore old task actions after the contact refresh fails', async () => {
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockRejectedValueOnce(new Error('read unavailable'))
+  await (findContactAction(view.root, '保存联系人')!.props!.onClick as Function)(); await flush()
+  expect(textOf(view.root)).toContain('业务已保存，任务详情刷新失败')
+  expect(findTaskActions(view.root)).toBeUndefined()
+  expect(view.changed).not.toHaveBeenCalled()
+})
+
+it('stops contact polling after the user selects a different task', async () => {
+  vi.useFakeTimers()
+  api.getTaskWorkbench.mockResolvedValue(contactWorkbench())
+  const selected = reactive({ kind: 'task', stageCode: 'S2', taskId: 10 })
+  const view = render(selected); await flush()
+  await (findContactAction(view.root, '保存联系人')!.props!.onClick as Function)(); await flush()
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 11, name: '下一任务', version: 4 }, bindingType: 'BUSINESS_OBJECT' })
+  selected.taskId = 11; await flush()
+  const calls = api.getTaskWorkbench.mock.calls.length
+  await vi.advanceTimersByTimeAsync(2000); await flush()
+  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(calls)
+  expect(view.state().workbench.task.taskId).toBe(11)
+  expect(view.changed).not.toHaveBeenCalled()
+})
 
 it('opens the current project normal-closure owner inside the approval completion task', async () => {
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '项目闭环', version: 1, status: 'IN_PROGRESS' },

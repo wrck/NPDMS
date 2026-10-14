@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
-import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception0;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_CONTENT_INVALID;
 
 /** Current views resolve the effective revision's immutable file references. */
@@ -43,7 +43,8 @@ public class RequirementAnalysisRevisionFiles {
                 FormAttachmentPolicy.PURPOSE_PREFIX + "NETWORK_TOPOLOGY__ATTACHMENTS"))
                 .flatMap(set -> set.activeFacts().stream())
                 .anyMatch(file -> "AVAILABLE".equals(file.availabilityStatus()) && "ACTIVE".equals(file.referenceStatus()));
-        if (!topologyPresent) throw exception(REQUIREMENT_ANALYSIS_CONTENT_INVALID);
+        if (!topologyPresent) throw exception0(REQUIREMENT_ANALYSIS_CONTENT_INVALID.getCode(),
+                "需求分析未完成：请在“网络拓扑”上传至少一个有效附件");
         locked.forEach(set -> set.activeFacts().forEach(materials::registerNativeSourceFile));
     }
 

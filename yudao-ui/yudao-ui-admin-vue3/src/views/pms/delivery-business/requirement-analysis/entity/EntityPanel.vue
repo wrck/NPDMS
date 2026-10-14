@@ -140,8 +140,8 @@ const formatDateTime = (value?: string) => (value ? formatDate(value) : '-')
 const statusLabel = (status: string) => ({ DRAFT: '草稿', FROZEN: '已完成' })[status] || status
 const commandErrorText = (error: any) => {
   if (error?.message?.startsWith('操作已完成，但回执修订重开失败')) return error.message
-  const code = error?.data?.code || error?.code || error?.message
-  return code ? `操作未完成：${String(code)}` : '操作未完成，请刷新权威事实后重试。'
+  const reason = error?.data?.msg || error?.message || error?.msg || error?.data?.code || error?.code
+  return reason ? `操作未完成：${String(reason)}` : '操作未完成，请按错误提示检查填写内容和附件后重试。'
 }
 let loadSequence = 0
 const readDetail = async (revisionId: EntityId, projectId = props.project.id) => {

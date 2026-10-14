@@ -64,6 +64,22 @@
       @select="selectStage"
     />
 
+    <ContentWrap v-if="narrowScreen && detail?.id" class="mobile-task-navigation">
+      <details ref="mobileTaskNavigation">
+        <summary>选择任务<span v-if="stageSelection"> · {{ stageSelection.stageCode }}</span></summary>
+        <div class="mobile-stage-options" aria-label="选择任务所属阶段">
+          <el-button v-for="stage in sortedStages" :key="stage.stageCode"
+            :type="expandedStage === stage.stageCode ? 'primary' : 'default'"
+            :aria-pressed="expandedStage === stage.stageCode" @click="selectStage(stage.stageCode)">
+            {{ stage.stageCode }} {{ stage.name }}
+          </el-button>
+        </div>
+        <ProjectTaskTree v-if="expandedStage" :project-id="detail.id" :stage-code="expandedStage"
+          :refresh-token="stageTreeToken" compact @select="onMobileTaskSelect" @version="treeVersion = $event" />
+        <p v-else>请先选择阶段，再选择任务。</p>
+      </details>
+    </ContentWrap>
+
     <!-- ============ 主体：左侧导航 + 右侧内容区 ============ -->
     <div class="detail-body">
       <!-- 左侧导航：限高吸顶，内部独立滚动（导航过长不撑高整页），悬停显示细滚动条 -->
@@ -533,6 +549,7 @@
 import ProjectBaseInfo from './components/ProjectBaseInfo.vue'
 import BusinessFlowNav from './components/BusinessFlowNav.vue'
 import { computed, onMounted, provide, ref, type Component } from 'vue'
+import { useMediaQuery } from '@vueuse/core'
 import ProjectApprovalDrawer from './components/ProjectApprovalDrawer.vue'
 import { projectApprovalDetailKey } from './components/projectApprovalDetail'
 import { useRoute, useRouter } from 'vue-router'
@@ -590,6 +607,9 @@ import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requi
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
 
 defineOptions({ name: 'PmsProjectMasterDetail' })
+
+const narrowScreen = useMediaQuery('(max-width: 1024px)')
+const mobileTaskNavigation = ref<HTMLDetailsElement>()
 
 const route = useRoute()
 const projectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
@@ -853,6 +873,13 @@ const onTaskSelect = async (task: TaskNode, stageCode: string) => {
   await switchTab('stage')
 }
 
+const onMobileTaskSelect = async (task: TaskNode) => {
+  await onTaskSelect(task, expandedStage.value)
+  if (stageSelection.value?.taskId === task.taskId && mobileTaskNavigation.value) {
+    mobileTaskNavigation.value.open = false
+  }
+}
+
 const handleFlowChanged = async () => {
   stageTreeToken.value++
   await loadAll()
@@ -1020,6 +1047,20 @@ onMounted(() => {
   align-items: flex-start;
   gap: 12px;
   margin-top: 12px;
+}
+
+.mobile-task-navigation summary {
+  cursor: pointer;
+  color: var(--el-color-primary);
+}
+.mobile-stage-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.mobile-stage-options :deep(.el-button + .el-button) {
+  margin-left: 0;
 }
 
 .canvas {

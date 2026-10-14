@@ -218,8 +218,10 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
         <!-- 页面照常内嵌展示；未进入阶段时业务写操作由组件 readonly 隐藏 -->
         <template v-if="pageEmbed">
           <p v-if="workbench.trustedTargetRef === '/pms/project/normal-closure'" class="page-embed-hint">本任务在正常闭环审批通过后完成。请在下方校验条件并提交审批。</p>
+          <p v-else-if="workbench.trustedTargetRef === '/customer-asset/customer-contact'" class="page-embed-hint">联系人保存后将同步任务状态与进度；完成条件以当前任务规则为准。</p>
           <p v-else class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
-          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :readonly="taskPending" @updated="reload" />
+          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :readonly="taskPending"
+            @changed="handleEmbeddedBusinessChanged" @updated="handleEmbeddedBusinessChanged" />
         </template>
         <el-alert
           v-else
@@ -287,8 +289,10 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           @click="advanceStage"
         >推进至 {{ readiness.nextStage }}{{ nextStageName ? ` ${nextStageName}` : '' }}</el-button>
       </template>
-      <template v-else-if="workbench && !taskPending">
+      <template v-else-if="workbench && !taskPending && !loadError">
+        <span v-if="pageSyncing" role="status">业务已保存，正在同步任务状态…</span>
         <TaskStateActions
+          v-else
           ref="stateActionsRef" :workbench="workbench" :business-bound="businessBound"
           :business-fact-version="businessFactVersion" :before-action="requestLeave" @changed="handleBusinessChanged">
           <ProjectTaskDetailsEditor ref="detailsRef" :workbench="workbench" :before-action="requestLeave" @changed="handleBusinessChanged" />
@@ -393,6 +397,7 @@ const stageDeliverables = computed(() =>
 )
 const hasStageGates = computed(() => props.instances?.gates.some(gate => gate.stageCode === props.selection?.stageCode))
 const workbench = ref<TaskWorkbench>()
+const pageSyncing = ref(false)
 // 任务维度复用同一未进入判定：导航快照缺 stageCode 时以工作台任务补位
 const taskPending = computed(() => {
   if (props.selection?.kind !== 'task') return false
@@ -597,6 +602,7 @@ const loadTaskWorkbench = async (taskId: number | string, token: number) => {
 
 const load = async () => {
   const token = ++sequence
+  pageSyncing.value = false
   loadError.value = ''
   workbench.value = undefined
   businessFactVersion.value = undefined
@@ -632,9 +638,37 @@ const load = async () => {
 const reload = async () => { if (await requestLeave()) await load() }
 const handleBusinessChanged = async () => {
   if (props.selection?.taskId == null) return
-  try { await loadTaskWorkbench(props.selection.taskId, sequence) }
-  catch { loadError.value = '业务已保存，任务详情刷新失败，请重新加载。' }
-  emit('changed')
+  const token = sequence
+  try { await Promise.all([loadTaskWorkbench(props.selection.taskId, token), loadWorkspace(token)]) }
+  catch { if (current(token)) loadError.value = '业务已保存，任务详情刷新失败，请重新加载。' }
+  if (current(token)) emit('changed')
+}
+let embeddedRefresh = 0
+const handleEmbeddedBusinessChanged = async () => {
+  const taskId = props.selection?.taskId
+  if (taskId == null) return
+  const token = sequence, refresh = ++embeddedRefresh
+  const previousVersion = workbench.value?.task.version
+  // 联系人规则由提交后的事件重评；给异步完成留出回读窗口，期间不展示旧版本任务动作。
+  const attempts = workbench.value?.trustedTargetRef === '/customer-asset/customer-contact' ? 16 : 1
+  const stillCurrent = () => current(token) && refresh === embeddedRefresh
+  pageSyncing.value = true
+  try {
+    for (let attempt = 0; attempt < attempts; attempt++) {
+      if (attempt) await new Promise(resolve => setTimeout(resolve, 2000))
+      if (!stillCurrent()) return
+      const next = await TaskWorkbenchApi.getTaskWorkbench(taskId)
+      if (!stillCurrent()) return
+      workbench.value = next
+      if (next.task.version !== previousVersion || ['DONE', 'CLOSED', 'CANCELLED'].includes(next.task.status || '')) break
+    }
+    await loadWorkspace(token)
+    if (stillCurrent()) emit('changed')
+  } catch {
+    if (stillCurrent()) loadError.value = '业务已保存，任务详情刷新失败，请重新加载。'
+  } finally {
+    if (stillCurrent()) pageSyncing.value = false
+  }
 }
 const handleStageBusinessChanged = async () => { await refreshSummary(); await stageGatesRef.value?.refresh(); emit('changed') }
 const handleGateChanged = async () => { await refreshSummary(); emit('changed') }

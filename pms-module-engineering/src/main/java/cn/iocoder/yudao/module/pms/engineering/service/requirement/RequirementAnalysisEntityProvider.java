@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception0;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
 
 /** SOL owns both repositories and its single-draft/effective policy. */
@@ -313,12 +314,21 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
 
     private void validateComplete(RequirementAnalysisDO row) {
         var values = FIELDS.read(row);
+        List<String> missing = new ArrayList<>();
         for (var field : FIELDS.fields()) {
             if (!field.required()) continue;
             var value = (String) values.get(field.code());
             if (value == null || HtmlUtils.htmlUnescape(value.replaceAll("<[^>]*>", "")).replace('\u00a0', ' ').isBlank()) {
-                throw exception(REQUIREMENT_ANALYSIS_CONTENT_INVALID);
+                missing.add(switch (field.code()) {
+                    case "projectBackground" -> "项目背景";
+                    case "projectObjective" -> "项目目标";
+                    default -> field.code();
+                });
             }
+        }
+        if (!missing.isEmpty()) {
+            throw exception0(REQUIREMENT_ANALYSIS_CONTENT_INVALID.getCode(),
+                    "需求分析未完成：请填写{}", String.join("、", missing));
         }
     }
 

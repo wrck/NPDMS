@@ -28,6 +28,16 @@ it('opens current draft from workspace without reading old preparation detail', 
   expect(findButton(mounted.root,'完成并冻结')).toBeDefined()
   mounted.app.unmount()
 })
+it('retains the draft and shows the Owner validation message instead of only its code', async () => {
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
+  vi.mocked(api.complete).mockRejectedValue({ code: 1011002006, message: '需求分析未完成：请在“网络拓扑”上传至少一个有效附件' })
+  const mounted = render(); await flush()
+  await (findButton(mounted.root, '完成并冻结')!.props!.onClick as Function)(); await flush()
+  expect(textOf(mounted.root)).toContain('请在“网络拓扑”上传至少一个有效附件')
+  expect(textOf(mounted.root)).toContain('revision:31')
+  expect(api.read).not.toHaveBeenCalled()
+  mounted.app.unmount()
+})
 it('loads explicit historical revision and exposes copy only when owner permits it', async () => {
   const frozen = { ...view(), revision: { ...view().revision, ref: { entity: { entityId: '20' }, revisionId: '30' }, state: 'FROZEN' }, allowedActions: ['CREATE_DRAFT'] }
   vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: null, currentEffective: view(), allowedActions: [] })

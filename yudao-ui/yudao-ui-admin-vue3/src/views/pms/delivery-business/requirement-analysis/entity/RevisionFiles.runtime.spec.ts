@@ -16,6 +16,17 @@ const insecureCrypto = () => {
 afterEach(() => vi.unstubAllGlobals())
 
 describe('requirement analysis without secure-context randomUUID', () => {
+  it('exposes the required topology upload before completion while old frozen files stay read only', async () => {
+    const draft = mount(RevisionFiles, { revisionId: '11', fieldKey: 'NETWORK_TOPOLOGY__ATTACHMENTS', allowedActions: ['PATCH_FORM'] })
+    const history = mount(RevisionFiles, { revisionId: '12', fieldKey: 'NETWORK_TOPOLOGY__ATTACHMENTS', disabled: true })
+    await nextTick()
+    expect(textOf(draft.root)).toContain('至少上传一个有效的网络拓扑附件')
+    expect(textOf(draft.root)).toContain('upload')
+    expect(textOf(history.root)).not.toContain('至少上传')
+    expect(textOf(history.root)).not.toContain('upload')
+    draft.app.unmount(); history.app.unmount()
+  })
+
   it('mounts attachment fields on HTTP without crashing the page', async () => {
     insecureCrypto()
     const view = mount(RevisionFiles, { revisionId: '11', fieldKey: 'BACKGROUND__ATTACHMENTS' })

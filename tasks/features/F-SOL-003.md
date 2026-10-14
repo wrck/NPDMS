@@ -80,3 +80,13 @@
 - 用户明确批准移除传输说明、IP资源情况说明、运行业务情况说明及运维管理文本框，保留运维多选；流量/IP独立标题与响应宽度；业务表格按页面适配；日志留存为五项多选。
 - 新增 template-20261013-r5.json 与 V466；保留 V465、R4、原始模板及实体历史。日志选择复用文本存储，保存和查看保留原有自由文本；只读禁止修改。
 - 定向四文件18项 Vitest 通过；V466 在已确认 npdms_domain_test 实例仅新增一项迁移成功，无后端重启。浏览器 OpenCLI 扩展未连接，实际宽度、编辑保存重开及历史页面验收未执行，不能标记 UI 验收通过。
+
+## 2026-10-14 PJT2026000061 冻结提示与任务同步修复（后端待部署）
+
+- 范围：用户指定项目 `PJT2026000061 / 2110018733130579971`，模板 `993009900037 V1`；S0、S1联系人/工勘共完成 `3/17`。需求分析V1正文已保存并保留，冻结原只报泛化错误。本轮同时修复窄屏任务入口、联系人保存后的状态/进度回读及旧提交动作冲突，不改变既有Feature状态。
+- 冻结根因：当前实体 `2110296787568537602`、修订 `2110296787568537603` 为 `DRAFT V1 / version3`，项目背景、目标非空，但网络拓扑附件为空。[既定完成规则](../../specs/features/F-SOL-003-requirement-analysis-versioning.md)要求有效 `AVAILABLE/ACTIVE` 拓扑附件，不能放宽。`RequirementAnalysisEntityProvider`、`RequirementAnalysisRevisionFiles` 保留错误码 `1011002006`，改为指出缺少项目背景/目标，或“需求分析未完成：请在‘网络拓扑’上传至少一个有效附件”；`RevisionFiles` 显式提示必需并默认展开，历史冻结版只读，`EntityPanel` 优先显示Owner错误原因。后端新提示尚未部署，真实浏览器复核待执行。
+- 联系人同步：原组件发出 `changed`，`ProjectFlowPanel` 只监听 `updated`，且规则提交后异步重评。现接通两类事件并回读工作台、父层项目统计及任务树，最多轮询30秒；同步中或刷新失败隐藏旧动作，切换任务取消旧回读。5条运行测试覆盖两类事件、延迟完成、失败和任务切换。真实浏览器保存既有E2E联系人原值成功，任务仍为 `DONE / 100%`、无旧提交按钮、未新增联系人，项目仍为 `3/17`；该已完成任务不能证明真实首次自动完成，异步完成仅有组件测试证据。
+- 窄屏入口：原 `<=1024` 样式隐藏任务树且无替代入口。按用户选择，`index.vue` 复用 `ProjectTaskTree` 和现有离开保护，以原生 `details` 折叠“选择任务”，支持展开切换阶段/任务并在选择后关闭。真实浏览器在 `10.210.0.11:19191` 验证320、768、1024视口任务切换、320视口键盘收起及1440桌面，document无横向溢出；正常浏览器尺寸已恢复。后端环境固定为 `10.210.0.11:59191`。
+- 已有验证：后端定向33项零失败，入口 `test.ps1` 沿用 `worktree-toolchain.ps1` 和同一工作树锁；前端3文件33项通过，前端构建成功，本轮 `git diff --check` 已通过。全量类型检查被 `cutoverTaskInteraction.spec.ts:21-24` 的6项语法错误阻断；隔离该文件后仍有43项类型错误，本轮 `EntityPanel`、`RevisionFiles`、`ProjectFlowPanel`、`index.vue`、`flowPanel.runtime` 无命中，不能记全量类型通过。日志及截图见 [本轮证据目录](../../.run/20261014-project61-repair/)，包括 `backend-tests.log`、`frontend-tests.log`、`frontend-build.log`、`frontend-types.log`、`frontend-types-isolated.log`、`contact-after-save.png` 和 `narrow-task-navigation.png`。
+- 打包阻塞与后续：完整后端构建最初被 `CutoverWebConfiguration.java` 泛型错误阻断，经用户2026-10-14明确授权只将一行改为 `FilterRegistrationBean<OncePerRequestFilter> registration`。重试主代码通过，随后 `CutoverGovernanceGuardProviderTest`、`CutoverDashboardControllerMockMvcTest`、`CutoverFullFlowMySqlTest`、`CutoverTaskListServiceTest` 引用已删类导致 `testCompile` 失败（`backend-build.log`、`backend-build-retry.log`）。用户已选择由割接会话修复并通知后继续打包，不在本轮处理或跳过测试编译。尚无新冻结产物清单，本轮未部署、未重启59191；产物就绪后仍须明确批准重启，再复核后端精确错误提示。
+- 验收边界：未上传虚假拓扑、未冻结或推进项目、未改变模板发布状态。局部前端已浏览器复核，后端部署及新提示的浏览器验证待完成；本轮不能记全闭环Done或Implementation Done，不改写历史状态与证据。

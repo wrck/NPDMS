@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.engineering.service.requirement;
 
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO;
+import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.requirement.RequirementAnalysisMapper;
 import cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
@@ -60,7 +61,9 @@ class RequirementAnalysisTopologyAttachmentTest {
     @Test void topologyTextCannotReplaceMissingAttachment() {
         row.setNetworkTopology("<p>历史拓扑说明</p>");
         when(fileApi.inspectReferenceSets(any())).thenReturn(List.of());
-        assertThrows(Exception.class, () -> provider.freeze(ref, 1, actor));
+        var failure = assertThrows(ServiceException.class, () -> provider.freeze(ref, 1, actor));
+        assertEquals(1_011_002_006, failure.getCode());
+        assertEquals("需求分析未完成：请在“网络拓扑”上传至少一个有效附件", failure.getMessage());
         verify(mapper, never()).freeze(any()); verifyNoInteractions(materials);
     }
 
@@ -88,7 +91,17 @@ class RequirementAnalysisTopologyAttachmentTest {
 
     @Test void backgroundAndObjectiveRemainRequired() {
         row.setProjectObjective("<p>&nbsp;</p>");
-        assertThrows(Exception.class, () -> provider.freeze(ref, 1, actor));
+        var failure = assertThrows(ServiceException.class, () -> provider.freeze(ref, 1, actor));
+        assertEquals("需求分析未完成：请填写项目目标", failure.getMessage());
+        verify(mapper, never()).freeze(any()); verifyNoInteractions(fileApi, materials);
+    }
+
+    @Test void allMissingRequiredContentIsReportedWithoutFreezingOrTouchingFiles() {
+        row.setProjectBackground(null);
+        row.setProjectObjective("<p>&nbsp;</p>");
+        var failure = assertThrows(ServiceException.class, () -> provider.freeze(ref, 1, actor));
+        assertTrue(failure.getMessage().contains("项目背景"));
+        assertTrue(failure.getMessage().contains("项目目标"));
         verify(mapper, never()).freeze(any()); verifyNoInteractions(fileApi, materials);
     }
 }
