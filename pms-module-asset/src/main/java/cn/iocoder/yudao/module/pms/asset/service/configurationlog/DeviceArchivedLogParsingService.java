@@ -66,7 +66,11 @@ public class DeviceArchivedLogParsingService {
         var file=files.selectById(fileId);
         if (file==null || !Objects.equals(file.getTenantId(),tenant) || file.getDeviceId()==null)
             throw new IllegalArgumentException("设备日志不存在");
-        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,SecurityFrameworkUtils.getLoginUserId(),file.getProjectId(),ProjectScopeApi.ACTION_VIEW));
+        var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(SecurityFrameworkUtils.getLoginUserId())
+                .anchorProjectId(file.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(file.getProjectId()))
             throw new IllegalArgumentException("设备日志不在当前项目范围");
         return file;

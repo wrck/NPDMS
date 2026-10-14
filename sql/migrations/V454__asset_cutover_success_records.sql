@@ -1,0 +1,26 @@
+-- AST Owner 消费成功割接结果，保留不可变服务事实和文件版本引用。
+CREATE TABLE IF NOT EXISTS ast_device_cutover_result (
+  id bigint NOT NULL AUTO_INCREMENT,
+  tenant_id bigint NOT NULL,
+  project_id bigint NOT NULL,
+  device_id bigint NOT NULL,
+  serial_number varchar(128) NOT NULL,
+  assignment_version bigint NOT NULL,
+  task_id bigint NOT NULL,
+  closure_id bigint NOT NULL,
+  closure_version bigint NOT NULL,
+  event_id varchar(128) NOT NULL,
+  result_ref varchar(128) NOT NULL,
+  cutover_at datetime NOT NULL,
+  refresh_status varchar(32) NOT NULL,
+  result_snapshot json NOT NULL,
+  creator varchar(64) NOT NULL DEFAULT '',
+  create_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updater varchar(64) NOT NULL DEFAULT '',
+  update_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted bit(1) NOT NULL DEFAULT b'0',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_ast_cutover_device_result (tenant_id, device_id, closure_id, closure_version),
+  KEY idx_ast_cutover_task (tenant_id, project_id, task_id),
+  CONSTRAINT chk_ast_cutover_refresh CHECK (refresh_status IN ('REFRESHED','HISTORICAL_SCOPE_CHANGED'))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='资产割接成功服务记录与文件引用';

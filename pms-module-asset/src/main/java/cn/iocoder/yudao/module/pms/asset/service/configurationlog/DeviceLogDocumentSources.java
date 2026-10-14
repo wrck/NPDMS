@@ -1,4 +1,6 @@
 package cn.iocoder.yudao.module.pms.asset.service.configurationlog;
+
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.DeviceLogFileMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider;
@@ -11,7 +13,12 @@ public class DeviceLogDocumentSources implements FileDocumentSourceProvider {
     public static final String SOURCE = "AST.DEVICE_CONFIGURATION_LOG";
     private final DeviceLogFileMapper files;
     @Override public List<Descriptor> descriptors() { return List.of(new Descriptor(SOURCE, "设备配置日志（按设备归档）")); }
-    @Override public Scope resolve(Long tenant, String owner, String type, String objectId, String purpose) {
+    @Override public Scope resolve(Long tenant, FileEvidenceApi.Document document) {
+        String owner = document.ownerContext();
+        String type = document.objectType();
+        String objectId = document.objectId();
+        String purpose = document.purposeCode();
+
         if (!Objects.equals(tenant, TenantContextHolder.getRequiredTenantId()) || !"AST".equals(owner)
                 || !DeviceLogFilePolicyProvider.OBJECT.equals(type) || !DeviceLogFilePolicyProvider.PURPOSE.equals(purpose)) return null;
         Long id;

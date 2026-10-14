@@ -61,8 +61,17 @@ public class DeviceLogFilePolicyProvider implements FileBusinessObjectPolicyProv
                 ? "pms:device-log-archive:query" : "pms:device-log-archive:download");
         if (!permissions.hasAnyPermissions(actor, permission)) return denied();
         String scopeAction = write ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_VIEW;
-        var scope = lock ? scopes.getObject().lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, row.getProjectId(), scopeAction, expectedScope))
-                : scopes.getObject().resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, row.getProjectId(), scopeAction));
+        var scope = lock ? scopes.getObject().lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(scopeAction)
+                .expectedScopeVersion(expectedScope).build())
+                : scopes.getObject().resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(scopeAction).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(row.getProjectId())) return denied();
         if (lock && !Objects.equals(expectedScope,scope.treeVersion())) return denied();
         if (lock) row = files.lockFile(new DeviceLogFileLockQuery(tenant, key));

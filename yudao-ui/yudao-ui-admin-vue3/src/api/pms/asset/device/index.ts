@@ -202,7 +202,7 @@ const baseUrl = '/pms/asset/devices'
 export const getDevicePage = (params: DevicePageReqVO) =>
   request.get<PageResult<DeviceListVO[]>>({ url: `${baseUrl}/page`, params })
 
-export const getDevice = (id: number) => request.get<DeviceDetailVO>({ url: `${baseUrl}/${id}` })
+export const getDevice = (id: number | string) => request.get<DeviceDetailVO>({ url: `${baseUrl}/${id}` })
 
 export const getAssignmentHistory = (id: number, params: PageParam) =>
   request.get<PageResult<DeviceProjectRelationshipVO[]>>({

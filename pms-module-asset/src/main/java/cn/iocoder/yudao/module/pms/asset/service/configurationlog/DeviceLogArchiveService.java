@@ -227,10 +227,19 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
         if (write && !collection && !permissions.hasAnyPermissions(actor,"pms:file:upload"))
             throw problem("设备日志上传权限不足");
         String action = write ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_VIEW;
-        var current = scopes.getObject().resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, projectId, action));
+        var current = scopes.getObject().resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         if (current==null || current.treeVersion()==null || current.fullProjectIds()==null
                 || !current.fullProjectIds().contains(projectId)) throw problem("项目不在当前数据范围");
-        var scope = write ? scopes.getObject().lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, actor, projectId, action, current.treeVersion())) : current;
+        var scope = write ? scopes.getObject().lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(action)
+                .expectedScopeVersion(current.treeVersion()).build()) : current;
         if (write && (scope==null || !Objects.equals(scope.treeVersion(),current.treeVersion())))
             throw problem("项目范围已变化，请刷新后重试");
         if (scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(projectId)) throw problem("项目不在当前数据范围");

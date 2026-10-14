@@ -42,12 +42,19 @@ public class DeviceLogParsedFactService implements DeviceLogParsedFactApi {
 
     private Outcome record(ParsedLog command,Long parentId,String position) {
         validate(command);
-        var current=scopes.resolveCurrent(new ProjectCurrentScopeQuery(command.tenantId(),command.actorId(),
-                command.projectId(),ProjectScopeApi.ACTION_EDIT));
+        var current=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.actorId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (current==null || current.treeVersion()==null || current.fullProjectIds()==null
                 || !current.fullProjectIds().contains(command.projectId())) throw new IllegalArgumentException("日志解析项目不在当前写入范围");
-        var scope=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(command.tenantId(),command.actorId(),
-                command.projectId(),ProjectScopeApi.ACTION_EDIT,current.treeVersion()));
+        var scope=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.actorId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(current.treeVersion()).build());
         if (scope==null || !Objects.equals(scope.treeVersion(),current.treeVersion()))
             throw new IllegalArgumentException("项目范围已变化，请刷新后重试");
         if (scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(command.projectId()))

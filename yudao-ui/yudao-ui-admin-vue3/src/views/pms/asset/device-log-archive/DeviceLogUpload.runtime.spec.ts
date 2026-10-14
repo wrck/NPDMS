@@ -20,6 +20,29 @@ const render = (readonly = false) => {
   return { ...m, state: (m.vm as any).$.setupState }
 }
 const flush = async () => { for (let i = 0; i < 8; i++) await nextTick() }
+it('combines log filters over the authorized snapshot and resets without hiding unavailable history', async () => {
+  const file = (id: number, sourceType: Api.LogFile['sourceType']): Api.LogFile => ({
+    id, sourceType, fileName: '日志.txt', importId: id, materialId: id, archivedAt: 1, available: false
+  })
+  vi.mocked(Api.latest).mockResolvedValue([
+    { deviceId: 1, serialNumber: 'SN-001', deviceName: '核心交换机', latest: file(1, 'MANUAL_UPLOAD') },
+    { deviceId: 2, serialNumber: 'SN-002', deviceName: '核心路由器', latest: file(2, 'COLLECTION_CALLBACK') },
+    { deviceId: 3, serialNumber: 'SN-003', deviceName: '接入交换机' }
+  ])
+  const m = render()
+  try {
+    await flush()
+    m.state.filters.serialNumber = ' sn- '; m.state.filters.deviceName = '核心'
+    m.state.filters.sourceType = 'COLLECTION_CALLBACK'; m.state.search()
+    expect(m.state.filteredRows.map((row: Api.DeviceLog) => row.deviceId)).toEqual([2])
+    m.state.filters.deviceName = '不存在'; m.state.search()
+    expect(m.state.filteredRows).toEqual([])
+    m.state.resetSearch()
+    expect(m.state.filteredRows).toHaveLength(3)
+    expect(m.state.filteredRows[0].latest.available).toBe(false)
+    expect(Api.latest).toHaveBeenCalledTimes(1)
+  } finally { m.app.unmount() }
+})
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(Api.latest).mockResolvedValue([])
