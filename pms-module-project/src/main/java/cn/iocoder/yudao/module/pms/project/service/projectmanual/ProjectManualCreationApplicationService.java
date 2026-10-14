@@ -89,6 +89,10 @@ public class ProjectManualCreationApplicationService {
     private CustomerQueryApi customerQueryApi;
     @Resource
     private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceApi commerceSourceApi;
+    @Resource
+    private cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectContractScopeApi contractScopeApi;
+    @Resource
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper projectMasterMapper;
 
     /** 根项目入口解析已选择客户；子项目统一由带父范围授权的拆分应用层创建。 */
     public ManualProjectCreateResult createWithSelectedCustomer(ManualProjectCreateCommand command, Actor actor) {
@@ -207,6 +211,11 @@ public class ProjectManualCreationApplicationService {
                     new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectCommerceSourceBindCommand(
                             actor.tenantId(), project.getId(), command.contractId(), actor.actorId(),
                             command.idempotencyKey()));
+            // 首阶段准入可能已推进项目版本，必须使用当前持久化版本初始化合同下全部订单行。
+            ProjectMasterDO current = projectMasterMapper.selectByIdForUpdate(project.getId());
+            contractScopeApi.initialize(new cn.iocoder.yudao.module.pms.commerce.api.binding.ProjectContractScopeApi.ScopeContext(
+                    actor.tenantId(), project.getId(), actor.actorId(), current.getVersion(), 1L, 0L,
+                    command.idempotencyKey()));
         }
         projectSiteService.bindSites(project.getId(), command.sites());
         initializePreparationIfConfigured(project, actor);

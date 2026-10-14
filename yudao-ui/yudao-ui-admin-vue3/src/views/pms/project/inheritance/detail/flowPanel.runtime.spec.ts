@@ -59,6 +59,10 @@ vi.mock('@/views/pms/engineering/configuration/index.vue', () => ({ default: def
 vi.mock('@/views/pms/engineering/joint-test/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '联调测试') }) }))
 vi.mock('@/views/pms/engineering/training/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '培训') }) }))
 vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '客户联系人') }) }))
+vi.mock('../../project-master-detail/components/ProjectNormalClosurePanel.vue', () => ({ default: defineComponent({
+  props: { projectId: [Number, String], readonly: Boolean },
+  setup: (props) => () => h('div', `正常闭环办理:${props.projectId}:${props.readonly}`)
+}) }))
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
 const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}) => {
@@ -81,6 +85,15 @@ beforeEach(() => {
   projects.getProjectStageAdvanceReadiness.mockResolvedValue({ currentStage: 'S2', nextStage: null, advanceAllowed: false, gates: [] })
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+
+it('opens the current project normal-closure owner inside the approval completion task', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, name: '项目闭环', version: 1, status: 'IN_PROGRESS' },
+    bindingType: 'PAGE', trustedTargetRef: '/pms/project/normal-closure', allowedActions: [] })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(textOf(view.root)).toContain('正常闭环办理:9:')
+  expect(textOf(view.root)).toContain('本任务在正常闭环审批通过后完成')
+  expect(textOf(view.root)).not.toContain('使用任务状态操作推进状态')
+})
 
 it('loads configured gates for the selected parallel stage and does not show an empty extra panel for other stages', async () => {
   gates.getStageGateWorkbench.mockResolvedValue({ projectId: '9', stageCode: 'S2', planVersionId: '51', executionId: '61', executionRound: 2, gates: [] })

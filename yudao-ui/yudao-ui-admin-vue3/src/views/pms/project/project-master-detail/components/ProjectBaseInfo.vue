@@ -1,9 +1,8 @@
 <template>
   <div class="project-facts">
-    <section v-for="section in sections" :key="section.title" class="fact-section">
-      <h3>{{ section.title }}</h3>
+    <section class="fact-section legacy-project-fields" aria-label="项目基础信息">
       <dl class="fact-grid">
-        <div v-for="field in section.fields" :key="field.label" class="fact" :class="{ 'fact-wide': field.wide }">
+        <div v-for="field in baseFields" :key="field.label" class="fact" :class="{ 'fact-wide': field.wide }">
           <dt>{{ field.label }}</dt>
           <dd>{{ field.value || '—' }}</dd>
         </div>
@@ -48,7 +47,11 @@
     <section class="fact-section">
       <h3>补充信息</h3>
       <dl class="fact-grid">
-        <div class="fact fact-wide"><dt>不予跟踪原因</dt><dd>{{ project.notTrackReason || '—' }}</dd></div>
+        <div class="fact"><dt>客户单位</dt><dd>{{ project.customerName || project.customerCode || '—' }}</dd></div>
+        <div class="fact"><dt>用户服务等级</dt><dd>{{ project.serviceLevelCode || '—' }}</dd></div>
+        <div class="fact"><dt>业务层级</dt><dd>{{ project.businessLevelName || project.businessLevelCode || '—' }}</dd></div>
+        <div class="fact"><dt>项目结束日期（工勘要求）</dt><dd>{{ project.projectEndDate || '—' }}</dd></div>
+        <div class="fact fact-wide"><dt>实施地点</dt><dd>{{ project.implementationLocation || '—' }}</dd></div>
         <div class="fact fact-wide"><dt>创建原因</dt><dd>{{ project.creationReason || '—' }}</dd></div>
         <div class="fact"><dt>创建时间</dt><dd>{{ time(project.createTime) }}</dd></div>
         <div class="fact"><dt>创建来源</dt><dd>{{ label(project.sourceType, DICT_TYPE.PMS_PROJECT_SOURCE_TYPE) }}</dd></div>
@@ -72,6 +75,9 @@ interface CommerceOverview {
   executionOrders: ({ id: number; executionNo: string } & Record<string, any>)[]
 }
 const commerce = ref<CommerceOverview>()
+type MarketSource = Pick<ProjectMasterVO, 'marketName' | 'marketCode' | 'systemName' | 'systemCode' | 'expendName' | 'expendCode' | 'industryName' | 'industryCode'>
+const scopedMarketSources = ref<MarketSource[]>([])
+const marketPath = (source: MarketSource) => [source.marketName || source.marketCode, source.systemName || source.systemCode, source.expendName || source.expendCode, source.industryName || source.industryCode].filter(Boolean).join(' / ')
 const members = ref<MemberRecord[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -89,42 +95,31 @@ const salesRepresentative = computed(() => {
   const sourceNames = [...new Set((commerce.value?.executionOrders || []).map(order => order.salesRepName || order.salesRepCode).filter(Boolean))]
   return sourceNames.length ? `${sourceNames.join('、')}（执行单）` : assigned
 })
-const sections = computed<{ title: string; fields: FactField[] }[]>(() => {
+const baseFields = computed<FactField[]>(() => {
   const p = props.project
+  const orders = commerce.value?.orders || []
+  const orderCreated = orders.map(order => orders.length > 1
+    ? `${order.orderNo}：${time(order.orderCreateTime)}` : time(order.orderCreateTime)).join('\n')
   return [
-    { title: '项目档案', fields: [
-      { label: '项目编码', value: p.projectCode }, { label: '项目名称', value: p.projectName },
-      { label: '客户项目名称', value: p.customerProjectName },
-      { label: '签约方式', value: label(p.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) },
-      { label: '项目类别', value: label(p.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) },
-      { label: '实施方式', value: label(p.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) },
-      { label: '重大项目级别', value: label(p.majorProjectLevel, DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL) },
-      { label: '业务层级', value: p.businessLevelName || p.businessLevelCode },
-      { label: '结构深度', value: p.treeDepth == null ? undefined : String(p.treeDepth) },
-      { label: '项目开始时间', value: time(p.projectStartTime) },
-      { label: '项目结束日期（工勘要求）', value: p.projectEndDate },
-      { label: '实施地点', value: p.implementationLocation, wide: true }
-    ] },
-    { title: '组织与人员', fields: [
-      { label: '所属公司', value: p.companyName || p.companyCode },
-      { label: '办事处', value: p.departmentName || p.departmentCode },
-      { label: '销售代表', value: salesRepresentative.value },
-      { label: '服务经理', value: names(['SERVICE_MANAGER', 'SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2']) },
-      { label: '主责项目经理', value: p.managerName },
-      { label: '其他项目经理', value: names(['PROJECT_MANAGER'], p.managerId) },
-      { label: '市场', value: p.marketName || p.marketCode },
-      { label: '系统', value: p.systemName || p.systemCode },
-      { label: '拓展', value: p.expendName || p.expendCode },
-      { label: '行业', value: p.industryName || p.industryCode }
-    ] },
-    { title: '客户与参与方', fields: [
-      { label: '客户单位', value: p.customerName || p.customerCode },
-      { label: '最终客户单位', value: party('FINAL_CUSTOMER') },
-      { label: '下单代理商', value: party('AGENT') },
-      { label: '服务提供商', value: party('SERVICE_PROVIDER') },
-      { label: '登记合同号', value: p.contractNo },
-      { label: '用户服务等级', value: p.serviceLevelCode }
-    ] }
+    { label: '合同号', value: [...new Set([p.contractNo, ...(commerce.value?.contracts || []).map(contract => contract.contractNo)].filter(Boolean))].join('、') },
+    { label: '销售代表', value: salesRepresentative.value },
+    { label: '办事处', value: p.departmentName || p.departmentCode },
+    { label: '所属公司', value: p.companyName || p.companyCode },
+    { label: '市场部', value: marketPath(p) || [...new Set(scopedMarketSources.value.map(marketPath).filter(Boolean))].join('\n') },
+    { label: '订单创建时间', value: orderCreated },
+    { label: '项目开始时间', value: p.projectStartTime ? formatDate(p.projectStartTime, 'YYYY-MM-DD') : '—' },
+    { label: '项目类别', value: label(p.signingMethod, DICT_TYPE.PMS_SIGNING_METHOD) },
+    { label: '重大项目级别', value: label(p.majorProjectLevel, DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL) },
+    { label: '服务经理', value: names(['SERVICE_MANAGER', 'SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2']) },
+    { label: '项目类型', value: label(p.projectCategory, DICT_TYPE.PMS_PROJECT_CATEGORY) },
+    { label: '主责项目经理', value: p.managerName },
+    { label: '其他项目经理', value: names(['PROJECT_MANAGER'], p.managerId) },
+    { label: '实施方式', value: label(p.implementationMode, DICT_TYPE.PMS_IMPLEMENTATION_METHOD) },
+    { label: '下单/施工代理商', value: party('AGENT') },
+    { label: '服务提供商', value: party('SERVICE_PROVIDER') },
+    { label: '最终客户单位', value: party('FINAL_CUSTOMER') },
+    { label: '客户项目名称', value: p.customerProjectName },
+    { label: '不予跟踪原因', value: p.notTrackReason, wide: true }
   ]
 })
 const executionFields: { key: string; label: string; dict?: DICT_TYPE }[] = [
@@ -144,7 +139,7 @@ let requestId = 0
 const load = async () => {
   const id = props.project.id
   const current = ++requestId
-  commerce.value = undefined; members.value = []; error.value = ''; memberError.value = false
+  commerce.value = undefined; scopedMarketSources.value = []; members.value = []; error.value = ''; memberError.value = false
   if (!id) return
   loading.value = true
   await Promise.all([
@@ -152,7 +147,13 @@ const load = async () => {
       if (!canReadCommerce.value) return
       try {
         const value = await request.get<CommerceOverview>({ url: `/api/v1/pms/contracts/project/${id}/overview` })
-        if (current === requestId) commerce.value = value
+        if (current !== requestId) return
+        commerce.value = value
+        if (!marketPath(props.project)) {
+          const executionNos = new Set(value.orders.map(order => order.executionNo).filter(Boolean))
+          const sources = await Promise.all(value.contracts.map(contract => request.get<{ executionOrders: (MarketSource & { executionNo: string })[] }>({ url: `/api/v1/pms/contracts/${contract.id}/creation-source` })))
+          if (current === requestId) scopedMarketSources.value = sources.flatMap(source => source.executionOrders).filter(execution => executionNos.has(execution.executionNo))
+        }
       } catch { if (current === requestId) error.value = '商务资料加载失败，请重试。' }
     })(),
     (async () => {

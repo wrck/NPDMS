@@ -34,8 +34,11 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
         var project = projects.selectById(projectId);
         requireProject(project, actor);
         boolean queryOnly = QUERY.equals(permission);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId,
-                queryOnly ? ProjectScopeApi.ACTION_VIEW : ProjectScopeApi.ACTION_MANAGE));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(queryOnly ? ProjectScopeApi.ACTION_VIEW : ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(projectId)) throw failure("CLOSURE_PROJECT_SCOPE_REQUIRED");
         if (queryOnly) return new Context(project, scope.treeVersion());
@@ -50,12 +53,19 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
     public Context lock(Long projectId, Long expectedVersion, Long expectedTreeVersion, Actor actor) {
         var project = lockProject(projectId, actor.tenantId());
         if (!Objects.equals(project.getVersion(), expectedVersion)) throw failure("CLOSURE_PROJECT_VERSION_CONFLICT");
-        var scope = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(), projectId,
-                ProjectScopeApi.ACTION_MANAGE, expectedTreeVersion));
+        var scope = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(expectedTreeVersion).build());
         if (!Objects.equals(scope.treeVersion(), expectedTreeVersion) || !scope.fullProjectIds().contains(projectId))
             throw failure("CLOSURE_TREE_VERSION_CONFLICT");
-        var pm = members.selectParticipantFactsForUpdate(new ProjectParticipantFactLockQuery(actor.tenantId(), projectId,
-                actor.userId(), Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
+        var pm = members.selectParticipantFactsForUpdate(ProjectParticipantFactLockQuery.builder()
+                .tenantId(actor.tenantId())
+                .projectId(projectId)
+                .userId(actor.userId())
+                .requiredRoleCodes(Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)).build());
         if (pm.size() != 1 || !Objects.equals(project.getManagerId(), actor.userId()))
             throw failure("CLOSURE_PM_MANAGE_REQUIRED");
         return new Context(project, scope.treeVersion());

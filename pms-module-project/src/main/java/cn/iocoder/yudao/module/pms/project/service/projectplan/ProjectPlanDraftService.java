@@ -205,7 +205,11 @@ public class ProjectPlanDraftService {
     ProjectPlanScopeQuery authorize(Long projectId, Long actorId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         if (!permissions.hasAnyPermissions(actorId, MANAGE_PERMISSION)) throw exception(PROJECT_PLAN_CHANGE_FORBIDDEN);
-        var result = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+        var result = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (result == null || result.fullProjectIds() == null || !result.fullProjectIds().contains(projectId)) throw exception(PROJECT_PLAN_CHANGE_FORBIDDEN);
         return new ProjectPlanScopeQuery(tenantId, projectId);
     }

@@ -113,7 +113,11 @@ public class ProjectStageSubmissionService {
     }
 
     private boolean hasScope(Long tenantId, Long projectId, Long actorId, String action) {
-        var result = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, action));
+        var result = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         return result != null && result.fullProjectIds() != null && result.fullProjectIds().contains(projectId);
     }
     private void requireScope(Long tenantId, Long projectId, Long actorId, String action) {

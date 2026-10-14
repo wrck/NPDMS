@@ -85,6 +85,29 @@ class NormalClosureExitExecutorTest {
         verify(closureProjects).closeProjectIfMatch(any());
         verify(closureProjects).insertExitRecord(any());
     }
+    @Test
+    void approvedClosureCompletesItsTaskBeforeStageAndProjectAndStopsOnTaskFailure() {
+        var lifecycle=mock(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService.class);
+        org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService> provider=mock(org.springframework.beans.factory.ObjectProvider.class);
+        when(provider.getObject()).thenReturn(lifecycle);
+        org.springframework.test.util.ReflectionTestUtils.setField(executor,"taskLifecycle",provider);
+        var original=evaluation();
+        var pending=new NormalClosureTaskProjection(21L,"CLOSE",41L);
+        when(checks.evaluateLocked(eq(project),eq(15L),eq(103L),eq(1L),eq("closure-1")))
+                .thenReturn(new NormalClosureCheckService.Evaluation(original.policyJson(),original.checks(),original.evidence(),
+                        original.sourceVector(),original.sourceDigest(),original.graph(),pending));
+        when(executions.selectCurrentForUpdate(any())).thenReturn(List.of(round(31L,21L,"ACTIVE",1,1)));
+        when(executions.finishIfActive(any())).thenReturn(1);
+        executor.executeApprovedExit(command());
+        var ordered=inOrder(lifecycle,stages,closureProjects);
+        ordered.verify(lifecycle).completeFromNormalClosureApproval(argThat(value->value.approval().equals(command())&&value.task().equals(pending)));
+        ordered.verify(stages).updateStatusIfMatch(any());ordered.verify(closureProjects).closeProjectIfMatch(any());
+        clearInvocations(lifecycle,stages,executions,closureProjects);
+        doThrow(new IllegalStateException("TASK_ROUND_CONFLICT")).when(lifecycle).completeFromNormalClosureApproval(any());
+        assertThrows(IllegalStateException.class,()->executor.executeApprovedExit(command()));
+        verifyNoInteractions(stages);verify(executions,never()).finishIfActive(any());
+        verify(closureProjects,never()).closeProjectIfMatch(any());verify(closureProjects,never()).insertExitRecord(any());
+    }
 
     @Test
     void rejectsAnOldPlanRoundBeforeChangingTheTerminalStageOrProject() {

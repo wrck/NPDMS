@@ -23,6 +23,8 @@ import java.util.Objects;
 /** CLO-02 审批通过的 PROJ 侧退出执行：复检、终态阶段推进、NORMAL_CLOSED 写入与退出记录，整体原子。 */
 @Service @RequiredArgsConstructor
 public class NormalClosureExitExecutor implements ProjectClosureExitApi {
+    @jakarta.annotation.Resource
+    private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService> taskLifecycle;
     private final NormalClosureAccess access;
     private final NormalClosureCheckService checks;
     private final ClosureProjectMapper closureProjects;
@@ -69,6 +71,10 @@ public class NormalClosureExitExecutor implements ProjectClosureExitApi {
                 .toList();
         if (round != null && round.size() != 1)
             throw closureFailure("CLOSURE_STAGE_EXECUTION_INVALID");
+        if (evaluation.pendingClosureTask() != null)
+            taskLifecycle.getObject().completeFromNormalClosureApproval(
+                    new cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService.ApprovedClosureCompletion(
+                            command, evaluation.pendingClosureTask()));
         if (!completedStage && stages.updateStatusIfMatch(new ProjectStageStatusUpdate(command.tenantId(), command.projectId(), stage.getId(),
                 stage.getVersion(), "ACTIVE", "DONE", command.actorId().toString(), LocalDateTime.now())) != 1)
             throw closureFailure("CLOSURE_STAGE_VERSION_CONFLICT");

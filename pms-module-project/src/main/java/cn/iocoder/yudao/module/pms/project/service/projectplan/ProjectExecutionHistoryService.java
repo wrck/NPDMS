@@ -41,12 +41,20 @@ public class ProjectExecutionHistoryService {
 
     public History get(Long projectId, Long actorId) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId))
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         boolean canViewNote = permissions.hasAnyPermissions(actorId, "pms:project-task:execute");
         if (canViewNote) {
-            var handlingScope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenantId, actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+            var handlingScope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
             canViewNote = handlingScope != null && handlingScope.fullProjectIds() != null && handlingScope.fullProjectIds().contains(projectId);
         }
         final boolean showSubmissionNote = canViewNote;

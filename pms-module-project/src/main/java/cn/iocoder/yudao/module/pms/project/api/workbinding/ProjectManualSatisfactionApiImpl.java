@@ -55,10 +55,17 @@ public class ProjectManualSatisfactionApiImpl implements ProjectManualSatisfacti
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }
         var template = templates.inspectPublished(selection.templateId(), selection.revisionId());
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, selection.actorId(),
-                selection.projectId(), ProjectScopeApi.ACTION_EDIT));
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant, selection.actorId(),
-                selection.projectId(), ProjectScopeApi.ACTION_EDIT, scope.treeVersion()));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(selection.actorId())
+                .anchorProjectId(selection.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(selection.actorId())
+                .anchorProjectId(selection.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (locked == null || !Objects.equals(scope.treeVersion(), locked.treeVersion())
                 || !locked.fullProjectIds().contains(selection.projectId())) throw exception(PROJECT_TASK_QUERY_INVALID);
         if (facts.freezeManualSatisfaction(new ProjectManualSatisfactionFreeze(tenant, selection.projectId(),
@@ -71,8 +78,11 @@ public class ProjectManualSatisfactionApiImpl implements ProjectManualSatisfacti
 
     private void requireScope(Long projectId, Long actorId) {
         if (projectId == null || projectId <= 0 || actorId == null || actorId <= 0) throw exception(PROJECT_TASK_QUERY_INVALID);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(TenantContextHolder.getRequiredTenantId(),
-                actorId, projectId, ProjectScopeApi.ACTION_EDIT));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_TASK_QUERY_INVALID);
         }

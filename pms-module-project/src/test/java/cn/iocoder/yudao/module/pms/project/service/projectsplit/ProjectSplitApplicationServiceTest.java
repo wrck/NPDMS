@@ -59,7 +59,7 @@ class ProjectSplitApplicationServiceTest {
     }
 
     @Test
-    void shouldApplyWholeBatchThroughOneCommandExecution() {
+    void shouldApplyWholeBatchUsingPostInitializationChildVersions() {
         ProjectSplitDraftService.Actor actor = new ProjectSplitDraftService.Actor(1L, 9L, "corr-1");
         ProjectSplitDraftService.DraftResult draft = draft();
         when(draftService.getDraft(20L, actor)).thenReturn(draft);
@@ -77,6 +77,10 @@ class ProjectSplitApplicationServiceTest {
         ProjectMasterDO child = new ProjectMasterDO();
         child.setId(200L); child.setProjectCode("P-001-001"); child.setVersion(0L); child.setParentId(100L);
         child.setRootId(100L); child.setTreeDepth(1); child.setTreeSort(0);
+        ProjectMasterDO initializedChild = new ProjectMasterDO();
+        initializedChild.setId(200L); initializedChild.setTenantId(1L); initializedChild.setVersion(1L);
+        // Stage admission can advance the stored project while creation returns its original draft.
+        when(projectMapper.selectByIdForUpdate(200L)).thenReturn(initializedChild);
         when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L, actor.actorId(), actor.correlationId())).thenReturn(child);
         when(deliveryScopeApi.applySplit(any())).thenReturn(
                 new SplitScopeApplyResult(true, false, 6L, List.of(), List.of()));
@@ -94,7 +98,7 @@ class ProjectSplitApplicationServiceTest {
                 new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
         verify(deliveryScopeApi).applySplit(argThat(value -> value.expectedParentProjectVersion() == 3
                 && value.projectIdsByClientItemKey().get("A") == 200L
-                && value.projectVersionsByClientItemKey().get("A") == 0));
+                && value.projectVersionsByClientItemKey().get("A") == 1));
         verify(treeProjectionService).publish(eq(100L), eq(8L), anyString());
         verify(treeChangeMapper).insert(any(ProjectTreeChangeDO.class));
     }
@@ -117,6 +121,7 @@ class ProjectSplitApplicationServiceTest {
                         new ProjectSplitPreviewService.ItemResult("A", true, List.of()))));
         ProjectMasterDO child = new ProjectMasterDO(); child.setId(200L); child.setProjectCode("P-001-001");
         child.setVersion(0L);
+        when(projectMapper.selectByIdForUpdate(200L)).thenReturn(child);
         when(childCreationService.create(parent, draft.items().getFirst(), 1L, 20L, actor.actorId(), actor.correlationId())).thenReturn(child);
         when(deliveryScopeApi.applySplit(any())).thenReturn(
                 new SplitScopeApplyResult(false, false, null, List.of(), List.of("OVER_ALLOCATION:10")));

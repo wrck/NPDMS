@@ -69,7 +69,7 @@ public class ProjectTaskPlanCompletionService {
         if (!Objects.equals(binding.getId(),command.executionContractId())
                 || !Objects.equals(binding.getContractVersion(),command.contractVersion()))
             return unknown(reference,"EXECUTION_CONTRACT_VERSION_MISMATCH");
-        return evaluateInternal(project, task, binding, actor.tenantId(), () -> {
+        return evaluateInternal(new EvaluationRequest(project, task, binding, actor.tenantId(), () -> {
             String expected = command.expectedBusinessFactVersion();
             if (expected == null || !expected.matches("[0-9a-f]{64}"))
                 throw new IllegalArgumentException("BUSINESS_FACT_VERSION_REQUIRED");
@@ -77,23 +77,47 @@ public class ProjectTaskPlanCompletionService {
             if (result == null || !expected.equals(result.factVersion()))
                 throw new IllegalArgumentException("BUSINESS_FACT_VERSION_MISMATCH");
             return new TaskBusinessCompletionFacts(result, true);
-        });
+        }, null));
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
     public Result evaluateAutomatically(ProjectMasterDO project, ProjectTaskInstanceDO task,
                                         ProjectTaskExecutionContractDO binding) {
-        return evaluateInternal(project, task, binding, project.getTenantId(), () -> {
+        return evaluateInternal(new EvaluationRequest(project, task, binding, project.getTenantId(), () -> {
             var context = executionApi.inspect(new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionQuery(
                     project.getId(), task.getId(), binding.getId()));
             if (!context.writable()) throw new IllegalArgumentException("TASK_EXECUTION_UNAVAILABLE");
             return business.lockCompletionFacts(project.getTenantId(), context, binding);
-        });
+        }, null));
     }
 
-    private Result evaluateInternal(ProjectMasterDO project, ProjectTaskInstanceDO task,
-                                    ProjectTaskExecutionContractDO binding, Long tenantId,
-                                    java.util.function.Supplier<TaskBusinessCompletionFacts> ownerReader) {
+    public record ApprovedClosureTask(ProjectMasterDO project, ProjectTaskInstanceDO task,
+            ProjectTaskExecutionContractDO binding,
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval) { }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Result evaluateApprovedClosure(ApprovedClosureTask request) {
+        var approval = request.approval();
+        if (approval == null || !Objects.equals(approval.projectId(), request.project().getId())
+                || !Objects.equals(approval.tenantId(), request.project().getTenantId())
+                || !Objects.equals(approval.expectedReviewerUserId(),
+                        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId())
+                || !NormalClosureTaskCondition.matches(request.binding().getWorkBindingTypeCode(),
+                        request.binding().getBindingParameterSnapshot(), request.binding().getCompletionRuleSnapshot()))
+            throw new IllegalArgumentException("NORMAL_CLOSURE_APPROVAL_CONTEXT_INVALID");
+        return evaluateInternal(new EvaluationRequest(request.project(), request.task(), request.binding(), request.project().getTenantId(),
+                () -> null, approval));
+    }
+
+    private record EvaluationRequest(ProjectMasterDO project, ProjectTaskInstanceDO task,
+            ProjectTaskExecutionContractDO binding, Long tenantId, java.util.function.Supplier<TaskBusinessCompletionFacts> ownerReader,
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval) { }
+
+    private Result evaluateInternal(EvaluationRequest request) {
+        var project = request.project();
+        var task = request.task();
+        var binding = request.binding();
+        var tenantId = request.tenantId();
         String reference = "plan:" + project.getActivePlanVersionId() + ":task:" + task.getId();
         var scope = new ProjectPlanScopeQuery(tenantId,project.getId());
         var plan = plans.selectEffective(scope);
@@ -123,9 +147,11 @@ public class ProjectTaskPlanCompletionService {
             return unknown(reference,"RESULT_SUBSCRIPTION_TASK_CONTRACT_INVALID");
         boolean contactCompletion = ProjectContactCompletionCondition.contactPage(binding.getWorkBindingTypeCode(), binding.getBindingParameterSnapshot())
                 && ProjectContactCompletionCondition.automatic(completion);
-        if (nativeWork && !contactCompletion && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
+        boolean closureCompletion = request.approval() != null && NormalClosureTaskCondition.approvedOnly(completion);
+        if (nativeWork && !contactCompletion && !closureCompletion && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
         List<TaskBusinessLinkFact> links = List.of();
         Map<String,Object> evidence = new LinkedHashMap<>();
+        if (closureCompletion) evidence.put("normalClosureApproval", request.approval());
         cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Fact contactFact = null;
         if (contactCompletion) {
             contactFact = projectContacts.lockAndInspect(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Query(
@@ -154,7 +180,7 @@ public class ProjectTaskPlanCompletionService {
             }
             evidence.put("approval", approval);
         } else if (!nativeWork && !resultOnly) {
-            var ownerResult = ownerReader.get();
+            var ownerResult = request.ownerReader().get();
             var ownerFacts = ownerResult == null ? null : ownerResult.facts();
             if (ownerFacts==null || ownerFacts.factVersion() == null || ownerFacts.links().isEmpty())
                 return unknown(reference,"BUSINESS_FACT_VERSION_MISMATCH");
@@ -182,6 +208,8 @@ public class ProjectTaskPlanCompletionService {
         List<Map<String,Object>> criteria = new ArrayList<>();
         List<String> invalid = new ArrayList<>();
         RuleFact.Resolver resolver = leaf -> switch (leaf.predicate()) {
+            case "NORMAL_CLOSURE_APPROVED" -> closureCompletion ? RuleFact.known(true)
+                    : RuleFact.unknown("NORMAL_CLOSURE_APPROVAL_REQUIRED");
             case "PROJECT_CONTACT_EXISTS" -> currentContactFact == null ? RuleFact.unknown("PROJECT_CONTACT_FACT_UNAVAILABLE")
                     : RuleFact.known(currentContactFact.completed());
             case "WAIT_ELAPSED" -> facts.resolveRelativeTime(leaf, context, round.getId());

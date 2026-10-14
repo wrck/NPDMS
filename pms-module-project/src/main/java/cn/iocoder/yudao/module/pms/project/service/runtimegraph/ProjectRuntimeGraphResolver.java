@@ -52,14 +52,29 @@ public class ProjectRuntimeGraphResolver {
     @Transactional(propagation = Propagation.MANDATORY)
     public Resolution resolve(ProjectMasterDO project) { return resolve(project, true); }
 
-    @Transactional(propagation = Propagation.MANDATORY)
+    // Readiness may translate an expected domain rejection into a blocked read result.
+    // Leave rollback to its caller; command resolution retains its ordinary rollback behavior.
+    @Transactional(propagation = Propagation.MANDATORY,
+            noRollbackFor = cn.iocoder.yudao.framework.common.exception.ServiceException.class)
     public Resolution inspect(ProjectMasterDO project) { return resolve(project, false); }
 
     @Transactional(propagation = Propagation.MANDATORY)
     public Resolution resolveForClosure(ProjectMasterDO project) { return resolve(project, true, true); }
 
     @Transactional(propagation = Propagation.MANDATORY)
+    public Resolution resolveForClosure(ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) {
+        return resolve(new ResolutionRequest(project, true, true, pending));
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
     public Resolution inspectForClosure(ProjectMasterDO project) { return resolve(project, false, true); }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Resolution inspectForClosure(ProjectMasterDO project,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) {
+        return resolve(new ResolutionRequest(project, false, true, pending));
+    }
 
     public record ClosureGates(List<ProjectGateInstanceDO> gates, List<ProjectGateReferenceInstanceDO> references) { }
 
@@ -82,6 +97,17 @@ public class ProjectRuntimeGraphResolver {
     }
 
     private Resolution resolve(ProjectMasterDO project, boolean locked, boolean closureCheck) {
+        return resolve(new ResolutionRequest(project, locked, closureCheck, null));
+    }
+
+    private record ResolutionRequest(ProjectMasterDO project, boolean locked, boolean closureCheck,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) { }
+
+    private Resolution resolve(ResolutionRequest request) {
+        var project = request.project();
+        boolean locked = request.locked();
+        boolean closureCheck = request.closureCheck();
+        var pending = request.pending();
         if (!Objects.equals(project.getTenantId(), TenantContextHolder.getRequiredTenantId()))
             throw exception(PROJECT_STAGE_ADVANCE_INVALID, "GRAPH_TENANT_MISMATCH");
         var query = new ProjectRuntimeGraphQuery(project.getTenantId(), project.getId());
@@ -175,8 +201,10 @@ public class ProjectRuntimeGraphResolver {
 
         ProjectStageExecutionContractDO contract = byStage.get(current.getId());
         JsonNode completionRule = completionRule(contract);
-        StageTransitionTargetResolver.ConditionStatus completion = evaluator.evaluate(completionRule,
-                new ProjectRuntimeRuleEvaluator.Facts(project, current, tasks, allGates, allRefs, true));
+        var completionFacts = new ProjectRuntimeRuleEvaluator.Facts(project, current, tasks, allGates, allRefs, true);
+        StageTransitionTargetResolver.ConditionStatus completion = pending == null
+                ? evaluator.evaluate(completionRule, completionFacts)
+                : evaluator.evaluateForClosure(completionRule, completionFacts, pending);
 
         List<ProjectGateInstanceDO> gates = allGates.stream().filter(gate ->
                 (Objects.equals(gate.getStageCode(), current.getCode()) && "EXIT".equals(gate.getGateType()))

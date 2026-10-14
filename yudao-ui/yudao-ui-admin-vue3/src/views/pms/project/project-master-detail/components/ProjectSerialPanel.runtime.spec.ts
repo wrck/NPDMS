@@ -15,6 +15,21 @@ beforeEach(() => {
   vi.mocked(DeviceApi.getDevice).mockResolvedValue({ networkVersion: { syncStatus: 'NOT_AVAILABLE' } } as any)
   vi.mocked(DeviceApi.getWarrantyRecords).mockResolvedValue({ records: { list: [], total: 0 } })
 })
+it('applies combined server filters from page one and clears them on reset', async () => {
+  const m = render()
+  try {
+    await flush()
+    m.state.sn = ' SN11 '; m.state.deviceName = ' 核心设备 '; m.state.productCode = ' P001 '
+    m.state.pageNo = 3; m.state.search(); await flush()
+    expect(DeviceApi.getDevicePage).toHaveBeenLastCalledWith({
+      projectId: 1002, sn: 'SN11', name: '核心设备', productCode: 'P001', pageNo: 1, pageSize: 20
+    })
+    m.state.resetSearch(); await flush()
+    expect(DeviceApi.getDevicePage).toHaveBeenLastCalledWith({
+      projectId: 1002, sn: undefined, name: undefined, productCode: undefined, pageNo: 1, pageSize: 20
+    })
+  } finally { m.app.unmount() }
+})
 it('uses the projected complete address and refreshes it when returning to the serial tab', async () => {
   vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', locationSnapshot: JSON.stringify({ fallbackLocation: '当前手工地址' }) }], total: 1 })
   const m = render()

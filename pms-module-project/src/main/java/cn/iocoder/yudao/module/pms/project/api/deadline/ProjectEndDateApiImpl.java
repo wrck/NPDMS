@@ -32,7 +32,11 @@ public class ProjectEndDateApiImpl implements ProjectEndDateApi {
     public void validatePlanningEndDate(ProjectEndDateCommand command) {
         // Duration services already hold their participant/project lock. Do not acquire a tree-root
         // lock after it: survey writes use the opposite (tree root -> project) order.
-        var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(command.tenantId(), command.actorUserId(), command.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = scopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.actorUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(command.projectId())) throw exception(PROJECT_END_DATE_NOT_ALLOWED);
         var project = projectMapper.selectEndDateForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectEndDateRowQuery(command.tenantId(), command.projectId()));
         if (project == null || !Objects.equals(project.getTenantId(), command.tenantId()) || !"ACTIVE".equals(project.getLifecycleStatus())) throw exception(PROJECT_END_DATE_NOT_ALLOWED);
@@ -43,10 +47,18 @@ public class ProjectEndDateApiImpl implements ProjectEndDateApi {
 
     private cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO lockProject(ProjectEndDateCommand command) {
         if (command.endDate() == null || command.expectedProjectVersion() == null) throw exception(PROJECT_END_DATE_CONFLICT);
-        var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(command.tenantId(), command.actorUserId(), command.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = scopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.actorUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(command.projectId())) throw exception(PROJECT_END_DATE_NOT_ALLOWED);
-        scope = scopeApi.lockAndRevalidate(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery(
-                command.tenantId(), command.actorUserId(), command.projectId(), ProjectScopeApi.ACTION_MANAGE, scope.treeVersion()));
+        scope = scopeApi.lockAndRevalidate(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.actorUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(command.projectId())) throw exception(PROJECT_END_DATE_NOT_ALLOWED);
         var project = projectMapper.selectEndDateForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectEndDateRowQuery(command.tenantId(), command.projectId()));
         if (project == null || !Objects.equals(project.getTenantId(), command.tenantId()) || !"ACTIVE".equals(project.getLifecycleStatus())) throw exception(PROJECT_END_DATE_NOT_ALLOWED);

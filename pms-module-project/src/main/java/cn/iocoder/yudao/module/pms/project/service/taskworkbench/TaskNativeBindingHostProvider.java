@@ -129,6 +129,9 @@ public class TaskNativeBindingHostProvider implements TaskBindingHostProvider {
         // 完成取决于BPM或订阅证据，不能通过原生手工按钮制造完成事实。
         if (approval) allowedActions.retainAll(Set.of("START", "APPROVAL", "CANCEL", "ASSIGN"));
         if (resultOnly) allowedActions.retainAll(Set.of("START", "CANCEL", "ASSIGN"));
+        if (cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.matches(
+                contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot(), contract.getCompletionRuleSnapshot()))
+            allowedActions.retainAll(Set.of("START", "CANCEL", "ASSIGN"));
         return new TaskBindingInspection(contract.getWorkBindingTypeCode(), Set.copyOf(allowedActions), factVersion, null);
     }
 

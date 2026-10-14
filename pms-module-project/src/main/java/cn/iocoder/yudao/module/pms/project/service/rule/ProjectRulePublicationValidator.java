@@ -157,6 +157,16 @@ public class ProjectRulePublicationValidator {
             RuleProgram program = programs.get(keys[i]);
             if (program == null) continue; // Missing/invalid rules are reported by reference and compilation validation.
             for (RuleProgram.Leaf leaf : program.leaves()) {
+                if ("NORMAL_CLOSURE_APPROVED".equals(leaf.predicate())) {
+                    if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
+                            || !"PAGE".equals(binding.getType()) || binding.getParameters() == null
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.ROUTE
+                                    .equals(binding.getParameters().path("routePath").asText(null))
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.approvedOnly(program))
+                        issues.add(new Issue(path + "." + slots[i], "RULE_CLOSURE_COMPLETION_BINDING_REQUIRED",
+                                "闭环审批通过条件只能独立用于正常闭环PAGE任务的完成规则"));
+                    continue;
+                }
                 if ("PROJECT_CONTACT_EXISTS".equals(leaf.predicate())) {
                     if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
                             || !"PAGE".equals(binding.getType()) || binding.getParameters() == null

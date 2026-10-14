@@ -40,7 +40,11 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
 
     public record Evaluation(String policyJson, List<Check> checks, String evidence,
                              String sourceVector, String sourceDigest,
-                             ProjectRuntimeGraphResolver.Resolution graph) {
+                             ProjectRuntimeGraphResolver.Resolution graph, NormalClosureTaskProjection pendingClosureTask) {
+        public Evaluation(String policyJson, List<Check> checks, String evidence, String sourceVector,
+                          String sourceDigest, ProjectRuntimeGraphResolver.Resolution graph) {
+            this(policyJson, checks, evidence, sourceVector, sourceDigest, graph, null);
+        }
         public boolean passed() { return policyJson != null && !checks.isEmpty() && checks.stream().allMatch(Check::passed); }
     }
 
@@ -82,7 +86,10 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             links.selectActiveForUpdate(new TaskBusinessLinksQuery(project.getTenantId(), project.getId(), task.getId()));
         }
         var resultRounds = resultEvidence.lockRounds(project);
-        var graph = graphs.resolveForClosure(project);
+        var pending = NormalClosureTaskProjection.resolve(new NormalClosureTaskProjection.Query(
+                project.getTenantId(), project.getCurrentStage(), tasks, current));
+        var graph = pending == null ? graphs.resolveForClosure(project) : graphs.resolveForClosure(project, pending);
+        if (pending != null) source.put("pendingClosureTask", pending);
         var closureGates = graphs.lockClosureGates(project);
         add(checks, "TERMINAL_STAGE", graph.terminal(), graph.current().getId());
         add(checks, "STAGE_COMPLETION", graph.completion() == ConditionStatus.SATISFIED, graph.current().getId());
@@ -107,7 +114,8 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
             }
         }
         source.put("gates", gateEvidence);
-        add(checks, "ALL_TASKS_DONE", tasks.stream().allMatch(t -> "DONE".equals(t.getStatus())), project.getId());
+        add(checks, "ALL_TASKS_DONE", tasks.stream().allMatch(t -> "DONE".equals(t.getStatus())
+                || pending != null && pending.includes(t)), project.getId());
         List<Object> taskEvidence = new ArrayList<>();
         for (var task : tasks) {
             Map<String, Object> taskSource = new LinkedHashMap<>();
@@ -161,7 +169,8 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
     private static Evaluation result(String policyJson, List<Check> checks, Map<String, Object> source,
                                      ProjectRuntimeGraphResolver.Resolution graph) {
         String vector = canonical(JsonUtils.parseObject(JsonUtils.toJsonString(source), tools.jackson.databind.JsonNode.class));
-        return new Evaluation(policyJson, List.copyOf(checks), JsonUtils.toJsonString(checks), vector, digest(vector), graph);
+        return new Evaluation(policyJson, List.copyOf(checks), JsonUtils.toJsonString(checks), vector, digest(vector), graph,
+                (NormalClosureTaskProjection) source.get("pendingClosureTask"));
     }
     static String canonical(tools.jackson.databind.JsonNode node) {
         if (node.isObject()) {
@@ -202,10 +211,17 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
         var project = projects.selectById(projectId);
         if (project == null || !java.util.Objects.equals(project.getTenantId(), tenantId))
             throw closureFailure("CLOSURE_PROJECT_NOT_FOUND");
-        var graph = graphs.inspectForClosure(project);
-        boolean done = closureProjects.selectTasks(
-                new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(tenantId, projectId))
-                .stream().allMatch(t -> "DONE".equals(t.getStatus()));
+        var tasks = closureProjects.selectTasks(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.normalclosure.ClosureProjectMapper.ProjectQuery(tenantId, projectId));
+        Map<Long, ProjectTaskExecutionContractDO> current = new LinkedHashMap<>();
+        for (var task : tasks) {
+            var contract = contracts.selectCurrentByTaskId(task.getId());
+            if (contract != null) current.put(task.getId(), contract);
+        }
+        var pending = NormalClosureTaskProjection.resolve(new NormalClosureTaskProjection.Query(
+                tenantId, project.getCurrentStage(), tasks, current));
+        var graph = pending == null ? graphs.inspectForClosure(project) : graphs.inspectForClosure(project, pending);
+        boolean done = tasks.stream().allMatch(t -> "DONE".equals(t.getStatus()) || pending != null && pending.includes(t));
         return new GraphOverview(graph.terminal(), String.valueOf(graph.completion()), graph.current().getId(), done);
     }
 

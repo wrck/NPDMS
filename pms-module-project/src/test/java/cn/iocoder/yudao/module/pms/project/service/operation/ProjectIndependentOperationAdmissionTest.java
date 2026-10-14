@@ -58,8 +58,17 @@ class ProjectIndependentOperationAdmissionTest {
 
     @Test void ordinaryWriteUsesScopeLocksWithoutConsultingPlansNodesOrViews() {
         guard.lockForWrite(request(null));
-        verify(scopes).resolveCurrent(new ProjectCurrentScopeQuery(7L,8L,9L,ProjectScopeApi.ACTION_MANAGE));
-        verify(scopes).lockAndRevalidate(new ProjectScopeRevalidationQuery(7L,8L,9L,ProjectScopeApi.ACTION_MANAGE,3L));
+        verify(scopes).resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(7L)
+                .subjectUserId(8L)
+                .anchorProjectId(9L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        verify(scopes).lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(7L)
+                .subjectUserId(8L)
+                .anchorProjectId(9L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(3L).build());
         verifyNoInteractions(old, legacy, nodes, contexts);
     }
 

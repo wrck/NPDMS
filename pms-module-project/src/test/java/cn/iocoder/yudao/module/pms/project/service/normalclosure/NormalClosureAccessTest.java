@@ -25,7 +25,11 @@ class NormalClosureAccessTest {
         when(projects.selectById(10L)).thenReturn(project);
         when(permissions.hasAnyPermissions(2L, NormalClosureAccess.QUERY)).thenReturn(true);
         when(permissions.hasAnyPermissions(2L, NormalClosureAccess.SUBMIT)).thenReturn(true);
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(1L,2L,10L,ProjectScopeApi.ACTION_VIEW)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(1L)
+                .subjectUserId(2L)
+                .anchorProjectId(10L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(10L,1L,Set.of(10L),Set.of()));
         TenantContextHolder.setTenantId(1L);
         try {

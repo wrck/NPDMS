@@ -624,7 +624,7 @@ export const getProjectPage = (params: ProjectPageParams) =>
   request.get<{ list: ProjectMasterVO[]; total: number }>({ url: `${baseUrl}/page`, params })
 
 /** 项目详情（基本信息+四维+模板绑定） */
-export const getProject = (id: number) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
+export const getProject = (id: number | string) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
 
 export const classifyProject = (
   id: number,
@@ -711,7 +711,7 @@ export const advanceProjectStage = (
   })
 
 /** 成员区间列表（当前有效+历史） */
-export const getProjectMembers = (id: number) =>
+export const getProjectMembers = (id: number | string) =>
   request.get<ProjectMemberAssignmentVO[]>({ url: `${baseUrl}/${id}/members` })
 
 export interface ServiceManagerCandidateVO {

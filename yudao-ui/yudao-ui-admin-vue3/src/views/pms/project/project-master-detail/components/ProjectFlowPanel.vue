@@ -217,8 +217,9 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
       <template v-else-if="workbench?.bindingType === 'PAGE'">
         <!-- 页面照常内嵌展示；未进入阶段时业务写操作由组件 readonly 隐藏 -->
         <template v-if="pageEmbed">
-          <p class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
-          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :readonly="taskPending" />
+          <p v-if="workbench.trustedTargetRef === '/pms/project/normal-closure'" class="page-embed-hint">本任务在正常闭环审批通过后完成。请在下方校验条件并提交审批。</p>
+          <p v-else class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
+          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :readonly="taskPending" @updated="reload" />
         </template>
         <el-alert
           v-else
@@ -334,6 +335,7 @@ import ProjectTaskDetailsEditor from './ProjectTaskDetailsEditor.vue'
 import ProjectDeliverableDialog from './ProjectDeliverableDialog.vue'
 import UserTag from '@/components/UserTag/index.vue'
 import ProjectArrivalReceiptPanel from './ProjectArrivalReceiptPanel.vue'
+import ProjectNormalClosurePanel from './ProjectNormalClosurePanel.vue'
 import InstallationWorkbench from '@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'
 import ConfigurationWorkbench from '@/views/pms/engineering/configuration/with-device-logs.vue'
 import JointTestWorkbench from '@/views/pms/engineering/joint-test/with-device-logs.vue'
@@ -450,6 +452,7 @@ const loadReadiness = async () => {
 }
 // 原因码提示沿用阶段进展面板已登记的展示文案，不新增业务语义
 const guidanceLabel = (code?: string | null) => ({
+  GRAPH_TARGET_STALE: '目标阶段已有执行状态，不能按相邻阶段推进。请查看当前轮次与冻结规则。',
   S0_PRIMARY_MANAGERS_REQUIRED: '请先完成主责服务经理和主责项目经理指派，S0不能直接准出。',
   S0_PRIMARY_SERVICE_MANAGER_REQUIRED: '尚未指派有效主责服务经理，请先完成服务经理指派。',
   S0_PRIMARY_PROJECT_MANAGER_REQUIRED: '尚未指派有效主责项目经理，请先完成项目经理指派。',
@@ -568,6 +571,7 @@ const openTaskPage = () => { const route = workbench.value?.trustedTargetRef; if
 // PAGE 绑定任务的内嵌业务组件：key 为模板冻结的 routePath（trustedTargetRef）。
 // 业务操作直接在任务工作区完成，不再跳离当前界面；未映射的 routePath 保留「打开页面」跳转兜底。
 const pageEmbedComponents: Record<string, Component> = {
+  '/pms/project/normal-closure': ProjectNormalClosurePanel,
   '/pms/engineering/execution/imp-arrival': ProjectArrivalReceiptPanel,
   '/pms/engineering/execution/imp-installation': InstallationWorkbench,
   '/pms/engineering/execution/imp-configuration': ConfigurationWorkbench,
@@ -692,7 +696,8 @@ onBeforeUnmount(() => {
 .flow-action-bar {
   position: sticky;
   bottom: 0;
-  z-index: 3;
+  /* Editor 根容器使用 z-10，操作栏须位于表单内容上方。 */
+  z-index: 20;
   display: flex;
   flex-wrap: wrap;
   align-items: center;

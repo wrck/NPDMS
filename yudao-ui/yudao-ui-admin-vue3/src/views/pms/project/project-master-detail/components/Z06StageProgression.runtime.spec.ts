@@ -52,6 +52,16 @@ beforeEach(() => {
 afterEach(() => apps.splice(0).forEach((app) => app.unmount()))
 
 describe('Z06 frozen progression retry', () => {
+  it('reports a retained target as blocked and never advances or starts its process', async () => {
+    api.getProjectStageAdvanceReadiness.mockResolvedValue({ ...ready(false, 'S1', null), guidance: 'GRAPH_TARGET_STALE' })
+    const state = render(StagePanel)
+    await flush()
+    expect(state().guidanceLabel('GRAPH_TARGET_STALE')).toContain('不能按相邻阶段推进')
+    await state().recheckProgress()
+    expect(api.advanceProjectStage).not.toHaveBeenCalled()
+    expect(api.startProjectStageGateProcess).not.toHaveBeenCalled()
+    expect(state().readiness.advanceAllowed).toBe(false)
+  })
   it('uses the server frozen definition and reports failure without claiming a started process', async () => {
     const state = render(StagePanel)
     await flush()

@@ -517,6 +517,7 @@
         <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
           <ProjectProgressPanel
             :project-id="detail.id"
+            :refresh-token="treeRefreshKey"
             :tree-version="treeVersion"
           />
         </div>
@@ -558,9 +559,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
-import ProjectSplitWizard from '@/views/pms/project/project-master-detail/components/ProjectSplitWizard.vue'
+import ProjectSplitWizard from '@/views/pms/project/project-master-detail/components/ProjectSplitPanel.vue'
 import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
-import ProjectProgressPanel from '@/views/pms/project/project-master-detail/components/ProjectProgressPanel.vue'
+import ProjectProgressPanel from '@/views/pms/project/project-master-detail/components/ProjectProgressSummaryPanel.vue'
 import ProjectClosureGuardPanel from '@/views/pms/project/project-master-detail/components/ProjectClosureGuardPanel.vue'
 import ProjectNormalClosurePanel from '@/views/pms/project/project-master-detail/components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '@/views/pms/project/projects/ProjectStatusTag.vue'

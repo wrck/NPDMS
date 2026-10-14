@@ -88,8 +88,12 @@ public class ProjectAcceptanceStageEntryService {
     }
 
     private ProjectAcceptanceStageEntryResult enterOnce(ProjectAcceptanceStageEntryCommand command, Actor actor) {
-        var scope = treeScopeService.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(),
-                actor.actorId(), command.projectId(), ACTION_MANAGE, command.expectedTreeVersion()));
+        var scope = treeScopeService.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ACTION_MANAGE)
+                .expectedScopeVersion(command.expectedTreeVersion()).build());
         if (scope == null || !Objects.equals(scope.treeVersion(), command.expectedTreeVersion())
                 || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(command.projectId())) {
             throw exception(PROJECT_GOVERNANCE_ACTION_FORBIDDEN);

@@ -111,6 +111,19 @@ class TaskNativeBindingHostProviderTest {
         assertEquals("BINDING_CONTRACT_INVALID", result.recoverableError());
         assertTrue(result.allowedActions().isEmpty());
     }
+    @Test void approvalClosureDoesNotOfferManualSubmissionButOrdinaryPageKeepsIt() {
+        allowProjectScope();task.setStatus("IN_PROGRESS");
+        contract.setWorkBindingTypeCode("PAGE");contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
+        contract.setCompletionRuleSnapshot("{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}");
+        var assignment=new ProjectTaskAssignmentDO();assignment.setProjectTaskId(11L);assignment.setAssigneeUserId(9L);assignment.setVersion(1L);
+        when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
+        var submit=new TaskStateTransitionDO();submit.setFromStatusCode("IN_PROGRESS");submit.setActionCode("SUBMIT");submit.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");
+        when(stateMachineMapper.selectTransitions(any())).thenReturn(List.of(submit));
+        when(permissionApi.hasAnyPermissions(9L,"pms:project-task:execute")).thenReturn(true);
+        assertTrue(provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"closure")).allowedActions().isEmpty());
+        contract.setCompletionRuleSnapshot("{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
+        assertTrue(provider.inspect(new TaskBindingInspectionQuery(0L,11L,9L,"ordinary")).allowedActions().contains("SUBMIT"));
+    }
 
     @Test void unassignedTeamMemberGetsExecutionButNotApproval() {
         task.setStatus("PENDING_ASSIGN");

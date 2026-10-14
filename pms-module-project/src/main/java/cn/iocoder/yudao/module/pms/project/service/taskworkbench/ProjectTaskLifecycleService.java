@@ -232,6 +232,8 @@ public class ProjectTaskLifecycleService {
             roundEvidence.put("gateSnapshot", completion.businessEvidence().get("gateSnapshot"));
             roundEvidence.put("businessFacts", completion.businessEvidence().get("businessFacts"));
             roundEvidence.put("approval", completion.businessEvidence().get("approval"));
+            if (completion.businessEvidence().containsKey("normalClosureApproval"))
+                roundEvidence.put("normalClosureApproval", completion.businessEvidence().get("normalClosureApproval"));
             if (completion.businessEvidence().containsKey("subscriptionEvidence")) {
                 roundEvidence.put("subscription",completion.businessEvidence().get("subscription"));
                 roundEvidence.put("subscriptionEvidence",completion.businessEvidence().get("subscriptionEvidence"));
@@ -270,6 +272,65 @@ public class ProjectTaskLifecycleService {
     }
 
     public record AutomaticResult(boolean completed, boolean unknown) { }
+
+    public record ApprovedClosureCompletion(
+            cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand approval,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection task) { }
+
+    /** Called only after the normal-closure Owner verified BPM approval and the frozen source digest. */
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY,
+            rollbackFor = Exception.class)
+    public void completeFromNormalClosureApproval(ApprovedClosureCompletion request) {
+        var approval = request.approval();
+        Long tenant = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+        if (!Objects.equals(tenant, approval.tenantId()) || !Objects.equals(approval.expectedReviewerUserId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId()))
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        var project = taskMapper.selectProjectForCommandForUpdate(new ProjectTaskProjectLockQuery(tenant, approval.projectId()));
+        var task = taskMapper.selectTaskForAssignmentForUpdate(new TaskAssignmentCommandQuery(tenant, approval.projectId(), request.task().taskId()));
+        if (project == null || !"ACTIVE".equals(project.getLifecycleStatus()) || task == null
+                || !Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus())
+                || !Objects.equals(task.getStageCode(), project.getCurrentStage())) throw exception(PROJECT_TASK_COMMAND_INVALID);
+        var contract = requireCurrentContract(task, tenant);
+        if (!Objects.equals(contract.getId(), request.task().contractId())
+                || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.matches(
+                        contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot(), contract.getCompletionRuleSnapshot()))
+            throw exception(PROJECT_TASK_VERSION_CONFLICT);
+        var now = LocalDateTime.now();
+        var evaluated = planCompletion.evaluateApprovedClosure(new ProjectTaskPlanCompletionService.ApprovedClosureTask(
+                project, task, contract, approval));
+        var decision = guardCompletion(evaluated, task, tenant, now);
+        if (!decision.satisfied()) throw exception(PROJECT_TASK_COMMAND_INVALID);
+        String from = task.getStatus();
+        List<String> path = new ArrayList<>();
+        if ("IN_PROGRESS".equals(from)) {
+            from = stateMachineMapper.requireTransition(new TaskStateTransitionQuery(tenant,
+                    task.getStateMachineRevisionId(), from, "SUBMIT")).getToStatusCode();
+            path.add("SUBMIT");
+        }
+        var transition = stateMachineMapper.requireTransition(new TaskStateTransitionQuery(tenant,
+                task.getStateMachineRevisionId(), from, "COMPLETE"));
+        if (!"DONE".equals(transition.getToStatusCode())) throw exception(PROJECT_TASK_COMMAND_INVALID);
+        path.add("COMPLETE");
+        var evidence = new LinkedHashMap<>(decision.businessEvidence());
+        evidence.put("executionMode", "NORMAL_CLOSURE_APPROVAL"); evidence.put("transitionPath", List.copyOf(path));
+        var completion = new CompletionDecision(true, List.of(), decision.evaluationId(), decision.gateSnapshot(), now,
+                Collections.unmodifiableMap(evidence));
+        String key = "closure:" + approval.applicationId() + ":task:" + task.getId() + ":execution:" + evidence.get("executionId");
+        if (!(evidence.get("executionId") instanceof Long)) throw exception(PROJECT_TASK_COMMAND_INVALID);
+        var actor = new TaskWorkbenchActor(tenant, approval.expectedReviewerUserId(), approval.correlationId());
+        var result = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
+                        tenant, "PROJECT_TASK_NORMAL_CLOSURE_COMPLETE", actor.actorId(), key),
+                cn.hutool.crypto.digest.DigestUtil.sha256Hex(JsonUtils.toJsonString(approval)), TaskCommandResult.class,
+                () -> {
+                    insertEvaluation(key, task, contract, actor, now, completion);
+                    return applyTransition(project, task, contract, "COMPLETE", transition, completion, actor, now, null);
+                }, completed -> successFacts(completed, "COMPLETE", actor,
+                        ActionFacts.changed(task, contract, completion, now, task.getStatus())));
+        if (result.decision() == PlatformCommandExecutionApi.Decision.CONFLICT
+                || result.decision() == PlatformCommandExecutionApi.Decision.IN_PROGRESS || result.response() == null)
+            throw exception(PROJECT_TASK_VERSION_CONFLICT);
+    }
 
     /** Internal rule command, not exposed by the user-action controller. No simulated user/session. */
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
@@ -388,8 +449,11 @@ public class ProjectTaskLifecycleService {
     }
 
     private void requireProjectScope(ProjectTaskInstanceDO task, TaskWorkbenchActor actor, String action) {
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), task.getProjectId(), action));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(task.getProjectId())
+                .actionCode(action).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         }

@@ -25,8 +25,11 @@ public class ProjectDeviceSelectionContextApiImpl implements ProjectDeviceSelect
         Long tenantId = TenantContextHolder.getRequiredTenantId();
         Long userId = getLoginUserId();
         if (projectId == null || projectId <= 0 || userId == null) throw exception(PROJECT_NOT_EXISTS);
-        var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, userId, projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = scopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(userId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw exception(PROJECT_NOT_EXISTS);
         }

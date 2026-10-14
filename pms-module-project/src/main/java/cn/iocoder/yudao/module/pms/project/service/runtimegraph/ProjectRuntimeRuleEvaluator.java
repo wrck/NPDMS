@@ -51,8 +51,36 @@ public class ProjectRuntimeRuleEvaluator {
         return evaluator.evaluate(ruleVersionReference, program, leaf -> resolveFact(leaf, facts));
     }
 
+    /** Only closure readiness may project its designated approval task as complete. */
+    public ConditionStatus evaluateForClosure(JsonNode rule, Facts facts,
+            cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection pending) {
+        if (pending == null) return evaluate(rule, facts);
+        try {
+            var tasks = facts.tasks().stream().map(task -> {
+                if (!pending.includes(task)) return task;
+                var copy = cn.iocoder.yudao.framework.common.util.object.BeanUtils.toBean(task, ProjectTaskInstanceDO.class);
+                copy.setStatus("DONE");
+                return copy;
+            }).toList();
+            var projected = new Facts(facts.project(), facts.stage(), tasks, facts.gates(), facts.references(), facts.stageCompletion());
+            var result = evaluator.evaluate("closure:" + facts.project().getId() + ":stage:" + facts.stage().getId(),
+                    compiler.compile(rule), leaf -> "TASK".equals(leaf.predicate())
+                            && pending.taskCode().equals(leaf.parameters().path("refCode").asText())
+                            ? RuleFact.known(true) : resolveFact(leaf, projected));
+            return switch (result.outcome()) {
+                case MATCHED -> ConditionStatus.SATISFIED;
+                case NOT_MATCHED -> ConditionStatus.UNSATISFIED;
+                case UNKNOWN -> ConditionStatus.UNAVAILABLE;
+            };
+        } catch (RuntimeException unavailable) {
+            return ConditionStatus.UNAVAILABLE;
+        }
+    }
+
     public RuleFact resolveFact(RuleProgram.Leaf leaf, Facts facts) {
         String predicate = leaf.predicate();
+        if (cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.PREDICATE.equals(predicate))
+            return RuleFact.unknown("NORMAL_CLOSURE_APPROVAL_REQUIRED");
         if ("CHILD_PROJECT_WAIT".equals(predicate)) return childWait.resolve(facts.project(), leaf.parameters());
         if ("WAIT_ELAPSED".equals(predicate)) return resolveRelativeTime(leaf, facts, null);
         if ("TIME_REACHED".equals(predicate))

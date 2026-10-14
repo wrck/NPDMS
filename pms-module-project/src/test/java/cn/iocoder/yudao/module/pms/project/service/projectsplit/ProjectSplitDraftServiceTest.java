@@ -138,6 +138,51 @@ class ProjectSplitDraftServiceTest {
         verify(treeScopeService).assertFullAccess(new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 7L));
     }
 
+    @Test
+    void shouldReopenStaleDraftAndAppliedRequestUsingCurrentAuthorizationWithoutChangingWatermarks() {
+        var request = readableRequest();
+        doAnswer(invocation -> {
+            ProjectScopeQuery query = invocation.getArgument(0);
+            if (!Long.valueOf(8L).equals(query.expectedTreeVersion())) {
+                throw new IllegalStateException("historical tree version cannot authorize current access");
+            }
+            return null;
+        }).when(treeScopeService).assertFullAccess(any());
+
+        for (String status : List.of("DRAFT", "APPLIED")) {
+            request.setStatus(status);
+            var result = service.getDraft(20L, new ProjectSplitDraftService.Actor(1L, 9L, "reopen"));
+            assertSame(request, result.request());
+            assertEquals(7L, result.request().getTreeVersion());
+            assertEquals(status, result.request().getStatus());
+        }
+        verify(treeScopeService, times(2)).assertFullAccess(new ProjectScopeQuery(1L, 9L, 100L, "PROJECT_MANAGE", 8L));
+    }
+
+    @Test
+    void shouldNotRevealDraftDetailsWhenCurrentTreePermissionWasRevoked() {
+        readableRequest();
+        doThrow(new IllegalStateException("access revoked")).when(treeScopeService).assertFullAccess(any());
+
+        assertThrows(IllegalStateException.class,
+                () -> service.getDraft(20L, new ProjectSplitDraftService.Actor(1L, 9L, "reopen-denied")));
+        verifyNoInteractions(itemMapper, scopeMapper);
+    }
+
+    private ProjectSplitRequestDO readableRequest() {
+        var request = new ProjectSplitRequestDO();
+        request.setId(20L); request.setTenantId(1L); request.setParentProjectId(100L); request.setTreeVersion(7L);
+        when(requestMapper.selectById(20L)).thenReturn(request);
+        var parent = new ProjectMasterDO(); parent.setId(100L); parent.setTenantId(1L); parent.setRootId(100L);
+        when(projectMapper.selectById(100L)).thenReturn(parent);
+        var relation = new ProjectCompanyDepartmentRelationDO(); relation.setCompanyId(1L); relation.setDepartmentId(2L);
+        when(organizationMapper.selectPrimaryOrderOffice(100L)).thenReturn(relation);
+        when(organizationScopeApi.hasScope(9L, 1L, 2L)).thenReturn(true);
+        var tree = new ProjectTreeVersionDO(); tree.setTreeVersion(8L);
+        when(treeVersionMapper.selectLatestActive(100L)).thenReturn(tree);
+        return request;
+    }
+
     private ProjectSplitDraftCommand command() {
         return new ProjectSplitDraftCommand(20L, 2, 100L, null, List.of(
                 new ProjectSplitDraftCommand.Item("A", "子项目A", null, 0, null, List.of(

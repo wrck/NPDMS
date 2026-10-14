@@ -72,10 +72,17 @@ public class ProjectCustomerCorrectionService {
     }
 
     private Result correctOnce(Command command, Actor actor) {
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(),
-                command.projectId(), ProjectScopeApi.ACTION_MANAGE));
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(),
-                command.projectId(), ProjectScopeApi.ACTION_MANAGE, scope.treeVersion()));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (!locked.fullProjectIds().contains(command.projectId())) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
         var project = mapper.selectByIdForUpdate(command.projectId());
         if (project == null || !Objects.equals(project.getTenantId(), actor.tenantId())

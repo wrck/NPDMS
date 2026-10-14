@@ -87,10 +87,19 @@ public class ProjectOperationContextResolver {
                 && nodeId.equals(round.getNodeInstanceId())).toList();
         if (matches.size() != 1) return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_NOT_UNIQUE");
         var round = matches.getFirst();
+        boolean historical = !plan.getId().equals(round.getPlanVersionId())
+                && round.getEndedAt() != null && Set.of("DONE", "TERMINATED").contains(round.getStatus())
+                && Set.of("DONE", "CLOSED", "CANCELLED", "CANCELED").contains(summary.status());
         if (!tenant.equals(round.getTenantId()) || !projectId.equals(round.getProjectId())
-                || !plan.getId().equals(round.getPlanVersionId()) || round.getContractId() == null)
+                || !historical && !plan.getId().equals(round.getPlanVersionId()) || round.getContractId() == null)
             return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_STALE");
         try {
+            if (historical) {
+                plan = plans.selectById(round.getPlanVersionId());
+                if (plan == null || !tenant.equals(plan.getTenantId()) || !projectId.equals(plan.getProjectId())
+                        || !Set.of("EFFECTIVE", "SUPERSEDED").contains(plan.getStatus()))
+                    return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_STALE");
+            }
             var frozen = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
             var bindings = "TASK".equals(kind) ? frozen.getTasks().stream()
                     .filter(node -> Objects.equals(node.getNodeKey(), round.getNodeKey()) && summary.code().equals(node.getCode()))
@@ -102,6 +111,9 @@ public class ProjectOperationContextResolver {
             var matched = bindings.getFirst();
             var presentation = matched.execution() == null ? null
                     : TemplateExecutionConfiguration.read(matched.execution()).presentation();
+            // Ended rounds intentionally retain their original plan. Expose its view, never a writable context.
+            if (historical) return new Context(tenant, actor, project, summary, round, matched.binding(), null,
+                    false, expected == null ? null : "EXECUTION_VERSION_CONFLICT", presentation);
             ProjectBusinessExecutionSelection selection;
             boolean permitted;
             if ("TASK".equals(kind)) {
@@ -116,7 +128,11 @@ public class ProjectOperationContextResolver {
                 if (!Objects.equals(current.executionId(), round.getId()) || !Objects.equals(current.planVersionId(), plan.getId()))
                     return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_STALE");
                 selection = new ProjectBusinessExecutionSelection(null, current);
-                var edit = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, projectId, ProjectScopeApi.ACTION_EDIT));
+                var edit = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
                 permitted = current.writable() && permissions.hasAnyPermissions(actor, "pms:project-task:execute")
                         && edit != null && edit.fullProjectIds() != null && edit.fullProjectIds().contains(projectId);
             }

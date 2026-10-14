@@ -1,0 +1,34 @@
+package cn.iocoder.yudao.module.pms.project.domain.rule;
+
+import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import tools.jackson.databind.JsonNode;
+
+/** A terminal task completed only by the approved normal-closure transaction. */
+public final class NormalClosureTaskCondition {
+    public static final String PREDICATE = "NORMAL_CLOSURE_APPROVED";
+    public static final String ROUTE = "/pms/project/normal-closure";
+
+    private NormalClosureTaskCondition() { }
+
+    public static boolean matches(String bindingType, String parameters, String completionRule) {
+        if (!"PAGE".equals(bindingType) || parameters == null || completionRule == null) return false;
+        try {
+            return ROUTE.equals(JsonUtils.parseTree(parameters).path("routePath").asText(null))
+                    && approvedOnly(JsonUtils.parseTree(completionRule));
+        } catch (RuntimeException invalid) {
+            return false;
+        }
+    }
+
+    public static boolean approvedOnly(JsonNode rule) {
+        return rule != null && rule.isObject() && !rule.has("operator")
+                && PREDICATE.equals(rule.path("predicate").asText())
+                && rule.path("parameters").isObject() && rule.path("parameters").isEmpty();
+    }
+
+    public static boolean approvedOnly(RuleProgram program) {
+        return program != null && program.leaves().size() == 1
+                && "rule".equals(program.leaves().getFirst().path())
+                && PREDICATE.equals(program.leaves().getFirst().predicate());
+    }
+}

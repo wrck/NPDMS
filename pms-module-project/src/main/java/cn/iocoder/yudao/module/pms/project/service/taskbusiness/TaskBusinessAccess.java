@@ -85,7 +85,11 @@ class TaskBusinessAccess {
     ProjectMasterDO project(Long id) { return projectMapper.selectById(id); }
 
     private boolean fullScope(Context context, String action) {
-        var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(context.tenantId(), context.actorId(), context.projectId(), action));
+        var scope = scopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.tenantId())
+                .subjectUserId(context.actorId())
+                .anchorProjectId(context.projectId())
+                .actionCode(action).build());
         return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(context.projectId());
     }
 }

@@ -8,6 +8,17 @@ import tools.jackson.databind.JsonNode;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TemplateCompilerTest {
+    @Test void normalClosureTaskRequiresATerminalOwnerApprovalContract() {
+        var designer=validDesigner();var task=designer.getTasks().getFirst();
+        task.getWorkBinding().setType("PAGE");task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/project/normal-closure\"}"));
+        var completion=new TemplateDesignerDocument.RuleSpec();completion.setExpression(JsonUtils.parseTree("{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}"));task.setCompletionRule(completion);
+        assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue->"CLOSURE_TASK_CONTRACT_INVALID".equals(issue.code())));
+        designer.setClosurePolicy(JsonUtils.parseTree("{\"closureType\":\"NORMAL\",\"ruleRevision\":1,\"reviewerUserId\":1,\"requireAllTasksDone\":true,\"processDefinitionKey\":\"PMS_MINIMAL_NORMAL_CLOSURE\",\"requireTerminalStage\":true,\"revalidateBusinessFacts\":true}"));
+        var valid=compiler.compile(designer);assertTrue(valid.valid(),()->valid.issues().toString());
+        task.setStageCode("S0");assertTrue(compiler.compile(designer).issues().stream().anyMatch(issue->"CLOSURE_TASK_CONTRACT_INVALID".equals(issue.code())));
+        task.setStageCode("S1");task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"routePath\":\"/other\"}"));
+        assertFalse(compiler.compile(designer).valid());
+    }
     private final TemplateCompiler compiler = new TemplateCompiler();
 
     @Test void lifecycleBindingIsRequiredFrozenAndIndependentOfCustomStageCode() {

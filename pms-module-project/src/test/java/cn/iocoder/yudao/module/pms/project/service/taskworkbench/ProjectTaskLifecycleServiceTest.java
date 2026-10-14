@@ -655,6 +655,45 @@ class ProjectTaskLifecycleServiceTest {
         } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
     }
 
+    @Test @SuppressWarnings("unchecked")
+    void normalClosureApprovalUsesTheFrozenTransitionsAndRecordsApprovalInTheSameRound() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        var login=new cn.iocoder.yudao.framework.security.core.LoginUser();login.setId(1L);login.setTenantId(0L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(login,new org.springframework.mock.web.MockHttpServletRequest());
+        try {
+            var task=automaticTask("IN_PROGRESS");
+            org.mockito.Mockito.reset(businessEvaluator);
+            var project=taskMapper.selectProjectForCommandForUpdate(null);project.setCurrentStage(task.getStageCode());
+            var contract=contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L));
+            contract.setWorkBindingTypeCode("PAGE");contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
+            contract.setCompletionRuleSnapshot("{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}");
+            var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(0L,100L,1L,1L,3L,"closure",101L,102L,1L,task.getStageCode(),5L,"digest","bpm-1",1L);
+            var evidence=new java.util.LinkedHashMap<String,Object>();evidence.put("executionId",61L);evidence.put("normalClosureApproval",approval);
+            when(businessEvaluator.evaluateApprovedClosure(any())).thenReturn(planned(true,java.util.List.of(),evidence));
+            when(stateMachineMapper.requireTransition(any())).thenAnswer(call->{
+                var query=(cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.TaskStateTransitionQuery)call.getArgument(0);
+                var transition=new TaskStateTransitionDO();transition.setToStatusCode("SUBMIT".equals(query.actionCode())?"PENDING_ACCEPT":"DONE");return transition;
+            });
+            when(taskMapper.updateLifecycleIfMatch(any())).thenReturn(1);when(evaluationMapper.insertEvaluation(any())).thenReturn(1);
+            when(commandExecutionApi.execute(any(),any(),any(),any(),any())).thenAnswer(call->{
+                var scope=(PlatformCommandExecutionApi.IdempotencyScope)call.getArgument(0);
+                assertEquals("closure:101:task:11:execution:61",scope.key());assertEquals(1L,scope.actorId());
+                var result=((Supplier<TaskCommandResult>)call.getArgument(3)).get();
+                return new PlatformCommandExecutionApi.ExecutionResult<>(PlatformCommandExecutionApi.Decision.NEW,result);
+            });
+            service.completeFromNormalClosureApproval(new ProjectTaskLifecycleService.ApprovedClosureCompletion(approval,
+                    new cn.iocoder.yudao.module.pms.project.service.normalclosure.NormalClosureTaskProjection(11L,task.getCode(),91L)));
+            verify(stateMachineMapper).requireTransition(argThat(q->"IN_PROGRESS".equals(q.fromStatusCode())&&"SUBMIT".equals(q.actionCode())));
+            verify(stateMachineMapper).requireTransition(argThat(q->"PENDING_ACCEPT".equals(q.fromStatusCode())&&"COMPLETE".equals(q.actionCode())));
+            verify(taskMapper).updateLifecycleIfMatch(argThat(update->"DONE".equals(update.nextStatus())&&update.progress()==100));
+            var rounds=(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper)org.springframework.test.util.ReflectionTestUtils.getField(service,"nodeExecutions");
+            verify(rounds).recordTaskTransition(argThat(update->cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(update.evidence()).path("normalClosureApproval").path("applicationId").asLong()==101L));
+        } finally {
+            cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();
+            org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        }
+    }
+
     @Test void pageNavigationCannotCompleteWithoutTheUserSubmittingTheTask() {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
         try {

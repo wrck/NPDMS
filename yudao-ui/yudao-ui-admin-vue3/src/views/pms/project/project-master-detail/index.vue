@@ -479,6 +479,7 @@
         <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
           <ProjectProgressPanel
             :project-id="detail.id"
+            :refresh-token="treeRefreshKey"
             :tree-version="treeVersion"
           />
         </div>
@@ -539,9 +540,9 @@ import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import * as RiskApi from '@/api/pms/project/project-risk'
-import ProjectSplitWizard from './components/ProjectSplitWizard.vue'
+import ProjectSplitWizard from './components/ProjectSplitPanel.vue'
 import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
-import ProjectProgressPanel from './components/ProjectProgressPanel.vue'
+import ProjectProgressPanel from './components/ProjectProgressSummaryPanel.vue'
 import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
 import ProjectNormalClosurePanel from './components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
@@ -577,20 +578,21 @@ import ConfigurationWorkbench from '@/views/pms/engineering/configuration/with-d
 import JointTestWorkbench from '@/views/pms/engineering/joint-test/with-device-logs.vue'
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
 import MaterialExchWorkbench from '@/views/pms/engineering/material-exch/index.vue'
-import CutoverTaskWorkbench from '@/views/pms/cutover/cutover-task/index.vue'
+import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
 import ProjectDeviceLogsPanel from './components/ProjectDeviceLogsPanel.vue'
-import CompletionCertificateWorkbench from '@/views/pms/acceptance/completion-certificate/index.vue'
 import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
 import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
 import { checkPermi, checkRole } from '@/utils/permission'
+import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
 
 defineOptions({ name: 'PmsProjectMasterDetail' })
 
 const route = useRoute()
+const projectId = () => isBusinessViewId(route.query.projectId) ? legacyOwnerId(route.query.projectId) : undefined
 const router = useRouter()
 const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
 provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
@@ -627,12 +629,12 @@ const flowEmbedComponents: Record<string, Component> = {
   installation: InstallationWorkbench,
   configuration: ConfigurationWorkbench,
   'joint-test': JointTestWorkbench,
-  cutover: CutoverTaskWorkbench,
-  'completion-certificate': CompletionCertificateWorkbench
+  cutover: ProjectCutoverTasks
 }
 const requestedTab = (
     {
       'stage-gates': 'stage-status',
+      'completion-certificate': 'satisfaction',
       // 施工计划整合前的旧页签 key（3.1/3.2/3.4）统一落到整合工作台
       duration: 'schedule',
       'stage-plan': 'schedule',
@@ -737,7 +739,7 @@ const switchTab = async (key: string) => {
 const primaryContact = ref<ContactsApi.ContactVO>()
 const primaryContactPending = ref(false)
 const loadPrimaryContact = async () => {
-  const id = Number(route.query.projectId)
+  const id = projectId()
   if (!id || !checkPermi(['pms:customer-contact:query'])) return
   try {
     const page = await ContactsApi.getProjectPage(id, { pageNo: 1, pageSize: 1, status: 0 })
@@ -858,7 +860,7 @@ const handleFlowChanged = async () => {
 
 // ============ 数据加载 ============
 const loadDetail = async () => {
-  const id = Number(route.query.projectId)
+  const id = projectId()
   if (!id) return
   detail.value = await ProjectsApi.getProject(id)
   parentProject.value = null
@@ -886,12 +888,12 @@ const handleScheduleChanged = async () => {
   stageTreeToken.value++
 }
 const loadInstances = async () => {
-  const id = Number(route.query.projectId)
+  const id = projectId()
   if (!id) return
   instances.value = await ProjectsApi.getProjectInstances(id)
 }
 const loadRiskCount = async () => {
-  const id = Number(route.query.projectId)
+  const id = projectId()
   if (!id || !checkPermi(['pms:project-risk:query'])) return
   try {
     riskCount.value = ((await RiskApi.getProjectRiskListByProjectId(id)) || []).length
@@ -1287,15 +1289,35 @@ onMounted(() => {
 
   .rail-wrap {
     width: 100%;
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     /* 窄屏下导航改为横向滚动条布局，取消吸顶限高 */
     position: static;
     max-height: none;
 
     :deep(.el-card__body) {
       display: flex;
+      align-items: center;
       gap: 6px;
       overflow-x: auto;
+    }
+
+    :deep(.flow-nav),
+    :deep(.flow-group) {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      gap: 6px;
+      margin: 0;
+    }
+
+    :deep(.flow-group-title) {
+      display: none;
+    }
+
+    :deep(.flow-item) {
+      flex: 0 0 auto;
+      width: auto;
+      white-space: nowrap;
     }
   }
 

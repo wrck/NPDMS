@@ -24,7 +24,7 @@ class ProjectTaskPlanCompletionServiceTest {
     static RuleEngineTestFixture engine;
     @BeforeAll static void start() { engine=new RuleEngineTestFixture(); }
     @AfterAll static void stop() { engine.close(); }
-    @AfterEach void clear() { TenantContextHolder.clear(); }
+    @AfterEach void clear() { TenantContextHolder.clear(); org.springframework.security.core.context.SecurityContextHolder.clearContext(); }
     final ProjectPlanVersionMapper plans=mock(ProjectPlanVersionMapper.class);
     final ProjectNodeExecutionMapper executions=mock(ProjectNodeExecutionMapper.class);
     final ProjectRuntimeGraphMapper graph=mock(ProjectRuntimeGraphMapper.class);
@@ -91,6 +91,26 @@ class ProjectTaskPlanCompletionServiceTest {
         rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
         assertFalse(service.evaluateAutomatically(project,task,binding).matched());
         assertNull(round.getSubmittedAt()); verifyNoInteractions(business);
+    }
+    @Test void closureApprovalIsTheOnlyCompletionSourceAndCannotBypassStageOrExitRules() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
+        String condition="{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}";
+        binding.setCompletionRuleSnapshot(condition); rule("done",condition); round.setSubmittedAt(null);
+        var login=new cn.iocoder.yudao.framework.security.core.LoginUser();login.setId(1L);login.setTenantId(7L);
+        cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(login,new org.springframework.mock.web.MockHttpServletRequest());
+        var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(
+                7L,9L,1L,1L,3L,"closure",101L,102L,1L,"A",5L,"digest","bpm-1",1L);
+        var request=new ProjectTaskPlanCompletionService.ApprovedClosureTask(project,task,binding,approval);
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        assertTrue(service.evaluateApprovedClosure(request).matched());
+        assertEquals(approval,service.evaluateApprovedClosure(request).evidence().get("normalClosureApproval"));
+        stage.setStatus("PENDING");assertFalse(service.evaluateApprovedClosure(request).matched());stage.setStatus("ACTIVE");
+        snapshot.getTasks().getFirst().setExitRuleKey("exit");rule("exit","{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateApprovedClosure(request).matched());
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        assertThrows(IllegalArgumentException.class,()->service.evaluateApprovedClosure(request));
+        verifyNoInteractions(business,approvals);assertNull(round.getSubmittedAt());
     }
     @Test void approvalCompletionRequiresThisRoundOwnerResultBeforeAnyTrueOrNotRule() {
         binding.setWorkBindingTypeCode("APPROVAL");

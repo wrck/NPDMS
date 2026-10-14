@@ -115,8 +115,8 @@ public class ProjectSplitDraftService {
     public DraftResult getDraft(Long requestId, Actor actor) {
         validateActor(actor);
         ProjectSplitRequestDO request = requireRequest(requestId, actor);
-        requireProjectScope(request.getParentProjectId(), actor.actorId());
-        assertManageScope(actor, request.getParentProjectId(), request.getTreeVersion());
+        // 读取和幂等重放按当前权限授权；草稿水位仍保留给预览及应用阶段做冲突校验。
+        requireTemplateSelectionParent(request.getParentProjectId(), actor);
         return loadDraft(request);
     }
 

@@ -43,3 +43,14 @@ it('allows automatic contacts only at the contact page completion slot', () => {
   node.exitRuleKey = undefined; node.workBinding.parameters.routePath = '/other'
   expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_CONTACT_EXISTS')
 })
+
+it('offers approval closure only for a terminal closure task completion rule', () => {
+  const document = emptyDesignerDocument(); const terminal = stage(); terminal.completionRuleKey = 'stage-ready'
+  document.stages.push(terminal)
+  const node = task(); node.exitRuleKey = undefined; node.completionRuleKey = 'ready'
+  node.workBinding = { type: 'PAGE', parameters: { routePath: '/pms/project/normal-closure' } }; document.tasks.push(node)
+  expect(nativeOptions(document, 'ready')).toContain('NORMAL_CLOSURE_APPROVED')
+  terminal.terminal = false; expect(nativeOptions(document, 'ready')).not.toContain('NORMAL_CLOSURE_APPROVED')
+  terminal.terminal = true; node.exitRuleKey = 'ready'; expect(nativeOptions(document, 'ready')).not.toContain('NORMAL_CLOSURE_APPROVED')
+  node.exitRuleKey = undefined; document.closureRuleKey = 'ready'; expect(nativeOptions(document, 'ready')).not.toContain('NORMAL_CLOSURE_APPROVED')
+})

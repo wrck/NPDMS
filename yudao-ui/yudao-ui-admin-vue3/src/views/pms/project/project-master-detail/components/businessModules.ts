@@ -73,7 +73,6 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
       { key: 'training', label: '现场培训', icon: 'ep:reading', code: '6.1' },
       { key: 'satisfaction', label: '满意度调查', icon: 'ep:chat-dot-round', code: '6.2', permission: ['pms:acceptance:satisfaction:query'] },
       { key: 'acceptance-reports', label: '初验&终验', icon: 'ep:document-checked', code: '6.3', permission: ['pms:acceptance:report:query'] },
-      { key: 'completion-certificate', label: '完工证明', icon: 'ep:medal', code: '6.4' },
       { key: 'deliverable-summary', label: '交付件汇总', icon: 'ep:folder-opened', code: '6.5' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked', code: '6.6' },
       { key: 'archive-document', label: '归档文档', icon: 'ep:archive', code: '6.7' },
@@ -86,7 +85,7 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
 export const businessNavItems: BusinessNavItem[] = businessFlowGroups.flatMap((group) => group.items)
 
 // 内嵌完整页面的导航 key（创建/编辑/审批等操作直接在详情页内完成，不走通用模块面板）
-// solution/material-exch/arrival/installation/configuration/joint-test/cutover/completion-certificate/config-log
+// solution/material-exch/arrival/installation/configuration/joint-test/cutover/config-log
 // 内嵌各域真实工作台（Demo 操作界面），其余 key 走 businessModuleConfigs 通用模块面板。
 export const flowEmbedKeys = new Set([
   // 施工计划整合工作台（schedule）不在此列：不在 businessModuleConfigs，由专用面板直接承接
@@ -98,7 +97,6 @@ export const flowEmbedKeys = new Set([
   'configuration',
   'joint-test',
   'cutover',
-  'completion-certificate',
   'config-log'
 ])
 

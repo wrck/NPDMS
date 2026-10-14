@@ -8,17 +8,14 @@
       <span class="panel-title"><Icon icon="ep:cpu" /> 序列号详情</span>
       <span class="serial-total num">共 {{ total }} 台</span>
     </div>
-    <el-form inline @submit.prevent="search">
-      <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="查询设备序列号" @keyup.enter="search" /></el-form-item>
-      <el-form-item><el-button type="primary" :loading="loading" @click="search">查询</el-button></el-form-item>
+    <el-form inline class="serial-filters" @submit.prevent="search">
+      <el-form-item label="序列号"><el-input v-model="sn" clearable placeholder="请输入序列号" /></el-form-item>
+      <el-form-item label="设备名称"><el-input v-model="deviceName" clearable placeholder="请输入设备名称" /></el-form-item>
+      <el-form-item label="产品编码"><el-input v-model="productCode" clearable placeholder="请输入产品编码" /></el-form-item>
+      <el-form-item><el-button native-type="submit" type="primary" :loading="loading"><Icon icon="ep:search" />查询</el-button>
+        <el-button :disabled="loading" @click="resetSearch"><Icon icon="ep:refresh" />重置</el-button></el-form-item>
     </el-form>
     <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" class="serial-alert" />
-    <el-alert
-      class="serial-alert"
-      type="info"
-      :closable="false"
-      title="出厂版本、官网版本及技术公告尚未同步，暂以「—」展示。"
-    />
     <el-table
       v-loading="loading"
       :data="rows"
@@ -132,6 +129,8 @@ const total = ref(0)
 const pageNo = ref(1)
 const pageSize = ref(20)
 const sn = ref('')
+const deviceName = ref('')
+const productCode = ref('')
 const errorText = ref('')
 let loadSequence = 0
 const load = async () => {
@@ -146,6 +145,8 @@ const load = async () => {
     const page = await DeviceApi.getDevicePage({
       projectId,
       sn: sn.value.trim() || undefined,
+      name: deviceName.value.trim() || undefined,
+      productCode: productCode.value.trim() || undefined,
       pageNo: pageNo.value,
       pageSize: pageSize.value
     })
@@ -176,7 +177,8 @@ const load = async () => {
 
 // 未同步字段保持「—」，安装地址查询失败时仅展示已有可读快照。
 const search = () => { pageNo.value = 1; void load() }
-watch(() => props.projectId, () => { total.value = 0; sn.value = ''; search() }, { immediate: true })
+const resetSearch = () => { sn.value = ''; deviceName.value = ''; productCode.value = ''; search() }
+watch(() => props.projectId, () => { total.value = 0; resetSearch() }, { immediate: true })
 watch(() => props.active, active => { if (active) void load() })
 onBeforeUnmount(() => { ++loadSequence })
 </script>
@@ -208,4 +210,5 @@ onBeforeUnmount(() => { ++loadSequence })
 .serial-alert {
   margin-bottom: 10px;
 }
+.serial-filters :deep(.el-input) { width: 180px; }
 </style>

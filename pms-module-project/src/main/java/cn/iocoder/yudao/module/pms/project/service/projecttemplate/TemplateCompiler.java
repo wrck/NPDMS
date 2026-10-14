@@ -77,6 +77,7 @@ public class TemplateCompiler {
         validateGraph(source, issues);
         validateRules(source, issues);
         validateBindings(source, issues);
+        validateNormalClosureTask(source, issues);
         validateGateReferences(source, issues);
         TemplateOperationCompilation.Result operations = TemplateOperationCompilation.Result.empty();
         if (TemplateOperationCompilation.hasContracts(source)) {
@@ -114,6 +115,32 @@ public class TemplateCompiler {
         if (source.getDeliverables() == null) issues.add(new Issue("deliverables", "REQUIRED", "交付件集合不能为空引用"));
         if (source.getGates() == null) issues.add(new Issue("gates", "REQUIRED", "门禁集合不能为空引用"));
         if (source.getRuleAssets() == null) issues.add(new Issue("ruleAssets", "REQUIRED", "规则资产集合不能为空引用"));
+    }
+
+    private void validateNormalClosureTask(TemplateDesignerDocument source, List<Issue> issues) {
+        var closureTasks = source.getTasks().stream().filter(Objects::nonNull)
+                .filter(task -> task.getCompletionRule() != null
+                        && cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition
+                        .approvedOnly(task.getCompletionRule().getExpression())).toList();
+        if (closureTasks.isEmpty()) return;
+        if (closureTasks.size() != 1) {
+            issues.add(new Issue("tasks", "CLOSURE_TASK_AMBIGUOUS", "一个模板只能配置一个等待正常闭环审批的任务"));
+            return;
+        }
+        var task = closureTasks.getFirst();
+        var binding = task.getWorkBinding();
+        boolean terminal = source.getStages().stream().filter(Objects::nonNull)
+                .anyMatch(stage -> Objects.equals(task.getStageCode(), stage.getCode()) && Boolean.TRUE.equals(stage.getTerminal()));
+        boolean validPolicy;
+        try {
+            new cn.iocoder.yudao.module.pms.project.api.closure.ClosurePolicy(source.getClosurePolicy());
+            validPolicy = blank(source.getClosureRuleKey());
+        } catch (RuntimeException invalid) { validPolicy = false; }
+        if (!terminal || !validPolicy || binding == null
+                || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.matches(
+                        binding.getType(), String.valueOf(binding.getParameters()), String.valueOf(task.getCompletionRule().getExpression())))
+            issues.add(new Issue("tasks." + task.getNodeKey(), "CLOSURE_TASK_CONTRACT_INVALID",
+                    "闭环审批任务须位于终态阶段，使用正常闭环页面和有效人工闭环策略，不能同时配置规则自动闭环"));
     }
 
     private void validateNodes(TemplateDesignerDocument source, List<Issue> issues) {
