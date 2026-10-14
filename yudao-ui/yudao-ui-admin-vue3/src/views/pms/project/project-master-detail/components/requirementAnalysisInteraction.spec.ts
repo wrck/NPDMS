@@ -99,19 +99,22 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
     expect(reload).not.toHaveBeenCalled()
   })
 
-  it('freezes full file facts and preserves the server attachment slot', () => {
+  it.each([
+    { artifactId: 21, referenceId: 31, scopeVersion: 8 },
+    { artifactId: '9007199254740993', referenceId: '9007199254740995', scopeVersion: '9007199254740997' }
+  ])('freezes full file facts and preserves the server attachment slot ($artifactId)', ({ artifactId, referenceId, scopeVersion }) => {
     const attachment = buildRequirementAttachment(
-      { artifactId: 21, versionNo: 3, referenceId: 31, referenceKey: 'upload-slot' },
+      { artifactId, versionNo: 3, referenceId, referenceKey: 'upload-slot' },
       {
-        artifactId: 21,
+        artifactId,
         name: 'network-topology.pdf',
         categoryCode: 'REQUIREMENT_ANALYSIS_ATTACHMENT',
         ownerContext: 'SOL',
         lifecycleStatus: 'ACTIVE',
         artifactVersion: 7,
         reference: {
-          referenceId: 31,
-          artifactId: 21,
+          referenceId,
+          artifactId,
           versionNo: 3,
           ownerContext: 'SOL',
           objectType: 'REQUIREMENT_ANALYSIS_SECTION',
@@ -120,7 +123,7 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
           referenceKey: 'frozen-slot',
           sensitivityCode: 'INTERNAL',
           status: 'ACTIVE',
-          scopeVersion: 8,
+          scopeVersion,
           referenceVersion: 9,
           createdAt: '',
           updatedAt: ''
@@ -143,7 +146,7 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
       'frozen-slot'
     )
     expect(attachment).toMatchObject({
-      artifactId: 21,
+      artifactId,
       versionNo: 3,
       referenceKey: 'frozen-slot',
       fileFactVersion: {
@@ -151,7 +154,7 @@ describe('F-SOL-003 requirement analysis runtime contracts', () => {
         referenceVersion: 9,
         availabilityVersion: 10
       },
-      scopeVersion: 8
+      scopeVersion
     })
   })
 

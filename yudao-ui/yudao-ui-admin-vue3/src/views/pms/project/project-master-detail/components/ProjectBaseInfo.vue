@@ -92,7 +92,7 @@ import ProjectAssociatedDataPanel from './ProjectAssociatedDataPanel.vue'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 interface CommerceOverview {
-  contracts: { id: number; contractNo: string; contractName?: string; companyName?: string; companyCode?: string; customerCode?: string; customerName?: string; currencyCode?: string; contractAmount?: number | null }[]
+  contracts: { id: number | string; contractNo: string; contractName?: string; companyName?: string; companyCode?: string; customerCode?: string; customerName?: string; currencyCode?: string; contractAmount?: number | null }[]
   orders: { id: number; orderNo: string; customerCode?: string; customerName?: string; companyName?: string; orderCreateTime?: string; orderAmount?: number | null; currencyCode?: string; salesType?: string; customerRequiredTime?: string; executionNo?: string }[]
   executionOrders: ({ id: number; executionNo: string } & Record<string, any>)[]
   receivables?: ({ id: number; contractNo: string } & Record<string, any>)[]

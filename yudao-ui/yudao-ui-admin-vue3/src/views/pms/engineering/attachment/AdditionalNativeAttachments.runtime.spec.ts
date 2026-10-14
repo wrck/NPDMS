@@ -1,6 +1,7 @@
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
 import { beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive } from 'vue'
+import type { FileSelection } from '@/components/PmsFileArtifact'
 import Attachments from './AdditionalNativeAttachments.vue'
 import { mount, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const mocks = vi.hoisted(() => ({ get: vi.fn(), update: vi.fn(), list: vi.fn(), withdraw: vi.fn() }))
@@ -19,7 +20,9 @@ it.each(kinds)('%s retries actual native collection without a new file upload', 
     await flush(); const uploader = nodes(mounted.root, 'native-uploader')[0]
     expect(uploader.props?.['object-id']).toBe('9007199254740993')
     mocks.update.mockRejectedValueOnce(new Error('native registration unavailable'))
-    await uploader.props!.onCompleted({ artifactId: '9007199254740995', versionNo: 1 }); await flush()
+    await (uploader.props!.onCompleted as (selection: FileSelection) => Promise<void>)({
+      artifactId: '9007199254740995', versionNo: 1, referenceId: '9007199254740997', referenceKey: 'independent-native-slot'
+    }); await flush()
     expect(state.pending).toBe(true); expect(state.error).toContain('registration unavailable'); expect(nodes(mounted.root, 'native-uploader')).toEqual([])
     await state.collect(); await flush()
     expect(mocks.update).toHaveBeenCalledTimes(2); expect(mocks.update).toHaveBeenLastCalledWith(expect.objectContaining({ id: '9007199254740993', version: 3, remark: 'saved Owner' }))

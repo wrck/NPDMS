@@ -297,10 +297,13 @@ class LegacyProjectBusinessReadMySqlTest {
         var service=new CommerceDeliveryScopeQueryService(projectApi,(DeliveryScopeMapper)realMappers.get(DeliveryScopeMapper.class),
                 (DeliveryScopeDetailMapper)realMappers.get(DeliveryScopeDetailMapper.class),mock(DeliveryScopeProjectVersionService.class));
         assertTrue(permissions.hasAnyPermissions(17L,Model.DELIVERY_SCOPE.permission));
-        assertEquals(List.of(10L),service.page(7L,17L,null,null,false,0,10).getList().stream().map(view->view.scope().getId()).sorted().toList());
-        assertEquals(List.of(10L,11L),service.page(7L,17L,null,null,true,0,10).getList().stream().map(view->view.scope().getId()).sorted().toList());
+        assertEquals(List.of(10L),service.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                .tenantId(7L).subjectUserId(17L).limit(10).build()).getList().stream().map(view->view.scope().getId()).sorted().toList());
+        assertEquals(List.of(10L,11L),service.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                .tenantId(7L).subjectUserId(17L).includeHistory(true).limit(10).build()).getList().stream().map(view->view.scope().getId()).sorted().toList());
         assertEquals(List.of(10L,11L),ids(access.query(page(Model.DELIVERY_SCOPE,10,null),actor())));
-        assertTrue(service.page(7L,17L,200L,null,true,0,10).getList().isEmpty());
+        assertTrue(service.page(CommerceDeliveryScopeQueryService.PageQuery.builder()
+                .tenantId(7L).subjectUserId(17L).projectId(200L).includeHistory(true).limit(10).build()).getList().isEmpty());
     }
 
     void insert(Model model,Long id,Long tenant,Long project,boolean deleted) {

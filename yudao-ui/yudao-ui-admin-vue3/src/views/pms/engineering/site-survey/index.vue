@@ -610,7 +610,7 @@ const toLocationMaintenance = (row?: SiteSurveyVO): LocationMaintainRequest | un
 const savePayload = () => {
   const payload = { ...form, execution: openedExecution }
   const maintenance = payload.locationMaintenance
-  if (!hasStructuredSurveyLocation(maintenance)) {
+  if (!maintenance || !hasStructuredSurveyLocation(maintenance)) {
     if (!(maintenance?.fallbackLocation || payload.location)?.trim()) {
       message.error('请选择地点或填写兼容地点')
       return

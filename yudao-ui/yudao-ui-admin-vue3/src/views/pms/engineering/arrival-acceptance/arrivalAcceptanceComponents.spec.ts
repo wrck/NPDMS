@@ -288,6 +288,22 @@ describe('F-IMP-002 arrival acceptance mounted components', () => {
     evidence.app.unmount()
   })
 
+  it('rejects an absent receipt reference without publishing a file revision', async () => {
+    fileApi.getArtifact.mockResolvedValueOnce(null)
+    fileApi.getVersions.mockClear()
+    const revision = vi.fn()
+    const mounted = mount(ArrivalEvidencePanel, {
+      acceptanceId: '9007199254740995', evidence: null, editable: true, onRevision: revision
+    }, controls)
+    try {
+      await expect((mounted.vm as any).$.setupState.completeUpload({
+        artifactId: '9007199254740993', versionNo: 4, referenceId: '9007199254740997', referenceKey: 'receipt-slot'
+      })).rejects.toThrow('文件引用已失效')
+      expect(fileApi.getVersions).not.toHaveBeenCalled()
+      expect(revision).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
   it('mounts line editing without changing a Snowflake string device id', async () => {
     const updates: any[] = []
     const lines = mount(

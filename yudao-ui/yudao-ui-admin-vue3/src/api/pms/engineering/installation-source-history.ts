@@ -16,7 +16,7 @@ export interface InstallationSourceDetails {
   sourceCreatedAt?: string
   sourceCreatedBy?: string
   sourceUpdatedAt?: string
-  sourceUpdatedBy?: string
+  sourceUpdatedBy?: string | null
 }
 export interface HistoricalInstallationSummary {
   id: number | string

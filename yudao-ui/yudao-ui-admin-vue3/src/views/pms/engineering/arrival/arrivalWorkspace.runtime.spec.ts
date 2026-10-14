@@ -4,6 +4,7 @@ import Arrival from './index.vue'
 import * as ArrivalApi from '@/api/pms/engineering/arrival'
 import { listMaterials, withdrawMaterial } from '@/api/pms/platform/delivery'
 import { getArtifact } from '@/api/pms/platform/file'
+import type { FileSelection } from '@/components/PmsFileArtifact'
 import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
@@ -81,7 +82,7 @@ it('keeps the dialog on the saved record after create so the sign document can b
     expect(uploader.props).toMatchObject({ ...SIGN_SLOT, 'object-id': '77', 'category-code': 'ARRIVAL_SIGN_DOCUMENT' })
     expect(nodes(mounted.root, 'pms-file-reference-list')[0].props).toMatchObject({ ...SIGN_SLOT, 'object-id': '77' })
     vi.mocked(ArrivalApi.getArrival).mockResolvedValue({ id: 77, projectId: 1, status: 0, version: 0 })
-    await uploader.props!.onCompleted({ artifactId: 9001, versionNo: 1, referenceId: 501, referenceKey: 'arrival-sign-document' })
+    await (uploader.props!.onCompleted as (selection: FileSelection) => Promise<void>)({ artifactId: 9001, versionNo: 1, referenceId: 501, referenceKey: 'arrival-sign-document' })
     await flush()
     expect(nodes(mounted.root, 'pms-file-reference-list')[0].props).toMatchObject({ ...SIGN_SLOT, 'object-id': '77', 'artifact-id': 9001 })
     expect(nodes(mounted.root, 'pms-file-uploader')[0].props).toMatchObject({ 'artifact-id': 9001 })
@@ -128,7 +129,7 @@ it('retains failed collection for explicit Owner retry and ignores a late upload
   const mounted = render()
   try {
     mounted.state.openForm({ id: 77, projectId: 1, status: 0, version: 3 }); await flush()
-    const originalCompleted = nodes(mounted.root, 'pms-file-uploader')[0].props!.onCompleted
+    const originalCompleted = nodes(mounted.root, 'pms-file-uploader')[0].props!.onCompleted as (selection: FileSelection) => Promise<void>
     vi.mocked(ArrivalApi.getArrival).mockResolvedValue({ id: 77, projectId: 1, status: 0, version: 3 })
     vi.mocked(ArrivalApi.updateArrival).mockRejectedValueOnce(new Error('registration failed'))
     await mounted.state.onSignDocumentUploaded(77, { artifactId: 9001, versionNo: 1, referenceId: 501 }); await flush()
@@ -138,7 +139,7 @@ it('retains failed collection for explicit Owner retry and ignores a late upload
     expect(ArrivalApi.updateArrival).toHaveBeenCalledTimes(2)
     expect(mounted.state.deliveryError).toBe('')
     mounted.state.openForm({ id: 88, projectId: 1, status: 0, version: 1 }); await flush()
-    await originalCompleted({ artifactId: 9002, versionNo: 1, referenceId: 502 })
+    await originalCompleted({ artifactId: 9002, versionNo: 1, referenceId: 502, referenceKey: 'arrival-sign-document' })
     expect(ArrivalApi.updateArrival).toHaveBeenCalledTimes(2)
     expect(mounted.state.signSlot).toBeUndefined()
   } finally { mounted.app.unmount() }

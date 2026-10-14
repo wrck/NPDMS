@@ -77,6 +77,8 @@ beforeEach(() => {
             projectId: '100',
             equipmentId: '500',
             code: 'DPPMS-302',
+            sourceRecordKey: '302',
+            sourceHistory: true,
             status: 2,
             addressVersion: 0,
             effectiveFrom: '2023-06-18 13:57:29',
@@ -212,6 +214,7 @@ it('does not claim installation completion when the formal installation is missi
         projectId: '100',
         equipmentId: '500',
         sourceRecordKey: '302',
+        sourceId: '302',
         locationResolutionStatus: 'UNRESOLVED',
         values: {}
       }

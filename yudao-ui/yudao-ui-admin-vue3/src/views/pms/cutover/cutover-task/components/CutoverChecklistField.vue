@@ -178,6 +178,7 @@ const fileKey = (referenceKey: string) => ({
 })
 const completeUpload = async (selection: FileSelection) => {
   const artifact = await FileApi.getArtifact(selection.artifactId, fileKey(selection.referenceKey))
+  if (!artifact) throw new Error('文件引用已失效，请刷新后重试')
   const versions = await FileApi.getVersions(selection.artifactId, {
     ...fileKey(selection.referenceKey),
     pageSize: 20

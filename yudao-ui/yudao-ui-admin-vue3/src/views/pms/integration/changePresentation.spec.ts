@@ -178,6 +178,7 @@ describe('integration field comparison', () => {
         object: 'other',
         sourceKey: '1',
         action: 'UPDATED',
+        before: {},
         after: { relation: { id: 1 }, originalFields: { private: 'not part of this contract' } }
       })
     ).toEqual([])

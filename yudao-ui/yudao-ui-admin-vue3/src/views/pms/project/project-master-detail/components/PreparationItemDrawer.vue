@@ -317,6 +317,7 @@ const captureEvidence = async (selection: FileSelection) => {
   const artifact = await FileApi.getArtifact(selection.artifactId, {
     ...businessKey
   })
+  if (!artifact) throw new Error('文件引用已失效，请刷新后重试')
   let cursor: string | undefined
   let version: FileApi.FileVersionVO | undefined
   do {

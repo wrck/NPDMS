@@ -14,19 +14,22 @@ vi.mock('@/config/axios', () => ({ default: request }))
 describe('F-SOL-002 preparation runtime requests', () => {
   beforeEach(() => request.put.mockReset())
 
-  it('freezes all three file versions and preserves an existing reference key', () => {
+  it.each([
+    { artifactId: 11, referenceId: 21, scopeVersion: 9 },
+    { artifactId: '9007199254740993', referenceId: '9007199254740995', scopeVersion: '9007199254740997' }
+  ])('freezes all three file versions and preserves an existing reference key ($artifactId)', ({ artifactId, referenceId, scopeVersion }) => {
     const reference = buildEvidenceReference(
-      { artifactId: 11, versionNo: 3, referenceId: 21, referenceKey: 'new-slot' },
+      { artifactId, versionNo: 3, referenceId, referenceKey: 'new-slot' },
       {
-        artifactId: 11,
+        artifactId,
         name: 'evidence.pdf',
         categoryCode: 'SITE_SURVEY_EVIDENCE',
         ownerContext: 'SOL',
         lifecycleStatus: 'ACTIVE',
         artifactVersion: 7,
         reference: {
-          referenceId: 21,
-          artifactId: 11,
+          referenceId,
+          artifactId,
           versionNo: 3,
           ownerContext: 'SOL',
           objectType: 'SITE_SURVEY_ITEM',
@@ -35,7 +38,7 @@ describe('F-SOL-002 preparation runtime requests', () => {
           referenceKey: 'server-slot',
           sensitivityCode: 'INTERNAL',
           status: 'ACTIVE',
-          scopeVersion: 9,
+          scopeVersion,
           referenceVersion: 8,
           createdAt: '',
           updatedAt: ''
@@ -59,7 +62,7 @@ describe('F-SOL-002 preparation runtime requests', () => {
     )
 
     expect(reference).toEqual({
-      artifactId: 11,
+      artifactId,
       versionNo: 3,
       referenceKey: 'frozen-slot',
       fileFactVersion: {
@@ -67,7 +70,7 @@ describe('F-SOL-002 preparation runtime requests', () => {
         referenceVersion: 8,
         availabilityVersion: 6
       },
-      scopeVersion: 9
+      scopeVersion
     })
 
     PreparationApi.patchItem(1, 2, 4, {

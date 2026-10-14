@@ -37,7 +37,7 @@ const setup = (row: Members.MemberRecord) => {
 describe('project member history authorization presentation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    vi.mocked(Managers.getProjectManagers).mockResolvedValue({ projectId: 9, version: 3, primaryUserId: 1, members: [] })
+    vi.mocked(Managers.getProjectManagers).mockResolvedValue({ projectId: 9, version: 3, primaryUserId: 1, assignmentStatus: 'ASSIGNED', changed: false, members: [] })
   })
   it('unconfirmed effective history shows its interval facts with no edit, remove or rejoin action', async () => {
     const { root, app } = setup(record(false))

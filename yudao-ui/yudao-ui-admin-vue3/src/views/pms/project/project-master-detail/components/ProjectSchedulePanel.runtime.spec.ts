@@ -191,12 +191,15 @@ it('guards navigation without discarding changes when the user cancels', async (
 it('collects all current service-manager pages and deduplicates multiple responsibilities', async () => {
   vi.mocked(MemberApi.getMemberPage)
     .mockResolvedValueOnce({
-      list: [{ userId: 9, memberName: '经理', memberRole: 'SERVICE_MANAGER_L1' }],
-      total: 2
+      list: [
+        { userId: 9, memberName: '经理', memberRole: 'SERVICE_MANAGER_L1' },
+        { userId: null, memberName: '未关联人员', memberRole: 'SERVICE_MANAGER' }
+      ],
+      total: 3
     } as any)
     .mockResolvedValueOnce({
       list: [{ userId: 9, memberName: '经理', memberRole: 'SERVICE_MANAGER_L2' }],
-      total: 2
+      total: 3
     } as any)
   const app = render()
   try {

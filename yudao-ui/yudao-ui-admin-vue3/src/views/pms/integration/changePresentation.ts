@@ -7,12 +7,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isProjectContractResult = (change: Change) =>
   change.object === 'pm_project_contract' && isRecord(change.after?.relation)
 
-const isDictionaryDataResult = (change: Change) =>
-  change.object === 'fnd_basic_data' && isRecord(change.after?.item)
-
-const isDeviceRelationshipResult = (change: Change) =>
-  change.object === 'fb_shipment_barcode_relation' && isRecord(change.after?.relationship)
-
 export const deviceRelationshipOriginalFields = (change: Change) => {
   if (change.object !== 'fb_shipment_barcode_relation' || !isRecord(change.after?.originalFields)) return []
   return Object.entries(change.after.originalFields).map(([field, value]) => ({
@@ -56,15 +50,18 @@ export const formatFieldValue = (value: unknown): string => {
 export const fieldChanges = (change: Change) => {
   const before = change.before || {}
   // This Owner returns the formal 17-column relationship alongside separate complete source evidence.
-  const contractResult = isProjectContractResult(change)
-  const dictionaryResult = isDictionaryDataResult(change)
-  const relationshipResult = isDeviceRelationshipResult(change)
+  const relation = change.after?.relation
+  const item = change.after?.item
+  const relationship = change.after?.relationship
+  const contractResult = change.object === 'pm_project_contract' && isRecord(relation)
+  const dictionaryResult = change.object === 'fnd_basic_data' && isRecord(item)
+  const relationshipResult = change.object === 'fb_shipment_barcode_relation' && isRecord(relationship)
   const after = contractResult
-    ? change.after!.relation
+    ? relation
     : dictionaryResult
-      ? change.after!.item
+      ? item
       : relationshipResult
-        ? change.after!.relationship
+        ? relationship
         : ['fnd_basic_data', 'fb_shipment_barcode_relation'].includes(change.object) && change.action === 'SKIPPED'
         ? {}
         : change.after || {}
