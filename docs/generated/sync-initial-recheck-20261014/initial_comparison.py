@@ -26,6 +26,7 @@ class InitialComparison:
         self.current_suffix=current_suffix
         self.definition=None
         self.completed=set()
+        self.progress={}
         self.stopped=False
         if task['phase']!='INITIAL_MIGRATION' or task['rows']!=sum(EXPECTED_ROWS):
             raise ValueError('Wrong historical initial task')
@@ -48,19 +49,31 @@ class InitialComparison:
             if normalized!=self.baseline_definition:raise ValueError('Task definition differs beyond exact helper names')
             self.definition=event
             return {'status':'EQUIVALENT_DEFINITION'}
-        if tag not in ('FULL_CHAIN_SOURCE','FULL_CHAIN_PROGRESS','FULL_CHAIN_TASK'):return None
+        if tag not in ('FULL_CHAIN_SOURCE','FULL_CHAIN_SOURCE_PROGRESS','FULL_CHAIN_PROGRESS','FULL_CHAIN_TASK'):return None
         if self.definition is None:raise ValueError('Task definition must be checked before performance')
         if event['phase']!='INITIAL_MIGRATION':raise ValueError('Unexpected later phase')
-        if tag=='FULL_CHAIN_SOURCE':
+        if tag in ('FULL_CHAIN_SOURCE','FULL_CHAIN_SOURCE_PROGRESS'):
             index=event['sourceIndex']
-            if not isinstance(index,int) or index!=len(self.completed) or not 0<=index<5:
+            if type(index) is not int or index!=len(self.completed) or not 0<=index<5:
                 raise ValueError('Source order/index differs from baseline')
-            if event['rows']!=EXPECTED_ROWS[index]:raise ValueError('Completed source row count differs')
+            complete=tag=='FULL_CHAIN_SOURCE'
+            rows=event['rows']
+            if type(rows) is not int or rows<0 or rows>EXPECTED_ROWS[index]:raise ValueError('Invalid source row count')
+            if complete and rows!=EXPECTED_ROWS[index]:raise ValueError('Completed source row count differs')
             source=self.definition['sources'][index]
             for key in ('object','sourceObject'):
                 if source.get(key) is not None and event.get(key)!=source[key]:raise ValueError('Source identity differs')
-            self.completed.add(index)
-            return self.time_decision(event['seconds'],BASELINE_SOURCES[index],'source',index) if index<4 else None
+            elapsed=Decimal(str(event['seconds']))
+            if not elapsed.is_finite() or elapsed<0:raise ValueError('Invalid source duration')
+            previous=self.progress.get(index)
+            if previous and (rows<previous[0] or elapsed<previous[1]):raise ValueError('Source progress went backwards')
+            self.progress[index]=(rows,elapsed)
+            if complete:self.completed.add(index)
+            decision=self.time_decision(elapsed,BASELINE_SOURCES[index],'source',index) if index<4 else None
+            if decision:
+                decision.update(measurementComplete=complete,observedRows=rows,expectedRows=EXPECTED_ROWS[index],
+                    reason='COMPLETED_SOURCE_OVER_BUDGET' if complete else 'ELAPSED_LOWER_BOUND_EXCEEDS_FULL_SOURCE_BUDGET')
+            return decision
         decision=self.time_decision(event['seconds'],BASELINE_TOTAL,'task')
         if decision:return decision
         if tag=='FULL_CHAIN_TASK':

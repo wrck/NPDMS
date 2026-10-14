@@ -501,12 +501,18 @@ class ShipmentFullChainMySqlTest {
         @Bean SpringJdbcStreamingReader streamingReader(ExternalDataSourceApi sources){return new SpringJdbcStreamingReader(Optional.of(sources)){
             @Override public StreamResult stream(SyncDefinition d,java.time.LocalDateTime lower,boolean full,SyncStreamingState resume,
                     java.util.function.Consumer<StreamChunk> consumer)throws java.sql.SQLException {
-                long[] began={System.nanoTime()},rows={0};
+                long[] began={System.nanoTime()},rows={0},lastProgress={began[0]};
                 return super.stream(d,lower,full,resume,chunk->{
                     consumer.accept(chunk);rows[0]+=chunk.rows().size();
                     if(chunk.sourceComplete()){
                         System.out.println("FULL_CHAIN_SOURCE="+JsonUtils.toJsonString(Map.of("phase",activePhase,"sourceIndex",chunk.sourceIndex(),"object",chunk.object(),"sourceObject",chunk.sourceObject(),"rows",rows[0],"seconds",(System.nanoTime()-began[0])/1e9,"endedAt",Instant.now().toString())));
-                        System.out.flush();began[0]=System.nanoTime();rows[0]=0;
+                        System.out.flush();began[0]=System.nanoTime();rows[0]=0;lastProgress[0]=began[0];
+                    } else {
+                        long now=System.nanoTime();
+                        if(now-lastProgress[0]>=5_000_000_000L){
+                            System.out.println("FULL_CHAIN_SOURCE_PROGRESS="+JsonUtils.toJsonString(Map.of("phase",activePhase,"sourceIndex",chunk.sourceIndex(),"object",chunk.object(),"sourceObject",chunk.sourceObject(),"rows",rows[0],"seconds",(now-began[0])/1e9,"observedAt",Instant.now().toString())));
+                            System.out.flush();lastProgress[0]=now;
+                        }
                     }
                 });
             }

@@ -6,7 +6,7 @@
   "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/SyncRunService.java": "346fec60de84d37085e65a68178169a696a42b6d7c93d3452e36beaa248fd0f7",
   "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/SyncBindingSnapshots.java": "3a59e1d0ac3048c7dbcdd970268f1fe805f712678bf7760f9a9f763e35d7656f",
   "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/SyncEvidenceSelection.java": "5691a8df2ac67940760bf1e999fdf7858e090738abb93ec1781059da9f1f8ffa",
-  "yudao-server/src/test/java/cn/iocoder/yudao/server/sync/ShipmentFullChainMySqlTest.java": "6287a185dd75ee256ac1f13687724e44fd84534d7f88ce1b09f9179899285412",
+  "yudao-server/src/test/java/cn/iocoder/yudao/server/sync/ShipmentFullChainMySqlTest.java": "eb85d4091a31949561b38007ce030b099efb59be5d1db353669660d4bf1ae077",
   "yudao-server/src/test/java/cn/iocoder/yudao/server/sync/InitialMigrationReview.java": "5fc7887c021318227a2489a4b5c1753ce2754d775b28ad5802cda972569655c5",
   "yudao-server/src/test/java/cn/iocoder/yudao/server/sync/InitialMigrationReviewTest.java": "1d100b42e194b626a20a8a5db24cfacbc5772291faa74a9ae8fa36a045c3e83c"
 }

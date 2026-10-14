@@ -52,4 +52,39 @@ class InitialComparisonTest(unittest.TestCase):
         r=p.observe('FULL_CHAIN_PROGRESS',{'phase':'INITIAL_MIGRATION','seconds':6400})
         self.assertEqual('6394.1310823290',r['stopThresholdSeconds'])
 
+    def test_partial_source_exceeds_entire_budget_without_extrapolation(self):
+        p,d,_=self.policy();p.observe('FULL_CHAIN_DEFINITION',d)
+        event=dict(self.source(0,'112.0536165706'),rows=1000)
+        r=p.observe('FULL_CHAIN_SOURCE_PROGRESS',event)
+        self.assertFalse(r['measurementComplete'])
+        self.assertEqual('ELAPSED_LOWER_BOUND_EXCEEDS_FULL_SOURCE_BUDGET',r['reason'])
+        self.assertEqual(1000,r['observedRows'])
+        self.assertEqual(120639,r['expectedRows'])
+        self.assertEqual(set(),p.completed)
+
+    def test_partial_equal_threshold_does_not_stop_or_complete(self):
+        p,d,_=self.policy();p.observe('FULL_CHAIN_DEFINITION',d)
+        self.assertIsNone(p.observe('FULL_CHAIN_SOURCE_PROGRESS',dict(self.source(0,'112.0536165705'),rows=1000)))
+        self.assertEqual(set(),p.completed)
+
+    def test_partial_requires_definition_identity_and_current_source(self):
+        for changes in ({'sourceIndex':1},{'object':'wrong'},{'rows':-1},{'rows':120640},{'rows':True},{'sourceIndex':False}):
+            p,d,_=self.policy();p.observe('FULL_CHAIN_DEFINITION',d)
+            with self.assertRaises(ValueError):p.observe('FULL_CHAIN_SOURCE_PROGRESS',dict(self.source(0,1),**changes))
+        p,_,_=self.policy()
+        with self.assertRaises(ValueError):p.observe('FULL_CHAIN_SOURCE_PROGRESS',dict(self.source(0,1),rows=0))
+
+    def test_progress_must_be_monotone(self):
+        for changes in ({'rows':499},{'seconds':9}):
+            p,d,_=self.policy();p.observe('FULL_CHAIN_DEFINITION',d)
+            p.observe('FULL_CHAIN_SOURCE_PROGRESS',dict(self.source(0,10),rows=500))
+            event=dict(self.source(0,11),rows=500);event.update(changes)
+            with self.assertRaises(ValueError):p.observe('FULL_CHAIN_SOURCE_PROGRESS',event)
+
+    def test_last_source_has_no_fabricated_source_budget(self):
+        p,d,_=self.policy();p.observe('FULL_CHAIN_DEFINITION',d)
+        for i in range(4):p.observe('FULL_CHAIN_SOURCE',self.source(i,1))
+        self.assertIsNone(p.observe('FULL_CHAIN_SOURCE_PROGRESS',dict(self.source(4,6000),rows=500)))
+        self.assertEqual({0,1,2,3},p.completed)
+
 if __name__=='__main__':unittest.main()

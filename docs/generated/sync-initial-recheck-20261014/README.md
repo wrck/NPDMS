@@ -10,7 +10,7 @@ It is not a throughput optimization or a full four-phase acceptance result.
   ports, image or volumes. Record current MySQL/Redis identity in runtime-epoch.json.
 - Copy these scripts to a new external artifact directory, record the fetched
   commit in candidate-head.txt, and verify runner-manifest.json before use.
-- First run all 17 Python unit tests and Java InitialMigrationReviewTest.
+- First run all 22 Python unit tests and Java InitialMigrationReviewTest.
   No database benchmark is started by either unit test.
 - preflight.py verifies exact production/test hashes, retained source, original
   global configuration, no competing JVMs/transactions, and a 19,984,437,248-byte
@@ -44,3 +44,12 @@ It is not a throughput optimization or a full four-phase acceptance result.
   these scripts. Those actions require separately scoped authorization.
 
 The previous v15 runner and its failed results remain unchanged in the repository.
+
+Source-level progress is an elapsed-time lower bound, not a throughput or
+remaining-time extrapolation. After equivalent definition, source identity and
+monotone progress checks, an observed FULL_CHAIN_SOURCE_PROGRESS duration strictly
+exceeding 1.5 times that source's historical completed-source duration stops the
+remaining acceptance. Incomplete progress is recorded with measurementComplete=false
+and observed/expected row counts; it does not mark that source complete or claim
+completed-source, full initial-migration or full-chain acceptance. Only sources 0-3
+have retained source budgets; source 4 retains the existing task-budget guard.
