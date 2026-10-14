@@ -6,10 +6,16 @@ import { acceptanceReportOperationActions } from '@/api/pms/acceptance/acceptanc
 export interface PagePresentation { pageUrl: string; query: Readonly<Record<string, string>> }
 /** The single code-owned directory for embedded routes; the Vue registry adds only static components. */
 export const businessPageRoutes = {
+  IMP_ARRIVAL_RECEIPT: { componentKey: 'IMP_ARRIVAL_RECEIPT', componentVersion: '1', ownerContext: 'IMP', entityType: 'ARRIVAL', viewSource: 'PAGE', pageUrl: '/pms/engineering/execution/imp-arrival' },
+  IMP_PROJECT_INSTALLATION: { componentKey: 'IMP_PROJECT_INSTALLATION', componentVersion: '1', ownerContext: 'IMP', entityType: 'INSTALLATION', viewSource: 'PAGE', pageUrl: '/pms/engineering/execution/imp-installation' },
+  IMP_TRAINING_CONFIRMATION: { componentKey: 'IMP_TRAINING_CONFIRMATION', componentVersion: '1', ownerContext: 'IMP', entityType: 'TRAINING', viewSource: 'PAGE', pageUrl: '/pms/imp-training' },
+  CUT_CUTOVER_APPROVAL: { componentKey: 'CUT_CUTOVER_APPROVAL', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_APPROVAL', viewSource: 'PAGE', pageUrl: '/pms/cutover/approval-result' },
   PROJ_PROJECT_ASSIGNMENT: { componentKey: 'PROJ_PROJECT_ASSIGNMENT', componentVersion: '1', ownerContext: 'PROJ', entityType: 'PROJECT_ASSIGNMENT', viewSource: 'PAGE', pageUrl: '/pms/project-management/project-master-detail' },
   PLN_STAGE_PLAN_APPROVAL: { componentKey: 'PLN_STAGE_PLAN_APPROVAL', componentVersion: '1', ownerContext: 'PLN', entityType: 'STAGE_PLAN', viewSource: 'PAGE', pageUrl: '/pms/imp-stage-plan' },
   SOL_IMPLEMENTATION_SOLUTION: { componentKey: 'SOL_IMPLEMENTATION_SOLUTION', componentVersion: '1', ownerContext: 'SOL', entityType: 'IMPLEMENTATION_SOLUTION', viewSource: 'PAGE', pageUrl: '/pms/engineering/preparation/sol-solution' },
   CUT_CUTOVER_COMPLETION: { componentKey: 'CUT_CUTOVER_COMPLETION', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_TASK', viewSource: 'PAGE', pageUrl: '/pms/cutover/cutover-task' },
+  CUT_CUTOVER_WORKBENCH: { componentKey: 'CUT_CUTOVER_WORKBENCH', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_TASK', viewSource: 'PAGE', pageUrl: '/pms/cutover/workbench', operationActions: { 'CUT.CUTOVER_TASK.CREATE': ['CREATE'] } as Record<string, readonly string[]> },
+  IMP_CUTOVER_COVERAGE: { componentKey: 'IMP_CUTOVER_COVERAGE', componentVersion: '1', ownerContext: 'IMP', entityType: 'CUTOVER_COVERAGE', viewSource: 'PAGE', pageUrl: '/pms/cutover/project-coverage' },
   ACC_ACCEPTANCE_REPORT: { componentKey: 'ACC_ACCEPTANCE_REPORT', componentVersion: '1', ownerContext: 'ACC', entityType: 'ACCEPTANCE', viewSource: 'PAGE', pageUrl: '/pms/project/acceptance-report', operationActions: acceptanceReportOperationActions },
   SOL_SITE_SURVEY: { componentKey: 'SOL_SITE_SURVEY', componentVersion: '1', ownerContext: 'SOL', entityType: 'SITE_SURVEY', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/site-survey', operationActions: siteSurveyOperationActions },
   PROJ_REQUIREMENT_ANALYSIS: { componentKey: 'PROJ_REQUIREMENT_ANALYSIS', componentVersion: '1', ownerContext: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', viewSource: 'PAGE', pageUrl: '/pms/delivery-business/requirement-analysis', operationActions: requirementAnalysisOperationActions },

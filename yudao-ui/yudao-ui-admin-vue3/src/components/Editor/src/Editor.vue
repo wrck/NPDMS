@@ -208,6 +208,7 @@ defineExpose({
   <div class="border-1 border-solid border-[var(--tags-view-border-color)] z-10">
     <!-- 工具栏 -->
     <Toolbar
+      v-if="!readonly"
       :editor="editorRef"
       :editorId="editorId"
       class="border-0 b-b-1 border-solid border-[var(--tags-view-border-color)]"

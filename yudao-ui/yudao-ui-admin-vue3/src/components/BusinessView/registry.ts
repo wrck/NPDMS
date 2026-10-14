@@ -14,6 +14,8 @@ import AcceptanceReportPage from '@/views/pms/acceptance/acceptance-report/index
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 import ProjectSchedulePanel from '@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue'
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
+import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
+import ProjectCutoverCoverage from '@/views/pms/cutover/project-coverage/index.vue'
 
 // PM-03. These references come from the application's authorized Owner result, not registration JSON.
 export interface BusinessViewResolvedContext {
@@ -49,6 +51,38 @@ const positiveId = isBusinessViewId
 // Paths only select these statically imported components; URL metadata never becomes an import or command.
 const adapters: readonly Adapter[] = [
   {
+    ...businessPageRoutes.IMP_ARRIVAL_RECEIPT,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '到货签收', tab: 'arrival' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.IMP_PROJECT_INSTALLATION,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '硬件实施', tab: 'installation' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.IMP_TRAINING_CONFIRMATION,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '现场培训', tab: 'training' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.CUT_CUTOVER_APPROVAL,
+    component: markRaw(OwnerCompletionEntry),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        ? { projectId: resolvedContext.project.id, label: '割接审批', tab: 'cutover' }
+        : undefined
+  },
+  {
     ...businessPageRoutes.PROJ_PROJECT_ASSIGNMENT,
     component: markRaw(ProjectMembersBusinessView),
     resolve: ({ registration, resolvedContext }) =>
@@ -73,11 +107,29 @@ const adapters: readonly Adapter[] = [
         : undefined
   },
   {
+    ...businessPageRoutes.CUT_CUTOVER_WORKBENCH,
+    component: markRaw(ProjectCutoverTasks),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId }
+        : undefined
+  },
+  {
     ...businessPageRoutes.CUT_CUTOVER_COMPLETION,
     component: markRaw(OwnerCompletionEntry),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
         ? { projectId: resolvedContext.project.id, label: '割接上线', tab: 'cutover' }
+        : undefined
+  },
+  {
+    ...businessPageRoutes.IMP_CUTOVER_COVERAGE,
+    component: markRaw(ProjectCutoverCoverage),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || String(resolvedContext.businessObjectId) === String(resolvedContext.project.id))
+        ? { projectId: resolvedContext.project.id }
         : undefined
   },
   {
@@ -123,11 +175,12 @@ const adapters: readonly Adapter[] = [
     component: markRaw(ProjectRequirementAnalysisPanel),
     businessEntityViewCode: 'sol_requirement_analysis',
     standaloneProps: (project) => ({ project }),
-      resolve: ({ registration, resolvedContext }) =>
+      resolve: ({ registration, resolvedContext, readonly }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
       && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
       && !(resolvedContext.taskExecution && resolvedContext.stageExecution)
-      && (resolvedContext.taskId == null || resolvedContext.taskExecution != null)
+      && (resolvedContext.taskId == null || (positiveId(resolvedContext.taskId)
+        && (resolvedContext.taskExecution != null || readonly === true)))
       && (resolvedContext.taskExecution == null || (
         positiveId(resolvedContext.taskExecution.taskId) && positiveId(resolvedContext.taskExecution.executionId)
         && String(resolvedContext.taskExecution.taskId) === String(resolvedContext.taskId)

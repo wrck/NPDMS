@@ -34,6 +34,28 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/project/normal-closure', component: Layout, name: 'ProjectNormalClosureRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'ProjectNormalClosure', component: () => import('@/views/pms/project/normal-closure/index.vue'),
+      meta: { hidden: true, canTo: true, title: '项目正常闭环', activeMenu: '/pms/project-management/project-master' } }]
+  },
+  {
+    path: '/pms/cutover/project-coverage', component: Layout, name: 'ProjectCutoverCoverageRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'ProjectCutoverCoverage', component: () => import('@/views/pms/cutover/project-coverage/index.vue'),
+      meta: { hidden: true, canTo: true, title: '项目割接范围覆盖', activeMenu: '/pms/cutover/workbench' } }]
+  },
+  {
+    path: '/pms/cutover/workbench',
+    component: Layout,
+    name: 'CutoverWorkbenchRoot',
+    meta: { hidden: true },
+    children: [{
+      path: '', name: 'CutoverWorkbench', component: () => import('@/views/pms/cutover/workbench/index.vue'),
+      meta: { hidden: true, canTo: true, title: '割接工作台', activeMenu: '/pms/cutover/workbench' }
+    }]
+  },
+  {
     // 统一业务实体默认页面：目录驱动的独立入口，不进入生产菜单/字典，测试装配实体也由此承载。
     path: '/pms/business-entity/:ownerModule?/:entityType?',
     name: 'PmsBusinessEntityBrowser',

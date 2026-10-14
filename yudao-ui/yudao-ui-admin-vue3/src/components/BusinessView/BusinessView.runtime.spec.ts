@@ -195,6 +195,19 @@ beforeEach(() => {
 })
 
 describe('PM-03 BusinessView runtime', () => {
+  it.each([
+    ['IMP_ARRIVAL_RECEIPT', 'IMP', 'ARRIVAL', 'arrival'],
+    ['IMP_PROJECT_INSTALLATION', 'IMP', 'INSTALLATION', 'installation'],
+    ['IMP_TRAINING_CONFIRMATION', 'IMP', 'TRAINING', 'training'],
+    ['CUT_CUTOVER_APPROVAL', 'CUT', 'CUTOVER_APPROVAL', 'cutover']
+  ])('resolves %s to its existing Owner workspace and rejects a different Owner', (componentKey, ownerContext, entityType, tab) => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey, ownerContext, entityType, supportedActions: ['QUERY'] })
+    data.allowedActions = ['QUERY']
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, tab, allowedActions: ['QUERY'] })
+    data.registration.ownerContext = 'OTHER'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+  })
   const stageExecution = {
     projectId: 11, projectVersion: 1, stageId: '2099999999999999997', stageVersion: 1,
     executionContractId: '2099999999999999996', contractVersion: 1,
@@ -305,6 +318,18 @@ describe('PM-03 BusinessView runtime', () => {
     await tick()
     expect(RequirementApi.create).toHaveBeenCalledWith(11, expect.any(String), { stage: stageExecution })
     mounted.app.unmount()
+  })
+  it('loads completed requirement tasks without granting a writable execution', () => {
+    const data = target('PAGE')
+    data.resolvedContext.taskId = '2107838747850678274'
+    data.readonly = true
+    data.allowedActions = ['PATCH_FORM', 'COMPLETE']
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+    expect(resolveBusinessView(data).props).not.toHaveProperty('taskExecution')
+    expect(resolveBusinessView({ ...data, readonly: false }).error).toBeTruthy()
+    expect(resolveBusinessView({ ...data, resolvedContext: { ...data.resolvedContext, taskId: 'invalid' } }).error).toBeTruthy()
+    expect(resolveBusinessView({ ...data, resolvedContext: { ...data.resolvedContext,
+      taskExecution: { ...taskExecution, projectId: 12 } } }).error).toBeTruthy()
   })
   it('rejects a foreign stage and switches the frozen target on a new execution, not a version refresh', () => {
     const data = target('PAGE')
