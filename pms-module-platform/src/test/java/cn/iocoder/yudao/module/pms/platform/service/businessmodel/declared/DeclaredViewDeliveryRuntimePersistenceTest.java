@@ -54,7 +54,11 @@ class DeclaredViewDeliveryRuntimePersistenceTest {
         assertEquals(1L,owner.require("IT","declaredNote",ref.entityId(),"IT",true,false));
         assertEquals(Long.valueOf(1),transaction.execute(status->owner.require("IT","declaredNote",ref.entityId(),"IT",true,true)));
         assertThrows(BusinessContractException.class,()->owner.require(7L,880001L,"IT","declaredNote",ref.entityId(),"IT",true,false,2L));
-        verify(runtime.projectApi,atLeastOnce()).resolveCurrent(new ProjectCurrentScopeQuery(7L,880001L,99L,ProjectScopeApi.ACTION_MANAGE));
+        verify(runtime.projectApi,atLeastOnce()).resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(7L)
+                .subjectUserId(880001L)
+                .anchorProjectId(99L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         assertEquals(1,runtime.jdbc.queryForObject("SELECT COUNT(*) FROM plt_idempotency_record",Integer.class));
     }
     @Test void closedProjectEmptyScopeCrossTenantAndScopeChangeDenyDelivery(){

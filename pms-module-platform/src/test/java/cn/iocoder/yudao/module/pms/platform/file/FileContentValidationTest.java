@@ -10,9 +10,12 @@ import cn.iocoder.yudao.module.pms.platform.service.file.command.FileContentVali
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.io.DataInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -23,6 +26,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +35,52 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FileContentValidationTest {
+
+    private static final String DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+
+    @Test
+    void acceptsGeneratedDocxByContainerContent() throws Exception {
+        byte[] content;
+        try (var document = new XWPFDocument(); var output = new ByteArrayOutputStream()) {
+            document.createParagraph().createRun().setText("割接平台文档生成回归样例");
+            document.write(output);
+            content = output.toByteArray();
+        }
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        var result = service.validate(command(content, "plan.docx", DOCX, null, docxPolicy()));
+        assertEquals(DOCX, result.mediaType());
+        assertEquals("docx", result.extension());
+        assertArrayEquals(content, result.content());
+    }
+
+    @Test
+    void rejectsRenamedZipSpreadsheetAndTruncatedContainer() throws Exception {
+        var service = new FileContentPolicyService(new BoundedMultipartReader(), List.of(), false);
+        byte[] zip;
+        try (var output = new ByteArrayOutputStream(); var archive = new ZipOutputStream(output)) {
+            archive.putNextEntry(new ZipEntry("unrelated.txt"));
+            archive.write("not a Word document".getBytes(StandardCharsets.UTF_8));
+            archive.closeEntry();
+            archive.finish();
+            zip = output.toByteArray();
+        }
+        byte[] spreadsheet;
+        try (var workbook = new XSSFWorkbook(); var output = new ByteArrayOutputStream()) {
+            workbook.createSheet("sample").createRow(0).createCell(0).setCellValue("not Word");
+            workbook.write(output);
+            spreadsheet = output.toByteArray();
+        }
+        for (byte[] content : List.of(zip, spreadsheet, new byte[] {'P', 'K', 3, 4, 0, 0})) {
+            var failure = assertThrows(cn.iocoder.yudao.framework.common.exception.ServiceException.class,
+                    () -> service.validate(command(content, "plan.docx", DOCX, null, docxPolicy())));
+            assertEquals(cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_MEDIA_TYPE_INVALID.getCode(), failure.getCode());
+        }
+    }
+
+    private static FileBusinessObjectPolicyFact docxPolicy() {
+        return new FileBusinessObjectPolicyFact(true, 1L, "MUTABLE", "SINGLE", Set.of("FULL_PLAN"),
+                Set.of(DOCX), 52_428_800L, "INTERNAL");
+    }
 
     private static final byte[] PDF = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF"
             .getBytes(StandardCharsets.US_ASCII);

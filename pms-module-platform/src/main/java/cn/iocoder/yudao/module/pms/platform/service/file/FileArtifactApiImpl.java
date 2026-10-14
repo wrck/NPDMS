@@ -57,6 +57,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -70,6 +71,8 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 
 @Service
 public class FileArtifactApiImpl implements FileArtifactApi {
+    private static final Set<String> READ_ACTIONS = Set.of(
+            FileActionCodes.READ, FileActionCodes.DOWNLOAD, FileActionCodes.PREVIEW);
 
     private final FileBusinessObjectPolicyRegistry policyRegistry;
     private final FileArtifactMapper artifactMapper;
@@ -422,7 +425,8 @@ public class FileArtifactApiImpl implements FileArtifactApi {
         }
         if (!query.artifactId().equals(reference.getArtifactId())
                 || !query.versionNo().equals(reference.getFileVersionNo())
-                || !policy.scopeVersion().equals(reference.getScopeVersion())) {
+                || !READ_ACTIONS.contains(query.requiredAction())
+                    && !policy.scopeVersion().equals(reference.getScopeVersion())) {
             throw exception(FILE_REFERENCE_NOT_FOUND);
         }
         return reference;

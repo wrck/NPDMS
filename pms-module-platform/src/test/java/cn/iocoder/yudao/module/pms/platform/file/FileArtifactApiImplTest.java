@@ -54,6 +54,91 @@ import static org.mockito.Mockito.never;
 @ExtendWith(MockitoExtension.class)
 class FileArtifactApiImplTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"READ", "DOWNLOAD", "PREVIEW"})
+    void currentAuthorizedReadScopeDoesNotReplaceFrozenFileIdentity(String action) {
+        var currentPolicy = new FileBusinessObjectPolicyFact(true, 9L, "IMMUTABLE", "SINGLE",
+                Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL");
+        when(policyRegistry.inspect(any())).thenReturn(currentPolicy);
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        when(referenceMapper.selectExact(any())).thenReturn(reference());
+
+        var actual = api.inspect(new FileArtifactVersionQuery(11L, 2, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", action));
+
+        assertEquals(11L, actual.artifactId());
+        assertEquals(2, actual.versionNo());
+        assertEquals("slot-a", actual.referenceKey());
+        assertEquals(new FileFactVersion(3, 4, 5), actual.fileFactVersion());
+        assertEquals(9L, actual.scopeVersion());
+        verify(referenceMapper).selectExact(new cn.iocoder.yudao.module.pms.platform.dal.mysql.file.query.ExactFileReferenceQuery(
+                7L, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a"));
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"UPLOAD", "REFERENCE"})
+    void writeSelectionCannotBorrowChangedCurrentReadScope(String action) {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(true, 9L, "IMMUTABLE", "SINGLE",
+                Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL"));
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        when(referenceMapper.selectExact(any())).thenReturn(reference());
+        assertThrows(ServiceException.class, () -> api.inspect(new FileArtifactVersionQuery(
+                11L, 2, "SOL", "CHANGE", "900", "EVIDENCE", "slot-a", action)));
+    }
+
+    @Test
+    void changedScopeStillRejectsAnExactReferenceToAnotherFileVersion() {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(true, 9L, "IMMUTABLE", "SINGLE",
+                Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL"));
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        var changed = reference(); changed.setFileVersionNo(3);
+        when(referenceMapper.selectExact(any())).thenReturn(changed);
+        assertThrows(ServiceException.class, () -> api.inspect(query()));
+    }
+
+    @Test
+    void changedScopeStillRejectsDetachedReference() {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(true, 9L, "IMMUTABLE", "SINGLE",
+                Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL"));
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        when(versionMapper.selectOne(any())).thenReturn(version());
+        var detached = reference(); detached.setStatusCode("DETACHED");
+        when(referenceMapper.selectExact(any())).thenReturn(detached);
+        assertThrows(ServiceException.class, () -> api.inspect(query()));
+    }
+
+    @Test
+    void revokedCurrentReadAuthorizationStopsBeforeFileDatabaseReads() {
+        when(policyRegistry.inspect(any())).thenThrow(cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception(
+                cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE_SCOPE_FORBIDDEN));
+        assertThrows(ServiceException.class, () -> api.inspect(query()));
+        org.mockito.Mockito.verifyNoInteractions(artifactMapper, versionMapper, referenceMapper);
+    }
+
+    @Test
+    void changedReadScopeCannotMakeAnUnavailableVersionReadable() {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(true, 9L, "IMMUTABLE", "SINGLE",
+                Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL"));
+        when(artifactMapper.selectOne(any())).thenReturn(artifact());
+        var unavailable = version(); unavailable.setAvailabilityStatusCode("INVALIDATED");
+        when(versionMapper.selectOne(any())).thenReturn(unavailable);
+        var failure = assertThrows(ServiceException.class, () -> api.inspect(query()));
+        assertEquals(FILE_VERSION_UNAVAILABLE.getCode(), failure.getCode());
+        org.mockito.Mockito.verifyNoInteractions(referenceMapper);
+    }
+
+    @Test
+    void changedReadScopeCannotMakeAnInactiveArtifactReadable() {
+        when(policyRegistry.inspect(any())).thenReturn(new FileBusinessObjectPolicyFact(true, 9L, "IMMUTABLE", "SINGLE",
+                Set.of("EVIDENCE"), Set.of("application/pdf"), 52_428_800L, "INTERNAL"));
+        var inactive = artifact(); inactive.setLifecycleStatusCode("DELETED");
+        when(artifactMapper.selectOne(any())).thenReturn(inactive);
+        assertThrows(ServiceException.class, () -> api.inspect(query()));
+        org.mockito.Mockito.verifyNoInteractions(versionMapper, referenceMapper);
+    }
+
     @Mock FileBusinessObjectPolicyRegistry policyRegistry;
     @Mock FileArtifactMapper artifactMapper;
     @Mock FileVersionMapper versionMapper;

@@ -26,7 +26,7 @@ public class PlatformOutboxDeliveryApiImpl implements PlatformOutboxDeliveryApi 
             "ProjectChildClosureChanged",
             "FileVersionCommitted", "FileReferenceAttached", "FileReferenceDetached", "FileArchived",
             "DeviceAssigned", "AcceptanceReportVersionChanged", "SatisfactionTaskCreated",
-            "SatisfactionResultVersionChanged", "ImplementationEvidencePublished",
+            "SatisfactionResultVersionChanged", "ImplementationEvidencePublished", "CutoverCompleted",
             // S5 业务结果接收管道：ProjectRuleOutboxDeliveryJob 恢复领取时会一并纳入 claim 集合，
             // 取值与 pms-module-project 的 BusinessOperationResultEvent/ProjectResultTargetEvent/
             // ProjectResultSubscriptionDelivery.eventTypes() 保持一致（platform 不依赖 project，故为字面量）。

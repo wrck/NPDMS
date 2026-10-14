@@ -1,7 +1,7 @@
 import request from '@/config/axios'
 
 export type Id = number | string
-export type Entry = 'center' | 'configuration' | 'joint-test'
+export type Entry = 'center' | 'configuration' | 'joint-test' | 'cutover-checklist' | 'cutover-pre-check' | 'cutover-execution' | 'cutover-test' | 'cutover-rollback' | 'cutover-post-collection'
 export interface Source {
   entry: Entry
   objectId: Id

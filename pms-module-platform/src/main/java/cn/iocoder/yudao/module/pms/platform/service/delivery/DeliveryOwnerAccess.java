@@ -93,13 +93,21 @@ public class DeliveryOwnerAccess {
             return row.getVersion();
         }
         String action = write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
-        var observed = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, action));
+        var observed = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(action).build());
         if (observed == null || observed.treeVersion() == null || observed.fullProjectIds() == null
                 || !observed.fullProjectIds().contains(project)
                 || expectedScope != null && !expectedScope.equals(observed.treeVersion())) throw denied();
         if (lock) {
-            var current = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                    tenant, actor, project, action, observed.treeVersion()));
+            var current = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(action)
+                .expectedScopeVersion(observed.treeVersion()).build());
             if (current == null || current.fullProjectIds() == null || !current.fullProjectIds().contains(project)
                     || !Objects.equals(current.treeVersion(), observed.treeVersion())) throw denied();
         }

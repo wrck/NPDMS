@@ -53,11 +53,20 @@ public class DeclaredBusinessDeliveryBridge {
             }
         } else if(!entities.read(target,user,"delivery").available()) throw DeliveryOwnerAccess.denied();
         Long project=projectId(tenant,owner,type,id);String action=write?ProjectScopeApi.ACTION_MANAGE:ProjectScopeApi.ACTION_VIEW;
-        var observed=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actor,project,action));
+        var observed=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(action).build());
         if(observed==null || observed.treeVersion()==null || observed.fullProjectIds()==null || !observed.fullProjectIds().contains(project)
             || expectedScope!=null && !expectedScope.equals(observed.treeVersion())) throw DeliveryOwnerAccess.denied();
         if(lock) {
-            var current=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actor,project,action,observed.treeVersion()));
+            var current=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(action)
+                .expectedScopeVersion(observed.treeVersion()).build());
             if(current==null || !Objects.equals(observed.rootProjectId(),current.rootProjectId()) || !Objects.equals(observed.treeVersion(),current.treeVersion())
                 || current.fullProjectIds()==null || !current.fullProjectIds().contains(project)) throw DeliveryOwnerAccess.denied();
         }

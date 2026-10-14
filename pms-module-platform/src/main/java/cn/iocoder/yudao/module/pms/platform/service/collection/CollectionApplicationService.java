@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.platform.service.collection;
 import cn.iocoder.yudao.module.pms.platform.api.collection.CollectionOperationException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.collection.*;
 import cn.iocoder.yudao.module.pms.platform.api.collection.dto.*;
@@ -29,14 +30,24 @@ public class CollectionApplicationService implements CollectionApplicationApi {
     private final ObjectProvider<CollectionDispatchApi> dispatcher;
     private final PlatformTransactionManager transactions;
 
-    @Override public CollectionSourceAdapter.Source context(String entry,Long id,Long actor) {
-        return source(entry).authorize(tenant(),actor,id,null,READ,null);
+    @Override public CollectionSourceAdapter.Source context(SourceQuery query) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        Long actor = query.actorId();
+        return source(entry).authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(id)
+                .deviceId(null)
+                .access(READ)
+                .expectedVersion(null)
+                .build());
     }
-    @Override public Execution submit(String entry,Long id,Long actor,CollectionExecutionRequest request) {
+    @Override public Execution submit(SourceQuery query,CollectionExecutionRequest request) {
         try {
             if(request==null||request.getRequestKey()==null||!request.getRequestKey().matches("[a-zA-Z0-9-]{16,64}"))throw new CollectionOperationException("请求标识无效");
             var dispatch=dispatch();
-            Prepared prepared=new TransactionTemplate(transactions).execute(tx->prepare(entry,id,actor,request));
+            Prepared prepared=new TransactionTemplate(transactions).execute(tx->prepare(query,request));
             if(prepared.fresh()) {
                 try {
                     var task=tasks.getTask(tenant(),prepared.row().getPlatformTaskId());
@@ -55,16 +66,33 @@ public class CollectionApplicationService implements CollectionApplicationApi {
             return view(prepared.row());
         } finally {if(request!=null&&request.getPassword()!=null)Arrays.fill(request.getPassword(),'\0');}
     }
-    private Prepared prepare(String entry,Long id,Long actor,CollectionExecutionRequest r) {
+    private Prepared prepare(SourceQuery query,CollectionExecutionRequest r) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        Long actor = query.actorId();
         var adapter=source(entry);
-        var currentSource=adapter.authorize(tenant(),actor,id,r.getDeviceId(),CANCEL,null);
-        String digest=digest(entry,id,actor,r);
+        var currentSource=adapter.authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(id)
+                .deviceId(r.getDeviceId())
+                .access(CANCEL)
+                .expectedVersion(null)
+                .build());
+        String digest=digest(query,r);
         var old=requests.findRequest(tenant(),r.getRequestKey());
         if(old!=null) {
             if(!entry.equals(old.getEntry())||!id.equals(old.getObjectId())||!digest.equals(old.getRequestDigest()))throw new CollectionOperationException("同一请求内容已变化，请新建执行请求");
             checkHistory(currentSource,task(old));return new Prepared(old,false,null);
         }
-        var source=adapter.authorize(tenant(),actor,id,r.getDeviceId(),EXECUTE,r.getExpectedVersion());
+        var source=adapter.authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(id)
+                .deviceId(r.getDeviceId())
+                .access(EXECUTE)
+                .expectedVersion(r.getExpectedVersion())
+                .build());
         // The source/project lock serializes submissions. Use a current read after waiting, even under MySQL repeatable-read.
         var concurrent=requests.lockRequest(tenant(),r.getRequestKey());
         if(concurrent!=null) {
@@ -115,35 +143,82 @@ public class CollectionApplicationService implements CollectionApplicationApi {
         row.setCredentialVersion(saved==null?null:saved.connection().version());row.setRetryOfId(r.getRetryOfId());requests.insert(row);
         return new Prepared(row,true,saved);
     }
-    @Override public PageResult<Execution> page(String entry,Long id,Long actor,int pageNo,int pageSize) {
-        var current=context(entry,id,actor);if(pageNo<1||pageSize<1||pageSize>50)throw new CollectionOperationException("分页参数无效");
+    @Override public PageResult<Execution> page(SourceQuery query,PageParam pagination) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        var current=context(query);
+        int pageNo = pagination.getPageNo();
+        int pageSize = pagination.getPageSize();
+        if(pageNo<1||pageSize<1||pageSize>50)throw new CollectionOperationException("分页参数无效");
         var page=requests.page(new CollectionRequestPageQuery(tenant(),entry,id,pageNo,pageSize));
         return new PageResult<>(page.getList().stream().map(row->{checkHistory(current,task(row));return view(row);}).toList(),page.getTotal());
     }
-    @Override public Execution findByRequestKey(String entry,Long id,Long actor,String key) {
-        var current=context(entry,id,actor);if(key==null||!key.matches("[a-zA-Z0-9-]{16,64}"))throw new CollectionOperationException("请求标识无效");
+    @Override public Execution findByRequestKey(SourceQuery query,String key) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        var current=context(query);if(key==null||!key.matches("[a-zA-Z0-9-]{16,64}"))throw new CollectionOperationException("请求标识无效");
         var row=requests.findRequest(tenant(),key);if(row==null||!entry.equals(row.getEntry())||!id.equals(row.getObjectId()))return null;
         checkHistory(current,task(row));return view(row);
     }
-    @Override public Execution consume(String entry,Long id,Long actor,Long executionId) {
+    @Override public Execution consume(SourceQuery query,Long executionId) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        Long actor = query.actorId();
         var row=required(entry,id,executionId);var task=task(row);
-        var source=source(entry).authorize(tenant(),actor,id,Long.valueOf(task.deviceId()),CONSUME,null);checkBinding(source,task);
+        var source=source(entry).authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(id)
+                .deviceId(Long.valueOf(task.deviceId()))
+                .access(CONSUME)
+                .expectedVersion(null)
+                .build());checkBinding(source,task);
         if(!"BUSINESS_CONSUMPTION".equals(task.completionMode()))throw new CollectionOperationException("独立采集无业务关联动作");
         if(task.fileVersionId()==null)throw new CollectionOperationException("尚无可回传的日志");
         resultDelivery.deliver(tenant(),task.platformTaskId());
         return view(required(entry,id,executionId));
     }
-    @Override public void cancel(String entry,Long id,Long actor,Long executionId) {
+    @Override public void cancel(SourceQuery query,Long executionId) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        Long actor = query.actorId();
         var task=task(required(entry,id,executionId));
-        var source=source(entry).authorize(tenant(),actor,id,Long.valueOf(task.deviceId()),CANCEL,null);checkBinding(source,task);dispatch().cancel(tenant(),task.platformTaskId());
+        var source=source(entry).authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(id)
+                .deviceId(Long.valueOf(task.deviceId()))
+                .access(CANCEL)
+                .expectedVersion(null)
+                .build());checkBinding(source,task);dispatch().cancel(tenant(),task.platformTaskId());
     }
-    @Override public String download(String entry,Long id,Long actor,Long executionId) {
+    @Override public String download(SourceQuery query,Long executionId) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        Long actor = query.actorId();
         var task=task(required(entry,id,executionId));
-        var source=source(entry).authorize(tenant(),actor,id,Long.valueOf(task.deviceId()),READ,null);checkBinding(source,task);return logs.download(tenant(),actor,task.platformTaskId());
+        var source=source(entry).authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(id)
+                .deviceId(Long.valueOf(task.deviceId()))
+                .access(READ)
+                .expectedVersion(null)
+                .build());checkBinding(source,task);return logs.download(tenant(),actor,task.platformTaskId());
     }
-    @Override public List<Map<String,Object>> semanticResults(String entry,Long id,Long actor,Long executionId) {
+    @Override public List<Map<String,Object>> semanticResults(SourceQuery query,Long executionId) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        Long actor = query.actorId();
         var task=task(required(entry,id,executionId));
-        var source=source(entry).authorize(tenant(),actor,id,Long.valueOf(task.deviceId()),READ,null);checkBinding(source,task);
+        var source=source(entry).authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(id)
+                .deviceId(Long.valueOf(task.deviceId()))
+                .access(READ)
+                .expectedVersion(null)
+                .build());checkBinding(source,task);
         return dispatch().semanticResults(tenant(),task.platformTaskId());
     }
     private CollectionRequestDO required(String entry,Long id,Long executionId){var r=requests.selectById(executionId);if(r==null||!tenant().equals(r.getTenantId())||!entry.equals(r.getEntry())||!id.equals(r.getObjectId()))throw new CollectionOperationException("执行记录不存在");return r;}
@@ -154,7 +229,10 @@ public class CollectionApplicationService implements CollectionApplicationApi {
     private CollectionSourceAdapter source(String entry){var matches=sources.stream().filter(s->s.entry().equals(entry)).toList();if(matches.size()!=1)throw new CollectionOperationException("该采集入口尚未接入");return matches.getFirst();}
     private CollectionDispatchApi dispatch(){var d=dispatcher.getIfAvailable();if(d==null)throw new CollectionOperationException("DAC 尚未启用");return d;}
     private Long tenant(){return CollectionAuthorization.tenant();}
-    private String digest(String entry,Long id,Long actor,CollectionExecutionRequest r){
+    private String digest(SourceQuery query,CollectionExecutionRequest r) {
+        String entry = query.entry();
+        Long id = query.objectId();
+        Long actor = query.actorId();
         String commands=r.getTemplateId()==null?CollectionTemplateService.normalize(r.getCommands()):"";
         if("configuration".equals(entry)&&r.getTemplateId()==null&&r.getCredentialId()==null&&r.getRetryOfId()==null)
             return CollectionTemplateService.hash(JsonUtils.toJsonString(Arrays.asList(id,actor,r.getExpectedVersion(),r.getHost(),r.getPort(),r.getProtocol(),r.getUsername(),CollectionTemplateService.hash(commands))));

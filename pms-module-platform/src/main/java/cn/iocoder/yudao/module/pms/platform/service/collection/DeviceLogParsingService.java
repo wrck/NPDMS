@@ -146,7 +146,14 @@ public class DeviceLogParsingService {
                 .orElseThrow(() -> new CollectionOperationException("此业务尚未接入日志解析"));
         var access = !edit ? CollectionSourceAdapter.Access.READ
                 : lock ? CollectionSourceAdapter.Access.CONSUME : CollectionSourceAdapter.Access.CANCEL;
-        var source = adapter.authorize(tenant(), actor, object, null, access, null);
+        var source = adapter.authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant())
+                .actorId(actor)
+                .objectId(object)
+                .deviceId(null)
+                .access(access)
+                .expectedVersion(null)
+                .build());
         auth.permission(actor, "pms:file:download");
         var request = requests.selectById(execution);
         if (request == null || !tenant().equals(request.getTenantId()) || !entry.equals(request.getEntry())

@@ -12,5 +12,5 @@ public interface FileDocumentSourceProvider {
         public boolean hasBusinessOwner() { return ownerModule != null && entityType != null && entityId != null; }
     }
     List<Descriptor> descriptors();
-    Scope resolve(Long tenantId, String ownerContext, String objectType, String objectId, String purposeCode);
+    Scope resolve(Long tenantId, FileEvidenceApi.Document document);
 }

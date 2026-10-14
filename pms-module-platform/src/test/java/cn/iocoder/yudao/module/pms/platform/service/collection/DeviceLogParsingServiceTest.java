@@ -93,8 +93,21 @@ class DeviceLogParsingServiceTest {
         file.setAvailabilityStatusCode("QUARANTINED");
         assertThrows(CollectionOperationException.class, () -> service.get(7L, 123L));
         file.setAvailabilityStatusCode("AVAILABLE");
-        when(source.authorize(any(), any(), any(), any(), any(), any())).thenReturn(
-                new CollectionSourceAdapter.Source("configuration", 11L, "IMP", "Configuration", 22L, 31L, "device", 0L, true, true, "BUSINESS_CONSUMPTION", "配置调试"));
+        when(source.authorize(any(CollectionSourceAdapter.AuthorizationQuery.class))).thenReturn(
+                CollectionSourceAdapter.Source.builder()
+                        .entry("configuration")
+                        .objectId(11L)
+                        .sourceContext("IMP")
+                        .sourceObjectType("Configuration")
+                        .projectId(22L)
+                        .deviceId(31L)
+                        .deviceName("device")
+                        .version(0L)
+                        .manualAllowed(true)
+                        .canExecute(true)
+                        .completionMode("BUSINESS_CONSUMPTION")
+                        .title("配置调试")
+                        .build());
         assertThrows(CollectionOperationException.class, () -> service.get(7L, 123L));
         verifyNoInteractions(remote);
     }
@@ -108,8 +121,21 @@ class DeviceLogParsingServiceTest {
     }
     private cn.iocoder.yudao.module.pms.platform.dal.dataobject.file.FileVersionDO collectedSource() {
         when(source.entry()).thenReturn("configuration");
-        when(source.authorize(any(), any(), any(), any(), any(), any())).thenReturn(
-                new CollectionSourceAdapter.Source("configuration", 11L, "IMP", "Configuration", 21L, 31L, "device", 0L, true, true, "BUSINESS_CONSUMPTION", "配置调试"));
+        when(source.authorize(any(CollectionSourceAdapter.AuthorizationQuery.class))).thenReturn(
+                CollectionSourceAdapter.Source.builder()
+                        .entry("configuration")
+                        .objectId(11L)
+                        .sourceContext("IMP")
+                        .sourceObjectType("Configuration")
+                        .projectId(21L)
+                        .deviceId(31L)
+                        .deviceName("device")
+                        .version(0L)
+                        .manualAllowed(true)
+                        .canExecute(true)
+                        .completionMode("BUSINESS_CONSUMPTION")
+                        .title("配置调试")
+                        .build());
         var request = new cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.CollectionRequestDO();
         request.setId(41L); request.setTenantId(1L); request.setEntry("configuration"); request.setObjectId(11L); request.setPlatformTaskId("platform-1");
         when(requests.selectById(41L)).thenReturn(request);

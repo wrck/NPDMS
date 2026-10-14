@@ -49,7 +49,11 @@ public class CollectionLogFilePolicy implements FileBusinessObjectPolicyProvider
         }
         if (allowed) {
             Long project = Long.valueOf(task.getProjectId());
-            var scope = projects.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project, ProjectScopeApi.ACTION_VIEW));
+            var scope = projects.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
             allowed = scope != null && scope.fullProjectIds().contains(project);
         }
         return new FileBusinessObjectPolicyFact(allowed, 0L, "IMMUTABLE", "SINGLE",

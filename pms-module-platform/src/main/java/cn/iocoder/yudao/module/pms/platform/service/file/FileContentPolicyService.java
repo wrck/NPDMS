@@ -8,12 +8,14 @@ import cn.iocoder.yudao.module.pms.platform.service.file.command.FileContentVali
 import cn.iocoder.yudao.module.pms.platform.service.file.command.BoundedFileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
 import org.apache.tika.Tika;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.MessageDigest;
+import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.List;
@@ -79,7 +81,7 @@ public class FileContentPolicyService {
         }
 
         String declaredMediaType = normalizeMediaType(command.declaredMediaType());
-        String detectedMediaType = normalizeMediaType(TIKA.detect(content));
+        String detectedMediaType = detectContent(content);
         String nameMediaType = normalizeMediaType(TIKA.detect(command.expectedFileName()));
         Set<String> allowedMediaTypes = command.policy().allowedMediaTypes().stream()
                 .map(FileContentPolicyService::normalizeMediaType)
@@ -111,6 +113,16 @@ public class FileContentPolicyService {
     private static boolean matchesDetectedMediaType(String declaredMediaType, String detectedMediaType) {
         return declaredMediaType.equals(detectedMediaType)
                 || ("text/csv".equals(declaredMediaType) && "text/plain".equals(detectedMediaType));
+    }
+
+    private static String detectContent(byte[] content) {
+        // Container detection needs TikaInputStream; the filename must not override the actual bytes.
+        // https://tika.apache.org/3.3.1/detection.html#Container_Aware_Detection
+        try (var input = TikaInputStream.get(content)) {
+            return normalizeMediaType(TIKA.detect(input));
+        } catch (IOException ex) {
+            throw exception(FILE_MEDIA_TYPE_INVALID);
+        }
     }
 
     private FileSecurityScanResult scan(byte[] content, String fileName, String declaredMediaType,
