@@ -59,7 +59,11 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         login.setId(9L);
         login.setTenantId(3L);
         SecurityFrameworkUtils.setLoginUser(login, new MockHttpServletRequest());
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:query")).thenReturn(true);
     }
@@ -95,7 +99,11 @@ class SiteSurveyTaskBusinessObjectProviderTest {
 
     @Test
     void writesRequireManageAndFunctionalPermissionAndEntityState() {
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:update")).thenReturn(true);
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:create")).thenReturn(true);
@@ -109,7 +117,11 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         assertEquals(Set.of("QUERY", "CREATE", "LINK", "UNLINK"), provider.inspect(context, "42").allowedActions());
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:update")).thenReturn(false);
         assertEquals(Set.of("QUERY", "CREATE"), provider.inspect(context, "42").allowedActions());
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(), Set.of()));
         assertEquals(Set.of("QUERY"), provider.inspect(context, "42").allowedActions());
     }
@@ -138,7 +150,11 @@ class SiteSurveyTaskBusinessObjectProviderTest {
 
     @Test
     void emptyViewScopeDoesNotFallBackToFullProjectOrPlaceholderAccess() {
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(), Set.of(100L)));
         assertThrows(ServiceException.class, () -> provider.candidates(context));
         verifyNoInteractions(mapper, permissions);
@@ -165,7 +181,11 @@ class SiteSurveyTaskBusinessObjectProviderTest {
     @Test
     void contextActionsAllowAuthorizedCreationWithoutReadingOrCreatingAnInstance() {
         assertEquals(Set.of("QUERY"), provider.inspectContext(context));
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_MANAGE)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         assertEquals(Set.of("QUERY"), provider.inspectContext(context));
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:create")).thenReturn(true);
@@ -412,9 +432,17 @@ class SiteSurveyTaskBusinessObjectProviderTest {
         when(permissions.hasAnyPermissions(9L,"pms:sol-site-survey:create")).thenReturn(true);
         when(permissions.hasAnyPermissions(9L,"pms:sol-site-survey:update")).thenReturn(true);
         when(permissions.hasAnyPermissions(9L,"pms:sol-site-survey:delete")).thenReturn(true);
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L,9L,100L,ProjectScopeApi.ACTION_EDIT)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build()))
                 .thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
-        when(scope.resolveCurrent(new ProjectCurrentScopeQuery(3L,9L,100L,ProjectScopeApi.ACTION_MANAGE)))
+        when(scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build()))
                 .thenReturn(new ProjectScopeResult(100L,1L,Set.of(100L),Set.of()));
         assertEquals(Set.of("QUERY","CREATE","UPDATE","CONFIRM","REJECT","ARCHIVE","DELETE"),provider.inspectStage(stage).allowedActions());
         var readonly = new cn.iocoder.yudao.module.pms.project.api.stagebusiness.StageBusinessViewProvider.Context(

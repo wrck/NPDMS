@@ -188,7 +188,7 @@ public class RequirementAnalysisEntityProvider implements EntityFieldProvider, E
         var draft = access.lock(ref.revisionId(), expectedVersion, actor, null, true);
         requireEntity(draft, ref.entity());
         validateComplete(draft);
-        files.lockForFreeze(ref, actor);
+        files.lockForCompletion(ref, actor);
         if (mapper.freeze(new RequirementFreezeUpdate(actor.tenantId(), ref.revisionId(), expectedVersion, actor.userId(), LocalDateTime.now())) != 1) {
             throw exception(REQUIREMENT_VERSION_NOT_MATCH);
         }

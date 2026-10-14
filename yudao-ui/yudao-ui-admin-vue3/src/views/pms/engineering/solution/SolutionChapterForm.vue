@@ -151,14 +151,9 @@
       <el-form-item label="2.1 现网拓扑图" label-width="140px">
         <UploadFile v-model="topology.asIsUrl" :disabled="readOnly" />
       </el-form-item>
-      <div class="ref-block">
-        <div class="ref-head"><span>2.2 现网资源确认（引用 2.2 工勘 + 2.3 传输/流量/业务）</span></div>
-        <div class="ref-body">
-          <div>传输现状：{{ reqTransmission.join('、') || '—' }}</div>
-          <div>流量现状：新建 {{ reqTraffic.new || '—' }} / 并发 {{ reqTraffic.concurrent || '—' }} / 吞吐 {{ reqTraffic.throughput || '—' }}</div>
-          <div>工勘 10 项确认明细见详情页「2.2 工勘分工」环节。</div>
-        </div>
-      </div>
+      <el-form-item label="2.2 现网资源确认" label-width="140px">
+        <ResourceConfirmationEditor v-model="topology.resourceConfirmation" :project-id="form.projectId" :read-only="readOnly" :requirement-values="reqValues" />
+      </el-form-item>
     </section>
 
     <!-- 第3章 总体方案设计 -->
@@ -178,20 +173,10 @@
       </el-form-item>
 
       <el-form-item label="3.2 部署位置规划" label-width="140px">
-        <div class="table-editor">
-          <el-table :data="tables.deploy" size="small" border>
-            <el-table-column label="设备名称" min-width="130"><template #default="{ row }"><el-input v-model="row.deviceName" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="设备类型" min-width="110"><template #default="{ row }"><el-input v-model="row.deviceType" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="设备序列号" min-width="130"><template #default="{ row }"><el-input v-model="row.sn" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="安装位置（机房/机柜/U数）" min-width="180"><template #default="{ row }"><el-input v-model="row.location" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="备注" min-width="110"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="操作" width="70" fixed="right">
-              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.deploy.splice($index, 1)">删除</el-button></template>
-            </el-table-column>
-          </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.deploy.push({ deviceName: '', deviceType: '', sn: '', location: '', remark: '' })">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !devices.length" @click="tables.deploy = deviceDeployRows()">从 1.1.1 序列号详情同步</el-button>
-        </div>
+        <SolutionEquipmentTable v-model="tables.deploy" section="deploy" :products="equipmentProducts" :read-only="readOnly" />
+        <el-alert v-if="equipmentError" :title="equipmentError" type="error" :closable="false">
+          <el-button link @click="loadEquipment">重新加载设备清单</el-button>
+        </el-alert>
       </el-form-item>
 
       <el-form-item label="3.3 接口互联规划" label-width="140px">
@@ -230,19 +215,7 @@
       </el-form-item>
 
       <el-form-item label="3.5 软件版本" label-width="140px">
-        <div class="table-editor">
-          <el-table :data="tables.software" size="small" border>
-            <el-table-column label="序列号" min-width="140"><template #default="{ row }"><el-input v-model="row.sn" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="设备型号" min-width="110"><template #default="{ row }"><el-input v-model="row.model" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="软件版本" min-width="120"><template #default="{ row }"><el-input v-model="row.version" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="备注" min-width="110"><template #default="{ row }"><el-input v-model="row.remark" :disabled="readOnly" /></template></el-table-column>
-            <el-table-column label="操作" width="70" fixed="right">
-              <template #default="{ $index }"><el-button link type="danger" :disabled="readOnly" @click="tables.software.splice($index, 1)">删除</el-button></template>
-            </el-table-column>
-          </el-table>
-          <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.software.push({ sn: '', model: '', version: '', remark: '' })">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !devices.length" @click="tables.software = deviceSoftwareRows()">从 1.1.1 序列号详情同步</el-button>
-        </div>
+        <SolutionEquipmentTable v-model="tables.software" section="software" :products="equipmentProducts" :read-only="readOnly" />
       </el-form-item>
     </section>
 
@@ -407,17 +380,19 @@
 </template>
 
 <script setup lang="ts">
-import { locationSnapshotText } from '@/utils/locationSnapshot'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { ElMessage } from 'element-plus'
 import { uploadDeliveryFile } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 import { prepareGeneratedSolutionHtml } from '@/views/pms/engineering/solution/saveGeneratedSolutionHtml'
 import { computed, reactive, ref, watch } from 'vue'
+import { loadProjectEquipmentList, type ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
+import ResourceConfirmationEditor from '@/views/pms/engineering/solution/ResourceConfirmationEditor.vue'
+import SolutionEquipmentTable from '@/views/pms/engineering/solution/SolutionEquipmentTable.vue'
+import { equipmentRow, readSolutionEquipment } from '@/views/pms/engineering/solution/solutionEquipment'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import * as ContactApi from '@/api/pms/customer/contacts'
-import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import { getDeliveryScopePage } from '@/api/pms/commerce'
 import { DICT_TYPE, getDictLabel, getIntDictOptions } from '@/utils/dict'
 
@@ -451,21 +426,28 @@ const reqValues = ref<Record<string, unknown>>({})
 const members = ref<ProjectsApi.ProjectMemberAssignmentVO[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
 const scopeRows = ref<{ productCode: string; deviceTypeCode: string; allocatedQuantity: number }[]>([])
-const devices = ref<DeviceArchiveApi.DeviceArchiveVO[]>([])
+const equipmentProducts = ref<ProjectEquipmentProduct[]>([])
+const equipmentError = ref('')
+let equipmentRequest = 0
+const loadEquipment = async () => {
+  const requestId = ++equipmentRequest
+  const projectId = form.value.projectId
+  equipmentProducts.value = []
+  equipmentError.value = ''
+  if (!projectId || props.readOnly) return
+  try {
+    const equipment = await loadProjectEquipmentList(projectId, () => requestId === equipmentRequest)
+    if (requestId === equipmentRequest) equipmentProducts.value = equipment?.list || []
+  } catch {
+    if (requestId === equipmentRequest) equipmentError.value = '项目设备清单加载失败，请重新加载'
+  }
+}
+watch(() => [props.readOnly, form.value.projectId], () => { void loadEquipment() }, { immediate: true })
 
 const stripHtml = (v: unknown) => String(v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
 const reqBackground = computed(() => String(reqValues.value['projectBackground'] ?? ''))
 const reqObjective = computed(() => String(reqValues.value['projectObjective'] ?? ''))
 const reqTopology = computed(() => String(reqValues.value['networkTopology'] ?? ''))
-const reqTransmission = computed(() => {
-  const v = reqValues.value['transmissionCurrentOptions']
-  return Array.isArray(v) ? v.map(String) : []
-})
-const reqTraffic = computed(() => ({
-  new: String(reqValues.value['trafficNewConnections'] ?? ''),
-  concurrent: String(reqValues.value['trafficConcurrency'] ?? ''),
-  throughput: String(reqValues.value['trafficThroughput'] ?? '')
-}))
 const reqBusinessRows = computed<Row[]>(() => {
   const v = reqValues.value['businessDeviceDetails']
   if (!Array.isArray(v)) return []
@@ -512,16 +494,6 @@ const scopeProductRows = (): Row[] =>
     unshippedQty: '',
     sn: ''
   }))
-const deviceDeployRows = (): Row[] =>
-  devices.value.map((d) => ({
-    deviceName: d.name || '',
-    deviceType: d.productModel || '',
-    sn: d.sn || '',
-    location: locationSnapshotText(d.locationSnapshot),
-    remark: ''
-  }))
-const deviceSoftwareRows = (): Row[] =>
-  devices.value.map((d) => ({ sn: d.sn || '', model: d.productModel || '', version: '', remark: '' }))
 const emptyInventoryRow = (): Row => ({ productCode: '', model: '', desc: '', projectQty: '', shippedQty: '', unshippedQty: '', sn: '' })
 const emptyBusinessRow = (): Row => ({ deviceName: '', sn: '', businessName: '', network: '', level: '', ports: '', owner: '', remark: '' })
 
@@ -536,7 +508,7 @@ const tables = reactive({
   business: [] as Row[]
 })
 const scripts = reactive({ network: '', businessModule: '', ha: '', full: '' })
-const topology = reactive({ asIsUrl: '', toBeChanged: '', toBeUrl: '' })
+const topology = reactive({ asIsUrl: '', toBeChanged: '', toBeUrl: '', resourceConfirmation: '' })
 const meta = reactive({
   hasCustomerPlan: '',
   customerPlanUrl: '',
@@ -563,10 +535,11 @@ const syncFromForm = () => {
   tables.ip = parseRows(safeParse(form.value.ipPlan))
   const topo = parseObject(form.value.topology)
   topology.asIsUrl = String(topo['asIsUrl'] ?? '')
+  topology.resourceConfirmation = String(topo['resourceConfirmation'] ?? '')
   topology.toBeChanged = String(topo['toBeChanged'] ?? '')
   topology.toBeUrl = String(topo['toBeUrl'] ?? '')
-  tables.deploy = parseRows(topo['deploy'])
-  tables.software = parseRows(topo['software'])
+  tables.deploy = readSolutionEquipment({ topology: topo, section: 'deploy' })
+  tables.software = readSolutionEquipment({ topology: topo, section: 'software' })
   const scriptObj = parseObject(form.value.script)
   scripts.network = String(scriptObj['network'] ?? '')
   scripts.businessModule = String(scriptObj['businessModule'] ?? '')
@@ -604,8 +577,10 @@ watch(tables, () => {
 watch(
   [topology, () => tables.deploy, () => tables.software],
   () => {
+    if (props.readOnly) return
     form.value.topology = JSON.stringify({
       asIsUrl: topology.asIsUrl,
+      resourceConfirmation: topology.resourceConfirmation,
       toBeChanged: topology.toBeChanged,
       toBeUrl: topology.toBeUrl,
       deploy: tables.deploy,
@@ -653,13 +628,11 @@ watch(() => form.value.projectId, async (projectId, _previous, onCleanup) => {
   onCleanup(() => { active = false })
   members.value = []
   scopeRows.value = []
-  devices.value = []
   contacts.value = []
   if (!projectId) return
-  const [memberList, scopePage, devicePage, contactPage] = await Promise.all([
+  const [memberList, scopePage, contactPage] = await Promise.all([
     ProjectsApi.getProjectMembers(projectId).catch(() => []),
     getDeliveryScopePage({ projectId, pageNo: 1, pageSize: 200, includeHistory: false }).catch(() => ({ list: [] })),
-    DeviceArchiveApi.getDeviceArchivePage({ projectId, pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] })),
     ContactApi.getProjectPage(projectId, { pageNo: 1, pageSize: 200 }).catch(() => ({ list: [] }))
   ])
   if (!active) return
@@ -672,7 +645,6 @@ watch(() => form.value.projectId, async (projectId, _previous, onCleanup) => {
       allocatedQuantity: d.allocatedQuantity ?? scope.allocatedQuantity ?? 0
     }))
   )
-  devices.value = ((devicePage as any).list || []) as DeviceArchiveApi.DeviceArchiveVO[]
 }, { immediate: true })
 
 // ---------- 生成方案（引用前序数据，只填空字段） ----------
@@ -682,8 +654,8 @@ const generateFromSources = () => {
   if (reqObjective.value && !String(form.value.target ?? '').trim()) form.value.target = reqObjective.value
   if (members.value.length && !tables.team.length) tables.team = memberRows()
   if (scopeRows.value.length && !tables.inventory.length) tables.inventory = scopeProductRows()
-  if (devices.value.length && !tables.deploy.length) tables.deploy = deviceDeployRows()
-  if (devices.value.length && !tables.software.length) tables.software = deviceSoftwareRows()
+  if (equipmentProducts.value.length && !tables.deploy.length) tables.deploy = equipmentProducts.value.map(product => equipmentRow(product))
+  if (equipmentProducts.value.length && !tables.software.length) tables.software = equipmentProducts.value.map(product => equipmentRow(product))
   if (reqBusinessRows.value.length && !tables.business.length) tables.business = reqBusinessRows.value.map((r) => ({ ...r }))
 }
 
@@ -719,14 +691,14 @@ const buildSolutionHtml = () => {
   ].join('')
   const chapter2 = [
     htmlField('2.1 现网拓扑图', topology.asIsUrl ? `<p>已上传：${escapeHtml(topology.asIsUrl)}</p>` : '<p>（未上传）</p>'),
-    htmlField('2.2 现网资源确认', `<p>传输现状：${escapeHtml(reqTransmission.value.join('、'))}</p><p>流量现状：新建 ${escapeHtml(reqTraffic.value.new)} / 并发 ${escapeHtml(reqTraffic.value.concurrent)} / 吞吐 ${escapeHtml(reqTraffic.value.throughput)}</p>`)
+    htmlField('2.2 现网资源确认', topology.resourceConfirmation)
   ].join('')
   const chapter3 = [
     htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化${topology.toBeUrl ? `，已上传：${escapeHtml(topology.toBeUrl)}` : '（未上传新拓扑）'}</p>` : '<p>与需求分析无变化，调用 2.3 需求分析网络拓扑</p>'),
-    htmlField('3.2 设备部署位置规划', htmlTable(tables.deploy, [['deviceName', '设备名称'], ['deviceType', '设备类型'], ['sn', '设备序列号'], ['location', '安装位置（机房/机柜/U数）'], ['remark', '备注']])),
+    htmlField('3.2 部署位置规划', htmlTable(tables.deploy, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['location', '安装位置（机房/机柜/U数）'], ['remark', '备注']])),
     htmlField('3.3 设备接口互联规划', htmlTable(tables.interface, [['localDevice', '本端设备'], ['localPort', '本端接口'], ['peerPort', '对端接口'], ['portType', '接口类型'], ['cableModel', '线缆/光模块型号'], ['remark', '备注']])),
     htmlField('3.4 设备IP地址与vlan规划', htmlTable(tables.ip, [['deviceName', '设备名称'], ['port', '接口'], ['ip', 'IP地址'], ['mask', '掩码'], ['vrrp', 'VRRP地址'], ['gateway', '网关'], ['remark', '备注']])),
-    htmlField('3.5 软件版本', htmlTable(tables.software, [['sn', '序列号'], ['model', '设备型号'], ['version', '软件版本'], ['remark', '备注']]))
+    htmlField('3.5 软件版本', htmlTable(tables.software, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['version', '软件版本'], ['remark', '备注']]))
   ].join('')
   const chapter4 = scriptItems
     .map((item) => htmlField(item.label, `<pre>${escapeHtml(scripts[item.key] || '（未填写）')}</pre>`))

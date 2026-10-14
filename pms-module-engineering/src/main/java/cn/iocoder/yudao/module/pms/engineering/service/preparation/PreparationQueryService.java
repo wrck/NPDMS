@@ -179,8 +179,11 @@ public class PreparationQueryService {
                 PreparationInitializationService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), checkedProjectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(checkedProjectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(checkedProjectId)) {
             throw exception(FORBIDDEN);
         }
@@ -290,8 +293,11 @@ public class PreparationQueryService {
             boolean manage = permissionApi.hasAnyPermissions(
                     actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE);
             if (!current || !manage) return new ActionContext(current, false, fill, preparation.getStatusCode());
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
-                    preparation.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(preparation.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
             if (scope == null || scope.fullProjectIds() == null
                     || !scope.fullProjectIds().contains(preparation.getProjectId())) {
                 return new ActionContext(true, false, fill, preparation.getStatusCode());

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.arrival.ArrivalDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.mysql.arrival.ArrivalMapper;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileDocumentSourceProvider;
+import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,7 +53,7 @@ class ArrivalDocumentSourcesTest {
         arrival.setProjectId(66L);
         when(arrivalMapper.selectById(7L)).thenReturn(arrival);
 
-        var scope = sources.resolve(TENANT, "IMP", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT");
+        var scope = sources.resolve(TENANT, new FileEvidenceApi.Document(null, "IMP", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT", null, null, null, null, null, false));
 
         assertEquals(new FileDocumentSourceProvider.Scope(66L, ArrivalDocumentSources.SOURCE_CODE,"IMP","arrival",7L,null),
                 scope);
@@ -60,22 +61,21 @@ class ArrivalDocumentSourcesTest {
 
     @Test
     void ignoresForeignOwnersTypesAndPurposes() {
-        assertNull(sources.resolve(TENANT, "SOL", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT"));
-        assertNull(sources.resolve(TENANT, "IMP", "ARRIVAL_ACCEPTANCE", "7", "ARRIVAL_SIGN_DOCUMENT"));
-        assertNull(sources.resolve(TENANT, "IMP", "ARRIVAL", "7", "RECEIPT"));
+        assertNull(sources.resolve(TENANT, new FileEvidenceApi.Document(null, "SOL", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT", null, null, null, null, null, false)));
+        assertNull(sources.resolve(TENANT, new FileEvidenceApi.Document(null, "IMP", "ARRIVAL_ACCEPTANCE", "7", "ARRIVAL_SIGN_DOCUMENT", null, null, null, null, null, false)));
+        assertNull(sources.resolve(TENANT, new FileEvidenceApi.Document(null, "IMP", "ARRIVAL", "7", "RECEIPT", null, null, null, null, null, false)));
     }
 
     @Test
     void ignoresForeignTenantsAndMissingRecords() {
-        assertNull(sources.resolve(999L, "IMP", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT"));
+        assertNull(sources.resolve(999L, new FileEvidenceApi.Document(null, "IMP", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT", null, null, null, null, null, false)));
 
         when(arrivalMapper.selectById(7L)).thenReturn(null);
-        assertNull(sources.resolve(TENANT, "IMP", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT"));
+        assertNull(sources.resolve(TENANT, new FileEvidenceApi.Document(null, "IMP", "ARRIVAL", "7", "ARRIVAL_SIGN_DOCUMENT", null, null, null, null, null, false)));
     }
 
     @Test
     void ignoresNonNumericObjectIds() {
-        assertNull(sources.resolve(TENANT, "IMP", "ARRIVAL", "not-a-number",
-                "ARRIVAL_SIGN_DOCUMENT"));
+        assertNull(sources.resolve(TENANT, new FileEvidenceApi.Document(null, "IMP", "ARRIVAL", "not-a-number", "ARRIVAL_SIGN_DOCUMENT", null, null, null, null, null, false)));
     }
 }

@@ -246,14 +246,20 @@ public class RequirementAnalysisDynamicFormCommandService {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), RequirementAnalysisQueryService.PERMISSION_MANAGE)) {
             throw exception(FORBIDDEN);
         }
-        var currentScope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        var currentScope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (currentScope == null || currentScope.treeVersion() == null) {
             throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
         }
-        var lockedScope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE,
-                currentScope.treeVersion()));
+        var lockedScope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(currentScope.treeVersion()).build());
         if (lockedScope.fullProjectIds() == null || !lockedScope.fullProjectIds().contains(projectId)) {
             throw exception(FORBIDDEN);
         }

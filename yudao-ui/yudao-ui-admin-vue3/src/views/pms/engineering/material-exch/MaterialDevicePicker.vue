@@ -65,6 +65,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { getDeliveryScopePage } from '@/api/pms/commerce'
+import { isBusinessViewId, legacyOwnerId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import type { MaterialExchangeSerialVO } from '@/api/pms/engineering/material-exch'
 import ProductOfficialSelect from './ProductOfficialSelect.vue'
 
@@ -85,9 +86,9 @@ interface ScopeLineRow {
   status: string
 }
 
-const props = defineProps<{ projectId?: number; modelValue: MaterialExchangeSerialVO[] }>()
+const props = defineProps<{ projectId?: BusinessViewId; modelValue: MaterialExchangeSerialVO[] }>()
 const emit = defineEmits<{ 'update:modelValue': [value: MaterialExchangeSerialVO[]] }>()
-const validProject = computed(() => Number.isSafeInteger(props.projectId) && Number(props.projectId) > 0)
+const validProject = computed(() => isBusinessViewId(props.projectId))
 const table = ref()
 const loading = ref(false)
 const error = ref('')
@@ -177,12 +178,20 @@ const load = async () => {
   rows.value = []
   error.value = ''
   pageNo.value = 1
-  if (!validProject.value) return
+  loading.value = false
+  const projectId = props.projectId
+  if (!isBusinessViewId(projectId)) return
   loading.value = true
   try {
-    const result = await getDeliveryScopePage({ projectId: props.projectId, pageNo: 1, pageSize: 200, includeHistory: false })
-    if (version !== requestVersion) return
-    rows.value = flatten(result)
+    const all: Array<Record<string, any>> = []
+    for (let page = 1; ; page++) {
+      const result = await getDeliveryScopePage({ projectId: legacyOwnerId(projectId), pageNo: page, pageSize: 200, includeHistory: false })
+      if (version !== requestVersion) return
+      all.push(...result.list)
+      if (all.length >= result.total) break
+      if (!result.list.length) throw new Error('交付范围分页不完整')
+    }
+    rows.value = flatten({ list: all })
     await restoreChecks()
   } catch {
     if (version === requestVersion) error.value = '设备清单加载失败，请重试'

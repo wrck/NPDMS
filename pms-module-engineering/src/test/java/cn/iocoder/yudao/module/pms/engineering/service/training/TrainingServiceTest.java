@@ -56,6 +56,7 @@ class TrainingServiceTest {
         ReflectionTestUtils.setField(service,"confirmationGrants",confirmationGrants);
         ReflectionTestUtils.setField(service,"grantFiles",grantFiles);
         ReflectionTestUtils.setField(service,"operationAudit",operationAudit);
+        ReflectionTestUtils.setField(service,"taskFactEvents",mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents.class));
         when(generatedFiles.create(any())).thenAnswer(invocation->{
             var command=(cn.iocoder.yudao.module.pms.platform.api.file.dto.NativeGeneratedFileCommand)invocation.getArgument(0);
             return new cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi.RegisteredFile(210L,220L,230L,1,

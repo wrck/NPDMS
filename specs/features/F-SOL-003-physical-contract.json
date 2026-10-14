@@ -302,7 +302,9 @@
     ]
   },
   "completion": {
-    "businessRequiredFields": ["PROJECT_BACKGROUND", "PROJECT_OBJECTIVE", "NETWORK_TOPOLOGY"],
+    "businessRequiredFields": ["PROJECT_BACKGROUND", "PROJECT_OBJECTIVE"],
+    "businessRequiredAttachmentFields": ["NETWORK_TOPOLOGY__ATTACHMENTS"],
+    "topologyAttachmentValidity": "At least one AVAILABLE/ACTIVE file after locked reference-set revalidation; topology text is historical optional content",
     "richTextVisibleValue": "strip markup, decode entities and remove invisible whitespace before checking emptiness",
     "platformValidation": "require declarativeValidationResult=VALID for required, JSON type, length/range, regex and enum constraints; client events/functions/parseFunc/remote API/iframe are not server completion facts",
     "blockers": [

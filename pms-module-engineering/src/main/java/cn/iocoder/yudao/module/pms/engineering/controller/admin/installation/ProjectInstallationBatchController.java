@@ -25,8 +25,11 @@ public class ProjectInstallationBatchController {
     @PostMapping("/batch")
     @PreAuthorize("@ss.hasPermission('pms:imp-installation:create')")
     public CommonResult<List<Long>> create(@Valid @RequestBody InstallationBatchCreateReqVO request) {
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(TenantContextHolder.getRequiredTenantId(),
-                SecurityFrameworkUtils.getLoginUserId(), request.getProjectId(), ProjectScopeApi.ACTION_EDIT));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(SecurityFrameworkUtils.getLoginUserId())
+                .anchorProjectId(request.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(request.getProjectId())) {
             throw exception(FORBIDDEN);
         }

@@ -194,8 +194,11 @@ public class SolutionTieredReviewService {
     private Long authorize(Long project, boolean write) {
         Long tenant = TenantContextHolder.getRequiredTenantId(), actor = SecurityFrameworkUtils.getLoginUserId();
         if (actor == null || !permissions.hasAnyPermissions(actor, write ? "pms:sol-solution:update" : "pms:sol-solution:query")) throw exception(FORBIDDEN);
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, project,
-                write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(project)
+                .actionCode(write ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || !visible.fullProjectIds().contains(project)) throw exception(FORBIDDEN);
         if (write) {
             var fact = participants.inspect(new ProjectParticipantFactQuery(project, actor, Set.of(ProjectMemberRoles.PROJECT_MANAGER), LocalDateTime.now()));

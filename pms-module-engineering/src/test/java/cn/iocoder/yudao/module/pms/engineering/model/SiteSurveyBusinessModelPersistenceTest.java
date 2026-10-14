@@ -101,7 +101,11 @@ class SiteSurveyBusinessModelPersistenceTest {
         when(permissions.hasAnyPermissions(9L, "pms:sol-site-survey:query")).thenReturn(true);
         when(scopes.resolveAllCurrent(new ProjectAllScopeQuery(3L, 9L, ProjectScopeApi.ACTION_VIEW)))
                 .thenReturn(Set.of(100L));
-        when(scopes.resolveCurrent(new ProjectCurrentScopeQuery(3L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+        when(scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(3L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(100L, 1L, Set.of(100L), Set.of()));
         var owner = new SiteSurveyEntityProvider(mapper, mock(SiteSurveyDetails.class), scopes, permissions);
         access = new DefaultBusinessEntityAccess(catalog, persistence, new PermissionBusinessAccessGuard(modelPermissions), null,

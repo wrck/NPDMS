@@ -10,7 +10,11 @@ class TrainingConfirmationGrantServiceTest {
  @AfterEach void clear(){TenantContextHolder.clear();org.springframework.security.core.context.SecurityContextHolder.clearContext();}
  BusinessGrantGeneratedFilePolicyQuery q(){return new BusinessGrantGeneratedFilePolicyQuery(7L,"IMP","TRAINING_RECORD",9L,4L,71L,1L,"TRAINING_RECORD_HTML/4",null);}
  void allow(long actor){when(permissions.hasAnyPermissions(actor,"pms:imp-training:issue")).thenReturn(true);var scope=new ProjectScopeResult(20L,3L,Set.of(20L),Set.of());when(scopes.resolveCurrent(any())).thenReturn(scope);when(scopes.lockAndRevalidate(any())).thenReturn(scope);var project=new ProjectAcceptanceContextApi.Context(20L,20L,2L,3L,"ACTIVE");when(projects.inspect(any())).thenReturn(project);when(projects.lock(any(),eq(2L),eq(3L))).thenReturn(project);}
- @Test void anonymousCustomerUsesImmutableIssuerNotTrainerOrLoggedEmployee(){allow(33);var policy=service.lockAndRevalidate(q());assertNull(SecurityFrameworkUtils.getLoginUserId());assertEquals(33L,policy.executionUserId());verify(scopes).resolveCurrent(new ProjectCurrentScopeQuery(7L,33L,20L,ProjectScopeApi.ACTION_MANAGE));}
+ @Test void anonymousCustomerUsesImmutableIssuerNotTrainerOrLoggedEmployee(){allow(33);var policy=service.lockAndRevalidate(q());assertNull(SecurityFrameworkUtils.getLoginUserId());assertEquals(33L,policy.executionUserId());verify(scopes).resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(7L)
+                .subjectUserId(33L)
+                .anchorProjectId(20L)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());}
  @Test void missingHistoricalGrantNeverInventsIssuer(){when(grants.selectCurrentGrant(any())).thenReturn(null);assertThrows(Exception.class,()->service.lockAndRevalidate(q()));verifyNoInteractions(permissions);}
  @Test void expiredGrantRejected(){grant.setExpiresAt(LocalDateTime.now().minusMinutes(1));assertThrows(Exception.class,()->service.lockAndRevalidate(q()));verifyNoInteractions(permissions);}
  @Test void reissuedDigestDoesNotReuseEarlierGrant(){when(grants.selectCurrentGrant(any())).thenReturn(null);row.setSignTokenDigest("b".repeat(64));assertThrows(Exception.class,()->service.lockAndRevalidate(q()));}

@@ -159,8 +159,11 @@ class ConstructionPlanQueryServiceTest {
         when(permissionApi.hasAnyPermissions(9L, ConstructionPlanQueryService.PERMISSION_QUERY,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE,
                 DurationChangeBpmAuthorizationGuard.PERMISSION_APPROVE)).thenReturn(true);
-        when(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                0L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+        when(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
         when(changeMapper.selectByObjectId(any())).thenReturn(change(801L,
                 LocalDateTime.of(2026, 8, 26, 13, 0)));
@@ -178,8 +181,11 @@ class ConstructionPlanQueryServiceTest {
         when(permissionApi.hasAnyPermissions(9L,
                 ConstructionPlanQueryService.PERMISSION_QUERY,
                 ConstructionPlanApplicationService.PERMISSION_MANAGE)).thenReturn(true);
-        when(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                0L, 9L, 100L, ProjectScopeApi.ACTION_VIEW)))
+        when(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(0L)
+                .subjectUserId(9L)
+                .anchorProjectId(100L)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()))
                 .thenReturn(new ProjectScopeResult(100L, 7L, Set.of(100L), Set.of()));
     }
 

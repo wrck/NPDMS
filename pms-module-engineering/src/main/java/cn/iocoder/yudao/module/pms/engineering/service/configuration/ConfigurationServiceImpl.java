@@ -136,12 +136,19 @@ public class ConfigurationServiceImpl implements ConfigurationService {
         Long actor = cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId();
         if (actor == null || !Objects.equals(tenant, configuration.getTenantId()))
             throw new IllegalStateException("配置记录不在当前租户范围");
-        var scope = importedLogScopes.resolveCurrent(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery(
-                tenant, actor, configuration.getProjectId(), cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT));
+        var scope = importedLogScopes.resolveCurrent(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(configuration.getProjectId())
+                .actionCode(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(configuration.getProjectId())) throw new IllegalStateException("项目不在当前可编辑范围");
-        var locked = importedLogScopes.lockAndRevalidate(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery(
-                tenant, actor, configuration.getProjectId(), cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT, scope.treeVersion()));
+        var locked = importedLogScopes.lockAndRevalidate(cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(configuration.getProjectId())
+                .actionCode(cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (locked == null || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(configuration.getProjectId())
                 || !Objects.equals(scope.treeVersion(), locked.treeVersion())) throw new IllegalStateException("项目范围已变化，请刷新后重试");
         importedLogs.validateFile(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceConfigurationLogImportApi.FileQuery(

@@ -40,11 +40,19 @@ public class ConfigurationLogImportService {
         if (actor == null || projectId == null || projectId <= 0
                 || !permissions.hasAnyPermissions(actor, "pms:imp-configuration:create"))
             throw rejected("没有创建配置记录的权限");
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant, actor, projectId, ProjectScopeApi.ACTION_EDIT));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
         if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
                 || !scope.fullProjectIds().contains(projectId)) throw rejected("项目不在当前可编辑范围");
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenant, actor, projectId, ProjectScopeApi.ACTION_EDIT, scope.treeVersion()));
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(scope.treeVersion()).build());
         if (locked == null || locked.fullProjectIds() == null || !locked.fullProjectIds().contains(projectId)
                 || !Objects.equals(scope.treeVersion(), locked.treeVersion())) throw rejected("项目范围已变化，请刷新后重试");
         var result = logs.importLog(new DeviceConfigurationLogImportApi.Command(tenant, actor, projectId, operationId, fileName, content));

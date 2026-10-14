@@ -44,8 +44,11 @@ public class SiteSurveyOperationCommandAdapter implements ProjectBusinessOperati
             if (identity==null || !TenantContextHolder.getRequiredTenantId().equals(identity.getTenantId()) || !id.equals(identity.getId())
                     || !command.projectId().equals(identity.getProjectId())) throw exception(FORBIDDEN);
         }
-        var scope = scopes.getObject().resolveCurrent(new ProjectCurrentScopeQuery(TenantContextHolder.getRequiredTenantId(), actor,
-                command.projectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = scopes.getObject().resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actor)
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(command.projectId())) throw exception(FORBIDDEN);
     }
     @Override public ProjectOperationResult invoke(String code, ProjectOperationCommand command) {

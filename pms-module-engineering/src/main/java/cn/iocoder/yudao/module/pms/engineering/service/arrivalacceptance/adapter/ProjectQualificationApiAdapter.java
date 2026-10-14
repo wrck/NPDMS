@@ -41,8 +41,11 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
                     projectId, null, REQUIRED_PROJECT_ROLES, LocalDateTime.now()));
             requireParticipantIdentity(participant, projectId, null);
             requireEligibleArrivalProject(participant, null, null);
-            ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    tenantId, actorUserId, projectId, ProjectScopeApi.ACTION_EDIT));
+            ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_EDIT).build());
             requireEditableScope(scope, projectId, null);
             return toFact(participant, scope.treeVersion());
         } catch (ArrivalAcceptanceContractException exception) {
@@ -68,9 +71,12 @@ public class ProjectQualificationApiAdapter implements ProjectQualificationPort 
                             ACTIVE, null, REQUIRED_PROJECT_ROLES));
             requireParticipantIdentity(participant, command.projectId(), command.subjectUserId());
             requireEligibleArrivalProject(participant, command.expectedProjectVersion(), command.expectedFactVersion());
-            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                    command.tenantId(), command.actorUserId(), command.projectId(),
-                    ProjectScopeApi.ACTION_EDIT, command.expectedScopeVersion()));
+            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(command.tenantId())
+                .subjectUserId(command.actorUserId())
+                .anchorProjectId(command.projectId())
+                .actionCode(ProjectScopeApi.ACTION_EDIT)
+                .expectedScopeVersion(command.expectedScopeVersion()).build());
             requireEditableScope(scope, command.projectId(), command.expectedScopeVersion());
             return toFact(participant, scope.treeVersion());
         } catch (ArrivalAcceptanceContractException exception) {

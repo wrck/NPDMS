@@ -45,7 +45,11 @@ public class RequirementAnalysisAccess {
         // Preserve the common fact port's reserved observer contract; HTTP actors cannot inject this identity.
         if (actor.isSystemObserver()) return;
         if (!permissions.hasAnyPermissions(actor.userId(), "pms:requirement-analysis:query", "pms:requirement-analysis:manage")) throw exception(FORBIDDEN);
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
         if (draft && !isManager(projectId, actor)) throw exception(FORBIDDEN);
     }
@@ -53,7 +57,11 @@ public class RequirementAnalysisAccess {
     public boolean isManager(Long projectId, EntityActor actor) {
         try {
             if (!permissions.hasAnyPermissions(actor.userId(), "pms:requirement-analysis:manage")) return false;
-            var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+            var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
             var participant = RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
             return scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(projectId)
                     && participant != null && "ACTIVE".equals(participant.lifecycleStatus())
@@ -67,10 +75,18 @@ public class RequirementAnalysisAccess {
     /** Original authorization and project-first lock order, retained by this business Owner. */
     public void lockScope(Long projectId, EntityActor actor) {
         if (!permissions.hasAnyPermissions(actor.userId(), "pms:requirement-analysis:manage")) throw exception(FORBIDDEN);
-        var observed = scopes.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.userId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        var observed = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (observed == null || observed.treeVersion() == null) throw exception(REQUIREMENT_ANALYSIS_PROJECT_FACT_INVALID);
-        var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.userId(), projectId,
-                ProjectScopeApi.ACTION_MANAGE, observed.treeVersion()));
+        var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(observed.treeVersion()).build());
         if (locked.fullProjectIds() == null || !locked.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
         var manager = RequirementAnalysisManagerFacts.inspect(participants, permissions, projectId, actor.userId());
         if (manager == null) throw exception(REQUIREMENT_VERSION_NOT_MATCH);

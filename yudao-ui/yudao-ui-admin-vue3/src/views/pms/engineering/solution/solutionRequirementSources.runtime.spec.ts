@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, ref } from 'vue'
 import SolutionChapterForm from './SolutionChapterForm.vue'
+import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
 import { mount, passthrough, tableColumn, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
@@ -8,6 +9,8 @@ vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace:
 vi.mock('@/api/pms/project/projects', () => ({ getProjectMembers: vi.fn(async () => []) }))
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ getDeviceArchivePage: vi.fn(async () => ({ list: [] })) }))
+vi.mock('@/api/pms/engineering/site-survey/entity', () => ({ getSiteSurveyPage: vi.fn(async () => ({ list: [], total: 0 })), getSiteSurvey: vi.fn() }))
+vi.mock('@/api/pms/commerce/projectEquipment', () => ({ loadProjectEquipmentList: vi.fn(async () => ({ list: [], scopes: [] })) }))
 vi.mock('@/api/pms/commerce', () => ({ getDeliveryScopePage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: () => '', getIntDictOptions: () => [] }))
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
@@ -45,7 +48,7 @@ describe('solution requirement analysis references', () => {
       expect(RequirementApi.workspace).toHaveBeenCalledWith(1)
       expect(textOf(mounted.root)).toContain('已冻结背景')
       expect(mounted.state.reqTopology).toBe('<p>网络拓扑</p>')
-      expect(mounted.state.reqTransmission).toEqual(['IPv6'])
+      expect(mounted.state.reqValues.transmissionCurrentOptions).toEqual(['IPv6'])
       mounted.state.generateFromSources()
       await flush()
       expect(mounted.form.value).toMatchObject({ background: '<p>已冻结背景</p>', target: '<p>项目目标</p>' })
@@ -83,6 +86,28 @@ describe('solution requirement analysis references', () => {
       await mounted.state.loadRequirement(1); await flush()
       expect(mounted.state.requirementError).toBe('')
       expect(mounted.state.reqBackground).toBe('草稿背景')
+    } finally { mounted.app.unmount() }
+  })
+
+
+  it('serializes separate deployment and software chapters with order quantity and reopens saved content', async () => {
+    vi.mocked(loadProjectEquipmentList).mockResolvedValueOnce({ list: [{ productCode: 'P1', productName: '防火墙', productModel: 'FW', orderQty: 12, projectQty: 20, deviceCount: 3 }], scopes: [] })
+    const mounted = render(1)
+    try {
+      await flush(); mounted.state.generateFromSources(); await flush()
+      const topology = JSON.parse(mounted.form.value.topology)
+      expect(topology.deploy[0]).toMatchObject({ productCode: 'P1', deviceName: '防火墙', quantity: '12' })
+      mounted.state.topology.resourceConfirmation = '<p>手工确认资源</p>'
+      mounted.state.tables.deploy[0].location = '机柜/U2'
+      mounted.state.tables.software[0].version = 'v3'; await flush()
+      const saved = mounted.form.value.topology
+      mounted.form.value = { id: 99, projectId: 1, topology: saved }; await flush()
+      expect(mounted.state.tables.deploy[0]).toMatchObject({ productCode: 'P1', quantity: '12', location: '机柜/U2' })
+      expect(mounted.state.tables.software[0]).toMatchObject({ productCode: 'P1', quantity: '12', version: 'v3' })
+      expect(mounted.state.topology.resourceConfirmation).toBe('<p>手工确认资源</p>')
+      expect(mounted.state.buildSolutionHtml()).toContain('<p>手工确认资源</p>')
+      expect(mounted.state.buildSolutionHtml()).toContain('数量（订单数量）')
+      expect(mounted.state.buildSolutionHtml()).toContain('3.5 软件版本')
     } finally { mounted.app.unmount() }
   })
 

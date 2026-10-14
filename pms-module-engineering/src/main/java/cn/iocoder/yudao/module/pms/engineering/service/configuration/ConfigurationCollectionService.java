@@ -149,11 +149,19 @@ public class ConfigurationCollectionService {
         var configuration = lock ? configurations.lockById(id) : configurations.selectById(id);
         if (configuration == null || !Objects.equals(tenant(), configuration.getTenantId())) throw rejected("配置记录不存在");
         String action = edit ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_VIEW;
-        var scope = scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant(), actor, configuration.getProjectId(), action));
+        var scope = scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant())
+                .subjectUserId(actor)
+                .anchorProjectId(configuration.getProjectId())
+                .actionCode(action).build());
         if (scope == null || !scope.fullProjectIds().contains(configuration.getProjectId())) throw rejected("无当前项目权限");
         if (lock) {
-            var locked = scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant(), actor,
-                    configuration.getProjectId(), action, scope.treeVersion()));
+            var locked = scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant())
+                .subjectUserId(actor)
+                .anchorProjectId(configuration.getProjectId())
+                .actionCode(action)
+                .expectedScopeVersion(scope.treeVersion()).build());
             if (locked == null || !Objects.equals(locked.treeVersion(), scope.treeVersion())
                     || !locked.fullProjectIds().contains(configuration.getProjectId())) throw rejected("项目权限已变化");
         }

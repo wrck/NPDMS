@@ -1,0 +1,40 @@
+// Opt-in template component classes; old templates have no such classes.
+.requirement-template-responsive .el-form-item__content {
+  min-width: 0;
+  width: 100%;
+}
+.requirement-template-responsive .el-form-item__content > div {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.requirement-template-text,
+.requirement-template-rich {
+  width: 100%;
+  min-width: 0;
+}
+.requirement-template-rich {
+  --w-e-textarea-bg-color: var(--el-bg-color);
+  --w-e-textarea-color: var(--el-text-color-primary);
+  --w-e-toolbar-bg-color: var(--el-fill-color-light);
+  --w-e-toolbar-color: var(--el-text-color-regular);
+  --w-e-toolbar-border-color: var(--el-border-color);
+  border-color: var(--el-border-color);
+  border-radius: var(--el-border-radius-base);
+  overflow: hidden;
+}
+.requirement-template-text .el-input__wrapper,
+.requirement-template-text .el-textarea__inner {
+  background: var(--el-bg-color);
+  border-radius: var(--el-border-radius-base);
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+}
+.requirement-template-text .el-input__wrapper { min-height: 38px; padding: 1px 12px; }
+.requirement-template-text .el-textarea__inner { min-height: 96px; padding: 10px 12px; font: inherit; line-height: 1.65; }
+.requirement-template-text .el-input__wrapper.is-focus,
+.requirement-template-text .el-textarea__inner:focus { box-shadow: 0 0 0 1px var(--el-color-primary) inset; }
+.requirement-template-text.is-disabled .el-input__wrapper,
+.requirement-template-text.is-disabled .el-textarea__inner { background: var(--el-fill-color-extra-light); }
+.requirement-template-rich:not(:has(.w-e-toolbar)) .w-e-text-container { height: auto !important; min-height: 64px; background: var(--el-fill-color-extra-light); }
+.requirement-template-rich:not(:has(.w-e-toolbar)) .w-e-scroll { overflow: visible; }

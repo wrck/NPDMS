@@ -83,8 +83,11 @@ public class DurationChangeBpmAuthorizationGuard {
         if (!permissionApi.hasAnyPermissions(actorId, permission)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorId, plan.getProjectId(), ProjectScopeApi.ACTION_MANAGE));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(plan.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope == null || !scope.fullProjectIds().contains(plan.getProjectId())) {
             throw exception(CONSTRUCTION_PLAN_PROJECT_FACT_INVALID);
         }

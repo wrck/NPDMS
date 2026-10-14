@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as api from '@/api/pms/engineering/requirement-analysis/entity'
 import type { View } from '@/api/pms/engineering/requirement-analysis/entity'
 import EntityForm from './EntityForm.vue'
+import nextTemplate from '../template-20261013.json'
 import { formValues, businessPatch } from './entityForm'
 import { mount, findByTestId } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
@@ -30,6 +31,76 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key,value), removeItem: (key: string) => values.delete(key) })
 })
 describe('independent requirement entity form', () => {
+  it('keeps frozen source layout, labels and validation even when a new default template is available', async () => {
+    const view = detail()
+    view.revision.state = 'FROZEN'; view.allowedActions = []
+    view.form!.formConfJson = JSON.stringify({ form: { labelPosition: 'left', labelWidth: '90px' } })
+    view.form!.formRulesJson = JSON.stringify([{ type: 'Editor', field: 'PROJECT_BACKGROUND', title: '旧模板标题', props: { height: '240px' }, validate: [{ required: true }] }])
+    const next = { ...view.form!, templateId: '99', binding: { ...view.form!.binding, formRevisionId: '100' }, formRulesJson: JSON.stringify(nextTemplate.formRulesJson) }
+    vi.mocked(api.presentations).mockResolvedValueOnce({ defaultTemplateId: '99', options: [{ name: '新修订', layout: next }] })
+    let rendered: any
+    const capture = defineComponent({ props: ['rule', 'option'], setup(props) { rendered = props; return () => h('div') } })
+    const mounted = mount(EntityForm, { detail: view }, { 'form-create': capture })
+    try {
+      for (let i = 0; i < 6; i++) await nextTick()
+      expect(rendered.option.form).toMatchObject({ labelPosition: 'left', labelWidth: '90px' })
+      expect(rendered.rule[0]).toMatchObject({ title: '旧模板标题', props: { height: '240px', readonly: true }, validate: [{ required: true }] })
+    } finally { mounted.app.unmount() }
+  })
+  it.each(['DRAFT', 'FROZEN'] as const)('renders the original %s template without hiding historical fields or references', async state => {
+    const view = detail()
+    view.revision.state = state
+    view.allowedActions = state === 'DRAFT' ? ['PATCH_FORM'] : []
+    const rules = [
+      { type: 'input', field: 'PROJECT_BACKGROUND' },
+      { type: 'Editor', field: 'NETWORK_TOPOLOGY' },
+      { type: 'PmsFileArtifact', field: 'PROJECT_BACKGROUND__ATTACHMENTS' },
+      { type: 'PmsFileArtifact', field: 'NETWORK_TOPOLOGY__ATTACHMENTS' },
+      { type: 'div', children: [{ type: 'PmsFileArtifact', field: 'TRAFFIC_REQUIREMENT__ATTACHMENTS' }] }
+    ]
+    view.form!.binding.fieldBindings.NETWORK_TOPOLOGY = 'networkTopology'
+    view.values.networkTopology = '<p>历史拓扑文本</p>'
+    view.form!.formRulesJson = JSON.stringify(rules)
+    view.attachments = [{ key: { purposeCode: 'FORM_FIELD_ATTACHMENT/PROJECT_BACKGROUND__ATTACHMENTS' }, scopeVersion: 3, activeFacts: [] }]
+    const before = JSON.stringify(view)
+    let rendered: any
+    const capture = defineComponent({ props: ['rule', 'modelValue'], setup(props) { rendered = props; return () => h('div') } })
+    const mounted = mount(EntityForm, { detail: view }, { 'form-create': capture })
+    try {
+      await nextTick()
+      expect(rendered.rule.map((rule: any) => rule.field).filter(Boolean)).toEqual(['PROJECT_BACKGROUND', 'NETWORK_TOPOLOGY', 'PROJECT_BACKGROUND__ATTACHMENTS', 'NETWORK_TOPOLOGY__ATTACHMENTS'])
+      expect(rendered.rule[1].type).toBe('Editor')
+      expect(rendered.rule[2].type).toBe('RequirementRevisionFiles')
+      expect(rendered.rule[4].children[0].field).toBe('TRAFFIC_REQUIREMENT__ATTACHMENTS')
+      expect(rendered.rule[2].props.allowedActions).toEqual(state === 'DRAFT' ? ['PATCH_FORM'] : [])
+      expect(JSON.stringify(view)).toBe(before)
+      expect(api.save).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+  it('renders running business rows as a table and preserves values when permissions become read-only', async () => {
+    const view = detail()
+    view.fieldCatalog.push({ code: 'businessDeviceDetails', type: 'OBJECT_LIST', required: false })
+    view.form!.binding.fieldBindings.BUSINESS_DEVICE_DETAILS = 'businessDeviceDetails'
+    view.form!.formRulesJson = JSON.stringify([nextTemplate.formRulesJson.find(rule => rule.field === 'BUSINESS_DEVICE_DETAILS')])
+    const rows = [{ deviceName: '设备A', serialNumber: 'SN-A', remark: '保留备注' }]
+    view.values.businessDeviceDetails = rows
+    let rendered: any
+    const capture = defineComponent({ props: ['rule', 'modelValue'], setup(props) {
+      rendered = props
+      return () => h('div')
+    } })
+    const permissions = ref(['PATCH_FORM'])
+    const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: view, allowedActions: permissions.value }) }), {}, { 'form-create': capture })
+    try {
+      await nextTick()
+      expect(rendered.rule[0]).toMatchObject({ type: 'RequirementBusinessTable', field: 'BUSINESS_DEVICE_DETAILS', props: { disabled: false } })
+      expect(rendered.modelValue.BUSINESS_DEVICE_DETAILS).toEqual(rows)
+      permissions.value = []; await nextTick(); await nextTick()
+      expect(rendered.rule[0].props.disabled).toBe(true)
+      expect(rendered.rule[0].props.columns).toEqual(nextTemplate.formRulesJson.find(rule => rule.field === 'BUSINESS_DEVICE_DETAILS')!.props!.columns)
+      expect(rendered.modelValue.BUSINESS_DEVICE_DETAILS).toEqual(rows)
+    } finally { mounted.app.unmount() }
+  })
   it('initializes unpublished values for R2 multi-select and device rows as arrays and saves them as extensions', () => {
     const view = detail()
     view.form!.binding.fieldBindings.tags = 'tags'

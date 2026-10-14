@@ -67,9 +67,11 @@ public class PreparationFilePolicyProvider implements FileBusinessObjectPolicyPr
                                                  String purposeCode, String requiredAction) {
         Context context = locate(tenantId, objectId, false);
         if (context == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorUserId, context.preparation().getProjectId(),
-                ProjectScopeApi.ACTION_VIEW));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(context.preparation().getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (!inScope(scope, context.preparation().getProjectId())) return denied();
         return policy(allowed(actorUserId, requiredAction, context), scope.treeVersion(), context);
     }
@@ -95,9 +97,12 @@ public class PreparationFilePolicyProvider implements FileBusinessObjectPolicyPr
                                                             Long expectedScopeVersion) {
         Context located = locate(tenantId, objectId, false);
         if (located == null || !PURPOSE_CODE.equals(purposeCode)) return denied();
-        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                tenantId, actorUserId, located.preparation().getProjectId(),
-                ProjectScopeApi.ACTION_VIEW, expectedScopeVersion));
+        ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(located.preparation().getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(expectedScopeVersion).build());
         if (!inScope(scope, located.preparation().getProjectId())) return denied();
         Context locked = locate(tenantId, objectId, true);
         if (locked == null || !Objects.equals(locked.preparation().getProjectId(),

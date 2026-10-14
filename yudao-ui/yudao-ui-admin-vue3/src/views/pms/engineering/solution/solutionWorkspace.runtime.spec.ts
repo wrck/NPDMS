@@ -12,6 +12,8 @@ vi.mock('@/api/pms/engineering/solution', () => ({ getSolutionPage: vi.fn(), get
 vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: vi.fn(async () => ({ currentEffective: null, draft: null })) }))
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ getDeviceArchivePage: vi.fn(async () => ({ list: [] })) }))
+vi.mock('@/api/pms/engineering/site-survey/entity', () => ({ getSiteSurveyPage: vi.fn(async () => ({ list: [], total: 0 })), getSiteSurvey: vi.fn() }))
+vi.mock('@/api/pms/commerce/projectEquipment', () => ({ loadProjectEquipmentList: vi.fn(async () => ({ list: [], scopes: [] })) }))
 vi.mock('@/api/pms/commerce', () => ({ getDeliveryScopePage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/components/DeliveryArtifact/uploadDeliveryFile', () => ({ uploadDeliveryFile: vi.fn() }))
@@ -53,7 +55,7 @@ describe('existing solution drafting and read-only viewing', () => {
     try {
       mounted.state.openForm(approved); await flush()
       expect(mounted.state.readOnly).toBe(true)
-      expect(editors(mounted.root)).toHaveLength(6)
+      expect(editors(mounted.root)).toHaveLength(7)
       expect(editors(mounted.root).every(editor => editor.props?.readonly === true)).toBe(true)
       await mounted.state.save()
       await mounted.state.remove(approved)

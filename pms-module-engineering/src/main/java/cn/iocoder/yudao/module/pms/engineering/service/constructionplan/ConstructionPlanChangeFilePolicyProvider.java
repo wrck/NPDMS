@@ -114,8 +114,12 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
         Set<String> roles = mutating ? PROJECT_MANAGER_ROLE : FILE_READER_ROLES;
         String scopeAction = mutating ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_VIEW;
         ProjectScopeResult lockedScope = projectScopeApi.lockAndRevalidate(
-                new ProjectScopeRevalidationQuery(tenantId, actorUserId,
-                        located.plan().getProjectId(), scopeAction, expectedScopeVersion));
+                ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(located.plan().getProjectId())
+                .actionCode(scopeAction)
+                .expectedScopeVersion(expectedScopeVersion).build());
         requireScope(lockedScope, located.plan().getProjectId());
         if (!Objects.equals(lockedScope.treeVersion(), expectedScopeVersion)) {
             return policy(actionAllowed(requiredAction, located.change()),
@@ -185,7 +189,11 @@ public class ConstructionPlanChangeFilePolicyProvider implements FileBusinessObj
     private ProjectScopeResult requireScope(Long tenantId, Long actorUserId, Long projectId,
                                             String action) {
         ProjectScopeResult scope = projectScopeApi.resolveCurrent(
-                new ProjectCurrentScopeQuery(tenantId, actorUserId, projectId, action));
+                ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorUserId)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         requireScope(scope, projectId);
         return scope;
     }

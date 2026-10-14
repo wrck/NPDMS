@@ -23,7 +23,11 @@ public class ProjectInstallationAddressController {
     @PreAuthorize("@ss.hasPermission('pms:imp-installation:query')")
     public CommonResult<Map<String, Object>> inspect(@PathVariable Long projectId) {
         var tenant = TenantContextHolder.getTenantId();
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(tenant, SecurityFrameworkUtils.getLoginUserId(), projectId, ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(SecurityFrameworkUtils.getLoginUserId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
         var fact = addresses.lockAndInspect(new InstallationAddressCompletionApi.Query(tenant, projectId));
         return CommonResult.success(Map.of("totalDevices", fact.totalDevices(), "addressedDevices", fact.addressedDevices(), "completed", fact.completed()));

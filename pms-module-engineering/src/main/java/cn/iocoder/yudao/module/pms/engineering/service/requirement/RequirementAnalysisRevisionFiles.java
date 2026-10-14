@@ -7,6 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.*;
 
+import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
+import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.REQUIREMENT_ANALYSIS_CONTENT_INVALID;
+
 /** Current views resolve the effective revision's immutable file references. */
 @Service
 @RequiredArgsConstructor
@@ -30,16 +33,29 @@ public class RequirementAnalysisRevisionFiles {
     }
 
     public void lockForFreeze(RevisionRef revision, EntityActor actor) {
-        var facts = inspect(revision, actor);
-        if (facts.isEmpty()) return;
-        var locked=files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(facts.stream()
-                .map(fact -> new FileReferenceSetExpectation(fact.key(), fact.scopeVersion(), fact.activeFacts())).toList(), FileActionCodes.READ));
+        lockReferenceSets(inspect(revision, actor)).forEach(set -> set.activeFacts().forEach(materials::registerNativeSourceFile));
+    }
+
+    /** New completion requires topology evidence; reading old frozen results does not add requirements retroactively. */
+    public void lockForCompletion(RevisionRef revision, EntityActor actor) {
+        var locked = lockReferenceSets(inspect(revision, actor));
+        boolean topologyPresent = locked.stream().filter(set -> set.key().purposeCode().equals(
+                FormAttachmentPolicy.PURPOSE_PREFIX + "NETWORK_TOPOLOGY__ATTACHMENTS"))
+                .flatMap(set -> set.activeFacts().stream())
+                .anyMatch(file -> "AVAILABLE".equals(file.availabilityStatus()) && "ACTIVE".equals(file.referenceStatus()));
+        if (!topologyPresent) throw exception(REQUIREMENT_ANALYSIS_CONTENT_INVALID);
         locked.forEach(set -> set.activeFacts().forEach(materials::registerNativeSourceFile));
+    }
+
+    private List<FileReferenceSetFact> lockReferenceSets(List<FileReferenceSetFact> facts) {
+        if (facts.isEmpty()) return List.of();
+        return files.lockAndRevalidateReferenceSets(new FileReferenceSetCollectionRevalidationQuery(facts.stream()
+                .map(fact -> new FileReferenceSetExpectation(fact.key(), fact.scopeVersion(), fact.activeFacts())).toList(), FileActionCodes.READ));
     }
 
     /** Explicit business save: optional files become materials even without template requirements. */
     public void registerSaved(RevisionRef revision, EntityActor actor) {
-        lockForFreeze(revision,actor);
+        lockForFreeze(revision, actor);
     }
 
     public void registerActivated(cn.iocoder.yudao.module.pms.engineering.dal.dataobject.requirement.RequirementAnalysisRevisionDO row) {

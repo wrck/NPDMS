@@ -58,7 +58,7 @@ class ImplementationCollectionLogServiceTest {
         verify(jointTests, never()).updateById(any(JointTestDO.class));
     }
     @Test void currentBusinessPermissionIsRequiredForReadingReceipts() {
-        when(source.authorize(any(), any(), any(), any(), any(), any())).thenThrow(new AccessDeniedException("denied"));
+        when(source.authorize(any(CollectionSourceAdapter.AuthorizationQuery.class))).thenThrow(new AccessDeniedException("denied"));
         assertThrows(AccessDeniedException.class, () -> service.page("configuration", 11L, 8L, 1, 10));
         verifyNoInteractions(logs);
     }

@@ -86,7 +86,7 @@ const loadPresentations = async () => {
     if (sequence !== presentationSequence) return
     presentationOptions.value = result.options
     presentationError.value = ''
-    if ((result.defaultRevisionId != null || !props.detail.form && selectedPresentation.value === 'base') && !dirty.value) {
+    if (editable.value && (result.defaultRevisionId != null || !props.detail.form && selectedPresentation.value === 'base') && !dirty.value) {
       const preferred = result.options.find(option => result.defaultRevisionId != null
         ? String(option.layout.binding.formRevisionId) === String(result.defaultRevisionId)
         : result.defaultTemplateId != null && String(option.layout.templateId) === String(result.defaultTemplateId))
@@ -124,6 +124,7 @@ const readPending = (): JsonObject | undefined => {
 
 const updateEditorReadonly = (rules: JsonObject[]) => {
   for (const rule of rules) {
+    if (['RequirementBusinessTable', 'RequirementLoggingChoices'].includes(String(rule.type))) rule.props = { ...((rule.props as JsonObject) || {}), disabled: !editable.value }
     if (rule.type === 'Editor') {
       const field = String(rule.field)
       const editorProps = (rule.props || {}) as JsonObject
@@ -148,20 +149,6 @@ const apply = (source: View, preserve?: JsonObject) => {
         type: 'input', props: { type: 'textarea' }, validate: field.required ? [{ required: true, message: '请填写此项' }] : [] })) }
   const fields = collectValueFields(decoded.rule as JsonObject[])
   const visit = (rules: JsonObject[]) => rules.forEach(rule => {
-    // Display aliases map to stable business fields; presentation is never the data owner.
-    const code = detail.form?.binding.fieldBindings[String(rule.field)] || String(rule.field)
-    // SOL checks business completeness on completion; layout validation cannot block draft saves.
-    rule.validate = []
-    const titles: Record<string, string> = {
-      TRANSMISSION_REQUIREMENT: '传输现状说明', TRAFFIC_REQUIREMENT: '流量现状说明',
-      BUSINESS_REQUIREMENT: '运行业务情况说明', IP_PLANNING: 'IP资源情况说明',
-      REDUNDANCY_REQUIREMENT: '冗余备份要求', SECURITY_PROTECTION: '本机防护要求',
-      OPERATIONS_REQUIREMENT: '运维管理要求', LOGGING_REQUIREMENT: '日志留存要求'
-    }
-    if (titles[code]) rule.title = titles[code]
-    if (rule.type === 'Editor') {
-      rule.props = { height: '180px', ...((rule.props as JsonObject) || {}) }
-    }
     if (rule.type === 'PmsFileArtifact' && typeof rule.field === 'string') {
       const set = detail.attachments.find(item => item.key.purposeCode === `FORM_FIELD_ATTACHMENT/${rule.field}`)
       rule.type = 'RequirementRevisionFiles'
@@ -176,9 +163,7 @@ const apply = (source: View, preserve?: JsonObject) => {
   values.value = { ...cloneValues(baseline.value), ...displayedValues(detail, preserve || {}) }
   editorReadonlyDefaults.clear()
   updateEditorReadonly(decoded.rule as JsonObject[])
-  render.option = { ...decoded.option,
-    form: { ...(((decoded.option as JsonObject).form as JsonObject) || {}), labelPosition: 'top' },
-    submitBtn: false, resetBtn: false }
+  render.option = decoded.option as JsonObject
   render.rule = decoded.rule as JsonObject[]
   ordinaryFields.value = fields.ordinary
 }
@@ -315,17 +300,6 @@ defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () =>
 .form-host {
   width: 100%;
 }
-
-.form-host :deep(.el-form-item) { margin-bottom: 24px; }
-.form-host :deep(.el-form-item__label) { font-weight: 600; color: var(--el-text-color-primary); }
-.form-host :deep(.el-form-item__content > div:has(.w-e-text-container)) { width: 100%; border-color: var(--el-border-color); border-radius: var(--el-border-radius-base); overflow: hidden; }
-.form-host.is-readonly :deep(.el-form-item__content > div > div:has(> .w-e-text-container)) { height: auto !important; }
-.form-host.is-readonly :deep(.w-e-toolbar) { display: none; }
-.form-host.is-readonly :deep(.w-e-text-container) { height: auto !important; min-height: 64px; background: var(--el-fill-color-extra-light); }
-.form-host.is-readonly :deep(.w-e-scroll) { overflow: visible; }
-.form-host.is-readonly :deep(.el-form-item.is-required > .el-form-item__label::before) { display: none; }
-.form-host :deep(.el-checkbox-group) { display: flex; flex-wrap: wrap; gap: 4px 20px; }
-.form-host :deep(.el-checkbox) { margin-right: 0; }
 
 @media (width <= 767px) {
   .form-actions,

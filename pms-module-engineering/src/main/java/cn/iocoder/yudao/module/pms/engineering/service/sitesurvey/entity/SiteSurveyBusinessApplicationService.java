@@ -97,7 +97,11 @@ public class SiteSurveyBusinessApplicationService extends DefaultBusinessApplica
     @Override protected void authorizeAndCheckState(ResolvedCaller caller,BusinessOperationRequest request) {
         Long projectId="create".equals(request.operationCode()) ? saveRequest(request).getProjectId() : identity(caller,request).getProjectId();
         if (!permissions.hasAnyPermissions(caller.userId(),permission(request.operationCode()))) throw exception(FORBIDDEN);
-        var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(caller.tenantId(),caller.userId(),projectId,ProjectScopeApi.ACTION_MANAGE));
+        var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(caller.tenantId())
+                .subjectUserId(caller.userId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (scope==null || scope.fullProjectIds()==null || !scope.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
         if ("save".equals(request.operationCode()) && !projectId.equals(saveRequest(request).getProjectId()))
             throw invalid("ENTITY_IDENTITY_MISMATCH","不得更换工勘所属项目");

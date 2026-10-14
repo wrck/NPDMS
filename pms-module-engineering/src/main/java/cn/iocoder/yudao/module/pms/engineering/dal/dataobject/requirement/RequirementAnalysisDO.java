@@ -20,7 +20,6 @@ public class RequirementAnalysisDO extends BaseBusinessEntity {
     private String projectBackground;
     @NotBlank
     private String projectObjective;
-    @NotBlank
     private String networkTopology;
     private String transmissionRequirement;
     private String trafficRequirement;

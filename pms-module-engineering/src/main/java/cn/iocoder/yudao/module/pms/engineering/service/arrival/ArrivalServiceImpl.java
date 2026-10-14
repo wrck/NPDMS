@@ -35,6 +35,7 @@ public class ArrivalServiceImpl implements ArrivalService {
     @Resource
     private EngineeringRecordCodeGenerator recordCodeGenerator;
     @Resource private ArrivalDeliveryRegistration deliveryRegistration;
+    @Resource private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents taskFactEvents;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -111,6 +112,7 @@ public class ArrivalServiceImpl implements ArrivalService {
         deliveryRegistration.registerFiles(arrival);
         updateStatus(arrival, 1);
         deliveryRegistration.registerSigned(arrival);
+        taskFactEvents.arrivalSigned(arrival);
     }
 
     @Override

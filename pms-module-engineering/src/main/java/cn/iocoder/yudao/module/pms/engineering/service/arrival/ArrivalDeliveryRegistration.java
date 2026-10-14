@@ -16,8 +16,17 @@ public class ArrivalDeliveryRegistration {
  public void requireWrite(ArrivalDO row){
   Long tenant=TenantContextHolder.getRequiredTenantId(),actor=SecurityFrameworkUtils.getLoginUserId();
   if(row==null||!Objects.equals(tenant,row.getTenantId())||actor==null||row.getProjectId()==null||!permissions.hasAnyPermissions(actor,"pms:imp-arrival:update"))throw denied();
-  var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actor,row.getProjectId(),ProjectScopeApi.ACTION_MANAGE));
-  if(!visible(scope,row.getProjectId()))throw denied();var locked=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actor,row.getProjectId(),ProjectScopeApi.ACTION_MANAGE,scope.treeVersion()));
+  var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+  if(!visible(scope,row.getProjectId()))throw denied();var locked=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
   if(!visible(locked,row.getProjectId())||!Objects.equals(scope.treeVersion(),locked.treeVersion()))throw denied();
  }
  public void registerFiles(ArrivalDO row){

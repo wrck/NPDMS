@@ -55,8 +55,11 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         requireQuery(query);
         TrustedActor actor = trustedActor();
         requireQueryPermission(actor);
-        requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(actor.tenantId(), actor.actorId(),
-                query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
+        requireScope(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()), query.projectId());
         ProjectOrganizationFact project = organizationFactApi.inspect(new ProjectOrganizationFactQuery(query.projectId()));
         requireProject(project, query.projectId());
         PreparationDO selected = query.preparationId() == null
@@ -83,10 +86,17 @@ public class RequirementAnalysisFactApiImpl implements RequirementAnalysisFactAp
         requireQuery(query);
         TrustedActor actor = trustedActor();
         requireQueryPermission(actor);
-        ProjectScopeResult inspectedScope = requireScope(projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW)), query.projectId());
-        requireScope(projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(),
-                actor.actorId(), query.projectId(), ProjectScopeApi.ACTION_VIEW, inspectedScope.treeVersion())),
+        ProjectScopeResult inspectedScope = requireScope(projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build()), query.projectId());
+        requireScope(projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(query.projectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW)
+                .expectedScopeVersion(inspectedScope.treeVersion()).build()),
                 query.projectId());
         ProjectOrganizationFact project = organizationFactApi.lockAndRevalidate(
                 new ProjectOrganizationFactRevalidationQuery(query.projectId(), query.expectedProjectVersion()));

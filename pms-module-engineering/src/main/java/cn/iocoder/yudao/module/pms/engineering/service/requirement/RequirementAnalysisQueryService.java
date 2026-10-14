@@ -421,8 +421,11 @@ public class RequirementAnalysisQueryService {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PERMISSION_QUERY)) {
             throw exception(FORBIDDEN);
         }
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_VIEW));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
             throw exception(FORBIDDEN);
         }
@@ -431,8 +434,11 @@ public class RequirementAnalysisQueryService {
     private boolean isCurrentManager(Actor actor, Long projectId, String action) {
         try {
             if (!permissionApi.hasAnyPermissions(actor.actorId(), PERMISSION_MANAGE)) return false;
-            var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                    actor.tenantId(), actor.actorId(), projectId, action));
+            var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
             if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {
                 return false;
             }

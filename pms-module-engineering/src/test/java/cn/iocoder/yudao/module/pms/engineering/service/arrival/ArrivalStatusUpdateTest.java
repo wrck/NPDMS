@@ -23,6 +23,7 @@ class ArrivalStatusUpdateTest {
     @BeforeEach void setUp() {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
         ReflectionTestUtils.setField(service,"deliveryRegistration",mock(ArrivalDeliveryRegistration.class));
+        ReflectionTestUtils.setField(service,"taskFactEvents",mock(cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents.class));
         ReflectionTestUtils.setField(service, "arrivalMapper", mapper);
         doReturn("PROJ-ARR-001").when(recordCodeGenerator).next(any(), anyString(), any());
         ReflectionTestUtils.setField(service, "recordCodeGenerator", recordCodeGenerator);
@@ -40,6 +41,7 @@ class ArrivalStatusUpdateTest {
         });
         service.signArrival(1L);
         verify(mapper).updateById(row);
+        verify((cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents) ReflectionTestUtils.getField(service,"taskFactEvents")).arrivalSigned(row);
     }
 
     @Test void savingNewEvidenceSignsThroughTheExistingCommand() {

@@ -51,6 +51,7 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 @Service
 @Validated
 public class TrainingServiceImpl implements TrainingService {
+    @Resource private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringTaskFactEvents taskFactEvents;
 
     /**
      * Demo 6.1 培训类型固定选项
@@ -328,6 +329,7 @@ public class TrainingServiceImpl implements TrainingService {
         if (trainingMapper.updateById(update) != 1) throw exception(TRAINING_STATUS_INVALID);
 
         archiveConfirmedDeliverable(entity);
+        taskFactEvents.trainingConfirmed(entity);
         if(confirmedFile!=null) operationAudit.record(TenantContextHolder.getRequiredTenantId(),confirmedFile.executionUserId(),
                 "training-confirm:"+confirmedFile.grantId(),"TRAINING_CUSTOMER_CONFIRMED","Training",String.valueOf(entity.getId()),"CONFIRMED",
                 java.util.Map.of("subjectType","BUSINESS_GRANT","channel","PUBLIC_LINK","grantId",confirmedFile.grantId(),

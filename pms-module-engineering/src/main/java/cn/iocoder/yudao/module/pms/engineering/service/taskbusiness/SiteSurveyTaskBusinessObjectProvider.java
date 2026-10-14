@@ -184,8 +184,11 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     }
 
     private boolean hasScope(Long tenantId, Long actorId, Long projectId, String action) {
-        var scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                tenantId, actorId, projectId, action));
+        var scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenantId)
+                .subjectUserId(actorId)
+                .anchorProjectId(projectId)
+                .actionCode(action).build());
         return scope != null && scope.fullProjectIds() != null
                 && scope.fullProjectIds().contains(projectId);
     }

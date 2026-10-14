@@ -1,4 +1,4 @@
-import content from '../demo-template.json'
+import content from '../template-20261013-r10.json'
 import type { View, FormLayout } from '@/api/pms/engineering/requirement-analysis/entity'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
 
@@ -8,24 +8,16 @@ const formKey = (code: string) => code.replace(/[A-Z]/g, value => `_${value}`).t
 export const basePresentation = (detail: View): FormLayout => {
   const mappings = Object.fromEntries(detail.fieldCatalog.map(field => [formKey(field.code), field.code]))
   const rules = JSON.parse(JSON.stringify(content.formRulesJson)) as JsonObject[]
-  const retained = rules.filter(rule => mappings[String(rule.field)] || String(rule.field).endsWith('__ATTACHMENTS'))
-  // Legacy extension fields still belong to the entity even when another layout is selected.
-  if (detail.form) {
-    const fixed = new Set(detail.fieldCatalog.map(field => field.code))
-    const original = JSON.parse(detail.form.formRulesJson) as JsonObject[]
-    const collect = (items: JsonObject[]) => items.forEach(rule => {
-      const field = String(rule.field || '')
-      const code = detail.form!.binding.fieldBindings[field]
-      if (code && !fixed.has(code)) { mappings[field] = code; retained.push(rule) }
-      else if (Array.isArray(rule.children)) collect(rule.children as JsonObject[])
-    })
-    collect(original)
-  }
+  const retained = rules.filter(rule => !rule.field || mappings[String(rule.field)] || String(rule.field).endsWith('__ATTACHMENTS'))
+  const collectFields = (items: JsonObject[]): JsonObject[] => items.flatMap(rule => [
+    ...(rule.field ? [rule] : []),
+    ...collectFields((Array.isArray(rule.children) ? rule.children : []).filter(child => typeof child === 'object' && child !== null) as JsonObject[])
+  ])
   return {
     binding: { fieldBindings: mappings, version: 0, extensionDefinitionRevisionId: detail.extensionDefinitionRevisionId },
     revisionNo: 0, formVersion: 0, engineCode: 'FORM_CREATE_ELEMENT_PLUS', designerVersion: '3', rendererVersion: '3',
     formConfJson: JSON.stringify(content.formConfJson), formRulesJson: JSON.stringify(retained),
-    fields: retained.filter(rule => rule.field).map(rule => ({ fieldKey: String(rule.field),
+    fields: collectFields(retained).map(rule => ({ fieldKey: String(rule.field),
       componentType: String(rule.type), controlledFile: rule.type === 'PmsFileArtifact', required: false }))
   }
 }

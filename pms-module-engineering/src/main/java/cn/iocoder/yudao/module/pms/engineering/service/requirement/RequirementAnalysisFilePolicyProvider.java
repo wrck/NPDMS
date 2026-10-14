@@ -86,9 +86,12 @@ public class RequirementAnalysisFilePolicyProvider implements FileBusinessObject
         try {
             ActionPolicy action = actionPolicy(query.requiredAction(), located.root());
             if (action == null) return policy(false, query.expectedScopeVersion(), located.root());
-            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                    query.tenantId(), query.actorUserId(), located.root().getProjectId(), action.scopeAction(),
-                    query.expectedScopeVersion()));
+            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(located.root().getProjectId())
+                .actionCode(action.scopeAction())
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
             if (!inScope(scope, located.root().getProjectId())) return denied();
             if (action.managerRequired()) lockManager(located.root().getProjectId(), query.actorUserId());
             Context locked = locate(query.tenantId(), query.objectId(), true);
@@ -124,9 +127,12 @@ public class RequirementAnalysisFilePolicyProvider implements FileBusinessObject
         try {
             ActionPolicy action = actionPolicy(query.requiredAction(), located.root());
             if (action == null) return policy(false, query.expectedScopeVersion(), located.root());
-            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(
-                    query.tenantId(), query.actorUserId(), located.root().getProjectId(), action.scopeAction(),
-                    query.expectedScopeVersion()));
+            ProjectScopeResult scope = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(query.tenantId())
+                .subjectUserId(query.actorUserId())
+                .anchorProjectId(located.root().getProjectId())
+                .actionCode(action.scopeAction())
+                .expectedScopeVersion(query.expectedScopeVersion()).build());
             if (!inScope(scope, located.root().getProjectId())) return denied();
             if (action.managerRequired()) lockManager(located.root().getProjectId(), query.actorUserId());
             Context locked = locate(query.tenantId(), query.key().objectId(), true);
@@ -142,8 +148,11 @@ public class RequirementAnalysisFilePolicyProvider implements FileBusinessObject
     private Authorization authorize(Long actorId, String action, Context context) {
         ActionPolicy actionPolicy = actionPolicy(action, context.root());
         if (actionPolicy == null) return new Authorization(false, null);
-        ProjectScopeResult scope = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                context.root().getTenantId(), actorId, context.root().getProjectId(), actionPolicy.scopeAction()));
+        ProjectScopeResult scope = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(context.root().getTenantId())
+                .subjectUserId(actorId)
+                .anchorProjectId(context.root().getProjectId())
+                .actionCode(actionPolicy.scopeAction()).build());
         if (!inScope(scope, context.root().getProjectId())) return new Authorization(false, null);
         if (actionPolicy.managerRequired() && !isCurrentManager(context.root().getProjectId(), actorId)) {
             return new Authorization(false, scope.treeVersion());

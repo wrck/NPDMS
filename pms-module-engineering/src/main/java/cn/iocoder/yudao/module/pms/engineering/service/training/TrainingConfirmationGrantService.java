@@ -58,9 +58,18 @@ public class TrainingConfirmationGrantService implements BusinessGrantGeneratedF
  }
  private Long requireScope(Long tenant,Long actor,TrainingDO row,Long expected){
   if(actor==null||actor<=0||row.getProjectId()==null||!permissions.hasAnyPermissions(actor,"pms:imp-training:issue"))throw denied();
-  var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actor,row.getProjectId(),ProjectScopeApi.ACTION_MANAGE));
+  var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
   if(!visible(scope,row.getProjectId())||expected!=null&&!Objects.equals(expected,scope.treeVersion()))throw denied();
-  var checked=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actor,row.getProjectId(),ProjectScopeApi.ACTION_MANAGE,scope.treeVersion()));
+  var checked=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(scope.treeVersion()).build());
   if(!visible(checked,row.getProjectId())||!Objects.equals(scope.treeVersion(),checked.treeVersion()))throw denied();
   var query=new ProjectAcceptanceContextApi.Query(tenant,row.getProjectId(),actor);var observed=projects.inspect(query);
   if(observed==null)throw denied();var locked=projects.lock(query,observed.projectVersion(),scope.treeVersion());

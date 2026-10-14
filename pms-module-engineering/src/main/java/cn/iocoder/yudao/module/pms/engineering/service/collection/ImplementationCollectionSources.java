@@ -23,18 +23,45 @@ public class ImplementationCollectionSources {
     private CollectionSourceAdapter source(String entry,String type,String title,boolean manual,String permission,Reader reader){
         return new CollectionSourceAdapter(){
             public String entry(){return entry;}
-            public Source authorize(Long tenant,Long actor,Long id,Long device,Access access,Long expectedVersion){
+            public Source authorize(AuthorizationQuery query) {
+                Long tenant = query.tenantId();
+                Long actor = query.actorId();
+                Long id = query.objectId();
+                Long device = query.deviceId();
+                Access access = query.access();
+                Long expectedVersion = query.expectedVersion();
                 boolean edit=access!=Access.READ,lock=access==Access.EXECUTE||access==Access.CONSUME;
                 if(actor==null||!permissions.hasAnyPermissions(actor,permission+(edit?":update":":query")))throw new AccessDeniedException("无当前业务采集权限");
                 Owner row=reader.get(id,lock);if(row==null||!tenant.equals(row.tenant()))throw new CollectionOperationException("业务记录不存在");
                 String action=edit?ProjectScopeApi.ACTION_EDIT:ProjectScopeApi.ACTION_VIEW;
-                var scope=scopes.resolveCurrent(new ProjectCurrentScopeQuery(tenant,actor,row.project(),action));
+                var scope=scopes.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.project())
+                .actionCode(action).build());
                 if(scope==null||!scope.fullProjectIds().contains(row.project()))throw new AccessDeniedException("无当前项目权限");
-                if(lock){var current=scopes.lockAndRevalidate(new ProjectScopeRevalidationQuery(tenant,actor,row.project(),action,scope.treeVersion()));if(current==null||!Objects.equals(scope.treeVersion(),current.treeVersion())||!current.fullProjectIds().contains(row.project()))throw new AccessDeniedException("项目权限已变化");}
+                if(lock){var current=scopes.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(tenant)
+                .subjectUserId(actor)
+                .anchorProjectId(row.project())
+                .actionCode(action)
+                .expectedScopeVersion(scope.treeVersion()).build());if(current==null||!Objects.equals(scope.treeVersion(),current.treeVersion())||!current.fullProjectIds().contains(row.project()))throw new AccessDeniedException("项目权限已变化");}
                 if(device!=null&&!Objects.equals(device,row.device()))throw new CollectionOperationException("设备与当前业务记录不一致");
                 if(access==Access.EXECUTE&&(!row.executable()||!Objects.equals(expectedVersion,row.version())))throw new CollectionOperationException("业务记录已变化或不可执行，请刷新");
-                return new Source(entry,id,"IMP",type,row.project(),row.device(),"",row.version(),manual,
-                        row.executable()&&permissions.hasAnyPermissions(actor,permission+":update"),"BUSINESS_CONSUMPTION",title);
+                return Source.builder()
+                        .entry(entry)
+                        .objectId(id)
+                        .sourceContext("IMP")
+                        .sourceObjectType(type)
+                        .projectId(row.project())
+                        .deviceId(row.device())
+                        .deviceName("")
+                        .version(row.version())
+                        .manualAllowed(manual)
+                        .canExecute(row.executable()&&permissions.hasAnyPermissions(actor,permission+":update"))
+                        .completionMode("BUSINESS_CONSUMPTION")
+                        .title(title)
+                        .build();
             }
         };
     }

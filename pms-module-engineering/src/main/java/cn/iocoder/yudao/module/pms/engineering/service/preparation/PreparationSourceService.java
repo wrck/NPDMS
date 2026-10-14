@@ -251,11 +251,18 @@ public class PreparationSourceService {
 
     private void authorize(Long projectId, Long projectVersion, PreparationItemApplicationService.Actor actor) {
         if (!permissionApi.hasAnyPermissions(actor.actorId(), PreparationInitializationService.PERMISSION_MANAGE)) throw exception(FORBIDDEN);
-        ProjectScopeResult current = projectScopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
-                actor.tenantId(), actor.actorId(), projectId, ProjectScopeApi.ACTION_MANAGE));
+        ProjectScopeResult current = projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE).build());
         if (current == null || current.fullProjectIds() == null || !current.fullProjectIds().contains(projectId)) throw exception(FORBIDDEN);
-        projectScopeApi.lockAndRevalidate(new ProjectScopeRevalidationQuery(actor.tenantId(), actor.actorId(),
-                projectId, ProjectScopeApi.ACTION_MANAGE, current.treeVersion()));
+        projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                .tenantId(actor.tenantId())
+                .subjectUserId(actor.actorId())
+                .anchorProjectId(projectId)
+                .actionCode(ProjectScopeApi.ACTION_MANAGE)
+                .expectedScopeVersion(current.treeVersion()).build());
         participantFactApi.lockAndRevalidate(new ProjectParticipantFactRevalidationQuery(projectId, actor.actorId(),
                 projectVersion, "ACTIVE", null, Set.of(ProjectParticipantFactApi.ROLE_PROJECT_MANAGER)));
     }

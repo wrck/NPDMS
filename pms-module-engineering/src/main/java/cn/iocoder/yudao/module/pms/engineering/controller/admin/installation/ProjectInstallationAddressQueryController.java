@@ -22,8 +22,11 @@ public class ProjectInstallationAddressQueryController {
     @GetMapping("/current-addresses")
     @PreAuthorize("@ss.hasPermission('pms:imp-installation:query')")
     public CommonResult<List<InstallationCurrentAddressRespVO>> get(@Valid InstallationCurrentAddressesReqVO request) {
-        var visible = scope.resolveCurrent(new ProjectCurrentScopeQuery(TenantContextHolder.getRequiredTenantId(),
-                SecurityFrameworkUtils.getLoginUserId(), request.getProjectId(), ProjectScopeApi.ACTION_VIEW));
+        var visible = scope.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                .tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(SecurityFrameworkUtils.getLoginUserId())
+                .anchorProjectId(request.getProjectId())
+                .actionCode(ProjectScopeApi.ACTION_VIEW).build());
         if (visible == null || visible.fullProjectIds() == null || !visible.fullProjectIds().contains(request.getProjectId())) {
             throw exception(FORBIDDEN);
         }
