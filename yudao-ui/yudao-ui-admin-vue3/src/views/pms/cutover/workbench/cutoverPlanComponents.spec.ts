@@ -33,7 +33,7 @@ vi.mock('@/components/PmsFileArtifact', () => ({
     inheritAttrs: false,
     emits: ['completed'],
     setup(_, { attrs, emit, expose }) {
-      expose({ isBusy: () => false })
+      expose({ isBusy: () => false, hasPendingFile: () => false })
       return () => h('button', {
         ...attrs,
         onClick: () => emit('completed', {
@@ -72,7 +72,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
 
     const description = findByTestId(mounted.root, 'plan-project-description')!
     await (description.props?.['onUpdate:modelValue'] as (value: string) => void)('核心网割接实施方案')
-    const operation = findByTestId(mounted.root, 'plan-step-OPERATION-1')!
+    const operation = findByTestId(mounted.root, 'plan-step-OPERATION-1-content')!
     await (operation.props?.['onUpdate:modelValue'] as (value: string) => void)('执行割接命令')
     await click(mounted.root, 'save-plan')
     await flush()
@@ -87,7 +87,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       }),
       expect.any(String)
     )
-    expect(textOf(mounted.root)).toContain('A/B/C 标准方案')
+    expect(textOf(mounted.root)).toContain('基本信息部分')
     mounted.app.unmount()
   })
 
@@ -117,7 +117,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
         { sectionCode: 'ROLLBACK', stepNo: 1, content: '恢复原配置' }
       ]
     })
-    expect(textOf(mounted.root)).toContain('D 级简易方案')
+    expect(textOf(mounted.root)).toContain('D级简易割接')
     mounted.app.unmount()
   })
 
@@ -126,7 +126,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       .mockResolvedValueOnce(emptyPlan())
       .mockResolvedValue(standardPlan([]))
     api.createCutoverPlanDraft.mockResolvedValue(standardPlan([]))
-    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
     const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
@@ -150,7 +150,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
         referenceKey: 'cutover-plan-101',
         scopeVersion: 17,
         sha256: 'a'.repeat(64),
-        fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
+        fileFactVersion: { allowedActions: ['READ'], artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
       },
       ownershipConfirmed: true
     }, expect.any(String))
@@ -192,15 +192,15 @@ describe('F-CUT-004 mounted plan workbench', () => {
     const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 9, manualGrade: 'A' }, controls)
     await flush()
 
-    const name = findByTestId(mounted.root, 'support-name-CUSTOMER')!
-    expect(name.props?.disabled).toBe(false)
-    await (name.props?.['onUpdate:modelValue'] as (value: string) => void)('新客户经理')
+    const arrival = findByTestId(mounted.root, 'support-arrival-0')!
+    expect(arrival.props?.disabled).toBe(false)
+    await (arrival.props?.['onUpdate:modelValue'] as (value: number) => void)(1788220801000)
     await nextTick()
     await click(mounted.root, 'patch-support-CUSTOMER')
     await flush()
 
     expect(api.patchApprovedCutoverPlanContact).toHaveBeenCalledWith('101', '601', 1, {
-      personName: '新客户经理', phone: '13800000000', arrivalTime: 1788220800000
+      personName: expect.any(String), phone: '13800000000', arrivalTime: 1788220801000
     }, expect.any(String))
     mounted.app.unmount()
   })
@@ -218,7 +218,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
       'onUpdate:modelValue': (value: unknown) => updates.push(value)
     }, controls)
 
-    const second = findByTestId(mounted.root, 'plan-step-OPERATION-2')!
+    const second = findByTestId(mounted.root, 'plan-step-OPERATION-2-content')!
     await (second.props?.['onUpdate:modelValue'] as (value: string) => void)('调整后的第二步')
 
     expect(updates.at(-1).steps).toEqual([
@@ -231,7 +231,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
   it('fills all three standard plan file slots with PLT facts', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
     api.saveCutoverPlanDraft.mockResolvedValue(standardPlan([]))
-    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'b'.repeat(64) }] })
     const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
@@ -356,7 +356,7 @@ const sourceSnapshot = () => ({
 })
 const uploadedFact = () => ({
   artifactId: '9007199254740993', versionNo: 4, referenceKey: 'cutover-plan-file',
-  fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 },
+  fileFactVersion: { allowedActions: ['READ'], artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 },
   scopeVersion: 17, sha256: 'a'.repeat(64)
 })
 

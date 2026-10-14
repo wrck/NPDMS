@@ -18,6 +18,7 @@ import {
 } from '../cutoverTestHarness'
 
 const cutoverApi = vi.hoisted(() => ({
+  getCreationOptions: vi.fn(async () => [{ code: 'CORE_STANDARD', name: '核心网标准配置', revisionId: '41', revisionNo: 2, cutoverTypes: [{ value: 'CORE_REPLACEMENT', label: '设备替换' }], networkModes: [] }])),
   resolveCreateContext: vi.fn(),
   createCutoverTask: vi.fn()
 }))
@@ -185,10 +186,10 @@ describe('cutover task positive interaction', () => {
 
     const buttons = collect(mounted.root, (node) => node.type === 'button')
     await (
-      buttons.find((node) => textOf(node).includes('保存草稿'))!.props!.onClick as () => void
+      buttons.find((node) => textOf(node).includes('保存'))!.props!.onClick as () => void
     )()
     await (
-      buttons.find((node) => textOf(node).includes('提交人工分级'))!.props!.onClick as () => void
+      buttons.find((node) => textOf(node).includes('下一步'))!.props!.onClick as () => void
     )()
     await nextTick()
 
@@ -214,7 +215,7 @@ describe('cutover task positive interaction', () => {
       ],
       configurationSelectionRequired: false
     })
-    cutoverApi.createCutoverTask.mockResolvedValue({ id: '101' })
+    cutoverApi.createCutoverTask.mockResolvedValue({ taskId: '101' })
     const created = vi.fn()
     const mounted = mount(
       CutoverCreateWizard,
@@ -246,7 +247,7 @@ describe('cutover task positive interaction', () => {
     await clickButton(mounted.root, '下一步')
     await nextTick()
     expect(textOf(mounted.root)).toContain('SN-001')
-    expect(textOf(mounted.root)).toContain('READY')
+    expect(textOf(mounted.root)).toContain('独立割接，无此前置要求')
 
     await update(findByTestId(mounted.root, 'create-task-name')!, '核心网割接')
     await update(findByTestId(mounted.root, 'create-background')!, '设备替换')

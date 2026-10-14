@@ -18,7 +18,7 @@ vi.mock('@/components/PmsFileArtifact', () => ({
     inheritAttrs: false,
     emits: ['completed'],
     setup(_, { attrs, emit, expose }) {
-      expose({ isBusy: () => false })
+      expose({ isBusy: () => false, hasPendingFile: () => false })
       return () => h('button', {
         ...attrs,
         onClick: () => emit('completed', {
@@ -41,7 +41,7 @@ const controls = {
 describe('F-CUT-006 mounted P6 closure workbench', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
   })
 

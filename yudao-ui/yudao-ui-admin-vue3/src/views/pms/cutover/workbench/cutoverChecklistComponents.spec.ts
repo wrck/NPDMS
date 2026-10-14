@@ -38,7 +38,7 @@ vi.mock('@/components/PmsFileArtifact', () => ({
     inheritAttrs: false,
     emits: ['completed'],
     setup(_, { attrs, emit, expose }) {
-      expose({ isBusy: () => false })
+      expose({ isBusy: () => false, hasPendingFile: () => false })
       return () => h('button', {
         ...attrs,
         onClick: () => emit('completed', {
@@ -76,7 +76,7 @@ const item = {
 describe('F-CUT-003 mounted checklist field', () => {
   it('emits direct answer and freezes PLT public fact without converting Snowflake ids', async () => {
     fileApi.getArtifact.mockResolvedValue({
-      artifactVersion: 2,
+      allowedActions: ['READ'], artifactVersion: 2,
       reference: { scopeVersion: 17, referenceVersion: 3 }
     })
     fileApi.getVersions.mockResolvedValue({
@@ -104,7 +104,7 @@ describe('F-CUT-003 mounted checklist field', () => {
     expect(manual[0][1]).toMatchObject({
       artifactId: '9007199254740993',
       scopeVersion: 17,
-      fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
+      fileFactVersion: { allowedActions: ['READ'], artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
     })
     expect(typeof (manual[0][1] as { artifactId: unknown }).artifactId).toBe('string')
     mounted.app.unmount()
@@ -202,7 +202,7 @@ describe('F-CUT-003 mounted checklist field', () => {
 
   it('selects MANUAL evidence and consumes the server navigation decision after P4 refresh', async () => {
     fileApi.getArtifact.mockResolvedValue({
-      artifactVersion: 2,
+      allowedActions: ['READ'], artifactVersion: 2,
       reference: { scopeVersion: 17, referenceVersion: 3 }
     })
     fileApi.getVersions.mockResolvedValue({
@@ -242,7 +242,7 @@ describe('F-CUT-003 mounted checklist field', () => {
         artifactId: '9007199254740993',
         versionNo: 4,
         referenceKey: 'manual-proof',
-        fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 },
+        fileFactVersion: { allowedActions: ['READ'], artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 },
         scopeVersion: 17
       },
       factDescription: ''

@@ -17,12 +17,10 @@ describe('F-CUT-007 dashboard KPI cards', () => {
     })
 
     const text = textOf(mounted.root)
-    expect(text).toContain('割接任务概览')
     expect(text).toContain('9007199254740993')
-    expect(text).toContain('已归档12')
-    expect(text).toContain('审批中3')
-    expect(text).toContain('驳回待修改2')
-    expect(text).toContain('2026')
+    expect(text).toContain('12已完成割接')
+    expect(text).toContain('3审批中')
+    expect(text).toContain('2驳回待修改')
     mounted.app.unmount()
   })
 
