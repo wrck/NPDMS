@@ -10,7 +10,7 @@ import {
   mount,
   passthrough,
   tableColumn
-} from '../../platform/dynamic-form/components/runtimeTestHarness'
+} from '../cutoverTestHarness'
 
 vi.mock('@/hooks/web/useMessage', () => ({
   useMessage: () => ({ error: vi.fn() })

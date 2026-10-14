@@ -19,3 +19,4 @@ vi.mock('@/config/axios', () => ({
     get: (_, method) => () => { throw new Error(`Unstubbed Owner request: ${String(method)}`) }
   })
 }))
+vi.mock('@/config/axios/service', () => ({ service: vi.fn() }))

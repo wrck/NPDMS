@@ -148,16 +148,8 @@
 import './cutoverWorkbench.css'
 import { checkPermi } from '@/utils/permission'
 import { getProject, getProjectPage, type ProjectMasterVO } from '@/api/pms/project/projects'
-
-
 import * as CutoverApi from '@/api/pms/cutover/workbench'
-import type {
-
-  CutoverDashboardKpiData,
-
-  CutoverTaskSummary
-
-} from '@/api/pms/cutover/workbench'
+import type { CutoverDashboardKpiData, CutoverTaskSummary } from '@/api/pms/cutover/workbench'
 import CutoverTaskDetail from '../task-detail/index.vue'
 import CutoverCreateWizard from './components/CutoverCreateWizard.vue'
 import CutoverDashboardKpis from './components/CutoverDashboardKpis.vue'

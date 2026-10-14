@@ -17,7 +17,7 @@ import {
   passthrough,
   tableColumn,
   textOf
-} from '../../platform/dynamic-form/components/runtimeTestHarness'
+} from '../cutoverTestHarness'
 
 const api = vi.hoisted(() => ({
   getCutoverApproval: vi.fn(),

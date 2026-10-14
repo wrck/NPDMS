@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CutoverClosureEvidencePanel from './components/CutoverClosureEvidencePanel.vue'
 import CutoverClosureForm from './components/CutoverClosureForm.vue'
 import CutoverClosurePanel from './components/CutoverClosurePanel.vue'
-import { findByTestId, mount, passthrough, textOf } from '../../platform/dynamic-form/components/runtimeTestHarness'
+import { findByTestId, mount, passthrough, textOf } from '../cutoverTestHarness'
 
 const api = vi.hoisted(() => ({
   getCutoverClosure: vi.fn(), saveCutoverClosure: vi.fn(), requestCutoverClosureCollection: vi.fn(),
@@ -17,7 +17,8 @@ vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
     inheritAttrs: false,
     emits: ['completed'],
-    setup(_, { attrs, emit }) {
+    setup(_, { attrs, emit, expose }) {
+      expose({ isBusy: () => false })
       return () => h('button', {
         ...attrs,
         onClick: () => emit('completed', {

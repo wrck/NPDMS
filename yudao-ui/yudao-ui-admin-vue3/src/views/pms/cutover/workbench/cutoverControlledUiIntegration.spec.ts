@@ -8,7 +8,7 @@ import {
   passthrough,
   textOf,
   type TestNode
-} from '../../platform/dynamic-form/components/runtimeTestHarness'
+} from '../cutoverTestHarness'
 
 const trace: string[] = []
 const runtime = {
@@ -27,6 +27,8 @@ const api = vi.hoisted(() => ({
   getCutoverApprovalReassignmentCandidates: vi.fn(),
   saveCutoverAssessment: vi.fn(),
   submitCutoverAssessment: vi.fn(),
+  getCutoverChecklistMatchingOptions: vi.fn(async () => ({ selectedDeviceTypeCodes: [], deviceTypeOptions: [] })),
+  getCutoverExternalState: vi.fn(async () => null),
   getCutoverChecklist: vi.fn(),
   generateCutoverChecklist: vi.fn(),
   saveCutoverChecklist: vi.fn(),
@@ -35,6 +37,7 @@ const api = vi.hoisted(() => ({
   removeCustomChecklistItem: vi.fn(),
   requestChecklistCollection: vi.fn(),
   submitCutoverChecklist: vi.fn(),
+  getProjectContactChoices: vi.fn(async () => []),
   getCutoverPlan: vi.fn(),
   createCutoverPlanDraft: vi.fn(),
   saveCutoverPlanDraft: vi.fn(),

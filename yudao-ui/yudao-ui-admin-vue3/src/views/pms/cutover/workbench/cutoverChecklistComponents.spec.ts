@@ -10,11 +10,13 @@ import {
   findByTestId,
   mount,
   passthrough
-} from '../../platform/dynamic-form/components/runtimeTestHarness'
+} from '../cutoverTestHarness'
 
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
 const downloadFile = vi.hoisted(() => ({ excel: vi.fn() }))
 const checklistApi = vi.hoisted(() => ({
+  getCutoverChecklistMatchingOptions: vi.fn(async () => ({ selectedDeviceTypeCodes: [], deviceTypeOptions: [] })),
+  getCutoverExternalState: vi.fn(async () => null),
   getCutoverChecklist: vi.fn(),
   saveCutoverChecklist: vi.fn(),
   generateCutoverChecklist: vi.fn(),
@@ -35,7 +37,8 @@ vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
     inheritAttrs: false,
     emits: ['completed'],
-    setup(_, { attrs, emit }) {
+    setup(_, { attrs, emit, expose }) {
+      expose({ isBusy: () => false })
       return () => h('button', {
         ...attrs,
         onClick: () => emit('completed', {

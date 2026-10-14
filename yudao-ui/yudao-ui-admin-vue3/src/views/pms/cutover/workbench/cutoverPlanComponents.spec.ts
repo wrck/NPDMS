@@ -10,9 +10,10 @@ import {
   passthrough,
   textOf,
   type TestNode
-} from '../../platform/dynamic-form/components/runtimeTestHarness'
+} from '../cutoverTestHarness'
 
 const api = vi.hoisted(() => ({
+  getProjectContactChoices: vi.fn(async () => []),
   getCutoverPlan: vi.fn(),
   createCutoverPlanDraft: vi.fn(),
   saveCutoverPlanDraft: vi.fn(),
@@ -31,7 +32,8 @@ vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
     inheritAttrs: false,
     emits: ['completed'],
-    setup(_, { attrs, emit }) {
+    setup(_, { attrs, emit, expose }) {
+      expose({ isBusy: () => false })
       return () => h('button', {
         ...attrs,
         onClick: () => emit('completed', {

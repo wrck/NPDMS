@@ -7,7 +7,7 @@ import AutoImport from 'unplugin-auto-import/vite'
 const frontendRoot = fileURLToPath(new URL('../../../../', import.meta.url))
 
 export default defineConfig({
-  plugins: [vue(), AutoImport({ imports: ['vue', 'vue-router'], dts: false })],
+  plugins: [vue(), AutoImport({ imports: ['vue', 'vue-router', { '@/hooks/web/useMessage': ['useMessage'] }], dts: false })],
   resolve: {
     alias: { '@': resolve(frontendRoot, 'src') }
   },

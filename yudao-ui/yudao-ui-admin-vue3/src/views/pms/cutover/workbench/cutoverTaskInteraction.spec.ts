@@ -15,7 +15,7 @@ import {
   passthrough,
   textOf,
   type TestNode
-} from '../../platform/dynamic-form/components/runtimeTestHarness'
+} from '../cutoverTestHarness'
 
 const cutoverApi = vi.hoisted(() => ({
   resolveCreateContext: vi.fn(),

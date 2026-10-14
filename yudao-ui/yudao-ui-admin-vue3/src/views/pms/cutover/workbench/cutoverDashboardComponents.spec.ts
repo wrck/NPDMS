@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import CutoverDashboardKpis from './components/CutoverDashboardKpis.vue'
-import { mount, textOf } from '../../platform/dynamic-form/components/runtimeTestHarness'
+import { mount, textOf } from '../cutoverTestHarness'
 
 describe('F-CUT-007 dashboard KPI cards', () => {
   it('renders all four WireLong values without coercing Snowflake-sized strings', () => {
