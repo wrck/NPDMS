@@ -1,7 +1,8 @@
 param(
     [ValidateSet('backend','dac')][string]$Target='backend',
     [string[]]$MavenArguments=@(),
-    [switch]$ValidateOnly
+    [switch]$ValidateOnly,
+    [switch]$AllowOfflineRuntime
 )
 . (Join-Path $PSScriptRoot 'worktree-toolchain.ps1')
 $taskLock = Enter-WorktreeBuildLock
@@ -24,7 +25,12 @@ try {
         $taskAfter = & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') source $taskWorkspace
         if ($taskBefore -ne $taskAfter) { throw 'Source changed during build; artifact cannot be published' }
         $taskJar = Join-Path $taskReactor "$taskModule/target/$taskModule.jar"
-        & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') freeze $taskWorkspace $Target $taskJar $taskAfter
+        $taskFreezeArguments=@('freeze',$taskWorkspace,$Target,$taskJar,$taskAfter)
+        if ($AllowOfflineRuntime) {
+            if ($Target -ne 'backend') { throw 'Offline runtime freezing is only supported for the backend.' }
+            $taskFreezeArguments+='--allow-offline-runtime'
+        }
+        & $taskPython (Join-Path $PSScriptRoot 'worktree-artifact.py') @taskFreezeArguments
         if ($LASTEXITCODE -ne 0) { throw 'Release validation failed' }
     } finally { Pop-Location }
 } finally { $env:JAVA_HOME=$taskPreviousJava; $taskLock.Dispose() }
