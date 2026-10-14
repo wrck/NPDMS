@@ -69,10 +69,11 @@ class CutoverTaskApplicationServiceTest {
         assertEquals(2, fixture.platform().facts.size());
         assertEquals("ROUTER", fixture.deviceRows().getFirst().getDeviceTypeCodeSnapshot());
         assertEquals("pt-v1", fixture.deviceRows().getFirst().getDeviceTypeSourceVersionSnapshot());
-        assertTrue(fixture.assessment().get().getContextSnapshot().contains("\"productTypeCode\":\"ROUTER\""));
-        assertTrue(fixture.assessment().get().getContextSnapshot().contains("\"sourceVersion\":\"pt-v1\""));
-        assertFalse(fixture.assessment().get().getContextSnapshot().contains("syncStatus"));
-        assertFalse(fixture.assessment().get().getContextSnapshot().contains("lastSuccessfulSyncTime"));
+        assertFalse(fixture.deviceWrites().isEmpty());
+        fixture.deviceWrites().forEach(write -> {
+            assertEquals("ROUTER", write.productTypes().get(400L).productTypeCode());
+            assertEquals("pt-v1", write.productTypes().get(400L).sourceVersion());
+        });
         verify(fixture.productType(), times(2)).resolveAuthorized(8L, List.of(400L));
     }
 
@@ -117,6 +118,10 @@ class CutoverTaskApplicationServiceTest {
         CutoverDeviceProductTypePort productType = mock(CutoverDeviceProductTypePort.class);
         CutoverCustomerLevelPort customerLevel = mock(CutoverCustomerLevelPort.class);
         CutoverReadinessPort readiness = mock(CutoverReadinessPort.class);
+        CutoverTaskSnapshotStore snapshots = mock(CutoverTaskSnapshotStore.class);
+        List<CutoverTaskSnapshotStore.DeviceWrite> deviceWrites = new ArrayList<>();
+        org.mockito.Mockito.doAnswer(invocation -> { deviceWrites.add(invocation.getArgument(0)); return null; })
+                .when(snapshots).replaceAssessmentDevices(any());
         DirectPlatform platform = new DirectPlatform();
         AtomicReference<CutoverTaskDO> task = new AtomicReference<>();
         AtomicReference<CutoverAssessmentDO> assessment = new AtomicReference<>();
@@ -126,9 +131,20 @@ class CutoverTaskApplicationServiceTest {
         CutoverProjectScopePort.ProjectScopeFact scopeFact =
                 new CutoverProjectScopePort.ProjectScopeFact(100L, 7L, true);
         CutoverProjectContextPort.ProjectContextFact projectFact =
-                new CutoverProjectContextPort.ProjectContextFact(1L, 100L, 3,
-                        "PROJ-100", "核心网割接项目", 200L, "CUS-200", "示例客户",
-                        300L, "OFFICE-300", "一号办事处", 7L);
+                CutoverProjectContextPort.ProjectContextFact.builder()
+                        .tenantId(1L)
+                        .projectId(100L)
+                        .projectVersion(3)
+                        .projectCode("PROJ-100")
+                        .projectName("核心网割接项目")
+                        .customerId(200L)
+                        .customerCode("CUS-200")
+                        .customerName("示例客户")
+                        .departmentId(300L)
+                        .departmentCode("OFFICE-300")
+                        .departmentName("一号办事处")
+                        .projectScopeVersion(7L)
+                        .build();
         List<CutoverDeviceScopePort.DeviceFact> devices = List.of(
                 new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L));
         List<CutoverDeviceProductTypePort.ProductTypeFact> productTypes = List.of(
@@ -142,14 +158,28 @@ class CutoverTaskApplicationServiceTest {
                         List.of(400L), "watermark-1", List.of());
 
         when(projectScope.inspect(8L, 100L, "ACTION_EDIT")).thenReturn(scopeFact);
-        when(projectScope.lockAndRevalidate(8L, 100L, "ACTION_EDIT", 7L)).thenReturn(scopeFact);
-        when(projectContext.inspect(1L, 100L, 7L)).thenReturn(projectFact);
+        when(projectScope.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(100L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(7L)
+                .build())).thenReturn(scopeFact);
+        when(projectContext.inspect(CutoverProjectContextPort.Inspection.builder()
+                .tenantId(1L)
+                .projectId(100L)
+                .expectedProjectScopeVersion(7L)
+                .build())).thenReturn(projectFact);
         when(projectContext.lockAndRevalidate(projectFact)).thenReturn(projectFact);
         when(deviceScope.resolveBySerials(List.of("SN-400"))).thenReturn(devices);
         when(deviceScope.lockAndRevalidate(100L, devices)).thenReturn(devices);
         when(productType.resolveAuthorized(8L, List.of(400L))).thenReturn(productTypes);
         when(customerLevel.inspect(200L)).thenReturn(customerFact);
         when(customerLevel.lockAndRevalidate(customerFact)).thenReturn(customerFact);
+        when(snapshots.readiness(any())).thenAnswer(invocation -> {
+            CutoverTaskDO row = invocation.getArgument(0);
+            return "NOT_APPLICABLE".equals(row.getReadinessDecisionCode())
+                    ? CutoverRuntimeContextSupport.independentReadiness(row.getProjectId(), List.of(400L)) : readinessFact;
+        });
         when(readiness.inspect(100L, List.of(400L))).thenReturn(readinessFact);
         when(readiness.lockAndRevalidate(readinessFact)).thenReturn(readinessFact);
         when(deviceMapper.selectActiveForUpdate(any())).thenReturn(List.of());
@@ -189,8 +219,8 @@ class CutoverTaskApplicationServiceTest {
             var update = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.query.CutoverAssessmentSubmitUpdate)
                     invocation.getArgument(0);
             assessment.get().setAssessmentStatus("SUBMITTED");
-            assessment.get().setManualGrade(update.manualGrade());
-            assessment.get().setSimpleFlow(update.simpleFlow());
+            assessment.get().setManualGrade(update.assessment().getManualGrade());
+            assessment.get().setSimpleFlow(update.assessment().getSimpleFlow());
             return 1;
         });
         when(taskMapper.transitionIfMatch(any())).thenReturn(1);
@@ -199,7 +229,8 @@ class CutoverTaskApplicationServiceTest {
                 historyMapper, assessmentMapper, configurationMapper, projectScope, projectContext,
                 deviceScope, productType, customerLevel,
                 readiness, platform, Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC));
-        return new Fixture(service, task, assessment, deviceRows, history, platform, productType);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "taskSnapshots", snapshots);
+        return new Fixture(service, task, assessment, deviceRows, history, platform, productType, deviceWrites);
     }
 
     private static CreateCutoverTaskCommand createCommand(String key) {
@@ -207,9 +238,20 @@ class CutoverTaskApplicationServiceTest {
                 List.of("SN-400"), "CUTOVER-V1", "核心网割接", "计划内设备割接", "配置变更", "普通双机",
                 LocalDateTime.of(2026, 9, 1, 1, 0), null, null, null,
                 new CreateCutoverTaskCommand.ExpectedCreateContext(
-                        new CutoverProjectContextPort.ProjectContextFact(1L, 100L, 3,
-                                "PROJ-100", "核心网割接项目", 200L, "CUS-200", "示例客户",
-                                300L, "OFFICE-300", "一号办事处", 7L),
+                        CutoverProjectContextPort.ProjectContextFact.builder()
+                                .tenantId(1L)
+                                .projectId(100L)
+                                .projectVersion(3)
+                                .projectCode("PROJ-100")
+                                .projectName("核心网割接项目")
+                                .customerId(200L)
+                                .customerCode("CUS-200")
+                                .customerName("示例客户")
+                                .departmentId(300L)
+                                .departmentCode("OFFICE-300")
+                                .departmentName("一号办事处")
+                                .projectScopeVersion(7L)
+                                .build(),
                         List.of(new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L)),
                         new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
                                 500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null),
@@ -232,7 +274,7 @@ class CutoverTaskApplicationServiceTest {
                            AtomicReference<CutoverAssessmentDO> assessment,
                            List<CutoverTaskDeviceScopeDO> deviceRows,
                            List<CutoverTaskStageHistoryDO> history, DirectPlatform platform,
-                           CutoverDeviceProductTypePort productType) {
+                           CutoverDeviceProductTypePort productType, List<CutoverTaskSnapshotStore.DeviceWrite> deviceWrites) {
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {

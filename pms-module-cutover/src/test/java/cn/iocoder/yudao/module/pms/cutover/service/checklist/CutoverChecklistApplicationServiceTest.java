@@ -57,8 +57,7 @@ class CutoverChecklistApplicationServiceTest {
     void completesP3WithDirectCustomAndControlledManualEvidence() {
         Fixture fixture = fixture();
 
-        ChecklistCommandResult generated = fixture.service.generate(new GenerateChecklistCommand(
-                1L, 8L, 1000L, 2L, 1L, 7L, Map.of(), "generate-1", "corr-generate-1"));
+        ChecklistCommandResult generated = fixture.service.generate(new GenerateChecklistCommand(1L, 8L, 1000L, 2L, 1L, 7L, List.of(), Map.of(), "generate-1", "corr-generate-1"));
         ChecklistItemCommandResult transientCustom = fixture.service.addCustomItem(new AddCustomItemCommand(
                 1L, 8L, 1000L, 2L, generated.checklistId(), 0L, 7L,
                 "TEXT", "临时核查项", null, "TEXT", "{\"type\":\"string\"}", false, null));
@@ -76,12 +75,16 @@ class CutoverChecklistApplicationServiceTest {
                 new CutoverChecklistFilePort.FileFactVersion(3, 4, 5);
         ChecklistItemCommandResult manual = fixture.service.selectManual(new SelectManualResultCommand(
                 1L, 8L, 1000L, 2L, generated.checklistId(), custom.checklistVersion(), 7L,
-                "SYS-IP", new CutoverChecklistFilePort.FileHandle(90L, 2, "ref-90", fileVersion, 7L),
+                "SYS-IP", CutoverChecklistFilePort.FileHandle.builder()
+                        .artifactId(90L)
+                        .versionNo(2)
+                        .referenceKey("ref-90")
+                        .fileFactVersion(fileVersion)
+                        .scopeVersion(7L)
+                        .build(),
                 "现场截图"));
         CutoverChecklistView beforeRematch = fixture.service.getView(1L, 8L, 1000L);
-        ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(
-                1L, 8L, 1000L, 2L, 1L, generated.checklistId(), manual.checklistVersion(),
-                beforeRematch.inputSnapshotHash(), 7L, Map.of(), "rematch-1", "corr-rematch-1"));
+        ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(1L, 8L, 1000L, 2L, 1L, generated.checklistId(), manual.checklistVersion(), beforeRematch.inputSnapshotHash(), 7L, List.of(), Map.of(), "rematch-1", "corr-rematch-1"));
         var accepted = fixture.service.requestCollection(new RequestCollectionCommand(
                 1L, 8L, 1000L, 2L, generated.checklistId(), rematched.checklistFactVersion(), 7L,
                 "SYS-COLLECT", 400L, 700L, "collect-1", "corr-collect-1"));
@@ -194,7 +197,12 @@ class CutoverChecklistApplicationServiceTest {
         when(assessmentMapper.selectForUpdate(any())).thenReturn(assessment);
         when(scopePort.inspect(8L, 10L, "ACTION_EDIT")).thenReturn(scope);
         when(scopePort.inspect(8L, 10L, "ACTION_VIEW")).thenReturn(scope);
-        when(scopePort.lockAndRevalidate(8L, 10L, "ACTION_EDIT", 7L)).thenReturn(scope);
+        when(scopePort.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(10L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(7L)
+                .build())).thenReturn(scope);
         when(configurationService.resolveFrozen(any())).thenReturn(configuration);
         when(checklistMapper.selectCurrentForUpdate(any())).thenAnswer(ignored -> checklist.get());
         when(checklistMapper.selectCurrent(any())).thenAnswer(ignored -> checklist.get());
@@ -211,22 +219,9 @@ class CutoverChecklistApplicationServiceTest {
         when(itemMapper.updateApplicability(any())).thenAnswer(invocation -> {
             var update = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistItemApplicabilityUpdate)
                     invocation.getArgument(0);
-            CutoverChecklistItemDO item = items.stream().filter(row -> row.getId().equals(update.itemId()))
-                    .findFirst().orElseThrow();
-            item.setApplicableFlag(update.applicable());
-            item.setRequiredFlag(update.required());
-            item.setItemDefinitionId(update.itemDefinitionId());
-            item.setItemDefinitionVersion(update.itemDefinitionVersion());
-            item.setItemTypeCode(update.itemTypeCode());
-            item.setItemName(update.itemName());
-            item.setItemDescription(update.itemDescription());
-            item.setInterfaceFormatCode(update.interfaceFormatCode());
-            item.setInterfaceSchemaSnapshot(update.interfaceSchemaSnapshot());
-            item.setDisplayConditionSnapshot(update.displayConditionSnapshot());
-            item.setWorkModeCode(update.workModeCode());
-            item.setMatchedRuleId(update.matchedRuleId());
-            item.setMatchedRuleVersion(update.matchedRuleVersion());
-            item.setSortOrder(update.sortOrder());
+            CutoverChecklistItemDO replacement = update.item();
+            items.removeIf(row -> row.getId().equals(replacement.getId()));
+            items.add(replacement);
             return 1;
         });
         when(itemMapper.removeCustomIfMatch(any())).thenAnswer(invocation -> {
@@ -277,14 +272,8 @@ class CutoverChecklistApplicationServiceTest {
         when(checklistMapper.rematchIfMatch(any())).thenAnswer(invocation -> {
             var update = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRematchUpdate)
                     invocation.getArgument(0);
-            checklist.get().setChecklistVersion(update.nextChecklistVersion());
-            checklist.get().setAssessmentId(update.assessmentId());
-            checklist.get().setAssessmentVersion(update.assessmentVersion());
-            checklist.get().setInputSnapshot(update.inputSnapshot());
-            checklist.get().setInputSnapshotHash(update.inputSnapshotHash());
-            checklist.get().setMatchTrace(update.matchTrace());
-            checklist.get().setConfigGapSnapshot(update.configGapSnapshot());
-            checklist.get().setVersion(checklist.get().getVersion() + 1);
+            checklist.set(update.checklist());
+            checklist.get().setVersion(update.expectedVersion() + 1);
             return 1;
         });
         when(taskMapper.submitChecklistIfMatch(any())).thenAnswer(ignored -> {
@@ -297,8 +286,15 @@ class CutoverChecklistApplicationServiceTest {
             history.add(invocation.getArgument(0));
             return 1;
         });
-        when(filePort.lockAndRevalidate(any(), any(), any(), any(), any(Long.class), any())).thenReturn(
-                new CutoverChecklistFilePort.FileFact(90L, 2, "ref-90", fileVersion, 7L, "sha-90"));
+        when(filePort.lockAndRevalidate(any(CutoverChecklistFilePort.FileQuery.class))).thenReturn(
+                CutoverChecklistFilePort.FileFact.builder()
+                        .artifactId(90L)
+                        .versionNo(2)
+                        .referenceKey("ref-90")
+                        .fileFactVersion(fileVersion)
+                        .scopeVersion(7L)
+                        .sha256("sha-90")
+                        .build());
         when(collectionPort.request(any())).thenReturn(new CutoverCollectionPort.RequestReceipt(9000L,
                 CutoverCollectionPort.TechnicalStatus.ACCEPTED));
         when(collectionPort.inspect(any()))
@@ -316,6 +312,46 @@ class CutoverChecklistApplicationServiceTest {
                 new CutoverChecklistMatcher(), scopePort, collectionPort, filePort, platform,
                 navigationDecisionQueryService,
                 Clock.fixed(Instant.parse("2026-08-31T02:00:00Z"), ZoneOffset.UTC));
+        var fields = mock(cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore.class);
+        var resultStore = mock(CutoverChecklistResultStore.class);
+        var customStore = mock(CutoverCustomResultStore.class);
+        var metadata = mock(CutoverChecklistMetadataStore.class);
+        Map<Long, String> storedAnswers = new HashMap<>();
+        Map<Long, CutoverChecklistFilePort.FileFact> storedFiles = new HashMap<>();
+        when(fields.forItem(any())).thenAnswer(invocation -> {
+            CutoverChecklistItemDO item = invocation.getArgument(0);
+            return cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldSchemaCodec.encode(
+                    cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldSchemaCodec.Write.builder()
+                    .tenantId(item.getTenantId()).itemDefinitionRevisionId(item.getItemDefinitionId())
+                    .customChecklistItemId(item.getItemDefinitionId() == null ? item.getId() : null)
+                    .itemTypeCode(item.getItemTypeCode()).schema(Map.of("type", "string")).build());
+        });
+        when(fields.withSchema(any())).thenAnswer(invocation -> {
+            CutoverChecklistItemDO item = invocation.getArgument(0);
+            item.setInterfaceSchemaSnapshot("{\"type\":\"string\"}"); return item;
+        });
+        org.mockito.Mockito.doAnswer(invocation -> {
+            CutoverChecklistResultStore.Write write = invocation.getArgument(0);
+            storedAnswers.put(write.result().getId(), write.answer()); return null;
+        }).when(resultStore).insertAnswer(any());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            CutoverCustomResultStore.Manual write = invocation.getArgument(0);
+            storedFiles.put(write.result().getId(), write.fact()); return null;
+        }).when(customStore).insertManual(any());
+        when(customStore.manualFile(any())).thenAnswer(invocation -> storedFiles.get(((CutoverChecklistItemResultDO) invocation.getArgument(0)).getId()));
+        when(resultStore.answer(any())).thenAnswer(invocation -> {
+            CutoverChecklistResultStore.Read read = invocation.getArgument(0);
+            String answer = storedAnswers.get(read.result().getId());
+            return answer != null ? answer : cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(
+                    "MANUAL".equals(read.result().getResultSourceCode())
+                    ? Map.of("file", storedFiles.get(read.result().getId())) : Map.of("value", "collection-result"));
+        });
+        when(itemMapper.selectById(any())).thenAnswer(invocation -> items.stream()
+                .filter(item -> item.getId().equals(invocation.getArgument(0))).findFirst().orElse(null));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "fieldDefinitions", fields);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "resultStorage", resultStore);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "customResultStorage", customStore);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "checklistMetadata", metadata);
         return new Fixture(service, task, results, history, platform, collectionPort);
     }
 

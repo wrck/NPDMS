@@ -4,5 +4,5 @@ public record RequestCollectionCommand(Long tenantId, Long actorId, Long taskId,
                                        Long expectedTaskVersion, Long checklistId,
                                        Long expectedChecklistVersion, Long expectedProjectScopeVersion,
                                        String stableItemKey, Long deviceId, Long commandTemplateId,
-                                       String idempotencyKey, String correlationId) {
+                                       String idempotencyKey, String correlationId) implements CutoverChecklistDraftMutation {
 }

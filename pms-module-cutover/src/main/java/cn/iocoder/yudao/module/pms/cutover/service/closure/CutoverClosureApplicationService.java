@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.closure;
 
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.command.CutoverTaskMutation;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -71,6 +72,8 @@ import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosure
 
 /** F-CUT-006 Task 3/4应用内核；跨模块Provider接通前不注册生产Bean。 */
 public class CutoverClosureApplicationService {
+    @jakarta.annotation.Resource
+    private CutoverClosureStorage storage;
     private static final Snowflake ID_GENERATOR = IdUtil.getSnowflake();
     private static final String ACTION_EDIT = "ACTION_EDIT";
 
@@ -120,25 +123,19 @@ public class CutoverClosureApplicationService {
         requireCollectionCommand(command);
         CollectionIntentIdentity identity = new CollectionIntentIdentity(command.tenantId(), command.taskId(),
                 command.closureId(), command.deviceId(), command.collectionStage(), command.idempotencyKey());
-        return executeCommand(command.tenantId(), "CUT:CLOSURE_COLLECTION_REQUEST:" + command.taskId(),
-                command.actorId(), command.idempotencyKey(), collectionCommandDigest(command), command.correlationId(),
-                "CUTOVER_CLOSURE_COLLECTION_REQUEST", () -> requestCollectionNew(command, identity));
+        return executeCommand(new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(), "CUT:CLOSURE_COLLECTION_REQUEST:" + command.taskId(), command.actorId(), command.idempotencyKey()), collectionCommandDigest(command), command.correlationId(), "CUTOVER_CLOSURE_COLLECTION_REQUEST", () -> requestCollectionNew(command, identity));
     }
 
     @Transactional(rollbackFor = Exception.class)
     public CutoverClosureCommandResult handleCollectionCallback(HandleClosureCollectionCallbackCommand command) {
         requireCallbackCommand(command);
-        return executeCommand(command.tenantId(), "CUT:CLOSURE_COLLECTION_CALLBACK", 0L,
-                command.callbackEventId(), callbackCommandDigest(command), command.correlationId(),
-                "CUTOVER_CLOSURE_COLLECTION_CALLBACK", () -> callbackNew(command));
+        return executeCommand(new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(), "CUT:CLOSURE_COLLECTION_CALLBACK", 0L, command.callbackEventId()), callbackCommandDigest(command), command.correlationId(), "CUTOVER_CLOSURE_COLLECTION_CALLBACK", () -> callbackNew(command));
     }
 
     @Transactional(rollbackFor = Exception.class)
     public CutoverClosureCommandResult linkManualResult(LinkClosureManualResultCommand command) {
         requireManualCommand(command);
-        return executeCommand(command.tenantId(), "CUT:CLOSURE_MANUAL_RESULT:" + command.taskId(),
-                command.actorId(), command.idempotencyKey(), manualCommandDigest(command),
-                command.correlationId(), "CUTOVER_CLOSURE_MANUAL_RESULT", () -> manualResultNew(command));
+        return executeCommand(new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(), "CUT:CLOSURE_MANUAL_RESULT:" + command.taskId(), command.actorId(), command.idempotencyKey()), manualCommandDigest(command), command.correlationId(), "CUTOVER_CLOSURE_MANUAL_RESULT", () -> manualResultNew(command));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -208,7 +205,7 @@ public class CutoverClosureApplicationService {
                     new CutoverClosureChildrenQuery(command.tenantId(), closure.getId()));
         }
         lockProjectScope(command, task);
-        List<CutoverClosureFilePort.FileFact> lockedFiles = lockFiles(command, task, closureId, inspectedFiles);
+        List<CutoverClosureFilePort.FileFact> lockedFiles = lockFiles(inspectedFiles);
         return closure == null
                 ? createClosure(command, task, approval, plan, closureId, lockedFiles)
                 : updateClosure(command, task, closure, lockedFiles);
@@ -217,10 +214,8 @@ public class CutoverClosureApplicationService {
     private CutoverClosureCommandResult requestCollectionNew(RequestClosureCollectionCommand command,
                                                               CollectionIntentIdentity identity) {
         CutoverTaskDO task = requireP6Task(taskMapper.selectForUpdate(
-                new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command.tenantId(),
-                command.actorId(), command.expectedTaskVersion());
-        CutoverClosureDO closure = requireDraftClosure(command.tenantId(), command.taskId(), command.closureId(),
-                command.expectedClosureVersion());
+                new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command);
+        CutoverClosureDO closure = requireDraftClosure(task, command.closureId(), command.expectedClosureVersion());
         evidenceMapper.selectListByClosureForUpdate(new CutoverClosureChildrenQuery(command.tenantId(), closure.getId()));
         requireActiveDevice(command.tenantId(), task, command.deviceId());
         lockProjectScope(command.actorId(), task);
@@ -241,10 +236,24 @@ public class CutoverClosureApplicationService {
         if (!Objects.equals(fact.requestDigest(), request.requestDigest())) {
             throw failure(IDEMPOTENCY_CONFLICT, IDEMPOTENCY_PAYLOAD_CONFLICT, "采集意图载荷冲突");
         }
-        insertEvidence(command.tenantId(), closure, task, command.deviceId(), command.collectionStage().name(),
-                fact.outcome() == CutoverClosureCollectionPort.DispatchOutcome.ACCEPTED
-                        ? "DISPATCH_ACCEPTED" : "DISPATCH_FAILED",
-                fact.collectionTaskId(), null, null, null, null, null, fact.occurredAt(), command.actorId());
+        insertEvidence(CutoverCollectionEvidenceDO.builder()
+                .tenantId(command.tenantId())
+                .closureId(closure.getId())
+                .taskId(task.getId())
+                .projectId(task.getProjectId())
+                .deviceId(command.deviceId())
+                .collectionStageCode(command.collectionStage().name())
+                .evidenceTypeCode(fact.outcome() == CutoverClosureCollectionPort.DispatchOutcome.ACCEPTED
+                        ? "DISPATCH_ACCEPTED" : "DISPATCH_FAILED")
+                .collectionTaskId(fact.collectionTaskId())
+                .callbackEventId(null)
+                .resultRef(null)
+                .resultVersion(null)
+                .originalFailedCollectionTaskId(null)
+                .manualAttachmentId(null)
+                .occurredAt(fact.occurredAt())
+                .recordedBy(command.actorId())
+                .build());
         advanceClosure(command.tenantId(), closure, command.actorId());
         return result(task, closure.getId(), closure.getVersion() + 1);
     }
@@ -253,7 +262,7 @@ public class CutoverClosureApplicationService {
         CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
         if (task == null || !Objects.equals(task.getTenantId(), command.tenantId())) throw failure(
                 NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "任务不存在");
-        CutoverClosureDO closure = requireDraftClosure(command.tenantId(), command.taskId(), command.closureId(), null);
+        CutoverClosureDO closure = requireDraftClosure(task, command.closureId(), null);
         List<CutoverCollectionEvidenceDO> evidence = evidenceMapper.selectListByClosureForUpdate(
                 new CutoverClosureChildrenQuery(command.tenantId(), closure.getId()));
         boolean dispatchExists = evidence.stream().anyMatch(value ->
@@ -263,20 +272,31 @@ public class CutoverClosureApplicationService {
                         && Objects.equals(value.getCollectionStageCode(), command.collectionStage().name()));
         if (!dispatchExists) throw failure(COLLECTION_INVALID, COLLECTION_EVIDENCE_MISMATCH,
                 "INT-12", "采集下发事实不匹配");
-        insertEvidence(command.tenantId(), closure, task, command.deviceId(), command.collectionStage().name(),
-                command.succeeded() ? "CALLBACK_SUCCEEDED" : "CALLBACK_FAILED", command.collectionTaskId(),
-                command.callbackEventId(), command.resultRef(), command.resultVersion(), null, null,
-                command.occurredAt(), 0L);
+        insertEvidence(CutoverCollectionEvidenceDO.builder()
+                .tenantId(command.tenantId())
+                .closureId(closure.getId())
+                .taskId(task.getId())
+                .projectId(task.getProjectId())
+                .deviceId(command.deviceId())
+                .collectionStageCode(command.collectionStage().name())
+                .evidenceTypeCode(command.succeeded() ? "CALLBACK_SUCCEEDED" : "CALLBACK_FAILED")
+                .collectionTaskId(command.collectionTaskId())
+                .callbackEventId(command.callbackEventId())
+                .resultRef(command.resultRef())
+                .resultVersion(command.resultVersion())
+                .originalFailedCollectionTaskId(null)
+                .manualAttachmentId(null)
+                .occurredAt(command.occurredAt())
+                .recordedBy(0L)
+                .build());
         advanceClosure(command.tenantId(), closure, 0L);
         return result(task, closure.getId(), closure.getVersion() + 1);
     }
 
     private CutoverClosureCommandResult manualResultNew(LinkClosureManualResultCommand command) {
         CutoverTaskDO task = requireP6Task(taskMapper.selectForUpdate(
-                new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command.tenantId(),
-                command.actorId(), command.expectedTaskVersion());
-        CutoverClosureDO closure = requireDraftClosure(command.tenantId(), command.taskId(), command.closureId(),
-                command.expectedClosureVersion());
+                new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command);
+        CutoverClosureDO closure = requireDraftClosure(task, command.closureId(), command.expectedClosureVersion());
         List<CutoverCollectionEvidenceDO> evidence = evidenceMapper.selectListByClosureForUpdate(
                 new CutoverClosureChildrenQuery(command.tenantId(), closure.getId()));
         CutoverCollectionEvidenceDO failed = evidence.stream().filter(value ->
@@ -288,8 +308,7 @@ public class CutoverClosureApplicationService {
                         FAILED_COLLECTION_REQUIRED_FOR_MANUAL_RESULT, "INT-12", "失败采集事实不存在"));
         lockProjectScope(command.actorId(), task);
         AttachmentInput input = command.attachment();
-        CutoverClosureFilePort.FileExpectation expectation = expectation(command.tenantId(), command.actorId(),
-                task.getProjectId(), closure.getId(), input);
+        CutoverClosureFilePort.FileExpectation expectation = expectation(command, task, closure.getId(), input);
         CutoverClosureFilePort.FileFact file;
         try {
             file = filePort.lockAndRevalidate(expectation);
@@ -297,21 +316,32 @@ public class CutoverClosureApplicationService {
         } catch (CutoverClosureOwnerFactException ex) {
             throw ownerFailure(ex, "PLT");
         }
-        long attachmentId = insertAttachment(command.tenantId(), command.actorId(), closure.getId(), input, file,
-                LocalDateTime.now(clock));
-        insertEvidence(command.tenantId(), closure, task, command.deviceId(), command.collectionStage().name(),
-                "MANUAL_UPLOAD", command.failedCollectionTaskId(), null, null, null,
-                command.failedCollectionTaskId(), attachmentId, LocalDateTime.now(clock), command.actorId());
+        long attachmentId = insertAttachment(command, closure.getId(), input, file, LocalDateTime.now(clock));
+        insertEvidence(CutoverCollectionEvidenceDO.builder()
+                .tenantId(command.tenantId())
+                .closureId(closure.getId())
+                .taskId(task.getId())
+                .projectId(task.getProjectId())
+                .deviceId(command.deviceId())
+                .collectionStageCode(command.collectionStage().name())
+                .evidenceTypeCode("MANUAL_UPLOAD")
+                .collectionTaskId(command.failedCollectionTaskId())
+                .callbackEventId(null)
+                .resultRef(null)
+                .resultVersion(null)
+                .originalFailedCollectionTaskId(command.failedCollectionTaskId())
+                .manualAttachmentId(attachmentId)
+                .occurredAt(LocalDateTime.now(clock))
+                .recordedBy(command.actorId())
+                .build());
         advanceClosure(command.tenantId(), closure, command.actorId());
         return result(task, closure.getId(), closure.getVersion() + 1);
     }
 
     private CutoverClosureCommandResult submitNew(SubmitCutoverClosureCommand command, LocalDateTime submittedAt) {
         CutoverTaskDO task = requireP6Task(taskMapper.selectForUpdate(
-                new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command.tenantId(),
-                command.actorId(), command.expectedTaskVersion());
-        CutoverClosureDO closure = requireDraftClosure(command.tenantId(), command.taskId(), command.closureId(),
-                command.expectedClosureVersion());
+                new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command);
+        CutoverClosureDO closure = requireDraftClosure(task, command.closureId(), command.expectedClosureVersion());
         CutoverPlanRevisionDO plan = requireApprovedPlan(planMapper.selectByIdForUpdate(
                 new CutoverPlanRevisionQuery(command.tenantId(), command.taskId(), closure.getPlanRevisionId())));
         CutoverApprovalInstanceDO approval = requireApprovedApproval(approvalMapper.selectByIdForUpdate(
@@ -365,12 +395,13 @@ public class CutoverClosureApplicationService {
         row.setProjectId(task.getProjectId()); row.setApprovalInstanceId(approval.getId());
         row.setApprovalVersion(approval.getVersion()); row.setPlanRevisionId(plan.getId());
         row.setPlanRevisionNo(plan.getRevisionNo()); row.setPlanVersion(plan.getVersion());
-        row.setTaskVersionAtP6(task.getVersion()); row.setDeviceScopeWatermark(task.getDeviceScopeWatermark());
+        row.setTaskVersionAtP6(task.getVersion());
         row.setStatusCode("DRAFT"); setContent(row, command.content()); row.setVersion(0L);
         row.setCreator(String.valueOf(command.actorId())); row.setUpdater(String.valueOf(command.actorId()));
         row.setCreateTime(now); row.setUpdateTime(now); row.setDeleted(false);
         if (closureMapper.insert(row) != 1) throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
                 "闭环草稿创建失败");
+        storage.freeze(new CutoverClosureStorage.Freeze(new CutoverClosureStorage.Source(row, task), command.actorId(), now));
         insertAttachments(command, closureId, files, now);
         return result(task, closureId, 0L);
     }
@@ -401,17 +432,21 @@ public class CutoverClosureApplicationService {
                                    List<CutoverClosureFilePort.FileFact> files, LocalDateTime now) {
         List<AttachmentInput> inputs = sortedAttachments(command.content().attachments());
         for (int index = 0; index < inputs.size(); index++) {
-            insertAttachment(command.tenantId(), command.actorId(), closureId, inputs.get(index), files.get(index), now);
+            insertAttachment(command, closureId, inputs.get(index), files.get(index), now);
         }
     }
 
-    private long insertAttachment(Long tenantId, Long actorId, long closureId, AttachmentInput input,
+    private long insertAttachment(CutoverTaskMutation command, long closureId, AttachmentInput input,
                                   CutoverClosureFilePort.FileFact file, LocalDateTime now) {
+        Long tenantId = command.tenantId();
+        Long actorId = command.actorId();
         CutoverClosureAttachmentDO row = new CutoverClosureAttachmentDO();
         row.setId(nextId()); row.setTenantId(tenantId); row.setClosureId(closureId);
         row.setPurposeCode(input.purposeCode().name()); row.setReferenceKey(file.referenceKey());
         row.setArtifactId(file.artifactId()); row.setFileVersionNo(file.versionNo());
-        row.setFileFactVersion(JsonUtils.toJsonString(file.fileFactVersion()));
+        row.setFileArtifactFactVersion(file.fileFactVersion().artifactVersion().longValue());
+        row.setFileReferenceFactVersion(file.fileFactVersion().referenceVersion().longValue());
+        row.setFileAvailabilityFactVersion(file.fileFactVersion().availabilityVersion().longValue());
         row.setFileScopeVersion(file.scopeVersion()); row.setFileHash(file.sha256()); row.setVersion(0);
         row.setCreator(String.valueOf(actorId)); row.setUpdater(String.valueOf(actorId));
         row.setCreateTime(now); row.setUpdateTime(now); row.setDeleted(false);
@@ -420,18 +455,11 @@ public class CutoverClosureApplicationService {
         return row.getId();
     }
 
-    private void insertEvidence(Long tenantId, CutoverClosureDO closure, CutoverTaskDO task, Long deviceId,
-                                String stage, String type, String collectionTaskId, String callbackEventId,
-                                String resultRef, String resultVersion, String originalFailedTaskId,
-                                Long manualAttachmentId, LocalDateTime occurredAt, Long actorId) {
-        CutoverCollectionEvidenceDO row = new CutoverCollectionEvidenceDO();
-        row.setId(nextId()); row.setTenantId(tenantId); row.setClosureId(closure.getId()); row.setTaskId(task.getId());
-        row.setProjectId(task.getProjectId()); row.setDeviceId(deviceId); row.setCollectionStageCode(stage);
-        row.setEvidenceTypeCode(type); row.setCollectionTaskId(collectionTaskId);
-        row.setCallbackEventId(callbackEventId); row.setResultRef(resultRef); row.setResultVersion(resultVersion);
-        row.setOriginalFailedCollectionTaskId(originalFailedTaskId); row.setManualAttachmentId(manualAttachmentId);
-        row.setOccurredAt(occurredAt); row.setRecordedBy(actorId); row.setCreator(String.valueOf(actorId));
-        row.setCreateTime(LocalDateTime.now(clock)); row.setDeleted(false);
+    private void insertEvidence(CutoverCollectionEvidenceDO row) {
+        row.setId(nextId());
+        row.setCreator(String.valueOf(row.getRecordedBy()));
+        row.setCreateTime(LocalDateTime.now(clock));
+        row.setDeleted(false);
         if (evidenceMapper.insert(row) != 1) throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED,
                 "采集证据写入失败");
     }
@@ -459,9 +487,7 @@ public class CutoverClosureApplicationService {
         }).toList();
     }
 
-    private List<CutoverClosureFilePort.FileFact> lockFiles(SaveCutoverClosureCommand command, CutoverTaskDO task,
-                                                             long closureId,
-                                                             List<InspectedAttachment> inspected) {
+    private List<CutoverClosureFilePort.FileFact> lockFiles(List<InspectedAttachment> inspected) {
         return inspected.stream().map(value -> {
             try {
                 CutoverClosureFilePort.FileFact current = filePort.lockAndRevalidate(value.expectation());
@@ -474,17 +500,25 @@ public class CutoverClosureApplicationService {
         }).toList();
     }
 
-    private static CutoverClosureFilePort.FileExpectation expectation(SaveCutoverClosureCommand command,
+    private static CutoverClosureFilePort.FileExpectation expectation(CutoverTaskMutation command,
                                                                        CutoverTaskDO task, long closureId,
                                                                        AttachmentInput input) {
-        return expectation(command.tenantId(), command.actorId(), task.getProjectId(), closureId, input);
-    }
-
-    private static CutoverClosureFilePort.FileExpectation expectation(Long tenantId, Long actorId, Long projectId,
-                                                                       long closureId, AttachmentInput input) {
-        return new CutoverClosureFilePort.FileExpectation(tenantId, actorId, projectId,
-                closureId, input.purposeCode(), input.artifactId(), input.versionNo(), input.referenceKey(),
-                input.fileFactVersion(), input.scopeVersion(), input.sha256());
+        Long tenantId = command.tenantId();
+        Long actorId = command.actorId();
+        Long projectId = task.getProjectId();
+        return CutoverClosureFilePort.FileExpectation.builder()
+                .tenantId(tenantId)
+                .actorId(actorId)
+                .projectId(projectId)
+                .closureId(closureId)
+                .purposeCode(input.purposeCode())
+                .artifactId(input.artifactId())
+                .versionNo(input.versionNo())
+                .referenceKey(input.referenceKey())
+                .fileFactVersion(input.fileFactVersion())
+                .scopeVersion(input.scopeVersion())
+                .sha256(input.sha256())
+                .build();
     }
 
     private void lockProjectScope(SaveCutoverClosureCommand command, CutoverTaskDO task) {
@@ -493,8 +527,12 @@ public class CutoverClosureApplicationService {
 
     private void lockProjectScope(Long actorId, CutoverTaskDO task) {
         try {
-            CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.lockAndRevalidate(actorId,
-                    task.getProjectId(), ACTION_EDIT, task.getProjectScopeVersion());
+            CutoverProjectScopePort.ProjectScopeFact fact = projectScopePort.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(actorId)
+                .projectId(task.getProjectId())
+                .action(ACTION_EDIT)
+                .expectedProjectScopeVersion(task.getProjectScopeVersion())
+                .build());
             if (fact == null || !fact.allowed() || !Objects.equals(fact.projectId(), task.getProjectId())) {
                 throw failure(FUNCTION_OR_SCOPE_DENIED, PROJECT_OR_TASK_SCOPE_DENIED,
                         "PROJ", "任务不可见");
@@ -519,8 +557,9 @@ public class CutoverClosureApplicationService {
         }
     }
 
-    private CutoverClosureDO requireDraftClosure(Long tenantId, Long taskId, Long closureId,
-                                                  Long expectedVersion) {
+    private CutoverClosureDO requireDraftClosure(CutoverTaskDO task, Long closureId, Long expectedVersion) {
+        Long tenantId = task.getTenantId();
+        Long taskId = task.getId();
         CutoverClosureDO closure = closureMapper.selectByTaskForUpdate(new CutoverClosureRowQuery(tenantId, taskId));
         if (closure == null || !Objects.equals(closure.getId(), closureId)) throw failure(
                 NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "闭环不存在");
@@ -534,7 +573,9 @@ public class CutoverClosureApplicationService {
         return closure;
     }
 
-    private CutoverTaskDO requireP6Task(CutoverTaskDO task, Long tenantId, Long actorId, Long expectedVersion) {
+    private CutoverTaskDO requireP6Task(CutoverTaskDO task, CutoverTaskMutation command) {
+        Long tenantId = command.tenantId(); Long actorId = command.actorId();
+        Long expectedVersion = command.expectedTaskVersion();
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw failure(
                 NOT_FOUND, TASK_OR_CLOSURE_NOT_VISIBLE, "任务不存在");
         if (!"NEW_PLATFORM".equals(task.getTaskOrigin()) || !"P6".equals(task.getCurrentStage())
@@ -570,7 +611,7 @@ public class CutoverClosureApplicationService {
         }
     }
 
-    private static void requireFrozenSource(CutoverClosureDO closure, CutoverTaskDO task,
+    private void requireFrozenSource(CutoverClosureDO closure, CutoverTaskDO task,
                                             CutoverApprovalInstanceDO approval, CutoverPlanRevisionDO plan) {
         if (!Objects.equals(closure.getTaskId(), task.getId())
                 || !Objects.equals(closure.getProjectId(), task.getProjectId())
@@ -579,10 +620,10 @@ public class CutoverClosureApplicationService {
                 || !Objects.equals(closure.getApprovalVersion(), approval.getVersion())
                 || !Objects.equals(closure.getPlanRevisionId(), plan.getId())
                 || !Objects.equals(closure.getPlanRevisionNo(), plan.getRevisionNo())
-                || !Objects.equals(closure.getPlanVersion(), plan.getVersion())
-                || !Objects.equals(closure.getDeviceScopeWatermark(), task.getDeviceScopeWatermark())) {
+                || !Objects.equals(closure.getPlanVersion(), plan.getVersion())) {
             throw failure(SOURCE_STALE, APPROVAL_OR_PLAN_STALE, "CUT", "P6冻结来源已变化");
         }
+        storage.requireSame(new CutoverClosureStorage.Source(closure, task));
     }
 
     private static CutoverTaskDO requireTask(CutoverTaskDO task, SaveCutoverClosureCommand command) {
@@ -597,8 +638,7 @@ public class CutoverClosureApplicationService {
                 CutoverClosureApplicationException.Code.TASK_VERSION_STALE,
                 CutoverClosureApplicationException.Reason.TASK_VERSION_STALE,
                 null, task.getVersion(), null, "任务版本已变化");
-        if (task.getProjectScopeVersion() == null || task.getProjectScopeVersion() < 0
-                || task.getDeviceScopeWatermark() == null || task.getDeviceScopeWatermark().isBlank()) {
+        if (task.getProjectScopeVersion() == null || task.getProjectScopeVersion() < 0) {
             throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "CUT", "任务P6来源水位损坏");
         }
         return task;
@@ -740,16 +780,27 @@ public class CutoverClosureApplicationService {
         CutoverClosureFilePort.FileFactVersion version;
         CutoverClosureRules.AttachmentPurpose purpose;
         try {
-            version = JsonUtils.parseObject(attachment.getFileFactVersion(),
-                    CutoverClosureFilePort.FileFactVersion.class);
+            version = new CutoverClosureFilePort.FileFactVersion(
+                    Math.toIntExact(attachment.getFileArtifactFactVersion()),
+                    Math.toIntExact(attachment.getFileReferenceFactVersion()),
+                    Math.toIntExact(attachment.getFileAvailabilityFactVersion()));
             purpose = CutoverClosureRules.AttachmentPurpose.valueOf(attachment.getPurposeCode());
         } catch (RuntimeException ex) {
             throw failure(OWNER_DATA_CORRUPTED, OWNER_FACT_CORRUPTED, "PLT", "闭环文件冻结事实损坏");
         }
-        CutoverClosureFilePort.FileExpectation expectation = new CutoverClosureFilePort.FileExpectation(
-                command.tenantId(), command.actorId(), task.getProjectId(), closure.getId(), purpose,
-                attachment.getArtifactId(), attachment.getFileVersionNo(), attachment.getReferenceKey(), version,
-                attachment.getFileScopeVersion(), attachment.getFileHash());
+        CutoverClosureFilePort.FileExpectation expectation = CutoverClosureFilePort.FileExpectation.builder()
+                .tenantId(command.tenantId())
+                .actorId(command.actorId())
+                .projectId(task.getProjectId())
+                .closureId(closure.getId())
+                .purposeCode(purpose)
+                .artifactId(attachment.getArtifactId())
+                .versionNo(attachment.getFileVersionNo())
+                .referenceKey(attachment.getReferenceKey())
+                .fileFactVersion(version)
+                .scopeVersion(attachment.getFileScopeVersion())
+                .sha256(attachment.getFileHash())
+                .build();
         try {
             requireSameFile(expectation, filePort.lockAndRevalidate(expectation));
         } catch (CutoverClosureOwnerFactException ex) {
@@ -806,11 +857,10 @@ public class CutoverClosureApplicationService {
                 OWNER_FACT_CORRUPTED, "闭环阶段历史创建失败");
     }
 
-    private CutoverClosureCommandResult executeCommand(Long tenantId, String scopeCode, Long actorId,
-                                                        String idempotencyKey, String digest, String correlationId,
-                                                        String action, Supplier<CutoverClosureCommandResult> operation) {
+    private CutoverClosureCommandResult executeCommand(PlatformCommandExecutionApi.IdempotencyScope scope,
+            String digest, String correlationId, String action, Supplier<CutoverClosureCommandResult> operation) {
         PlatformCommandExecutionApi.ExecutionResult<CutoverClosureCommandResult> execution = commandExecutionApi.execute(
-                new PlatformCommandExecutionApi.IdempotencyScope(tenantId, scopeCode, actorId, idempotencyKey),
+                scope,
                 digest, CutoverClosureCommandResult.class, operation,
                 result -> new PlatformCommandExecutionApi.SuccessFacts(action, "CutoverClosure",
                         String.valueOf(result.closureId()), correlationId, JsonUtils.toJsonString(result), List.of()));

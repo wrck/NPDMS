@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.context.CutoverTaskContext;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.query.CutoverTaskListQuery;
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -54,23 +56,25 @@ public class CutoverTaskQueryService {
 
     private static final CutoverP2P3ActionPolicy ACTION_POLICY = new CutoverP2P3ActionPolicy();
 
-    private static final String ACTION_VIEW = "ACTION_VIEW";
-    private static final String ACTION_EDIT = "ACTION_EDIT";
-    private static final List<String> STAGES = List.of("P2", "P3", "P4", "P5", "P6");
-    private static final Map<String, String> STAGE_LABELS = Map.of(
+    protected static final String ACTION_VIEW = "ACTION_VIEW";
+    protected static final String ACTION_EDIT = "ACTION_EDIT";
+    protected static final List<String> STAGES = List.of("P2", "P3", "P4", "P5", "P6");
+    protected static final Map<String, String> STAGE_LABELS = Map.of(
             "P2", "人工分级", "P3", "现场调研", "P4", "方案编制", "P5", "复核审批", "P6", "执行归档");
 
     private final CutoverTaskMapper taskMapper;
     private final CutoverTaskDeviceScopeMapper deviceMapper;
     private final CutoverAssessmentMapper assessmentMapper;
     private final CutoverChecklistMapper checklistMapper;
-    private final CutoverConfigurationRevisionMapper configurationMapper;
-    private final CutoverProjectScopePort projectScopePort;
-    private final CutoverProjectContextPort projectContextPort;
-    private final CutoverDeviceScopePort deviceScopePort;
-    private final CutoverCustomerLevelPort customerLevelPort;
-    private final CutoverReadinessPort readinessPort;
-    private final Clock clock;
+    protected final CutoverConfigurationRevisionMapper configurationMapper;
+    protected final CutoverProjectScopePort projectScopePort;
+    protected final CutoverProjectContextPort projectContextPort;
+    protected final CutoverDeviceScopePort deviceScopePort;
+    protected final CutoverCustomerLevelPort customerLevelPort;
+    protected final CutoverReadinessPort readinessPort;
+    protected final Clock clock;
+    @jakarta.annotation.Resource
+    protected CutoverTaskSnapshotStore taskSnapshots;
 
     public CutoverTaskQueryService(CutoverTaskMapper taskMapper,
                                    CutoverTaskDeviceScopeMapper deviceMapper,
@@ -96,8 +100,9 @@ public class CutoverTaskQueryService {
         this.clock = clock;
     }
 
-    public CutoverTaskViews.CreateContextData resolveCreateContext(Long tenantId, Long actorId,
-                                                                   List<String> serialNumbers) {
+    public CutoverTaskViews.CreateContextData resolveCreateContext(CutoverTaskContext context, List<String> serialNumbers) {
+        Long tenantId = context.tenantId();
+        Long actorId = context.actorId();
         List<String> normalized = normalizeSerials(serialNumbers);
         List<CutoverDeviceScopePort.DeviceFact> devices = deviceScopePort.resolveBySerials(normalized);
         require(devices != null && devices.size() == normalized.size(), AST_PROVIDER_UNAVAILABLE,
@@ -112,8 +117,11 @@ public class CutoverTaskQueryService {
             if (scope == null || !scope.allowed()) {
                 continue;
             }
-            CutoverProjectContextPort.ProjectContextFact project = projectContextPort.inspect(
-                    tenantId, entry.getKey(), scope.projectScopeVersion());
+            CutoverProjectContextPort.ProjectContextFact project = projectContextPort.inspect(CutoverProjectContextPort.Inspection.builder()
+                    .tenantId(tenantId)
+                    .projectId(entry.getKey())
+                    .expectedProjectScopeVersion(scope.projectScopeVersion())
+                    .build());
             require(project != null && tenantId.equals(project.tenantId()) && entry.getKey().equals(project.projectId()),
                     PROJ_PROVIDER_UNAVAILABLE, "项目上下文不可用");
             CutoverCustomerLevelPort.CustomerLevelFact customer = customerLevelPort.inspect(project.customerId());
@@ -139,67 +147,56 @@ public class CutoverTaskQueryService {
                 choices, true);
     }
 
-    public PageResult<CutoverTaskViews.Summary> page(Long tenantId, Long actorId, Long projectId,
-                                                     String taskStatus, String currentStage,
-                                                     int pageNo, int pageSize) {
-        require(pageNo > 0 && pageSize > 0 && pageSize <= 100, INVALID_REQUEST, "分页参数非法");
-        Set<Long> visible = projectScopePort.resolveAllCurrent(actorId, ACTION_VIEW);
+    public PageResult<CutoverTaskViews.Summary> page(CutoverTaskContext context, CutoverTaskListQuery query) {
+        require(query.pageNo() > 0 && query.pageSize() > 0 && query.pageSize() <= 100, INVALID_REQUEST, "分页参数非法");
+        Set<Long> visible = projectScopePort.resolveAllCurrent(context.actorId(), ACTION_VIEW);
         require(visible != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围不可用");
         PageParam pageParam = new PageParam();
-        pageParam.setPageNo(pageNo);
-        pageParam.setPageSize(pageSize);
+        pageParam.setPageNo(query.pageNo());
+        pageParam.setPageSize(query.pageSize());
         PageResult<CutoverTaskDO> result = taskMapper.selectPage(new CutoverTaskPageQuery(
-                tenantId, visible, projectId, taskStatus, currentStage, pageParam));
+                context.tenantId(), visible, query.projectId(), query.taskStatus(), query.currentStage(), pageParam));
         return new PageResult<>(result.getList().stream().map(this::summary).toList(), result.getTotal());
     }
 
-    public CutoverTaskViews.Detail detail(Long tenantId, Long actorId, Long taskId,
-                                          boolean canSaveAssessment, boolean canSubmitAssessment,
-                                          boolean canSaveChecklist, boolean canRequestCollection,
-                                          boolean canSubmitChecklist) {
+    public CutoverTaskViews.Detail detail(CutoverTaskContext context, Long taskId) {
+        Long tenantId = context.tenantId();
+        Long actorId = context.actorId();
         CutoverTaskDO task = taskMapper.selectById(taskId);
         require(task != null && tenantId.equals(task.getTenantId()), NOT_FOUND, "割接任务不存在");
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, task.getProjectId(), ACTION_VIEW);
         require(scope != null && scope.allowed(), NOT_FOUND, "割接任务不可见");
 
-        CutoverProjectContextPort.ProjectContextFact project = parse(task.getProjectContextSnapshot(),
-                CutoverProjectContextPort.ProjectContextFact.class);
-        CutoverCustomerLevelPort.CustomerLevelFact customer = parse(task.getCustomerContextSnapshot(),
-                CutoverCustomerLevelPort.CustomerLevelFact.class);
-        CutoverReadinessPort.ReadinessFact readiness = parse(task.getReadinessContextSnapshot(),
-                CutoverReadinessPort.ReadinessFact.class);
-        List<CutoverDeviceScopePort.DeviceFact> devices = deviceMapper.selectActiveByTask(
-                        new CutoverTaskDeviceListQuery(tenantId, taskId)).stream()
-                .map(this::device).toList();
+        CutoverProjectContextPort.ProjectContextFact project = CutoverTaskSnapshotStore.project(task);
+        CutoverCustomerLevelPort.CustomerLevelFact customer = CutoverTaskSnapshotStore.customer(task);
+        CutoverReadinessPort.ReadinessFact readiness = taskSnapshots.readiness(task);
+        List<CutoverDeviceScopePort.DeviceFact> devices = taskDevices(task);
         CutoverAssessmentDO assessmentRow = task.getCurrentAssessmentId() == null
                 ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
         CutoverTaskViews.Assessment assessment = assessment(assessmentRow);
         CutoverChecklistDO checklist = CutoverTaskRules.STAGE_P3.equals(task.getCurrentStage())
                 ? checklistMapper.selectCurrent(new CutoverChecklistRowQuery(tenantId, taskId, null)) : null;
         P2ActionEligibility p2Eligibility = CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
-                ? p2ActionEligibility(tenantId, actorId, task, project, devices, customer, readiness, assessmentRow,
-                canSaveAssessment, canSubmitAssessment)
+                ? p2ActionEligibility(context, task,
+                new CutoverTaskViews.StoredAssessmentContext(project, devices, readiness, customer), assessmentRow)
                 : P2ActionEligibility.NOT_APPLICABLE;
-        List<String> actions = allowedActions(task, assessmentRow, checklist, actorId,
-                canSaveAssessment, canSubmitAssessment, canSaveChecklist, canRequestCollection, canSubmitChecklist,
-                p2Eligibility);
+        List<String> actions = allowedActions(task, assessmentRow, checklist, context, p2Eligibility);
         return new CutoverTaskViews.Detail(taskCore(task, project),
                 new CutoverTaskViews.Source(task.getIntakeSourceType(), task.getSourceSystem(),
                         task.getSourceBusinessNo(), task.getBusinessEventId(), task.getLegacyTaskId()),
                 new CutoverTaskViews.Project(task.getProjectId(), project == null ? null : project.projectCode(),
                         project == null ? null : project.projectName(), task.getProjectScopeVersion()),
-                devices, customer, readiness, assessment, workbench(task.getCurrentStage()), actions);
+                devices, customer, readiness, assessment, workbench(task), actions);
     }
 
-    private CutoverTaskViews.Summary summary(CutoverTaskDO task) {
-        CutoverProjectContextPort.ProjectContextFact project = parse(task.getProjectContextSnapshot(),
-                CutoverProjectContextPort.ProjectContextFact.class);
+    protected CutoverTaskViews.Summary summary(CutoverTaskDO task) {
+        CutoverProjectContextPort.ProjectContextFact project = CutoverTaskSnapshotStore.project(task);
         return new CutoverTaskViews.Summary(task.getId(), task.getTaskNo(), task.getTaskName(), task.getTaskOrigin(),
                 task.getIntakeSourceType(), task.getConfigurationRevisionId(), task.getConfigurationCode(),
                 task.getConfigurationRevisionNo(), task.getProjectId(), project == null ? null : project.projectName(),
                 project == null ? null : project.departmentCode(), project == null ? null : project.departmentName(),
                 task.getOwnerUserId(), task.getCurrentStage(), task.getTaskStatus(), task.getManualGrade(),
-                task.getScheduledTime(), task.getCreateTime(), task.getVersion());
+                task.getScheduledTime(), task.getCreateTime(), task.getVersion(), false);
     }
 
     private CutoverTaskViews.TaskCore taskCore(CutoverTaskDO task,
@@ -212,7 +209,7 @@ public class CutoverTaskQueryService {
                 task.getVersion());
     }
 
-    private static CutoverTaskViews.ConfigurationChoice configurationChoice(CutoverConfigurationRevisionDO row) {
+    protected static CutoverTaskViews.ConfigurationChoice configurationChoice(CutoverConfigurationRevisionDO row) {
         return new CutoverTaskViews.ConfigurationChoice(row.getConfigurationCode(), row.getConfigurationName(),
                 row.getId(), row.getRevisionNo(), row.getEffectiveFrom(), row.getEffectiveTo());
     }
@@ -221,46 +218,43 @@ public class CutoverTaskQueryService {
         if (row == null) {
             return null;
         }
-        CutoverTaskViews.StoredAssessmentContext context = parse(row.getContextSnapshot(),
-                CutoverTaskViews.StoredAssessmentContext.class);
         return new CutoverTaskViews.Assessment(row.getId(), row.getAssessmentVersion(), row.getVersion(),
                 row.getAssessmentStatus(), row.getQuestionnaireTemplateCode(), row.getQuestionnaireTemplateVersion(),
-                parse(row.getAnswerSnapshot(), CutoverAssessmentAnswers.class),
-                context == null ? null : context.customerServiceLevel(), row.getManualGrade(),
+                CutoverTaskSnapshotStore.answers(row),
+                CutoverTaskSnapshotStore.customer(row), row.getManualGrade(),
                 Boolean.TRUE.equals(row.getSimpleFlow()), row.getSubmittedBy(), row.getSubmittedAt(),
                 row.getInvalidatedAt(), row.getInvalidationReason());
     }
 
     private List<String> allowedActions(CutoverTaskDO task, CutoverAssessmentDO assessment,
-                                        CutoverChecklistDO checklist, Long actorId,
-                                        boolean canSaveAssessment, boolean canSubmitAssessment,
-                                        boolean canSaveChecklist, boolean canRequestCollection,
-                                        boolean canSubmitChecklist, P2ActionEligibility p2Eligibility) {
+                                        CutoverChecklistDO checklist, CutoverTaskContext context,
+                                        P2ActionEligibility p2Eligibility) {
         CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
-                task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
+                task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), context.actorId(), task.getManualGrade());
         var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts
                 .p2p3(assessment == null ? null : assessment.getAssessmentStatus(),
                         assessment != null && assessment.getManualGrade() != null,
                         checklist == null ? null : checklist.getStatusCode(),
                         p2Eligibility.editAllowed(), p2Eligibility.submitAllowed());
         var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
-                .p2p3(canSaveAssessment, canSubmitAssessment, canSaveChecklist,
-                        canRequestCollection, canSubmitChecklist);
+                .p2p3(context.canSaveAssessment(), context.canSubmitAssessment(), context.canSaveChecklist(),
+                        context.canRequestCollection(), context.canSubmitChecklist());
         return List.copyOf(ACTION_POLICY.allowedActions(candidate, facts, permissions));
     }
 
-    private P2ActionEligibility p2ActionEligibility(
-            Long tenantId, Long actorId, CutoverTaskDO task,
-            CutoverProjectContextPort.ProjectContextFact storedProject,
-            List<CutoverDeviceScopePort.DeviceFact> storedDevices,
-            CutoverCustomerLevelPort.CustomerLevelFact storedCustomer,
-            CutoverReadinessPort.ReadinessFact storedReadiness,
-            CutoverAssessmentDO assessment,
-            boolean canSaveAssessment, boolean canSubmitAssessment) {
+    protected P2ActionEligibility p2ActionEligibility(
+            CutoverTaskContext context, CutoverTaskDO task,
+            CutoverTaskViews.StoredAssessmentContext stored, CutoverAssessmentDO assessment) {
+        Long tenantId = context.tenantId();
+        Long actorId = context.actorId();
+        var storedProject = stored.project();
+        var storedDevices = stored.devices();
+        var storedCustomer = stored.customerServiceLevel();
+        var storedReadiness = stored.implementationReadiness();
         if (!CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                 || !actorId.equals(task.getOwnerUserId())
                 || !CutoverTaskRules.STATUS_GRADE_CONFIRMING.equals(task.getTaskStatus())
-                || (!canSaveAssessment && !canSubmitAssessment)
+                || (!context.canSaveAssessment() && !context.canSubmitAssessment())
                 || (assessment != null
                 && CutoverTaskRules.ASSESSMENT_SUBMITTED.equals(assessment.getAssessmentStatus()))) {
             return P2ActionEligibility.NOT_APPLICABLE;
@@ -273,14 +267,17 @@ public class CutoverTaskQueryService {
             return new P2ActionEligibility(false, false);
         }
         CutoverAssessmentAnswers answers = assessment == null ? null
-                : parse(assessment.getAnswerSnapshot(), CutoverAssessmentAnswers.class);
-        if (!canSubmitAssessment || assessment == null
+                : CutoverTaskSnapshotStore.answers(assessment);
+        if (!context.canSubmitAssessment() || assessment == null
                 || !CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus())
                 || assessment.getManualGrade() == null || answers == null || !answers.complete()) {
             return new P2ActionEligibility(true, false);
         }
-        CutoverProjectContextPort.ProjectContextFact currentProject = projectContextPort.inspect(
-                tenantId, task.getProjectId(), editScope.projectScopeVersion());
+        CutoverProjectContextPort.ProjectContextFact currentProject = projectContextPort.inspect(CutoverProjectContextPort.Inspection.builder()
+                .tenantId(tenantId)
+                .projectId(task.getProjectId())
+                .expectedProjectScopeVersion(editScope.projectScopeVersion())
+                .build());
         require(currentProject != null, PROJ_PROVIDER_UNAVAILABLE, "项目上下文事实不可用");
         List<CutoverDeviceScopePort.DeviceFact> currentDevices = deviceScopePort.resolveBySerials(
                 storedDevices.stream().map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList());
@@ -300,7 +297,7 @@ public class CutoverTaskQueryService {
         return new P2ActionEligibility(true, submitAllowed);
     }
 
-    private static boolean equivalentDevices(List<CutoverDeviceScopePort.DeviceFact> stored,
+    protected static boolean equivalentDevices(List<CutoverDeviceScopePort.DeviceFact> stored,
                                              List<CutoverDeviceScopePort.DeviceFact> current) {
         if (stored.size() != current.size()) {
             return false;
@@ -317,7 +314,7 @@ public class CutoverTaskQueryService {
                 + ":" + fact.projectAssignmentVersion();
     }
 
-    private static boolean equivalentReadiness(CutoverReadinessPort.ReadinessFact stored,
+    protected static boolean equivalentReadiness(CutoverReadinessPort.ReadinessFact stored,
                                                CutoverReadinessPort.ReadinessFact current) {
         return Objects.equals(stored.snapshotId(), current.snapshotId())
                 && stored.snapshotVersion() == current.snapshotVersion()
@@ -329,11 +326,12 @@ public class CutoverTaskQueryService {
                 JsonUtils.getObjectMapper().valueToTree(current.sourceWatermark()));
     }
 
-    private record P2ActionEligibility(boolean editAllowed, boolean submitAllowed) {
-        private static final P2ActionEligibility NOT_APPLICABLE = new P2ActionEligibility(false, false);
+    protected record P2ActionEligibility(boolean editAllowed, boolean submitAllowed) {
+        protected static final P2ActionEligibility NOT_APPLICABLE = new P2ActionEligibility(false, false);
     }
 
-    private List<CutoverTaskViews.WorkbenchStep> workbench(String currentStage) {
+    protected List<CutoverTaskViews.WorkbenchStep> workbench(CutoverTaskDO task) {
+        String currentStage = task.getCurrentStage();
         return STAGES.stream().map(stage -> {
             boolean current = stage.equals(currentStage);
             boolean completed = "P2".equals(stage) && ("P3".equals(currentStage) || "P4".equals(currentStage));
@@ -343,12 +341,17 @@ public class CutoverTaskQueryService {
         }).toList();
     }
 
-    private CutoverDeviceScopePort.DeviceFact device(CutoverTaskDeviceScopeDO row) {
+    protected List<CutoverDeviceScopePort.DeviceFact> taskDevices(CutoverTaskDO task) {
+        return deviceMapper.selectActiveByTask(new CutoverTaskDeviceListQuery(task.getTenantId(), task.getId()))
+                .stream().map(this::device).toList();
+    }
+
+    protected CutoverDeviceScopePort.DeviceFact device(CutoverTaskDeviceScopeDO row) {
         return new CutoverDeviceScopePort.DeviceFact(row.getDeviceId(), row.getSerialNumberSnapshot(),
                 row.getProjectId(), row.getProjectAssignmentVersion());
     }
 
-    private static List<String> normalizeSerials(List<String> values) {
+    protected static List<String> normalizeSerials(List<String> values) {
         require(values != null && !values.isEmpty() && values.size() <= 500,
                 INVALID_REQUEST, "SN集合非法");
         LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
@@ -361,11 +364,7 @@ public class CutoverTaskQueryService {
         return List.copyOf(normalized.values());
     }
 
-    private static <T> T parse(String json, Class<T> type) {
-        return json == null ? null : JsonUtils.parseObject(json, type);
-    }
-
-    private static void require(boolean condition, CutoverTaskApplicationException.Code code, String message) {
+    protected static void require(boolean condition, CutoverTaskApplicationException.Code code, String message) {
         if (!condition) {
             throw new CutoverTaskApplicationException(code, message);
         }

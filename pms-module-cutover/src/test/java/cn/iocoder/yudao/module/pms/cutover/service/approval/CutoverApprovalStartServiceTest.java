@@ -1,6 +1,5 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
@@ -11,7 +10,6 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalIns
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNotificationMapper;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -25,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.StreamSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,7 +42,7 @@ class CutoverApprovalStartServiceTest {
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
         LocalDateTime planSubmittedAt = LocalDateTime.of(2026, 9, 3, 18, 0);
         when(assembler.lockAndAssemble(any())).thenReturn(
-                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, "{}"));
+                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, CutoverApprovalControlledPorts.approvalSource("A")));
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
@@ -54,6 +51,7 @@ class CutoverApprovalStartServiceTest {
                 nodes, notifications, CutoverApprovalControlledPorts.serviceManager(301L),
                 CutoverApprovalControlledPorts.roleCandidates(), CutoverApprovalControlledPorts.projectScope(202L),
                 platform, () -> 202L, Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", mock(CutoverApprovalStorage.class));
         CutoverApprovalStartCommand command = new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
                 "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-1");
 
@@ -78,13 +76,12 @@ class CutoverApprovalStartServiceTest {
         ArgumentCaptor<CutoverApprovalInstanceDO> instanceCaptor =
                 ArgumentCaptor.forClass(CutoverApprovalInstanceDO.class);
         verify(instances).insert(instanceCaptor.capture());
-        var routeSnapshot = JsonUtils.parseTree(instanceCaptor.getValue().getRouteSnapshot());
-        assertEquals("A", routeSnapshot.path("grade").asText());
-        assertEquals(List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND"),
-                StreamSupport.stream(routeSnapshot.path("nodes").spliterator(), false)
-                        .map(node -> node.path("nodeCode").asText()).toList());
+        assertEquals("A", instanceCaptor.getValue().getGradeCode());
+        assertNull(instanceCaptor.getValue().getRouteSnapshot());
+        assertTrue(nodeCaptor.getAllValues().stream().filter(node -> List.of("SECOND_LINE", "RND").contains(node.getNodeCode()))
+                .allMatch(node -> "PERSONAL".equals(node.getApprovalModeCode()) && node.getCandidateRoleId() == 31L && Long.valueOf(202L).equals(node.getCurrentApproverUserId()) && node.getCandidateFactSnapshot() == null));
         assertTrue(instanceCaptor.getValue().getLeadTimeEnabled());
-        var leadTime = new CutoverLeadTimeSnapshotCodec().decode(instanceCaptor.getValue().getLeadTimeSnapshot());
+        var leadTime = CutoverApprovalStorage.leadTime(instanceCaptor.getValue());
         assertEquals("VERSION_UPGRADE", leadTime.cutoverType());
         assertEquals(2, leadTime.requiredDays());
         assertEquals(2, leadTime.actualNaturalDays());
@@ -113,7 +110,7 @@ class CutoverApprovalStartServiceTest {
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
         plan.setSubmittedAt(LocalDateTime.of(2026, 9, 3, 18, 0));
         when(assembler.lockAndAssemble(any())).thenReturn(
-                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, "{}"));
+                new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, CutoverApprovalControlledPorts.approvalSource("D")));
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
@@ -123,6 +120,7 @@ class CutoverApprovalStartServiceTest {
                 new DirectPlatform(), () -> 202L,
                 Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
 
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", mock(CutoverApprovalStorage.class));
         service.start(new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
                 "D", 600L, 2L, null, null, 1, LocalDateTime.of(2026, 9, 3, 18, 0), null,
                 "start-d", "corr-d"));

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.Test;
 
@@ -61,7 +62,7 @@ class CutoverPlanRequestCodecTest {
 
     @Test
     void rejectsZeroTrustedTenant() {
-        assertThatThrownBy(() -> new CutoverPlanRequestContext.TrustedContext(
+        assertThatThrownBy(() -> new CutoverPlanContext(
                 0L, 8L, "corr-1", true, true, true, true)).isInstanceOf(IllegalArgumentException.class);
     }
 }

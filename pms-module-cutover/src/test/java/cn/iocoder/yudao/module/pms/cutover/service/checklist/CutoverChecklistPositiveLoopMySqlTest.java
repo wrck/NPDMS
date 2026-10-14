@@ -160,8 +160,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
     @Test
     void completesP3GenerateDirectManualAndSubmitIntoP4WithRealTransactionAndMyBatis() {
-        ChecklistCommandResult generated = service.generate(new GenerateChecklistCommand(
-                tenantId, ACTOR_ID, taskId, 2L, 1L, 7L, Map.of(), "generate-loop", "corr-generate-loop"));
+        ChecklistCommandResult generated = service.generate(new GenerateChecklistCommand(tenantId, ACTOR_ID, taskId, 2L, 1L, 7L, List.of(), Map.of(), "generate-loop", "corr-generate-loop"));
         ChecklistCommandResult saved = service.save(new SaveChecklistCommand(
                 tenantId, ACTOR_ID, taskId, 2L, generated.checklistId(), 0L, 7L,
                 List.of(new SaveChecklistCommand.DirectAnswer("SYS-IP", "{\"value\":\"10.0.0.1\"}"))));
@@ -169,15 +168,20 @@ class CutoverChecklistPositiveLoopMySqlTest {
                 new CutoverChecklistFilePort.FileFactVersion(3, 4, 5);
         ChecklistItemCommandResult manual = service.selectManual(new SelectManualResultCommand(
                 tenantId, ACTOR_ID, taskId, 2L, generated.checklistId(), saved.checklistFactVersion(), 7L,
-                "SYS-EVIDENCE", new CutoverChecklistFilePort.FileHandle(90L, 2, "ref-90", fileVersion, 7L),
+                "SYS-EVIDENCE", CutoverChecklistFilePort.FileHandle.builder()
+                        .artifactId(90L)
+                        .versionNo(2)
+                        .referenceKey("ref-90")
+                        .fileFactVersion(fileVersion)
+                        .scopeVersion(7L)
+                        .build(),
                 "现场回执"));
         SubmitChecklistCommand submit = new SubmitChecklistCommand(tenantId, ACTOR_ID, taskId, 2L, 1L,
                 generated.checklistId(), manual.checklistVersion(), 7L, "submit-loop", "corr-submit-loop");
 
         ChecklistCommandResult submitted = service.submit(submit);
         ChecklistCommandResult replayed = service.submit(submit);
-        var exported = exportService.export(tenantId, ACTOR_ID, taskId,
-                submitted.checklistVersion(), "corr-export-loop");
+        var exported = exportService.export(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(tenantId, ACTOR_ID, "corr-export-loop"), taskId, submitted.checklistVersion());
 
         assertEquals("SUBMITTED", submitted.checklistStatus());
         assertEquals("P4", submitted.taskStage());
@@ -470,7 +474,7 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage", "cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration",
             "cn.iocoder.yudao.module.pms.platform.dal.mysql.command"})
@@ -478,6 +482,9 @@ class CutoverChecklistPositiveLoopMySqlTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationMetadataStore.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverExternalMappingStore.class,
             PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class,
             OperationAuditApiImpl.class,
             CutoverConfigurationServiceImpl.class})
@@ -496,17 +503,29 @@ class CutoverChecklistPositiveLoopMySqlTest {
                 @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) {
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
-                @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action,
-                                                                     long expectedProjectScopeVersion) {
+                @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expectedProjectScopeVersion = query.expectedProjectScopeVersion();
+
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
                 @Override public Set<Long> resolveAllCurrent(Long actorId, String action) { return Set.of(PROJECT_ID); }
             };
         }
         @Bean CutoverChecklistFilePort filePort() {
-            return (tenantId, actorId, projectId, checklistItemId, expectedScopeVersion, handle) ->
-                    new CutoverChecklistFilePort.FileFact(handle.artifactId(), handle.versionNo(),
-                            handle.referenceKey(), handle.fileFactVersion(), handle.scopeVersion(), "a".repeat(64));
+            return query -> {
+                var handle = query.handle();
+                return CutoverChecklistFilePort.FileFact.builder()
+                        .artifactId(handle.artifactId())
+                        .versionNo(handle.versionNo())
+                        .referenceKey(handle.referenceKey())
+                        .fileFactVersion(handle.fileFactVersion())
+                        .scopeVersion(handle.scopeVersion())
+                        .sha256("a".repeat(64))
+                        .build();
+            };
         }
         @Bean CutoverCollectionPort collectionPort() {
             return new CutoverCollectionPort() {
@@ -517,8 +536,10 @@ class CutoverChecklistPositiveLoopMySqlTest {
         @Bean CutoverChecklistConfigurationQueryService configurationService(
                 CutoverConfigurationRevisionMapper revisionMapper,
                 CutoverChecklistItemDefinitionRevisionMapper itemMapper,
-                CutoverChecklistBindingRuleRevisionMapper ruleMapper) {
-            return new CutoverChecklistConfigurationQueryService(revisionMapper, itemMapper, ruleMapper);
+                CutoverChecklistBindingRuleRevisionMapper ruleMapper,
+                cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationMetadataStore metadata,
+                cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore fields) {
+            return new CutoverChecklistConfigurationQueryService(revisionMapper, itemMapper, ruleMapper, metadata, fields);
         }
         @Bean CutoverNavigationDecisionQueryService navigationDecisionQueryService(
                 CutoverTaskMapper taskMapper, CutoverConfigurationRevisionMapper revisionMapper) {

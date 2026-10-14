@@ -36,6 +36,14 @@ public class CutoverConfigurationController {
 
     @Resource
     private CutoverConfigurationService service;
+    @Resource
+    private cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverExternalDataDirectory externalDataDirectory;
+
+    @GetMapping("/external-interfaces")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-config:query')")
+    public CommonResult<cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverExternalDataDirectory.Catalog> externalInterfaces() {
+        return success(externalDataDirectory.catalog());
+    }
 
     @GetMapping("/revisions")
     @Operation(summary = "分页查询配置修订")

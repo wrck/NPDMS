@@ -54,8 +54,7 @@ class CutoverPlanSubmissionTest {
         CutoverPlanFilePort filePort = mock(CutoverPlanFilePort.class);
         CutoverTaskDO task = task();
         CutoverPlanRevisionDO plan = simplePlan();
-        CutoverPlanSourcePort.SourceSnapshot snapshot = JsonUtils.parseObject(
-                plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+        CutoverPlanSourcePort.SourceSnapshot snapshot = simpleSource();
         CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(
                 snapshot, snapshot.failedRiskFacts());
         when(taskMapper.selectById(50L)).thenReturn(task);
@@ -66,13 +65,19 @@ class CutoverPlanSubmissionTest {
         when(stepMapper.selectListByPlan(any())).thenReturn(List.of(
                 step("OPERATION", 1, "执行割接"), step("ROLLBACK", 1, "执行回退")));
         CutoverPlanFilePort.FileFact generated = fileFact();
-        when(filePort.downloadDraft(1L, 8L, 70L, 80L)).thenReturn(generated);
+        when(filePort.downloadDraft(CutoverPlanFilePort.DraftQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .planRevisionId(80L)
+                .build())).thenReturn(generated);
         DirectPlatform platform = new DirectPlatform();
         CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper,
                 stepMapper, supportMapper, projectScope, sourcePort, filePort,
                 new CutoverPlanContentCodec(), platform,
                 Clock.fixed(Instant.parse("2026-09-01T01:00:00Z"), ZoneOffset.UTC));
 
+        injectStorage(service, plan, facts.snapshot());
         DownloadCutoverPlanDraftResult result = service.downloadDraft(
                 new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-1", "corr-download-1"));
 
@@ -85,7 +90,12 @@ class CutoverPlanSubmissionTest {
         assertThat(platform.lastFacts.get().correlationId()).isEqualTo("corr-download-1");
         assertThat(platform.lastFacts.get().detailSnapshot()).contains("fileArtifactFact", "downloadedAt", "actorId");
         verify(sourcePort).lockAndRevalidate(1L, 8L, facts);
-        verify(filePort).downloadDraft(1L, 8L, 70L, 80L);
+        verify(filePort).downloadDraft(CutoverPlanFilePort.DraftQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .planRevisionId(80L)
+                .build());
     }
 
     @Test
@@ -101,13 +111,17 @@ class CutoverPlanSubmissionTest {
         CutoverPlanRevisionDO plan = simplePlan();
         List<CutoverPlanStepDO> steps = List.of(
                 step("OPERATION", 1, "执行割接"), step("ROLLBACK", 1, "执行回退"));
-        CutoverPlanSourcePort.SourceSnapshot snapshot = JsonUtils.parseObject(
-                plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+        CutoverPlanSourcePort.SourceSnapshot snapshot = simpleSource();
         CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(snapshot, List.of());
         when(taskMapper.selectById(50L)).thenReturn(task);
         when(planMapper.selectCurrent(any())).thenReturn(plan);
         when(stepMapper.selectListByPlan(any())).thenReturn(steps);
-        when(projectScope.lockAndRevalidate(8L, 70L, "ACTION_EDIT", 30L))
+        when(projectScope.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(70L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(30L)
+                .build()))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
         when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(facts);
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
@@ -125,6 +139,7 @@ class CutoverPlanSubmissionTest {
                 new CutoverPlanContentCodec(), platform, approval, historyMapper,
                 Clock.fixed(Instant.parse("2026-09-01T02:00:00Z"), ZoneOffset.UTC));
 
+        injectStorage(service, plan, facts.snapshot());
         SubmitCutoverPlanResult result = service.submit(
                 new SubmitCutoverPlanCommand(1L, 8L, 50L, 4L, 3L, "submit-1", "corr-submit-1"));
 
@@ -175,6 +190,7 @@ class CutoverPlanSubmissionTest {
                 mock(CutoverPlanFilePort.class), new CutoverPlanContentCodec(), platform, approval, historyMapper,
                 Clock.fixed(Instant.parse("2026-09-01T03:00:00Z"), ZoneOffset.UTC));
 
+        injectStorage(service, plan, simpleSource());
         InvalidateCutoverPlanSourceResult result = service.invalidateSource(
                 new InvalidateCutoverPlanSourceCommand(1L, 9L, 50L, 5L, 4L,
                         "invalidate-1", "corr-invalidate-1"));
@@ -207,8 +223,16 @@ class CutoverPlanSubmissionTest {
         row.setVersion(4L); return row;
     }
 
-    private static CutoverPlanRevisionDO simplePlan() {
-        CutoverPlanSourcePort.SourceSnapshot source = new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4L,
+    private static void injectStorage(CutoverPlanApplicationService service, CutoverPlanRevisionDO plan,
+                                      CutoverPlanSourcePort.SourceSnapshot source) {
+        var storage = mock(CutoverPlanStorage.class);
+        var body = JsonUtils.getObjectMapper().createObjectNode(); body.put("editMode", "ONLINE_TEMPLATE_SIMPLE_D");
+        when(storage.source(plan)).thenReturn(source); when(storage.content(plan)).thenReturn(body);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
+    }
+
+    private static CutoverPlanSourcePort.SourceSnapshot simpleSource() {
+        return new CutoverPlanSourcePort.SourceSnapshot(1, 50L, 4L,
                 60L, 2L, "D", null, null, 70L, 5, 30L,
                 List.of(new CutoverPlanSourcePort.DeviceSnapshot(90L, "SN-90", 3L, "SWITCH", "TYPE-V1")),
                 100L, "CFG-D", 1,
@@ -216,11 +240,13 @@ class CutoverPlanSubmissionTest {
                                 List.of("NETWORK_CUTOVER"), List.of("D"), true),
                         new CutoverPlanSourcePort.TemplateSectionSnapshot("ROLLBACK", "回退", 2,
                                 List.of("NETWORK_CUTOVER"), List.of("D"), true)), List.of());
+    }
+
+    private static CutoverPlanRevisionDO simplePlan() {
         CutoverPlanRevisionDO row = new CutoverPlanRevisionDO();
         row.setId(80L); row.setTenantId(1L); row.setCutoverTaskId(50L); row.setRevisionNo(1);
         row.setOriginCode("NEW_PLATFORM"); row.setEditModeCode("ONLINE_TEMPLATE_SIMPLE_D");
-        row.setGradeCode("D"); row.setSourceSnapshot(JsonUtils.toJsonString(source));
-        row.setContentSnapshot("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\"}");
+        row.setGradeCode("D");
         row.setStatusCode("DRAFT"); row.setCurrentMarker(1); row.setVersion(3L); return row;
     }
 
@@ -230,8 +256,14 @@ class CutoverPlanSubmissionTest {
     }
 
     private static CutoverPlanFilePort.FileFact fileFact() {
-        return new CutoverPlanFilePort.FileFact(501L, 1, "cut-plan-draft-80",
-                new CutoverPlanFilePort.FileFactVersion(1, 1, 1), 1L, "a".repeat(64));
+        return CutoverPlanFilePort.FileFact.builder()
+                .artifactId(501L)
+                .versionNo(1)
+                .referenceKey("cut-plan-draft-80")
+                .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(1, 1, 1))
+                .scopeVersion(1L)
+                .sha256("a".repeat(64))
+                .build();
     }
 
     private static final class ControlledApprovalApi implements CutoverApprovalFactApi {
@@ -248,8 +280,7 @@ class CutoverPlanSubmissionTest {
         }
 
         void seed(CutoverPlanRevisionDO plan) {
-            CutoverPlanSourcePort.SourceSnapshot source = JsonUtils.parseObject(
-                    plan.getSourceSnapshot(), CutoverPlanSourcePort.SourceSnapshot.class);
+            CutoverPlanSourcePort.SourceSnapshot source = simpleSource();
             fact = new CutoverApprovalFact(plan.getApprovalInstanceId(), plan.getApprovalVersion(),
                     plan.getCutoverTaskId(), plan.getId(), plan.getRevisionNo(), ApprovalStatus.PENDING,
                     source.snapshotVersion(), null, null, null);

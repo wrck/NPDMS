@@ -80,6 +80,14 @@ export interface CutoverConfiguration {
 
 const BASE = '/api/v1/pms/cutover-config'
 
+export interface CutoverExternalField { key: string; label: string; valueType: string; required: boolean }
+export interface CutoverExternalCatalog {
+  interfaces: Array<{ code: string; name: string; parameters: CutoverExternalField[]; responseFields: CutoverExternalField[] }>
+  contextFields: CutoverExternalField[]
+  bulletinFields: CutoverExternalField[]
+}
+export const getExternalInterfaces = () => request.get<CutoverExternalCatalog>({ url: `${BASE}/external-interfaces` })
+
 export const getPage = (params: Record<string, unknown>) =>
   request.get({ url: `${BASE}/revisions`, params })
 

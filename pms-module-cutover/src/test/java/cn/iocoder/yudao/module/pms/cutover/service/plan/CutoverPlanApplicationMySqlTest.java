@@ -206,9 +206,7 @@ class CutoverPlanApplicationMySqlTest {
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
                 tenantId, 8L, taskId, 6L, submitted.planRevisionId(), "SOURCE_REPLACED",
                 "revise-source-1", "corr-revise-source-1"));
-        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
-                owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
-                new CutoverPlanQueryService.PlanAccess(true, true, true, true));
+        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper, owners, owners, approval, new CutoverPlanContentCodec()).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(tenantId, 8L, "query-test", true, true, true, true), taskId);
         assertEquals(302L, detail.sourceSnapshot().path("devices").get(0).path("deviceId").asLong());
         assertEquals(302L, detail.content().path("overview").path("deviceSummary").get(0)
                 .path("deviceId").asLong());
@@ -314,9 +312,7 @@ class CutoverPlanApplicationMySqlTest {
         CutoverPlanCommandResult replacement = service.revise(new ReviseCutoverPlanCommand(
                 tenantId, 8L, taskId, 6L, submitted.planRevisionId(), "APPROVAL_REJECTED",
                 "revise-approval-rejected", "corr-revise-approval-rejected"));
-        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper,
-                owners, owners, approval, new CutoverPlanContentCodec()).detail(tenantId, 8L, taskId,
-                new CutoverPlanQueryService.PlanAccess(true, true, true, true));
+        CutoverPlanView detail = new CutoverPlanQueryService(taskMapper, planMapper, stepMapper, supportMapper, owners, owners, approval, new CutoverPlanContentCodec()).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(tenantId, 8L, "query-test", true, true, true, true), taskId);
         CutoverPlanCommandResult savedReplacement = service.saveDraft(new SaveCutoverPlanDraftCommand(
                 tenantId, 8L, taskId, 6L, replacement.planVersion(), 30L, detail.content(),
                 "save-approval-rejected-r2", "corr-save-approval-rejected-r2"));
@@ -433,7 +429,12 @@ class CutoverPlanApplicationMySqlTest {
             facts = new SourceFacts(snapshot, List.of());
         }
         @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) { return new ProjectScopeFact(projectId, 30L, true); }
-        @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action, long expected) { return new ProjectScopeFact(projectId, 30L, true); }
+        @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expected = query.expectedProjectScopeVersion();
+ return new ProjectScopeFact(projectId, 30L, true); }
         @Override public java.util.Set<Long> resolveAllCurrent(Long actorId, String action) { return java.util.Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
@@ -471,10 +472,32 @@ class CutoverPlanApplicationMySqlTest {
                     source.configurationCode(), source.configurationRevisionNo(), sections,
                     source.failedRiskFacts()), facts.failedRiskFacts());
         }
-        FileFact fileFact() { return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1), 1L, "a".repeat(64)); }
-        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
-        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fileFact(); }
-        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { return fileFact(); }
+        FileFact fileFact() { return FileFact.builder()
+                .artifactId(501L)
+                .versionNo(1)
+                .referenceKey("cut-plan-upload-1")
+                .fileFactVersion(new FileFactVersion(1, 1, 1))
+                .scopeVersion(1L)
+                .sha256("a".repeat(64))
+                .build(); }
+        @Override public FileFact inspect(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+ return fileFact(); }
+        @Override public FileFact lockAndRevalidate(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+ return fileFact(); }
+        @Override public FileFact downloadDraft(CutoverPlanFilePort.DraftQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        Long planRevisionId = query.planRevisionId();
+ return fileFact(); }
     }
 
     @SpringBootConfiguration

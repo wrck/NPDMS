@@ -22,9 +22,19 @@ class CutoverClosurePortContractTest {
     @Test
     void preservesImmutableFileFactAcrossInspectAndLock() {
         var port = new CutoverClosureControlledPorts.Files();
-        var expected = new FileExpectation(1L, 7L, 11L, 21L,
-                AttachmentPurpose.POST_COLLECTION_CHECKLIST, 31L, 2, "ref-31",
-                new FileFactVersion(3, 4, 5), 6L, "a".repeat(64));
+        var expected = FileExpectation.builder()
+                .tenantId(1L)
+                .actorId(7L)
+                .projectId(11L)
+                .closureId(21L)
+                .purposeCode(AttachmentPurpose.POST_COLLECTION_CHECKLIST)
+                .artifactId(31L)
+                .versionNo(2)
+                .referenceKey("ref-31")
+                .fileFactVersion(new FileFactVersion(3, 4, 5))
+                .scopeVersion(6L)
+                .sha256("a".repeat(64))
+                .build();
 
         assertThat(port.inspect(expected)).isEqualTo(port.lockAndRevalidate(expected));
         assertThat(port.inspect(expected).referenceKey()).isEqualTo("ref-31");

@@ -54,12 +54,22 @@ class CutoverPlanContentCodecTest {
                 "referenceKey":"CUT/PLAN/91","fileFactVersion":{"artifactVersion":3,"referenceVersion":4,"availabilityVersion":5},
                 "scopeVersion":6,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"ownershipConfirmed":true}
                 """), source("D"));
-        var portFact = new CutoverPlanFilePort.FileFact(91L, 2, "CUT/PLAN/91",
-                new CutoverPlanFilePort.FileFactVersion(3, 4, 5), 6L,
-                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        var portFact = CutoverPlanFilePort.FileFact.builder()
+                .artifactId(91L)
+                .versionNo(2)
+                .referenceKey("CUT/PLAN/91")
+                .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(3, 4, 5))
+                .scopeVersion(6L)
+                .sha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                .build();
         assertThat(decoded.fileFact()).isEqualTo(portFact);
         var controlledPort = new CutoverPlanControlledPorts.FilePort(portFact);
-        assertThat(controlledPort.inspect(1L, 2L, 40L, portFact.handle())).isEqualTo(portFact);
+        assertThat(controlledPort.inspect(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(2L)
+                .projectId(40L)
+                .handle(portFact.handle())
+                .build())).isEqualTo(portFact);
         assertThat(controlledPort.inspections).isEqualTo(1);
     }
 

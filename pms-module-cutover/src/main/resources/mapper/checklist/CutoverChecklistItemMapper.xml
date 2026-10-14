@@ -1,9 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistItemMapper">
+    <resultMap id="structured" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO" autoMapping="false">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="checklist_id" property="checklistId"/>
+        <result column="stable_item_key" property="stableItemKey"/>
+        <result column="item_definition_revision_id" property="itemDefinitionId"/>
+        <result column="item_definition_version" property="itemDefinitionVersion"/>
+        <result column="item_type_code" property="itemTypeCode"/>
+        <result column="item_name" property="itemName"/>
+        <result column="item_description" property="itemDescription"/>
+        <result column="interface_format_code" property="interfaceFormatCode"/>
+        <result column="work_mode_code" property="workModeCode"/>
+        <result column="required_flag" property="requiredFlag"/>
+        <result column="source_code" property="sourceCode"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="command_template_id" property="commandTemplateId"/>
+        <result column="binding_rule_revision_id" property="matchedRuleId"/>
+        <result column="binding_rule_version" property="matchedRuleVersion"/>
+        <result column="applicable_flag" property="applicableFlag"/>
+        <result column="custom_creator_user_id" property="customCreatorUserId"/>
+        <result column="sort_order" property="sortOrder"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+    <sql id="columns">`id`, `tenant_id`, `checklist_id`, `stable_item_key`, `item_definition_revision_id`, `item_definition_version`, `item_type_code`, `item_name`, `item_description`, `interface_format_code`, `work_mode_code`, `required_flag`, `source_code`, `device_id`, `command_template_id`, `binding_rule_revision_id`, `binding_rule_version`, `applicable_flag`, `custom_creator_user_id`, `sort_order`, `version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`</sql>
+
     <select id="selectListForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO">
-        SELECT *
+            resultMap="structured">
+        SELECT <include refid="columns"/>
         FROM cut_cutover_checklist_item
         WHERE tenant_id = #{query.tenantId}
           AND checklist_id = #{query.checklistId}
@@ -13,8 +43,8 @@
     </select>
 
     <select id="selectListByChecklist"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistItemDO">
-        SELECT *
+            resultMap="structured">
+        SELECT <include refid="columns"/>
         FROM cut_cutover_checklist_item
         WHERE tenant_id = #{query.tenantId}
           AND checklist_id = #{query.checklistId}
@@ -24,27 +54,22 @@
 
     <update id="updateApplicability">
         UPDATE cut_cutover_checklist_item
-        SET applicable_flag = #{query.applicable},
-            required_flag = #{query.required},
-            item_definition_id = #{query.itemDefinitionId},
-            item_definition_version = #{query.itemDefinitionVersion},
-            item_type_code = #{query.itemTypeCode},
-            item_name = #{query.itemName},
-            item_description = #{query.itemDescription},
-            interface_format_code = #{query.interfaceFormatCode},
-            interface_schema_snapshot = #{query.interfaceSchemaSnapshot},
-            display_condition_snapshot = #{query.displayConditionSnapshot},
-            work_mode_code = #{query.workModeCode},
-            matched_rule_id = #{query.matchedRuleId},
-            matched_rule_version = #{query.matchedRuleVersion},
-            sort_order = #{query.sortOrder},
-            updater = #{query.actorId},
-            version = version + 1,
-            update_time = NOW(3)
-        WHERE tenant_id = #{query.tenantId}
-          AND id = #{query.itemId}
-          AND source_code = 'SYSTEM_MATCHED'
-          AND deleted = b'0'
+        SET applicable_flag = #{query.item.applicableFlag},
+            required_flag = #{query.item.requiredFlag},
+            item_definition_revision_id = #{query.item.itemDefinitionId},
+            item_definition_version = #{query.item.itemDefinitionVersion},
+            item_type_code = #{query.item.itemTypeCode},
+            item_name = #{query.item.itemName},
+            item_description = #{query.item.itemDescription},
+            interface_format_code = #{query.item.interfaceFormatCode},
+            work_mode_code = #{query.item.workModeCode},
+            binding_rule_revision_id = #{query.item.matchedRuleId},
+            binding_rule_version = #{query.item.matchedRuleVersion},
+            sort_order = #{query.item.sortOrder},
+            updater = #{query.item.updater},
+            version = version + 1, update_time = NOW(3)
+        WHERE tenant_id = #{query.item.tenantId} AND id = #{query.item.id}
+          AND source_code = 'SYSTEM_MATCHED' AND deleted = b'0'
     </update>
 
     <update id="removeCustomIfMatch">

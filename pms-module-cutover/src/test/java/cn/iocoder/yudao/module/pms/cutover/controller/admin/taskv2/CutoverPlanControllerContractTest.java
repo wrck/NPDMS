@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationException;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService;
@@ -29,11 +30,11 @@ class CutoverPlanControllerContractTest {
     void setUp() {
         application = mock(CutoverPlanApplicationService.class);
         query = mock(CutoverPlanQueryService.class);
-        CutoverPlanRequestContext context = () -> new CutoverPlanRequestContext.TrustedContext(
+        CutoverPlanRequestContext context = () -> new CutoverPlanContext(
                 1L, 8L, "corr-1", true, true, true, true);
         CutoverPlanController controller = new TestController(application, query, context,
                 new CutoverPlanRequestCodec());
-        when(query.detail(any(), any(), any(), any())).thenReturn(new CutoverPlanView(
+        when(query.detail(any(), any())).thenReturn(new CutoverPlanView(
                 50L, "P4", 4L, 60L, 1, 0L, "NEW_PLATFORM", "DRAFT",
                 null, null, null, "INITIAL", null, null, null, List.of("SAVE_DRAFT")));
         mvc = standaloneSetup(controller).setControllerAdvice(controller).build();
@@ -49,15 +50,20 @@ class CutoverPlanControllerContractTest {
         when(application.createDraft(any())).thenReturn(new CutoverPlanCommandResult(50L,4L,60L,1,0L,"DRAFT",false));
         when(application.saveDraft(any())).thenReturn(new CutoverPlanCommandResult(50L,4L,60L,1,1L,"DRAFT",false));
         when(application.downloadDraft(any())).thenReturn(new DownloadCutoverPlanDraftResult(60L,1L,
-                new cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFact(
-                        70L,1,"ref-1",new cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFactVersion(1,1,1),1L,
-                        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),1788220800000L));
+                cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFact.builder()
+                        .artifactId(70L)
+                        .versionNo(1)
+                        .referenceKey("ref-1")
+                        .fileFactVersion(new cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFactVersion(1,1,1))
+                        .scopeVersion(1L)
+                        .sha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                        .build(),1788220800000L));
         when(application.submit(any())).thenReturn(new SubmitCutoverPlanResult(50L,"P5",5L,60L,1,2L,80L,0L,"PENDING"));
         when(application.patchApprovedContact(any())).thenReturn(mock(PatchApprovedContactResult.class));
         when(application.revise(any())).thenReturn(new CutoverPlanCommandResult(50L,6L,61L,2,0L,"DRAFT",false));
 
         mvc.perform(get("/api/v1/pms/cutover-tasks/50/plan")).andExpect(status().isOk()).andExpect(jsonPath("$.data.taskId").value(50));
-        verify(query).detail(1L, 8L, 50L, new CutoverPlanQueryService.PlanAccess(true, true, true, true));
+        verify(query).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "corr-1", true, true, true, true), 50L);
         mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
                 .header("X-Task-Version","4").header("Idempotency-Key","i1")
                 .contentType("application/json").content("{\"editMode\":\"ONLINE_TEMPLATE_STANDARD\"}"))
@@ -122,7 +128,7 @@ class CutoverPlanControllerContractTest {
 
     @Test
     void mapsPermissionAndFileOwnershipFailuresWithoutMessageInspection() throws Exception {
-        when(query.detail(any(), any(), any(), any())).thenThrow(new org.springframework.security.access.AccessDeniedException(
+        when(query.detail(any(), any())).thenThrow(new org.springframework.security.access.AccessDeniedException(
                 "denied"));
         mvc.perform(get("/api/v1/pms/cutover-tasks/50/plan"))
                 .andExpect(status().isForbidden())

@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import org.springframework.http.HttpHeaders;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.query.CutoverTaskListQuery;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.CutoverTaskReqVO;
@@ -61,17 +63,16 @@ public class CutoverTaskController {
         require(request != null && request.serialNumbers() != null, "serialNumbers");
         var trusted = requestContext.current();
         return success(createContext(queryService.resolveCreateContext(
-                trusted.tenantId(), trusted.actorId(), request.serialNumbers())));
+                trusted, request.serialNumbers())));
     }
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
     public CommonResult<PageResult<CutoverTaskViews.Summary>> list(
             @RequestParam MultiValueMap<String, String> queryParameters) {
-        CutoverTaskRequestCodec.ListQuery query = requestCodec.listQuery(queryParameters);
+        CutoverTaskListQuery query = requestCodec.listQuery(queryParameters);
         var trusted = requestContext.current();
-        return success(queryService.page(trusted.tenantId(), trusted.actorId(), query.projectId(),
-                query.taskStatus(), query.currentStage(), query.pageNo(), query.pageSize()));
+        return success(queryService.page(trusted, query));
     }
 
     @PostMapping
@@ -84,11 +85,20 @@ public class CutoverTaskController {
                 && request.expectedDeviceScopeWatermark() != null, "create request");
         var trusted = requestContext.current();
         var project = request.expectedProjectContext();
-        CutoverProjectContextPort.ProjectContextFact projectFact = new CutoverProjectContextPort.ProjectContextFact(
-                trusted.tenantId(), project.projectId(), project.projectVersion(), project.projectCode(),
-                project.projectName(), project.customerId(), project.customerCode(), project.customerName(),
-                project.departmentId(), project.departmentCode(), project.departmentName(),
-                requiredVersion(request.expectedProjectScopeVersion(), "expectedProjectScopeVersion"));
+        CutoverProjectContextPort.ProjectContextFact projectFact = CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(trusted.tenantId())
+                .projectId(project.projectId())
+                .projectVersion(project.projectVersion())
+                .projectCode(project.projectCode())
+                .projectName(project.projectName())
+                .customerId(project.customerId())
+                .customerCode(project.customerCode())
+                .customerName(project.customerName())
+                .departmentId(project.departmentId())
+                .departmentCode(project.departmentCode())
+                .departmentName(project.departmentName())
+                .projectScopeVersion(requiredVersion(request.expectedProjectScopeVersion(), "expectedProjectScopeVersion"))
+                .build();
         List<CutoverDeviceScopePort.DeviceFact> devices = request.expectedDeviceScopeWatermark().stream()
                 .map(item -> new CutoverDeviceScopePort.DeviceFact(item.deviceId(), item.serialNumber(),
                         request.projectId(), requiredVersion(item.projectAssignmentVersion(),
@@ -116,17 +126,17 @@ public class CutoverTaskController {
     public CommonResult<CutoverTaskViews.Detail> detail(@PathVariable("id") Long id) {
         requireId(id);
         var trusted = requestContext.current();
-        return success(queryService.detail(trusted.tenantId(), trusted.actorId(), id,
-                trusted.canSaveAssessment(), trusted.canSubmitAssessment(), trusted.canSaveChecklist(),
-                trusted.canRequestCollection(), trusted.canSubmitChecklist()));
+        return success(queryService.detail(trusted, id));
     }
 
     @PutMapping("/{id}/assessment")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-assessment')")
-    public CommonResult<CutoverAssessmentCommandResult> saveAssessment(
-            @PathVariable("id") Long id, @RequestHeader("If-Match") String ifMatch,
-            @RequestHeader("Assessment-If-Match") String assessmentIfMatch,
+    public CommonResult<CutoverAssessmentCommandResult> saveAssessment(@PathVariable("id") Long id,
+            @RequestHeader HttpHeaders headers,
             @RequestBody JsonNode body) {
+        String ifMatch = CutoverRequestHeaders.value(headers, "If-Match");
+        String assessmentIfMatch = CutoverRequestHeaders.value(headers, "Assessment-If-Match");
+
         CutoverTaskReqVO.SaveAssessment request = requestCodec.saveAssessment(body);
         requireId(id);
         require(request != null && request.answers() != null, "assessment request");
@@ -141,11 +151,13 @@ public class CutoverTaskController {
 
     @PostMapping("/{id}/assessment/actions/submit")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:submit-assessment')")
-    public CommonResult<CutoverTaskCommandResult> submitAssessment(
-            @PathVariable("id") Long id, @RequestHeader("Idempotency-Key") String idempotencyKey,
-            @RequestHeader("If-Match") String ifMatch,
-            @RequestHeader("Assessment-If-Match") String assessmentIfMatch,
+    public CommonResult<CutoverTaskCommandResult> submitAssessment(@PathVariable("id") Long id,
+            @RequestHeader HttpHeaders headers,
             @RequestBody JsonNode body) {
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+        String ifMatch = CutoverRequestHeaders.value(headers, "If-Match");
+        String assessmentIfMatch = CutoverRequestHeaders.value(headers, "Assessment-If-Match");
+
         requireId(id);
         requestCodec.emptyCommand(body);
         var trusted = requestContext.current();
@@ -158,22 +170,18 @@ public class CutoverTaskController {
     public ResponseEntity<CommonResult<CutoverTaskErrorData>> handleApplication(
             CutoverTaskApplicationException exception) {
         ErrorDescriptor descriptor = errorDescriptor(exception.code());
-        return error(descriptor.httpStatus(), errorCode(exception.code()), exception.getMessage(),
-                descriptor.category(), descriptor.reasonCode(), descriptor.recoveryAction(), descriptor.ownerContext(),
-                exception.currentTaskVersion(), exception.currentAssessmentVersion());
+        return error(descriptor.httpStatus(), errorCode(exception.code()), exception.getMessage(), new CutoverTaskErrorData(descriptor.category(), descriptor.reasonCode(), descriptor.recoveryAction(), descriptor.ownerContext(), exception.currentTaskVersion(), exception.currentAssessmentVersion(), null));
     }
 
     @ExceptionHandler({IllegalArgumentException.class, MissingRequestHeaderException.class,
             MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<CommonResult<CutoverTaskErrorData>> handleValidation(Exception exception) {
-        return error(400, 1_011_005_100, exception.getMessage(),
-                "VALIDATION", "INVALID_REQUEST", "CORRECT_REQUEST", null, null, null);
+        return error(400, 1_011_005_100, exception.getMessage(), new CutoverTaskErrorData("VALIDATION", "INVALID_REQUEST", "CORRECT_REQUEST", null, null, null, null));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<CommonResult<CutoverTaskErrorData>> handlePermission(AccessDeniedException exception) {
-        return error(403, 1_011_005_101, exception.getMessage(),
-                "FUNCTION_PERMISSION", "FUNCTION_PERMISSION_DENIED", "REQUEST_PERMISSION", null, null, null);
+        return error(403, 1_011_005_101, exception.getMessage(), new CutoverTaskErrorData("FUNCTION_PERMISSION", "FUNCTION_PERMISSION_DENIED", "REQUEST_PERMISSION", null, null, null, null));
     }
 
     private static ErrorDescriptor errorDescriptor(CutoverTaskApplicationException.Code code) {
@@ -252,12 +260,9 @@ public class CutoverTaskController {
     }
 
     private static ResponseEntity<CommonResult<CutoverTaskErrorData>> error(
-            int httpStatus, int code, String message, String category, String reasonCode,
-            String recoveryAction, String ownerContext, Long currentTaskVersion,
-            Long currentAssessmentVersion) {
+            int httpStatus, int code, String message, CutoverTaskErrorData data) {
         CommonResult<CutoverTaskErrorData> result = CommonResult.error(code, message);
-        result.setData(new CutoverTaskErrorData(category, reasonCode, recoveryAction,
-                ownerContext, currentTaskVersion, currentAssessmentVersion, null));
+        result.setData(data);
         return ResponseEntity.status(httpStatus).body(result);
     }
 

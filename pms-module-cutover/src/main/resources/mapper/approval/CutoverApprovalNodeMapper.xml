@@ -1,9 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalNodeMapper">
+    <resultMap id="structuredCutoverApprovalNodeDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="approval_instance_id" property="approvalInstanceId"/>
+        <result column="node_no" property="nodeNo"/>
+        <result column="node_code" property="nodeCode"/>
+        <result column="status_code" property="statusCode"/>
+        <result column="original_approver_user_id" property="originalApproverUserId"/>
+        <result column="current_approver_user_id" property="currentApproverUserId"/>
+        <result column="project_scope_version" property="projectScopeVersion"/>
+        <result column="assessment_review_decision_code" property="assessmentReviewDecisionCode"/>
+        <result column="assessment_review_reason" property="assessmentReviewReason"/>
+        <result column="feedback" property="feedback"/>
+        <result column="decide_time" property="decisionAt"/>
+        <result column="pending_marker" property="pendingMarker"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="approval_mode_code" property="approvalModeCode"/>
+        <result column="candidate_role_id" property="candidateRoleId"/>
+        <result column="candidate_role_code" property="candidateRoleCode"/>
+        <result column="candidate_group_key" property="candidateGroupKey"/>
+        <result column="qualification_kind_code" property="qualificationKindCode"/>
+        <result column="qualification_outcome_code" property="qualificationOutcomeCode"/>
+        <result column="qualification_role_code" property="qualificationRoleCode"/>
+        <result column="qualification_project_version" property="qualificationProjectVersion"/>
+        <result column="qualification_participant_fact_version" property="qualificationParticipantFactVersion"/>
+        <result column="qualification_required_action_code" property="qualificationRequiredActionCode"/>
+        <result column="qualification_allowed_flag" property="qualificationAllowedFlag"/>
+        <result column="qualification_check_time" property="qualificationCheckTime"/>
+        <result column="decision_actor_user_id" property="decisionActorUserId"/>
+        <result column="decision_role_id" property="decisionRoleId"/>
+        <result column="decision_membership_version" property="decisionMembershipVersion"/>
+        <result column="decision_user_status_version" property="decisionUserStatusVersion"/>
+        <result column="decision_check_time" property="decisionCheckTime"/>
+    </resultMap>
+
     <select id="selectByInstanceAndNodeForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO">
-        SELECT * FROM cut_approval_node
+            resultMap="structuredCutoverApprovalNodeDO">
+        SELECT id, tenant_id, approval_instance_id, node_no, node_code, status_code, original_approver_user_id, current_approver_user_id, project_scope_version, assessment_review_decision_code, assessment_review_reason, feedback, decide_time, pending_marker, version, creator, create_time, updater, update_time, deleted, approval_mode_code, candidate_role_id, candidate_role_code, candidate_group_key, qualification_kind_code, qualification_outcome_code, qualification_role_code, qualification_project_version, qualification_participant_fact_version, qualification_required_action_code, qualification_allowed_flag, qualification_check_time, decision_actor_user_id, decision_role_id, decision_membership_version, decision_user_status_version, decision_check_time FROM cut_approval_node
         WHERE tenant_id = #{query.tenantId}
           AND approval_instance_id = #{query.approvalInstanceId}
           AND node_no = #{query.nodeNo}
@@ -11,8 +51,8 @@
         FOR UPDATE
     </select>
     <select id="selectTodoPage"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO">
-        SELECT n.*
+            resultMap="structuredCutoverApprovalNodeDO">
+        SELECT n.id, n.tenant_id, n.approval_instance_id, n.node_no, n.node_code, n.status_code, n.original_approver_user_id, n.current_approver_user_id, n.project_scope_version, n.assessment_review_decision_code, n.assessment_review_reason, n.feedback, n.decide_time, n.pending_marker, n.version, n.creator, n.create_time, n.updater, n.update_time, n.deleted, n.approval_mode_code, n.candidate_role_id, n.candidate_role_code, n.candidate_group_key, n.qualification_kind_code, n.qualification_outcome_code, n.qualification_role_code, n.qualification_project_version, n.qualification_participant_fact_version, n.qualification_required_action_code, n.qualification_allowed_flag, n.qualification_check_time, n.decision_actor_user_id, n.decision_role_id, n.decision_membership_version, n.decision_user_status_version, n.decision_check_time
         FROM cut_approval_node n
         JOIN cut_approval_instance i
           ON i.tenant_id = n.tenant_id AND i.id = n.approval_instance_id AND i.deleted = b'0'
@@ -26,8 +66,8 @@
         LIMIT #{query.offset}, #{query.pageSize}
     </select>
     <select id="selectReassignmentPage"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO">
-        SELECT n.*
+            resultMap="structuredCutoverApprovalNodeDO">
+        SELECT n.id, n.tenant_id, n.approval_instance_id, n.node_no, n.node_code, n.status_code, n.original_approver_user_id, n.current_approver_user_id, n.project_scope_version, n.assessment_review_decision_code, n.assessment_review_reason, n.feedback, n.decide_time, n.pending_marker, n.version, n.creator, n.create_time, n.updater, n.update_time, n.deleted, n.approval_mode_code, n.candidate_role_id, n.candidate_role_code, n.candidate_group_key, n.qualification_kind_code, n.qualification_outcome_code, n.qualification_role_code, n.qualification_project_version, n.qualification_participant_fact_version, n.qualification_required_action_code, n.qualification_allowed_flag, n.qualification_check_time, n.decision_actor_user_id, n.decision_role_id, n.decision_membership_version, n.decision_user_status_version, n.decision_check_time
         FROM cut_approval_node n
         JOIN cut_approval_instance i
           ON i.tenant_id = n.tenant_id AND i.id = n.approval_instance_id AND i.deleted = b'0'
@@ -78,19 +118,31 @@
     </select>
     <update id="updateStatusIfMatch">
         UPDATE cut_approval_node
-        SET status_code = #{query.newStatusCode},
-            current_approver_user_id = #{query.currentApproverUserId},
-            candidate_fact_snapshot = #{query.candidateFactSnapshot},
-            project_scope_version = #{query.projectScopeVersion},
-            assessment_review_decision_code = #{query.assessmentReviewDecisionCode},
-            assessment_review_reason = #{query.assessmentReviewReason},
-            feedback = #{query.feedback},
-            decision_at = #{query.decisionAt},
+        SET status_code = #{query.node.statusCode},
+            current_approver_user_id = #{query.node.currentApproverUserId},
+            project_scope_version = #{query.node.projectScopeVersion},
+            assessment_review_decision_code = #{query.node.assessmentReviewDecisionCode},
+            assessment_review_reason = #{query.node.assessmentReviewReason},
+            feedback = #{query.node.feedback},
+            decide_time = #{query.node.decisionAt},
+            qualification_kind_code = #{query.node.qualificationKindCode},
+            qualification_outcome_code = #{query.node.qualificationOutcomeCode},
+            qualification_role_code = #{query.node.qualificationRoleCode},
+            qualification_project_version = #{query.node.qualificationProjectVersion},
+            qualification_participant_fact_version = #{query.node.qualificationParticipantFactVersion},
+            qualification_required_action_code = #{query.node.qualificationRequiredActionCode},
+            qualification_allowed_flag = #{query.node.qualificationAllowedFlag},
+            qualification_check_time = #{query.node.qualificationCheckTime},
+            decision_actor_user_id = #{query.node.decisionActorUserId},
+            decision_role_id = #{query.node.decisionRoleId},
+            decision_membership_version = #{query.node.decisionMembershipVersion},
+            decision_user_status_version = #{query.node.decisionUserStatusVersion},
+            decision_check_time = #{query.node.decisionCheckTime},
             version = #{query.expectedVersion} + 1,
-            updater = #{query.updater},
-            update_time = #{query.updateTime}
-        WHERE tenant_id = #{query.tenantId}
-          AND id = #{query.approvalNodeId}
+            updater = #{query.node.updater},
+            update_time = #{query.node.updateTime}
+        WHERE tenant_id = #{query.node.tenantId}
+          AND id = #{query.node.id}
           AND status_code = #{query.expectedStatusCode}
           AND version = #{query.expectedVersion}
           AND deleted = b'0'

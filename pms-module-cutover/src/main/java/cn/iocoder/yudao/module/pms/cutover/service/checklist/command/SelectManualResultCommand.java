@@ -6,5 +6,5 @@ public record SelectManualResultCommand(Long tenantId, Long actorId, Long taskId
                                         Long expectedTaskVersion, Long checklistId,
                                         Long expectedChecklistVersion, Long expectedProjectScopeVersion,
                                         String stableItemKey, CutoverChecklistFilePort.FileHandle fileHandle,
-                                        String factDescription) {
+                                        String factDescription) implements CutoverChecklistDraftMutation {
 }

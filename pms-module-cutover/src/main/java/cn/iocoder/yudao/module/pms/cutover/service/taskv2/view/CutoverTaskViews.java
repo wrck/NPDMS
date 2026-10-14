@@ -35,7 +35,7 @@ public final class CutoverTaskViews {
                           Long configurationRevisionId, String configurationCode, Integer configurationRevisionNo,
                           Long projectId, String projectName, String departmentCode, String departmentName,
                           Long ownerUserId, String currentStage, String taskStatus, String manualGrade,
-                          LocalDateTime scheduledTime, LocalDateTime generatedAt, Long version) {
+                          LocalDateTime scheduledTime, LocalDateTime generatedAt, Long version, @lombok.With boolean approvalOnly) {
     }
 
     public record TaskCore(Long id, String taskNo, String taskName, String background, String taskOrigin,

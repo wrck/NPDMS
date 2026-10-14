@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -26,9 +27,12 @@ public class CutoverApprovalNotificationDO extends TenantBaseDO {
     private Long messageId;
     private String providerReferenceId;
     private Integer retryCount;
+    @TableField(value = "next_retry_time")
     private LocalDateTime nextRetryAt;
     private String lastErrorCode;
+    @TableField(value = "last_attempt_time")
     private LocalDateTime lastAttemptAt;
+    @TableField(value = "send_time")
     private LocalDateTime sentAt;
     @Version
     private Integer version;

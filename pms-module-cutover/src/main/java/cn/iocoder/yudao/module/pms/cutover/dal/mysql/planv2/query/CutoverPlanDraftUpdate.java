@@ -1,13 +1,5 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query;
 
-import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
 
-public record CutoverPlanDraftUpdate(Long tenantId, Long planRevisionId,
-                                     Long expectedVersion, Long newVersion,
-                                     String editModeCode, String contentSnapshot,
-                                     Long fileArtifactId, Integer fileVersionNo,
-                                     String fileReferenceKey, String fileFactVersion,
-                                     Long fileScopeVersion, String fileSha256,
-                                     Boolean ownershipConfirmed,
-                                     String updater, LocalDateTime updateTime) {
-}
+public record CutoverPlanDraftUpdate(CutoverPlanRevisionDO plan, Long expectedVersion, Long newVersion) {}

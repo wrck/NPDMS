@@ -47,7 +47,7 @@ class CutoverPlanApplicationServiceTest {
 
         assertThat(result.status()).isEqualTo("DRAFT");
         assertThat(fixture.inserted.get().getEditModeCode()).isEqualTo("ONLINE_TEMPLATE_STANDARD");
-        assertThat(JsonUtils.parseObject(fixture.inserted.get().getContentSnapshot(), tools.jackson.databind.JsonNode.class)
+        assertThat(fixture.contents.get(fixture.inserted.get().getId())
                 .path("overview").path("deviceSummary")).hasSize(1);
         assertThat(fixture.inserted.get().getOwnershipConfirmed()).isNull();
         assertThat(fixture.platform.facts).singleElement().satisfies(fact ->
@@ -61,7 +61,7 @@ class CutoverPlanApplicationServiceTest {
         fixture.service.createDraft(command("ONLINE_TEMPLATE_SIMPLE_D", null, null));
 
         assertThat(fixture.inserted.get().getChecklistId()).isNull();
-        assertThat(JsonUtils.parseObject(fixture.inserted.get().getContentSnapshot(), tools.jackson.databind.JsonNode.class)
+        assertThat(fixture.contents.get(fixture.inserted.get().getId())
                 .path("editMode").asText()).isEqualTo("ONLINE_TEMPLATE_SIMPLE_D");
         verifyNoInteractions(fixture.filePort);
     }
@@ -70,21 +70,51 @@ class CutoverPlanApplicationServiceTest {
     void createsUploadDraftWithLockedFileFact() {
         Fixture fixture = fixture("A");
         CutoverPlanFilePort.FileFact file = fileFact();
-        when(fixture.filePort.inspect(1L, 8L, 70L, file.handle())).thenReturn(file);
-        when(fixture.filePort.lockAndRevalidate(1L, 8L, 70L, file.handle())).thenReturn(file);
+        when(fixture.filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build())).thenReturn(file);
+        when(fixture.filePort.lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build())).thenReturn(file);
 
         fixture.service.createDraft(command("FULL_FILE_UPLOAD", file, true));
 
         assertThat(fixture.inserted.get().getContentSnapshot()).isNull();
         assertThat(fixture.inserted.get().getFileArtifactId()).isEqualTo(901L);
         assertThat(fixture.inserted.get().getOwnershipConfirmed()).isTrue();
-        verify(fixture.filePort).inspect(1L, 8L, 70L, file.handle());
-        verify(fixture.filePort).lockAndRevalidate(1L, 8L, 70L, file.handle());
+        verify(fixture.filePort).inspect(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build());
+        verify(fixture.filePort).lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build());
         InOrder order = inOrder(fixture.projectPort, fixture.sourcePort, fixture.filePort,
                 fixture.taskMapper, fixture.planMapper);
-        order.verify(fixture.projectPort).lockAndRevalidate(8L, 70L, "ACTION_EDIT", 30L);
+        order.verify(fixture.projectPort).lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(70L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(30L)
+                .build());
         order.verify(fixture.sourcePort).lockAndRevalidate(eq(1L), eq(8L), any());
-        order.verify(fixture.filePort).lockAndRevalidate(1L, 8L, 70L, file.handle());
+        order.verify(fixture.filePort).lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build());
         order.verify(fixture.taskMapper).selectForUpdate(any());
         order.verify(fixture.planMapper).selectCurrentForUpdate(any());
     }
@@ -123,8 +153,18 @@ class CutoverPlanApplicationServiceTest {
     void saveUploadLocksFileBeforeTaskAndPlanRows() {
         Fixture fixture = fixture("A");
         CutoverPlanFilePort.FileFact file = fileFact();
-        when(fixture.filePort.inspect(1L, 8L, 70L, file.handle())).thenReturn(file);
-        when(fixture.filePort.lockAndRevalidate(1L, 8L, 70L, file.handle())).thenReturn(file);
+        when(fixture.filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build())).thenReturn(file);
+        when(fixture.filePort.lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build())).thenReturn(file);
         fixture.service.createDraft(command("FULL_FILE_UPLOAD", file, true));
         CutoverPlanRevisionDO plan = fixture.inserted.get();
         clearInvocations(fixture.projectPort, fixture.sourcePort, fixture.filePort,
@@ -138,9 +178,19 @@ class CutoverPlanApplicationServiceTest {
 
         InOrder order = inOrder(fixture.projectPort, fixture.sourcePort, fixture.filePort,
                 fixture.taskMapper, fixture.planMapper);
-        order.verify(fixture.projectPort).lockAndRevalidate(8L, 70L, "ACTION_EDIT", 30L);
+        order.verify(fixture.projectPort).lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(70L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(30L)
+                .build());
         order.verify(fixture.sourcePort).lockAndRevalidate(eq(1L), eq(8L), any());
-        order.verify(fixture.filePort).lockAndRevalidate(1L, 8L, 70L, file.handle());
+        order.verify(fixture.filePort).lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .projectId(70L)
+                .handle(file.handle())
+                .build());
         order.verify(fixture.taskMapper).selectForUpdate(any());
         order.verify(fixture.planMapper).selectCurrentForUpdate(any());
     }
@@ -201,7 +251,12 @@ class CutoverPlanApplicationServiceTest {
         when(taskMapper.selectById(50L)).thenReturn(task);
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
         when(project.inspect(8L, 70L, "ACTION_EDIT")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
-        when(project.lockAndRevalidate(8L, 70L, "ACTION_EDIT", 30L))
+        when(project.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
+                .actorId(8L)
+                .projectId(70L)
+                .action("ACTION_EDIT")
+                .expectedProjectScopeVersion(30L)
+                .build()))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
         CutoverPlanSourcePort.SourceFacts facts = facts(grade);
         CutoverPlanSourcePort source = mock(CutoverPlanSourcePort.class);
@@ -216,8 +271,19 @@ class CutoverPlanApplicationServiceTest {
         CutoverPlanApplicationService service = new CutoverPlanApplicationService(taskMapper, planMapper, stepMapper,
                 supportMapper, project, source, file, new CutoverPlanContentCodec(), platform,
                 Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC));
+        var storage = mock(CutoverPlanStorage.class);
+        Map<Long, tools.jackson.databind.node.ObjectNode> contents = new HashMap<>();
+        Map<Long, CutoverPlanSourcePort.SourceSnapshot> sources = new HashMap<>();
+        doAnswer(invocation -> {
+            CutoverPlanStorage.Write write = invocation.getArgument(0);
+            contents.put(write.plan().getId(), write.content() == null ? null : (tools.jackson.databind.node.ObjectNode) write.content().deepCopy());
+            sources.put(write.plan().getId(), write.source()); return null;
+        }).when(storage).replaceDraft(any());
+        when(storage.content(any())).thenAnswer(invocation -> contents.get(((CutoverPlanRevisionDO) invocation.getArgument(0)).getId()));
+        when(storage.source(any())).thenAnswer(invocation -> sources.get(((CutoverPlanRevisionDO) invocation.getArgument(0)).getId()));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
         return new Fixture(service, file, source, project, taskMapper, inserted, platform,
-                planMapper, stepMapper, supportMapper);
+                planMapper, stepMapper, supportMapper, contents);
     }
 
     private static CutoverTaskDO task() {
@@ -243,8 +309,14 @@ class CutoverPlanApplicationServiceTest {
     }
 
     private static CutoverPlanFilePort.FileFact fileFact() {
-        return new CutoverPlanFilePort.FileFact(901L, 2, "cut-plan.pdf",
-                new CutoverPlanFilePort.FileFactVersion(3, 4, 5), 6L, "a".repeat(64));
+        return CutoverPlanFilePort.FileFact.builder()
+                .artifactId(901L)
+                .versionNo(2)
+                .referenceKey("cut-plan.pdf")
+                .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(3, 4, 5))
+                .scopeVersion(6L)
+                .sha256("a".repeat(64))
+                .build();
     }
 
     private static CreateCutoverPlanDraftCommand command(String mode, CutoverPlanFilePort.FileFact file, Boolean ownership) {
@@ -304,16 +376,17 @@ class CutoverPlanApplicationServiceTest {
         final AtomicReference<CutoverPlanRevisionDO> inserted; final DirectPlatform platform;
         final CutoverPlanRevisionMapper planMapper; final CutoverPlanStepMapper stepMapper;
         final CutoverSupportArrangementMapper supportMapper;
+        final Map<Long, tools.jackson.databind.node.ObjectNode> contents;
         Fixture(CutoverPlanApplicationService service, CutoverPlanFilePort filePort,
                 CutoverPlanSourcePort sourcePort, CutoverProjectScopePort projectPort,
                 CutoverTaskMapper taskMapper,
                 AtomicReference<CutoverPlanRevisionDO> inserted, DirectPlatform platform,
                 CutoverPlanRevisionMapper planMapper, CutoverPlanStepMapper stepMapper,
-                CutoverSupportArrangementMapper supportMapper) {
+                CutoverSupportArrangementMapper supportMapper, Map<Long, tools.jackson.databind.node.ObjectNode> contents) {
             this.service = service; this.filePort = filePort; this.sourcePort = sourcePort;
             this.projectPort = projectPort; this.taskMapper = taskMapper;
             this.inserted = inserted; this.platform = platform;
-            this.planMapper = planMapper; this.stepMapper = stepMapper; this.supportMapper = supportMapper;
+            this.planMapper = planMapper; this.stepMapper = stepMapper; this.supportMapper = supportMapper; this.contents = contents;
         }
     }
 

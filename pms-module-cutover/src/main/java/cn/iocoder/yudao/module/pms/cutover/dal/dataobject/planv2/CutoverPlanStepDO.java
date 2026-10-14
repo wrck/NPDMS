@@ -17,4 +17,16 @@ public class CutoverPlanStepDO extends TenantBaseDO {
     private Integer stepNo;
     private String content;
     @Version private Integer version;
+
+
+    /** 填写值：步骤名称 */
+    private String stepName;
+    /** 填写值：测试结果 */
+    private String testResult;
+    /** 填写值：业务影响时间说明 */
+    private String businessImpactTime;
+    /** 填写值：操作人员说明 */
+    private String operatorName;
+    /** 填写值：操作时间说明，保持自由文本 */
+    private String operationTime;
 }

@@ -1,50 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.CutoverConfigurationRevisionMapper">
+    <resultMap id="structuredRevision" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO" autoMapping="false">
+        <result column="id" property="id"/>
+        <result column="configuration_code" property="configurationCode"/>
+        <result column="configuration_name" property="configurationName"/>
+        <result column="revision_no" property="revisionNo"/>
+        <result column="status_code" property="statusCode"/>
+        <result column="effective_start_time" property="effectiveFrom"/>
+        <result column="effective_end_time" property="effectiveTo"/>
+        <result column="change_summary" property="changeSummary"/>
+        <result column="publish_user_id" property="publishedBy"/>
+        <result column="publish_time" property="publishedAt"/>
+        <result column="disable_user_id" property="disabledBy"/>
+        <result column="disable_time" property="disabledAt"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="navigation_target_code" property="navigationTargetCode"/>
+        <result column="validation_valid_flag" property="validationValidFlag"/>
+        <result column="current_validation_no" property="currentValidationNo"/>
+        <result column="validate_time" property="validateTime"/>
+        <result column="validate_user_id" property="validateUserId"/>
+    </resultMap>
+    <sql id="revisionColumns">
+        `id`, `configuration_code`, `configuration_name`, `revision_no`, `status_code`, `effective_start_time`, `effective_end_time`, `change_summary`, `publish_user_id`, `publish_time`, `disable_user_id`, `disable_time`, `version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `tenant_id`, `navigation_target_code`, `validation_valid_flag`, `current_validation_no`, `validate_time`, `validate_user_id`
+    </sql>
+    <select id="selectForUpdate" resultMap="structuredRevision">
+        SELECT <include refid="revisionColumns"/> FROM cut_cutover_configuration_revision
+        WHERE id = #{query.configurationRevisionId} AND tenant_id = #{query.tenantId} AND deleted = 0 FOR UPDATE
+    </select>
+    <update id="updateDraftIfMatch">
+        UPDATE cut_cutover_configuration_revision
+        SET configuration_name = #{row.configurationName}, change_summary = #{row.changeSummary},
+            navigation_target_code = #{row.navigationTargetCode}, version = version + 1,
+            updater = #{row.updater}, update_time = NOW(3)
+        WHERE id = #{row.id} AND tenant_id = #{row.tenantId} AND version = #{row.version}
+          AND status_code = 'DRAFT' AND deleted = 0
+    </update>
+
     <select id="selectLatestByCode"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
-        SELECT *
+            resultMap="structuredRevision">
+        SELECT <include refid="revisionColumns"/>
         FROM cut_cutover_configuration_revision
-        WHERE configuration_code = #{configurationCode}
+        WHERE configuration_code = #{query.configurationCode}
           AND deleted = b'0'
-        <if test="statusCode != null and statusCode != ''">
-          AND status_code = #{statusCode}
+        <if test="query.statusCode != null and query.statusCode != ''">
+          AND status_code = #{query.statusCode}
         </if>
         ORDER BY revision_no DESC
         LIMIT 1
     </select>
 
     <select id="selectFrozen"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
-        SELECT *
+            resultMap="structuredRevision">
+        SELECT <include refid="revisionColumns"/>
         FROM cut_cutover_configuration_revision
-        WHERE tenant_id = #{tenantId}
-          AND id = #{configurationRevisionId}
-          AND configuration_code = #{configurationCode}
-          AND revision_no = #{configurationRevisionNo}
+        WHERE tenant_id = #{query.tenantId}
+          AND id = #{query.configurationRevisionId}
+          AND configuration_code = #{query.configurationCode}
+          AND revision_no = #{query.configurationRevisionNo}
           AND deleted = b'0'
     </select>
 
     <select id="selectEffectivePublished"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
-        SELECT *
+            resultMap="structuredRevision">
+        SELECT <include refid="revisionColumns"/>
         FROM cut_cutover_configuration_revision
-        WHERE tenant_id = #{tenantId}
-          AND configuration_code = #{configurationCode}
+        WHERE tenant_id = #{query.tenantId}
+          AND configuration_code = #{query.configurationCode}
           AND status_code = 'PUBLISHED'
-          AND effective_from &lt;= #{taskCreatedAt}
-          AND (effective_to IS NULL OR effective_to &gt; #{taskCreatedAt})
+          AND effective_start_time &lt;= #{query.taskCreatedAt}
+          AND (effective_end_time IS NULL OR effective_end_time &gt; #{query.taskCreatedAt})
           AND deleted = b'0'
     </select>
 
     <select id="selectEffectivePublishedList"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration.CutoverConfigurationRevisionDO">
-        SELECT *
+            resultMap="structuredRevision">
+        SELECT <include refid="revisionColumns"/>
         FROM cut_cutover_configuration_revision
-        WHERE tenant_id = #{tenantId}
+        WHERE tenant_id = #{query.tenantId}
           AND status_code = 'PUBLISHED'
-          AND effective_from &lt;= #{effectiveAt}
-          AND (effective_to IS NULL OR effective_to &gt; #{effectiveAt})
+          AND effective_start_time &lt;= #{query.effectiveAt}
+          AND (effective_end_time IS NULL OR effective_end_time &gt; #{query.effectiveAt})
           AND deleted = b'0'
         ORDER BY configuration_code ASC, revision_no DESC, id DESC
     </select>

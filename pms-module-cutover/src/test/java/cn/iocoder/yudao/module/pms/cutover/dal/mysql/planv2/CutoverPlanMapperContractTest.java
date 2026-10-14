@@ -53,9 +53,7 @@ class CutoverPlanMapperContractTest {
                 new CutoverPlanReplacementUpdate(1L, 3L, 0L, 1L, "9",
                         LocalDateTime.parse("2026-09-01T09:00:00")));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "replaceDraftIfMatch",
-                new CutoverPlanDraftUpdate(1L, 3L, 0L, 1L, "ONLINE_TEMPLATE_STANDARD", "{}",
-                        null, null, null, null, null, null, null, "9",
-                        LocalDateTime.parse("2026-09-01T09:00:00")));
+                new CutoverPlanDraftUpdate(draftPlan(), 0L, 1L));
         assertBindings(configuration, CutoverPlanRevisionMapper.class, "submitDraftIfMatch",
                 new CutoverPlanSubmitUpdate(1L, 3L, 0L, 1L, 9L,
                         LocalDateTime.parse("2026-09-01T09:00:00"), 10L, 0L));
@@ -75,8 +73,20 @@ class CutoverPlanMapperContractTest {
         assertBindings(configuration, CutoverSupportArrangementMapper.class, "deleteDraftRows",
                 new CutoverPlanChildrenQuery(1L, 3L));
         assertBindings(configuration, CutoverSupportArrangementMapper.class, "updateApprovedContactIfMatch",
-                new CutoverSupportContactUpdate(1L, 4L, 3L, 0, "name", "phone",
-                        LocalDateTime.parse("2026-09-01T10:00:00"), "9", LocalDateTime.parse("2026-09-01T09:00:00")));
+                new CutoverSupportContactUpdate(draftPlan(),
+                        supportBaseline(),
+                        cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverPlanSupportContactChangeDO.builder().id(5L).operateUserId(9L).operateTime(LocalDateTime.parse("2026-09-01T09:00:00")).build(), 0L));
+    }
+
+    private static cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO supportBaseline() {
+        var row = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO();
+        row.setId(4L); row.setTenantId(1L); row.setPlanRevisionId(3L); row.setVersion(0); return row;
+    }
+
+    private static cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO draftPlan() {
+        var plan = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO();
+        plan.setId(3L); plan.setTenantId(1L); plan.setEditModeCode("ONLINE_TEMPLATE_STANDARD");
+        plan.setUpdater("9"); plan.setUpdateTime(LocalDateTime.parse("2026-09-01T09:00:00")); return plan;
     }
 
     @Test

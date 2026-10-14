@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.context.CutoverTaskContext;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.CutoverTaskReqVO;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskApplicationException;
@@ -45,20 +46,31 @@ class CutoverTaskControllerContractTest {
         CutoverTaskApplicationService applicationService = mock(CutoverTaskApplicationService.class);
         CutoverTaskQueryService queryService = mock(CutoverTaskQueryService.class);
         CutoverTaskRequestCodec requestCodec = mock(CutoverTaskRequestCodec.class);
-        CutoverTaskRequestContext context = () -> new CutoverTaskRequestContext.TrustedContext(
+        CutoverTaskRequestContext context = () -> new CutoverTaskContext(
                 9L, 12L, "corr-1", true, true, true, true, true);
         CutoverTaskController controller = new CutoverTaskController(
                 applicationService, queryService, context, requestCodec);
         LocalDateTime now = LocalDateTime.of(2026, 9, 1, 1, 30);
-        var project = new CutoverProjectContextPort.ProjectContextFact(
-                9L, 31L, 3, "P-001", "核心网扩容", 41L, "CUS-01", "示例客户",
-                51L, "OFF-01", "华东办事处", 7L);
+        var project = CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(9L)
+                .projectId(31L)
+                .projectVersion(3)
+                .projectCode("P-001")
+                .projectName("核心网扩容")
+                .customerId(41L)
+                .customerCode("CUS-01")
+                .customerName("示例客户")
+                .departmentId(51L)
+                .departmentCode("OFF-01")
+                .departmentName("华东办事处")
+                .projectScopeVersion(7L)
+                .build();
         var device = new CutoverDeviceScopePort.DeviceFact(61L, "SN-001", 31L, 8L);
         var customer = new CutoverCustomerLevelPort.CustomerLevelFact(
                 "AVAILABLE", 41L, "CUS-01", "示例客户", 71L, "GOLD", 9L, now.minusDays(1), null);
         var readiness = new CutoverReadinessPort.ReadinessFact(
                 81L, 10L, "READY", 31L, List.of(61L), "wm-1", List.of());
-        when(queryService.resolveCreateContext(9L, 12L, List.of("SN-001"))).thenReturn(
+        when(queryService.resolveCreateContext(context.current(), List.of("SN-001"))).thenReturn(
                 new CutoverTaskViews.CreateContextData(
                         List.of(new CutoverTaskViews.CreateContextCandidate(
                                 project, List.of(device), customer, readiness, true)), false,

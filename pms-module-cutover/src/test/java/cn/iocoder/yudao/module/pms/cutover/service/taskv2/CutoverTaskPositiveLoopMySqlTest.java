@@ -199,9 +199,20 @@ class CutoverTaskPositiveLoopMySqlTest {
     }
 
     private static CutoverProjectContextPort.ProjectContextFact projectFact(long tenantId) {
-        return new CutoverProjectContextPort.ProjectContextFact(tenantId, PROJECT_ID, 3,
-                "PROJ-100", "核心网割接项目", 200L, "CUS-200", "示例客户",
-                300L, "OFFICE-300", "一号办事处", 7L);
+        return CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(tenantId)
+                .projectId(PROJECT_ID)
+                .projectVersion(3)
+                .projectCode("PROJ-100")
+                .projectName("核心网割接项目")
+                .customerId(200L)
+                .customerCode("CUS-200")
+                .customerName("示例客户")
+                .departmentId(300L)
+                .departmentCode("OFFICE-300")
+                .departmentName("一号办事处")
+                .projectScopeVersion(7L)
+                .build();
     }
 
     private static CutoverDeviceScopePort.DeviceFact deviceFact() {
@@ -242,8 +253,12 @@ class CutoverTaskPositiveLoopMySqlTest {
                 @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) {
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
-                @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action,
-                                                                     long expectedProjectScopeVersion) {
+                @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expectedProjectScopeVersion = query.expectedProjectScopeVersion();
+
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
                 @Override public Set<Long> resolveAllCurrent(Long actorId, String action) {
@@ -253,8 +268,8 @@ class CutoverTaskPositiveLoopMySqlTest {
         }
         @Bean CutoverProjectContextPort projectContextPort() {
             return new CutoverProjectContextPort() {
-                @Override public ProjectContextFact inspect(Long tenantId, Long projectId,
-                                                             long expectedProjectScopeVersion) {
+                @Override public ProjectContextFact inspect(CutoverProjectContextPort.Inspection query) {
+                    Long tenantId = query.tenantId();
                     return projectFact(tenantId);
                 }
                 @Override public ProjectContextFact lockAndRevalidate(ProjectContextFact expected) {
@@ -287,6 +302,18 @@ class CutoverTaskPositiveLoopMySqlTest {
             return new CutoverReadinessPort() {
                 @Override public ReadinessFact inspect(Long projectId, List<Long> deviceIds) { return readinessFact(); }
                 @Override public ReadinessFact lockAndRevalidate(ReadinessFact expected) { return expected; }
+                @Override public ReadinessFact readSnapshot(SnapshotReference reference) {
+                    ReadinessFact frozen = readinessFact();
+                    Long tenant = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+                    if (reference == null || !java.util.Objects.equals(reference.tenantId(), tenant)
+                            || !java.util.Objects.equals(reference.projectId(), frozen.projectId())
+                            || !java.util.Objects.equals(reference.snapshotId(), frozen.snapshotId())
+                            || !java.util.Objects.equals(reference.snapshotVersion(), frozen.snapshotVersion())
+                            || !java.util.Objects.equals(reference.deviceIds(), frozen.deviceIds())) {
+                        throw new IllegalArgumentException("Readiness reference does not identify this fixture snapshot");
+                    }
+                    return frozen;
+                }
             };
         }
         @Bean CutoverTaskApplicationService service(CutoverTaskMapper taskMapper,

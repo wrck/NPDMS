@@ -56,11 +56,11 @@ class CutoverClosureMapperContractTest {
                 .contains("tenant_id = #{query.tenantId}", "deleted = b'0'", "FOR UPDATE", "version = #{query.expectedVersion}")
                 .doesNotContain("${");
         assertThat(read("closure/CutoverClosureAttachmentMapper.xml"))
-                .contains("ORDER BY purpose_code, reference_key, id", "FOR UPDATE",
+                .contains("ORDER BY purpose_code, file_reference_key, id", "FOR UPDATE",
                         "purpose_code &lt;&gt; 'MANUAL_COLLECTION_RESULT'")
                 .doesNotContain("${");
         assertThat(read("closure/CutoverCollectionEvidenceMapper.xml"))
-                .contains("ORDER BY occurred_at, id", "FOR UPDATE", "NOT EXISTS")
+                .contains("ORDER BY occur_time, id", "FOR UPDATE", "NOT EXISTS")
                 .doesNotContain("${");
         assertThat(read("taskv2/CutoverTaskDeviceScopeMapper.xml"))
                 .contains("ORDER BY device_id ASC", "active_marker = NULL")

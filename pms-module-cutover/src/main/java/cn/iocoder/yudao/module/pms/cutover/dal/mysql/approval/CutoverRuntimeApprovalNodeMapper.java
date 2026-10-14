@@ -1,0 +1,52 @@
+package cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval;
+
+import cn.iocoder.yudao.framework.mybatis.core.mapper.BaseMapperX;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeLockQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeStatusUpdate;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalReassignmentPageQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalTodoPageQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.ApprovalTodoPageRow;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.projection.ApprovalReassignmentPageRow;
+import org.apache.ibatis.annotations.Mapper;
+import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverApprovalNodesQuery;
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.CutoverApprovalPlanQuery;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
+
+@Mapper
+public interface CutoverRuntimeApprovalNodeMapper extends BaseMapperX<CutoverApprovalNodeDO> {
+    CutoverApprovalNodeDO selectByInstanceAndNodeForUpdate(@Param("query") ApprovalNodeLockQuery query);
+    List<CutoverApprovalNodeDO> selectTodoPage(@Param("query") ApprovalTodoPageQuery query);
+    List<CutoverApprovalNodeDO> selectReassignmentPage(@Param("query") ApprovalReassignmentPageQuery query);
+    List<ApprovalTodoPageRow> selectTodoProjectionPage(@Param("query") ApprovalTodoPageQuery query);
+    long countTodos(@Param("query") ApprovalTodoPageQuery query);
+    List<ApprovalReassignmentPageRow> selectReassignmentProjectionPage(@Param("query") ApprovalReassignmentPageQuery query);
+    long countReassignmentCandidates(@Param("query") ApprovalReassignmentPageQuery query);
+    int updateStatusIfMatch(@Param("query") ApprovalNodeStatusUpdate query);
+
+    default List<CutoverApprovalNodeDO> all(CutoverApprovalNodesQuery query) {
+        return selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
+                .eq(CutoverApprovalNodeDO::getTenantId, query.tenantId())
+                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, query.approvalInstanceId())
+                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+    }
+    default List<CutoverApprovalNodeDO> open(CutoverApprovalNodesQuery query) {
+        return selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
+                .eq(CutoverApprovalNodeDO::getTenantId, query.tenantId())
+                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, query.approvalInstanceId())
+                .in(CutoverApprovalNodeDO::getStatusCode, List.of("WAITING", "PENDING"))
+                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+    }
+    default List<CutoverApprovalNodeDO> waitingAfter(FutureNodesQuery query) {
+        return selectList(new LambdaQueryWrapperX<CutoverApprovalNodeDO>()
+                .eq(CutoverApprovalNodeDO::getTenantId, query.tenantId())
+                .eq(CutoverApprovalNodeDO::getApprovalInstanceId, query.approvalInstanceId())
+                .gt(CutoverApprovalNodeDO::getNodeNo, query.afterNodeNo())
+                .eq(CutoverApprovalNodeDO::getStatusCode, "WAITING")
+                .orderByAsc(CutoverApprovalNodeDO::getNodeNo));
+    }
+    record FutureNodesQuery(Long tenantId, Long approvalInstanceId, Integer afterNodeNo) { }
+}

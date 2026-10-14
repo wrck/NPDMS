@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
@@ -45,7 +46,12 @@ class CutoverApprovalReassignmentTest {
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
         when(nodes.selectList(any())).thenAnswer(ignored -> List.of(node));
         var scope = new CutoverApprovalProjectScopePort.ProjectScopeFact(1L, 20L, 44L, "ACTION_EDIT", true, 8L);
-        when(scopes.inspect(1L, 20L, 44L, "ACTION_EDIT")).thenReturn(scope);
+        when(scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(44L)
+                .requiredAction("ACTION_EDIT")
+                .build())).thenReturn(scope);
         when(scopes.lockAndRevalidate(scope)).thenReturn(new CutoverApprovalProjectScopePort.ProjectScopeRevalidation(
                 CutoverApprovalProjectScopePort.Revalidation.VALID, scope));
         when(platform.execute(any(), any(), any(), any(), any())).thenAnswer(invocation -> {

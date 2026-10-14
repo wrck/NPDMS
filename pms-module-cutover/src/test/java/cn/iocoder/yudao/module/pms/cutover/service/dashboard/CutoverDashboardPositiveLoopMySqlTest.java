@@ -201,8 +201,12 @@ class CutoverDashboardPositiveLoopMySqlTest {
                 @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) {
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
-                @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action,
-                                                                     long expectedProjectScopeVersion) {
+                @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expectedProjectScopeVersion = query.expectedProjectScopeVersion();
+
                     return new ProjectScopeFact(projectId, 7L, true);
                 }
                 @Override public Set<Long> resolveAllCurrent(Long actorId, String action) {

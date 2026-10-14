@@ -179,9 +179,7 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                 tenantId, ACTOR_ID, created.taskId(), assessment.taskVersion(), assessment.assessmentRowVersion(),
                 "assessment-submit", "corr-assessment-submit"));
 
-        ChecklistCommandResult generated = checklistService.generate(new GenerateChecklistCommand(
-                tenantId, ACTOR_ID, created.taskId(), p3.version(), assessment.assessmentVersion(),
-                PROJECT_SCOPE_VERSION, Map.of(), "checklist-generate", "corr-checklist-generate"));
+        ChecklistCommandResult generated = checklistService.generate(new GenerateChecklistCommand(tenantId, ACTOR_ID, created.taskId(), p3.version(), assessment.assessmentVersion(), PROJECT_SCOPE_VERSION, List.of(), Map.of(), "checklist-generate", "corr-checklist-generate"));
         ChecklistCommandResult savedChecklist = checklistService.save(new SaveChecklistCommand(
                 tenantId, ACTOR_ID, created.taskId(), p3.version(), generated.checklistId(),
                 generated.checklistFactVersion(), PROJECT_SCOPE_VERSION,
@@ -392,9 +390,20 @@ class CutoverFullFlowPositiveLoopMySqlTest {
     }
 
     private static CutoverProjectContextPort.ProjectContextFact projectFact(long tenantId) {
-        return new CutoverProjectContextPort.ProjectContextFact(tenantId, PROJECT_ID, 6,
-                "PRJ-1", "核心网割接项目", 99L, "CUS-1", "客户",
-                88L, "OFF-1", "交付部", PROJECT_SCOPE_VERSION);
+        return CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(tenantId)
+                .projectId(PROJECT_ID)
+                .projectVersion(6)
+                .projectCode("PRJ-1")
+                .projectName("核心网割接项目")
+                .customerId(99L)
+                .customerCode("CUS-1")
+                .customerName("客户")
+                .departmentId(88L)
+                .departmentCode("OFF-1")
+                .departmentName("交付部")
+                .projectScopeVersion(PROJECT_SCOPE_VERSION)
+                .build();
     }
 
     private static CutoverDeviceScopePort.DeviceFact deviceFact() {
@@ -421,20 +430,23 @@ class CutoverFullFlowPositiveLoopMySqlTest {
 
     @SpringBootConfiguration
     @EnableTransactionManagement(proxyTargetClass = true)
-    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration",
+    @MapperScan({"cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage", "cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration",
             "cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure"})
     @Import({YudaoDataSourceAutoConfiguration.class, DataSourceAutoConfiguration.class,
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             JacksonAutoConfiguration.class, YudaoJacksonAutoConfiguration.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationMetadataStore.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore.class,
+            cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverExternalMappingStore.class,
             PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class})
     static class TestApplication extends CutoverApprovalPositiveLoopMySqlTest.TestApplication {
 
         @Bean CutoverProjectContextPort projectContextPort() {
             return new CutoverProjectContextPort() {
-                @Override public ProjectContextFact inspect(Long tenantId, Long projectId,
-                                                             long expectedProjectScopeVersion) {
+                @Override public ProjectContextFact inspect(CutoverProjectContextPort.Inspection query) {
+                    Long tenantId = query.tenantId();
                     return projectFact(tenantId);
                 }
                 @Override public ProjectContextFact lockAndRevalidate(ProjectContextFact expected) {
@@ -474,6 +486,18 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                     return readinessFact();
                 }
                 @Override public ReadinessFact lockAndRevalidate(ReadinessFact expected) { return expected; }
+                @Override public ReadinessFact readSnapshot(SnapshotReference reference) {
+                    ReadinessFact frozen = readinessFact();
+                    Long tenant = cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId();
+                    if (reference == null || !java.util.Objects.equals(reference.tenantId(), tenant)
+                            || !java.util.Objects.equals(reference.projectId(), frozen.projectId())
+                            || !java.util.Objects.equals(reference.snapshotId(), frozen.snapshotId())
+                            || !java.util.Objects.equals(reference.snapshotVersion(), frozen.snapshotVersion())
+                            || !java.util.Objects.equals(reference.deviceIds(), frozen.deviceIds())) {
+                        throw new IllegalArgumentException("Readiness reference does not identify this fixture snapshot");
+                    }
+                    return frozen;
+                }
             };
         }
 
@@ -491,8 +515,10 @@ class CutoverFullFlowPositiveLoopMySqlTest {
         @Bean CutoverChecklistConfigurationQueryService checklistConfiguration(
                 CutoverConfigurationRevisionMapper revisions,
                 CutoverChecklistItemDefinitionRevisionMapper definitions,
-                CutoverChecklistBindingRuleRevisionMapper rules) {
-            return new CutoverChecklistConfigurationQueryService(revisions, definitions, rules);
+                CutoverChecklistBindingRuleRevisionMapper rules,
+                cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverConfigurationMetadataStore metadata,
+                cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore fields) {
+            return new CutoverChecklistConfigurationQueryService(revisions, definitions, rules, metadata, fields);
         }
 
         @Bean CutoverNavigationDecisionQueryService checklistNavigation(
@@ -502,9 +528,17 @@ class CutoverFullFlowPositiveLoopMySqlTest {
         }
 
         @Bean CutoverChecklistFilePort checklistFilePort() {
-            return (tenantId, actorId, projectId, checklistItemId, expectedScopeVersion, handle) ->
-                    new CutoverChecklistFilePort.FileFact(handle.artifactId(), handle.versionNo(),
-                            handle.referenceKey(), handle.fileFactVersion(), handle.scopeVersion(), "a".repeat(64));
+            return query -> {
+                var handle = query.handle();
+                return CutoverChecklistFilePort.FileFact.builder()
+                        .artifactId(handle.artifactId())
+                        .versionNo(handle.versionNo())
+                        .referenceKey(handle.referenceKey())
+                        .fileFactVersion(handle.fileFactVersion())
+                        .scopeVersion(handle.scopeVersion())
+                        .sha256("a".repeat(64))
+                        .build();
+            };
         }
 
         @Bean CutoverCollectionPort checklistCollectionPort() {
@@ -535,8 +569,14 @@ class CutoverFullFlowPositiveLoopMySqlTest {
                     return closureFact(expectation);
                 }
                 private FileFact closureFact(FileExpectation value) {
-                    return new FileFact(value.artifactId(), value.versionNo(), value.referenceKey(),
-                            value.fileFactVersion(), value.scopeVersion(), value.sha256());
+                    return FileFact.builder()
+                            .artifactId(value.artifactId())
+                            .versionNo(value.versionNo())
+                            .referenceKey(value.referenceKey())
+                            .fileFactVersion(value.fileFactVersion())
+                            .scopeVersion(value.scopeVersion())
+                            .sha256(value.sha256())
+                            .build();
                 }
             };
         }

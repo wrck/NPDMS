@@ -9,15 +9,39 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.domain.Cutove
 
 public interface CutoverApprovalRoleCandidatePort {
 
-    CandidateSet inspectCandidates(long tenantId, String roleGroupCode);
+    CandidateSet inspectCandidates(RoleQuery query);
 
     CandidateRevalidation lockAndRevalidate(CandidateSet expected);
 
-    ExplicitCandidate lockExplicitCandidate(long tenantId, String roleGroupCode, long subjectUserId);
+    RoleReference inspectRole(RoleQuery query);
+
+    List<ActorMembership> inspectActor(ActorQuery query);
+
+    List<ActorMembership> lockAndInspectActor(ActorQuery query);
+
+    record RoleQuery(long tenantId, String roleGroupCode) { }
+    record ActorQuery(long tenantId, long actorId) { }
+
+    record RoleReference(long tenantId, long roleId, String roleGroupCode) {
+        public RoleReference {
+            require(tenantId > 0 && roleId > 0 && (ROLE_GROUP_CODES.contains(roleGroupCode)
+                    || cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalRules
+                            .ROLE_GROUP_CODES.contains(roleGroupCode)), "roleReference");
+        }
+        public String candidateGroupKey() { return "ROLE:" + roleId; }
+    }
+
+    record ActorMembership(RoleReference role, Candidate candidate) {
+        public ActorMembership {
+            require(role != null && candidate != null && role.roleId() == candidate.roleGroupId(), "actorMembership");
+        }
+    }
 
     record CandidateSet(long tenantId, String roleGroupCode, List<Candidate> candidates) {
         public CandidateSet {
-            require(tenantId > 0 && ROLE_GROUP_CODES.contains(roleGroupCode) && candidates != null,
+            require(tenantId > 0 && (ROLE_GROUP_CODES.contains(roleGroupCode)
+                            || cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverRuntimeApprovalRules
+                                    .ROLE_GROUP_CODES.contains(roleGroupCode)) && candidates != null,
                     "candidateSet");
             candidates = candidates.stream().sorted(Comparator.comparingLong(Candidate::adminUserId)).toList();
             require(new HashSet<>(candidates.stream().map(Candidate::adminUserId).toList()).size()

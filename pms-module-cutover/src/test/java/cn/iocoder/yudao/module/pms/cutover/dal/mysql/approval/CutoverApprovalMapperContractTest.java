@@ -29,6 +29,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CutoverApprovalMapperContractTest {
     private static final LocalDateTime NOW = LocalDateTime.parse("2026-09-01T10:00:00");
 
+    private static cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO decidedNode() {
+        var node = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO();
+        node.setTenantId(1L); node.setId(5L); node.setStatusCode("APPROVED"); node.setCurrentApproverUserId(9L);
+        node.setProjectScopeVersion(11L); node.setAssessmentReviewDecisionCode("CONFIRMED");
+        node.setFeedback("approved"); node.setDecisionAt(NOW); node.setUpdater("9"); node.setUpdateTime(NOW); return node;
+    }
+
     @Test
     void parsesEveryLockPageCasAndClaimBinding() throws IOException {
         Configuration configuration = configuration();
@@ -46,20 +53,19 @@ class CutoverApprovalMapperContractTest {
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectByInstanceAndNodeForUpdate",
                 new ApprovalNodeLockQuery(1L, 4L, 2));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectTodoPage",
-                new ApprovalTodoPageQuery(1L, 9L, 0, 20));
+                ApprovalTodoPageQuery.builder().tenantId(1L).currentUserId(9L).offset(0).pageSize(20).candidateRoleIds(java.util.Set.of()).build());
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectReassignmentPage",
                 new ApprovalReassignmentPageQuery(1L, 0, 20));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectTodoProjectionPage",
-                new ApprovalTodoPageQuery(1L, 9L, 0, 20));
+                ApprovalTodoPageQuery.builder().tenantId(1L).currentUserId(9L).offset(0).pageSize(20).candidateRoleIds(java.util.Set.of()).build());
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "countTodos",
-                new ApprovalTodoPageQuery(1L, 9L, 0, 20));
+                ApprovalTodoPageQuery.builder().tenantId(1L).currentUserId(9L).offset(0).pageSize(20).candidateRoleIds(java.util.Set.of()).build());
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "selectReassignmentProjectionPage",
                 new ApprovalReassignmentPageQuery(1L, 0, 20));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "countReassignmentCandidates",
                 new ApprovalReassignmentPageQuery(1L, 0, 20));
         assertBindings(configuration, CutoverApprovalNodeMapper.class, "updateStatusIfMatch",
-                new ApprovalNodeStatusUpdate(1L, 5L, 0, "PENDING", "APPROVED", 9L,
-                        "{}", 11L, "CONFIRMED", null, "approved", NOW, "9", NOW));
+                new ApprovalNodeStatusUpdate(decidedNode(), 0, "PENDING"));
         assertBindings(configuration, CutoverApprovalReassignmentMapper.class, "selectMaxReassignmentNo",
                 new ApprovalNodeLockQuery(1L, 4L, 2));
         assertBindings(configuration, CutoverApprovalNotificationMapper.class,
@@ -89,7 +95,7 @@ class CutoverApprovalMapperContractTest {
                 .doesNotContain("${");
         assertThat(notification).contains("tenant_id = #{query.tenantId}", "deleted = b'0'",
                         "channel_code = 'IN_PLATFORM'", "channel_code IN ('SMS','EMAIL','DINGTALK')",
-                        "FOR UPDATE SKIP LOCKED", "ORDER BY COALESCE(next_retry_at, create_time) ASC, id ASC",
+                        "FOR UPDATE SKIP LOCKED", "ORDER BY COALESCE(next_retry_time, create_time) ASC, id ASC",
                         "channel_code = #{query.channelCode}")
                 .doesNotContain("${");
     }

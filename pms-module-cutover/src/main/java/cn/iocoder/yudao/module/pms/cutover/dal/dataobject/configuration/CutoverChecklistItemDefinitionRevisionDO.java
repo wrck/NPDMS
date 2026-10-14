@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.configuration;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.Version;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -22,11 +23,15 @@ public class CutoverChecklistItemDefinitionRevisionDO extends TenantBaseDO {
     private String itemName;
     private String itemDescription;
     private String interfaceFormatCode;
+    @TableField(exist = false)
     private String interfaceSchema;
     private String feedbackFormatCode;
     private Boolean requiredFlag;
     private String workModeCode;
+    @TableField(exist = false)
     private String externalSourceConfig;
+    private String externalInterfaceCode;
+    private Boolean externalManualFallbackFlag;
     private String subtableCode;
     private String statusCode;
     private Integer sortOrder;

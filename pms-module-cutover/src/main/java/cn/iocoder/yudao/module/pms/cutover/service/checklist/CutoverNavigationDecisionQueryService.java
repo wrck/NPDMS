@@ -38,6 +38,6 @@ public class CutoverNavigationDecisionQueryService {
                 || !READABLE_STATUSES.contains(revision.getStatusCode())) {
             throw new IllegalStateException("割接任务冻结配置身份不匹配");
         }
-        return policy.decide(revision.getId(), revision.getNavigationRuleSnapshot());
+        return policy.decide(new CutoverNavigationDecisionPolicy.Context(revision.getId(), revision.getNavigationTargetCode()));
     }
 }

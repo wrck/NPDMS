@@ -255,12 +255,16 @@ public final class CutoverPlanContentCodec {
         JsonNode file = body.get("fileArtifactFact");
         exact(file, FILE, "fileArtifactFact");
         exact(file.get("fileFactVersion"), FILE_VERSION, "fileFactVersion");
-        CutoverPlanFilePort.FileFact fact = new CutoverPlanFilePort.FileFact(
-                positiveLong(file, "artifactId"), positiveInt(file, "versionNo"), text(file, "referenceKey", 128),
-                new CutoverPlanFilePort.FileFactVersion(nonNegativeInt(file.get("fileFactVersion"), "artifactVersion"),
+        CutoverPlanFilePort.FileFact fact = CutoverPlanFilePort.FileFact.builder()
+                .artifactId(positiveLong(file, "artifactId"))
+                .versionNo(positiveInt(file, "versionNo"))
+                .referenceKey(text(file, "referenceKey", 128))
+                .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(nonNegativeInt(file.get("fileFactVersion"), "artifactVersion"),
                         nonNegativeInt(file.get("fileFactVersion"), "referenceVersion"),
-                        nonNegativeInt(file.get("fileFactVersion"), "availabilityVersion")),
-                nonNegativeLong(file, "scopeVersion"), requiredPattern(file, "sha256", "[0-9a-f]{64}"));
+                        nonNegativeInt(file.get("fileFactVersion"), "availabilityVersion")))
+                .scopeVersion(nonNegativeLong(file, "scopeVersion"))
+                .sha256(requiredPattern(file, "sha256", "[0-9a-f]{64}"))
+                .build();
         return new DecodedContent(null, List.of(), List.of(), fact, true);
     }
 

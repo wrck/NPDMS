@@ -29,7 +29,7 @@ class CutoverChecklistExportServiceTest {
         CutoverChecklistExportService service = new CutoverChecklistExportService(checklistService,
                 new CutoverChecklistWorkbookWriter(), auditApi);
 
-        CutoverChecklistExportResult result = service.export(9L, 12L, 31L, 3L, "corr-export-1");
+        CutoverChecklistExportResult result = service.export(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(9L, 12L, "corr-export-1"), 31L, 3L);
 
         assertThat(result.fileName()).isEqualTo("cutover-checklist-31-v3.xlsx");
         assertThat(result.content()).isNotEmpty();

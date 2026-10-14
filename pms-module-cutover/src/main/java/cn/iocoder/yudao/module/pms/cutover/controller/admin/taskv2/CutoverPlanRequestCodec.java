@@ -84,12 +84,16 @@ public final class CutoverPlanRequestCodec {
     private static CutoverPlanFilePort.FileFact file(JsonNode node) {
         exact(node, FILE, "fileArtifactFact");
         JsonNode version = node.get("fileFactVersion"); exact(version, FILE_VERSION, "fileFactVersion");
-        return new CutoverPlanFilePort.FileFact(wireLong(node.get("artifactId"), "artifactId", true),
-                positiveInt(node.get("versionNo"), "versionNo"), textField(node, "referenceKey", 128),
-                new CutoverPlanFilePort.FileFactVersion(nonNegativeInt(version.get("artifactVersion"), "artifactVersion"),
+        return CutoverPlanFilePort.FileFact.builder()
+                .artifactId(wireLong(node.get("artifactId"), "artifactId", true))
+                .versionNo(positiveInt(node.get("versionNo"), "versionNo"))
+                .referenceKey(textField(node, "referenceKey", 128))
+                .fileFactVersion(new CutoverPlanFilePort.FileFactVersion(nonNegativeInt(version.get("artifactVersion"), "artifactVersion"),
                         nonNegativeInt(version.get("referenceVersion"), "referenceVersion"),
-                        nonNegativeInt(version.get("availabilityVersion"), "availabilityVersion")),
-                wireLong(node.get("scopeVersion"), "scopeVersion", false), textField(node, "sha256", 64));
+                        nonNegativeInt(version.get("availabilityVersion"), "availabilityVersion")))
+                .scopeVersion(wireLong(node.get("scopeVersion"), "scopeVersion", false))
+                .sha256(textField(node, "sha256", 64))
+                .build();
     }
 
     private static LocalDateTime dateTime(JsonNode node, String field) {

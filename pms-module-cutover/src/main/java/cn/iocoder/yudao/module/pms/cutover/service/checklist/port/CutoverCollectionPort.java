@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.checklist.port;
 
+import lombok.Builder;
+
 /** INT-12/DAC采集消费边界；F-CUT-003只预留契约，不提供生产Provider。 */
 public interface CutoverCollectionPort {
 
@@ -14,18 +16,26 @@ public interface CutoverCollectionPort {
         FAILED
     }
 
+    @Builder
     record Request(Long tenantId, Long actorId, Long projectId, Long taskId,
                    Long checklistId, Long checklistVersion, Long checklistItemId,
                    Integer itemVersion, String stableItemKey, Long deviceId,
-                   Long commandTemplateId, String idempotencyKey, String correlationId) {
+                   Long commandTemplateId, String idempotencyKey, String correlationId) implements ExecutionIdentity {
     }
 
     record RequestReceipt(Long collectionTaskId, TechnicalStatus technicalStatus) {
     }
 
+    @Builder
     record Inspection(Long tenantId, Long actorId, Long projectId, Long collectionTaskId,
                       Long taskId, Long checklistId, Long checklistItemId,
-                      Long deviceId, Long commandTemplateId) {
+                      Long deviceId, Long commandTemplateId) implements ExecutionIdentity {
+    }
+
+    interface ExecutionIdentity {
+        Long projectId();
+        Long deviceId();
+        Long commandTemplateId();
     }
 
     record CollectionFact(Long collectionTaskId, TechnicalStatus technicalStatus,

@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.checklist;
 
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistExportResult;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverChecklistView;
 import cn.iocoder.yudao.module.pms.cutover.service.taskv2.port.CutoverOwnerFactException;
@@ -30,8 +31,8 @@ public final class CutoverChecklistExportService {
         this.operationAuditApi = Objects.requireNonNull(operationAuditApi);
     }
 
-    public CutoverChecklistExportResult export(Long tenantId, Long actorId, Long taskId,
-                                                Long checklistVersion, String correlationId) {
+    public CutoverChecklistExportResult export(CutoverChecklistContext context, Long taskId, Long checklistVersion) {
+        Long tenantId = context.tenantId(); Long actorId = context.actorId(); String correlationId = context.correlationId();
         require(positive(tenantId) && positive(actorId) && positive(taskId)
                         && checklistVersion != null && checklistVersion > 0
                         && present(correlationId) && correlationId.equals(correlationId.trim())

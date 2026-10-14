@@ -18,12 +18,14 @@ public final class CutoverChecklistReqVO {
 
     public record Generate(Long expectedTaskVersion, Long expectedAssessmentVersion,
                            Long expectedProjectScopeVersion,
+                           List<String> deviceTypeCodes,
                            Map<String, SelectedDefinition> selectedConflictDefinitions) {
     }
 
     public record Rematch(Long expectedTaskVersion, Long expectedAssessmentVersion,
                           Long expectedProjectScopeVersion, Long checklistId,
                           Long expectedChecklistVersion, String expectedInputSnapshotHash,
+                          List<String> deviceTypeCodes,
                           Map<String, SelectedDefinition> selectedConflictDefinitions) {
     }
 
@@ -34,6 +36,17 @@ public final class CutoverChecklistReqVO {
                        Long checklistId, Long expectedChecklistVersion,
                        List<DirectAnswer> answers) {
     }
+
+    public record ExternalLoad(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                               Long checklistId, Long expectedChecklistVersion) { }
+
+    public record DeviceVersions(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                                 Long checklistId, Long expectedChecklistVersion,
+                                 List<cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveChecklistDeviceVersionsCommand.Device> devices) { }
+
+    public record ExternalFeedback(Long expectedTaskVersion, Long expectedProjectScopeVersion,
+                                   Long checklistId, Long expectedChecklistVersion, Long expectedResultId,
+                                   List<cn.iocoder.yudao.module.pms.cutover.service.checklist.command.SaveExternalChecklistFeedbackCommand.Feedback> feedback) { }
 
     public record CustomItem(Long expectedTaskVersion, Long expectedProjectScopeVersion,
                              Long checklistId, Long expectedChecklistVersion,

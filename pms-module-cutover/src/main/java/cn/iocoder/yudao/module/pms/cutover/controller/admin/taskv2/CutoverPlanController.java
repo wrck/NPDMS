@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import org.springframework.http.HttpHeaders;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationException;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplicationService;
@@ -48,8 +50,11 @@ public class CutoverPlanController {
     @PostMapping("/actions/create-draft")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-plan')")
     public CommonResult<CutoverPlanView> createDraft(@PathVariable Long taskId,
-            @RequestHeader("X-Task-Version") String taskVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
+            @RequestHeader HttpHeaders headers,
+            @RequestBody JsonNode body) {
+        String taskVersion = CutoverRequestHeaders.value(headers, "X-Task-Version");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); var request = codec.createDraft(body);
         applicationService.createDraft(new CreateCutoverPlanDraftCommand(trusted.tenantId(), trusted.actorId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), request.editMode(), request.fileFact(),
@@ -60,8 +65,12 @@ public class CutoverPlanController {
     @PutMapping
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-plan')")
     public CommonResult<CutoverPlanView> saveDraft(@PathVariable Long taskId,
-            @RequestHeader("If-Match") String planVersion, @RequestHeader("X-Task-Version") String taskVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
+            @RequestHeader HttpHeaders headers,
+            @RequestBody JsonNode body) {
+        String planVersion = CutoverRequestHeaders.value(headers, "If-Match");
+        String taskVersion = CutoverRequestHeaders.value(headers, "X-Task-Version");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); JsonNode content = codec.draftContent(body);
         applicationService.saveDraft(new SaveCutoverPlanDraftCommand(trusted.tenantId(), trusted.actorId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), codec.version(planVersion, "If-Match"), content,
@@ -72,8 +81,11 @@ public class CutoverPlanController {
     @PostMapping("/actions/download-draft")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:download-plan')")
     public CommonResult<DownloadCutoverPlanDraftResult> downloadDraft(@PathVariable Long taskId,
-            @RequestHeader("If-Match") String planVersion, @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader HttpHeaders headers,
             @RequestBody(required = false) JsonNode body) {
+        String planVersion = CutoverRequestHeaders.value(headers, "If-Match");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); codec.empty(body);
         return success(applicationService.downloadDraft(new DownloadCutoverPlanDraftCommand(trusted.tenantId(),
                 trusted.actorId(), taskId, codec.version(planVersion, "If-Match"),
@@ -83,9 +95,12 @@ public class CutoverPlanController {
     @PostMapping("/actions/submit")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:submit-plan')")
     public CommonResult<SubmitCutoverPlanResult> submit(@PathVariable Long taskId,
-            @RequestHeader("If-Match") String planVersion, @RequestHeader("X-Task-Version") String taskVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @RequestHeader HttpHeaders headers,
             @RequestBody(required = false) JsonNode body) {
+        String planVersion = CutoverRequestHeaders.value(headers, "If-Match");
+        String taskVersion = CutoverRequestHeaders.value(headers, "X-Task-Version");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); codec.empty(body);
         return success(applicationService.submit(new SubmitCutoverPlanCommand(trusted.tenantId(), trusted.actorId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), codec.version(planVersion, "If-Match"),
@@ -95,8 +110,12 @@ public class CutoverPlanController {
     @PatchMapping("/support-arrangements/{arrangementId}")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-plan')")
     public CommonResult<CutoverPlanView> patchApprovedContact(@PathVariable Long taskId,
-            @PathVariable Long arrangementId, @RequestHeader("If-Match") String planVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
+            @PathVariable Long arrangementId,
+            @RequestHeader HttpHeaders headers,
+            @RequestBody JsonNode body) {
+        String planVersion = CutoverRequestHeaders.value(headers, "If-Match");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); requireId(arrangementId); var request = codec.patchContact(body);
         applicationService.patchApprovedContact(new PatchApprovedContactCommand(trusted.tenantId(), trusted.actorId(),
                 taskId, arrangementId, codec.version(planVersion, "If-Match"), request.personName(), request.phone(),
@@ -107,8 +126,11 @@ public class CutoverPlanController {
     @PostMapping("/actions/revise")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-plan')")
     public CommonResult<CutoverPlanView> revise(@PathVariable Long taskId,
-            @RequestHeader("X-Task-Version") String taskVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
+            @RequestHeader HttpHeaders headers,
+            @RequestBody JsonNode body) {
+        String taskVersion = CutoverRequestHeaders.value(headers, "X-Task-Version");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); var request = codec.revise(body);
         applicationService.revise(new ReviseCutoverPlanCommand(trusted.tenantId(), trusted.actorId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), request.sourcePlanRevisionId(), request.reason(),
@@ -126,39 +148,65 @@ public class CutoverPlanController {
     public ResponseEntity<CommonResult<CutoverPlanContractException.ErrorData>> handleRequest(
             CutoverPlanRequestException exception) {
         return error(new CutoverPlanContractException(400, 1_011_009_100, exception.getMessage(),
-                data("INVALID_REQUEST", exception.reason().name(), "FIX_REQUEST", null,
-                        null, null, null)));
+                CutoverPlanContractException.ErrorData.builder()
+                        .category("INVALID_REQUEST")
+                        .reasonCode(exception.reason().name())
+                        .recoveryAction("FIX_REQUEST")
+                        .ownerContext(null)
+                        .currentTaskVersion(null)
+                        .currentPlanVersion(null)
+                        .currentApprovalVersion(null)
+                        .build()));
     }
 
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<CommonResult<CutoverPlanContractException.ErrorData>> handleMissingHeader(Exception exception) {
         return error(new CutoverPlanContractException(400, 1_011_009_100, exception.getMessage(),
-                data("INVALID_REQUEST", "HEADER_REQUIRED_OR_INVALID", "FIX_REQUEST", null,
-                        null, null, null)));
+                CutoverPlanContractException.ErrorData.builder()
+                        .category("INVALID_REQUEST")
+                        .reasonCode("HEADER_REQUIRED_OR_INVALID")
+                        .recoveryAction("FIX_REQUEST")
+                        .ownerContext(null)
+                        .currentTaskVersion(null)
+                        .currentPlanVersion(null)
+                        .currentApprovalVersion(null)
+                        .build()));
     }
 
     @ExceptionHandler({IllegalArgumentException.class, HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class})
     public ResponseEntity<CommonResult<CutoverPlanContractException.ErrorData>> handleValidation(Exception exception) {
         return error(new CutoverPlanContractException(400, 1_011_009_100, exception.getMessage(),
-                data("INVALID_REQUEST", "REQUEST_SCHEMA_INVALID", "FIX_REQUEST", null,
-                        null, null, null)));
+                CutoverPlanContractException.ErrorData.builder()
+                        .category("INVALID_REQUEST")
+                        .reasonCode("REQUEST_SCHEMA_INVALID")
+                        .recoveryAction("FIX_REQUEST")
+                        .ownerContext(null)
+                        .currentTaskVersion(null)
+                        .currentPlanVersion(null)
+                        .currentApprovalVersion(null)
+                        .build()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<CommonResult<CutoverPlanContractException.ErrorData>> handleForbidden(Exception exception) {
         return error(new CutoverPlanContractException(403, 1_011_009_101, exception.getMessage(),
-                data("FUNCTION_OR_SCOPE_DENIED", "PROJECT_OR_TASK_SCOPE_DENIED", "CONTACT_ADMIN", null,
-                        null, null, null)));
+                CutoverPlanContractException.ErrorData.builder()
+                        .category("FUNCTION_OR_SCOPE_DENIED")
+                        .reasonCode("PROJECT_OR_TASK_SCOPE_DENIED")
+                        .recoveryAction("CONTACT_ADMIN")
+                        .ownerContext(null)
+                        .currentTaskVersion(null)
+                        .currentPlanVersion(null)
+                        .currentApprovalVersion(null)
+                        .build()));
     }
 
-    private CutoverPlanView view(CutoverPlanRequestContext.TrustedContext trusted, Long taskId) {
-        return queryService.detail(trusted.tenantId(), trusted.actorId(), taskId,
-                new CutoverPlanQueryService.PlanAccess(trusted.canCreate(), trusted.canSave(),
-                        trusted.canSubmit(), trusted.canDownload()));
+    private CutoverPlanView view(CutoverPlanContext trusted, Long taskId) {
+        return queryService.detail(trusted, taskId);
     }
 
-    private CutoverPlanRequestContext.TrustedContext trusted(Long taskId) { requireId(taskId); return requestContext.current(); }
+    private CutoverPlanContext trusted(Long taskId) { requireId(taskId); return requestContext.current(); }
     private static void requireId(Long value) { if (value == null || value <= 0) throw new IllegalArgumentException("invalid id"); }
 
     private static CutoverPlanContractException contract(CutoverPlanApplicationException ex) {
@@ -182,15 +230,15 @@ public class CutoverPlanController {
     private static CutoverPlanContractException ce(int status, CutoverPlanApplicationException ex,
                                                     String category, String recovery) {
         return new CutoverPlanContractException(status, 1_011_009_100 + status, ex.getMessage(),
-                data(category, ex.reasonCode(), recovery, ex.ownerContext(), ex.currentTaskVersion(),
-                        ex.currentPlanVersion(), ex.currentApprovalVersion()));
-    }
-    private static CutoverPlanContractException.ErrorData data(String category, String reason, String recovery,
-                                                               String owner, Long currentTaskVersion,
-                                                               Long currentPlanVersion,
-                                                               Long currentApprovalVersion) {
-        return new CutoverPlanContractException.ErrorData(category, reason, recovery, owner,
-                currentTaskVersion, currentPlanVersion, currentApprovalVersion);
+                CutoverPlanContractException.ErrorData.builder()
+                        .category(category)
+                        .reasonCode(ex.reasonCode())
+                        .recoveryAction(recovery)
+                        .ownerContext(ex.ownerContext())
+                        .currentTaskVersion(ex.currentTaskVersion())
+                        .currentPlanVersion(ex.currentPlanVersion())
+                        .currentApprovalVersion(ex.currentApprovalVersion())
+                        .build());
     }
     private static ResponseEntity<CommonResult<CutoverPlanContractException.ErrorData>> error(CutoverPlanContractException ex) {
         CommonResult<CutoverPlanContractException.ErrorData> body = CommonResult.error(ex.errorCode(), ex.getMessage());

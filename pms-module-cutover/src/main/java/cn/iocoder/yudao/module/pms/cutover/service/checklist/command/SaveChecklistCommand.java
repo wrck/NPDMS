@@ -5,7 +5,7 @@ import java.util.List;
 public record SaveChecklistCommand(Long tenantId, Long actorId, Long taskId,
                                    Long expectedTaskVersion, Long checklistId,
                                    Long expectedChecklistVersion, Long expectedProjectScopeVersion,
-                                   List<DirectAnswer> answers) {
+                                   List<DirectAnswer> answers) implements CutoverChecklistDraftMutation {
     public SaveChecklistCommand {
         answers = answers == null ? List.of() : List.copyOf(answers);
     }

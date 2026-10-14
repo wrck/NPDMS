@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import lombok.Builder;
+
 /** 七路由稳定错误合同，不依赖异常message分类。 */
 public final class CutoverPlanContractException extends RuntimeException {
     private final int httpStatus;
@@ -17,6 +19,7 @@ public final class CutoverPlanContractException extends RuntimeException {
     public int errorCode() { return errorCode; }
     public ErrorData errorData() { return errorData; }
 
+    @Builder
     public record ErrorData(String category, String reasonCode, String recoveryAction, String ownerContext,
                             Long currentTaskVersion, Long currentPlanVersion,
                             Long currentApprovalVersion) {}

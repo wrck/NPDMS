@@ -1,20 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
-/** F-CUT-002 HTTP受信上下文；生产Owner齐备前仅允许测试显式提供。 */
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.context.CutoverTaskContext;
+
+/** HTTP 边界解析已有业务上下文，不接受客户端自报身份或权限。 */
 public interface CutoverTaskRequestContext {
-
-    TrustedContext current();
-
-    record TrustedContext(Long tenantId, Long actorId, String correlationId,
-                          boolean canSaveAssessment, boolean canSubmitAssessment,
-                          boolean canSaveChecklist, boolean canRequestCollection,
-                          boolean canSubmitChecklist) {
-        public TrustedContext {
-            if (tenantId == null || tenantId < 0 || actorId == null || actorId <= 0
-                    || correlationId == null || correlationId.isBlank()
-                    || !correlationId.equals(correlationId.trim()) || correlationId.length() > 128) {
-                throw new IllegalArgumentException("invalid trusted cutover task context");
-            }
-        }
-    }
+    CutoverTaskContext current();
 }

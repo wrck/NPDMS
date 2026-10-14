@@ -1,8 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.query;
 
-import java.time.LocalDateTime;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverSupportArrangementDO;
+import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.storage.CutoverPlanSupportContactChangeDO;
 
-public record CutoverSupportContactUpdate(Long tenantId, Long arrangementId, Long planRevisionId,
-                                           Integer expectedVersion, String personName, String phone,
-                                           LocalDateTime arrivalTime, String updater, LocalDateTime updateTime) {
-}
+public record CutoverSupportContactUpdate(CutoverPlanRevisionDO plan, CutoverSupportArrangementDO baseline,
+                                          CutoverPlanSupportContactChangeDO change, Long expectedPlanVersion) {}

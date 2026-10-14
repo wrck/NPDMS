@@ -62,7 +62,8 @@ public final class CutoverChecklistMatcher {
                         Comparator.nullsLast(Integer::compareTo))
                 .thenComparing(value -> value.item().stableItemKey()));
         conflicts.sort(Comparator.comparing(Conflict::stableItemKey));
-        return new MatchResult(List.copyOf(ready), List.copyOf(conflicts), ready.isEmpty() && conflicts.isEmpty());
+        return new MatchResult(List.copyOf(ready), List.copyOf(conflicts), ready.isEmpty() && conflicts.isEmpty(),
+                matchesByKey.values().stream().flatMap(List::stream).map(m -> m.rule().id()).distinct().sorted().toList());
     }
 
     private Candidate candidate(CutoverFrozenConfiguration.ItemDefinition item, List<RuleMatch> matches) {
@@ -127,7 +128,8 @@ public final class CutoverChecklistMatcher {
     public record MatchInput(Map<String, ? extends Collection<String>> dimensions) {
     }
 
-    public record MatchResult(List<MatchedItem> readyItems, List<Conflict> conflicts, boolean gap) {
+    public record MatchResult(List<MatchedItem> readyItems, List<Conflict> conflicts, boolean gap,
+                              List<Long> matchedRuleIds) {
     }
 
     public record MatchedItem(CutoverFrozenConfiguration.ItemDefinition item,

@@ -1,65 +1,130 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.planv2.CutoverPlanRevisionMapper">
-    <select id="selectCurrent" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
-        SELECT * FROM cut_plan_revision
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+    <resultMap id="plan" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO" autoMapping="false">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="task_id" property="cutoverTaskId"/>
+        <result column="revision_no" property="revisionNo"/>
+        <result column="origin_code" property="originCode"/>
+        <result column="edit_mode_code" property="editModeCode"/>
+        <result column="grade_code" property="gradeCode"/>
+        <result column="assessment_id" property="assessmentId"/>
+        <result column="assessment_version" property="assessmentVersion"/>
+        <result column="checklist_id" property="checklistId"/>
+        <result column="checklist_version" property="checklistVersion"/>
+        <result column="configuration_revision_id" property="configurationRevisionId"/>
+        <result column="configuration_code" property="configurationCode"/>
+        <result column="configuration_revision_no" property="configurationRevisionNo"/>
+        <result column="file_artifact_id" property="fileArtifactId"/>
+        <result column="file_version_no" property="fileVersionNo"/>
+        <result column="file_reference_key" property="fileReferenceKey"/>
+        <result column="file_scope_version" property="fileScopeVersion"/>
+        <result column="file_sha256" property="fileSha256"/>
+        <result column="ownership_confirmed_flag" property="ownershipConfirmed"/>
+        <result column="status_code" property="statusCode"/>
+        <result column="current_marker" property="currentMarker"/>
+        <result column="submit_user_id" property="submittedBy"/>
+        <result column="submit_time" property="submittedAt"/>
+        <result column="approval_instance_id" property="approvalInstanceId"/>
+        <result column="approval_version" property="approvalVersion"/>
+        <result column="source_plan_revision_id" property="sourcePlanRevisionId"/>
+        <result column="revision_reason_code" property="revisionReasonCode"/>
+        <result column="invalidate_user_id" property="invalidatedBy"/>
+        <result column="invalidate_time" property="invalidatedAt"/>
+        <result column="invalidation_reason_code" property="invalidationReasonCode"/>
+        <result column="legacy_plan_id" property="legacyPlanId"/>
+        <result column="legacy_status_raw" property="legacyStatusRaw"/>
+        <result column="legacy_source_version" property="legacySourceVersion"/>
+        <result column="legacy_mapping_version" property="legacyMappingVersion"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="source_task_version" property="sourceTaskVersion"/>
+        <result column="source_project_id" property="sourceProjectId"/>
+        <result column="source_project_version" property="sourceProjectVersion"/>
+        <result column="source_project_scope_version" property="sourceProjectScopeVersion"/>
+        <result column="source_cutover_type_code" property="sourceCutoverTypeCode"/>
+        <result column="legacy_task_id" property="legacyTaskId"/>
+        <result column="legacy_code" property="legacyCode"/>
+        <result column="legacy_name" property="legacyName"/>
+        <result column="legacy_grade_code" property="legacyGradeCode"/>
+        <result column="legacy_remark" property="legacyRemark"/>
+        <result column="project_description" property="projectDescription"/>
+        <result column="rollback_description" property="rollbackDescription"/>
+        <result column="customer_contact_id" property="customerContactId"/>
+        <result column="customer_contact_version" property="customerContactVersion"/>
+        <result column="file_artifact_fact_version" property="fileArtifactFactVersion"/>
+        <result column="file_reference_fact_version" property="fileReferenceFactVersion"/>
+        <result column="file_availability_fact_version" property="fileAvailabilityFactVersion"/>
+    </resultMap>
+    <sql id="columns">
+        &#96;id&#96;, &#96;tenant_id&#96;, &#96;task_id&#96;, &#96;revision_no&#96;, &#96;origin_code&#96;, &#96;edit_mode_code&#96;, &#96;grade_code&#96;, &#96;assessment_id&#96;, &#96;assessment_version&#96;, &#96;checklist_id&#96;, &#96;checklist_version&#96;, &#96;configuration_revision_id&#96;, &#96;configuration_code&#96;, &#96;configuration_revision_no&#96;, &#96;file_artifact_id&#96;, &#96;file_version_no&#96;, &#96;file_reference_key&#96;, &#96;file_scope_version&#96;, &#96;file_sha256&#96;, &#96;ownership_confirmed_flag&#96;, &#96;status_code&#96;, &#96;current_marker&#96;, &#96;submit_user_id&#96;, &#96;submit_time&#96;, &#96;approval_instance_id&#96;, &#96;approval_version&#96;, &#96;source_plan_revision_id&#96;, &#96;revision_reason_code&#96;, &#96;invalidate_user_id&#96;, &#96;invalidate_time&#96;, &#96;invalidation_reason_code&#96;, &#96;legacy_plan_id&#96;, &#96;legacy_status_raw&#96;, &#96;legacy_source_version&#96;, &#96;legacy_mapping_version&#96;, &#96;version&#96;, &#96;creator&#96;, &#96;create_time&#96;, &#96;updater&#96;, &#96;update_time&#96;, &#96;deleted&#96;, &#96;source_task_version&#96;, &#96;source_project_id&#96;, &#96;source_project_version&#96;, &#96;source_project_scope_version&#96;, &#96;source_cutover_type_code&#96;, &#96;legacy_task_id&#96;, &#96;legacy_code&#96;, &#96;legacy_name&#96;, &#96;legacy_grade_code&#96;, &#96;legacy_remark&#96;, &#96;project_description&#96;, &#96;rollback_description&#96;, &#96;customer_contact_id&#96;, &#96;customer_contact_version&#96;, &#96;file_artifact_fact_version&#96;, &#96;file_reference_fact_version&#96;, &#96;file_availability_fact_version&#96;
+    </sql>
+    <select id="selectCurrent" resultMap="plan">
+        SELECT <include refid="columns"/> FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId}
           AND current_marker = 1 AND deleted = b'0'
         <if test="query.planRevisionId != null">AND id = #{query.planRevisionId}</if>
     </select>
-    <select id="selectListLegacyByTask" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
-        SELECT * FROM cut_plan_revision
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+    <select id="selectListLegacyByTask" resultMap="plan">
+        SELECT <include refid="columns"/> FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId}
           AND origin_code = 'LEGACY_FORWARD' AND current_marker IS NULL AND deleted = b'0'
         <if test="query.planRevisionId != null">AND id = #{query.planRevisionId}</if>
         ORDER BY revision_no ASC, legacy_plan_id ASC, id ASC
         LIMIT 2
     </select>
-    <select id="selectCurrentForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
-        SELECT * FROM cut_plan_revision
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+    <select id="selectCurrentForUpdate" resultMap="plan">
+        SELECT <include refid="columns"/> FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId}
           AND current_marker = 1 AND deleted = b'0'
         <if test="query.planRevisionId != null">AND id = #{query.planRevisionId}</if>
         FOR UPDATE
     </select>
-    <select id="selectByIdForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
-        SELECT * FROM cut_plan_revision
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+    <select id="selectByIdForUpdate" resultMap="plan">
+        SELECT <include refid="columns"/> FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId}
           AND id = #{query.planRevisionId} AND deleted = b'0'
         FOR UPDATE
     </select>
-    <select id="selectListDirectSuccessors" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
-        SELECT * FROM cut_plan_revision
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+    <select id="selectListDirectSuccessors" resultMap="plan">
+        SELECT <include refid="columns"/> FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId}
           AND source_plan_revision_id = #{query.sourcePlanRevisionId} AND deleted = b'0'
         ORDER BY revision_no ASC, id ASC
     </select>
-    <select id="selectListHistory" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2.CutoverPlanRevisionDO">
-        SELECT * FROM cut_plan_revision
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId} AND deleted = b'0'
+    <select id="selectListHistory" resultMap="plan">
+        SELECT <include refid="columns"/> FROM cut_plan_revision
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId} AND deleted = b'0'
         ORDER BY revision_no ASC, id ASC
     </select>
     <select id="selectMaxRevisionNo" resultType="java.lang.Integer">
         SELECT COALESCE(MAX(revision_no), 0) FROM cut_plan_revision
-        WHERE tenant_id = #{query.tenantId} AND cutover_task_id = #{query.taskId}
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId}
     </select>
     <update id="replaceDraftIfMatch">
-        UPDATE cut_plan_revision
-        SET edit_mode_code = #{query.editModeCode},
-            content_snapshot = CASE WHEN #{query.contentSnapshot} IS NULL THEN NULL
-                ELSE CAST(#{query.contentSnapshot} AS JSON) END,
-            file_artifact_id = #{query.fileArtifactId},
-            file_version_no = #{query.fileVersionNo},
-            file_reference_key = #{query.fileReferenceKey},
-            file_fact_version = CASE WHEN #{query.fileFactVersion} IS NULL THEN NULL
-                ELSE CAST(#{query.fileFactVersion} AS JSON) END,
-            file_scope_version = #{query.fileScopeVersion},
-            file_sha256 = #{query.fileSha256},
-            ownership_confirmed = #{query.ownershipConfirmed},
-            version = #{query.newVersion},
-            updater = #{query.updater},
-            update_time = #{query.updateTime}
-        WHERE tenant_id = #{query.tenantId} AND id = #{query.planRevisionId}
+        UPDATE cut_plan_revision SET
+        edit_mode_code = #{query.plan.editModeCode},
+        project_description = #{query.plan.projectDescription},
+        rollback_description = #{query.plan.rollbackDescription},
+        customer_contact_id = #{query.plan.customerContactId},
+        customer_contact_version = #{query.plan.customerContactVersion},
+        file_artifact_id = #{query.plan.fileArtifactId},
+        file_version_no = #{query.plan.fileVersionNo},
+        file_reference_key = #{query.plan.fileReferenceKey},
+        file_artifact_fact_version = #{query.plan.fileArtifactFactVersion},
+        file_reference_fact_version = #{query.plan.fileReferenceFactVersion},
+        file_availability_fact_version = #{query.plan.fileAvailabilityFactVersion},
+        file_scope_version = #{query.plan.fileScopeVersion},
+        file_sha256 = #{query.plan.fileSha256},
+        ownership_confirmed_flag = #{query.plan.ownershipConfirmed},
+        updater = #{query.plan.updater},
+        update_time = #{query.plan.updateTime}, version = #{query.newVersion}
+        WHERE tenant_id = #{query.plan.tenantId} AND id = #{query.plan.id}
           AND status_code = 'DRAFT' AND current_marker = 1
           AND version = #{query.expectedVersion} AND deleted = b'0'
     </update>
@@ -87,8 +152,8 @@
     <update id="submitDraftIfMatch">
         UPDATE cut_plan_revision
         SET status_code = 'SUBMITTED',
-            submitted_by = #{query.submittedBy},
-            submitted_at = #{query.submittedAt},
+            submit_user_id = #{query.submittedBy},
+            submit_time = #{query.submittedAt},
             approval_instance_id = #{query.approvalInstanceId},
             approval_version = #{query.approvalVersion},
             version = #{query.newVersion},
@@ -103,8 +168,8 @@
         SET status_code = 'INVALIDATED',
             current_marker = NULL,
             approval_version = #{query.newApprovalVersion},
-            invalidated_by = #{query.invalidatedBy},
-            invalidated_at = #{query.invalidatedAt},
+            invalidate_user_id = #{query.invalidatedBy},
+            invalidate_time = #{query.invalidatedAt},
             invalidation_reason_code = #{query.reasonCode},
             version = #{query.newVersion},
             updater = #{query.invalidatedBy},

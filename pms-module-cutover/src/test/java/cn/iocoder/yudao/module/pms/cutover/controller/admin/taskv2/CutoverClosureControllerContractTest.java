@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.command.SaveCutoverClosureCommand.ClosureContent;
@@ -29,11 +30,11 @@ class CutoverClosureControllerContractTest {
     void setUp() {
         application = mock(CutoverClosureApplicationService.class);
         query = mock(CutoverClosureQueryService.class);
-        CutoverClosureRequestContext context = () -> new CutoverClosureRequestContext.TrustedContext(
+        CutoverClosureRequestContext context = () -> new CutoverClosureContext(
                 1L, 8L, "corr-closure-1", true, true, true);
         CutoverClosureController controller = new TestController(application, query, context,
                 new CutoverClosureRequestCodec());
-        when(query.detail(any(), any(), any(), any())).thenReturn(view());
+        when(query.detail(any(), any())).thenReturn(view());
         mvc = standaloneSetup(controller).setControllerAdvice(controller).build();
     }
 

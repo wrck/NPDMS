@@ -1,15 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.closure.CutoverCollectionEvidenceMapper">
-    <select id="selectListByClosure" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO">
-        SELECT * FROM cut_cutover_collection_evidence
+    <resultMap id="structuredCutoverCollectionEvidenceDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="closure_id" property="closureId"/>
+        <result column="task_id" property="taskId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="device_id" property="deviceId"/>
+        <result column="collection_stage_code" property="collectionStageCode"/>
+        <result column="evidence_type_code" property="evidenceTypeCode"/>
+        <result column="collection_task_id" property="collectionTaskId"/>
+        <result column="callback_event_id" property="callbackEventId"/>
+        <result column="result_ref" property="resultRef"/>
+        <result column="result_version" property="resultVersion"/>
+        <result column="original_failed_collection_task_id" property="originalFailedCollectionTaskId"/>
+        <result column="manual_attachment_id" property="manualAttachmentId"/>
+        <result column="dispatch_marker" property="dispatchMarker"/>
+        <result column="callback_marker" property="callbackMarker"/>
+        <result column="manual_marker" property="manualMarker"/>
+        <result column="occur_time" property="occurredAt"/>
+        <result column="record_user_id" property="recordedBy"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="deleted" property="deleted"/>
+    </resultMap>
+
+    <select id="selectListByClosure" resultMap="structuredCutoverCollectionEvidenceDO">
+        SELECT id, tenant_id, closure_id, task_id, project_id, device_id, collection_stage_code, evidence_type_code, collection_task_id, callback_event_id, result_ref, result_version, original_failed_collection_task_id, manual_attachment_id, dispatch_marker, callback_marker, manual_marker, occur_time, record_user_id, creator, create_time, deleted FROM cut_cutover_collection_evidence
         WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
-        ORDER BY occurred_at, id
+        ORDER BY occur_time, id
     </select>
-    <select id="selectListByClosureForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.closure.CutoverCollectionEvidenceDO">
-        SELECT * FROM cut_cutover_collection_evidence
+    <select id="selectListByClosureForUpdate" resultMap="structuredCutoverCollectionEvidenceDO">
+        SELECT id, tenant_id, closure_id, task_id, project_id, device_id, collection_stage_code, evidence_type_code, collection_task_id, callback_event_id, result_ref, result_version, original_failed_collection_task_id, manual_attachment_id, dispatch_marker, callback_marker, manual_marker, occur_time, record_user_id, creator, create_time, deleted FROM cut_cutover_collection_evidence
         WHERE tenant_id = #{query.tenantId} AND closure_id = #{query.closureId} AND deleted = b'0'
-        ORDER BY occurred_at, id
+        ORDER BY occur_time, id
         FOR UPDATE
     </select>
     <select id="selectUnresolvedDispatchCount" resultType="long">

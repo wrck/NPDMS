@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query;
 
 import java.time.LocalDateTime;
 
+@lombok.Builder
 public record ExternalApprovalNotificationDeliveryUpdate(Long tenantId, Long notificationId,
                                                           String channelCode, Integer expectedVersion,
                                                           String expectedStatusCode, String newStatusCode,

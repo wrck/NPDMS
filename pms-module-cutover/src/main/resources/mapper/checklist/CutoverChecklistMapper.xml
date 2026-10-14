@@ -1,12 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.CutoverChecklistMapper">
+    <resultMap id="structured" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO" autoMapping="false">
+        <result column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="task_id" property="cutoverTaskId"/>
+        <result column="assessment_id" property="assessmentId"/>
+        <result column="assessment_version" property="assessmentVersion"/>
+        <result column="checklist_version" property="checklistVersion"/>
+        <result column="status_code" property="statusCode"/>
+        <result column="input_snapshot_hash" property="inputSnapshotHash"/>
+        <result column="submit_user_id" property="submittedBy"/>
+        <result column="submit_time" property="submittedAt"/>
+        <result column="invalidate_time" property="invalidatedAt"/>
+        <result column="invalidated_reason" property="invalidatedReason"/>
+        <result column="current_marker" property="currentMarker"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="source_task_version" property="sourceTaskVersion"/>
+        <result column="project_scope_version" property="projectScopeVersion"/>
+        <result column="configuration_revision_id" property="configurationRevisionId"/>
+        <result column="configuration_code" property="configurationCode"/>
+        <result column="configuration_revision_no" property="configurationRevisionNo"/>
+        <result column="config_gap_reason_code" property="configGapReasonCode"/>
+    </resultMap>
+    <sql id="columns">`id`, `tenant_id`, `task_id`, `assessment_id`, `assessment_version`, `checklist_version`, `status_code`, `input_snapshot_hash`, `submit_user_id`, `submit_time`, `invalidate_time`, `invalidated_reason`, `current_marker`, `version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `source_task_version`, `project_scope_version`, `configuration_revision_id`, `configuration_code`, `configuration_revision_no`, `config_gap_reason_code`</sql>
+
     <select id="selectCurrentForUpdate"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO">
-        SELECT *
+            resultMap="structured">
+        SELECT <include refid="columns"/>
         FROM cut_cutover_checklist
         WHERE tenant_id = #{query.tenantId}
-          AND cutover_task_id = #{query.taskId}
+          AND task_id = #{query.taskId}
           AND current_marker = 1
           AND deleted = b'0'
         <if test="query.checklistId != null">
@@ -16,11 +45,11 @@
     </select>
 
     <select id="selectCurrent"
-            resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO">
-        SELECT *
+            resultMap="structured">
+        SELECT <include refid="columns"/>
         FROM cut_cutover_checklist
         WHERE tenant_id = #{query.tenantId}
-          AND cutover_task_id = #{query.taskId}
+          AND task_id = #{query.taskId}
           AND current_marker = 1
           AND deleted = b'0'
         <if test="query.checklistId != null">
@@ -43,8 +72,8 @@
     <update id="submitIfMatch">
         UPDATE cut_cutover_checklist
         SET status_code = 'SUBMITTED',
-            submitted_by = #{query.submittedBy},
-            submitted_at = #{query.submittedAt},
+            submit_user_id = #{query.submittedBy},
+            submit_time = #{query.submittedAt},
             version = version + 1,
             update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}
@@ -57,21 +86,20 @@
 
     <update id="rematchIfMatch">
         UPDATE cut_cutover_checklist
-        SET assessment_id = #{query.assessmentId},
-            assessment_version = #{query.assessmentVersion},
-            checklist_version = #{query.nextChecklistVersion},
-            input_snapshot = #{query.inputSnapshot},
-            input_snapshot_hash = #{query.inputSnapshotHash},
-            match_trace = #{query.matchTrace},
-            config_gap_snapshot = #{query.configGapSnapshot},
-            updater = #{query.actorId},
-            version = version + 1,
-            update_time = NOW(3)
-        WHERE tenant_id = #{query.tenantId}
-          AND id = #{query.checklistId}
-          AND version = #{query.expectedVersion}
-          AND status_code = 'DRAFT'
-          AND current_marker = 1
-          AND deleted = b'0'
+        SET assessment_id = #{query.checklist.assessmentId},
+            assessment_version = #{query.checklist.assessmentVersion},
+            checklist_version = #{query.checklist.checklistVersion},
+            input_snapshot_hash = #{query.checklist.inputSnapshotHash},
+            source_task_version = #{query.checklist.sourceTaskVersion},
+            project_scope_version = #{query.checklist.projectScopeVersion},
+            configuration_revision_id = #{query.checklist.configurationRevisionId},
+            configuration_code = #{query.checklist.configurationCode},
+            configuration_revision_no = #{query.checklist.configurationRevisionNo},
+            config_gap_reason_code = #{query.checklist.configGapReasonCode},
+            updater = #{query.checklist.updater},
+            version = version + 1, update_time = NOW(3)
+        WHERE tenant_id = #{query.checklist.tenantId} AND id = #{query.checklist.id}
+          AND version = #{query.expectedVersion} AND status_code = 'DRAFT'
+          AND current_marker = 1 AND deleted = b'0'
     </update>
 </mapper>

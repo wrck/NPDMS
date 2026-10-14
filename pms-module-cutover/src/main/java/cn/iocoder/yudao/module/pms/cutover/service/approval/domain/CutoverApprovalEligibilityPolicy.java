@@ -8,8 +8,6 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApproval
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.ProjectCutoverServiceManagerPort;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -33,25 +31,27 @@ public final class CutoverApprovalEligibilityPolicy {
     }
 
     public boolean eligible(CutoverApprovalInstanceDO root, CutoverApprovalNodeDO node, long actorId) {
-        if (!Objects.equals(node.getCurrentApproverUserId(), actorId)) return false;
+        if (node == null || !Objects.equals(root.getTenantId(), node.getTenantId())
+                || !Objects.equals(node.getCurrentApproverUserId(), actorId)) return false;
         return switch (node.getNodeCode()) {
-            case "INITIATOR" -> projectScopePort.inspect(root.getTenantId(), root.getProjectId(), actorId,
-                    "ACTION_EDIT").allowed();
+            case "INITIATOR" -> projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(root.getTenantId())
+                .projectId(root.getProjectId())
+                .subjectUserId(actorId)
+                .requiredAction("ACTION_EDIT")
+                .build()).allowed();
             case "SERVICE_MANAGER" -> {
                 var fact = serviceManagerPort.inspectCurrent(root.getTenantId(), root.getProjectId(), currentTime.get());
                 yield fact.outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND
                         && Objects.equals(fact.userId(), actorId);
             }
             case "SECOND_LINE", "RND" -> {
-                String group = "SECOND_LINE".equals(node.getNodeCode())
-                        ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
-                List<Long> allowed = new ArrayList<>();
-                for (var candidate : roleCandidatePort.inspectCandidates(root.getTenantId(), group).candidates()) {
-                    var scope = projectScopePort.inspect(root.getTenantId(), root.getProjectId(),
-                            candidate.adminUserId(), "ACTION_VIEW");
-                    if (scope.allowed()) allowed.add(candidate.adminUserId());
-                }
-                yield allowed.size() == 1 && allowed.getFirst() == actorId;
+                var role = CutoverRuntimeRoleApprovalSnapshot.from(node);
+                var query = new CutoverApprovalRoleCandidatePort.ActorQuery(root.getTenantId(), actorId);
+                if (role == null || role.currentActor(query, roleCandidatePort.inspectActor(query)) == null) yield false;
+                yield role.byRole() || projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                        .tenantId(root.getTenantId()).projectId(root.getProjectId()).subjectUserId(actorId)
+                        .requiredAction("ACTION_VIEW").build()).allowed();
             }
             default -> throw new CutoverApprovalApplicationException(OWNER_DATA_CORRUPTED, "未知审批节点");
         };

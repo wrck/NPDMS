@@ -29,6 +29,6 @@ class CutoverTaskRequestCodecTest {
         query.add("pageSize", "50");
 
         assertThat(codec.listQuery(query)).isEqualTo(
-                new CutoverTaskRequestCodec.ListQuery(31L, "GRADE_CONFIRMING", "P2", 2, 50));
+                new cn.iocoder.yudao.module.pms.cutover.service.taskv2.query.CutoverTaskListQuery(31L, "GRADE_CONFIRMING", "P2", 2, 50));
     }
 }

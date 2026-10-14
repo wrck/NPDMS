@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalInstanceDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNotificationDO;
@@ -13,9 +14,7 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskStageHist
 import cn.iocoder.yudao.module.pms.cutover.service.approval.command.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -47,7 +46,7 @@ class CutoverApprovalDecisionServiceTest {
         verify(f.tasks, never()).transitionFromApprovalIfMatch(any());
         ArgumentCaptor<ApprovalNodeStatusUpdate> updates = ArgumentCaptor.forClass(ApprovalNodeStatusUpdate.class);
         verify(f.nodes, times(2)).updateStatusIfMatch(updates.capture());
-        assertThat(updates.getAllValues()).extracting(ApprovalNodeStatusUpdate::newStatusCode)
+        assertThat(updates.getAllValues()).extracting(update -> update.node().getStatusCode())
                 .containsExactly("APPROVED", "PENDING");
         ArgumentCaptor<CutoverApprovalNotificationDO> notifications =
                 ArgumentCaptor.forClass(CutoverApprovalNotificationDO.class);
@@ -276,7 +275,8 @@ class CutoverApprovalDecisionServiceTest {
                 var manager = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
                         ProjectCutoverServiceManagerPort.Outcome.FOUND, 1L, 20L, actor,
                         "SERVICE_MANAGER_L1", 3, 4L, java.time.LocalDateTime.now(clock));
-                current.setCandidateFactSnapshot(JsonUtils.toJsonString(manager));
+                cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.apply(current,
+                        cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.manager(manager));
                 when(managers.lockAndRevalidate(manager)).thenReturn(
                         new ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
                                 ProjectCutoverServiceManagerPort.Revalidation.VALID, manager));
@@ -285,16 +285,21 @@ class CutoverApprovalDecisionServiceTest {
                     .selectByInstanceAndNodeForUpdate(argThat(q -> q != null && q.nodeNo() == currentNo));
             var scope = new CutoverApprovalProjectScopePort.ProjectScopeFact(1L, 20L, actor,
                     "ACTION_EDIT", true, 7L);
-            when(scopes.inspect(1L, 20L, actor, "ACTION_EDIT")).thenReturn(scope);
+            when(scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(actor)
+                .requiredAction("ACTION_EDIT")
+                .build())).thenReturn(scope);
             when(scopes.lockAndRevalidate(scope)).thenReturn(new CutoverApprovalProjectScopePort.ProjectScopeRevalidation(
                     CutoverApprovalProjectScopePort.Revalidation.VALID, scope));
         }
 
         void setLeadTime(LocalDateTime scheduledTime) {
-            root.setLeadTimeEnabled(true);
-            root.setLeadTimeSnapshot(new CutoverLeadTimeSnapshotCodec().encode(
+            root.setGradeCode("A"); root.setSourceCutoverTypeCode("VERSION_UPGRADE"); root.setSourceScheduleTime(scheduledTime);
+            cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalStorage.applyLeadTime(root,
                     new CutoverLeadTimeCalculator().calculate("A", "VERSION_UPGRADE", scheduledTime,
-                            LocalDateTime.of(2026, 9, 3, 18, 0))));
+                            LocalDateTime.of(2026, 9, 3, 18, 0)));
         }
     }
 }

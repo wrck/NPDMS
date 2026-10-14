@@ -1,7 +1,5 @@
 package cn.iocoder.yudao.module.pms.cutover.service.spare;
 
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
-import cn.iocoder.yudao.module.pms.cutover.api.spare.dto.SpareStatusSnapshotNormalizer;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.spare.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.spare.*;
@@ -10,13 +8,10 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.port.CutoverSpareFilePort;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.port.CutoverSpareFilePort.*;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.view.CutoverSpareViews;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 /** CUT-08备件工作台只读查询；跨模块文件事实仅经端口读取。 */
 public final class CutoverSpareQueryService {
@@ -95,21 +90,21 @@ public final class CutoverSpareQueryService {
     }
 
     private CutoverSpareViews.Status status(CutoverSpareStatusRevisionDO row) {
-        try {
-            Map<String, Object> snapshot = JsonUtils.parseObject(row.getStatusSnapshot(), new TypeReference<>() { });
-            return new CutoverSpareViews.Status(row.getStatusVersion(), row.getExternalStatusRaw(),
-                    SpareStatusSnapshotNormalizer.normalize(snapshot), row.getSourceType(),
-                    row.getExternalOccurredAt(), row.getObservedAt());
-        } catch (RuntimeException exception) {
-            throw corrupted("status snapshot");
-        }
+        return new CutoverSpareViews.Status(row.getStatusVersion(), row.getExternalStatusRaw(), row.getSourceType(),
+                row.getExternalOccurredAt(), row.getObservedAt());
     }
 
     private CutoverSpareViews.ManualEvidence evidence(long tenantId, long actorId, CutoverTaskDO task,
             CutoverSpareManualEvidenceDO row) {
         require(row != null && Long.valueOf(tenantId).equals(row.getTenantId())
                 && task.getId().equals(row.getCutoverTaskId()), "evidence identity");
-        FileFactVersion version = fileFactVersion(row.getFileFactVersion());
+        FileFactVersion version;
+        try {
+            version = new FileFactVersion(Math.toIntExact(row.getFileArtifactFactVersion()),
+                    Math.toIntExact(row.getFileReferenceFactVersion()), Math.toIntExact(row.getFileAvailabilityFactVersion()));
+        } catch (RuntimeException exception) {
+            throw corrupted("file fact version");
+        }
         FileExpectation expectation = new FileExpectation(tenantId, actorId, task.getProjectId(), task.getId(),
                 row.getFileArtifactId(), row.getFileReferenceKey(), row.getFileVersionNo(), version,
                 row.getFileScopeVersion());
@@ -121,26 +116,6 @@ public final class CutoverSpareQueryService {
                 && fact.scopeVersion().equals(expectation.scopeVersion()), "file fact mismatch");
         return new CutoverSpareViews.ManualEvidence(row.getId(), row.getApplicationReferenceId(), fact,
                 row.getDescription(), row.getUploadedBy(), row.getCreatedAt());
-    }
-
-    private static FileFactVersion fileFactVersion(String json) {
-        try {
-            JsonNode node = JsonUtils.parseTree(json);
-            require(node != null && node.isObject() && node.size() == 3
-                    && node.has("artifactVersion") && node.has("referenceVersion")
-                    && node.has("availabilityVersion"), "file fact keys");
-            return new FileFactVersion(integer(node, "artifactVersion"), integer(node, "referenceVersion"),
-                    integer(node, "availabilityVersion"));
-        } catch (RuntimeException exception) {
-            if (exception instanceof IllegalStateException) throw exception;
-            throw corrupted("file fact version");
-        }
-    }
-
-    private static int integer(JsonNode node, String field) {
-        JsonNode value = node.path(field);
-        require(value.isInt() && value.asInt() >= 0, field);
-        return value.asInt();
     }
 
     public record ActionAccess(boolean queryAllowed, boolean manageAllowed, boolean owner, boolean projectEditable) { }

@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalRoleCandidatePort;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.*;
@@ -8,7 +10,6 @@ import cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCalculator;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.CutoverSpareQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.view.CutoverSpareViews;
@@ -30,9 +31,14 @@ class CutoverApprovalQueryServiceTest {
         when(f.instances.selectCurrentByTask(any())).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
         when(f.nodes.selectList(any())).thenReturn(List.of());
-        when(f.scopes.inspect(1L, 20L, 33L, "ACTION_VIEW")).thenReturn(scope(33L, "ACTION_VIEW"));
+        when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(33L)
+                .requiredAction("ACTION_VIEW")
+                .build())).thenReturn(scope(33L, "ACTION_VIEW"));
 
-        var view = f.service.detail(1L, 10L, 33L, true, false);
+        var view = f.service.detail(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 33L, "query-test", true, true, false), 10L);
 
         assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalFinalResult.class,
                 result -> assertThat(result.viewMode()).isEqualTo("FINAL_RESULT_ONLY"));
@@ -46,7 +52,7 @@ class CutoverApprovalQueryServiceTest {
         when(f.tasks.selectById(10L)).thenReturn(task());
         when(f.nodes.selectList(any())).thenReturn(List.of(node()));
 
-        var commandContext = f.service.reassignmentCommandContext(1L, 10L, 99L);
+        var commandContext = f.service.reassignmentCommandContext(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 99L, "query-test", false, false, true), 10L);
         var view = commandContext.view();
 
         assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalReassignmentView.class, result -> {
@@ -71,9 +77,14 @@ class CutoverApprovalQueryServiceTest {
         when(f.nodes.selectTodoPage(any())).thenReturn(List.of(node));
         when(f.nodes.selectTodoProjectionPage(any())).thenReturn(List.of(row));
         when(f.instances.selectById(100L)).thenReturn(root("PENDING"));
-        when(f.scopes.inspect(1L, 20L, 11L, "ACTION_EDIT")).thenReturn(scope(11L, "ACTION_EDIT"));
+        when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(11L)
+                .requiredAction("ACTION_EDIT")
+                .build())).thenReturn(scope(11L, "ACTION_EDIT"));
 
-        var page = f.service.myTodos(1L, 11L, 1, 20);
+        var page = f.service.myTodos(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 11L, "query-test", true, true, false), new cn.iocoder.yudao.framework.common.pojo.PageParam());
 
         assertThat(page.total()).isEqualTo(1);
         assertThat(page.list()).singleElement().extracting(CutoverApprovalViews.TodoItem::taskCode)
@@ -81,7 +92,7 @@ class CutoverApprovalQueryServiceTest {
     }
 
     @Test
-    void returnsSecondLineTodoOnlyWhenFullCandidateIntersectionIsUnique() {
+    void returnsSecondLineTodoByCurrentSelectedPersonProjectScope() {
         Fixture f = new Fixture();
         CutoverApprovalNodeDO node = node(); node.setNodeCode("SECOND_LINE"); node.setCurrentApproverUserId(22L);
         ApprovalTodoPageRow row = new ApprovalTodoPageRow();
@@ -91,19 +102,43 @@ class CutoverApprovalQueryServiceTest {
         when(f.nodes.selectTodoPage(any())).thenReturn(List.of(node));
         when(f.nodes.selectTodoProjectionPage(any())).thenReturn(List.of(row));
         when(f.instances.selectById(100L)).thenReturn(root("PENDING"));
-        when(f.candidates.inspectCandidates(1L, "CUT_SECOND_LINE_APPROVER")).thenReturn(
-                new CutoverApprovalRoleCandidatePort.CandidateSet(1L, "CUT_SECOND_LINE_APPROVER", List.of(
-                        new CutoverApprovalRoleCandidatePort.Candidate(22L, 2L, 1L, 1L),
-                        new CutoverApprovalRoleCandidatePort.Candidate(23L, 2L, 1L, 1L))));
-        when(f.scopes.inspect(1L, 20L, 22L, "ACTION_VIEW")).thenReturn(scope(22L, "ACTION_VIEW"));
-        when(f.scopes.inspect(1L, 20L, 23L, "ACTION_VIEW")).thenReturn(
+        cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.apply(node,
+                cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.personalRole(
+                cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.PersonalRole.builder()
+                .role(new CutoverApprovalRoleCandidatePort.RoleReference(1L, 2L, "CUT_SECOND_LINE_APPROVER"))
+                .scope(scope(22L, "ACTION_VIEW")).build()));
+        when(f.candidates.inspectActor(any())).thenAnswer(invocation -> {
+            CutoverApprovalRoleCandidatePort.ActorQuery query = invocation.getArgument(0);
+            return List.of(new CutoverApprovalRoleCandidatePort.ActorMembership(
+                    new CutoverApprovalRoleCandidatePort.RoleReference(query.tenantId(), 2L, "CUT_SECOND_LINE_APPROVER"),
+                    new CutoverApprovalRoleCandidatePort.Candidate(query.actorId(), 2L, 1L, 1L)));
+        });
+        when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(22L)
+                .requiredAction("ACTION_VIEW")
+                .build())).thenReturn(scope(22L, "ACTION_VIEW"));
+        when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(23L)
+                .requiredAction("ACTION_VIEW")
+                .build())).thenReturn(
                 new CutoverApprovalProjectScopePort.ProjectScopeFact(1L, 20L, 23L, "ACTION_VIEW", false, 7L));
 
-        var page = f.service.myTodos(1L, 22L, 1, 20);
+        var page = f.service.myTodos(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 22L, "query-test", true, true, false), new cn.iocoder.yudao.framework.common.pojo.PageParam());
 
         assertThat(page.list()).singleElement().extracting(CutoverApprovalViews.TodoItem::nodeCode)
                 .isEqualTo("SECOND_LINE");
-        verify(f.scopes).inspect(1L, 20L, 23L, "ACTION_VIEW");
+        verify(f.scopes).inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L).projectId(20L).subjectUserId(22L).requiredAction("ACTION_VIEW").build());
+        verify(f.scopes, never()).inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(23L)
+                .requiredAction("ACTION_VIEW")
+                .build());
     }
 
     @Test
@@ -118,7 +153,7 @@ class CutoverApprovalQueryServiceTest {
         when(f.nodes.selectList(any())).thenReturn(List.of(decided, next));
         when(f.reviews.selectList(any())).thenReturn(List.of());
 
-        var response = f.service.decisionResponse(1L, 10L, 100L, 1, 11L);
+        var response = f.service.decisionResponse(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 11L, "query-test", true, true, false), new cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult(1L, 100L, 1L, 10L, 5L, 70L, 1, "PENDING", null, 1, 2, "P5", "APPROVING", null));
 
         assertThat(response.approvalInstanceId()).isEqualTo(100L);
         assertThat(response.currentNodeNo()).isEqualTo(2);
@@ -131,17 +166,23 @@ class CutoverApprovalQueryServiceTest {
     void returnsFrozenLeadTimeOnlyFromFullProjection() {
         Fixture f = new Fixture();
         CutoverApprovalInstanceDO root = root("PENDING");
-        root.setLeadTimeEnabled(true);
-        root.setLeadTimeSnapshot(new CutoverLeadTimeSnapshotCodec().encode(new CutoverLeadTimeCalculator().calculate(
+        root.setGradeCode("A"); root.setSourceCutoverTypeCode("SIGNATURE_UPGRADE");
+        root.setSourceScheduleTime(LocalDateTime.of(2026, 9, 2, 8, 0));
+        CutoverApprovalStorage.applyLeadTime(root, new CutoverLeadTimeCalculator().calculate(
                 "A", "SIGNATURE_UPGRADE", LocalDateTime.of(2026, 9, 2, 8, 0),
-                LocalDateTime.of(2026, 9, 2, 18, 0))));
+                LocalDateTime.of(2026, 9, 2, 18, 0)));
         when(f.instances.selectCurrentByTask(any())).thenReturn(root);
         when(f.tasks.selectById(10L)).thenReturn(task());
         when(f.nodes.selectList(any())).thenReturn(List.of());
         when(f.reviews.selectList(any())).thenReturn(List.of());
-        when(f.scopes.inspect(1L, 20L, 11L, "ACTION_VIEW")).thenReturn(scope(11L, "ACTION_VIEW"));
+        when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(11L)
+                .requiredAction("ACTION_VIEW")
+                .build())).thenReturn(scope(11L, "ACTION_VIEW"));
 
-        var view = f.service.detail(1L, 10L, 11L, true, false);
+        var view = f.service.detail(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 11L, "query-test", true, true, false), 10L);
 
         assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalDetail.class, detail -> {
             assertThat(detail.leadTimeCompliance()).isNotNull();
@@ -158,7 +199,12 @@ class CutoverApprovalQueryServiceTest {
         when(f.tasks.selectById(10L)).thenReturn(task());
         when(f.nodes.selectList(any())).thenReturn(List.of());
         when(f.reviews.selectList(any())).thenReturn(List.of());
-        when(f.scopes.inspect(1L, 20L, 11L, "ACTION_VIEW")).thenReturn(scope(11L, "ACTION_VIEW"));
+        when(f.scopes.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(1L)
+                .projectId(20L)
+                .subjectUserId(11L)
+                .requiredAction("ACTION_VIEW")
+                .build())).thenReturn(scope(11L, "ACTION_VIEW"));
         var summary = new CutoverSpareViews.ApprovalSummary(true,
                 List.of(new CutoverSpareViews.ApplicationApprovalSummary("EXTERNAL_REFERENCED", "SPARE", "APP-1",
                         "PROCESSING", LocalDateTime.of(2026, 9, 2, 8, 0), null)),
@@ -166,7 +212,7 @@ class CutoverApprovalQueryServiceTest {
                         LocalDateTime.of(2026, 9, 2, 8, 1))));
         when(f.spare.approvalSummary(1L, 10L, 11L)).thenReturn(summary);
 
-        var view = f.service.detail(1L, 10L, 11L, true, false);
+        var view = f.service.detail(new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(1L, 11L, "query-test", true, true, false), 10L);
 
         assertThat(view).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalDetail.class,
                 detail -> assertThat(detail.spareSupport()).isEqualTo(summary));
@@ -203,5 +249,10 @@ class CutoverApprovalQueryServiceTest {
         final CutoverSpareQueryService spare = mock(CutoverSpareQueryService.class);
         final CutoverApprovalQueryService service = new CutoverApprovalQueryService(instances, nodes, reviews, tasks,
                 managers, candidates, scopes, codec, spare);
+        Fixture() {
+            var storage = mock(CutoverApprovalStorage.class);
+            when(storage.sourceView(any())).thenReturn(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(CutoverApprovalControlledPorts.approvalSource("A")));
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
+        }
     }
 }

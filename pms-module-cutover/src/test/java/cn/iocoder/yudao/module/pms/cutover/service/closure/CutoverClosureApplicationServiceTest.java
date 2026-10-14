@@ -91,6 +91,8 @@ class CutoverClosureApplicationServiceTest {
                 planMapper, closureMapper, attachmentMapper, evidenceMapper, deviceScopeMapper, stageHistoryMapper,
                 new CutoverClosureControlledPorts.ProjectScopes(10L, 5L),
                 new CutoverClosureControlledPorts.Files(), collections, new DirectPlatform(), clock);
+        var storage = mock(CutoverClosureStorage.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
 
         service.requestCollection(new RequestClosureCollectionCommand(1L, 9L, 100L, 7L, 400L, 0L,
                 11L, CollectionStage.POST_COLLECTION, new SavedCredential(71L, 3L),
@@ -182,6 +184,8 @@ class CutoverClosureApplicationServiceTest {
                 new CutoverClosureControlledPorts.Files(), new CutoverClosureControlledPorts.Collections(
                 Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC)), platform,
                 Clock.fixed(Instant.parse("2026-09-02T00:00:00Z"), ZoneOffset.UTC));
+        var storage = mock(CutoverClosureStorage.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
 
         CutoverClosureCommandResult created = service.save(command(null, "create-1", draft("first", oneAttachment())));
         CutoverClosureCommandResult saved = service.save(command(0, "save-1", draft("second", twoAttachments())));
@@ -191,7 +195,13 @@ class CutoverClosureApplicationServiceTest {
         assertThat(closure.get().getApprovalInstanceId()).isEqualTo(200L);
         assertThat(closure.get().getPlanRevisionId()).isEqualTo(300L);
         assertThat(closure.get().getTaskVersionAtP6()).isEqualTo(7);
-        assertThat(closure.get().getDeviceScopeWatermark()).isEqualTo("{\"devices\":[11]}");
+        var freeze = org.mockito.ArgumentCaptor.forClass(CutoverClosureStorage.Freeze.class);
+        var order = org.mockito.Mockito.inOrder(closureMapper, storage);
+        order.verify(closureMapper).insert(any(CutoverClosureDO.class));
+        order.verify(storage).freeze(freeze.capture());
+        assertThat(freeze.getValue().source()).isEqualTo(new CutoverClosureStorage.Source(closure.get(), task));
+        assertThat(freeze.getValue().actorId()).isEqualTo(9L);
+        org.mockito.Mockito.verify(storage).requireSame(new CutoverClosureStorage.Source(closure.get(), task));
         assertThat(closure.get().getLegacyItems()).isEqualTo("second");
         assertThat(attachments).extracting(CutoverClosureAttachmentDO::getPurposeCode)
                 .containsExactly("IMPLEMENTATION_COMMITMENT", "POST_COLLECTION_CHECKLIST");
@@ -225,7 +235,7 @@ class CutoverClosureApplicationServiceTest {
         CutoverTaskDO row = new CutoverTaskDO();
         row.setId(100L); row.setTenantId(1L); row.setProjectId(10L); row.setTaskOrigin("NEW_PLATFORM");
         row.setCurrentStage("P6"); row.setTaskStatus("CLOSURE_IN_PROGRESS"); row.setOwnerUserId(9L);
-        row.setProjectScopeVersion(5L); row.setDeviceScopeWatermark("{\"devices\":[11]}"); row.setVersion(7L);
+        row.setProjectScopeVersion(5L); row.setVersion(7L);
         return row;
     }
 

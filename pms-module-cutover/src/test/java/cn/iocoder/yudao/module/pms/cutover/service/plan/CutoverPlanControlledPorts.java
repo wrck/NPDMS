@@ -10,9 +10,24 @@ public final class CutoverPlanControlledPorts {
         private final FileFact fact;
         public int inspections;
         public FilePort(FileFact fact) { this.fact = fact; }
-        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) { inspections++; return fact; }
-        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) { return fact; }
-        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { return fact; }
+        @Override public FileFact inspect(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+ inspections++; return fact; }
+        @Override public FileFact lockAndRevalidate(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+ return fact; }
+        @Override public FileFact downloadDraft(CutoverPlanFilePort.DraftQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        Long planRevisionId = query.planRevisionId();
+ return fact; }
     }
 
     public static final class SourcePort implements CutoverPlanSourcePort {

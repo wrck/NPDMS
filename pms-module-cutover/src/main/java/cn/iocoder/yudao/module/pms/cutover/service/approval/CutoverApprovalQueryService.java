@@ -1,5 +1,10 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import jakarta.annotation.Resource;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.*;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
@@ -12,12 +17,12 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.port.*;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalEligibilityPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeSnapshotCodec;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardCandidate;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.policy.CutoverP5ActionPolicy;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.CutoverSpareQueryService;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 import java.util.*;
 
 import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.*;
@@ -25,9 +30,11 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprov
 /** P5审批只读编排；生产Bean留待Owner依赖接通。 */
 public class CutoverApprovalQueryService {
     private static final CutoverP5ActionPolicy ACTION_POLICY = new CutoverP5ActionPolicy();
-    private static final CutoverLeadTimeSnapshotCodec LEAD_TIME_CODEC = new CutoverLeadTimeSnapshotCodec();
     private static final int SCAN_SIZE = 100;
     private static final List<String> REVIEW_ORDER = List.of("PREPARATION", "BUSINESS_TEST", "EXECUTION", "ROLLBACK", "OTHER");
+
+    @Resource
+    private CutoverApprovalStorage storage;
 
     private final CutoverApprovalInstanceMapper instanceMapper;
     private final CutoverApprovalNodeMapper nodeMapper;
@@ -63,8 +70,8 @@ public class CutoverApprovalQueryService {
                 projectScopePort, LocalDateTime::now);
     }
 
-    public CutoverApprovalViews.ApprovalView detail(long tenantId, long taskId, long actorId,
-                                                     boolean queryPermission, boolean reassignPermission) {
+    public CutoverApprovalViews.ApprovalView detail(CutoverApprovalContext context, long taskId) {
+        long tenantId = context.tenantId(); long actorId = context.actorId();
         require(tenantId > 0 && taskId > 0 && actorId > 0, INVALID_REQUEST, "审批详情身份非法");
         CutoverApprovalInstanceDO root = instanceMapper.selectCurrentByTask(new ApprovalTaskQuery(tenantId, taskId));
         require(root != null, STATE_CONFLICT, "审批实例不存在");
@@ -73,26 +80,32 @@ public class CutoverApprovalQueryService {
         List<CutoverApprovalNodeDO> nodes = nodes(tenantId, root.getId());
         CutoverApprovalNodeDO current = nodes.stream()
                 .filter(node -> Objects.equals(node.getNodeNo(), root.getCurrentNodeNo())).findFirst().orElse(null);
-        boolean projectView = queryPermission && projectScopePort.inspect(tenantId, root.getProjectId(), actorId,
-                "ACTION_VIEW").allowed();
+        boolean projectView = context.canQuery() && projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
+                .tenantId(tenantId)
+                .projectId(root.getProjectId())
+                .subjectUserId(actorId)
+                .requiredAction("ACTION_VIEW")
+                .build()).allowed();
         boolean full = projectView && Objects.equals(root.getInitiatorUserId(), actorId);
         boolean currentEligible = false;
-        if (!full && queryPermission && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
+        if (!full && context.canQuery() && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
             full = currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         else if (full && current != null && Objects.equals(current.getCurrentApproverUserId(), actorId))
             currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         if (full) return full(root, task, nodes, current, currentEligible, actorId);
         if (projectView && List.of("APPROVED", "REJECTED").contains(root.getStatusCode())) return finalResult(root);
-        if (reassignPermission && "PENDING".equals(root.getStatusCode())) return reassignment(root, task, nodes);
+        if (context.canReassign() && "PENDING".equals(root.getStatusCode())) return reassignment(root, task, nodes);
         throw failure(STATE_CONFLICT, "审批详情不可见");
     }
 
-    public CutoverApprovalViews.Page<CutoverApprovalViews.TodoItem> myTodos(long tenantId, long actorId,
-                                                                            int pageNo, int pageSize) {
-        page(tenantId, actorId, pageNo, pageSize);
+    public CutoverApprovalViews.Page<CutoverApprovalViews.TodoItem> myTodos(CutoverApprovalContext context, PageParam pagination) {
+        page(context, pagination);
+        long tenantId = context.tenantId(); long actorId = context.actorId();
+        int pageNo = pagination.getPageNo(); int pageSize = pagination.getPageSize();
         List<CutoverApprovalViews.TodoItem> eligible = new ArrayList<>();
         for (int offset = 0; ; offset += SCAN_SIZE) {
-            ApprovalTodoPageQuery query = new ApprovalTodoPageQuery(tenantId, actorId, offset, SCAN_SIZE);
+            ApprovalTodoPageQuery query = ApprovalTodoPageQuery.builder().tenantId(tenantId).currentUserId(actorId)
+                    .offset(offset).pageSize(SCAN_SIZE).candidateRoleIds(Set.of()).build();
             List<CutoverApprovalNodeDO> nodes = nodeMapper.selectTodoPage(query);
             List<ApprovalTodoPageRow> rows = nodeMapper.selectTodoProjectionPage(query);
             require(nodes.size() == rows.size(), OWNER_DATA_CORRUPTED, "待办投影身份损坏");
@@ -116,8 +129,10 @@ public class CutoverApprovalQueryService {
     }
 
     public CutoverApprovalViews.Page<CutoverApprovalViews.ReassignmentCandidate> reassignmentCandidates(
-            long tenantId, int pageNo, int pageSize) {
-        page(tenantId, 1L, pageNo, pageSize);
+            CutoverApprovalContext context, PageParam pagination) {
+        page(context, pagination);
+        long tenantId = context.tenantId();
+        int pageNo = pagination.getPageNo(); int pageSize = pagination.getPageSize();
         ApprovalReassignmentPageQuery query = new ApprovalReassignmentPageQuery(tenantId,
                 (pageNo - 1) * pageSize, pageSize);
         List<ApprovalReassignmentPageRow> rows = nodeMapper.selectReassignmentProjectionPage(query);
@@ -125,16 +140,22 @@ public class CutoverApprovalQueryService {
                 nodeMapper.countReassignmentCandidates(query), pageNo, pageSize);
     }
 
-    public ReassignmentCommandContext reassignmentCommandContext(long tenantId, long taskId, long actorId) {
-        CutoverApprovalViews.ApprovalView view = detail(tenantId, taskId, actorId, false, true);
+    public ReassignmentCommandContext reassignmentCommandContext(CutoverApprovalContext context, long taskId) {
+        long tenantId = context.tenantId();
+        var reassignmentAccess = new CutoverApprovalContext(tenantId, context.actorId(), context.correlationId(),
+                false, false, context.canReassign());
+        CutoverApprovalViews.ApprovalView view = detail(reassignmentAccess, taskId);
         require(view instanceof CutoverApprovalViews.ApprovalReassignmentView, STATE_CONFLICT, "审批不可改派");
         CutoverTaskDO task = taskMapper.selectById(taskId);
         require(task != null && Objects.equals(task.getTenantId(), tenantId), OWNER_DATA_CORRUPTED, "审批任务缺失");
         return new ReassignmentCommandContext((CutoverApprovalViews.ApprovalReassignmentView) view, task.getVersion());
     }
 
-    public CutoverApprovalViews.ApprovalDetail decisionResponse(long tenantId, long taskId,
-            long approvalInstanceId, int decidedNodeNo, long actorId) {
+    public CutoverApprovalViews.ApprovalDetail decisionResponse(CutoverApprovalContext context,
+            CutoverApprovalDecisionResult result) {
+        long tenantId = context.tenantId(); long actorId = context.actorId();
+        long taskId = result.taskId(); long approvalInstanceId = result.approvalInstanceId();
+        int decidedNodeNo = result.decidedNodeNo();
         require(tenantId > 0 && taskId > 0 && approvalInstanceId > 0 && decidedNodeNo > 0 && actorId > 0,
                 INVALID_REQUEST, "审批结果身份非法");
         CutoverApprovalInstanceDO root = instanceMapper.selectById(approvalInstanceId);
@@ -173,21 +194,14 @@ public class CutoverApprovalQueryService {
                 task.getVersion(), root.getPlanRevisionId(), root.getPlanRevisionNo(), root.getGradeCode(),
                 root.getStatusCode(), root.getHoldReasonCode(), root.getCurrentNodeNo(),
                 nodes.stream().map(node -> node(node, reviews.getOrDefault(node.getId(), List.of()))).toList(),
-                snapshotCodec.decode(root.getSourceSnapshot()), leadTime(root), root.getDecisionAt(),
+                snapshotCodec.decode(storage.sourceView(root)), leadTime(root), root.getDecisionAt(),
                 root.getRejectionReason(), spareQueryService == null ? null
                         : spareQueryService.approvalSummary(root.getTenantId(), root.getTaskId(), viewerId), actions);
     }
 
     private static CutoverLeadTimeCompliance leadTime(CutoverApprovalInstanceDO root) {
-        if (Boolean.FALSE.equals(root.getLeadTimeEnabled())) {
-            require(root.getLeadTimeSnapshot() == null, OWNER_DATA_CORRUPTED, "禁用提前时间的审批根包含快照");
-            return null;
-        }
-        require(Boolean.TRUE.equals(root.getLeadTimeEnabled()) && List.of("A", "B").contains(root.getGradeCode())
-                        && root.getLeadTimeSnapshot() != null,
-                OWNER_DATA_CORRUPTED, "审批提前时间根字段损坏");
         try {
-            return LEAD_TIME_CODEC.decode(root.getLeadTimeSnapshot());
+            return CutoverApprovalStorage.leadTime(root);
         } catch (IllegalArgumentException exception) {
             throw failure(OWNER_DATA_CORRUPTED, "审批提前时间快照损坏");
         }
@@ -239,8 +253,9 @@ public class CutoverApprovalQueryService {
                 row.getHoldReason(), row.getNodeId(), row.getNodeNo(), row.getNodeCode(), row.getNodeStatus(),
                 row.getCurrentApproverUserId(), row.getNodeVersion(), row.getCreatedAt());
     }
-    private static void page(long tenantId, long actorId, int pageNo, int pageSize) {
-        require(tenantId > 0 && actorId > 0 && pageNo > 0 && pageSize > 0 && pageSize <= 100,
+    private static void page(CutoverApprovalContext context, PageParam pagination) {
+        require(context.tenantId() > 0 && context.actorId() > 0 && pagination.getPageNo() > 0
+                        && pagination.getPageSize() > 0 && pagination.getPageSize() <= 100,
                 INVALID_REQUEST, "审批分页参数非法");
     }
     private static void require(boolean condition, CutoverApprovalApplicationException.Code code, String message) {

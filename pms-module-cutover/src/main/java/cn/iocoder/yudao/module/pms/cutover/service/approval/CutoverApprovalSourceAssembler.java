@@ -1,5 +1,11 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanStorage;
+import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCustomResultStore;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistResultStore;
+import jakarta.annotation.Resource;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.CutoverTaskSnapshotStore;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.api.approval.dto.CutoverApprovalStartCommand;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO;
@@ -44,6 +50,15 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprov
 /** 从同一CUT事务内已锁定的P2/P3/P4事实组装审批不可变来源。 */
 public class CutoverApprovalSourceAssembler {
     private static final long MAX_SAFE_WIRE_LONG = 9_007_199_254_740_991L;
+    @Resource
+    private CutoverPlanStorage planStorage;
+    @Resource
+    private CutoverChecklistResultStore checklistResults;
+    @Resource
+    private CutoverCustomResultStore customResults;
+    @Resource
+    private CutoverFieldDefinitionStore fieldDefinitions;
+
     private final CutoverTaskMapper taskMapper;
     private final CutoverAssessmentMapper assessmentMapper;
     private final CutoverChecklistMapper checklistMapper;
@@ -107,11 +122,9 @@ public class CutoverApprovalSourceAssembler {
                 && Objects.equals(plan.getRevisionNo(), command.planRevisionNo())
                 && Objects.equals(plan.getGradeCode(), command.grade()), SOURCE_STALE, "P4方案事实已变化");
 
-        CutoverProjectContextPort.ProjectContextFact project = JsonUtils.parseObject(
-                task.getProjectContextSnapshot(), CutoverProjectContextPort.ProjectContextFact.class);
-        CutoverAssessmentAnswers answers = JsonUtils.parseObject(assessment.getAnswerSnapshot(), CutoverAssessmentAnswers.class);
-        JsonNode context = JsonUtils.parseTree(assessment.getContextSnapshot());
-        String serviceLevel = context.path("customerServiceLevel").path("serviceLevelCode").asText();
+        CutoverProjectContextPort.ProjectContextFact project = CutoverTaskSnapshotStore.project(task);
+        CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
+        String serviceLevel = assessment.getServiceLevelCode() == null ? "" : assessment.getServiceLevelCode();
         ApprovalSourceSnapshot snapshot = new ApprovalSourceSnapshot(command.sourceSnapshotVersion(), task.getId(),
                 task.getVersion(), command.checklistId(), command.checklistVersion(),
                 new ProjectApprovalSnapshot(project.projectId(), project.projectVersion(), project.projectCode(),
@@ -127,12 +140,12 @@ public class CutoverApprovalSourceAssembler {
                         serviceLevel, assessment.getManualGrade(), assessment.getSubmittedBy(),
                         assessment.getSubmittedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()),
                 new PlanApprovalSnapshot(plan.getId(), plan.getRevisionNo(), plan.getVersion(),
-                        normalizedPlanSource(plan.getSourceSnapshot()), completePlanContent(task.getTenantId(), plan)));
+                        normalizedPlanSource(plan), completePlanContent(task.getTenantId(), plan)));
         return new LockedSource(task, assessment, checklist, plan, codec.encode(snapshot));
     }
 
-    private JsonNode normalizedPlanSource(String sourceSnapshot) {
-        ObjectNode source = (ObjectNode) JsonUtils.parseTree(sourceSnapshot);
+    private JsonNode normalizedPlanSource(CutoverPlanRevisionDO plan) {
+        ObjectNode source = (ObjectNode) planStorage.sourceView(plan);
         if (!source.has("checklistId")) source.putNull("checklistId");
         if (!source.has("checklistVersion")) source.putNull("checklistVersion");
         return source;
@@ -146,13 +159,13 @@ public class CutoverApprovalSourceAssembler {
             putWireLong(file, "artifactId", plan.getFileArtifactId());
             file.put("versionNo", plan.getFileVersionNo());
             file.put("referenceKey", plan.getFileReferenceKey());
-            file.set("fileFactVersion", JsonUtils.parseTree(plan.getFileFactVersion()));
+            file.set("fileFactVersion", JsonUtils.getObjectMapper().valueToTree(CutoverPlanStorage.fileVersion(plan)));
             putWireLong(file, "scopeVersion", plan.getFileScopeVersion());
             file.put("sha256", plan.getFileSha256());
             content.put("ownershipConfirmed", Boolean.TRUE.equals(plan.getOwnershipConfirmed()));
             return content;
         }
-        ObjectNode content = (ObjectNode) JsonUtils.parseTree(plan.getContentSnapshot());
+        ObjectNode content = planStorage.content(plan);
         CutoverPlanChildrenQuery query = new CutoverPlanChildrenQuery(tenantId, plan.getId());
         var steps = content.putArray("steps");
         for (CutoverPlanStepDO row : stepMapper.selectListByPlanForUpdate(query)) {
@@ -177,13 +190,15 @@ public class CutoverApprovalSourceAssembler {
         else node.put(field, Long.toString(value));
     }
 
-    private static ChecklistResultSnapshot snapshot(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {
+    private ChecklistResultSnapshot snapshot(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) {
+        item = fieldDefinitions.withSchema(item);
+        var manualFile = "MANUAL".equals(result.getResultSourceCode()) ? customResults.manualFile(result) : null;
         return new ChecklistResultSnapshot(item.getId(), item.getStableItemKey(), item.getItemDefinitionId(),
                 item.getItemDefinitionVersion(), item.getItemTypeCode(), item.getItemName(),
                 Boolean.TRUE.equals(item.getRequiredFlag()), result.getResultVersion(), result.getResultSourceCode(),
-                result.getAnswerSnapshot(), result.getFactDescription(), result.getCollectionTaskId(),
+                checklistResults.answer(new CutoverChecklistResultStore.Read(item, result)), result.getFactDescription(), result.getCollectionTaskId(),
                 result.getCollectionResultReferenceId(), result.getCollectionResultVersion(),
-                result.getExternalSourceCode(), result.getManualEvidenceFileReference());
+                result.getExternalSourceCode(), manualFile == null ? null : manualFile.referenceKey());
     }
 
     private static void require(boolean condition, CutoverApprovalApplicationException.Code code, String message) {

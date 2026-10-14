@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -42,7 +43,8 @@ class CutoverSpareQueryServiceTest {
                 .containsExactly("ASSESSMENT", "CHECKLIST_RISK");
         assertThat(detail.allowedActions()).containsExactly("INITIATE", "REFRESH", "ADD_EVIDENCE");
         assertThat(detail.applications()).singleElement().satisfies(view -> {
-            assertThat(view.currentStatus().snapshot()).containsEntry("progress", 60);
+            assertThat(view.currentStatus().externalStatusRaw()).isEqualTo("PROCESSING");
+            assertThat(view.currentStatus().sourceType()).isEqualTo("CALLBACK");
             assertThat(view.requestId()).isEqualTo("REQ-1");
         });
         assertThat(detail.manualEvidence()).singleElement().satisfies(view -> {
@@ -68,6 +70,19 @@ class CutoverSpareQueryServiceTest {
         verifyNoInteractions(f.assessments, f.items, f.filePort);
     }
 
+    @Test
+    void missingStructuredFileWatermarkCannotUseTheLegacyJson() {
+        Fixture f = new Fixture();
+        when(f.tasks.selectById(10L)).thenReturn(task());
+        var row = evidence(); row.setFileReferenceFactVersion(null);
+        row.setFileFactVersion("{\"artifactVersion\":1,\"referenceVersion\":2,\"availabilityVersion\":3}");
+        when(f.evidence.selectByTask(any())).thenReturn(List.of(row));
+        assertThatThrownBy(() -> f.service.detail(1L, 10L, 11L,
+                new CutoverSpareQueryService.ActionAccess(true, false, false, false)))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("file fact version");
+        verifyNoInteractions(f.filePort);
+    }
+
     private static CutoverTaskDO task() {
         CutoverTaskDO row = new CutoverTaskDO(); row.setId(10L); row.setTenantId(1L); row.setProjectId(20L);
         row.setVersion(4L); return row;
@@ -76,9 +91,7 @@ class CutoverSpareQueryServiceTest {
     private static CutoverAssessmentDO assessment() {
         CutoverAssessmentDO row = new CutoverAssessmentDO(); row.setId(30L); row.setTenantId(1L);
         row.setCutoverTaskId(10L); row.setAssessmentVersion(2L); row.setAssessmentStatus("SUBMITTED");
-        row.setCurrentMarker(1); row.setAnswerSnapshot("{\"businessImportanceLevel\":\"HIGH\","
-                + "\"operationComplexityLevel\":\"MEDIUM\",\"hiddenRiskLevel\":\"LOW\","
-                + "\"sparePartApplied\":true}"); return row;
+        row.setCurrentMarker(1); row.setSparePartAppliedFlag(true); return row;
     }
 
     private static CutoverChecklistDO checklist() {
@@ -112,7 +125,7 @@ class CutoverSpareQueryServiceTest {
         CutoverSpareManualEvidenceDO row = new CutoverSpareManualEvidenceDO(); row.setId(60L); row.setTenantId(1L);
         row.setCutoverTaskId(10L); row.setApplicationReferenceId(50L); row.setFileArtifactId(70L);
         row.setFileReferenceKey("ref-1"); row.setFileVersionNo(1);
-        row.setFileFactVersion("{\"artifactVersion\":1,\"referenceVersion\":2,\"availabilityVersion\":3}");
+        row.setFileArtifactFactVersion(1L); row.setFileReferenceFactVersion(2L); row.setFileAvailabilityFactVersion(3L);
         row.setFileScopeVersion(4L); row.setDescription("现场签收"); row.setUploadedBy(11L);
         row.setCreatedAt(LocalDateTime.of(2026, 9, 2, 8, 2)); return row;
     }

@@ -10,7 +10,7 @@ import java.util.List;
 public interface CutoverDashboardCandidateMapper {
 
     default List<CutoverDashboardCandidateRow> selectBatch(CutoverDashboardCandidateQuery query) {
-        if (query.visibleProjectIds().isEmpty()) {
+        if (query.visibleProjectIds().isEmpty() && query.approvalTaskIds().isEmpty()) {
             return List.of();
         }
         return selectBatchScoped(query);

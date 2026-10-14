@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import lombok.Builder;
+
 public final class CutoverClosureContractException extends RuntimeException {
     private final int httpStatus;
     private final int errorCode;
@@ -16,6 +18,7 @@ public final class CutoverClosureContractException extends RuntimeException {
     public int errorCode() { return errorCode; }
     public ErrorData errorData() { return errorData; }
 
+    @Builder
     public record ErrorData(String category, String reasonCode, String recoveryAction,
                             String ownerContext, Long currentTaskVersion,
                             Long currentClosureVersion) {

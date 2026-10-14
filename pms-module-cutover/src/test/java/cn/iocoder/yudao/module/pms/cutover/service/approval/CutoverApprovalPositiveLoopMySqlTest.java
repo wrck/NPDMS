@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.approval;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
+import cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort;
 import cn.hutool.extra.spring.SpringUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.datasource.config.YudaoDataSourceAutoConfiguration;
@@ -338,9 +340,20 @@ class CutoverApprovalPositiveLoopMySqlTest {
         task.setIntakeSourceType("SELF_CREATED"); task.setCurrentStage("P4"); task.setTaskStatus("PLAN_DRAFTING");
         task.setOwnerUserId(8L); task.setCustomerId(99L); task.setImplementationReadinessSnapshotId(7L);
         task.setImplementationReadinessSnapshotVersion(1L); task.setProjectScopeVersion(30L);
-        task.setProjectContextSnapshot(JsonUtils.toJsonString(new CutoverProjectContextPort.ProjectContextFact(
-                tenantId, projectId(), 6, "PRJ-1", "割接项目", 99L, "CUS-1", "客户",
-                88L, "OFF-1", "交付部", 30L)));
+        task.setProjectContextSnapshot(JsonUtils.toJsonString(CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(tenantId)
+                .projectId(projectId())
+                .projectVersion(6)
+                .projectCode("PRJ-1")
+                .projectName("割接项目")
+                .customerId(99L)
+                .customerCode("CUS-1")
+                .customerName("客户")
+                .departmentId(88L)
+                .departmentCode("OFF-1")
+                .departmentName("交付部")
+                .projectScopeVersion(30L)
+                .build()));
         task.setDeviceScopeWatermark("{}"); task.setCustomerContextSnapshot("{}");
         task.setReadinessContextSnapshot("{}"); task.setManualGrade(grade); task.setConfigurationRevisionId(401L);
         task.setConfigurationCode("CFG-1"); task.setConfigurationRevisionNo(1); task.setVersion(4L);
@@ -444,21 +457,47 @@ class CutoverApprovalPositiveLoopMySqlTest {
                     s.configurationCode(), s.configurationRevisionNo(), s.templateSections(), s.failedRiskFacts()), List.of());
         }
         @Override public ProjectScopeFact inspect(Long actorId, Long projectId, String action) { return new ProjectScopeFact(projectId, 30L, true); }
-        @Override public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action, long expected) { return new ProjectScopeFact(projectId, 30L, true); }
+        @Override public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expected = query.expectedProjectScopeVersion();
+ return new ProjectScopeFact(projectId, 30L, true); }
         @Override public Set<Long> resolveAllCurrent(Long actorId, String action) { return Set.of(projectId); }
         @Override public SourceFacts inspect(Long tenantId, Long actorId, Long taskId) { return facts; }
         @Override public SourceFacts lockAndRevalidate(Long tenantId, Long actorId, SourceFacts expected) { return facts; }
         FileFact fileFact() {
-            return new FileFact(501L, 1, "cut-plan-upload-1", new FileFactVersion(1, 1, 1),
-                    1L, "a".repeat(64));
+            return FileFact.builder()
+                    .artifactId(501L)
+                    .versionNo(1)
+                    .referenceKey("cut-plan-upload-1")
+                    .fileFactVersion(new FileFactVersion(1, 1, 1))
+                    .scopeVersion(1L)
+                    .sha256("a".repeat(64))
+                    .build();
         }
-        @Override public FileFact inspect(Long tenantId, Long actorId, Long projectId, FileHandle handle) {
+        @Override public FileFact inspect(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+
             return fileFact();
         }
-        @Override public FileFact lockAndRevalidate(Long tenantId, Long actorId, Long projectId, FileHandle handle) {
+        @Override public FileFact lockAndRevalidate(CutoverPlanFilePort.FileQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        FileHandle handle = query.handle();
+
             return fileFact();
         }
-        @Override public FileFact downloadDraft(Long tenantId, Long actorId, Long projectId, Long planRevisionId) {
+        @Override public FileFact downloadDraft(CutoverPlanFilePort.DraftQuery query) {
+        Long tenantId = query.tenantId();
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        Long planRevisionId = query.planRevisionId();
+
             return fileFact();
         }
     }
@@ -484,7 +523,12 @@ class CutoverApprovalPositiveLoopMySqlTest {
         @Bean CutoverApprovalRoleCandidatePort candidates() { return CutoverApprovalControlledPorts.roleCandidates(); }
         @Bean CutoverApprovalProjectScopePort approvalScope() {
             return new CutoverApprovalProjectScopePort() {
-                public ProjectScopeFact inspect(long tenant, long project, long user, String action) {
+                public ProjectScopeFact inspect(CutoverApprovalProjectScopePort.ScopeQuery query) {
+        long tenant = query.tenantId();
+        long project = query.projectId();
+        long user = query.subjectUserId();
+        String action = query.requiredAction();
+
                     boolean allowed = (user == 8L && "ACTION_EDIT".equals(action))
                             || (user == 202L && "ACTION_VIEW".equals(action));
                     return new ProjectScopeFact(tenant, project, user, action, allowed, 11L);

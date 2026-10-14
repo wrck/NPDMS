@@ -46,12 +46,37 @@ public class CutoverApprovalNotificationService {
             validateRow(tenantId, row);
             try {
                 long messageId = send(row);
-                update(row, "SENT", messageId, row.getRetryCount(), null, null, dueAt, dueAt);
+                update(ApprovalNotificationDeliveryUpdate.builder()
+                .tenantId(row.getTenantId())
+                .notificationId(row.getId())
+                .expectedVersion(row.getVersion())
+                .expectedStatusCode(row.getStatusCode())
+                .newStatusCode("SENT")
+                .messageId(messageId)
+                .retryCount(row.getRetryCount())
+                .nextRetryAt(null)
+                .lastErrorCode(null)
+                .sentAt(dueAt)
+                .updateTime(dueAt)
+                .updater("0")
+                .build());
                 sent++;
             } catch (NotificationProviderFailure failure) {
                 int nextRetryCount = row.getRetryCount() + 1;
-                update(row, "PENDING_RETRY", null, nextRetryCount,
-                        dueAt.plusMinutes(retryDelayMinutes(row.getRetryCount())), PROVIDER_FAILURE, null, dueAt);
+                update(ApprovalNotificationDeliveryUpdate.builder()
+                .tenantId(row.getTenantId())
+                .notificationId(row.getId())
+                .expectedVersion(row.getVersion())
+                .expectedStatusCode(row.getStatusCode())
+                .newStatusCode("PENDING_RETRY")
+                .messageId(null)
+                .retryCount(nextRetryCount)
+                .nextRetryAt(dueAt.plusMinutes(retryDelayMinutes(row.getRetryCount())))
+                .lastErrorCode(PROVIDER_FAILURE)
+                .sentAt(null)
+                .updateTime(dueAt)
+                .updater("0")
+                .build());
                 retried++;
             }
         }
@@ -91,12 +116,8 @@ public class CutoverApprovalNotificationService {
         }
     }
 
-    private void update(CutoverApprovalNotificationDO row, String newStatus, Long messageId,
-                        int retryCount, LocalDateTime nextRetryAt, String lastErrorCode,
-                        LocalDateTime sentAt, LocalDateTime updateTime) {
-        int updated = notificationMapper.updateDeliveryIfMatch(new ApprovalNotificationDeliveryUpdate(
-                row.getTenantId(), row.getId(), row.getVersion(), row.getStatusCode(), newStatus, messageId,
-                retryCount, nextRetryAt, lastErrorCode, sentAt, "0", updateTime));
+    private void update(ApprovalNotificationDeliveryUpdate update) {
+        int updated = notificationMapper.updateDeliveryIfMatch(update);
         require(updated == 1, "通知投递状态并发变化");
     }
 

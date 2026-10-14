@@ -11,6 +11,14 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface CutoverChecklistItemResultMapper extends BaseMapperX<CutoverChecklistItemResultDO> {
 
+    default CutoverChecklistItemResultDO selectByVersion(
+            cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistResultVersionQuery query) {
+        return selectOne(new cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX<CutoverChecklistItemResultDO>()
+                .eq(CutoverChecklistItemResultDO::getTenantId, query.tenantId())
+                .eq(CutoverChecklistItemResultDO::getChecklistItemId, query.checklistItemId())
+                .eq(CutoverChecklistItemResultDO::getResultVersion, query.resultVersion()));
+    }
+
     CutoverChecklistItemResultDO selectCurrentForUpdate(@Param("query") CutoverChecklistCurrentResultQuery query);
 
     Integer selectMaxVersion(@Param("query") CutoverChecklistCurrentResultQuery query);

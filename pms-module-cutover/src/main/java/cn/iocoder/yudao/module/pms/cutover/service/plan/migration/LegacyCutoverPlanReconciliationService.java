@@ -149,7 +149,12 @@ public class LegacyCutoverPlanReconciliationService {
         row.setCutoverTaskId(taskId);
         row.setRevisionNo(1);
         row.setOriginCode("LEGACY_FORWARD");
-        row.setSourceSnapshot(source.sourceSnapshot());
+        var evidence = cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(source.sourceSnapshot());
+        row.setLegacyTaskId(source.legacyTaskId());
+        row.setLegacyCode(evidence.path("code").asText());
+        row.setLegacyName(evidence.path("name").asText());
+        row.setLegacyGradeCode(evidence.path("level").asText());
+        row.setLegacyRemark(evidence.path("remark").isNull() ? null : evidence.path("remark").asText());
         row.setLegacyPlanId(source.legacyPlanId());
         row.setLegacyStatusRaw(source.legacyStatus());
         row.setLegacySourceVersion(source.legacyVersion());

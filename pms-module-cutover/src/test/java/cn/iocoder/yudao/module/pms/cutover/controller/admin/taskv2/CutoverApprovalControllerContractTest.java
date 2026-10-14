@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
@@ -24,6 +25,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 class CutoverApprovalControllerContractTest {
+
+    @Test
+    void rejectsAmbiguousConcurrencyHeaderBeforeExecutingDecision() throws Exception {
+        mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/approve")
+                .header("If-Match", "0", "1").header("X-Task-Version", "4")
+                .header("Idempotency-Key", "approve-duplicate-header")
+                .contentType("application/json").content(decision("APPROVE", "YES", null)))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(application);
+    }
     private CutoverApprovalApplicationService application;
     private CutoverApprovalQueryService query;
     private MockMvc mvc;
@@ -32,7 +43,7 @@ class CutoverApprovalControllerContractTest {
     void setUp() {
         application = mock(CutoverApprovalApplicationService.class);
         query = mock(CutoverApprovalQueryService.class);
-        CutoverApprovalRequestContext context = () -> new CutoverApprovalRequestContext.TrustedContext(
+        CutoverApprovalRequestContext context = () -> new CutoverApprovalContext(
                 1L, 8L, "corr-approval-1", true, true, true);
         CutoverApprovalController controller = new TestController(application, query, context,
                 new CutoverApprovalRequestCodec());
@@ -44,25 +55,23 @@ class CutoverApprovalControllerContractTest {
         assertThat(AnnotatedElementUtils.hasAnnotation(CutoverApprovalController.class, RestController.class)).isFalse();
         assertThat(AnnotatedElementUtils.hasAnnotation(CutoverApprovalController.class, Component.class)).isFalse();
         assertPermission("myTodos", "pms:cutover-task:query-approval", Integer.class, Integer.class);
-        assertPermission("approve", "pms:cutover-task:approve", Long.class, String.class, String.class,
-                String.class, tools.jackson.databind.JsonNode.class);
-        assertPermission("reassign", "pms:cutover-task:reassign-approval", Long.class, String.class,
-                String.class, tools.jackson.databind.JsonNode.class);
+        assertPermission("approve", "pms:cutover-task:approve", Long.class, org.springframework.http.HttpHeaders.class, tools.jackson.databind.JsonNode.class);
+        assertPermission("reassign", "pms:cutover-task:reassign-approval", Long.class, org.springframework.http.HttpHeaders.class, tools.jackson.databind.JsonNode.class);
     }
 
     @Test
     void servesSixPositiveRoutesWithExactHeadersAndEpochResponses() throws Exception {
         var detail = detail();
-        when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail);
-        when(query.decisionResponse(anyLong(), anyLong(), anyLong(), anyInt(), anyLong())).thenReturn(detail);
+        when(query.detail(any(), anyLong())).thenReturn(detail);
+        when(query.decisionResponse(any(), any())).thenReturn(detail);
         var decisionResult = new cn.iocoder.yudao.module.pms.cutover.service.approval.result.CutoverApprovalDecisionResult(
                 1L, 100L, 1L, 10L, 5L, 70L, 1, "PENDING", null, 1, 2, "P5", "APPROVING", null);
         when(application.approve(any())).thenReturn(decisionResult);
         when(application.reject(any())).thenReturn(decisionResult);
-        when(query.myTodos(1L, 8L, 1, 20)).thenReturn(new CutoverApprovalViews.Page<>(List.of(
+        when(query.myTodos(argThat(c -> c.tenantId() == 1L && c.actorId() == 8L), argThat(p -> p.getPageNo() == 1 && p.getPageSize() == 20))).thenReturn(new CutoverApprovalViews.Page<>(List.of(
                 new CutoverApprovalViews.TodoItem(100L, 0L, 10L, 20L, "CUT-10", "核心割接", "A", 1,
                         "INITIATOR", LocalDateTime.of(2026, 9, 2, 10, 0))), 1, 1, 20));
-        when(query.reassignmentCandidates(1L, 1, 20)).thenReturn(new CutoverApprovalViews.Page<>(List.of(
+        when(query.reassignmentCandidates(argThat(c -> c.tenantId() == 1L), argThat(p -> p.getPageNo() == 1 && p.getPageSize() == 20))).thenReturn(new CutoverApprovalViews.Page<>(List.of(
                 new CutoverApprovalViews.ReassignmentCandidate(100L, 0L, 10L, 20L, "CUT-10", "核心割接", "A",
                         "PENDING", null, 101L, 1, "INITIATOR", "PENDING", 8L, 0,
                         LocalDateTime.of(2026, 9, 2, 10, 0))), 1, 1, 20));
@@ -87,8 +96,8 @@ class CutoverApprovalControllerContractTest {
                 .contentType("application/json").content(decision("APPROVE", "YES", null)))
                 .andExpect(status().isOk());
         verify(application, times(2)).approve(any());
-        verify(query, times(2)).decisionResponse(1L, 10L, 100L, 1, 8L);
-        verify(query, times(1)).detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean());
+        verify(query, times(2)).decisionResponse(argThat(c -> c.tenantId() == 1L && c.actorId() == 8L), eq(decisionResult));
+        verify(query, times(1)).detail(any(), anyLong());
 
         mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/reject")
                 .header("If-Match", "0").header("X-Task-Version", "4").header("Idempotency-Key", "reject-1")
@@ -97,7 +106,7 @@ class CutoverApprovalControllerContractTest {
 
         var reassignment = reassignment();
         reset(query);
-        when(query.reassignmentCommandContext(1L, 10L, 8L))
+        when(query.reassignmentCommandContext(argThat(c -> c.tenantId() == 1L && c.actorId() == 8L), eq(10L)))
                 .thenReturn(new CutoverApprovalQueryService.ReassignmentCommandContext(reassignment, 4L));
         when(application.reassign(any())).thenReturn(reassignment);
         mvc.perform(post("/api/v1/pms/cutover-tasks/10/approval-actions/reassign")
@@ -119,7 +128,7 @@ class CutoverApprovalControllerContractTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.data.reasonCode").value("HEADER_REQUIRED_OR_INVALID"));
 
-        when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail());
+        when(query.detail(any(), anyLong())).thenReturn(detail());
         doThrow(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException(
                 cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.SOURCE_STALE,
                 "source changed")).when(application).approve(any());
@@ -133,7 +142,7 @@ class CutoverApprovalControllerContractTest {
 
     @Test
     void mapsTaskAndApprovalVersionsFromStructuredApplicationErrors() throws Exception {
-        when(query.detail(anyLong(), anyLong(), anyLong(), anyBoolean(), anyBoolean())).thenReturn(detail());
+        when(query.detail(any(), anyLong())).thenReturn(detail());
         when(application.approve(any())).thenThrow(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException(
                 cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalApplicationException.Code.VERSION_CONFLICT,
                 "TASK_VERSION_STALE", null, 3L, 7L, "任务版本变化"));

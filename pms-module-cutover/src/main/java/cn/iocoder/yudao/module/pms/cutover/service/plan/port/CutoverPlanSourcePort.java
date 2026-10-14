@@ -72,8 +72,12 @@ public interface CutoverPlanSourcePort {
             comparisonKey(serialNumber);
             require(serialNumber.length() <= 128, "serialNumber");
             require(projectAssignmentVersion != null && projectAssignmentVersion >= 0, "projectAssignmentVersion");
-            requireText(deviceTypeCode, 64, "deviceTypeCode");
-            requireText(deviceTypeSourceVersion, 128, "deviceTypeSourceVersion");
+            // Historical AST product references remain paired; new CUT tasks select their own type in P3.
+            require((deviceTypeCode == null) == (deviceTypeSourceVersion == null), "deviceTypeReference");
+            if (deviceTypeCode != null) {
+                requireText(deviceTypeCode, 64, "deviceTypeCode");
+                requireText(deviceTypeSourceVersion, 128, "deviceTypeSourceVersion");
+            }
         }
     }
     record TemplateSectionSnapshot(String stableSectionKey, String title, Integer sortOrder,

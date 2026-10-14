@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.checklist.CutoverChecklistReqVO;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistExportService;
@@ -45,13 +46,12 @@ class CutoverChecklistControllerContractTest {
         CutoverChecklistApplicationService service = mock(CutoverChecklistApplicationService.class);
         CutoverChecklistExportService exportService = mock(CutoverChecklistExportService.class);
         CutoverChecklistRequestContext context = () ->
-                new CutoverChecklistRequestContext.TrustedContext(9L, 12L, "corr-1");
+                new CutoverChecklistContext(9L, 12L, "corr-1");
         CutoverChecklistController controller = new CutoverChecklistController(service, exportService, context);
         when(service.generate(org.mockito.ArgumentMatchers.any())).thenReturn(
                 new ChecklistCommandResult(31L, 41L, 1L, 0L, "DRAFT", "P3", 7L, false));
 
-        controller.generate(31L, "intent-1", new CutoverChecklistReqVO.Generate(
-                7L, 2L, 19L, Map.of("risk-1", new CutoverChecklistReqVO.SelectedDefinition(71L, 3))));
+        controller.generate(31L, "intent-1", new CutoverChecklistReqVO.Generate(7L, 2L, 19L, List.of(), Map.of("risk-1", new CutoverChecklistReqVO.SelectedDefinition(71L, 3))));
         ArgumentCaptor<GenerateChecklistCommand> generate = ArgumentCaptor.forClass(GenerateChecklistCommand.class);
         verify(service).generate(generate.capture());
         assertThat(generate.getValue()).satisfies(command -> {
@@ -90,7 +90,7 @@ class CutoverChecklistControllerContractTest {
             assertThat(command.correlationId()).isEqualTo("corr-1");
         });
 
-        when(exportService.export(9L, 12L, 31L, 3L, "corr-1"))
+        when(exportService.export(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(9L, 12L, "corr-1"), 31L, 3L))
                 .thenReturn(new CutoverChecklistExportResult(new byte[]{1, 2},
                         "cutover-checklist-31-v3.xlsx", 1, 0));
         var response = controller.export(31L, new CutoverChecklistReqVO.Export(3L));

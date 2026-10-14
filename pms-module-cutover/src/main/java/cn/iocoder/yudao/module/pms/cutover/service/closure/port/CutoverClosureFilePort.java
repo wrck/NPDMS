@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.closure.port;
 
+import lombok.Builder;
+
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules;
 import cn.iocoder.yudao.module.pms.cutover.service.closure.domain.CutoverClosureRules.AttachmentPurpose;
 
@@ -12,6 +14,7 @@ public interface CutoverClosureFilePort {
 
     FileFact lockAndRevalidate(FileExpectation expectation);
 
+    @Builder
     record FileExpectation(Long tenantId, Long actorId, Long projectId, Long closureId,
                            AttachmentPurpose purposeCode, Long artifactId, Integer versionNo,
                            String referenceKey, FileFactVersion fileFactVersion,
@@ -31,6 +34,7 @@ public interface CutoverClosureFilePort {
         }
     }
 
+    @Builder
     record FileFact(Long artifactId, Integer versionNo, String referenceKey,
                     FileFactVersion fileFactVersion, Long scopeVersion, String sha256) {
         public FileFact {

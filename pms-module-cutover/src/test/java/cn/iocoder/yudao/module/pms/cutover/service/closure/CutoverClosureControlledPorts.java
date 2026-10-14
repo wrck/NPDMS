@@ -33,8 +33,12 @@ final class CutoverClosureControlledPorts {
         }
 
         @Override
-        public ProjectScopeFact lockAndRevalidate(Long actorId, Long projectId, String action,
-                                                  long expectedProjectScopeVersion) {
+        public ProjectScopeFact lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery query) {
+        Long actorId = query.actorId();
+        Long projectId = query.projectId();
+        String action = query.action();
+        long expectedProjectScopeVersion = query.expectedProjectScopeVersion();
+
             return new ProjectScopeFact(projectId, scopeVersion, true);
         }
 
@@ -56,8 +60,14 @@ final class CutoverClosureControlledPorts {
         }
 
         private static FileFact fact(FileExpectation expectation) {
-            return new FileFact(expectation.artifactId(), expectation.versionNo(), expectation.referenceKey(),
-                    expectation.fileFactVersion(), expectation.scopeVersion(), expectation.sha256());
+            return FileFact.builder()
+                    .artifactId(expectation.artifactId())
+                    .versionNo(expectation.versionNo())
+                    .referenceKey(expectation.referenceKey())
+                    .fileFactVersion(expectation.fileFactVersion())
+                    .scopeVersion(expectation.scopeVersion())
+                    .sha256(expectation.sha256())
+                    .build();
         }
     }
 

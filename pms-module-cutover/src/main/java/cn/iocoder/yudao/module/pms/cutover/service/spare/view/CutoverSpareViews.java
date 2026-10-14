@@ -5,7 +5,6 @@ import cn.iocoder.yudao.module.pms.cutover.service.spare.port.CutoverSpareFilePo
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 public final class CutoverSpareViews {
     private CutoverSpareViews() { }
@@ -19,7 +18,7 @@ public final class CutoverSpareViews {
                               String externalApplicationNo, String launchUrl, Status currentStatus,
                               String lastFailureCode, Integer retryCount, LocalDateTime updatedAt) { }
 
-    public record Status(Long statusVersion, String externalStatusRaw, Map<String, Object> snapshot,
+    public record Status(Long statusVersion, String externalStatusRaw,
                          String sourceType, LocalDateTime externalOccurredAt, LocalDateTime observedAt) { }
 
     public record ManualEvidence(Long evidenceId, Long applicationReferenceId, FileFact fileFact,

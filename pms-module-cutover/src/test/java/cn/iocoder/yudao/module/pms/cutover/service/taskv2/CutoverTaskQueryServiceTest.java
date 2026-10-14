@@ -1,7 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.service.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.context.CutoverTaskContext;
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.query.CutoverTaskListQuery;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
-import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverAssessmentDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO;
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDeviceScopeDO;
@@ -49,6 +50,7 @@ class CutoverTaskQueryServiceTest {
     @Mock private CutoverDeviceScopePort deviceScopePort;
     @Mock private CutoverCustomerLevelPort customerLevelPort;
     @Mock private CutoverReadinessPort readinessPort;
+    @Mock private CutoverTaskSnapshotStore snapshots;
 
     private CutoverTaskQueryService service;
     private CutoverProjectContextPort.ProjectContextFact project;
@@ -61,8 +63,21 @@ class CutoverTaskQueryServiceTest {
         service = new CutoverTaskQueryService(taskMapper, deviceMapper, assessmentMapper, checklistMapper,
                 configurationMapper, projectScopePort, projectContextPort, deviceScopePort, customerLevelPort,
                 readinessPort, Clock.fixed(Instant.parse("2026-08-31T04:00:00Z"), ZoneOffset.UTC));
-        project = new CutoverProjectContextPort.ProjectContextFact(1L, 101L, 3, "P-101", "核心网扩容",
-                201L, "C-201", "示例客户", 301L, "OFF-01", "华东办事处", 7L);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "taskSnapshots", snapshots);
+        project = CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(1L)
+                .projectId(101L)
+                .projectVersion(3)
+                .projectCode("P-101")
+                .projectName("核心网扩容")
+                .customerId(201L)
+                .customerCode("C-201")
+                .customerName("示例客户")
+                .departmentId(301L)
+                .departmentCode("OFF-01")
+                .departmentName("华东办事处")
+                .projectScopeVersion(7L)
+                .build();
         device = new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 5L);
         customer = new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 201L, "C-201", "示例客户",
                 501L, "GOLD", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null);
@@ -75,12 +90,16 @@ class CutoverTaskQueryServiceTest {
         when(deviceScopePort.resolveBySerials(List.of("SN-401"))).thenReturn(List.of(device));
         when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
-        when(projectContextPort.inspect(1L, 101L, 7L)).thenReturn(project);
+        when(projectContextPort.inspect(CutoverProjectContextPort.Inspection.builder()
+                .tenantId(1L)
+                .projectId(101L)
+                .expectedProjectScopeVersion(7L)
+                .build())).thenReturn(project);
         when(customerLevelPort.inspect(201L)).thenReturn(customer);
         when(readinessPort.inspect(101L, List.of(401L))).thenReturn(readiness);
         when(configurationMapper.selectEffectivePublishedList(any())).thenReturn(List.of(configuration()));
 
-        CutoverTaskViews.CreateContextData result = service.resolveCreateContext(1L, 9L, List.of("SN-401"));
+        CutoverTaskViews.CreateContextData result = service.resolveCreateContext(new CutoverTaskContext(1L, 9L, "query-test", true, true, false, false, false), List.of("SN-401"));
 
         assertThat(result.selectionRequired()).isFalse();
         assertThat(result.configurationChoices()).singleElement().satisfies(choice ->
@@ -99,8 +118,8 @@ class CutoverTaskQueryServiceTest {
         when(taskMapper.selectPage(any(CutoverTaskPageQuery.class)))
                 .thenReturn(new PageResult<>(List.of(task), 1L));
 
-        PageResult<CutoverTaskViews.Summary> page = service.page(1L, 9L, null,
-                "GRADE_CONFIRMING", "P2", 1, 20);
+        PageResult<CutoverTaskViews.Summary> page = service.page(new CutoverTaskContext(1L, 9L, "query-test", true, true, false, false, false),
+                new CutoverTaskListQuery(null, "GRADE_CONFIRMING", "P2", 1, 20));
         assertThat(page.getList()).singleElement().satisfies(item -> {
             assertThat(item.projectName()).isEqualTo("核心网扩容");
             assertThat(item.departmentName()).isEqualTo("华东办事处");
@@ -111,15 +130,18 @@ class CutoverTaskQueryServiceTest {
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
         when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
-        when(projectContextPort.inspect(1L, 101L, 7L)).thenReturn(project);
+        when(projectContextPort.inspect(CutoverProjectContextPort.Inspection.builder()
+                .tenantId(1L)
+                .projectId(101L)
+                .expectedProjectScopeVersion(7L)
+                .build())).thenReturn(project);
         when(deviceScopePort.resolveBySerials(List.of("SN-401"))).thenReturn(List.of(device));
         when(customerLevelPort.inspect(201L)).thenReturn(customer);
         when(readinessPort.inspect(101L, List.of(401L))).thenReturn(readiness);
         when(deviceMapper.selectActiveByTask(any())).thenReturn(List.of(deviceRow()));
         when(assessmentMapper.selectById(801L)).thenReturn(assessment());
 
-        CutoverTaskViews.Detail detail = service.detail(1L, 9L, 701L, true, true,
-                false, false, false);
+        CutoverTaskViews.Detail detail = service.detail(new CutoverTaskContext(1L, 9L, "query-test", true, true, false, false, false), 701L);
 
         assertThat(detail.devices()).containsExactly(device);
         assertThat(detail.allowedActions()).containsExactly("SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT");
@@ -144,11 +166,15 @@ class CutoverTaskQueryServiceTest {
         checklist.setStatusCode("DRAFT");
         when(checklistMapper.selectCurrent(any())).thenReturn(checklist);
 
-        CutoverTaskViews.Detail detail = service.detail(1L, 9L, 701L, false, false,
-                true, true, true);
+        CutoverTaskViews.Detail detail = service.detail(new CutoverTaskContext(1L, 9L, "query-test", false, false, true, true, true), 701L);
 
         assertThat(detail.allowedActions()).containsExactly(
                 "SAVE_CHECKLIST", "REQUEST_COLLECTION", "SUBMIT_CHECKLIST");
+    }
+
+    private CutoverTaskSnapshotStore.Context frozenContext() {
+        return CutoverTaskSnapshotStore.Context.builder().project(project).customer(customer).readiness(readiness)
+                .intakeSourceType("SELF_CREATED").build();
     }
 
     private CutoverTaskDO task() {
@@ -168,9 +194,8 @@ class CutoverTaskQueryServiceTest {
         row.setCurrentStage("P2");
         row.setTaskStatus("GRADE_CONFIRMING");
         row.setProjectScopeVersion(7L);
-        row.setProjectContextSnapshot(JsonUtils.toJsonString(project));
-        row.setCustomerContextSnapshot(JsonUtils.toJsonString(customer));
-        row.setReadinessContextSnapshot(JsonUtils.toJsonString(readiness));
+        CutoverTaskSnapshotStore.applyTask(new CutoverTaskSnapshotStore.TaskWrite(row, frozenContext()));
+        when(snapshots.readiness(row)).thenReturn(readiness);
         row.setCurrentAssessmentId(801L);
         row.setScheduledTime(LocalDateTime.of(2026, 9, 1, 1, 30));
         row.setCreateTime(LocalDateTime.of(2026, 8, 31, 4, 0));
@@ -198,9 +223,8 @@ class CutoverTaskQueryServiceTest {
         row.setAssessmentStatus("DRAFT");
         row.setQuestionnaireTemplateCode("CUT_P2_MANUAL_ASSESSMENT");
         row.setQuestionnaireTemplateVersion(1L);
-        row.setAnswerSnapshot(JsonUtils.toJsonString(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true)));
-        row.setContextSnapshot(JsonUtils.toJsonString(new CutoverTaskViews.StoredAssessmentContext(
-                project, List.of(device), readiness, customer)));
+        CutoverTaskSnapshotStore.applyAssessment(new CutoverTaskSnapshotStore.AssessmentWrite(row, frozenContext(),
+                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true)));
         row.setManualGrade("A");
         row.setSimpleFlow(false);
         row.setVersion(0L);

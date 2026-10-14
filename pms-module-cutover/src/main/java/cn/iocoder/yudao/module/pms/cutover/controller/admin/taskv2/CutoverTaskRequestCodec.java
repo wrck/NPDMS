@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import cn.iocoder.yudao.module.pms.cutover.service.taskv2.query.CutoverTaskListQuery;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.CutoverTaskReqVO;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
@@ -59,7 +60,7 @@ public final class CutoverTaskRequestCodec {
         return read(body, CutoverTaskReqVO.SaveAssessment.class);
     }
 
-    public ListQuery listQuery(MultiValueMap<String, String> query) {
+    public CutoverTaskListQuery listQuery(MultiValueMap<String, String> query) {
         require(query != null && LIST_QUERY_KEYS.containsAll(query.keySet())
                 && query.values().stream().allMatch(values -> values != null && values.size() == 1), "query keys");
         Long projectId = optionalLong(query.getFirst("projectId"), "projectId");
@@ -69,7 +70,7 @@ public final class CutoverTaskRequestCodec {
         int pageNo = optionalInt(query.getFirst("pageNo"), 1, "pageNo");
         int pageSize = optionalInt(query.getFirst("pageSize"), 20, "pageSize");
         require(pageNo > 0 && pageSize > 0 && pageSize <= 100, "page");
-        return new ListQuery(projectId, taskStatus, currentStage, pageNo, pageSize);
+        return new CutoverTaskListQuery(projectId, taskStatus, currentStage, pageNo, pageSize);
     }
 
     public void emptyCommand(JsonNode body) {
@@ -119,6 +120,4 @@ public final class CutoverTaskRequestCodec {
         return value;
     }
 
-    public record ListQuery(Long projectId, String taskStatus, String currentStage, int pageNo, int pageSize) {
-    }
 }

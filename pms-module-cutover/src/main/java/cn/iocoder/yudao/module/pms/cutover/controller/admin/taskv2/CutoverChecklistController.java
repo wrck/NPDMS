@@ -84,8 +84,7 @@ public class CutoverChecklistController {
                     CutoverChecklistExportException.Code.INVALID_EXPORT_REQUEST, "导出清单版本非法");
         }
         var trusted = requestContext.current();
-        CutoverChecklistExportResult result = exportService.export(trusted.tenantId(), trusted.actorId(), taskId,
-                request.checklistVersion(), trusted.correlationId());
+        CutoverChecklistExportResult result = exportService.export(trusted, taskId, request.checklistVersion());
         return ResponseEntity.ok()
                 .contentType(XLSX)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + result.fileName() + "\"")
@@ -103,7 +102,7 @@ public class CutoverChecklistController {
         var trusted = requestContext.current();
         return success(service.generate(new GenerateChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
                 request.expectedTaskVersion(), request.expectedAssessmentVersion(),
-                request.expectedProjectScopeVersion(), definitions(request.selectedConflictDefinitions()),
+                request.expectedProjectScopeVersion(), request.deviceTypeCodes(), definitions(request.selectedConflictDefinitions()),
                 header(idempotencyKey, "Idempotency-Key"), trusted.correlationId())));
     }
 
@@ -119,7 +118,7 @@ public class CutoverChecklistController {
         return success(service.rematch(new RematchChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
                 request.expectedTaskVersion(), request.expectedAssessmentVersion(), request.checklistId(),
                 request.expectedChecklistVersion(), request.expectedInputSnapshotHash(),
-                request.expectedProjectScopeVersion(), definitions(request.selectedConflictDefinitions()),
+                request.expectedProjectScopeVersion(), request.deviceTypeCodes(), definitions(request.selectedConflictDefinitions()),
                 header(idempotencyKey, "Idempotency-Key"), trusted.correlationId())));
     }
 
@@ -190,9 +189,14 @@ public class CutoverChecklistController {
         var trusted = requestContext.current();
         var file = request.file();
         var version = file.fileFactVersion();
-        var handle = new CutoverChecklistFilePort.FileHandle(file.artifactId(), file.versionNo(), file.referenceKey(),
-                new CutoverChecklistFilePort.FileFactVersion(version.artifactVersion(), version.referenceVersion(),
-                        version.availabilityVersion()), file.scopeVersion());
+        var handle = CutoverChecklistFilePort.FileHandle.builder()
+                .artifactId(file.artifactId())
+                .versionNo(file.versionNo())
+                .referenceKey(file.referenceKey())
+                .fileFactVersion(new CutoverChecklistFilePort.FileFactVersion(version.artifactVersion(), version.referenceVersion(),
+                        version.availabilityVersion()))
+                .scopeVersion(file.scopeVersion())
+                .build();
         return success(service.selectManual(new SelectManualResultCommand(trusted.tenantId(), trusted.actorId(),
                 taskId, request.expectedTaskVersion(), request.checklistId(), request.expectedChecklistVersion(),
                 request.expectedProjectScopeVersion(), stableItemKey, handle, request.factDescription())));

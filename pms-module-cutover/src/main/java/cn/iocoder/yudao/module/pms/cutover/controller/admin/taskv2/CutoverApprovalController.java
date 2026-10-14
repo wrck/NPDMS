@@ -1,5 +1,8 @@
 package cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2;
 
+import org.springframework.http.HttpHeaders;
+import cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext;
+import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.approval.CutoverApprovalRequests;
 import cn.iocoder.yudao.module.pms.cutover.controller.admin.taskv2.vo.approval.CutoverApprovalResponses;
@@ -55,8 +58,8 @@ public class CutoverApprovalController {
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "20") Integer pageSize) {
         var trusted = requestContext.current();
-        return success(CutoverApprovalResponses.todos(queryService.myTodos(trusted.tenantId(), trusted.actorId(),
-                requirePage(pageNo, false), requirePage(pageSize, true))));
+        return success(CutoverApprovalResponses.todos(queryService.myTodos(trusted,
+                pagination(pageNo, pageSize))));
     }
 
     @GetMapping("/cutover-approvals/reassignment-candidates")
@@ -65,45 +68,52 @@ public class CutoverApprovalController {
             @RequestParam(defaultValue = "1") Integer pageNo,
             @RequestParam(defaultValue = "20") Integer pageSize) {
         var trusted = requestContext.current();
-        return success(CutoverApprovalResponses.candidates(queryService.reassignmentCandidates(trusted.tenantId(),
-                requirePage(pageNo, false), requirePage(pageSize, true))));
+        return success(CutoverApprovalResponses.candidates(queryService.reassignmentCandidates(trusted,
+                pagination(pageNo, pageSize))));
     }
 
     @PostMapping("/cutover-tasks/{taskId}/approval-actions/approve")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:approve')")
     public CommonResult<CutoverApprovalResponses.View> approve(@PathVariable Long taskId,
-            @RequestHeader("If-Match") String approvalVersion,
-            @RequestHeader("X-Task-Version") String taskVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
+            @RequestHeader HttpHeaders headers,
+            @RequestBody JsonNode body) {
+        String approvalVersion = CutoverRequestHeaders.value(headers, "If-Match");
+        String taskVersion = CutoverRequestHeaders.value(headers, "X-Task-Version");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); var request = codec.approve(body);
         var result = applicationService.approve(new ApproveCutoverApprovalCommand(trusted.tenantId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), codec.version(approvalVersion, "If-Match"),
                 request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
-        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted.tenantId(), taskId,
-                result.approvalInstanceId(), result.decidedNodeNo(), trusted.actorId())));
+        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted, result)));
     }
 
     @PostMapping("/cutover-tasks/{taskId}/approval-actions/reject")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:approve')")
     public CommonResult<CutoverApprovalResponses.View> reject(@PathVariable Long taskId,
-            @RequestHeader("If-Match") String approvalVersion,
-            @RequestHeader("X-Task-Version") String taskVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
+            @RequestHeader HttpHeaders headers,
+            @RequestBody JsonNode body) {
+        String approvalVersion = CutoverRequestHeaders.value(headers, "If-Match");
+        String taskVersion = CutoverRequestHeaders.value(headers, "X-Task-Version");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); var request = codec.reject(body);
         var result = applicationService.reject(new RejectCutoverApprovalCommand(trusted.tenantId(), taskId,
                 codec.version(taskVersion, "X-Task-Version"), codec.version(approvalVersion, "If-Match"),
                 request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
-        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted.tenantId(), taskId,
-                result.approvalInstanceId(), result.decidedNodeNo(), trusted.actorId())));
+        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted, result)));
     }
 
     @PostMapping("/cutover-tasks/{taskId}/approval-actions/reassign")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:reassign-approval')")
     public CommonResult<CutoverApprovalResponses.Reassignment> reassign(@PathVariable Long taskId,
-            @RequestHeader("If-Match") String approvalVersion,
-            @RequestHeader("Idempotency-Key") String idempotencyKey, @RequestBody JsonNode body) {
+            @RequestHeader HttpHeaders headers,
+            @RequestBody JsonNode body) {
+        String approvalVersion = CutoverRequestHeaders.value(headers, "If-Match");
+        String idempotencyKey = CutoverRequestHeaders.value(headers, "Idempotency-Key");
+
         var trusted = trusted(taskId); var context = currentReassignment(trusted, taskId);
         var current = context.view(); var request = codec.reassign(body);
         var result = applicationService.reassign(new ReassignCutoverApprovalCommand(trusted.tenantId(), taskId,
@@ -126,59 +136,112 @@ public class CutoverApprovalController {
             CutoverApprovalOwnerFactException exception) {
         if (exception.code() == CutoverApprovalOwnerFactException.Code.PROVIDER_UNAVAILABLE
                 && exception.ownerContext() != null) {
-            return error(ce(503, "OWNER_PROVIDER_UNAVAILABLE", "PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE",
-                    "RETRY_LATER", exception.ownerContext()));
+            return error(ce(503, CutoverApprovalContractException.ErrorData.builder()
+                    .category("OWNER_PROVIDER_UNAVAILABLE")
+                    .reasonCode("PROJ_OR_SYSTEM_PROVIDER_UNAVAILABLE")
+                    .recoveryAction("RETRY_LATER")
+                    .ownerContext(exception.ownerContext())
+                    .currentApprovalVersion(null)
+                    .currentTaskVersion(null)
+                    .build()));
         }
-        return error(ce(500, "OWNER_DATA_CORRUPTED", "OWNER_FACT_CORRUPTED", "CONTACT_SUPPORT", null));
+        return error(ce(500, CutoverApprovalContractException.ErrorData.builder()
+                .category("OWNER_DATA_CORRUPTED")
+                .reasonCode("OWNER_FACT_CORRUPTED")
+                .recoveryAction("CONTACT_SUPPORT")
+                .ownerContext(null)
+                .currentApprovalVersion(null)
+                .currentTaskVersion(null)
+                .build()));
     }
 
     @ExceptionHandler(CutoverApprovalRequestException.class)
     public ResponseEntity<CommonResult<CutoverApprovalContractException.ErrorData>> handleRequest(
             CutoverApprovalRequestException exception) {
-        return error(ce(400, "INVALID_REQUEST", exception.reason().name(), "FIX_REQUEST", null));
+        return error(ce(400, CutoverApprovalContractException.ErrorData.builder()
+                .category("INVALID_REQUEST")
+                .reasonCode(exception.reason().name())
+                .recoveryAction("FIX_REQUEST")
+                .ownerContext(null)
+                .currentApprovalVersion(null)
+                .currentTaskVersion(null)
+                .build()));
     }
 
     @ExceptionHandler(MissingRequestHeaderException.class)
     public ResponseEntity<CommonResult<CutoverApprovalContractException.ErrorData>> handleMissingHeader(Exception exception) {
-        return error(ce(400, "INVALID_REQUEST", "HEADER_REQUIRED_OR_INVALID", "FIX_REQUEST", null));
+        return error(ce(400, CutoverApprovalContractException.ErrorData.builder()
+                .category("INVALID_REQUEST")
+                .reasonCode("HEADER_REQUIRED_OR_INVALID")
+                .recoveryAction("FIX_REQUEST")
+                .ownerContext(null)
+                .currentApprovalVersion(null)
+                .currentTaskVersion(null)
+                .build()));
     }
 
     @ExceptionHandler({IllegalArgumentException.class, HttpMessageNotReadableException.class,
             MethodArgumentTypeMismatchException.class})
     public ResponseEntity<CommonResult<CutoverApprovalContractException.ErrorData>> handleValidation(Exception exception) {
-        return error(ce(400, "INVALID_REQUEST", "REQUEST_SCHEMA_INVALID", "FIX_REQUEST", null));
+        return error(ce(400, CutoverApprovalContractException.ErrorData.builder()
+                .category("INVALID_REQUEST")
+                .reasonCode("REQUEST_SCHEMA_INVALID")
+                .recoveryAction("FIX_REQUEST")
+                .ownerContext(null)
+                .currentApprovalVersion(null)
+                .currentTaskVersion(null)
+                .build()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<CommonResult<CutoverApprovalContractException.ErrorData>> handleForbidden(Exception exception) {
-        return error(ce(403, "FUNCTION_OR_SCOPE_DENIED", "APPROVAL_PERMISSION_OR_PROJECT_SCOPE_DENIED",
-                "REQUEST_ACCESS", null));
+        return error(ce(403, CutoverApprovalContractException.ErrorData.builder()
+                .category("FUNCTION_OR_SCOPE_DENIED")
+                .reasonCode("APPROVAL_PERMISSION_OR_PROJECT_SCOPE_DENIED")
+                .recoveryAction("REQUEST_ACCESS")
+                .ownerContext(null)
+                .currentApprovalVersion(null)
+                .currentTaskVersion(null)
+                .build()));
     }
 
-    private CutoverApprovalViews.ApprovalView queryDetail(CutoverApprovalRequestContext.TrustedContext trusted,
+    private CutoverApprovalViews.ApprovalView queryDetail(CutoverApprovalContext trusted,
                                                            long taskId) {
         try {
-            return queryService.detail(trusted.tenantId(), taskId, trusted.actorId(), trusted.canQuery(),
-                    trusted.canReassign());
+            return queryService.detail(trusted, taskId);
         } catch (CutoverApprovalApplicationException ex) {
             if (ex.code() == CutoverApprovalApplicationException.Code.STATE_CONFLICT) {
-                throw ce(404, "NOT_VISIBLE_OR_NOT_FOUND", "APPROVAL_NOT_VISIBLE", "REQUEST_ACCESS", null);
+                throw ce(404, CutoverApprovalContractException.ErrorData.builder()
+                        .category("NOT_VISIBLE_OR_NOT_FOUND")
+                        .reasonCode("APPROVAL_NOT_VISIBLE")
+                        .recoveryAction("REQUEST_ACCESS")
+                        .ownerContext(null)
+                        .currentApprovalVersion(null)
+                        .currentTaskVersion(null)
+                        .build());
             }
             throw ex;
         }
     }
 
     private CutoverApprovalQueryService.ReassignmentCommandContext currentReassignment(
-            CutoverApprovalRequestContext.TrustedContext trusted, long taskId) {
+            CutoverApprovalContext trusted, long taskId) {
         try {
-            return queryService.reassignmentCommandContext(trusted.tenantId(), taskId, trusted.actorId());
+            return queryService.reassignmentCommandContext(trusted, taskId);
         } catch (CutoverApprovalApplicationException ex) {
             if (ex.code() != CutoverApprovalApplicationException.Code.STATE_CONFLICT) throw ex;
-            throw ce(404, "NOT_VISIBLE_OR_NOT_FOUND", "APPROVAL_NOT_VISIBLE", "REQUEST_ACCESS", null);
+            throw ce(404, CutoverApprovalContractException.ErrorData.builder()
+                    .category("NOT_VISIBLE_OR_NOT_FOUND")
+                    .reasonCode("APPROVAL_NOT_VISIBLE")
+                    .recoveryAction("REQUEST_ACCESS")
+                    .ownerContext(null)
+                    .currentApprovalVersion(null)
+                    .currentTaskVersion(null)
+                    .build());
         }
     }
 
-    private CutoverApprovalRequestContext.TrustedContext trusted(Long taskId) {
+    private CutoverApprovalContext trusted(Long taskId) {
         if (taskId == null || taskId <= 0) throw new IllegalArgumentException("invalid taskId");
         return requestContext.current();
     }
@@ -190,29 +253,83 @@ public class CutoverApprovalController {
 
     private static CutoverApprovalContractException contract(CutoverApprovalApplicationException ex) {
         return switch (ex.code()) {
-            case INVALID_REQUEST -> ce(400, "INVALID_REQUEST", ex.reasonCode(), "FIX_REQUEST", ex.ownerContext(), ex);
-            case STATE_CONFLICT -> ce(409, "STATE_CONFLICT", ex.reasonCode(), "REFRESH_APPROVAL", ex.ownerContext(), ex);
-            case VERSION_CONFLICT -> ce(409, "VERSION_CONFLICT", ex.reasonCode(), "REFRESH_APPROVAL", ex.ownerContext(), ex);
-            case SOURCE_STALE -> ce(409, "SOURCE_STALE", ex.reasonCode(), "REFRESH_SOURCES", ex.ownerContext(), ex);
-            case BUSINESS_INCOMPLETE -> ce(422, "BUSINESS_INCOMPLETE", ex.reasonCode(), "FIX_REQUEST", ex.ownerContext(), ex);
-            case IDEMPOTENCY_CONFLICT -> ce(409, "IDEMPOTENCY_CONFLICT", ex.reasonCode(), "CONTACT_ADMIN", ex.ownerContext(), ex);
-            case IDEMPOTENCY_IN_PROGRESS -> ce(409, "IDEMPOTENCY_IN_PROGRESS", ex.reasonCode(), "RETRY_SAME_KEY", ex.ownerContext(), ex);
-            case OWNER_PROVIDER_UNAVAILABLE -> ce(503, "OWNER_PROVIDER_UNAVAILABLE", ex.reasonCode(), "RETRY_LATER", ex.ownerContext(), ex);
-            case OWNER_DATA_CORRUPTED -> ce(500, "OWNER_DATA_CORRUPTED", ex.reasonCode(), "CONTACT_SUPPORT", ex.ownerContext(), ex);
+            case INVALID_REQUEST -> ce(400, CutoverApprovalContractException.ErrorData.builder()
+                    .category("INVALID_REQUEST")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("FIX_REQUEST")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case STATE_CONFLICT -> ce(409, CutoverApprovalContractException.ErrorData.builder()
+                    .category("STATE_CONFLICT")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("REFRESH_APPROVAL")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case VERSION_CONFLICT -> ce(409, CutoverApprovalContractException.ErrorData.builder()
+                    .category("VERSION_CONFLICT")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("REFRESH_APPROVAL")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case SOURCE_STALE -> ce(409, CutoverApprovalContractException.ErrorData.builder()
+                    .category("SOURCE_STALE")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("REFRESH_SOURCES")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case BUSINESS_INCOMPLETE -> ce(422, CutoverApprovalContractException.ErrorData.builder()
+                    .category("BUSINESS_INCOMPLETE")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("FIX_REQUEST")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case IDEMPOTENCY_CONFLICT -> ce(409, CutoverApprovalContractException.ErrorData.builder()
+                    .category("IDEMPOTENCY_CONFLICT")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("CONTACT_ADMIN")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case IDEMPOTENCY_IN_PROGRESS -> ce(409, CutoverApprovalContractException.ErrorData.builder()
+                    .category("IDEMPOTENCY_IN_PROGRESS")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("RETRY_SAME_KEY")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case OWNER_PROVIDER_UNAVAILABLE -> ce(503, CutoverApprovalContractException.ErrorData.builder()
+                    .category("OWNER_PROVIDER_UNAVAILABLE")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("RETRY_LATER")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
+            case OWNER_DATA_CORRUPTED -> ce(500, CutoverApprovalContractException.ErrorData.builder()
+                    .category("OWNER_DATA_CORRUPTED")
+                    .reasonCode(ex.reasonCode())
+                    .recoveryAction("CONTACT_SUPPORT")
+                    .ownerContext(ex.ownerContext())
+                    .currentApprovalVersion(ex.currentApprovalVersion())
+                    .currentTaskVersion(ex.currentTaskVersion())
+                    .build());
         };
     }
 
-    private static CutoverApprovalContractException ce(int status, String category, String reason,
-                                                         String recovery, String owner) {
-        return new CutoverApprovalContractException(status, 1_011_010_000 + status, reason,
-                new CutoverApprovalContractException.ErrorData(category, reason, recovery, owner, null, null));
-    }
-
-    private static CutoverApprovalContractException ce(int status, String category, String reason,
-            String recovery, String owner, CutoverApprovalApplicationException ex) {
-        return new CutoverApprovalContractException(status, 1_011_010_000 + status, reason,
-                new CutoverApprovalContractException.ErrorData(category, reason, recovery, owner,
-                        ex.currentApprovalVersion(), ex.currentTaskVersion()));
+    private static CutoverApprovalContractException ce(int status, CutoverApprovalContractException.ErrorData data) {
+        return new CutoverApprovalContractException(status, 1_011_010_000 + status, data.reasonCode(), data);
     }
 
     private static ResponseEntity<CommonResult<CutoverApprovalContractException.ErrorData>> error(
@@ -220,5 +337,11 @@ public class CutoverApprovalController {
         CommonResult<CutoverApprovalContractException.ErrorData> body = CommonResult.error(ex.errorCode(), ex.getMessage());
         body.setData(ex.errorData());
         return ResponseEntity.status(ex.httpStatus()).body(body);
+    }
+
+    private static PageParam pagination(Integer pageNo, Integer pageSize) {
+        var page = new PageParam();
+        page.setPageNo(requirePage(pageNo, false)); page.setPageSize(requirePage(pageSize, true));
+        return page;
     }
 }

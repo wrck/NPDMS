@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.cutover.dal.dataobject.planv2;
 
+import com.baomidou.mybatisplus.annotation.TableField;
 import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
@@ -19,6 +20,14 @@ public class CutoverSupportArrangementDO extends TenantBaseDO {
     private String personName;
     private String dutyDescription;
     private String phone;
+    private Long customerContactId;
+    private Long customerContactVersion;
+    private Integer sortOrder;
+    @TableField(value = "arrive_time")
     private LocalDateTime arrivalTime;
     @Version private Integer version;
+
+
+    /** 当前采用的批准后联系信息变更记录 */
+    private Long currentSupportContactChangeId;
 }

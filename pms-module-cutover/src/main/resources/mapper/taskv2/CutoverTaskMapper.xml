@@ -1,8 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.cutover.dal.mysql.taskv2.CutoverTaskMapper">
-    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO">
-        SELECT *
+    <resultMap id="structuredCutoverTaskDO" type="cn.iocoder.yudao.module.pms.cutover.dal.dataobject.taskv2.CutoverTaskDO" autoMapping="false">
+        <id column="id" property="id"/>
+        <result column="tenant_id" property="tenantId"/>
+        <result column="project_id" property="projectId"/>
+        <result column="previous_task_id" property="previousTaskId"/>
+        <result column="task_no" property="taskNo"/>
+        <result column="task_name" property="taskName"/>
+        <result column="background" property="background"/>
+        <result column="cutover_type_code" property="cutoverType"/>
+        <result column="network_mode_code" property="networkMode"/>
+        <result column="schedule_time" property="scheduledTime"/>
+        <result column="task_origin_code" property="taskOrigin"/>
+        <result column="intake_source_type_code" property="intakeSourceType"/>
+        <result column="source_system" property="sourceSystem"/>
+        <result column="source_business_no" property="sourceBusinessNo"/>
+        <result column="business_event_id" property="businessEventId"/>
+        <result column="current_stage_code" property="currentStage"/>
+        <result column="task_status_code" property="taskStatus"/>
+        <result column="owner_user_id" property="ownerUserId"/>
+        <result column="customer_id" property="customerId"/>
+        <result column="implementation_readiness_snapshot_id" property="implementationReadinessSnapshotId"/>
+        <result column="implementation_readiness_snapshot_version" property="implementationReadinessSnapshotVersion"/>
+        <result column="project_scope_version" property="projectScopeVersion"/>
+        <result column="manual_grade_code" property="manualGrade"/>
+        <result column="current_assessment_id" property="currentAssessmentId"/>
+        <result column="legacy_task_id" property="legacyTaskId"/>
+        <result column="legacy_cutover_type_raw" property="legacyCutoverTypeRaw"/>
+        <result column="legacy_network_mode_raw" property="legacyNetworkModeRaw"/>
+        <result column="legacy_status_value" property="legacyStatusValue"/>
+        <result column="legacy_source_version" property="legacySourceVersion"/>
+        <result column="legacy_mapping_version" property="legacyMappingVersion"/>
+        <result column="version" property="version"/>
+        <result column="creator" property="creator"/>
+        <result column="create_time" property="createTime"/>
+        <result column="updater" property="updater"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="deleted" property="deleted"/>
+        <result column="configuration_revision_id" property="configurationRevisionId"/>
+        <result column="configuration_code" property="configurationCode"/>
+        <result column="configuration_revision_no" property="configurationRevisionNo"/>
+        <result column="project_version" property="projectVersion"/>
+        <result column="project_code" property="projectCode"/>
+        <result column="project_name" property="projectName"/>
+        <result column="customer_code" property="customerCode"/>
+        <result column="customer_name" property="customerName"/>
+        <result column="department_id" property="departmentId"/>
+        <result column="department_code" property="departmentCode"/>
+        <result column="department_name" property="departmentName"/>
+        <result column="customer_fact_status_code" property="customerFactStatusCode"/>
+        <result column="service_level_revision_id" property="serviceLevelRevisionId"/>
+        <result column="service_level_code" property="serviceLevelCode"/>
+        <result column="customer_fact_version" property="customerFactVersion"/>
+        <result column="service_level_effective_start_time" property="serviceLevelEffectiveStartTime"/>
+        <result column="service_level_effective_end_time" property="serviceLevelEffectiveEndTime"/>
+        <result column="readiness_decision_code" property="readinessDecisionCode"/>
+    </resultMap>
+
+    <select id="selectForUpdate" resultMap="structuredCutoverTaskDO">
+        SELECT id, tenant_id, project_id, previous_task_id, task_no, task_name, background, cutover_type_code, network_mode_code, schedule_time, task_origin_code, intake_source_type_code, source_system, source_business_no, business_event_id, current_stage_code, task_status_code, owner_user_id, customer_id, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, manual_grade_code, current_assessment_id, legacy_task_id, legacy_cutover_type_raw, legacy_network_mode_raw, legacy_status_value, legacy_source_version, legacy_mapping_version, version, creator, create_time, updater, update_time, deleted, configuration_revision_id, configuration_code, configuration_revision_no, project_version, project_code, project_name, customer_code, customer_name, department_id, department_code, department_name, customer_fact_status_code, service_level_revision_id, service_level_code, customer_fact_version, service_level_effective_start_time, service_level_effective_end_time, readiness_decision_code
         FROM cut_task
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
@@ -19,57 +76,57 @@
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
           AND current_assessment_id IS NULL
-          AND task_origin = 'NEW_PLATFORM'
-          AND current_stage = 'P2'
-          AND task_status = 'GRADE_CONFIRMING'
+          AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P2'
+          AND task_status_code = 'GRADE_CONFIRMING'
           AND deleted = b'0'
     </update>
 
     <update id="transitionIfMatch">
         UPDATE cut_task
         SET current_assessment_id = #{query.assessmentId},
-            manual_grade = #{query.manualGrade},
-            current_stage = #{query.currentStage},
-            task_status = #{query.taskStatus},
+            manual_grade_code = #{query.manualGrade},
+            current_stage_code = #{query.currentStage},
+            task_status_code = #{query.taskStatus},
             version = version + 1,
             update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
-          AND task_origin = 'NEW_PLATFORM'
-          AND current_stage = 'P2'
-          AND task_status = 'GRADE_CONFIRMING'
+          AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P2'
+          AND task_status_code = 'GRADE_CONFIRMING'
           AND deleted = b'0'
     </update>
 
     <update id="submitChecklistIfMatch">
         UPDATE cut_task
-        SET current_stage = 'P4',
-            task_status = 'PLAN_DRAFTING',
+        SET current_stage_code = 'P4',
+            task_status_code = 'PLAN_DRAFTING',
             version = version + 1,
             update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
-          AND task_origin = 'NEW_PLATFORM'
-          AND current_stage = 'P3'
-          AND task_status = 'SURVEYING'
-          AND manual_grade IN ('A', 'B', 'C')
+          AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P3'
+          AND task_status_code = 'SURVEYING'
+          AND manual_grade_code IN ('A', 'B', 'C')
           AND deleted = b'0'
     </update>
 
     <update id="submitPlanIfMatch">
         UPDATE cut_task
-        SET current_stage = 'P5',
-            task_status = 'APPROVING',
+        SET current_stage_code = 'P5',
+            task_status_code = 'APPROVING',
             version = version + 1,
             update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
-          AND task_origin = 'NEW_PLATFORM'
-          AND current_stage = 'P4'
-          AND task_status = 'PLAN_DRAFTING'
+          AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P4'
+          AND task_status_code = 'PLAN_DRAFTING'
           AND deleted = b'0'
     </update>
 
@@ -77,48 +134,48 @@
         SELECT COALESCE(MAX(sequence_no), 0)
         FROM cut_task_stage_history
         WHERE tenant_id = #{query.tenantId}
-          AND cutover_task_id = #{query.taskId}
+          AND task_id = #{query.taskId}
     </select>
 
     <update id="returnToPlanForSourceInvalidation">
         UPDATE cut_task
-        SET current_stage = 'P4',
-            task_status = 'PLAN_DRAFTING',
+        SET current_stage_code = 'P4',
+            task_status_code = 'PLAN_DRAFTING',
             version = version + 1,
             update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
-          AND task_origin = 'NEW_PLATFORM'
-          AND current_stage = 'P5'
-          AND task_status = 'APPROVING'
+          AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P5'
+          AND task_status_code = 'APPROVING'
           AND deleted = b'0'
     </update>
 
     <update id="transitionFromApprovalIfMatch">
         UPDATE cut_task
-        SET current_stage = #{query.targetStage},
-            task_status = #{query.targetStatus},
+        SET current_stage_code = #{query.targetStage},
+            task_status_code = #{query.targetStatus},
             version = version + 1,
             update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
-          AND task_origin = 'NEW_PLATFORM'
-          AND current_stage = 'P5'
-          AND task_status = 'APPROVING'
+          AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P5'
+          AND task_status_code = 'APPROVING'
           AND deleted = b'0'
     </update>
 
     <update id="archiveFromP6IfMatch">
         UPDATE cut_task
-        SET task_status = 'ARCHIVED', version = version + 1, update_time = NOW(3)
+        SET task_status_code = 'ARCHIVED', version = version + 1, update_time = NOW(3)
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}
           AND version = #{query.expectedVersion}
-          AND task_origin = 'NEW_PLATFORM'
-          AND current_stage = 'P6'
-          AND task_status = 'CLOSURE_IN_PROGRESS'
+          AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P6'
+          AND task_status_code = 'CLOSURE_IN_PROGRESS'
           AND deleted = b'0'
     </update>
 </mapper>
