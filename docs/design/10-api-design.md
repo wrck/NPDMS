@@ -152,6 +152,16 @@ PLT公开`AuthorizationGrantApi`完成授权创建、撤销和按主体/资源/�
 
 ### 5.4 PM-06 同一项目范围追加 API
 
+#### 既有关联合同订单范围初始化与同步（2026-10-12专项批准）
+
+PM-01合同建项在原创建事务绑定合同后调用COM `ProjectContractScopeApi.initialize`：按项目—合同—全部订单—订单行取源，初始化当前可承接数量；PROJ传入初始化完成后的真实项目版本及树版本。COM以MANDATORY加入事务，合同绑定、项目、初始范围、明细、版本、审计及Outbox全有或全无。无已确认订单时保持既有离线建项边界，不以人工数量补造范围。
+
+`POST /api/v1/pms/project-contract-scopes/{projectId}/actions/preview`只计算差异；`POST .../actions/synchronize`根据已预览的sourceDigest同步。请求携带expectedProjectVersion、expectedTreeVersion、expectedScopeVersion；确认另需sourceDigest及Idempotency-Key。tenant/actor来自登录上下文，入口要求`pms:project:update`及`pms:commerce:scope:query`；实际新增、调整、释放仍逐类校验COM既有`scope:assign/adjust/release`权限。数据范围要求当前根项目MANAGE、活动生命周期和合同可见性。建项自动初始化属于已授权建项事务的派生事实。子项目不能通过同步入口扩为整份合同范围。
+
+来源仅限项目已显式关联的合同；不接受客户端订单ID或分配数量。按订单行稳定ID去重，读取全部订单而非属性建议所选主订单；父项目目标数量为ERP有效数量减其他项目当前承接数量。只追加/替换父项目当前范围，子项目及其历史不改。取消、减量涉及其他项目承接量、序列号明细或验收保护时明确拒绝；未知依赖失败关闭。来源、项目、树、范围或占用在预览后变化，确认拒绝并要求重算。
+
+成功同步关闭被替换区间、追加新范围与来源证据，同一次命令只递增一次项目范围版本；无差异不推进版本。同键同载荷重放返回原结果，异载荷拒绝。原始订单及ERP字段只读。新增合同的PM-06申请、批准、任务与验收覆盖规则仍由下文契约承接；订单同步不声明新增范围已实施或已验收。
+
 Requirement：PM-06@V2、COM-01@V1。`POST /api/v1/pms/projects/{id}/scope-append-requests`创建待评估申请；`POST /api/v1/pms/scope-append-requests/{id}/actions/submit`冻结申请及审批实际定义；`POST .../actions/apply`只消费已批准且未失效版本。
 
 Body包含expectedProjectVersion、expectedScopeVersion及ERP合同/订单行稳定引用、数量、单位；tenant、actor和项目由服务端确定，Header为If-Match、Idempotency-Key。返回申请、原/新scopeVersion、Owner事实版本、逐阶段影响、未满足项及被新建任务/交付件/验收绑定的引用。
@@ -907,3 +917,50 @@ POST `/{id}/documents`接收multipart PDF、kind（COMPLETION/SATISFACTION）、
 需求方确认修复割接审批入口：未满足准入时禁止首次提交并显示前置条件，保留既有准入规则。`GET /api/v1/pms/project-tasks/{taskId}/workbench` 在审批绑定原本允许START时返回 `startAdmission`，包含 `outcome`（MATCHED/NOT_MATCHED/UNKNOWN）及 `conditions`（label、outcome）。PROJ复用命令START的当前生效计划、冻结规则和事实求值；仅MATCHED保留START，未满足或不可用都移除该操作，不改变其他操作。项目范围受限的任务可见者只获总体结果，不返回其他任务名称。
 
 此预览只读，不激活节点、不写轮次、规则历史或完成证据，不能代替提交时的锁内版本、权限、准入复核。前端按预览显示未满足条件，不把未知结果当作已满足；当前轮次已经启动后的APPROVAL重提仍沿用原契约。模板配置、审批人和流程定义不变。
+
+### 2026-10-13 割接参考V2工作台与标准方案表格
+
+`GET /api/v1/pms/cutover-workbench/tasks` 接收场景化列表查询 `listKind=TODO|SELF_CREATED`、可选projectId/currentStage/taskStatus及pageNo/pageSize；复用 `pms:cutover-task:query`、当前租户与项目VIEW范围。TODO使用服务端当前可办理集合，SELF_CREATED限定自建来源；筛选在分页前执行，空项目或待办集合返回空。响应为PageResult，每项含原任务Summary及持久化creator对应的creatorName，不将当前owner推定为创建人。项目范围拒绝返回原CUT任务错误契约的403分类。
+
+现有P4阶段方案content继续区分标准、D级简易和完整文件。标准方案新增可选rollbackDescription；steps每行新增可选details（stepName/testResult/businessImpactTime/operator/operationTime）；overview新增可选deviceDetails，行包含deviceId/productModel/currentVersion/targetVersion/remark，deviceId必须属于方案冻结deviceSummary且不能重复。它们是CUT方案记录，不修改AST设备属性，不新增必填门禁；原步骤正文校验保持，D级不接收标准表格details。
+
+步骤正文及补充列按sectionCode/stepNo保存于结构化步骤明细；HTTP仍返回steps.details，暂存、重开、修订派生、审批冻结及Word导出消费同一份字段。依需求方随后确认的整模块持久化整改，固定业务字段不再写入content_snapshot JSON，数据库采用前向迁移补充列及关系。旧方案缺少补充字段时保留原正文，已提交及批准版本仍不可覆盖。
+
+2026-10-13 结构化存储实施：CUT 的配置维度、字段树、选项、绑定条件和外部字段映射由明细表提供，既有 HTTP JSON 对象仅作为传输格式。IMP `ImplementationReadinessApi.readSnapshot(ImplementationReadinessSnapshotQuery)` 按 `tenantId/projectId/snapshotId/snapshotVersion` 读取精确不可变快照，校验当前租户与项目查看范围；不重新评估、不回写、不以最新快照替代。CUT 通过该公共 API 解析任务/评估的就绪引用，再核对其设备集合；执行前仍调用 `lockAndRevalidate` 核实当前前序事实。全表及字段定义见 [割接结构化存储方案](../superpowers/specs/2026-10-13-cutover-structured-storage.md)。
+
+P3外部数据端口以正式Provider目录提供接口、参数及响应字段定义，配置界面不得录入任意URL、凭据或未声明字段。设备版本、加载和反馈命令沿用原任务负责人、项目范围、清单草稿及版本校验；实际调用在事务外执行，返回后重新校验，期间来源变化仅追加历史结果，不替换当前答案。成功零条仍需显式保存反馈，调用失败不能当作零条；人工替代必须由配置允许，并引用当前设备/版本上下文中的真实失败查询。没有正式Provider时返回明确未接通状态，不模拟外部成功。详情只读原始公告，反馈版本引用首次原始行而不覆盖原文。
+
+### 2026-10-13 割接二线与研发角色共享审批
+
+需求方指定二线 `probSupporter`、研发 `probRD`，确认按角色审批、不指定具体人员，并随后否决冻结人员池的设计。新节点以明确的列保存角色/候选组引用，由BPM原生candidateGroups建立一个未领取的共享待办；不将角色展开为全量candidateUsers，不保存候选人员清单或整组成员水位。待办读取及办理使用SYSTEM提供的当前有效成员资格，角色无人时待办保留，不跳过或自动通过。原个人审批、旧流程定义及不可变历史保留。
+
+P5详情Node保留可选 `candidateRoleCode`；共享节点办理前originalApproverUserId/currentApproverUserId均为空，决定后currentApproverUserId为实际办理人。我的待办、首页待办及详情读取均以当前有效BPM任务及CUT当前节点为依据；客户端不选择或回传角色成员，角色节点不接受个人改派。现有approve/reject、身份、版本和五项评审不变。办理事务重新核对并锁定该操作者当前资格，领取与决定同事务，记录实际办理人及其当时资格来源；其他成员并发办理不能形成第二个决定。越权尝试不得将共享审批写为HOLD。
+
+BPM新定义的二线/研发使用原生候选组共享任务；现有平台角色策略、角色查询API和任务服务按职责复用，不能随机指定一个人替代角色共享待办。CUT不直接访问SYSTEM或Flowable业务表。领取与决定仅允许经CUT业务校验的同一事务；通用BPM领取、审批或变量修改不能绕过CUT。流程初始化产生新定义版本，既有实例仍引用原定义。通知按发送时有效的收件资格生成幂等消息记录；消息收件记录不作为审批候选名单，通知送达不等于审批完成。流程保存业务身份和角色引用等明确的标量变量，不序列化全量人员池。
+
+首页任务摘要保留 `approvalOnly`：角色待办通过专用审批页读取冻结资料。首页以原项目范围或精确待办任务ID限定分页及计数；自建、创建、P4、P6写入仍用原权限。角色临时读取只在未暂停、未替换的PENDING审批根及其当前有效角色待办存在时成立，节点未轮到、已办理或实例关闭后不再授予；不扩大到完整项目、同项目其他任务或历史审批。冻结文件关系按明确的列/明细保存，继续由PLT核验当前权限、完整业务引用键、固定工件和文件版本及可用性。CUT读取授权水位只用于事务内复核，不绑定文件登记时范围版本；闭环附件和文件写入不由角色待办授权。
+
+V463仅为既有角色补充必要入口与查询/审批权限；V464补充PLT文件下载与预览按钮权限，Owner策略继续限定冻结文件只读范围。不分配用户、修改role.data_scope或PROJ项目成员。租户范围与服务端当前角色资格持续校验。
+
+
+### 2026-10-14 模板正常闭环任务完成契约
+
+本次需求方明确S6任务在正常闭环审批通过后完成。新增无参数条件 `NORMAL_CLOSURE_APPROVED`，仅允许独立作为正常闭环PAGE任务的完成规则，专用入口为`/pms/project/normal-closure`并复用现有正常闭环面板；每个模板最多一个，必须位于终态阶段并冻结原有人工正常闭环策略，不得同时配置规则自动闭环。该条件不对手工提交、普通规则重评估、HTTP成功或审批发起返回已满足。
+
+ACC沿用现有正常闭环检查、申请、BPM事实与审批回调接口；PROJ在申请检查中仅对这一精确冻结契约的当前在办任务做审批后完成预判，原始未完成状态、契约及版本进入检查证据摘要。其他任务、子项目、阶段条件、退出门禁、业务事实和成果重验全部保留。审批回调验证真实BPM结果、审核人和原检查摘要后，调用PROJ任务生命周期服务，通过冻结状态机完成该任务并追加执行轮次、完成评估及事件，再关闭阶段和项目；任一步失败整体回滚。拒绝、撤回、陈旧来源、跨租户或错误审核人不得完成任务。无该专用任务的既有模板和原厂督导S5路径维持原检查语义；已冻结历史不回写。
+
+
+### 2026-10-14 到货、安装、培训与割接审批任务事实
+
+复用 `TaskBusinessObjectProvider` 的候选分页、当前事实、事务内锁定重验和当前执行轮次接口，新增以下Owner适配。既有 `CUT/CUTOVER_TASK/CUTOVER_COMPLETED` 保持P6成功归档语义。
+
+| Owner / 对象 | 完成事实 | 本次五类草稿口径 |
+| --- | --- | --- |
+| IMP / ARRIVAL | ARRIVAL_SIGNED | 本项目现有到货签收记录status=1；至少一条关联记录达标 |
+| IMP / INSTALLATION | PROJECT_INSTALLATION_COMPLETED | 本项目当前设备集合非空，每台设备都有当前有效的已完成安装记录和安装位置；复用原全设备结果读取 |
+| IMP / TRAINING | TRAINING_CONFIRMED | 本项目现场培训经现有客户确认操作形成CONFIRMED；至少一条关联记录达标；草稿、已外发和已作废均不通过 |
+| CUT / CUTOVER_APPROVAL | CUTOVER_APPROVED | 本项目割接任务当前提交方案的正式审批实例为APPROVED，决定时间存在且未被替代；至少一条关联记录达标 |
+
+交互读取保留当前功能权限与完整项目数据范围，未授权或空范围不能成为候选；自动完成必须锁定并重验本次PROJ执行轮次及对应Owner对象。模板和已执行历史只冻结引用、业务版本与完成证据，不复制签名、Token或客户外发秘密。到货签收、培训客户确认和CUT最终审批的成功事务追加独立重评事件，重评重新读取事实；原业务事件、通知和状态机保持不变。
+
+V478补充四个高段ID、幂等的业务视图种子，只登记现有业务办理入口。五类项目模板仍为未发布草稿，业务视图注册不发布项目模板。

@@ -1,0 +1,19 @@
+{
+  "projectId": 992203060198,
+  "serverConcurrentReuse": [
+    {
+      "kind": "COMPLETION",
+      "sameMaterialId": "9100000000000000273"
+    },
+    {
+      "kind": "SATISFACTION",
+      "sameMaterialId": "9100000000000000274"
+    }
+  ],
+  "downloads": 6,
+  "registrations": 3,
+  "newMaterials": 0,
+  "sameBytesAfterReopening": true,
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}

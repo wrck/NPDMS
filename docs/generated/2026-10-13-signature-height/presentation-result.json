@@ -1,0 +1,196 @@
+{
+  "projectId": 992203060198,
+  "certificateId": 30050,
+  "before": {
+    "viewport": 844,
+    "root": 844,
+    "body": 844,
+    "windowY": 0,
+    "page": [
+      844,
+      4270,
+      0
+    ],
+    "signature": 3646.09375
+  },
+  "afterNavigation": {
+    "viewport": 844,
+    "root": 844,
+    "body": 844,
+    "windowY": 0,
+    "page": [
+      844,
+      4270,
+      3426
+    ],
+    "signature": 220.09375
+  },
+  "viewports": [
+    {
+      "width": 320,
+      "height": 568,
+      "navigation": {
+        "viewport": 568,
+        "root": 568,
+        "body": 568,
+        "windowY": 0,
+        "page": [
+          568,
+          4547,
+          3903
+        ],
+        "signature": 20.0625
+      },
+      "confirmed": {
+        "viewport": 568,
+        "root": 568,
+        "body": 568,
+        "windowY": 0,
+        "page": [
+          568,
+          4591,
+          3903
+        ],
+        "signature": 20.0625
+      },
+      "closed": {
+        "viewport": 568,
+        "root": 568,
+        "body": 568,
+        "windowY": 0,
+        "page": [
+          568,
+          4547,
+          3903
+        ],
+        "signature": 20.0625
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "navigation": {
+        "viewport": 844,
+        "root": 844,
+        "body": 844,
+        "windowY": 0,
+        "page": [
+          844,
+          4270,
+          3426
+        ],
+        "signature": 220.09375
+      },
+      "confirmed": {
+        "viewport": 844,
+        "root": 844,
+        "body": 844,
+        "windowY": 0,
+        "page": [
+          844,
+          4314,
+          3426
+        ],
+        "signature": 220.09375
+      },
+      "closed": {
+        "viewport": 844,
+        "root": 844,
+        "body": 844,
+        "windowY": 0,
+        "page": [
+          844,
+          4270,
+          3426
+        ],
+        "signature": 220.09375
+      }
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "navigation": {
+        "viewport": 390,
+        "root": 390,
+        "body": 390,
+        "windowY": 0,
+        "page": [
+          390,
+          4065,
+          3465
+        ],
+        "signature": 20.140625
+      },
+      "confirmed": {
+        "viewport": 390,
+        "root": 390,
+        "body": 390,
+        "windowY": 0,
+        "page": [
+          390,
+          4109,
+          3465
+        ],
+        "signature": 20.140625
+      },
+      "closed": {
+        "viewport": 390,
+        "root": 390,
+        "body": 390,
+        "windowY": 0,
+        "page": [
+          390,
+          4065,
+          3465
+        ],
+        "signature": 20.140625
+      }
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "navigation": {
+        "viewport": 900,
+        "root": 900,
+        "body": 900,
+        "windowY": 0,
+        "page": [
+          900,
+          2837,
+          1937
+        ],
+        "signature": 265.21875
+      },
+      "confirmed": {
+        "viewport": 900,
+        "root": 900,
+        "body": 900,
+        "windowY": 0,
+        "page": [
+          900,
+          2881,
+          1937
+        ],
+        "signature": 265.21875
+      },
+      "closed": {
+        "viewport": 900,
+        "root": 900,
+        "body": 900,
+        "windowY": 0,
+        "page": [
+          900,
+          2837,
+          1937
+        ],
+        "signature": 265.21875
+      }
+    }
+  ],
+  "desktopTableFitsVisibleWidth": true,
+  "mobileSinglePageWithOneSignatureArea": true,
+  "nativeRejectRevokesClientLink": true,
+  "finalCertificateStatus": 4,
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}

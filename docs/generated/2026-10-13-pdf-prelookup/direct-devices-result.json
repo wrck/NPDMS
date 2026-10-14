@@ -1,0 +1,41 @@
+{
+  "projectId": 992203060198,
+  "downloads": 6,
+  "registrations": 1,
+  "newMaterials": 1,
+  "sameBytesAfterReopening": true,
+  "rasterCalls": [
+    {
+      "kind": "完工证明",
+      "download": 1,
+      "rasterCalls": 0
+    },
+    {
+      "kind": "完工证明",
+      "download": 2,
+      "rasterCalls": 0
+    },
+    {
+      "kind": "完工证明",
+      "download": "reopened-different-viewport",
+      "rasterCalls": 0
+    },
+    {
+      "kind": "满意度",
+      "download": 1,
+      "rasterCalls": 4
+    },
+    {
+      "kind": "满意度",
+      "download": 2,
+      "rasterCalls": 0
+    },
+    {
+      "kind": "满意度",
+      "download": "reopened-different-viewport",
+      "rasterCalls": 0
+    }
+  ],
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}

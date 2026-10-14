@@ -368,6 +368,8 @@ CUT-11、CutoverSupportTask及责任区间不属于当前模型，不建立对�
 
 CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_revision`，也不建立采集阶段、通用工单或结果中转页：
 
+本节及7.2保留最初前向载体设计；2026-10-13已批准的规范列名、固定JSON替换和从属表以7.3及其完整字段清单为准，原业务版本和状态语义保持。
+
 | 目标表 | 关键字段 | 约束与索引 |
 |---|---|---|
 | `cut_cutover_checklist` | `cutover_task_id/assessment_id/assessment_version/checklist_version/status_code/input_snapshot/input_snapshot_hash/config_revision_snapshot/match_trace/config_gap_snapshot/submitted_by/submitted_at/invalidated_at/invalidated_reason/current_marker/version` | `uk(tenant_id, cutover_task_id, checklist_version)`；生成列`current_marker`在`invalidated_at is null`时取1，`uk(tenant_id, cutover_task_id, current_marker)`保证一个当前版本；`status_code`只允许PRD已有草稿、已提交、已失效语义 |
@@ -393,6 +395,18 @@ CUT-03使用CutoverTask从属的三张版本表，不把清单塞入`cut_plan_re
 当前`pms_cut_risk`只作为可证明的旧风险/调研项候选来源：允许迁任务引用、原编码/名称/类型、原说明及可证明填写事实；不得推断采集项定义版本、界面Schema、绑定规则、必填性、CollectionTask、自动结果、业务通过或配置缺口。不能完成字段级证明的记录保留兼容来源证据或迁移问题。新清单根、匹配版本和结果引用由前向Feature产生。
 
 本节完成Phase 2物理设计，不修改当前DDL。三张表及`proj_*`任务执行契约表进入正式Flyway前必须重新执行P3-E09，且不触发`AI-MIG-000`；只有Release同时包含历史迁移或数据切换时，`AI-MIG-000`才在Release前适用并限定批准窗口。
+
+### 7.3 割接整模块结构化存储与规范命名
+
+需求方已批准[75张表的完整字段方案](../superpowers/specs/2026-10-13-cutover-structured-storage.md)，并明确“表字段的名称请统一规范，然后开始实施”。复用28张表（22张结构化调整、4张仅命名调整、2张直接复用），新增47张从属表；Owner分布为CUT 67张、IMP割接专用6张、AST割接专用2张。字段按ADR-0019使用snake_case、明确业务引用及`*_time`、`*_user_id`、`*_code`、`*_flag`等语义，93个现有字段保留旧名映射。完整表列、类型、可空性和约束以上述方案为逐表依据。
+
+前向迁移V474新增结构，V475将可证明的历史事实逐记录投影，V476完成规范字段切换和等价约束。41个旧固定JSON列及原文件载荷只读保留，新写入必须为空，新业务查询只读结构化字段；7个真正自定义/扩展JSON列按精确字段定义使用。迁移不能补造外部查询、角色成员、设备版本或文件水位；来源不足时中止并报告。原业务版本、状态、审计时间及JSON原件保持，禁止应用双写或以旧JSON兜底。
+
+2026-10-14批准的保障人员多人明细由V477前向实现：解除方案内角色唯一约束，新增逐行客户联系ID/版本及填写顺序三列，草稿到位时间允许为空。既有单客户引用只投影到原客户行的新列，原方案根及已存在字段不改写；提交完整性与批准后基线冻结继续生效。表数仍为75，完整字段数为1333。
+
+配置、P1～P6和备件从属于原根及修订，固定答案使用8张对象/单值表和5张表格行表，自定义值使用2张专表，统一结果根保存精确字段定义引用。文件关系分别保存工件、引用、可用性三个独立事实水位；外部查询、实际参数、结果引用及首次原始公告分开保存。已发布/提交/批准/归档事实和结果明细由数据库保护；允许的失效、选择结束和当前指针变化不解冻原内容。父子关系使用同Owner、含租户的外键，不建立跨模块外键。
+
+新旧代码与规范列不兼容，完整迁移与新冻结产物必须在同一经批准的部署窗口切换。隔离库验证不授权向共享实例执行，也不替代业务与真实浏览器验收；实际证据见[割接专项交付记录](../generated/2026-10-12-cutover-platform-implementation.md)。
 
 ## 8. Customer、Commerce、Resource 与 Knowledge
 

@@ -1,0 +1,16 @@
+{
+  "projectId": 992203060198,
+  "sameTemplateDifferentBytesConcurrentReuse": [
+    {
+      "kind": "COMPLETION",
+      "materialId": "9100000000000000278"
+    },
+    {
+      "kind": "SATISFACTION",
+      "materialId": "9100000000000000279"
+    }
+  ],
+  "newMaterials": 0,
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}

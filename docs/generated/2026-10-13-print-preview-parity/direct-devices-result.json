@@ -1,0 +1,127 @@
+{
+  "projectId": 992203060198,
+  "renderComparison": [
+    {
+      "selector": ".completion-word-table",
+      "preview": {
+        "font": "16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "width": 680.625,
+        "height": 710.90625,
+        "lineHeight": "21.6px"
+      },
+      "export": {
+        "font": "16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "width": 680.3125,
+        "height": 710.90625,
+        "lineHeight": "21.6px"
+      }
+    },
+    {
+      "selector": ".completion-word-table th",
+      "preview": {
+        "font": "700 14px / 18.9px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "14px",
+        "fontWeight": "700",
+        "width": 118.578125,
+        "height": 29.59375,
+        "lineHeight": "18.9px"
+      },
+      "export": {
+        "font": "700 14px / 18.9px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "14px",
+        "fontWeight": "700",
+        "width": 118.515625,
+        "height": 29.59375,
+        "lineHeight": "18.9px"
+      }
+    },
+    {
+      "selector": ".word-service-row td",
+      "preview": {
+        "font": "16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "width": 338.796875,
+        "height": 30,
+        "lineHeight": "21.6px"
+      },
+      "export": {
+        "font": "16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "width": 338.640625,
+        "height": 30,
+        "lineHeight": "21.6px"
+      }
+    },
+    {
+      "selector": ".word-device-row td",
+      "preview": {
+        "font": "16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "width": 338.796875,
+        "height": 28.59375,
+        "lineHeight": "21.6px"
+      },
+      "export": {
+        "font": "16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "width": 338.640625,
+        "height": 28.59375,
+        "lineHeight": "21.6px"
+      }
+    },
+    {
+      "selector": ".word-signature strong",
+      "preview": {
+        "font": "700 16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "700",
+        "width": 326.796875,
+        "height": 21.59375,
+        "lineHeight": "21.6px"
+      },
+      "export": {
+        "font": "700 16px / 21.6px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "16px",
+        "fontWeight": "700",
+        "width": 326.640625,
+        "height": 21.59375,
+        "lineHeight": "21.6px"
+      }
+    },
+    {
+      "selector": ".word-remarks",
+      "preview": {
+        "font": "12px / 18px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "width": 680.625,
+        "height": 54,
+        "lineHeight": "18px"
+      },
+      "export": {
+        "font": "12px / 18px SimSun, 宋体, \"Times New Roman\", serif",
+        "fontSize": "12px",
+        "fontWeight": "400",
+        "width": 665.1875,
+        "height": 54,
+        "lineHeight": "18px"
+      }
+    }
+  ],
+  "outerHeadingPreservedWithoutInnerHeader": true,
+  "directTwoColumns": true,
+  "rightmostColumnsCentered": true,
+  "adjacentContentColspanTwo": true,
+  "rightmostResultAndQuantitySingleColumn": true,
+  "deviceRows": 7,
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}

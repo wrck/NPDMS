@@ -1,0 +1,21 @@
+{
+  "projectId": 992203060198,
+  "insecureHttpOrigin": true,
+  "serverConcurrentReuse": [
+    {
+      "kind": "COMPLETION",
+      "sameMaterialId": "9100000000000000273"
+    },
+    {
+      "kind": "SATISFACTION",
+      "sameMaterialId": "9100000000000000274"
+    }
+  ],
+  "downloads": 6,
+  "downloadRegistrationRequests": 0,
+  "concurrentRegistrationRequests": 4,
+  "newMaterials": 0,
+  "sameBytesAfterReopening": true,
+  "signedRecordsUnchanged": true,
+  "pageErrors": []
+}
