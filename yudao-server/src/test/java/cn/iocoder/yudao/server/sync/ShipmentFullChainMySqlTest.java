@@ -71,6 +71,18 @@ class ShipmentFullChainMySqlTest {
     static final String URL="jdbc:mysql://127.0.0.1:23316/"+DB+"?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8&nullCatalogMeansCurrent=true&rewriteBatchedStatements=true"
             +(COMPRESS_BINLOG?"&sessionVariables=binlog_transaction_compression=ON,binlog_transaction_compression_level_zstd=1":"");
     static volatile String activePhase="INITIALIZING";
+    static final boolean INITIAL_ONLY=Boolean.getBoolean("pms.sync.mysql.fullChain.initialOnly");
+    static volatile long initialStartedNanos;
+    static final InitialMigrationPerformanceBudget INITIAL_BUDGET=InitialMigrationPerformanceBudget.historicalV7();
+    static void requireInitialPerformance(int sourceIndex,double seconds,boolean sourceComplete) {
+        if(!INITIAL_ONLY || !"INITIAL_MIGRATION".equals(activePhase))return;
+        var violation=sourceComplete?INITIAL_BUDGET.source(sourceIndex,seconds):INITIAL_BUDGET.total(seconds);
+        if(violation!=null) {
+            System.out.println("FULL_CHAIN_PERFORMANCE_STOP="+JsonUtils.toJsonString(violation));
+            System.out.flush();
+            throw new IllegalStateException("Initial migration exceeded accepted V7 budget: "+violation);
+        }
+    }
     static final int ROWS=Integer.getInteger("pms.sync.mysql.fullChain.rows",1000);
     static final int CONTRACTS=Integer.getInteger("pms.sync.mysql.fullChain.contracts",Math.max(10,Math.min(1000,ROWS/4000)));
     static final int SHIPMENT_CONTRACTS=Integer.getInteger("pms.sync.mysql.fullChain.shipmentContracts",CONTRACTS);
@@ -85,6 +97,11 @@ class ShipmentFullChainMySqlTest {
     Map<String,Long> counts(){var m=new LinkedHashMap<String,Long>();for(String t:List.of("com_contract","com_shipment_contract_reference","com_shipment_package","ast_device","ast_device_shipment","int_sync_binding","plt_migration_source_record","plt_external_key_mapping","plt_migration_issue","plt_outbox_event"))m.put(t,count(t));return m;}
     @BeforeEach void setup() throws Exception {
         suiteStart=System.nanoTime();assertTrue(ROWS>=1000 && ROWS<=4_000_000);
+        if(INITIAL_ONLY) {
+            assertEquals(4_000_000,ROWS,"Initial-only diagnostic uses the retained full-scale baseline");
+            assertEquals(81522,CONTRACTS);assertEquals(120639,SHIPMENT_CONTRACTS);assertEquals(400000,PACKAGES);
+            assertFalse(REUSE_SOURCE_DB.isEmpty(),"Reuse the retained source; do not regenerate it");
+        }
         assertTrue(CONTRACTS>0 && SHIPMENT_CONTRACTS>=CONTRACTS && SHIPMENT_CONTRACTS<=1_000_000 && PACKAGES>0 && PACKAGES<=1_000_000);
         root=Path.of("").toAbsolutePath();while(!Files.isDirectory(root.resolve("sql/migrations")))root=root.getParent();
         var ds=new DriverManagerDataSource(URL,"root","");jdbc=new JdbcTemplate(ds);
@@ -394,6 +411,7 @@ class ShipmentFullChainMySqlTest {
     }
     Map<String,Object> run(String phase,String key)throws Exception {
         activePhase=phase;long task=ids.get(key),begin=System.nanoTime();String wallStart=Instant.now().toString();
+        if(INITIAL_ONLY && "INITIAL_MIGRATION".equals(phase))initialStartedNanos=begin;
         long id=runs.start(new SyncRunService.Start(task,tasks.required(task).getVersion(),UUID.randomUUID().toString(),false,true,false,null,false));
         long last=0;
         while(true){var run=runs.required(id);String status=run.getStatus();
@@ -417,7 +435,13 @@ class ShipmentFullChainMySqlTest {
     @Test void completeContractPackageDeviceShipmentMigrationAndSync()throws Exception {
         var all=new ArrayList<Map<String,Object>>();long start=System.nanoTime();
         for(String key:KEYS)all.add(run("INITIAL_MIGRATION",key));metrics.put("initialMigrationSeconds",(System.nanoTime()-start)/1e9);
+        requireInitialPerformance(-1,((Number)all.getLast().get("seconds")).doubleValue(),false);
         start=System.nanoTime();verify(ROWS,PACKAGES);metrics.put("initialVerificationSeconds",(System.nanoTime()-start)/1e9);var initial=counts();
+        if(INITIAL_ONLY) {
+            print("FULL_CHAIN_INITIAL_ONLY_RESULT",Map.of("status","PASS_INITIAL_ONLY","runs",all,"counts",initial,"timing",metrics,
+                    "laterPhasesExecuted",false,"baselineSeconds",InitialMigrationPerformanceBudget.TOTAL_SECONDS));
+            return;
+        }
         // The first source ran BEFORE the master and link phases. Its original evidence
         // must truthfully record missing master lineage. The first replay reconciles that
         // legitimate derived-fact change; it is not categorized as redundant raw evidence.
@@ -476,9 +500,13 @@ class ShipmentFullChainMySqlTest {
                 long[] began={System.nanoTime()},rows={0};
                 return super.stream(d,lower,full,resume,chunk->{
                     consumer.accept(chunk);rows[0]+=chunk.rows().size();
+                    if(INITIAL_ONLY && "INITIAL_MIGRATION".equals(activePhase))
+                        requireInitialPerformance(-1,(System.nanoTime()-initialStartedNanos)/1e9,false);
                     if(chunk.sourceComplete()){
                         System.out.println("FULL_CHAIN_SOURCE="+JsonUtils.toJsonString(Map.of("phase",activePhase,"sourceIndex",chunk.sourceIndex(),"object",chunk.object(),"sourceObject",chunk.sourceObject(),"rows",rows[0],"seconds",(System.nanoTime()-began[0])/1e9,"endedAt",Instant.now().toString())));
-                        System.out.flush();began[0]=System.nanoTime();rows[0]=0;
+                        System.out.flush();
+                        requireInitialPerformance(chunk.sourceIndex(),(System.nanoTime()-began[0])/1e9,true);
+                        began[0]=System.nanoTime();rows[0]=0;
                     }
                 });
             }
