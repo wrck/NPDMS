@@ -390,82 +390,9 @@
           </div>
         </ContentWrap>
 
-        <!-- ============ 割接管理（父子层级：任务→四件套） ============ -->
-        <ContentWrap v-show="activeTab === 'cutover'">
-          <div class="panel-header">
-            <span class="panel-title"><Icon icon="ep:switch" /> 割接管理</span>
-            <el-button link type="primary" @click="goPage('/pms/cutover/cut-task')">前往割接管理</el-button>
-          </div>
-          <!-- 第一层：割接任务列表 -->
-          <div class="hierarchy-section">
-            <div class="hierarchy-section-title">
-              <Icon icon="ep:document" /> 割接任务
-              <span class="hierarchy-hint">选择任务后查看其风险/方案/执行/观察</span>
-            </div>
-            <el-table
-              :data="cutTasks"
-              v-loading="cutLoading"
-              empty-text="暂无割接任务"
-              size="small"
-              highlight-current-row
-              @current-change="onCutTaskSelect"
-            >
-              <el-table-column prop="code" label="编码" width="140" />
-              <el-table-column prop="name" label="任务名称" min-width="180" show-overflow-tooltip />
-              <el-table-column prop="cutoverType" label="割接类型" width="100" />
-              <el-table-column prop="riskLevel" label="风险等级" width="90" />
-              <el-table-column label="计划时间" width="150">
-                <template #default="{ row }">{{ formatDate(row.scheduledTime) }}</template>
-              </el-table-column>
-              <el-table-column label="状态" width="100">
-                <template #default="{ row }">
-                  <span class="status-pill" :class="`status-pill--${cutTaskStatusTone(row.status)}`">{{ cutTaskStatusLabel(row.status) }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column label="操作" width="240" fixed="right">
-                <template #default="{ row }">
-                  <el-button v-if="row.status === 0" type="primary" link size="small" @click="doCutAction(submitForReview, row)">提交评审</el-button>
-                  <el-button v-if="row.status === 2" type="success" link size="small" @click="doCutActionWithOpinion(approveCutTask, row)">审批通过</el-button>
-                  <el-button v-if="row.status === 2" type="danger" link size="small" @click="doCutActionWithOpinion(rejectCutTask, row)">驳回</el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
-          <!-- 第二层：选中任务的四件套 -->
-          <div v-if="selectedCutTask" class="hierarchy-children">
-            <el-tabs v-model="activeCutSubTab" class="cut-sub-tabs">
-              <el-tab-pane label="割接风险" name="cut-risk">
-                <el-table :data="cutRisks" v-loading="cutSubLoading" empty-text="暂无风险" size="small">
-                  <el-table-column prop="code" label="编码" width="120" />
-                  <el-table-column prop="name" label="风险名称" min-width="160" show-overflow-tooltip />
-                  <el-table-column prop="riskType" label="类型" width="100" />
-                  <el-table-column label="状态" width="90">
-                    <template #default="{ row }">
-                      <span class="status-pill" :class="`status-pill--${commonStatusTone(row.status)}`">{{ commonStatusLabel(row.status) }}</span>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="ownerUserId" label="负责人" width="90">
-                    <template #default="{ row }">
-                      <UserTag :user-id="row.ownerUserId" />
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </el-tab-pane>
-              <el-tab-pane label="割接方案" name="cut-plan">
-                <el-table :data="cutPlans" v-loading="cutSubLoading" empty-text="暂无方案" size="small">
-                  <el-table-column prop="code" label="编码" width="120" />
-                  <el-table-column prop="name" label="方案名称" min-width="160" show-overflow-tooltip />
-                  <el-table-column prop="level" label="级别" width="80" />
-                  <el-table-column label="状态" width="90">
-                    <template #default="{ row }">
-                      <span class="status-pill" :class="`status-pill--${commonStatusTone(row.status)}`">{{ commonStatusLabel(row.status) }}</span>
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </el-tab-pane>
-            </el-tabs>
-          </div>
-          <el-empty v-else description="请在上方选择割接任务，查看其风险和方案" />
+        <!-- 割接任务使用现行统一查询与详情组件。 -->
+        <ContentWrap v-if="activeTab === 'cutover' && currentProjectId">
+          <ProjectCutoverTasks :project-id="currentProjectId" />
         </ContentWrap>
 
         <!-- ============ 巡检管理（父子层级：任务→报告/问题） ============ -->
@@ -794,6 +721,7 @@
 </template>
 
 <script setup lang="ts">
+import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
 import { locationSnapshotText } from '@/utils/locationSnapshot'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -839,9 +767,6 @@ import * as DeliverableCheckApi from '@/api/pms/acceptance/deliverable-checklist
 import * as ProjectClosureApi from '@/api/pms/project/project-closure'
 import * as ArchiveDocApi from '@/api/pms/acceptance/archive-document'
 // 割接域
-import * as CutTaskApi from '@/api/pms/cutover/cut-task'
-import * as CutRiskApi from '@/api/pms/cutover/cut-risk'
-import * as CutPlanApi from '@/api/pms/cutover/cut-plan'
 // 巡检维保域
 import * as SrvTaskApi from '@/api/pms/service/srv-task'
 import * as SrvReportApi from '@/api/pms/service/srv-report'
@@ -1567,13 +1492,6 @@ const templateSectionOverrides = ref<Record<string, any>>({})
 const templateExcludedSections = ref<string[]>([])
 
 // 割接面板状态
-const cutTasks = ref<any[]>([])
-const cutLoading = ref(false)
-const selectedCutTask = ref<any>(null)
-const activeCutSubTab = ref('cut-risk')
-const cutRisks = ref<any[]>([])
-const cutPlans = ref<any[]>([])
-const cutSubLoading = ref(false)
 
 // 巡检面板状态
 const srvTasks = ref<any[]>([])
@@ -1585,7 +1503,6 @@ const srvIssues = ref<any[]>([])
 const srvSubLoading = ref(false)
 
 // 割接任务操作 API 引用
-const { submitForReview, approveCutTask, rejectCutTask } = CutTaskApi
 
 // ============ 计算属性 ============
 const projectStatusLabel = computed(() => {
@@ -1706,14 +1623,6 @@ const riskRowClass = ({ row }: { row: ProjectRiskVO }) => {
 }
 
 // 割接任务状态映射
-const cutTaskStatusLabel = (status?: number) => {
-  const map: Record<number, string> = { 0: '草稿', 1: '准备中', 2: '待评审', 3: '闭环中', 4: '历史状态', 5: '历史状态', 6: '历史完成', 7: '历史回退', 8: '历史终止' }
-  return map[status ?? -1] ?? '-'
-}
-const cutTaskStatusTone = (status?: number) => {
-  const map: Record<number, string> = { 0: 'gray', 1: 'yellow', 2: 'yellow', 3: 'blue', 4: 'blue', 5: 'blue', 6: 'green', 7: 'red', 8: 'red' }
-  return map[status ?? -1] ?? 'gray'
-}
 
 // 通用模块状态映射
 const getModuleStatusTone = (row: any, field: string) => {
@@ -1805,9 +1714,6 @@ const switchTab = (key: string) => {
     loadModuleData()
   }
   // 割接面板：首次进入加载任务列表
-  if (key === 'cutover' && cutTasks.value.length === 0) {
-    loadCutTasks()
-  }
   // 巡检面板：首次进入加载任务列表
   if (key === 'inspection' && srvTasks.value.length === 0) {
     loadSrvTasks()
@@ -2187,57 +2093,6 @@ const completePhase = async (phase: ProjectPhaseVO) => {
   }
 }
 
-// ============ 割接面板数据加载 ============
-const loadCutTasks = async () => {
-  if (!currentProjectId.value) return
-  cutLoading.value = true
-  try {
-    const res = await CutTaskApi.getCutTaskPage({ projectId: currentProjectId.value, pageNo: 1, pageSize: 50 })
-    cutTasks.value = res.list || []
-  } catch { cutTasks.value = [] } finally { cutLoading.value = false }
-}
-const onCutTaskSelect = async (row: any) => {
-  selectedCutTask.value = row
-  if (!row) return
-  await loadCutSubData(row.id)
-}
-const loadCutSubData = async (taskId: number) => {
-  cutSubLoading.value = true
-  try {
-    const [risks, plans] = await Promise.all([
-      CutRiskApi.getCutRiskPage({ taskId, pageNo: 1, pageSize: 50 }).catch(() => ({ list: [] })),
-      CutPlanApi.getCutPlanPage({ taskId, pageNo: 1, pageSize: 50 }).catch(() => ({ list: [] }))
-    ])
-    cutRisks.value = risks.list || []
-    cutPlans.value = plans.list || []
-  } finally { cutSubLoading.value = false }
-}
-const doCutAction = async (api: (id: number) => Promise<any>, row: any) => {
-  try {
-    await ElMessageBox.confirm('确认执行该操作？', '提示', { type: 'warning' })
-    await api(row.id)
-    message.success('操作成功')
-    await loadCutTasks()
-    if (selectedCutTask.value?.id === row.id) await loadCutSubData(row.id)
-  } catch (e) {
-    if (e !== 'cancel') message.error('操作失败')
-  }
-}
-const doCutActionWithOpinion = async (api: (data: any) => Promise<any>, row: any) => {
-  try {
-    const { value } = await ElMessageBox.prompt('请输入审批意见', '审批', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      inputType: 'textarea'
-    })
-    await api({ id: row.id, approvalOpinion: value, version: row.version })
-    message.success('操作成功')
-    await loadCutTasks()
-  } catch (e) {
-    if (e !== 'cancel' && e !== 'close') message.error('操作失败')
-  }
-}
-
 // ============ 巡检面板数据加载 ============
 const loadSrvTasks = async () => {
   if (!currentProjectId.value) return
@@ -2268,9 +2123,7 @@ const loadSrvSubData = async (taskId: number) => {
 const loadAll = async (id: number) => {
   loading.value = true
   // 重置所有面板数据
-  selectedCutTask.value = null
   selectedSrvTask.value = null
-  cutTasks.value = []
   srvTasks.value = []
   moduleData.value = []
   activePhaseId.value = undefined
