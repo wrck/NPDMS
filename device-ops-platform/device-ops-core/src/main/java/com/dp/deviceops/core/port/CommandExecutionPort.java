@@ -11,6 +11,16 @@ import java.util.regex.PatternSyntaxException;
 
 public interface CommandExecutionPort {
 
+    default void precheck(PrecheckRequest request) {
+        request.listener().checkCancellation();
+        test(request.connection(), request.secret(), request.passphrase());
+        request.listener().checkCancellation();
+    }
+    record PrecheckRequest(ConnectionSpec connection, char[] secret, char[] passphrase, ProgressListener listener) {
+        public PrecheckRequest { Objects.requireNonNull(connection); Objects.requireNonNull(listener); }
+        @Override public String toString() { return "PrecheckRequest[credential material omitted]"; }
+    }
+
     void test(ConnectionSpec connection, char[] secret, char[] passphrase);
 
     CommandResult execute(

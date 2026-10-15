@@ -7,6 +7,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.FileSecurityScanResult;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.FileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.BoundedFileContentValidationCommand;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.ValidatedFileContent;
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.StreamReadConstraints;
 import org.apache.tika.Tika;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.mime.MimeTypeException;
@@ -36,6 +38,8 @@ import static cn.iocoder.yudao.module.pms.platform.enums.ErrorCodeConstants.FILE
 public class FileContentPolicyService {
 
     private static final Tika TIKA = new Tika();
+    private static final JsonFactory JSON = JsonFactory.builder().streamReadConstraints(StreamReadConstraints.builder()
+            .maxStringLength((int) FileUploadApplicationService.PLATFORM_MAX_BYTES).build()).build();
 
     private final BoundedMultipartReader multipartReader;
     private final List<FileSecurityScanProvider> scanProviders;
@@ -82,6 +86,11 @@ public class FileContentPolicyService {
 
         String declaredMediaType = normalizeMediaType(command.declaredMediaType());
         String detectedMediaType = detectContent(content);
+        if ("application/json".equals(declaredMediaType)
+                && Set.of("text/plain", "application/json").contains(detectedMediaType)) {
+            if (!isJsonDocument(content)) throw exception(FILE_MEDIA_TYPE_INVALID);
+            detectedMediaType = "application/json";
+        }
         String nameMediaType = normalizeMediaType(TIKA.detect(command.expectedFileName()));
         Set<String> allowedMediaTypes = command.policy().allowedMediaTypes().stream()
                 .map(FileContentPolicyService::normalizeMediaType)
@@ -122,6 +131,17 @@ public class FileContentPolicyService {
             return normalizeMediaType(TIKA.detect(input));
         } catch (IOException ex) {
             throw exception(FILE_MEDIA_TYPE_INVALID);
+        }
+    }
+
+    private static boolean isJsonDocument(byte[] content) {
+        // Text detection alone cannot establish JSON. Consume exactly one complete value, without building a tree.
+        try (var parser = JSON.createParser(content)) {
+            if (parser.nextToken() == null) return false;
+            parser.skipChildren();
+            return parser.nextToken() == null;
+        } catch (IOException invalid) {
+            return false;
         }
     }
 

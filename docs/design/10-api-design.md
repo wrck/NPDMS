@@ -349,6 +349,20 @@ PROJ为F-CUT-005预留`ProjectCutoverServiceManagerFactApi.inspectCurrent/lockAn
 | Inspection | `/service-issues`、`/{id}/actions/{remediate|review|close|mark-false-positive}` | 问题闭环和误报留痕 |
 | Service Operations | `/devices/{deviceId}/service-status` | V2 只读客观状态与来源，不提供续保空间/续保率接口 |
 
+### 巡检专项接口细化（2026-10-15 用户批准）
+
+巡检为手工建单的独立业务入口，仅引用项目、客户和设备资料；不创建项目事件任务，不接入 WorkBinding/BusinessView 或回写项目进度。保留 PM-10 已有 `INSPECTION` 只读事实提供方。页面为 `/pms/inspection/{workbench,tasks,rules}` 和隐藏的 `/pms/inspection/tasks/:taskId`。
+
+- Business API 的物理前缀为 `/api/v1/pms`，不叠加 `/admin-api`；沿用平台身份、租户、`CommonResult`、分页和 Long/时间序列化。写命令携带 `Idempotency-Key`，修改已有任务或规则携带 `If-Match`。同键重试固定原载荷与原版本，未知执行结果不换键重新执行。
+- 任务 `POST /inspection-tasks`、`PUT /inspection-tasks/{id}/preparation`；`POST .../actions/{start-attempt|assign|cancel}`。设备清单在创建时冻结，方式和规则修订在执行尝试开始时冻结。日志、结果、报告、标注及处理记录分别保留版本；报告文件格式为 PDF/DOCX/XML，人工上传兼容 DOC。
+- AST 在既有 `ProjectDeviceSelectionApi` 增加对象查询 `pageSelection(SelectionQuery)`，返回授权项目及其关联合同的分页设备资料。写入仍使用 Owner 的 `validateSelection` 锁定复核，不从客户端设备名称或 SN 建立真值。
+- 新巡检设备候选由AST在Mapper XML中合并当前项目及关联合同的设备ID，去重后按原ID倒序分页；各分支和回表均保留租户、删除及筛选条件，空项目范围返回空，既有设备页面查询保持原行为。产品类型读取沿用ADR-0036的受信模块主体及当前用户设备范围双重校验；local配置仅登记INSPECTION的`PRODUCT_TYPE_READ_CODES`和`DEVICE_PRODUCT_TYPE_READ`两个读动作，不授予导入或业务写入权限，也不替代权威产品类型与设备映射。
+- 离线人员在平台外执行命令，上传 `.log/.txt/.zip`（50 MiB）。日志进入存储前使用 DAC 现有 `DeviceLogInputNormalizer` 脱敏；增加经 namespace/project 授权的无持久化 `POST /api/v1/log-parses/actions/normalize`，由 INT `DeviceLogParsingApi.normalize` 调用。返回脱敏命令块、识别的 SN 与警告，不能据此宣称设备执行已验证。输入原文不进入 NPDMS 数据库、审计或文件存储。脱敏后文件由 PLT 注册，执行提交使用精确文件版本及任务/设备/尝试上下文；不要求用户提供结构化结果包、脚本或脚本摘要。
+- PLT 增加 `AuthenticatedFileContentApi.read(ReadCommand)`，复用 `FileArtifactApi` 的当前权限、对象策略和精确版本重验后读取有界字节；不向消费者暴露存储表、路径或凭据。SRV 文件策略键为 `SRV/INSPECTION_TASK/{taskId}`，用途区分 `LOG/REPORT/EVIDENCE/ATTACHMENT`；LOG 仅由受控脱敏流程注册，禁止通用上传绕过。历史访问必须命中 SRV 冻结的 artifact/version/referenceKey。
+- 普通附件由 `GET /api/v1/pms/inspection-tasks/{taskId}/attachments` 返回PLT当前授权引用的工件、版本、文件名及可用性；写入复用平台文件接口及SRV对象策略，不新建文件存储或附件业务表。客户获准证明可选，不影响执行前置条件；已归档/取消任务禁止附件修改。
+- PROJ `ProjectBusinessContextApi.currentActorScope(ActorQuery)` 一次解析当前可见项目，并按当前有效的服务经理主成员事实返回管理范围；管理员可见范围不自动成为管理范围。`searchOptions(OptionsQuery)` 在Owner内部按当前授权、租户、逻辑删除、名称/编码包含匹配及固定排序查询最多100项。SRV工作台和列表消费批量范围，禁止按租户每个项目逐项重查成员；选中对象的写入仍使用原版本化上下文和锁定复核，两个只读接口不替代写入授权。
+- 报告、标注、跟踪和最终归档由 SRV 服务事务控制；工程师申请归档，当前项目管理范围内的服务经理最终执行。CUS 通过公开来源引用 API 保存原任务、报告、问题和处理记录引用，失败不能写入已归档。文件和客户资产引用均不代替 SRV 业务完成条件。
+
 Inspection复用System既有`PermissionApi.hasAnyPermissions(Long userId, String... permissions)`，不新增System接口、DTO或查询。审核入口必须从受信认证上下文取得`userId`，在租户访问拦截器已设置的目标`TenantContextHolder`内仅传入精确权限码`pms:inspection-rule:security-review`；不得接收客户端提交的租户、审核人或替代权限码。该直接调用不经过`SecurityFrameworkService`的租户访问`skipPermissionCheck`短路，返回`true`时沿用System既有角色—菜单与超级管理员语义，返回`false`或抛出异常时Inspection不追加审核事实。布尔结果只记录`authorizationType=RBAC_PERMISSION`，`authorizationSourceId`为空。现有内部`InspectionRuleExplicitAuthorizationApi`不得继续扩展为第二套契约，Task 8应删除或收口该未装配端口。
 
 历史工单、工时及其附件在V1/V2不提供用户查询、导出或文件访问API。`AI-MIG-000`在已批准真实批次内保存的不可变来源载荷或受限迁移归档仅用于迁移对账、问题调查和来源审计，不是SRV业务API；未来用户访问能力必须通过独立PRD/Feature变更重新批准。
@@ -985,3 +999,21 @@ ACC沿用现有正常闭环检查、申请、BPM事实与审批回调接口；PR
 交互读取保留当前功能权限与完整项目数据范围，未授权或空范围不能成为候选；自动完成必须锁定并重验本次PROJ执行轮次及对应Owner对象。模板和已执行历史只冻结引用、业务版本与完成证据，不复制签名、Token或客户外发秘密。到货签收、培训客户确认和CUT最终审批的成功事务追加独立重评事件，重评重新读取事实；原业务事件、通知和状态机保持不变。
 
 V478补充四个高段ID、幂等的业务视图种子，只登记现有业务办理入口。五类项目模板仍为未发布草稿，业务视图注册不发布项目模板。
+
+### 2026-10-15 巡检专项客户归档引用
+
+按本次已批准的巡检专项口径，SRV持有巡检任务、冻结规则、执行、结果、报告、标注及处理记录。CUS新增内部 `CustomerInspectionHistoryApi.register(ArchiveCommand)`，只能加入调用方事务，校验当前租户、操作者、客户可见范围、原项目范围及当前服务经理资格。SRV在已锁定的任务内先重验有效报告、完整标注、全部跟踪闭环及冻结处理证据，再登记引用并经状态机归档；引用失败整体回滚。工程师申请与服务经理归档分别使用 `POST /api/v1/pms/inspection-tasks/{taskId}/actions/request-archive|archive`，沿用If-Match和Idempotency-Key。
+
+CUS仅保存原任务及最终任务版本、当前报告、原项目和客户标识，以及设备、历次报告、执行、结果、标注、问题、处理记录和证据的精确来源ID。固定关系存列或明细表，不复制SRV业务正文，不修改项目进度，不引入WorkBinding。每租户每任务只能登记一份不可变归档引用；同来源版本与内容可重放，内容不同拒绝。项目后续调整客户不重写原任务客户。客户删除守卫保留该引用。
+
+`GET /admin-api/pms/customers/{customerId}/inspection-history` 复用客户查看权限和客户数据范围，并以操作者当前可见的原项目集合在分页前筛选；空范围返回空。详情仍由原SRV接口再次授权，引用链接不授予巡检或文件访问权限。客户历史与巡检已归档内容只读，下载精确工件版本，不用当前文件替代历史版本。
+
+巡检误报接口位于 `/api/v1/pms/inspection-rules/feedback`：按标注ID保留每次误报历史，最新标注不再为误报或报告被新版本替代时标为历史，不删除。管理员的有效性确认独立追加修订，If-Match为该标注最新确认修订号（未确认是0），不改巡检已归档真值。查询按当前项目范围裁剪；普通查询只返回本人标注，具有`pms:inspection-feedback:analyze`时可分析授权项目汇总。`details`字段权限控制设备标识、型号、原始命令和输出摘要。
+
+统计按规则修订分别展示，统计期为检出结果生成时间，分母为同修订的异常检出结果数，分子为其中当前报告最新误报标注且经管理员确认有效的不同结果数；历史标注与重复报告不重复计数。确认筛选只裁剪反馈列表，不改变统计分母。结果同时返回统计期和本次数据截止时间，查询失败不发布部分比率。规则优化仍通过现有复制修订草稿及发布流程完成。
+
+Excel/CSV导出先创建来源快照记录，再生成平台文件；记录筛选列、截止时间、条数、精确标注/确认引用和当前/历史状态。单次10000行及50MB是导出资源上限，超过时明确失败并要求收窄筛选，不静默截断。失败可重试，下载重新核对原导出人、当前分析/导出/字段权限和全部来源项目范围。固定业务筛选及来源关系均使用列和明细，不存JSON业务结构。
+
+巡检在线来源绑定SRV的单次设备执行记录，预检与正式执行各自拥有独立记录和CollectionTask。Owner通过统一采集`Source`返回可选的冻结执行规格：`PRECHECK`只有连接与认证测试、命令列表为空；`INSPECTION`按SRV冻结规则顺序形成整批命令。按2026-10-15用户补充裁决，本次暂不实现逐命令超时与继续策略，正式执行复用现有整批下发和整体超时配置`manual-execution-timeout-seconds`；未来确有独立超时需求时可拆分采集任务。规则原有版本与配置历史保留。未提供该规格的既有实施、割接与独立中心沿用原语义。命令与用途均由Owner决定，HTTP输入不能替换冻结内容。
+
+PLT在创建任务前先解析当次临时认证或重新核验保存凭证，再将不含Secret的实际连接快照交由Owner核对预检设备、操作者、端点、认证模式、用户名、凭证版本及授权引用。正式执行授权独立签发；临时密码不进入幂等摘要、持久化、审计或队列，完成请求后清空。用途单独存列，并进入DAC幂等指纹和任务HMAC授权绑定。DAC的预检工作分支仅调用协议连接测试，不执行巡检命令；正式执行使用原有整体超时行为。

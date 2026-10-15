@@ -95,6 +95,7 @@ public class NpdmsCollectionController {
                 String version = Long.toString(saved.version());
                 binding += saved.id().length() + ":" + saved.id() + version.length() + ":" + version;
             }
+            if (request.executionOptions() != null) binding += request.executionOptions().authorizationBinding();
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
             mac.init(new javax.crypto.spec.SecretKeySpec(requestSigningKey.getBytes(utf8), "HmacSHA256"));
             if (!java.security.MessageDigest.isEqual(mac.doFinal(binding.getBytes(utf8)), java.util.HexFormat.of().parseHex(signature))) {

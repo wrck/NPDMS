@@ -9,6 +9,19 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CollectionRequestFingerprintTest {
+    @Test void aFrozenExecutionPurposeChangesTheRequestFingerprint() {
+        var legacy = request("secret", "show version", Map.of());
+        var inspection = new GenericCollectionController.Request(legacy.namespace(), legacy.context(), legacy.connection(),
+                legacy.script(), legacy.externalRequestId(), legacy.activityType(), legacy.callbackUrl(),
+                legacy.commandTimeoutSeconds(), legacy.parseTimeoutSeconds(), legacy.leaseGraceSeconds(), legacy.semanticParsing(),
+                new com.dp.deviceops.core.model.CollectionExecutionOptions("INSPECTION"));
+        assertNotEquals(CollectionRequestFingerprint.generic("service", legacy), CollectionRequestFingerprint.generic("service", inspection));
+        assertThrows(IllegalArgumentException.class, () -> new GenericCollectionController.Request(legacy.namespace(), legacy.context(),
+                legacy.connection(), legacy.script(), legacy.externalRequestId(), legacy.activityType(), legacy.callbackUrl(),
+                legacy.commandTimeoutSeconds(), legacy.parseTimeoutSeconds(), legacy.leaseGraceSeconds(), legacy.semanticParsing(),
+                new com.dp.deviceops.core.model.CollectionExecutionOptions("PRECHECK")));
+    }
+
     @Test
     void fingerprintExcludesSecretsButIncludesSubjectAndExecutionIntent() throws Exception {
         Class<?> fingerprints = Class.forName("com.dp.deviceops.adapter.web.CollectionRequestFingerprint");

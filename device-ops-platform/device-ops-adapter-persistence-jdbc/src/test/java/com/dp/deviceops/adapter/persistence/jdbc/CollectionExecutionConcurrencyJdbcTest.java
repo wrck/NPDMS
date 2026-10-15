@@ -35,6 +35,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Timeout(20)
 class CollectionExecutionConcurrencyJdbcTest {
 
+    @Test void terminalCallbackFreezesTheActualAttemptCompletionTime() throws Exception {
+        Fixture fixture = fixture("precheck-completion-time");
+        long targetId = fixture.targetIds().getFirst();
+        Instant started = Instant.now().minusSeconds(1);
+        assertTrue(fixture.execution().claim(targetId, "worker", started, started.plusSeconds(30)));
+        fixture.execution().updateTarget(targetId, "worker", com.dp.deviceops.core.model.CollectionStatus.SUCCEEDED,
+                "", "", null, null, false, Map.of("connectionPrecheck", "PASSED"));
+        var payload = new ObjectMapper().readTree(fixture.onlyOutboxPayload());
+        var completed = fixture.jdbc().sql("select finished_at from device_ops_collection_attempt where target_id=:id")
+                .param("id", targetId).query((rs, n) -> rs.getTimestamp(1).toInstant()).single();
+        assertEquals(completed, Instant.parse(payload.path("completedAt").asText()));
+        assertEquals("PASSED", payload.path("parsedFacts").path("connectionPrecheck").asText());
+        assertEquals(1, fixture.outboxCount());
+    }
+
     @Test
     void concurrentWorkersCreateExactlyOneClaimAndAttempt() throws Exception {
         Fixture fixture = fixture("claim-race");

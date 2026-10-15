@@ -30,6 +30,20 @@ public final class ExecutionConnectionContext implements AutoCloseable {
     }
 
     public <T> T withCredentials(TransientCredential.CredentialOperation<T> operation) { return credential.withCredentials(operation); }
+    public void precheck(CommandExecutionPort command) {
+        checkCancellation();
+        credential.withCredentials((secret, passphrase) -> {
+            command.precheck(new CommandExecutionPort.PrecheckRequest(connection, secret, passphrase, cancellationListener(CommandExecutionPort.ProgressListener.noop())));
+            return null;
+        });
+        checkCancellation();
+    }
+    private CommandExecutionPort.ProgressListener cancellationListener(CommandExecutionPort.ProgressListener listener) {
+        return new CommandExecutionPort.ProgressListener() {
+            @Override public void onProgress(CommandExecutionPort.OutputProgress progress) { listener.onProgress(progress); }
+            @Override public void checkCancellation() { ExecutionConnectionContext.this.checkCancellation(); listener.checkCancellation(); }
+        };
+    }
     /** Executes only with this context's frozen connection projection and transient credential. */
     public CommandExecutionPort.CommandResult execute(CommandExecutionPort command, String script, Duration timeout) {
         return execute(command, script, timeout, CommandExecutionPort.ProgressListener.noop());

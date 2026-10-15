@@ -625,8 +625,17 @@ public final class JdbcCollectionExecutionPersistencePort implements CollectionE
                     return block;
                 }).list();
         Map<String,Object> payload=new java.util.LinkedHashMap<>(); payload.put("eventId",eventId);payload.put("namespace",row.get("NAMESPACE"));payload.put("outcome",row.get("OUTCOME_MESSAGE"));payload.put("truncated",row.get("OUTPUT_TRUNCATED"));payload.put("collectionId",row.get("TASK_ID"));payload.put("externalRequestId",row.get("EXTERNAL_REQUEST_ID"));payload.put("projectKey",row.get("PROJECT_KEY"));payload.put("deviceKey",row.get("DEVICE_KEY"));payload.put("status",status.name());payload.put("exitCode",exitCode);payload.put("stdout",stdout);payload.put("stderr",stderr);payload.put("parsedFacts",facts==null?Map.of():facts);payload.put("commandBlocks",commandBlocks);payload.put("script",Map.of("key",row.get("SCRIPT_KEY"),"version",row.get("SCRIPT_VERSION"),"sha256",row.get("SCRIPT_SHA256")));
+        var executionTime = jdbc.sql("select started_at,finished_at from device_ops_collection_attempt where target_id=:id and attempt_no=:number")
+                .param("id", targetId).param("number", number).query((resultSet, rowNumber) -> new ExecutionTime(
+                        resultSet.getTimestamp("started_at") == null ? null : resultSet.getTimestamp("started_at").toInstant(),
+                        resultSet.getTimestamp("finished_at") == null ? null : resultSet.getTimestamp("finished_at").toInstant())).optional();
+        executionTime.ifPresent(time -> {
+            payload.put("startedAt", time.startedAt() == null ? null : time.startedAt().toString());
+            payload.put("completedAt", time.completedAt() == null ? null : time.completedAt().toString());
+        });
         try { jdbc.sql("insert into device_ops_outbox(event_id,aggregate_id,event_type,payload,attempt_count,next_attempt_at,destination) values(:id,:aggregate,'COLLECTION_TARGET_TERMINAL',:payload,0,current_timestamp,:destination)").param("id",eventId).param("aggregate",row.get("TASK_ID")).param("payload",objectMapper.writeValueAsString(payload)).param("destination",destination).update(); } catch (JsonProcessingException e) { throw new IllegalStateException("callback payload cannot be encoded",e); }
     }
+    private record ExecutionTime(Instant startedAt, Instant completedAt) { }
     private static String sha(String input){try{return java.util.HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(input.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}}
     private List<String> deserializeStrings(String value) {
         if (value == null || value.isBlank()) return List.of();

@@ -12,7 +12,7 @@ public class FileStorageContentService implements FileStorageContentApi {
     @Override public byte[] read(Query query) {
         if (query==null || !Objects.equals(query.tenantId(),TenantContextHolder.getRequiredTenantId())
                 || query.infraFileId()==null || query.expectedSize()==null || query.expectedSize()<1
-                || query.maxBytes()<1 || query.maxBytes()>20*1024*1024 || query.expectedSize()>query.maxBytes()
+                || query.maxBytes()<1 || query.maxBytes()>50*1024*1024 || query.expectedSize()>query.maxBytes()
                 || query.expectedSha256()==null || !query.expectedSha256().matches("[a-f0-9]{64}"))
             throw new IllegalArgumentException("FILE_STORAGE_CONTENT_IDENTITY_INVALID");
         var file=files.getFile(query.infraFileId());

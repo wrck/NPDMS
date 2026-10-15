@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionRuleSelectionMapper">
+    <!-- 未执行的准备选择是可替换草稿；已执行版本保存在独立不可变快照表。 -->
+    <delete id="clearPreparation">
+        DELETE FROM srv_inspection_rule_selection WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId}
+    </delete>
+</mapper>

@@ -2,6 +2,17 @@
 
 用于记录 PRD 无法支持、互相冲突或必须由业务/架构负责人确认的问题。
 
+## Q-INS-AUTHORITATIVE-PRODUCT-DATA-20261015 — 巡检适配示例与验收的权威产品输入
+
+- Status: OPEN（正式权威源数据待提供；2026-10-15用户已明确批准创建模拟记录，模拟业务链验收继续）
+- Requirement IDs: EQP-01、INS-03、INS-09
+- Area: 本次巡检专项的任务创建/保存重开、产品适配/不适配、发布/停用和完整业务验收样例。
+- Question: 请提供可使用的CRM或其他权威产品类型清单及设备映射来源，或已有受控导入文件的位置。
+- Evidence: F-AST-002规定巡检只消费AST受控产品类型契约；2026-10-15本次部署后只读核验 `24306/npdms_domain_test` 的 `ast_product_type`、`ast_product_type_source_mapping`、`ast_device_current_product_type` 总数及未删除数均为0。`InspectionTaskService.create`在创建事务内即核验并冻结设备产品类型，因此该缺口也阻断建单成功及后续保存重开，不仅影响执行。用户已询问“受控产品类型是什么”，主任务已解释其为权威类型编码及名称的受控副本，尚未收到来源输入；不能以设备型号、旧字典或 `conpType` 自行替代。
+- Update: 用户随后明确答复“创建模拟记录进行验收”。已通过AST正式设备维护及产品类型受控导入接口新增两台`ACCEPT-INS-20261015-A/B`设备、两个`MOCK_INS_20261015_A/B`类型及各自映射，来源系统为`INSPECTION_MOCK_ACCEPTANCE`；当时三表各2条，仅绑定这两台新设备。读回设备、来源、有效映射及两条成功审计已核对，见`.run/build/inspection-deployment/mock-data-db-check.json`。用户进一步要求复用割接模拟项目和设备后，为既有`NATIVE-UI-20261012-DEVICE-02/03`通过同一Owner接口新增`MOCK_INS_CUT_REUSE_20261015`类型及两条映射；当前类型/来源/映射总数为3/3/4，既有项目、成员、设备和CUT记录核对不变，见`.run/build/inspection-deployment/cut-reuse-after-check.json`。这些是获准模拟来源，不是CRM或正式生产产品清单。
+- Current action: V477.7十类未发布示例保持原样；另创建仅适配上述模拟类型的明确标识规则和合成离线日志，按正式校验、安全审核、发布及任务流程开展模拟数据验收。不得把合成日志称为真实设备采集、把模拟判定称为DPtech生产规则。原真实SQL验证仍是事务回滚的技术fixture。缺少的《DPtech设备巡检判定信息表》仍是正式生产规则包的来源缺口，不阻断已授权的模拟验收。
+- Decision owner: 需求方/权威产品资料提供方。
+
 ## 状态
 
 - OPEN

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionFeedbackExportItemMapper">
+  <select id="selectFrozenRows" resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionFeedbackRow">
+    SELECT a.id AS annotation_id,a.task_id,t.project_id,a.result_id,a.revision_no AS annotation_revision,a.reason,a.annotated_by,a.annotated_at,
+      r.rule_revision_id,r.create_time AS detected_at,v.rule_id,v.revision_no,i.detection_id,v.inspection_item,
+      v.category_code,v.category_name_snapshot AS category_name,v.severity_code,v.severity_name_snapshot AS severity_name,t.task_code,
+      <choose><when test="query.details">d.serial_number AS device_serial,d.product_model,r.output_summary,</when>
+        <otherwise>NULL AS device_serial,NULL AS product_model,NULL AS output_summary,</otherwise></choose>
+      f.id AS confirmation_id,COALESCE(f.revision_no,0) AS confirmation_version,f.valid_flag,f.reason AS confirmation_reason,
+      f.confirmed_by,f.confirmed_at,e.active_flag
+    FROM srv_inspection_feedback_export_item e
+    JOIN srv_inspection_annotation a ON a.tenant_id = e.tenant_id AND a.id = e.annotation_id AND a.deleted = b'0'
+    JOIN srv_inspection_detection_result r ON r.tenant_id = a.tenant_id AND r.id = a.result_id AND r.deleted = b'0'
+    JOIN srv_inspection_task t ON t.tenant_id = r.tenant_id AND t.id = r.task_id AND t.deleted = b'0'
+    JOIN srv_inspection_task_device d ON d.tenant_id = r.tenant_id AND d.task_id = r.task_id AND d.device_id = r.device_id AND d.deleted = b'0'
+    JOIN srv_inspection_rule_revision v ON v.tenant_id = r.tenant_id AND v.id = r.rule_revision_id AND v.deleted = b'0'
+    JOIN srv_inspection_rule i ON i.tenant_id = v.tenant_id AND i.id = v.rule_id AND i.deleted = b'0'
+    LEFT JOIN srv_inspection_feedback_confirmation f ON f.tenant_id = e.tenant_id AND f.id = e.confirmation_id AND f.deleted = b'0'
+    WHERE e.tenant_id = #{query.tenantId} AND e.export_id = #{query.exportId} AND e.deleted = b'0' ORDER BY e.id
+  </select>
+</mapper>

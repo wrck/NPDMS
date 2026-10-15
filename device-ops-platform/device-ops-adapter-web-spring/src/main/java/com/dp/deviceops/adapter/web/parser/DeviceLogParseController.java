@@ -126,6 +126,24 @@ public class DeviceLogParseController {
         return view(task);
     }
 
+    @PostMapping("/actions/normalize")
+    @PreAuthorize("hasAnyAuthority('SCOPE_parser:task:create','SCOPE_device-ops:collections:execute')")
+    public NormalizedView normalize(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody Normalize request) {
+        authorizer.requireNamespace(jwt, request.namespace());
+        authorizer.require(jwt, request.projectKey());
+        // 原日志只驻留本次请求内存。复用既有脱敏器后才允许调用方登记安全文件。
+        if (request.inputText().getBytes(StandardCharsets.UTF_8).length > 52_428_800)
+            throw new ParserRuntimeError("INPUT_TOO_LARGE", "log exceeds 50 MiB");
+        var normalized = normalizer.normalize(request.inputText(), request.commandHint());
+        var serials = new java.util.LinkedHashSet<String>();
+        var blocks = normalized.input().commandBlocks().stream().map(block -> {
+            serials.addAll(com.dp.deviceops.parser.semantic.log.DeviceLogSplitter.serialNumbers(block.stdout()));
+            return new NormalizedBlock(block.commandIndex(), block.commandText(), block.stdout(), block.stderr(), block.status().name(),
+                    block.truncated(), block.exitCode());
+        }).toList();
+        return new NormalizedView(request.namespace(), request.projectKey(), blocks, List.copyOf(serials), normalized.warnings());
+    }
+
     @GetMapping("/{requestId}")
     @PreAuthorize("hasAnyAuthority('SCOPE_parser:task:read','SCOPE_device-ops:collections:read')")
     public View get(@AuthenticationPrincipal Jwt jwt,
@@ -172,4 +190,12 @@ public class DeviceLogParseController {
     public record View(String requestId, String namespace, String projectKey, String sourceCollectionId,
             String taskId, String state, String waitReason, String releaseVersion, List<String> warnings,
             ParseResultEnvelope result) { }
+
+    public record Normalize(@NotBlank @Size(max = 100) String namespace,
+                            @NotBlank @Size(max = 100) String projectKey,
+                            @NotBlank @Size(max = 52_428_800) String inputText, @Size(max = 256) String commandHint) { }
+    public record NormalizedBlock(Integer commandIndex, String commandText, String stdout, String stderr, String status,
+                                  Boolean truncated, Integer exitCode) { }
+    public record NormalizedView(String namespace, String projectKey, List<NormalizedBlock> commandBlocks,
+                                 List<String> serialNumbers, List<String> warnings) { }
 }

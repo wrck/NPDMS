@@ -303,6 +303,7 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
                 executionTimeoutSeconds(command));
         body.put("parseTimeoutSeconds", Math.max(1, properties.getParseTimeoutSeconds()));
         body.put("leaseGraceSeconds", 0L);
+        if(command.executionOptions()!=null)body.put("executionOptions",command.executionOptions());
         return body;
     }
 
@@ -391,6 +392,7 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
             String version = command.savedConnectionVersion().toString();
             binding += command.savedConnectionId().length() + ":" + command.savedConnectionId() + version.length() + ":" + version;
         }
+        if(command.executionOptions()!=null)binding+=command.executionOptions().authorizationBinding();
         try {
             var mac = javax.crypto.Mac.getInstance("HmacSHA256");
             mac.init(new javax.crypto.spec.SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
@@ -404,9 +406,12 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
     }
 
     private long executionTimeoutSeconds(DeviceOpsDispatchCommand command) {
+        if(command.executionOptions()!=null && "PRECHECK".equals(command.executionOptions().purpose()))
+            return Math.max(1,properties.getDeviceConnectTimeoutSeconds());
         boolean manualConfiguration = ("IMP".equals(command.sourceContext())
                 && java.util.Set.of("Configuration", "JointTest").contains(command.sourceObjectType()))
-                || ("PLT".equals(command.sourceContext()) && "CollectionCenter".equals(command.sourceObjectType()));
+                || ("PLT".equals(command.sourceContext()) && "CollectionCenter".equals(command.sourceObjectType()))
+                || (command.executionOptions()!=null && "INSPECTION".equals(command.executionOptions().purpose()));
         long seconds = manualConfiguration ? properties.getManualExecutionTimeoutSeconds()
                 : properties.getCommandTimeoutSeconds();
         if (seconds < 1 || (!manualConfiguration && seconds > COMMAND_TIMEOUT_LIMIT_SECONDS)) {
@@ -418,9 +423,13 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
     private static void validate(DeviceOpsDispatchCommand command) {
         if (command == null || isBlank(command.platformTaskId()) || isBlank(command.host())
                 || command.port() == null || isBlank(command.protocol()) || isBlank(command.templateId())
-                || isBlank(command.templateVersion()) || command.commands() == null || command.commands().isEmpty()
+                || isBlank(command.templateVersion()) || command.commands() == null
                 || isBlank(command.temporaryUsername()) || command.tenantId() == null || isBlank(command.projectId()) || isBlank(command.deviceId())) {
             throw new IllegalArgumentException("DAC 下发参数不完整");
+        }
+        boolean precheck = command.executionOptions()!=null && "PRECHECK".equals(command.executionOptions().purpose());
+        if (precheck ? !command.commands().isEmpty() : command.commands().isEmpty()) {
+            throw new IllegalArgumentException("采集用途与命令清单不一致");
         }
         boolean temporary = "TEMPORARY_SECRET".equals(command.credentialMode());
         boolean saved = "SAVED_CREDENTIAL".equals(command.credentialMode());

@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.asset.service.device;
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import cn.iocoder.yudao.module.pms.asset.controller.admin.device.vo.DeviceArchivePageReqVO;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.device.ProjectDeviceSelectionMapper;
@@ -48,6 +49,25 @@ class ProjectDeviceSelectionServiceTest {
         when(context.getContractNumbers(99L)).thenThrow(new IllegalArgumentException("forbidden"));
         assertThrows(IllegalArgumentException.class, () -> service.validateSelection(99L, List.of(1L)));
         verifyNoInteractions(mapper);
+    }
+
+    @Test void inspectionCandidatesPreserveOwnerScopeAndPageInTheIndexedQuery() {
+        when(mapper.selectCandidatePage(any())).thenReturn(new PageResult<>(List.of(device(1L)), 3L));
+
+        var result = service.pageSelection(new ProjectDeviceSelectionApi.SelectionQuery(10L, "SN", 2, 20));
+
+        assertEquals(3L, result.total());
+        assertEquals(List.of("SN-1"), result.list().stream().map(row -> row.sn()).toList());
+        var capture = ArgumentCaptor.forClass(ProjectDeviceSelectionQuery.class);
+        verify(mapper).selectCandidatePage(capture.capture());
+        var query = capture.getValue();
+        assertEquals(1L, query.getTenantId());
+        assertEquals(10L, query.getProjectId());
+        assertEquals(Set.of("CONTRACT-10"), query.getContractNumbers());
+        assertEquals("SN", query.getSn());
+        assertEquals(2, query.getPageNo());
+        assertEquals(20, query.getPageSize());
+        verify(mapper, never()).selectSelectionPage(any());
     }
 
     @Test void duplicateDeviceCannotBeSubmittedTwice() {

@@ -263,6 +263,98 @@ public final class MinaCommandExecutionAdapter implements ProtocolCommandExecuti
         }
     }
 
+    @Override
+    public void precheck(PrecheckRequest request) {
+        Objects.requireNonNull(request, "request");
+        lifecycleLock.readLock().lock();
+        boolean admitted = false;
+        try {
+            requireOpen();
+            admitted = true;
+            requireSsh2(request.connection());
+            request.listener().checkCancellation();
+            char[] secretCopy = copyRequiredSecret(request.secret());
+            char[] passphraseCopy = copyOptional(request.passphrase());
+            ClientSession session = null;
+            var mismatch = new AtomicBoolean();
+            var deadline = new OperationDeadline(request.connection().connectTimeout(), System::nanoTime);
+            try {
+                session = openSession(client, request.connection(), deadline, mismatch);
+                request.listener().checkCancellation();
+                authenticate(session, request.connection(), secretCopy, passphraseCopy, deadline, mismatch);
+                request.listener().checkCancellation();
+                if (request.connection().executionMode() == ExecutionMode.SHELL) {
+                    try (PrecheckShell shell = new PrecheckShell(new ShellOpening(session, deadline))) {
+                        if (!awaitPrecheckPrompt(new PromptWait(shell, deadline, request.listener()))) {
+                            throw new ConnectionFailure(ConnectionFailure.Code.PROMPT_NOT_FOUND,
+                                    ConnectionFailure.Stage.LOGIN, "initial SSH prompt was not reached");
+                        }
+                    } catch (IOException | OperationTimeoutException failure) {
+                        throw failure(ConnectionFailure.Code.PROMPT_NOT_FOUND, ConnectionFailure.Stage.LOGIN,
+                                "initial SSH prompt was not reached", failure);
+                    }
+                }
+                request.listener().checkCancellation();
+            } finally {
+                closeGracefully(session);
+                clear(secretCopy);
+                clear(passphraseCopy);
+            }
+        } finally {
+            lifecycleLock.readLock().unlock();
+            finishActiveCall(admitted);
+        }
+    }
+
+    private record ShellOpening(ClientSession session, OperationDeadline deadline) { }
+
+    private final class PrecheckShell implements AutoCloseable {
+        private final ChannelShell channel;
+        private final OutputEventQueue events = new OutputEventQueue(maxOutputBytes, eventChunkBytes);
+        private final AtomicReference<IOException> readFailure = new AtomicReference<>();
+        private final ShellProgressState terminal = new ShellProgressState(commandPromptOverride, maxPages);
+        private final IoOutputStream writer;
+        private PrecheckShell(ShellOpening opening) throws IOException {
+            var pty = new PtyChannelConfiguration();
+            pty.setPtyType("vt100");
+            channel = opening.session().createShellChannel(pty, java.util.Map.of());
+            try {
+                channel.setStreaming(StreamingChannel.Streaming.Async);
+                openChannel(channel, opening.deadline());
+                writer = channel.getAsyncIn();
+                startAsyncReader(channel, channel.getAsyncOut(), OutputStreamType.STDOUT, events, readFailure);
+                startAsyncReader(channel, channel.getAsyncErr(), OutputStreamType.STDERR, events, readFailure);
+            } catch (IOException | RuntimeException failure) {
+                closeImmediately(channel);
+                throw failure;
+            }
+        }
+        @Override public void close() { events.stopAccepting(); closeImmediately(channel); }
+    }
+
+    private record PromptWait(PrecheckShell shell, OperationDeadline deadline, ProgressListener listener) { }
+
+    private boolean awaitPrecheckPrompt(PromptWait wait) throws IOException {
+        var pager = new TerminalPagerController(PAGER_TERMINAL_SETTLE, maxPages);
+        while (!wait.deadline().expired()) {
+            wait.listener().checkCancellation();
+            if (wait.shell().readFailure.get() != null) throw wait.shell().readFailure.get();
+            OutputEvent event = wait.shell().events.poll(wait.deadline().remaining());
+            if (event != null && event.streamType() == OutputStreamType.STDOUT) {
+                var decision = wait.shell().terminal.accept(event.bytes());
+                pager.observe(decision);
+                if (decision.promptReached()) return true;
+            }
+            // Only terminal pager control is permitted; no inspection command is sent.
+            if (pager.continuationReady()) {
+                writeShellContinuation(wait.shell().writer, wait.deadline());
+                pager.markContinuationSent();
+            }
+            if (wait.shell().channel.isClosed() && wait.shell().events.isEmpty()) return false;
+        }
+        return false;
+    }
+
     private void requireOpen() {
         if (closed.get()) {
             throw new ConnectionFailure(ConnectionFailure.Code.CONNECTION_CLOSED,

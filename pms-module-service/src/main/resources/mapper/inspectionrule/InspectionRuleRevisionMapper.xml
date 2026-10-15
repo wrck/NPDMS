@@ -10,6 +10,9 @@
          AND i.deleted = b'0'
         WHERE r.tenant_id = #{query.tenantId}
           AND r.deleted = b'0'
+        <if test="query.ruleId != null">
+          AND r.rule_id = #{query.ruleId}
+        </if>
         <if test="query.detectionId != null and query.detectionId != ''">
           AND i.detection_id = #{query.detectionId}
         </if>

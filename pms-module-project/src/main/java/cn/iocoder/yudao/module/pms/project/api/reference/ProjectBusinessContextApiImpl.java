@@ -9,6 +9,7 @@ import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidatio
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ActiveProjectMemberQuery;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessOptionsQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,20 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
     private final ProjectMasterMapper projects;
     private final ProjectScopeApi scopes;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper members;
+
+    @Override
+    public AccessScope currentActorScope(ActorQuery query) {
+        validateActor(query);
+        var visible = Set.copyOf(scopes.resolveAllCurrent(new ProjectAllScopeQuery(
+                query.tenantId(), query.actorId(), ProjectScopeApi.ACTION_VIEW)));
+        if (visible.isEmpty()) return new AccessScope(Set.of(), Set.of());
+        var managed = members.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()))
+                .stream().filter(row -> visible.contains(row.getProjectId()))
+                .filter(row -> ProjectMemberRoles.isServiceManager(row.getMemberRole()))
+                .filter(row -> row.getAssignmentType() == null || "PRIMARY".equals(row.getAssignmentType()))
+                .map(row -> row.getProjectId()).collect(Collectors.toSet());
+        return new AccessScope(visible, managed);
+    }
 
     @Override
     public List<Option> searchOptions(OptionsQuery query) {

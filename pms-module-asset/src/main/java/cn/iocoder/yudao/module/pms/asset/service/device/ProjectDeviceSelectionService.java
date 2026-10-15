@@ -43,6 +43,20 @@ public class ProjectDeviceSelectionService implements ProjectDeviceSelectionApi 
     }
 
     @Override
+    public SelectionPage pageSelection(SelectionQuery request) {
+        if (request == null || request.pageNo() < 1 || request.pageSize() < 1 || request.pageSize() > 100)
+            throw exception(AST_DEVICE_SELECTION_INVALID);
+        var query = query(request.projectId());
+        query.setPageNo(request.pageNo());
+        query.setPageSize(request.pageSize());
+        query.setSn(request.serialKeyword());
+        var page = mapper.selectCandidatePage(query);
+        return new SelectionPage(page.getList().stream().map(d -> new SelectedProjectDevice(
+                d.getId(), d.getSn(), d.getName(), d.getProductCode(), d.getProductModel(), d.getContractNo())).toList(),
+                page.getTotal());
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public List<SelectedProjectDevice> validateSelection(Long projectId, List<Long> deviceIds) {
         if (deviceIds == null || deviceIds.stream().anyMatch(id -> id == null || id <= 0)

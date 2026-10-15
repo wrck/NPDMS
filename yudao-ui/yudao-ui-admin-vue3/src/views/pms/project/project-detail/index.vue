@@ -395,77 +395,6 @@
           <ProjectCutoverTasks :project-id="currentProjectId" />
         </ContentWrap>
 
-        <!-- ============ 巡检管理（父子层级：任务→报告/问题） ============ -->
-        <ContentWrap v-show="activeTab === 'inspection'">
-          <div class="panel-header">
-            <span class="panel-title"><Icon icon="ep:aim" /> 巡检管理</span>
-            <el-button link type="primary" @click="goPage('/pms/service/srv-task')">前往巡检管理</el-button>
-          </div>
-          <!-- 第一层：巡检任务列表 -->
-          <div class="hierarchy-section">
-            <div class="hierarchy-section-title">
-              <Icon icon="ep:document" /> 巡检任务
-              <span class="hierarchy-hint">选择任务后查看其报告与问题</span>
-            </div>
-            <el-table
-              :data="srvTasks"
-              v-loading="srvLoading"
-              empty-text="暂无巡检任务"
-              size="small"
-              highlight-current-row
-              @current-change="onSrvTaskSelect"
-            >
-              <el-table-column prop="code" label="编码" width="140" />
-              <el-table-column prop="name" label="任务名称" min-width="180" show-overflow-tooltip />
-              <el-table-column prop="inspectionMode" label="巡检方式" width="100" />
-              <el-table-column label="计划时间" width="150">
-                <template #default="{ row }">{{ formatDate(row.scheduledTime) }}</template>
-              </el-table-column>
-              <el-table-column label="状态" width="100">
-                <template #default="{ row }">
-                  <span class="status-pill" :class="`status-pill--${commonStatusTone(row.status)}`">{{ commonStatusLabel(row.status) }}</span>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
-          <!-- 第二层：选中任务的报告与问题 -->
-          <div v-if="selectedSrvTask" class="hierarchy-children">
-            <el-tabs v-model="activeSrvSubTab" class="cut-sub-tabs">
-              <el-tab-pane label="巡检报告" name="srv-report">
-                <el-table :data="srvReports" v-loading="srvSubLoading" empty-text="暂无报告" size="small">
-                  <el-table-column prop="code" label="编码" width="140" />
-                  <el-table-column prop="reportType" label="报告类型" width="120" />
-                  <el-table-column label="生成时间" width="150">
-                    <template #default="{ row }">{{ formatDate(row.generatedTime) }}</template>
-                  </el-table-column>
-                  <el-table-column label="状态" width="90">
-                    <template #default="{ row }">
-                      <span class="status-pill" :class="`status-pill--${commonStatusTone(row.status)}`">{{ commonStatusLabel(row.status) }}</span>
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </el-tab-pane>
-              <el-tab-pane label="巡检问题" name="srv-issue">
-                <el-table :data="srvIssues" v-loading="srvSubLoading" empty-text="暂无问题" size="small">
-                  <el-table-column prop="code" label="编码" width="120" />
-                  <el-table-column prop="name" label="问题名称" min-width="160" show-overflow-tooltip />
-                  <el-table-column prop="severity" label="严重度" width="80" />
-                  <el-table-column label="状态" width="90">
-                    <template #default="{ row }">
-                      <span class="status-pill" :class="`status-pill--${commonStatusTone(row.status)}`">{{ commonStatusLabel(row.status) }}</span>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="ownerUserId" label="负责人" width="90">
-                    <template #default="{ row }">
-                      <UserTag :user-id="row.ownerUserId" />
-                    </template>
-                  </el-table-column>
-                </el-table>
-              </el-tab-pane>
-            </el-tabs>
-          </div>
-          <el-empty v-else description="请在上方选择巡检任务，查看其报告与问题" />
-        </ContentWrap>
       </div>
     </div>
 
@@ -767,10 +696,6 @@ import * as DeliverableCheckApi from '@/api/pms/acceptance/deliverable-checklist
 import * as ProjectClosureApi from '@/api/pms/project/project-closure'
 import * as ArchiveDocApi from '@/api/pms/acceptance/archive-document'
 // 割接域
-// 巡检维保域
-import * as SrvTaskApi from '@/api/pms/service/srv-task'
-import * as SrvReportApi from '@/api/pms/service/srv-report'
-import * as SrvIssueApi from '@/api/pms/service/srv-issue'
 import * as DocTemplateApi from '@/api/pms/engineering/doc-template'
 // 设备序列号域（Demo 1.1.1 序列号详情 / 1.1.1.1 配置Log）
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
@@ -913,14 +838,6 @@ const businessGroups = [
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked' },
       { key: 'project-closure', label: '项目闭环', icon: 'ep:lock' },
       { key: 'archive-document', label: '归档文档', icon: 'ep:archive' }
-    ],
-    parallelItems: []
-  },
-  {
-    key: 'maintenance',
-    title: '维保服务',
-    flowSteps: [
-      { key: 'inspection', label: '巡检管理', icon: 'ep:aim' }
     ],
     parallelItems: []
   }
@@ -1493,15 +1410,6 @@ const templateExcludedSections = ref<string[]>([])
 
 // 割接面板状态
 
-// 巡检面板状态
-const srvTasks = ref<any[]>([])
-const srvLoading = ref(false)
-const selectedSrvTask = ref<any>(null)
-const activeSrvSubTab = ref('srv-report')
-const srvReports = ref<any[]>([])
-const srvIssues = ref<any[]>([])
-const srvSubLoading = ref(false)
-
 // 割接任务操作 API 引用
 
 // ============ 计算属性 ============
@@ -1714,10 +1622,6 @@ const switchTab = (key: string) => {
     loadModuleData()
   }
   // 割接面板：首次进入加载任务列表
-  // 巡检面板：首次进入加载任务列表
-  if (key === 'inspection' && srvTasks.value.length === 0) {
-    loadSrvTasks()
-  }
 }
 
 // 切换到阶段详情面板
@@ -2093,38 +1997,10 @@ const completePhase = async (phase: ProjectPhaseVO) => {
   }
 }
 
-// ============ 巡检面板数据加载 ============
-const loadSrvTasks = async () => {
-  if (!currentProjectId.value) return
-  srvLoading.value = true
-  try {
-    const res = await SrvTaskApi.getSrvTaskPage({ projectId: currentProjectId.value, pageNo: 1, pageSize: 50 })
-    srvTasks.value = res.list || []
-  } catch { srvTasks.value = [] } finally { srvLoading.value = false }
-}
-const onSrvTaskSelect = async (row: any) => {
-  selectedSrvTask.value = row
-  if (!row) return
-  await loadSrvSubData(row.id)
-}
-const loadSrvSubData = async (taskId: number) => {
-  srvSubLoading.value = true
-  try {
-    const [reports, issues] = await Promise.all([
-      SrvReportApi.getSrvReportPage({ taskId, pageNo: 1, pageSize: 50 }).catch(() => ({ list: [] })),
-      SrvIssueApi.getSrvIssuePage({ taskId, pageNo: 1, pageSize: 50 }).catch(() => ({ list: [] }))
-    ])
-    srvReports.value = reports.list || []
-    srvIssues.value = issues.list || []
-  } finally { srvSubLoading.value = false }
-}
-
 // ============ 总加载 ============
 const loadAll = async (id: number) => {
   loading.value = true
   // 重置所有面板数据
-  selectedSrvTask.value = null
-  srvTasks.value = []
   moduleData.value = []
   activePhaseId.value = undefined
   try {

@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.pms.integration.deviceops;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.integration.api.deviceops.dto.DeviceOpsDispatchCommand;
+import cn.iocoder.yudao.module.pms.integration.api.deviceops.dto.DeviceOpsExecutionOptions;
 import cn.iocoder.yudao.module.pms.integration.dal.dataobject.deviceops.DeviceOpsDispatchDO;
 import cn.iocoder.yudao.module.pms.integration.dal.mysql.deviceops.DeviceOpsDispatchMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -14,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.test.web.client.RequestMatcher;
 import org.springframework.web.client.RestTemplate;
 
 import java.nio.charset.StandardCharsets;
@@ -21,6 +23,7 @@ import java.security.MessageDigest;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -106,6 +109,9 @@ class DacDeviceOpsGatewayTest {
                 .andExpect(jsonPath("$.parseTimeoutSeconds").value(30))
                 .andExpect(jsonPath("$.leaseGraceSeconds").value(0))
                 .andExpect(jsonPath("$.connection.connectTimeoutSeconds").value(10))
+                .andExpect(jsonPath("$.executionOptions").doesNotExist())
+                .andExpect(purposeGrant(new DispatchScenario("secret".toCharArray(),
+                        List.of("show version", "display current"), null, 30)))
                 .andRespond(withSuccess("{\"collectionId\":\"dac-1\",\"existing\":false}",
                         MediaType.APPLICATION_JSON));
         when(dispatchMapper.selectByTenantAndPlatformTaskId(0L, "task-1")).thenReturn(null);
@@ -119,6 +125,75 @@ class DacDeviceOpsGatewayTest {
         verify(dispatchMapper).insert(inserted.capture());
         assertEquals("dac-1", inserted.getValue().getCollectionId());
         assertEquals("npdms-0", inserted.getValue().getNamespace());
+        server.verify();
+    }
+
+    @Test
+    void precheckAcceptsEmptyScriptAndSignsPurposeWithConnectionTimeout() {
+        properties.setDeviceConnectTimeoutSeconds(17);
+        properties.setManualExecutionTimeoutSeconds(450);
+        char[] secret = "precheck-secret".toCharArray();
+        var scenario = new DispatchScenario(secret, List.of(), "PRECHECK", 17);
+        server.expect(requestTo(BASE + "/api/v1/npdms/collections"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.script.content").value(""))
+                .andExpect(jsonPath("$.script.sha256").value(sha256("")))
+                .andExpect(jsonPath("$.executionOptions.purpose").value("PRECHECK"))
+                .andExpect(jsonPath("$.commandTimeoutSeconds").value(17))
+                .andExpect(jsonPath("$.connection.connectTimeoutSeconds").value(17))
+                .andExpect(purposeGrant(scenario))
+                .andRespond(withSuccess("{\"collectionId\":\"dac-precheck\",\"existing\":false}",
+                        MediaType.APPLICATION_JSON));
+
+        assertTrue(gateway.dispatch(command(scenario)).accepted());
+
+        assertArrayEquals(new char[secret.length], secret);
+        server.verify();
+    }
+
+    @Test
+    void precheckRejectsCommandsBeforeHttpAndErasesSecret() {
+        char[] secret = "precheck-secret".toCharArray();
+        var scenario = new DispatchScenario(secret, List.of("show version"), "PRECHECK", 10);
+
+        assertThrows(IllegalArgumentException.class, () -> gateway.dispatch(command(scenario)));
+
+        assertArrayEquals(new char[secret.length], secret);
+        verify(dispatchMapper, never()).insert(any(DeviceOpsDispatchDO.class));
+        server.verify();
+    }
+
+    @Test
+    void inspectionSignsPurposeAndUsesManualBudgetForTheCompleteScript() {
+        properties.setManualExecutionTimeoutSeconds(450);
+        properties.setCommandTimeoutSeconds(29);
+        char[] secret = "inspection-secret".toCharArray();
+        var scenario = new DispatchScenario(secret, List.of("show version", "display current"),
+                "INSPECTION", 450);
+        server.expect(requestTo(BASE + "/api/v1/npdms/collections"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.script.content").value("show version\ndisplay current"))
+                .andExpect(jsonPath("$.executionOptions.purpose").value("INSPECTION"))
+                .andExpect(jsonPath("$.commandTimeoutSeconds").value(450))
+                .andExpect(purposeGrant(scenario))
+                .andRespond(withSuccess("{\"collectionId\":\"dac-inspection\",\"existing\":false}",
+                        MediaType.APPLICATION_JSON));
+
+        assertTrue(gateway.dispatch(command(scenario)).accepted());
+
+        assertArrayEquals(new char[secret.length], secret);
+        server.verify();
+    }
+
+    @Test
+    void absentPurposeRejectsEmptyScriptBeforeHttpAndErasesSecret() {
+        char[] secret = "legacy-secret".toCharArray();
+        var scenario = new DispatchScenario(secret, List.of(), null, 30);
+
+        assertThrows(IllegalArgumentException.class, () -> gateway.dispatch(command(scenario)));
+
+        assertArrayEquals(new char[secret.length], secret);
+        verify(dispatchMapper, never()).insert(any(DeviceOpsDispatchDO.class));
         server.verify();
     }
 
@@ -343,6 +418,39 @@ class DacDeviceOpsGatewayTest {
                 "Device", "10.0.0.1", 22, protocol, "template-1", "v1", sha256("show version\ndisplay current"),
                 List.of("show version", "display current"), "TEMPORARY_SECRET", null,
                 "operator", secret, "DEVICE_OPS", "trace-1", context, objectType);
+    }
+
+    private record DispatchScenario(char[] secret, List<String> commands, String purpose, long timeoutSeconds) { }
+
+    private DeviceOpsDispatchCommand command(DispatchScenario scenario) {
+        return new DeviceOpsDispatchCommand("task-1", "batch-1", 0L, "project-1", "device-1",
+                "Device", "10.0.0.1", 22, "SSH", "template-1", "v1",
+                sha256(String.join("\n", scenario.commands())), scenario.commands(), "TEMPORARY_SECRET", null,
+                "operator", scenario.secret(), "DEVICE_OPS", "trace-1", "INS", "Inspection", null, null,
+                scenario.purpose() == null ? null : new DeviceOpsExecutionOptions(scenario.purpose()));
+    }
+
+    private RequestMatcher purposeGrant(DispatchScenario scenario) {
+        return request -> {
+            String time = request.getHeaders().getFirst("X-DAC-Grant-Time");
+            String binding = java.util.stream.Stream.of(time, "npdms-0", "task-1", "project-1", "device-1",
+                            "10.0.0.1", "22", "SSH2", "operator", "plt-template-1", "v1",
+                            sha256(String.join("\n", scenario.commands())), Long.toString(scenario.timeoutSeconds()), "")
+                    .map(value -> value.length() + ":" + value)
+                    .collect(java.util.stream.Collectors.joining());
+            if (scenario.purpose() != null) {
+                binding += "21:collection-purpose-v1" + scenario.purpose().length() + ":" + scenario.purpose();
+            }
+            try {
+                var mac = javax.crypto.Mac.getInstance("HmacSHA256");
+                mac.init(new javax.crypto.spec.SecretKeySpec(
+                        properties.getRequestSigningKey().getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+                assertEquals(java.util.HexFormat.of().formatHex(mac.doFinal(binding.getBytes(StandardCharsets.UTF_8))),
+                        request.getHeaders().getFirst("X-DAC-Grant"));
+            } catch (java.security.GeneralSecurityException failure) {
+                throw new AssertionError(failure);
+            }
+        };
     }
 
     private DeviceOpsDispatchDO dispatchRow(String collectionId) {

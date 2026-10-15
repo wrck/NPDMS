@@ -119,7 +119,7 @@ public class GenericCollectionController {
                                                 request.semanticParsing().logType(),
                                                 request.semanticParsing().releaseId(),
                                                 request.semanticParsing().inputFormat(),
-                                                request.semanticParsing().resultConsumerId()), fingerprint, CollectionSubmissionSnapshot.current()));
+                                                request.semanticParsing().resultConsumerId()), fingerprint, CollectionSubmissionSnapshot.current(), request.executionOptions()));
                 dispatched = true;
                 return result;
             } finally {
@@ -138,7 +138,17 @@ public class GenericCollectionController {
                           @Size(max = 100) String activityType, @Size(max = 2000) String callbackUrl,
                           @Min(1) long commandTimeoutSeconds, @Min(1) long parseTimeoutSeconds,
                           @Min(0) long leaseGraceSeconds,
-                          @Valid SemanticParsing semanticParsing) {
+                          @Valid SemanticParsing semanticParsing,
+                          com.dp.deviceops.core.model.CollectionExecutionOptions executionOptions) {
+        public Request {
+            if (executionOptions != null) executionOptions.validateScript(script == null ? null : script.content());
+        }
+        public Request(String namespace, Context context, ConnectionRequestMapper.Connection connection,
+                       Script script, String externalRequestId, String activityType, String callbackUrl,
+                       long commandTimeoutSeconds, long parseTimeoutSeconds, long leaseGraceSeconds, SemanticParsing semanticParsing) {
+            this(namespace, context, connection, script, externalRequestId, activityType, callbackUrl,
+                    commandTimeoutSeconds, parseTimeoutSeconds, leaseGraceSeconds, semanticParsing, null);
+        }
         public void clearCredentials() {
             if (connection != null) {
                 connection.clearCredentials();

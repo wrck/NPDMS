@@ -1,6 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.ProjectDeviceSelectionMapper">
+    <sql id="candidateIds">
+        <choose>
+            <when test="query.projectId != null and query.projectId > 0">
+                SELECT p.id FROM ast_device p
+                WHERE p.tenant_id = #{query.tenantId} AND p.deleted = 0 AND p.project_id = #{query.projectId}
+                <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+                    UNION
+                    SELECT c.id FROM ast_device c
+                    WHERE c.tenant_id = #{query.tenantId} AND c.deleted = 0 AND c.contract_no IN
+                    <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+                </if>
+            </when>
+            <otherwise>SELECT empty_device.id FROM ast_device empty_device WHERE 1 = 0</otherwise>
+        </choose>
+    </sql>
+    <sql id="candidateScope">
+        FROM ast_device d
+        INNER JOIN (<include refid="candidateIds"/>) candidates ON candidates.id = d.id
+        WHERE d.tenant_id = #{query.tenantId} AND d.deleted = 0
+        <if test="query.sn != null and query.sn != ''">AND d.sn LIKE CONCAT('%', #{query.sn}, '%')</if>
+        <if test="query.name != null and query.name != ''">AND d.name LIKE CONCAT('%', #{query.name}, '%')</if>
+        <if test="query.productModel != null and query.productModel != ''">AND d.product_model LIKE CONCAT('%', #{query.productModel}, '%')</if>
+        <if test="query.contractNo != null and query.contractNo != ''">AND d.contract_no LIKE CONCAT('%', #{query.contractNo}, '%')</if>
+    </sql>
+    <select id="selectPageCandidates" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT d.id, d.sn, d.name, d.product_code, d.product_model, d.contract_no,
+               d.project_id, d.customer_id, d.status
+        <include refid="candidateScope"/>
+        ORDER BY d.id DESC
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+    <select id="selectCountCandidates" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        <include refid="candidateScope"/>
+    </select>
     <select id="selectSelectionForUpdate" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
         SELECT * FROM ast_device
         WHERE tenant_id = #{query.tenantId} AND deleted = 0

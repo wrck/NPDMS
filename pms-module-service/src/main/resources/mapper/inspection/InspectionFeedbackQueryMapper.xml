@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.InspectionFeedbackQueryMapper">
+  <sql id="results">
+    FROM srv_inspection_detection_result r
+    JOIN srv_inspection_task t ON t.tenant_id = r.tenant_id AND t.id = r.task_id AND t.deleted = b'0'
+    JOIN srv_inspection_task_device d ON d.tenant_id = r.tenant_id AND d.task_id = r.task_id AND d.device_id = r.device_id AND d.deleted = b'0'
+    JOIN srv_inspection_rule_revision v ON v.tenant_id = r.tenant_id AND v.id = r.rule_revision_id AND v.deleted = b'0'
+    JOIN srv_inspection_rule i ON i.tenant_id = v.tenant_id AND i.id = v.rule_id AND i.deleted = b'0'
+  </sql>
+  <sql id="resultScope">
+    r.tenant_id = #{query.tenantId} AND r.deleted = b'0' AND r.outcome = 'ABNORMAL'
+    AND r.create_time &lt;= #{query.dataAsOf}
+    <choose><when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+      AND t.project_id IN <foreach collection="query.visibleProjectIds" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>AND 1 = 0</otherwise></choose>
+    <if test="query.ruleRevisionId != null">AND r.rule_revision_id = #{query.ruleRevisionId}</if>
+    <if test="query.detectionId != null and query.detectionId != ''">AND i.detection_id = #{query.detectionId}</if>
+    <if test="query.categoryCode != null and query.categoryCode != ''">AND v.category_code = #{query.categoryCode}</if>
+    <if test="query.severityCode != null and query.severityCode != ''">AND v.severity_code = #{query.severityCode}</if>
+    <if test="query.productModel != null and query.productModel != ''">AND d.product_model = #{query.productModel}</if>
+    <if test="query.fromAt != null">AND r.create_time &gt;= #{query.fromAt}</if>
+    <if test="query.toAt != null">AND r.create_time &lt; #{query.toAt}</if>
+  </sql>
+  <sql id="annotationJoin">
+    JOIN srv_inspection_annotation a ON a.tenant_id = r.tenant_id AND a.result_id = r.id AND a.deleted = b'0'
+      AND a.kind = 'FALSE_POSITIVE' AND a.annotated_at &lt;= #{query.dataAsOf}
+    LEFT JOIN srv_inspection_feedback_confirmation f ON f.tenant_id = a.tenant_id AND f.annotation_id = a.id
+      AND f.deleted = b'0' AND f.confirmed_at &lt;= #{query.dataAsOf}
+      AND NOT EXISTS (SELECT 1 FROM srv_inspection_feedback_confirmation f2 WHERE f2.tenant_id = f.tenant_id
+        AND f2.annotation_id = f.annotation_id AND f2.deleted = b'0' AND f2.revision_no &gt; f.revision_no AND f2.confirmed_at &lt;= #{query.dataAsOf})
+  </sql>
+  <sql id="active">
+    (t.current_report_id = a.report_id AND NOT EXISTS (SELECT 1 FROM srv_inspection_annotation a2
+      WHERE a2.tenant_id = a.tenant_id AND a2.report_id = a.report_id AND a2.result_id = a.result_id
+      AND a2.deleted = b'0' AND a2.revision_no &gt; a.revision_no AND a2.annotated_at &lt;= #{query.dataAsOf}))
+  </sql>
+  <sql id="feedbackScope">
+    <include refid="resultScope"/>
+    <if test="!query.administrator">AND a.annotated_by = #{query.actorId}</if>
+    <if test="query.currentOnly == true">AND <include refid="active"/></if>
+    <choose>
+      <when test="query.confirmation == 'PENDING'">AND f.id IS NULL</when>
+      <when test="query.confirmation == 'VALID'">AND f.valid_flag = b'1'</when>
+      <when test="query.confirmation == 'INVALID'">AND f.valid_flag = b'0'</when>
+    </choose>
+  </sql>
+  <sql id="columns">
+    a.id AS annotation_id,a.task_id,t.project_id,a.result_id,a.revision_no AS annotation_revision,a.reason,a.annotated_by,a.annotated_at,
+    r.rule_revision_id,r.create_time AS detected_at,v.rule_id,v.revision_no,i.detection_id,v.inspection_item,
+    v.category_code,v.category_name_snapshot AS category_name,v.severity_code,v.severity_name_snapshot AS severity_name,t.task_code,
+    <choose><when test="query.details">d.serial_number AS device_serial,d.product_model,r.output_summary,</when>
+      <otherwise>NULL AS device_serial,NULL AS product_model,NULL AS output_summary,</otherwise></choose>
+    f.id AS confirmation_id,COALESCE(f.revision_no,0) AS confirmation_version,f.valid_flag,f.reason AS confirmation_reason,f.confirmed_by,f.confirmed_at,
+    <include refid="active"/> AS active_flag
+  </sql>
+  <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionFeedbackRow">
+    SELECT <include refid="columns"/> <include refid="results"/> <include refid="annotationJoin"/>
+    WHERE <include refid="feedbackScope"/> ORDER BY a.id DESC LIMIT #{query.offset},#{query.pageSize}
+  </select>
+  <select id="selectExportRows" resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionFeedbackRow">
+    SELECT <include refid="columns"/> <include refid="results"/> <include refid="annotationJoin"/>
+    WHERE <include refid="feedbackScope"/> ORDER BY a.id LIMIT 10001
+  </select>
+  <select id="count" resultType="long">
+    SELECT COUNT(*) <include refid="results"/> <include refid="annotationJoin"/> WHERE <include refid="feedbackScope"/>
+  </select>
+  <select id="statistics" resultType="cn.iocoder.yudao.module.pms.service.dal.mysql.inspection.projection.InspectionFeedbackStatistic">
+    SELECT r.rule_revision_id,v.rule_id,v.revision_no,i.detection_id,v.inspection_item,
+      COUNT(DISTINCT r.id) AS detection_count,
+      COUNT(DISTINCT CASE WHEN f.valid_flag = b'1' THEN r.id END) AS confirmed_false_positive_count
+    <include refid="results"/>
+    LEFT JOIN srv_inspection_annotation a ON a.tenant_id = r.tenant_id AND a.result_id = r.id AND a.report_id = t.current_report_id
+      AND a.deleted = b'0' AND a.kind = 'FALSE_POSITIVE' AND a.annotated_at &lt;= #{query.dataAsOf}
+      AND NOT EXISTS (SELECT 1 FROM srv_inspection_annotation a2 WHERE a2.tenant_id = a.tenant_id AND a2.report_id = a.report_id
+        AND a2.result_id = a.result_id AND a2.deleted = b'0' AND a2.revision_no &gt; a.revision_no AND a2.annotated_at &lt;= #{query.dataAsOf})
+    LEFT JOIN srv_inspection_feedback_confirmation f ON f.tenant_id = a.tenant_id AND f.annotation_id = a.id
+      AND f.deleted = b'0' AND f.confirmed_at &lt;= #{query.dataAsOf}
+      AND NOT EXISTS (SELECT 1 FROM srv_inspection_feedback_confirmation f2 WHERE f2.tenant_id = f.tenant_id
+        AND f2.annotation_id = f.annotation_id AND f2.deleted = b'0' AND f2.revision_no &gt; f.revision_no AND f2.confirmed_at &lt;= #{query.dataAsOf})
+    WHERE <include refid="resultScope"/> AND #{query.administrator} = TRUE
+    GROUP BY r.rule_revision_id,v.rule_id,v.revision_no,i.detection_id,v.inspection_item ORDER BY i.detection_id,v.revision_no
+  </select>
+</mapper>

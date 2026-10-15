@@ -23,6 +23,7 @@ public final class MeteredCommandExecutionPort implements CommandExecutionPort {
     public void test(ConnectionSpec connection, char[] secret, char[] passphrase) {
         delegate.test(connection, secret, passphrase);
     }
+    @Override public void precheck(PrecheckRequest request) { delegate.precheck(request); }
 
     @Override
     public CommandResult execute(

@@ -4,6 +4,8 @@ import lombok.Builder;
 
 /** 项目业务消费者的授权展示快照；不以项目生命周期作为独立业务的准入条件。 */
 public interface ProjectBusinessContextApi {
+    /** 当前查询范围；服务经理范围仅来自有效成员事实，不由管理员权限推导。 */
+    AccessScope currentActorScope(ActorQuery query);
     /** 当前可见项目的名称/编码包含查询，按名称、ID排序，最多100项。 */
     java.util.List<Option> searchOptions(OptionsQuery query);
     Context inspect(Query query);
@@ -26,6 +28,12 @@ public interface ProjectBusinessContextApi {
     record ServiceManagers(Long projectVersion, java.util.List<Long> userIds) {}
     @Builder
     record ActorQuery(Long tenantId, Long actorId) {}
+    record AccessScope(java.util.Set<Long> visibleProjectIds, java.util.Set<Long> serviceManagedProjectIds) {
+        public AccessScope {
+            visibleProjectIds = java.util.Set.copyOf(visibleProjectIds);
+            serviceManagedProjectIds = java.util.Set.copyOf(serviceManagedProjectIds);
+        }
+    }
     @Builder
     record OptionsQuery(Long tenantId, Long actorId, String keyword) {}
     record Option(Long id, String code, String name, String customerName) {}

@@ -14,6 +14,44 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CollectionWorkerTest {
+    @Test void independentPrecheckNeverExecutesCommandsOrParsesOutput() throws Exception {
+        List<CollectionStatus> statuses = new ArrayList<>();
+        List<String> outcomes = new ArrayList<>();
+        var command = new CommandExecutionPort() {
+            public void test(ConnectionSpec connection, char[] secret, char[] passphrase) {
+                assertEquals("host", connection.host()); assertEquals("secret", String.valueOf(secret));
+            }
+            public CommandResult execute(ConnectionSpec c, char[] s, char[] p, String script, Duration timeout) {
+                fail("Precheck must not execute the inspection script"); return null;
+            }
+        };
+        var original = workItem();
+        var empty = ScriptArtifact.adHoc("precheck", "v1", "", hex(""), "NONE", null);
+        new CollectionWorker(command, recordingPersistence(statuses, outcomes), Clock.systemUTC()).execute(
+                new CollectionWorker.WorkItem(1, "worker", original.context(), empty, Duration.ofSeconds(2),
+                        Duration.ofSeconds(1), Duration.ofSeconds(1), original.parsers(), new CollectionExecutionOptions("PRECHECK")));
+        assertEquals(List.of(CollectionStatus.CONNECTING, CollectionStatus.SUCCEEDED), statuses);
+        assertThrows(IllegalStateException.class, () -> original.context().withCredentials((s, p) -> s.length));
+    }
+
+    @Test void precheckCannotCarryACommandAndInspectionUsesTheExistingWholeBatchBudget() throws Exception {
+        assertThrows(IllegalArgumentException.class, () -> new CollectionExecutionOptions("PRECHECK").validateScript("show version"));
+        var original = workItem();
+        List<CollectionStatus> statuses = new ArrayList<>();
+        var command = new CommandExecutionPort() {
+            public void test(ConnectionSpec c, char[] s, char[] p) { fail("Formal execution is independent from precheck"); }
+            public CommandResult execute(ConnectionSpec c, char[] s, char[] p, String script, Duration timeout) {
+                assertEquals("echo ok", script); assertEquals(Duration.ofSeconds(600), timeout);
+                return new CommandResult(-1, "", "", true, false, 1,
+                        List.of(CommandOutputBlock.legacy("", "", -1, false, Map.of(), "timed out")));
+            }
+        };
+        new CollectionWorker(command, recordingPersistence(statuses, new ArrayList<>()), Clock.systemUTC()).execute(
+                new CollectionWorker.WorkItem(1, "worker", original.context(), original.script(), Duration.ofSeconds(600),
+                        original.parseTimeout(), original.leaseGrace(), original.parsers(), new CollectionExecutionOptions("INSPECTION")));
+        assertEquals(CollectionStatus.TIMED_OUT, statuses.getLast());
+    }
+
     @Test void shellCommandRejectionFailsDespiteZeroTransportExitCode() throws Exception {
         List<CollectionStatus> statuses=new ArrayList<>();
         List<String> outcomes=new ArrayList<>();

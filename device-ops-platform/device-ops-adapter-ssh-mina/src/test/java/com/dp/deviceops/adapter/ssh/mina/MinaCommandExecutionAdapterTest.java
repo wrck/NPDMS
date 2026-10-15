@@ -5,6 +5,8 @@ import com.dp.deviceops.core.model.ConnectionProtocol;
 import com.dp.deviceops.core.model.CommandBlockStatus;
 import com.dp.deviceops.core.model.CommandOutputBlock;
 import com.dp.deviceops.core.port.CommandExecutionPort.OutputProgress;
+import com.dp.deviceops.core.port.CommandExecutionPort.PrecheckRequest;
+import com.dp.deviceops.core.port.CommandExecutionPort.ProgressListener;
 import com.dp.deviceops.core.port.CommandExecutionPort.AuthenticationType;
 import com.dp.deviceops.core.port.CommandExecutionPort.CommandResult;
 import com.dp.deviceops.core.port.CommandExecutionPort.ConnectionSpec;
@@ -39,6 +41,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -712,6 +715,58 @@ class MinaCommandExecutionAdapterTest {
         assertTrue(failure.getCause() != null);
     }
 
+    @Test
+    void shellPrecheckOpensPromptWithoutSendingCommandsAndLeavesCallerSecretIntact() {
+        ConnectionSpec connection = connection(AuthenticationType.PASSWORD, ExecutionMode.SHELL,
+                KeyUtils.getFingerPrint(hostKey.getPublic()));
+        int shells = EmbeddedCommand.SHELL_STARTS.get();
+        int commandLines = EmbeddedCommand.SHELL_COMMAND_LINES.get();
+        char[] secret = PASSWORD.toCharArray();
+
+        adapter.precheck(new PrecheckRequest(connection, secret, new char[0], ProgressListener.noop()));
+
+        assertEquals(shells + 1, EmbeddedCommand.SHELL_STARTS.get());
+        assertEquals(commandLines, EmbeddedCommand.SHELL_COMMAND_LINES.get());
+        assertTrue(Arrays.equals(PASSWORD.toCharArray(), secret));
+    }
+
+    @Test
+    void legacyShellTestStillAuthenticatesOnlyWhilePrecheckRejectsMissingPrompt() {
+        ConnectionSpec connection = connection(AuthenticationType.PASSWORD, ExecutionMode.SHELL,
+                KeyUtils.getFingerPrint(hostKey.getPublic()), Duration.ofSeconds(1));
+        server.setShellFactory(channel -> new EmbeddedCommand("precheck-no-prompt", true));
+        try {
+            int shells = EmbeddedCommand.SHELL_STARTS.get();
+            int commandLines = EmbeddedCommand.SHELL_COMMAND_LINES.get();
+            assertDoesNotThrow(() -> adapter.test(connection, PASSWORD.toCharArray(), new char[0]));
+            assertEquals(shells, EmbeddedCommand.SHELL_STARTS.get());
+
+            ConnectionFailure failure = assertThrows(ConnectionFailure.class,
+                    () -> adapter.precheck(new PrecheckRequest(connection, PASSWORD.toCharArray(),
+                            new char[0], ProgressListener.noop())));
+
+            assertFailure(failure, ConnectionFailure.Code.PROMPT_NOT_FOUND, ConnectionFailure.Stage.LOGIN,
+                    "initial SSH prompt was not reached");
+            assertEquals(commandLines, EmbeddedCommand.SHELL_COMMAND_LINES.get());
+        } finally {
+            server.setShellFactory(channel -> new EmbeddedCommand(null, true));
+        }
+    }
+
+    @Test
+    void precheckPreservesCooperativeCancellationBeforeOpeningShell() {
+        ConnectionSpec connection = connection(AuthenticationType.PASSWORD, ExecutionMode.SHELL,
+                KeyUtils.getFingerPrint(hostKey.getPublic()));
+        int shells = EmbeddedCommand.SHELL_STARTS.get();
+        ProgressListener listener = new ProgressListener() {
+            @Override public void onProgress(OutputProgress progress) { }
+            @Override public void checkCancellation() { throw new CancellationException("CALLER_CANCELLED"); }
+        };
+        assertThrows(CancellationException.class, () -> adapter.precheck(
+                new PrecheckRequest(connection, PASSWORD.toCharArray(), new char[0], listener)));
+        assertEquals(shells, EmbeddedCommand.SHELL_STARTS.get());
+    }
+
     private ConnectionSpec connection(AuthenticationType authenticationType, ExecutionMode executionMode,
                                       String fingerprint) {
         return connection(authenticationType, executionMode, fingerprint, Duration.ofSeconds(3));
@@ -764,6 +819,8 @@ class MinaCommandExecutionAdapterTest {
 
         private static final Set<Thread> ACTIVE_WORKERS = ConcurrentHashMap.newKeySet();
         private static final AtomicReference<BlockingCommandGate> BLOCKING_COMMAND_GATE = new AtomicReference<>();
+        private static final AtomicInteger SHELL_STARTS = new AtomicInteger();
+        private static final AtomicInteger SHELL_COMMAND_LINES = new AtomicInteger();
         private final String command;
         private final boolean shell;
         private final AtomicReference<Thread> worker = new AtomicReference<>();
@@ -859,8 +916,11 @@ class MinaCommandExecutionAdapterTest {
         }
 
         private void runInteractiveShell() throws IOException {
-            output.write("device#".getBytes(StandardCharsets.UTF_8));
-            output.flush();
+            SHELL_STARTS.incrementAndGet();
+            if (!"precheck-no-prompt".equals(command)) {
+                output.write("device#".getBytes(StandardCharsets.UTF_8));
+                output.flush();
+            }
             StringBuilder commandLine = new StringBuilder();
             int value;
             while ((value = input.read()) >= 0) {
@@ -873,6 +933,7 @@ class MinaCommandExecutionAdapterTest {
                 }
                 String received = commandLine.toString();
                 commandLine.setLength(0);
+                SHELL_COMMAND_LINES.incrementAndGet();
                 if ("close-without-status".equals(received)) {
                     channel.close(false);
                     return;

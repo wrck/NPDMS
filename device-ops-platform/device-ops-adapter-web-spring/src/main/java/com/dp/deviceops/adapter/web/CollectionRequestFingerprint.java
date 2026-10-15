@@ -12,12 +12,14 @@ final class CollectionRequestFingerprint {
     private CollectionRequestFingerprint() { }
 
     static String generic(String subject, GenericCollectionController.Request request) {
-        return digest(values("version", 1, "subject", subject, "route", "generic", "namespace", request.namespace(),
+        var values = values("version", 1, "subject", subject, "route", "generic", "namespace", request.namespace(),
                 "context", request.context(), "connection", connection(request.connection()), "script", request.script(),
                 "externalRequestId", request.externalRequestId(), "activityType", request.activityType(),
                 "callbackUrl", request.callbackUrl(), "commandTimeoutSeconds", request.commandTimeoutSeconds(),
                 "parseTimeoutSeconds", request.parseTimeoutSeconds(), "leaseGraceSeconds", request.leaseGraceSeconds(),
-                "semanticParsing", request.semanticParsing()));
+                "semanticParsing", request.semanticParsing());
+        if (request.executionOptions() != null) values.put("executionOptions", request.executionOptions());
+        return digest(values);
     }
 
     static String project(String subject, String projectKey, CollectionController.Request request) {

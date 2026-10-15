@@ -28,6 +28,8 @@ class CustomerDeletionGuardServiceTest {
     private AssetCustomerReferenceGuardApi assetGuardApi;
     @Mock
     private cn.iocoder.yudao.module.pms.customer.dal.mysql.contact.CustomerContactMasterMapper contactMapper;
+    @Mock
+    private cn.iocoder.yudao.module.pms.customer.dal.mysql.inspection.CustomerInspectionHistoryMapper inspectionHistoryMapper;
 
     @InjectMocks
     private CustomerDeletionGuardService service;
@@ -41,7 +43,7 @@ class CustomerDeletionGuardServiceTest {
 
         assertTrue(result.allowed());
         assertEquals(CustomerReferenceGuardStatus.CLEAR, result.status());
-        assertEquals(3, result.providerResults().size());
+        assertEquals(4, result.providerResults().size());
     }
 
     @Test
@@ -99,6 +101,17 @@ class CustomerDeletionGuardServiceTest {
         assertFalse(result.allowed());
         assertEquals(CustomerReferenceGuardStatus.REFERENCED, result.status());
         assertEquals(2, result.referenceCount());
+    }
+
+    @Test
+    void inspectionHistoryPreventsDeletingTheOriginalCustomer() {
+        when(projectGuardApi.check(any())).thenReturn(result(CustomerReferenceGuardStatus.CLEAR, "PROJ", 0));
+        when(assetGuardApi.check(any())).thenReturn(result(CustomerReferenceGuardStatus.CLEAR, "AST", 0));
+        when(inspectionHistoryMapper.countReferences(any())).thenReturn(1L);
+        var result = service.check(1L, 100L);
+        assertFalse(result.allowed());
+        assertEquals(CustomerReferenceGuardStatus.REFERENCED, result.status());
+        assertEquals(1L, result.referenceCount());
     }
 
     private CustomerReferenceGuardResult result(CustomerReferenceGuardStatus status, String provider, long count) {

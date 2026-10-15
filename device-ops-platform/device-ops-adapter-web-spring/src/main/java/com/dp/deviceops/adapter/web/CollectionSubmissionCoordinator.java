@@ -73,7 +73,8 @@ public final class CollectionSubmissionCoordinator {
                 contexts.forEach(ExecutionConnectionContext::close);
                 return new Result(existingId.get(), true);
             }
-            CollectionSemanticParsing semanticParsing = resolveSemanticParsing(command.semanticParsing());
+            CollectionSemanticParsing semanticParsing = command.executionOptions() != null && command.executionOptions().precheck()
+                    ? null : resolveSemanticParsing(command.semanticParsing());
             var result = submissions.submit(new SubmitCollectionService.SubmitCollectionCommand(
                     command.namespace(), command.projectKey(), command.externalRequestId(), command.idempotencyKey(),
                     command.targets().stream().map(PreparedTarget::snapshot).toList(), command.script(),
@@ -91,7 +92,7 @@ public final class CollectionSubmissionCoordinator {
                 try {
                     executionCoordinator.submit(new CollectionWorker.WorkItem(ids.get(index), UUID.randomUUID().toString(),
                             contexts.get(index), command.script(), command.commandTimeout(), command.parseTimeout(),
-                            command.leaseGrace(), parsers));
+                            command.leaseGrace(), parsers, command.executionOptions()));
                     submitted++;
                 } catch (CollectionQueueFullException full) {
                     for (int remaining = index + 1; remaining < contexts.size(); remaining++) {
@@ -156,7 +157,15 @@ public final class CollectionSubmissionCoordinator {
     public record Command(String namespace, String projectKey, String externalRequestId, String idempotencyKey,
                           List<PreparedTarget> targets, ScriptArtifact script, String activityType, String callbackUrl,
                           Duration commandTimeout, Duration parseTimeout, Duration leaseGrace,
-                          SemanticParsing semanticParsing, String submissionFingerprint, String submissionSnapshot) {
+                          SemanticParsing semanticParsing, String submissionFingerprint, String submissionSnapshot,
+                          com.dp.deviceops.core.model.CollectionExecutionOptions executionOptions) {
+        public Command(String namespace, String projectKey, String externalRequestId, String idempotencyKey,
+                       List<PreparedTarget> targets, ScriptArtifact script, String activityType, String callbackUrl,
+                       Duration commandTimeout, Duration parseTimeout, Duration leaseGrace, SemanticParsing semanticParsing,
+                       String submissionFingerprint, String submissionSnapshot) {
+            this(namespace, projectKey, externalRequestId, idempotencyKey, targets, script, activityType, callbackUrl,
+                    commandTimeout, parseTimeout, leaseGrace, semanticParsing, submissionFingerprint, submissionSnapshot, null);
+        }
         public Command(String namespace, String projectKey, String externalRequestId, String idempotencyKey,
                 List<PreparedTarget> targets, ScriptArtifact script, String activityType, String callbackUrl,
                 Duration commandTimeout, Duration parseTimeout, Duration leaseGrace, SemanticParsing semanticParsing,

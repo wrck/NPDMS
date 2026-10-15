@@ -34,6 +34,12 @@ const { t } = useI18n()
  **/
 const remainingRouter: AppRouteRecordRaw[] = [
   {
+    path: '/pms/inspection/tasks/:taskId', component: Layout, name: 'PmsInspectionTaskDetailRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsInspectionTaskDetail', component: () => import('@/views/pms/inspection/task-detail/index.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '巡检任务详情', activeMenu: '/pms/inspection/tasks' } }]
+  },
+  {
     path: '/pms/project/normal-closure', component: Layout, name: 'ProjectNormalClosureRoot',
     meta: { hidden: true },
     children: [{ path: '', name: 'ProjectNormalClosure', component: () => import('@/views/pms/project/normal-closure/index.vue'),

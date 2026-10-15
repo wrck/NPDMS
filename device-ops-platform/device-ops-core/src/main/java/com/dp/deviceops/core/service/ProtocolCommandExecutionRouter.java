@@ -33,6 +33,7 @@ public final class ProtocolCommandExecutionRouter implements CommandExecutionPor
     public void test(ConnectionSpec connection, char[] secret, char[] passphrase) {
         adapterFor(connection).test(connection, secret, passphrase);
     }
+    @Override public void precheck(PrecheckRequest request) { adapterFor(request.connection()).precheck(request); }
 
     @Override
     public CommandResult execute(ConnectionSpec connection, char[] secret, char[] passphrase, String script,

@@ -55,9 +55,9 @@ public class CollectionApplicationService implements CollectionApplicationApi {
                     if(prepared.saved()!=null) {
                         var saved=prepared.saved().connection();
                         dispatch.dispatchSaved(new CollectionDispatchApi.SavedCommand(tenant(),task.platformTaskId(),commands,
-                                saved.username(),saved.id(),saved.version(),request.getRequestKey()));
+                                saved.username(),saved.id(),saved.version(),request.getRequestKey(),prepared.profile()));
                     } else dispatch.dispatchManual(new CollectionDispatchApi.Command(tenant(),task.platformTaskId(),commands,
-                            request.getUsername(),request.getPassword(),request.getRequestKey()));
+                            request.getUsername(),request.getPassword(),request.getRequestKey(),prepared.profile()));
                 } catch(RuntimeException failed) {
                     var current=tasks.getTask(tenant(),prepared.row().getPlatformTaskId());
                     if("PENDING_DISPATCH".equals(current.technicalStage()))throw new CollectionOperationException("采集已记录但未能下发，请查看执行历史");
@@ -79,11 +79,11 @@ public class CollectionApplicationService implements CollectionApplicationApi {
                 .access(CANCEL)
                 .expectedVersion(null)
                 .build());
-        String digest=digest(query,r);
+        String digest=digest(new DigestInput(query,r,currentSource.executionProfile()));
         var old=requests.findRequest(tenant(),r.getRequestKey());
         if(old!=null) {
             if(!entry.equals(old.getEntry())||!id.equals(old.getObjectId())||!digest.equals(old.getRequestDigest()))throw new CollectionOperationException("同一请求内容已变化，请新建执行请求");
-            checkHistory(currentSource,task(old));return new Prepared(old,false,null);
+            checkHistory(currentSource,task(old));return new Prepared(old,false,null,profile(old));
         }
         var source=adapter.authorize(CollectionSourceAdapter.AuthorizationQuery.builder()
                 .tenantId(tenant())
@@ -102,14 +102,20 @@ public class CollectionApplicationService implements CollectionApplicationApi {
                     ||!source.projectId().toString().equals(winner.getProjectId())
                     ||!source.sourceContext().equals(winner.getSourceContext())
                     ||!source.sourceObjectType().equals(winner.getSourceObjectType()))throw new CollectionOperationException("业务记录归属已变化，原采集记录不可在新项目读取");
-            return new Prepared(concurrent,false,null);
+            return new Prepared(concurrent,false,null,profile(concurrent));
         }
         if(!source.canExecute()||source.deviceId()==null)throw new CollectionOperationException("当前业务记录不能采集或尚未选择设备");
         var selected=devices.validateSelection(source.projectId(),List.of(source.deviceId())).getFirst();
         if(r.getProtocol()==null||!Set.of("SSH","TELNET").contains(r.getProtocol()))throw new CollectionOperationException("请选择有效连接协议");
         CollectionTemplateDO template=null;
         String commands;
-        if(r.getTemplateId()!=null) {
+        var profile=source.executionProfile();
+        if(profile!=null) {
+            if(r.getTemplateId()!=null || r.getCommands()!=null && !r.getCommands().equals(profile.commandText()))
+                throw new CollectionOperationException("该采集来源只执行Owner冻结的命令，不接受替换模板或手工命令");
+            commands=profile.commandText();
+            if(commands.length()>65536)throw new CollectionOperationException("冻结命令清单超过单次采集资源上限");
+        }else if(r.getTemplateId()!=null) {
             template=templates.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(actor).templateId(r.getTemplateId()).entry(entry).deviceModel(selected.productModel()).build());
             commands=template.getCommandText();
         }else{
@@ -123,6 +129,10 @@ public class CollectionApplicationService implements CollectionApplicationApi {
             saved=connections.resolve(actor,r.getCredentialId(),source.projectId(),source.deviceId(),r.getProtocol(),r.getTemplateId());
             host=saved.connection().host();port=saved.connection().port();username=saved.connection().username();
         }else if(host==null||!host.matches("[a-zA-Z0-9.:-]{1,253}")||port==null||port<1||port>65535||username==null||username.isBlank()||username.length()>128||r.getPassword()==null||r.getPassword().length==0||r.getPassword().length>4096)throw new CollectionOperationException("请填写有效的设备地址和临时凭证");
+        adapter.authorizeConnection(CollectionSourceAdapter.PreparedConnection.builder().authorization(CollectionSourceAdapter.AuthorizationQuery.builder()
+                .tenantId(tenant()).actorId(actor).objectId(id).deviceId(source.deviceId()).access(EXECUTE).expectedVersion(r.getExpectedVersion()).build())
+                .source(source).host(host).port(port).protocol(r.getProtocol()).username(username).credentialId(r.getCredentialId())
+                .credentialVersion(saved==null?null:saved.connection().version()).grantId(saved==null?null:saved.grantId()).build());
         if(r.getRetryOfId()!=null) {
             var previous=required(entry,id,r.getRetryOfId());var previousTask=task(previous);
             if(!source.deviceId().toString().equals(previousTask.deviceId())||Set.of("CREATED","AUTHORIZED","DISPATCHED","EXECUTING","CALLBACK_PROCESSING").contains(previousTask.status()))throw new CollectionOperationException("原任务仍在执行或设备已变化，不能重新执行");
@@ -140,8 +150,9 @@ public class CollectionApplicationService implements CollectionApplicationApi {
         var row=new CollectionRequestDO();row.setTenantId(tenant());row.setEntry(entry);row.setObjectId(id);row.setActorId(actor);
         row.setCreator(actor.toString());row.setRequestKey(r.getRequestKey());row.setRequestDigest(digest);row.setPlatformTaskId(platform.platformTaskId());
         row.setCommandText(commands);row.setTemplateName(template==null?"手工命令":template.getName());row.setTemplateRevisionId(r.getTemplateId());
-        row.setCredentialVersion(saved==null?null:saved.connection().version());row.setRetryOfId(r.getRetryOfId());requests.insert(row);
-        return new Prepared(row,true,saved);
+        row.setCredentialVersion(saved==null?null:saved.connection().version());row.setRetryOfId(r.getRetryOfId());
+        row.setExecutionPurpose(profile==null?null:profile.purpose());requests.insert(row);
+        return new Prepared(row,true,saved,profile);
     }
     @Override public PageResult<Execution> page(SourceQuery query,PageParam pagination) {
         String entry = query.entry();
@@ -224,19 +235,26 @@ public class CollectionApplicationService implements CollectionApplicationApi {
     private CollectionRequestDO required(String entry,Long id,Long executionId){var r=requests.selectById(executionId);if(r==null||!tenant().equals(r.getTenantId())||!entry.equals(r.getEntry())||!id.equals(r.getObjectId()))throw new CollectionOperationException("执行记录不存在");return r;}
     private CollectionTaskDTO task(CollectionRequestDO r){var t=tasks.getTask(tenant(),r.getPlatformTaskId());if(t==null||!r.getObjectId().toString().equals(t.sourceObjectId()))throw new CollectionOperationException("采集任务绑定异常");return t;}
     private void checkBinding(CollectionSourceAdapter.Source s,CollectionTaskDTO t){if(!s.projectId().toString().equals(t.projectId())||!s.sourceContext().equals(t.sourceContext())||!s.sourceObjectType().equals(t.sourceObjectType())||s.deviceId()==null||!s.deviceId().toString().equals(t.deviceId()))throw new CollectionOperationException("业务记录的项目或设备已变化，不能操作原采集结果");}
-    private Execution view(CollectionRequestDO r){return new Execution(r.getId(),r.getActorId(),r.getCreateTime(),r.getConsumedResultVersion(),task(r),r.getCommandText(),r.getTemplateName(),r.getRetryOfId());}
+    private Execution view(CollectionRequestDO r){return new Execution(r.getId(),r.getActorId(),r.getCreateTime(),r.getConsumedResultVersion(),task(r),r.getCommandText(),r.getTemplateName(),r.getRetryOfId(),profile(r));}
+    private CollectionExecutionProfile profile(CollectionRequestDO row) {
+        if(row.getExecutionPurpose()==null)return null;
+        return new CollectionExecutionProfile(row.getExecutionPurpose(),row.getCommandText());
+    }
     private void checkHistory(CollectionSourceAdapter.Source source,CollectionTaskDTO task){if(!source.projectId().toString().equals(task.projectId())||!source.sourceContext().equals(task.sourceContext())||!source.sourceObjectType().equals(task.sourceObjectType()))throw new CollectionOperationException("业务记录归属已变化，原采集记录不可在新项目读取");}
     private CollectionSourceAdapter source(String entry){var matches=sources.stream().filter(s->s.entry().equals(entry)).toList();if(matches.size()!=1)throw new CollectionOperationException("该采集入口尚未接入");return matches.getFirst();}
     private CollectionDispatchApi dispatch(){var d=dispatcher.getIfAvailable();if(d==null)throw new CollectionOperationException("DAC 尚未启用");return d;}
     private Long tenant(){return CollectionAuthorization.tenant();}
-    private String digest(SourceQuery query,CollectionExecutionRequest r) {
+    private record DigestInput(SourceQuery source,CollectionExecutionRequest request,CollectionExecutionProfile profile){}
+    private String digest(DigestInput input) {
+        var query=input.source();var r=input.request();
         String entry = query.entry();
         Long id = query.objectId();
         Long actor = query.actorId();
-        String commands=r.getTemplateId()==null?CollectionTemplateService.normalize(r.getCommands()):"";
+        String commands=input.profile()!=null?input.profile().commandText():r.getTemplateId()==null?CollectionTemplateService.normalize(r.getCommands()):"";
+        if(input.profile()!=null)return CollectionTemplateService.hash(JsonUtils.toJsonString(Arrays.asList(entry,id,actor,r.getExpectedVersion(),r.getDeviceId(),r.getHost(),r.getPort(),r.getProtocol(),r.getUsername(),r.getTemplateId(),r.getCredentialId(),r.getRetryOfId(),input.profile())));
         if("configuration".equals(entry)&&r.getTemplateId()==null&&r.getCredentialId()==null&&r.getRetryOfId()==null)
             return CollectionTemplateService.hash(JsonUtils.toJsonString(Arrays.asList(id,actor,r.getExpectedVersion(),r.getHost(),r.getPort(),r.getProtocol(),r.getUsername(),CollectionTemplateService.hash(commands))));
         return CollectionTemplateService.hash(JsonUtils.toJsonString(Arrays.asList(entry,id,actor,r.getExpectedVersion(),r.getDeviceId(),r.getHost(),r.getPort(),r.getProtocol(),r.getUsername(),r.getTemplateId(),r.getCredentialId(),CollectionTemplateService.hash(commands),r.getRetryOfId())));
     }
-    private record Prepared(CollectionRequestDO row,boolean fresh,CollectionConnectionService.Resolved saved){}
+    private record Prepared(CollectionRequestDO row,boolean fresh,CollectionConnectionService.Resolved saved,CollectionExecutionProfile profile){}
 }

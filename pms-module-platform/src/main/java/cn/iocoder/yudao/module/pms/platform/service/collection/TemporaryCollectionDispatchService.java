@@ -30,7 +30,7 @@ public class TemporaryCollectionDispatchService implements cn.iocoder.yudao.modu
                 throw new IllegalArgumentException("租户不匹配");
             }
             dispatch(new TemporaryDispatchCommand(command.tenantId(), command.platformTaskId(), command.commands(),
-                    command.username(), command.secret(), "DEVICE_OPS", command.traceId()));
+                    command.username(), command.secret(), "DEVICE_OPS", command.traceId(), command.executionProfile()));
         } finally {
             if (command != null && command.secret() != null) Arrays.fill(command.secret(), '\0');
         }
@@ -61,7 +61,7 @@ public class TemporaryCollectionDispatchService implements cn.iocoder.yudao.modu
         if (!java.util.Objects.equals(command.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())
                 || blank(command.connectionId())) throw new IllegalArgumentException("已保存连接下发参数不完整");
         dispatchResolved(new TemporaryDispatchCommand(command.tenantId(), command.platformTaskId(), command.commands(),
-                command.username(), null, "DEVICE_OPS", command.traceId()), command.connectionId(), command.connectionVersion());
+                command.username(), null, "DEVICE_OPS", command.traceId(), command.executionProfile()), command.connectionId(), command.connectionVersion());
     }
 
     @Override
@@ -94,7 +94,8 @@ public class TemporaryCollectionDispatchService implements cn.iocoder.yudao.modu
                     task.getProjectId(), task.getDeviceId(), task.getDeviceName(), task.getHost(), task.getPort(),
                     task.getProtocol(), task.getTemplateId(), task.getTemplateVersion(), task.getTemplateHash(),
                     List.copyOf(command.commands()), task.getCredentialMode(), null, command.temporaryUsername(), secret,
-                    command.callbackProvider(), command.traceId(), task.getSourceContext(), task.getSourceObjectType(), connectionId, connectionVersion);
+                    command.callbackProvider(), command.traceId(), task.getSourceContext(), task.getSourceObjectType(), connectionId, connectionVersion,
+                    options(command.executionProfile()));
             DeviceOpsDispatchResult result = null;
             try {
                 result = gatewayApi.dispatch(gatewayCommand);
@@ -148,7 +149,7 @@ public class TemporaryCollectionDispatchService implements cn.iocoder.yudao.modu
 
     private static void validate(TemporaryDispatchCommand command) {
         if (command == null || command.tenantId() == null || blank(command.platformTaskId())
-                || command.commands() == null || command.commands().isEmpty() || blank(command.temporaryUsername())
+                || command.commands() == null || command.commands().isEmpty() && (command.executionProfile()==null || !"PRECHECK".equals(command.executionProfile().purpose())) || blank(command.temporaryUsername())
                 || command.temporarySecret() == null || command.temporarySecret().length == 0
                 || blank(command.callbackProvider()) || blank(command.traceId())) {
             throw new IllegalArgumentException("临时凭证下发参数不完整");
@@ -178,6 +179,16 @@ public class TemporaryCollectionDispatchService implements cn.iocoder.yudao.modu
             String temporaryUsername,
             char[] temporarySecret,
             String callbackProvider,
-            String traceId) {
+            String traceId, cn.iocoder.yudao.module.pms.platform.api.collection.CollectionExecutionProfile executionProfile) {
+        public TemporaryDispatchCommand(Long tenantId, String platformTaskId, List<String> commands, String temporaryUsername,
+                                        char[] temporarySecret, String callbackProvider, String traceId) {
+            this(tenantId,platformTaskId,commands,temporaryUsername,temporarySecret,callbackProvider,traceId,null);
+        }
+        @Override public String toString() { return "TemporaryDispatchCommand[credential material omitted]"; }
+    }
+    private static cn.iocoder.yudao.module.pms.integration.api.deviceops.dto.DeviceOpsExecutionOptions options(
+            cn.iocoder.yudao.module.pms.platform.api.collection.CollectionExecutionProfile profile) {
+        if(profile==null)return null;
+        return new cn.iocoder.yudao.module.pms.integration.api.deviceops.dto.DeviceOpsExecutionOptions(profile.purpose());
     }
 }

@@ -25,5 +25,25 @@ class FileStorageContentServiceTest {
         assertThrows(IllegalStateException.class,()->service.read(query(1L,hash)));
         verify(files,never()).getFileContent(anyLong(),anyString());
     }
+    @Test void authorizedFiftyMegabyteLimitAlsoReadsSmallInspectionFiles() throws Exception {
+        var file=new FileDO().setId(10L).setConfigId(2L).setPath("pms-storage-receipts/inspection/log.json").setSize((long)content.length);
+        when(files.getFile(10L)).thenReturn(file);when(files.getFileContent(2L,file.getPath())).thenReturn(content);
+        assertArrayEquals(content,service.read(new FileStorageContentApi.Query(1L,10L,(long)content.length,hash,50*1024*1024)));
+    }
+    @Test void readsReceiptAtPlatformFiftyMegabyteBoundary() throws Exception {
+        byte[] boundary=new byte[50*1024*1024];
+        boundary[boundary.length-1]=1;
+        String digest=org.apache.commons.codec.digest.DigestUtils.sha256Hex(boundary);
+        var file=new FileDO().setId(10L).setConfigId(2L).setPath("pms-storage-receipts/inspection/large.log").setSize((long)boundary.length);
+        when(files.getFile(10L)).thenReturn(file);when(files.getFileContent(2L,file.getPath())).thenReturn(boundary);
+        assertSame(boundary,service.read(new FileStorageContentApi.Query(1L,10L,(long)boundary.length,digest,boundary.length)));
+    }
+    @Test void platformMaximumAndSmallerCallerLimitRemainEnforcedBeforeStorageRead() {
+        assertThrows(IllegalArgumentException.class,()->service.read(new FileStorageContentApi.Query(
+                1L,10L,(long)content.length,hash,50*1024*1024+1)));
+        assertThrows(IllegalArgumentException.class,()->service.read(new FileStorageContentApi.Query(
+                1L,10L,20*1024*1024+1L,hash,20*1024*1024)));
+        verifyNoInteractions(files);
+    }
     private FileStorageContentApi.Query query(long tenant,String digest) {return new FileStorageContentApi.Query(tenant,10L,(long)content.length,digest,1024);}
 }

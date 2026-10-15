@@ -6,6 +6,7 @@ import com.dp.deviceops.core.model.ExecutionConnectionContext;
 import com.dp.deviceops.core.model.ScriptArtifact;
 import com.dp.deviceops.core.model.CommandOutputBlock;
 import com.dp.deviceops.core.model.CommandPlan;
+import com.dp.deviceops.core.model.CollectionExecutionOptions;
 import com.dp.deviceops.core.port.CollectionExecutionPersistencePort;
 import com.dp.deviceops.core.port.CommandExecutionPort;
 
@@ -42,6 +43,12 @@ public final class CollectionWorker {
                     (secret, passphrase) -> new StreamingProgressPersistence(
                             item, persistence, clock, secret, passphrase));
             update(item, CollectionStatus.CONNECTING, evidence[0]);
+            if (item.options() != null && item.options().precheck()) {
+                context.precheck(command);
+                update(item, CollectionStatus.SUCCEEDED, evidence[0].withFacts(Map.of("connectionPrecheck", "PASSED")));
+                terminal[0] = true;
+                return;
+            }
             CommandPlan commandPlan = CommandPlan.fromScript(item.script().content());
             persistence.initializeCommandBlocks(item.targetId(), item.workerId(),
                     commandPlan.commands().stream().map(CommandOutputBlock::pending).toList());
@@ -153,8 +160,11 @@ public final class CollectionWorker {
                 block.exitCode(), block.outcome(), facts, warnings,
                 block.startedAt(), block.completedAt(), block.legacy());
     }
-    public record WorkItem(long targetId, String workerId, ExecutionConnectionContext context, ScriptArtifact script, Duration timeout, Duration parseTimeout, Duration leaseGrace, OutputParserRegistry parsers) {
-        public WorkItem { Objects.requireNonNull(workerId); Objects.requireNonNull(context); Objects.requireNonNull(script); Objects.requireNonNull(timeout); Objects.requireNonNull(parseTimeout); Objects.requireNonNull(leaseGrace); Objects.requireNonNull(parsers); if (timeout.isNegative() || timeout.isZero() || parseTimeout.isNegative() || leaseGrace.isNegative()) throw new IllegalArgumentException("execution durations are invalid"); }
+    public record WorkItem(long targetId, String workerId, ExecutionConnectionContext context, ScriptArtifact script, Duration timeout, Duration parseTimeout, Duration leaseGrace, OutputParserRegistry parsers, CollectionExecutionOptions options) {
+        public WorkItem { Objects.requireNonNull(workerId); Objects.requireNonNull(context); Objects.requireNonNull(script); Objects.requireNonNull(timeout); Objects.requireNonNull(parseTimeout); Objects.requireNonNull(leaseGrace); Objects.requireNonNull(parsers); if (timeout.isNegative() || timeout.isZero() || parseTimeout.isNegative() || leaseGrace.isNegative()) throw new IllegalArgumentException("execution durations are invalid"); if (options != null) options.validateScript(script.content()); }
+        public WorkItem(long targetId, String workerId, ExecutionConnectionContext context, ScriptArtifact script, Duration timeout, Duration parseTimeout, Duration leaseGrace, OutputParserRegistry parsers) {
+            this(targetId, workerId, context, script, timeout, parseTimeout, leaseGrace, parsers, null);
+        }
         public Duration leaseDuration() { return context.projection().connectTimeout().plus(timeout).plus(parseTimeout).plus(leaseGrace); }
         public Duration leaseDuration(Duration connectionWaitTimeout) { return leaseDuration().plus(connectionWaitTimeout); }
         public CommandExecutionPort.ConnectionSpec connectionSpec() {

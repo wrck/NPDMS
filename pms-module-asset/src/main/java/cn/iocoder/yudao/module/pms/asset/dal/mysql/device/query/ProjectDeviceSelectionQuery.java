@@ -17,4 +17,8 @@ public class ProjectDeviceSelectionQuery extends PageParam {
     private String name;
     private String productModel;
     private String contractNo;
+
+    public long getOffset() {
+        return (long) (getPageNo() - 1) * getPageSize();
+    }
 }

@@ -17,4 +17,5 @@ public class CollectionRequestDO extends TenantBaseDO {
     private Long credentialVersion;
     private Long retryOfId;
     private Long consumedResultVersion;
+    @TableField(updateStrategy = FieldStrategy.NEVER) private String executionPurpose;
 }
