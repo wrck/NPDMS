@@ -19,7 +19,7 @@
             <span>{{ candidate.project.projectCode }} · {{ candidate.project.departmentName }}</span>
             <span>{{ candidate.devices.length }} 台设备 · {{ candidate.devices.map((device) => device.serialNumber).join('、') }}</span>
             <span>{{ props.projectId ? '项目入口将在创建时核验实施就绪' : '独立割接，无实施就绪前置要求' }}</span>
-            <span>客户等级：{{ candidate.customerServiceLevel.serviceLevelCode || '未配置' }}</span>
+            <span>客户等级：{{ candidate.customerServiceLevel.serviceLevelCode || '三级普通（默认）' }}</span>
           </el-radio>
         </el-radio-group>
       </template>

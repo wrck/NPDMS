@@ -21,15 +21,17 @@
         </div>
         <div class="question-row">
           <div><label>⑤ 客户服务等级</label><p>项目客户信息带入</p></div>
-          <span class="customer-level">{{ customerServiceLevel || '未配置' }}</span>
+          <span class="customer-level">{{ customerServiceLevel || '三级普通（默认）' }}</span>
         </div>
-        <div class="grade-result">
-          <label>割接等级结果（A/B/C/D）<span class="cut-required"> *</span></label>
+        <div class="question-row">
+          <div>
+            <label>割接等级结果（A/B/C/D）<span class="cut-required"> *</span></label>
+            <p v-if="model.manualGrade" class="cut-help">{{ gradeDestination(model.manualGrade) }}</p>
+          </div>
           <el-radio-group :model-value="model.manualGrade ?? undefined" aria-label="割接等级结果"
             @update:model-value="model.manualGrade = $event as ManualGrade">
             <el-radio v-for="grade in ['A', 'B', 'C', 'D']" :key="grade" :value="grade">{{ grade }}</el-radio>
           </el-radio-group>
-          <p v-if="model.manualGrade" class="cut-help">{{ gradeDestination(model.manualGrade) }}</p>
         </div>
       </el-form>
       <el-alert v-if="model.manualGrade === 'D'" title="D级使用简易流程，跳过调研及风险考察，进入割接方案。" type="warning" :closable="false" show-icon />
@@ -72,7 +74,5 @@ const levelOptions = [
 .question-row label { color: #333; font-size: 13px; }
 .question-row p { margin: 0; color: #999; font-size: 12px; }
 .customer-level { padding-right: 16px; color: #555; }
-.grade-result { display: grid; gap: 6px; padding-top: 14px; }
-.grade-result > label { color: #888; font-size: 12px; }
 @media (width <= 767px) { .question-row { align-items: flex-start; flex-direction: column; gap: 6px; padding: 10px 0; } }
 </style>

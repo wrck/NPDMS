@@ -3,10 +3,11 @@ import { defineComponent, h, nextTick, reactive } from 'vue'
 import TaskDetail from './index.vue'
 import { findByTestId, mount, textOf } from '../cutoverTestHarness'
 
+const messages = vi.hoisted(() => ({ warning: vi.fn() }))
 const api = vi.hoisted(() => ({ getCutoverTaskDetail: vi.fn(), saveCutoverAssessment: vi.fn(), submitCutoverAssessment: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
-vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
+vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: messages.warning }) }))
 vi.mock('../components/CutoverAssessmentPanel.vue', () => ({ default: defineComponent({
   props: ['model', 'editable', 'onSave', 'onSubmit'], setup(props) { return () => h('section', [
     h('span', props.model.manualGrade),
@@ -54,6 +55,17 @@ describe('P2 detail write recovery', () => {
     await save()
     expect(api.saveCutoverAssessment).toHaveBeenCalledOnce()
     expect(textOf(page.root)).toContain('详情加载失败')
+    page.app.unmount()
+  })
+  it('does not blame completed questions or submit when server eligibility is missing', async () => {
+    api.getCutoverTaskDetail.mockResolvedValue({ ...detail(), allowedActions: ['SAVE_ASSESSMENT'],
+      customerServiceLevel: { referenceStatus: 'NOT_CONFIGURED', serviceLevelCode: null } })
+    const page = mount(TaskDetail, { taskId: '101' })
+    await flush()
+    await (findByTestId(page.root, 'submit-assessment')!.props!.onClick as () => Promise<void>)()
+    expect(messages.warning).toHaveBeenCalledWith('评估信息已保存，但当前来源信息、实施条件或操作权限不满足提交要求，请刷新任务并核查。')
+    expect(api.submitCutoverAssessment).not.toHaveBeenCalled()
+    expect(api.saveCutoverAssessment).not.toHaveBeenCalled()
     page.app.unmount()
   })
   it('ignores a late detail response after the task identity changes', async () => {

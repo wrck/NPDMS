@@ -206,6 +206,17 @@ const load = async () => {
     if (sequence === loadSequence) loading.value = false
   }
 }
+// 普通填报只更新结果及并发版本，避免重复加载匹配配置。
+const refreshResults = async () => {
+  const current = await CutoverApi.getCutoverChecklist(props.detail.task.id)
+  if (String(current.checklistId) !== String(checklist.value?.checklistId)) {
+    await load()
+    return
+  }
+  checklist.value = current
+  hydrateAnswers()
+  savedAnswers.value = JSON.stringify(answers)
+}
 const writeDraft = async <T, C extends object>(command: {
   action: string; request: C; send: (request: C & { idempotencyKey: string }) => Promise<T>; refresh?: () => Promise<void>
 }) => {
@@ -286,7 +297,7 @@ const saveDirect = async () => {
       checklistId: checklist.value.checklistId,
       expectedChecklistVersion: checklist.value.checklistFactVersion,
       answers: changedAnswers
-    } }, send: CutoverApi.saveCutoverChecklist })
+    } }, send: CutoverApi.saveCutoverChecklist, refresh: refreshResults })
     if (!outcome.writeCalled || !outcome.refreshSucceeded) return false
     message.success('调研及风险考察清单已保存')
 
@@ -392,7 +403,12 @@ const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, fact
       expectedChecklistVersion: checklist.value.checklistFactVersion,
       file,
       factDescription
-    } }, send: CutoverApi.saveManualChecklistResult })
+    } }, send: CutoverApi.saveManualChecklistResult, refresh: async () => {
+      await refreshResults()
+      if (checklist.value?.items.find(item => item.stableItemKey === stableItemKey)?.workModeCode === 'EXTERNAL') {
+        hydrateExternal(await CutoverApi.getCutoverExternalState(props.detail.task.id))
+      }
+    } })
     if (!outcome.writeCalled || !outcome.refreshSucceeded) return
     message.success('人工证据已选为当前结果')
   } finally { externalBusy.value = false }

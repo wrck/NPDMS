@@ -108,14 +108,13 @@ describe('F-CUT-003 mounted checklist field', () => {
 
     const input = findInput(mounted.root, '请填写核查事实')!
     await (input.props?.['onUpdate:modelValue'] as (value: string) => void)('已核查')
-    await (findInput(mounted.root, '说明人工核验事实')!.props?.['onUpdate:modelValue'] as (value: string) => void)('现场核验完成')
-    await nextTick()
     const uploader = findByTestId(mounted.root, 'manual-uploader')!
     await (uploader.props?.onClick as () => Promise<void>)()
     await nextTick()
 
     expect(direct).toEqual([['risk-check', '"已核查"']])
     expect(manual[0][0]).toBe('risk-check')
+    expect(manual[0][2]).toBe('')
     expect(manual[0][1]).toMatchObject({
       artifactId: '9007199254740993',
       scopeVersion: 17,
@@ -225,7 +224,7 @@ describe('F-CUT-003 mounted checklist field', () => {
     await flush()
 
     await (findInput(mounted.root, '请填写核查事实')!.props?.['onUpdate:modelValue'] as (value: string) => void)('未手动保存的现场事实')
-    await (findInput(mounted.root, '说明人工核验事实')!.props?.['onUpdate:modelValue'] as (value: string) => void)('另一项材料')
+    await (findInput(mounted.root, '材料说明（选填）')!.props?.['onUpdate:modelValue'] as (value: string) => void)('另一项材料')
     await nextTick()
     await (findByTestId(mounted.root, 'manual-uploader')!.props?.onClick as () => void)()
     await vi.waitFor(() => expect(checklistApi.saveCutoverChecklist).toHaveBeenCalledOnce())
@@ -238,6 +237,8 @@ describe('F-CUT-003 mounted checklist field', () => {
     })))
     await vi.waitFor(() => expect(findInput(mounted.root, '请填写核查事实')?.props?.['model-value']).toBe('未手动保存的现场事实'))
     expect(savedAnswer).toBe('{"value":"未手动保存的现场事实"}')
+    expect(checklistApi.getCutoverChecklistMatchingOptions).toHaveBeenCalledOnce()
+    expect(checklistApi.getCutoverExternalState).toHaveBeenCalledOnce()
     mounted.app.unmount()
     checklistApi.saveCutoverChecklist.mockReset()
     checklistApi.saveManualChecklistResult.mockReset()
@@ -273,7 +274,7 @@ describe('F-CUT-003 mounted checklist field', () => {
     }, controls)
     await flush()
 
-    await (findInput(mounted.root, '说明人工核验事实')!.props?.['onUpdate:modelValue'] as (value: string) => void)('现场核验完成')
+    await (findInput(mounted.root, '材料说明（选填）')!.props?.['onUpdate:modelValue'] as (value: string) => void)('现场核验完成')
     await nextTick()
     const uploader = findByTestId(mounted.root, 'manual-uploader')!
     await (uploader.props?.onClick as () => Promise<void>)()

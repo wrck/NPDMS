@@ -48,8 +48,8 @@
 
     <details v-if="!readonly && allowSave && canUseManual" class="manual-area">
       <summary>{{ item.workModeCode === 'MANUAL' ? '上传本项材料' : '改用人工核验证据' }}</summary>
-      <el-input v-model="factDescription" placeholder="说明人工核验事实" />
-      <PmsFileUploader v-if="factDescription.trim()"
+      <el-input v-model="factDescription" placeholder="材料说明（选填）" />
+      <PmsFileUploader
         data-testid="manual-uploader"
         owner-context="CUT"
         object-type="CUTOVER_CHECKLIST_ITEM"
@@ -59,7 +59,7 @@
         category-code="CUTOVER_CHECKLIST_MANUAL_EVIDENCE"
         @completed="completeUpload"
       />
-      <p v-if="factDescription.trim()" class="cut-help">支持PDF及图片，单文件不超过50MB。</p>
+      <p class="cut-help">支持PDF及图片，单文件不超过50MB。</p>
     </details>
   </article>
 </template>
@@ -189,11 +189,10 @@ const fileKey = (referenceKey: string) => ({
   referenceKey
 })
 const completeUpload = async (selection: FileSelection) => {
-  const artifact = await FileApi.getArtifact(selection.artifactId, fileKey(selection.referenceKey))
-  const versions = await FileApi.getVersions(selection.artifactId, {
-    ...fileKey(selection.referenceKey),
-    pageSize: 20
-  })
+  const [artifact, versions] = await Promise.all([
+    FileApi.getArtifact(selection.artifactId, fileKey(selection.referenceKey)),
+    FileApi.getVersions(selection.artifactId, { ...fileKey(selection.referenceKey), pageSize: 20 })
+  ])
   const version = versions.items.find((entry) => entry.versionNo === selection.versionNo)
   if (!version) throw new Error('PLT 未返回刚完成的文件版本')
   emit('manual', props.item.stableItemKey, {

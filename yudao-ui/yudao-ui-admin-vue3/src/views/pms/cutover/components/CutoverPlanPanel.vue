@@ -232,6 +232,12 @@ const runIntent = async <T,>(intent: string, call: (key: string) => Promise<T>) 
     return result
   } catch (error) {
     const recovery = cutoverPlanRecoveryAction(error)
+    const response = (error as { response?: { data?: { msg?: string; data?: { errorCode?: string } } } })?.response
+    if (recovery !== 'RETRY_SAME_KEY') {
+      message.error(response?.data?.data?.errorCode === 'PLAN_SECTION_INCOMPLETE'
+        ? '方案内容尚未完整，请补充方案各章节及步骤后再生成或提交。'
+        : response?.data?.msg || '方案操作失败，请检查填写内容后重试。')
+    }
     if (recovery === 'START_NEW_INTENT') intents.complete(intent)
     if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
       intents.complete(intent)

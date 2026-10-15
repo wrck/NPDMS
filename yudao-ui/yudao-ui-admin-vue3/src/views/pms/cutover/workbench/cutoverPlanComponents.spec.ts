@@ -22,11 +22,12 @@ const api = vi.hoisted(() => ({
   patchApprovedCutoverPlanContact: vi.fn(),
   reviseCutoverPlan: vi.fn()
 }))
+const messages = vi.hoisted(() => ({ error: vi.fn() }))
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), createAccessTicket: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({
-  useMessage: () => ({ success: vi.fn(), warning: vi.fn(), prompt: vi.fn(async () => ({ value: '值班人员变更' })) })
+  useMessage: () => ({ error: messages.error, success: vi.fn(), warning: vi.fn(), prompt: vi.fn(async () => ({ value: '值班人员变更' })) })
 }))
 vi.mock('@/components/PmsFileArtifact', () => ({
   PmsFileUploader: defineComponent({
@@ -155,6 +156,21 @@ describe('F-CUT-004 mounted plan workbench', () => {
       ownershipConfirmed: true
     }, idempotencyKey: expect.any(String) })
     expect(typeof api.createCutoverPlanDraft.mock.calls[0][0].data.fileArtifactFact.artifactId).toBe('string')
+    mounted.app.unmount()
+  })
+
+  it('shows missing plan content for a 422 generation failure without downloading or submitting', async () => {
+    api.getCutoverPlan.mockResolvedValue(standardPlan(['DOWNLOAD_DRAFT']))
+    api.downloadCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 422, data: {
+      msg: '方案内容尚未完整', data: { errorCode: 'PLAN_SECTION_INCOMPLETE' }
+    } } })
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    await flush()
+    await click(mounted.root, 'download-plan'); await flush()
+    expect(messages.error).toHaveBeenCalledWith('方案内容尚未完整，请补充方案各章节及步骤后再生成或提交。')
+    expect(accessTarget.close).toHaveBeenCalledOnce()
+    expect(fileApi.createAccessTicket).not.toHaveBeenCalled()
+    expect(api.submitCutoverPlan).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
 

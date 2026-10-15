@@ -39,7 +39,7 @@ const fields = computed(() => [
   { label: '所属行业', value: project.value?.industryName || project.value?.industryCode },
   { label: '办事处', value: project.value?.departmentName },
   { label: '项目级别', value: project.value?.majorProjectLevel ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, project.value.majorProjectLevel) : null },
-  { label: '客户服务等级', value: props.detail.customerServiceLevel?.serviceLevelCode || '未配置' },
+  { label: '客户服务等级', value: props.detail.customerServiceLevel?.serviceLevelCode || '三级普通（默认）' },
   { label: '销售', value: memberNames(['SALES_REPRESENTATIVE']) },
   { label: '计划割接时间', value: formatWireDateTime(props.detail.task.scheduledTime) }
 ])

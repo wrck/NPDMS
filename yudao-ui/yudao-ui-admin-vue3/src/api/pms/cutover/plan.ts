@@ -7,6 +7,7 @@ export const getCutoverPlan = (taskId: WireLong) =>
 export const createCutoverPlanDraft = (command: { taskId: WireLong; taskVersion: WireLong; data: CreateCutoverPlanDraftRequest; idempotencyKey: string }) =>
   request.post<CutoverPlanView>({
     url: `${baseUrl}/${command.taskId}/plan/actions/create-draft`,
+    silentError: true,
     data: command.data,
     headers: { 'X-Task-Version': String(command.taskVersion), 'Idempotency-Key': command.idempotencyKey }
   })
@@ -14,6 +15,7 @@ export const createCutoverPlanDraft = (command: { taskId: WireLong; taskVersion:
 export const saveCutoverPlanDraft = (command: { taskId: WireLong; taskVersion: WireLong; planVersion: WireLong; data: WritableCutoverPlanContent; idempotencyKey: string }) =>
   request.put<CutoverPlanView>({
     url: `${baseUrl}/${command.taskId}/plan`,
+    silentError: true,
     data: command.data,
     headers: {
       'If-Match': String(command.planVersion),
@@ -25,6 +27,7 @@ export const saveCutoverPlanDraft = (command: { taskId: WireLong; taskVersion: W
 export const downloadCutoverPlanDraft = (command: { taskId: WireLong; planVersion: WireLong; idempotencyKey: string }) =>
   request.post<DownloadCutoverPlanDraftResult>({
     url: `${baseUrl}/${command.taskId}/plan/actions/download-draft`,
+    silentError: true,
     data: {},
     headers: { 'If-Match': String(command.planVersion), 'Idempotency-Key': command.idempotencyKey }
   })
@@ -32,6 +35,7 @@ export const downloadCutoverPlanDraft = (command: { taskId: WireLong; planVersio
 export const submitCutoverPlan = (command: { taskId: WireLong; taskVersion: WireLong; planVersion: WireLong; idempotencyKey: string }) =>
   request.post<SubmitCutoverPlanResult>({
     url: `${baseUrl}/${command.taskId}/plan/actions/submit`,
+    silentError: true,
     data: {},
     headers: {
       'If-Match': String(command.planVersion),
@@ -44,6 +48,7 @@ export const patchApprovedCutoverPlanContact = (command: { taskId: WireLong; arr
   request.put<CutoverPlanView>({
     method: 'PATCH',
     url: `${baseUrl}/${command.taskId}/plan/support-arrangements/${command.arrangementId}`,
+    silentError: true,
     data: command.data,
     headers: { 'If-Match': String(command.planVersion), 'Idempotency-Key': command.idempotencyKey }
   })
@@ -54,6 +59,7 @@ export const reviseCutoverPlan = (command: { taskId: WireLong; taskVersion: Wire
   }; idempotencyKey: string }) =>
   request.post<CutoverPlanView>({
     url: `${baseUrl}/${command.taskId}/plan/actions/revise`,
+    silentError: true,
     data: command.data,
     headers: { 'X-Task-Version': String(command.taskVersion), 'Idempotency-Key': command.idempotencyKey }
   })

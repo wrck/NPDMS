@@ -128,7 +128,12 @@ const submitAssessment = async () => {
       if (!(await persistAssessment())) return
     }
     if (!detail.value?.assessment || !detail.value.allowedActions.includes('SUBMIT_ASSESSMENT')) {
-      message.warning('评估信息已保存，当前尚未满足进入下一步的条件，请检查问卷及等级。')
+      const answers = assessmentModel.answers
+      const incomplete = !assessmentModel.manualGrade || !answers.businessImportanceLevel
+        || !answers.operationComplexityLevel || !answers.hiddenRiskLevel || answers.sparePartApplied == null
+      message.warning(incomplete
+        ? '请填写业务重要等级、操作复杂度、隐患风险、备件是否申请，并选择割接等级。'
+        : '评估信息已保存，但当前来源信息、实施条件或操作权限不满足提交要求，请刷新任务并核查。')
       return
     }
     const command = { taskId: detail.value.task.id, taskVersion: detail.value.task.version, assessmentVersion: detail.value.assessment.rowVersion }
