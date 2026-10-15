@@ -43,7 +43,7 @@ public class CutoverPlanContactPolicy {
         for (var customer : customers) {
             var selection = customer.customerContactReference();
             if (selection == null) {
-                if (submitting) invalid("请选择当前项目下启用的客户联系记录");
+                if (submitting) manualIdentity(customer.personName(), customer.phone());
                 continue;
             }
             var fact = lock(query, selection);
@@ -58,8 +58,11 @@ public class CutoverPlanContactPolicy {
         var query = new ProjectContactReferenceApi.Query(command.tenantId(), command.actorId(), task.getProjectId());
         if (change == null || change.reason() == null || change.reason().isBlank() || change.reason().length() > 1000) invalid("请填写联系人变更原因");
         if ("CUSTOMER".equals(role)) {
-            if (change.customerContactReference() == null) invalid("请选择启用的项目客户联系记录");
-            identity(lock(query, change.customerContactReference()), command.personName(), command.phone());
+            if (change.customerContactReference() == null) {
+                manualIdentity(command.personName(), command.phone());
+            } else {
+                identity(lock(query, change.customerContactReference()), command.personName(), command.phone());
+            }
         }
     }
 
@@ -118,6 +121,9 @@ public class CutoverPlanContactPolicy {
     private static void identity(ProjectContactReferenceApi.Reference fact, String name, String phone) {
         if (!Objects.equals(fact.name(), name) || phone == null || phone.isBlank()
                 || !(Objects.equals(fact.mobile(), phone) || Objects.equals(fact.phone(), phone))) invalid("客户姓名或联系方式已变化，请重新选择联系记录");
+    }
+    private static void manualIdentity(String name, String phone) {
+        if (name == null || name.isBlank() || phone == null || phone.isBlank()) invalid("请填写客户姓名和联系电话");
     }
     private static void invalid(String message) { throw new IllegalArgumentException(message); }
 }

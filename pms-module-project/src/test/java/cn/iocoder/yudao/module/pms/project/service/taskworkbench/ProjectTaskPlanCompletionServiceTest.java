@@ -63,6 +63,34 @@ class ProjectTaskPlanCompletionServiceTest {
         snapshot.setTasks(List.of(node)); rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
         when(plans.selectEffective(any())).thenAnswer(call -> { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); return plan; });
     }
+    @Test void externalEndUserFactCompletesOnlyItsOwnPageAndKeepsStageAndExitGuards() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project-management/project-master-detail\"}");
+        round.setSubmittedAt(null);
+        rule("done", "{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}");
+        var endUsers = mock(cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "endUsers", endUsers);
+        var fact = new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.Fact(9L,
+                List.of(new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.MemberFact(88L, 3)));
+        when(endUsers.lockAndInspect(any())).thenReturn(fact);
+        var result = service.evaluateAutomatically(project, task, binding);
+        assertTrue(result.matched()); assertEquals(fact, result.evidence().get("projectEndUsers"));
+        when(endUsers.lockAndInspect(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.Fact(9L, List.of()));
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        when(endUsers.lockAndInspect(any())).thenReturn(fact);
+        stage.setStatus("PENDING"); assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        stage.setStatus("ACTIVE"); snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit", "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        snapshot.getTasks().getFirst().setExitRuleKey(null);
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project-management/project-master-detail\"}");
+        rule("done", "{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"PROJECT_END_USER_EXISTS\",\"parameters\":{}}]}");
+        assertFalse(service.evaluateAutomatically(project, task, binding).matched());
+        assertNull(round.getSubmittedAt()); verifyNoInteractions(business);
+    }
     @Test void contactOwnerFactCompletesWithoutSubmissionButKeepsAdmissionAndExitRules() {
         binding.setWorkBindingTypeCode("PAGE");
         binding.setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");

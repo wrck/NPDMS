@@ -21,6 +21,7 @@
             <el-tag size="small" effect="plain" :type="statusType(data.status)">
               {{ statusLabel(data.status) }}
             </el-tag>
+            <el-tag v-if="data.requiredTask === false" size="small" type="info" effect="plain">按需</el-tag>
             <span>{{ data.progress ?? 0 }}%</span>
           </div>
         </div>

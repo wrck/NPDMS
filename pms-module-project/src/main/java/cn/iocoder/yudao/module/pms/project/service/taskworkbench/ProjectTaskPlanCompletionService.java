@@ -28,6 +28,8 @@ public class ProjectTaskPlanCompletionService {
     @jakarta.annotation.Resource
     private cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi projectContacts;
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService endUsers;
+    @jakarta.annotation.Resource
     private ProjectTaskApprovalService approvals;
     @jakarta.annotation.Resource
     private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.service.operation.ProjectResultEvidenceGuard> resultEvidence;
@@ -147,11 +149,16 @@ public class ProjectTaskPlanCompletionService {
             return unknown(reference,"RESULT_SUBSCRIPTION_TASK_CONTRACT_INVALID");
         boolean contactCompletion = ProjectContactCompletionCondition.contactPage(binding.getWorkBindingTypeCode(), binding.getBindingParameterSnapshot())
                 && ProjectContactCompletionCondition.automatic(completion);
+        boolean endUserCompletion = ProjectEndUserCompletionCondition.memberPage(binding.getWorkBindingTypeCode(), binding.getBindingParameterSnapshot())
+                && ProjectEndUserCompletionCondition.automatic(completion);
         boolean closureCompletion = request.approval() != null && NormalClosureTaskCondition.approvedOnly(completion);
-        if (nativeWork && !contactCompletion && !closureCompletion && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
+        if (nativeWork && !contactCompletion && !endUserCompletion && !closureCompletion && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
         List<TaskBusinessLinkFact> links = List.of();
         Map<String,Object> evidence = new LinkedHashMap<>();
         if (closureCompletion) evidence.put("normalClosureApproval", request.approval());
+        var endUserFact = endUserCompletion ? endUsers.lockAndInspect(
+                new cn.iocoder.yudao.module.pms.project.service.projectmember.ProjectEndUserCompletionService.Query(tenantId, project.getId())) : null;
+        if (endUserFact != null) evidence.put("projectEndUsers", endUserFact);
         cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Fact contactFact = null;
         if (contactCompletion) {
             contactFact = projectContacts.lockAndInspect(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactCompletionApi.Query(
@@ -212,6 +219,8 @@ public class ProjectTaskPlanCompletionService {
                     : RuleFact.unknown("NORMAL_CLOSURE_APPROVAL_REQUIRED");
             case "PROJECT_CONTACT_EXISTS" -> currentContactFact == null ? RuleFact.unknown("PROJECT_CONTACT_FACT_UNAVAILABLE")
                     : RuleFact.known(currentContactFact.completed());
+            case "PROJECT_END_USER_EXISTS" -> endUserFact == null ? RuleFact.unknown("PROJECT_END_USER_FACT_UNAVAILABLE")
+                    : RuleFact.known(endUserFact.completed());
             case "WAIT_ELAPSED" -> facts.resolveRelativeTime(leaf, context, round.getId());
             case "TASK_NATIVE_STATUS" -> nativeWork ? RuleFact.known(round.getSubmittedAt()!=null) : RuleFact.unknown("NATIVE_COMPLETION_NOT_APPLICABLE");
             case "BUSINESS_FACT" -> leaf.parameters().has("sourceNodeKey") ? facts.resolveFact(leaf, context)

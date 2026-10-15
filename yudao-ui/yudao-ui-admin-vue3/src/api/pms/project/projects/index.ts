@@ -269,6 +269,7 @@ export interface ProjectInstancesVO {
     priority?: number
     sortOrder?: number
     estimatedHours?: number
+    requiredTask?: boolean
     satisfactionTiming?: string
     status: string
   }[]
@@ -805,7 +806,7 @@ export const assignManager = (
   })
 
 export const queryTree = (
-  id: number,
+  id: string | number,
   params: {
     queryType: ProjectTreeQueryType
     businessLevelCode?: string
@@ -857,7 +858,7 @@ export const submitProgressPolicy = (
     headers: { 'Idempotency-Key': idempotencyKey, 'If-Match': String(expectedVersion) }
   })
 
-export const getClosureGuard = (projectId: number, treeVersion: number) =>
+export const getClosureGuard = (projectId: string | number, treeVersion: string | number) =>
   request.get<ProjectClosureGuardVO>({
     url: `/pms/closure-gates/${projectId}`,
     params: { treeVersion }

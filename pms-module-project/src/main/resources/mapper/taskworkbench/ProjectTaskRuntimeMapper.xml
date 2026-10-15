@@ -14,7 +14,7 @@
         task.milestone_id, task.suggested_start_time, task.suggested_end_time, task.acceptance_time,
         task.plan_start_time, task.plan_end_time, task.actual_start_time,
         task.actual_end_time, task.progress, task.state_machine_revision_id, task.stage_code,
-        task.priority, task.sort_order, task.estimated_hours, task.satisfaction_timing,
+        task.required_task, task.priority, task.sort_order, task.estimated_hours, task.satisfaction_timing,
         task.description, task.source_definition_id, task.status, task.version,
         task.creator, task.create_time, task.updater, task.update_time, task.deleted, task.tenant_id
     </sql>
@@ -466,6 +466,7 @@
           AND path.ancestor_task_id = #{query.projectTaskId}
           AND path.distance &gt; 0
           AND path.deleted = b'0'
+          AND task.required_task = b'1'
             AND (task.status IS NULL OR task.status NOT IN ('DONE', 'CLOSED'))
             AND (task.actual_start_time IS NOT NULL OR task.status IN ('IN_PROGRESS','PENDING_ACCEPT')
                  OR EXISTS (SELECT 1 FROM proj_project_node_execution execution

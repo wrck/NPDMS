@@ -145,6 +145,19 @@ beforeEach(() => {
 })
 
 describe('实施方案页面结构', () => {
+  it('长项目ID保持精度，自动命名查询使用原始ID', async () => {
+    const projectId = '2110018733130579973'
+    getSolutionPage.mockResolvedValue({ list: [], total: 0 })
+    const root = await mountWorkbench({ projectId })
+    await vi.waitFor(() => expect(getProject).toHaveBeenCalledWith(projectId))
+    await vi.waitFor(() => expect(findByTestId(root, 'stub-submit')).toBeTruthy())
+    ;(findByTestId(root, 'stub-submit')!.props!.onClick as Function)()
+    await vi.waitFor(() => expect(createSolution).toHaveBeenCalled())
+    expect(createSolution.mock.calls[0][0]).toMatchObject({
+      projectId, name: 'PJT-TEST-001_测试项目_实施方案_V1'
+    })
+  })
+
   it('项目工作台：无列表与弹窗，自动选中首个方案并内联展开正文', async () => {
     getSolutionPage.mockResolvedValue({ list: [draftRow()], total: 1 })
     getSolution.mockResolvedValue(draftRow())

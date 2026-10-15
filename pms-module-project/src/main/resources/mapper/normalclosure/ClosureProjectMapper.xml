@@ -38,6 +38,15 @@
           closed_at=#{query.closedAt},version=version+1,updater=#{query.updater},update_time=CURRENT_TIMESTAMP(3)
         WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND version=#{query.expectedVersion}
           AND current_stage=#{query.fromStage} AND lifecycle_status='ACTIVE' AND deleted=b'0'
-          AND closure_type IS NULL AND closed_at IS NULL AND closure_policy_snapshot IS NOT NULL
+          AND closure_type IS NULL AND closed_at IS NULL
+          AND (
+            (active_plan_version_id IS NULL AND closure_policy_snapshot IS NOT NULL)
+            OR EXISTS (
+              SELECT 1 FROM proj_project_plan_version plan
+              WHERE plan.id=proj_project.active_plan_version_id AND plan.tenant_id=proj_project.tenant_id
+                AND plan.project_id=proj_project.id AND plan.status='EFFECTIVE' AND plan.deleted=b'0'
+                AND JSON_TYPE(JSON_EXTRACT(plan.execution_snapshot,'$.closurePolicy'))='OBJECT'
+            )
+          )
     </update>
 </mapper>

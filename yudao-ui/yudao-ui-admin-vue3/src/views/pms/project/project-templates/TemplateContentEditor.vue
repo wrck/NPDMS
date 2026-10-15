@@ -105,6 +105,11 @@
                 >进入任务子画布</el-button
               ></template
             >
+            <el-form-item v-if="selected.kind === 'TASK'" label="必选任务">
+              <el-switch :model-value="(selected.node as DesignerTaskNode).required !== false"
+                @update:model-value="(selected.node as DesignerTaskNode).required = Boolean($event)" />
+              <span class="field-hint">按需任务未完成不阻断其他任务、阶段和项目闭环</span>
+            </el-form-item>
             <el-form-item v-if="selected.kind === 'TASK'" label="父任务（不限制层级）"
               ><el-select
                 v-model="(selected.node as DesignerTaskNode).parentTaskCode"

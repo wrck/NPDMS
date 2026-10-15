@@ -17,10 +17,12 @@
     <result column="project_scope_version" property="projectScopeVersion"/>
     <result column="approved_plan_id" property="approvedPlanId"/>
     <result column="approved_plan_version" property="approvedPlanVersion"/>
+    <result column="project_plan_version_id" property="projectPlanVersionId"/>
+    <result column="project_plan_version" property="projectPlanVersion"/>
   </resultMap>
 
   <select id="latest" resultMap="structuredImplementationReadinessSnapshotDO">
-    SELECT id, tenant_id, project_id, device_scope_key, snapshot_no, readiness_decision_code, evaluate_user_id, creator, create_time, updater, update_time, deleted, project_scope_version, approved_plan_id, approved_plan_version FROM imp_cutover_readiness_snapshot
+    SELECT id, tenant_id, project_id, device_scope_key, snapshot_no, readiness_decision_code, evaluate_user_id, creator, create_time, updater, update_time, deleted, project_scope_version, approved_plan_id, approved_plan_version, project_plan_version_id, project_plan_version FROM imp_cutover_readiness_snapshot
     WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}
       AND device_scope_key = #{query.deviceScopeKey} AND deleted = 0
     ORDER BY snapshot_no DESC LIMIT 1

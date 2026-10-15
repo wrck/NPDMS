@@ -15,6 +15,21 @@ public interface ProjectBusinessContextApi {
     Context lockAndRevalidate(Revalidation query);
     ServiceManagers serviceManagers(Query query);
     ServiceManagers lockServiceManagers(Revalidation query);
+    /** 已授权项目当前冻结计划的实施前置适用性，不读取其他模块业务表。 */
+    ImplementationRequirements implementationRequirements(Query query);
+    ImplementationRequirements lockImplementationRequirements(Revalidation query);
+
+    record ImplementationRequirements(Long planVersionId, Long planVersion, boolean configured,
+                                      java.util.Set<String> requiredSourceCodes) {
+        public ImplementationRequirements {
+            var supported = java.util.Set.of("EXE_01", "EXE_02", "EXE_03", "EXE_04");
+            if (requiredSourceCodes == null || !supported.containsAll(requiredSourceCodes)
+                    || configured && (planVersionId == null || planVersionId <= 0 || planVersion == null || planVersion < 0)
+                    || !configured && !supported.equals(requiredSourceCodes))
+                throw new IllegalArgumentException("PROJECT_IMPLEMENTATION_REQUIREMENTS_INVALID");
+            requiredSourceCodes = java.util.Set.copyOf(requiredSourceCodes);
+        }
+    }
 
     @Builder
     record Query(Long tenantId, Long actorId, Long projectId, Long expectedScopeVersion) {}

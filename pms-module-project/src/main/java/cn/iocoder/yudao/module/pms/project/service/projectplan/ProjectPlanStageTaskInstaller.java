@@ -169,6 +169,12 @@ public class ProjectPlanStageTaskInstaller {
             var contract = old == null ? null : taskContracts.selectCurrentByTaskIdForUpdate(new CurrentTaskExecutionContractLockQuery(tenant,task.getId()));
             if (round != null) requireContract(round,contract == null ? null : contract.getId());
             var next = taskFactory.create(task.getId(),null,bindings.get(node.getNodeKey()),request.occurredAt()); next.setTenantId(tenant);
+            if (contract != null && contract.getDefinitionSnapshot() != null) {
+                var definition = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(contract.getDefinitionSnapshot());
+                if (node.getRequired() == null) definition.remove("required");
+                else definition.put("required", node.getRequired());
+                next.setDefinitionSnapshot(definition.isEmpty() ? null : JsonUtils.toJsonString(definition));
+            }
             if (contract == null || !sameTaskBinding(contract,next)) {
                 if (contract != null) {
                     if (sameTaskWorkBinding(contract,next)) next.setApprovalInstanceId(contract.getApprovalInstanceId());
@@ -218,7 +224,7 @@ public class ProjectPlanStageTaskInstaller {
                 && declarationEquals(old.getPermissionSnapshot(),next.getPermissionSnapshot());
     }
     private boolean sameTaskBinding(ProjectTaskExecutionContractDO old,ProjectTaskExecutionContractDO next) {
-        return sameTaskWorkBinding(old,next) && Objects.equals(old.getPermissionPolicyRef(),next.getPermissionPolicyRef())
+        return declarationEquals(old.getDefinitionSnapshot(),next.getDefinitionSnapshot()) && sameTaskWorkBinding(old,next) && Objects.equals(old.getPermissionPolicyRef(),next.getPermissionPolicyRef())
                 && Objects.equals(old.getGateRef(),next.getGateRef()) && declarationEquals(old.getPermissionSnapshot(),next.getPermissionSnapshot());
     }
     private boolean declarationEquals(String left,String right) {
@@ -241,7 +247,7 @@ public class ProjectPlanStageTaskInstaller {
         return Arrays.asList(row.getCode(),row.getName(),row.getSortOrder(),row.getEntryCriteria(),row.getExitCriteria(),row.getStartNode(),row.getTerminalNode());
     }
     private List<?> taskMetadata(ProjectTaskInstanceDO row) {
-        return Arrays.asList(row.getCode(),row.getName(),row.getStageCode(),row.getParentTaskCode(),row.getParentTaskId(),row.getRootTaskId(),row.getTreeDepth(),row.getPriority(),row.getSortOrder(),row.getEstimatedHours(),row.getDescription(),row.getSatisfactionTiming());
+        return Arrays.asList(row.getRequiredTask(),row.getCode(),row.getName(),row.getStageCode(),row.getParentTaskCode(),row.getParentTaskId(),row.getRootTaskId(),row.getTreeDepth(),row.getPriority(),row.getSortOrder(),row.getEstimatedHours(),row.getDescription(),row.getSatisfactionTiming());
     }
     private void preserveUnchangedTaskFields(TemplateExecutionSnapshot.TaskContract before,TemplateExecutionSnapshot.TaskContract after,
                                              ProjectTaskInstanceDO actual,ProjectTaskInstanceDO desired) {

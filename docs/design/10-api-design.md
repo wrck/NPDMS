@@ -947,6 +947,10 @@ POST `/{id}/documents`接收multipart PDF、kind（COMPLETION/SATISFACTION）、
 
 独立完成条件 `PROJECT_CONTACT_EXISTS`，parameters为空，只用于客户联系人PAGE任务的独立完成规则。完成命令读取CUS锁定事实，保留contactId/version到当前轮次结果证据，经原状态机SUBMIT→COMPLETE完成；该条件不替代其他PAGE/TASK_NATIVE的本轮手工提交要求。联系人新增/引用、修改、删除和恢复在原命令事务内写入既有 `ProjectRuleReevaluationRequested` Outbox；事务回滚不发送，提交后重新读取事实，不由CUS直接改项目状态。计划生效的既有重判机制使已有有效记录也参与判定。原联系人接口、项目客户归属及已发布模板不变。
 
+2026-10-15经需求方确认，新增独立完成条件`PROJECT_END_USER_EXISTS`，parameters为空，仅用于项目成员PAGE（`/pms/project-management/project-master-detail`）任务的独立完成规则。读取本项目、本租户当前有效`END_USER`成员区间并锁定，至少一条有效外部人员记录才满足；轮次证据保留区间ID/版本，经原SUBMIT→COMPLETE状态机完成。沿用成员变更Outbox重新判定，不改联系人条件。统一成员写接口增补`externalPerson: {name, companyName?, mobile?, email?}`：`END_USER`要求该对象且`userId`为空，其余角色要求有效`userId`且不接受外部资料；列表继续返回姓名、单位、电话、邮箱，外部人员联系方式来自PROJ自己的区间资料。
+
+PROJ公共`ProjectBusinessContextApi`增补冻结实施前置查询及锁定重验，使用现有Query/Revalidation上下文，返回计划ID、计划版本、是否显式配置及必选EXE来源码；不得让IMP直接读取PROJ表。IMP公开就绪上下文增补可空计划适用事实，历史无该字段仍要求EXE_01～04全量完成；显式不适用项使用`NOT_APPLICABLE`并禁止携带伪造的完成对象、水位或重开标记。CUT继续消费IMP就绪/重验接口，既有任务冻结快照不被重写。
+
 ### 2026-10-11 任务审批首次发起准入预览
 
 需求方确认修复割接审批入口：未满足准入时禁止首次提交并显示前置条件，保留既有准入规则。`GET /api/v1/pms/project-tasks/{taskId}/workbench` 在审批绑定原本允许START时返回 `startAdmission`，包含 `outcome`（MATCHED/NOT_MATCHED/UNKNOWN）及 `conditions`（label、outcome）。PROJ复用命令START的当前生效计划、冻结规则和事实求值；仅MATCHED保留START，未满足或不可用都移除该操作，不改变其他操作。项目范围受限的任务可见者只获总体结果，不返回其他任务名称。
@@ -995,6 +999,10 @@ ACC沿用现有正常闭环检查、申请、BPM事实与审批回调接口；PR
 | IMP / INSTALLATION | PROJECT_INSTALLATION_COMPLETED | 本项目当前设备集合非空，每台设备都有当前有效的已完成安装记录和安装位置；复用原全设备结果读取 |
 | IMP / TRAINING | TRAINING_CONFIRMED | 本项目现场培训经现有客户确认操作形成CONFIRMED；至少一条关联记录达标；草稿、已外发和已作废均不通过 |
 | CUT / CUTOVER_APPROVAL | CUTOVER_APPROVED | 本项目割接任务当前提交方案的正式审批实例为APPROVED，决定时间存在且未被替代；至少一条关联记录达标 |
+
+项目割接审批办理补充独立视图 `CUT_CUTOVER_APPROVAL_WORKBENCH@1`，页面 `/pms/cutover/approval-workbench`，Owner/实体为 `CUT/CUTOVER_APPROVAL`，支持 QUERY、CREATE。创建操作 `CUT.CUTOVER_APPROVAL.CREATE@1` 复用既有项目割接 intake 的输入、幂等及权限/数据范围/实施前置契约，来源保持 PROJECT_EVENT；返回 objectType 为 CUTOVER_APPROVAL、objectId 为割接任务 ID。后续方案与审批仍由 CUT 原生命令办理，完成事实仍为 CUTOVER_APPROVED。既有 `CUT_CUTOVER_APPROVAL@1` 只读注册及冻结绑定不变，新视图仅经新草稿或正式计划修订启用。
+
+正常闭环上下文与锁定复核统一读取项目 activePlanVersionId 指向的本租户、本项目 EFFECTIVE 计划 executionSnapshot.closurePolicy；仅无生效计划指针的旧项目沿用建项 closurePolicySnapshot。有指针但计划身份/状态无效时拒绝，冻结规则为空时不得回退旧规则。闭环来源证据包含计划 ID、修订号；规则与历史快照不回写，计划变更后必须重新检查和申请，原审批不得解释为批准新计划。
 
 交互读取保留当前功能权限与完整项目数据范围，未授权或空范围不能成为候选；自动完成必须锁定并重验本次PROJ执行轮次及对应Owner对象。模板和已执行历史只冻结引用、业务版本与完成证据，不复制签名、Token或客户外发秘密。到货签收、培训客户确认和CUT最终审批的成功事务追加独立重评事件，重评重新读取事实；原业务事件、通知和状态机保持不变。
 

@@ -16,6 +16,7 @@ public class ProjectTaskNodeRespVO {
     private String taskCode;
     private String name;
     private String stageCode;
+    private Boolean requiredTask;
     private String businessLevelCode;
     private String status;
     private Integer priority;

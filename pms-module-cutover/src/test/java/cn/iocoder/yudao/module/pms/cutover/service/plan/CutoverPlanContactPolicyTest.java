@@ -25,15 +25,40 @@ class CutoverPlanContactPolicyTest {
         assertThrows(IllegalArgumentException.class, () -> policy.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(1L, 2L, 30L), content("手填的其他人", true), true));
     }
 
-    @Test void missingDraftContactCanBeSavedButCannotBeSubmitted() {
+    @Test void explicitlyTypedCustomerCanBeSavedAndSubmittedWithoutCreatingOwnerContact() {
         policy.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(1L, 2L, 30L), content("张工", false), false);
-        assertThrows(IllegalArgumentException.class, () -> policy.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(1L, 2L, 30L), content("张工", false), true));
+        assertDoesNotThrow(() -> policy.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(1L, 2L, 30L), content("张工", false), true));
+        verifyNoInteractions(contacts);
+    }
+
+    @Test void manualCustomerStillRequiresNameAndPhoneOnSubmission() {
+        var query = new ProjectContactReferenceApi.Query(1L, 2L, 30L);
+        assertThrows(IllegalArgumentException.class, () -> policy.validate(query, content("", false), true));
+        var original = content("手填客户", false);
+        var blankPhone = new CutoverPlanContentCodec.DecodedContent(original.rootSnapshot(), List.of(), List.of(
+                new CutoverPlanContentCodec.SupportArrangement(null, "CUSTOMER", "手填客户", "保障", "", 1L, null)), null, false);
+        assertDoesNotThrow(() -> policy.validate(query, blankPhone, false));
+        assertThrows(IllegalArgumentException.class, () -> policy.validate(query, blankPhone, true));
         verifyNoInteractions(contacts);
     }
 
     @Test void staleOrDisabledOwnerFactIsNotReplacedWithTypedText() {
         when(contacts.lockAndInspect(any())).thenThrow(new IllegalArgumentException("联系记录版本已变化或停用"));
         assertThrows(IllegalArgumentException.class, () -> policy.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(1L, 2L, 30L), content("张工", true), true));
+    }
+
+    @Test void approvedManualContactChangeStillRequiresReasonAndCompleteIdentity() {
+        var task = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.task.CutoverTaskDO();
+        task.setProjectId(30L);
+        var row = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO();
+        row.setRoleCode("CUSTOMER");
+        var command = new cn.iocoder.yudao.module.pms.cutover.service.plan.command.PatchApprovedContactCommand(
+                1L, 2L, 3L, 4L, 5L, "手填客户", "00000000003", java.time.LocalDateTime.now(), "key", "trace");
+        assertDoesNotThrow(() -> policy.validateChange(task, row, command, new CutoverPlanContactPolicy.Change("现场联系人调整", null)));
+        assertThrows(IllegalArgumentException.class, () -> policy.validateChange(task, row, command, new CutoverPlanContactPolicy.Change("", null)));
+        when(contacts.lockAndInspect(any())).thenThrow(new IllegalArgumentException("联系记录已停用"));
+        assertThrows(IllegalArgumentException.class, () -> policy.validateChange(task, row, command,
+                new CutoverPlanContactPolicy.Change("改选联系人", new CutoverPlanContactPolicy.Selection(20L, 3))));
     }
 
     @Test void referenceRejectsAdditionalOrMalformedFields() {

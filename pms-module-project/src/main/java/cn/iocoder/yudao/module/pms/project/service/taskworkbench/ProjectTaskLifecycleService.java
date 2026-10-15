@@ -348,6 +348,8 @@ public class ProjectTaskLifecycleService {
                 || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
         if (nativeWork && !"PENDING_ACCEPT".equals(task.getStatus())
                 && !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition.contactPage(
+                        contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot())
+                && !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.memberPage(
                         contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot())) return new AutomaticResult(false, false);
         var evaluated = planCompletion.evaluateAutomatically(project, task, contract);
         var now = LocalDateTime.now();

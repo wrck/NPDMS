@@ -219,6 +219,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
         <template v-if="pageEmbed">
           <p v-if="workbench.trustedTargetRef === '/pms/project/normal-closure'" class="page-embed-hint">本任务在正常闭环审批通过后完成。请在下方校验条件并提交审批。</p>
           <p v-else-if="workbench.trustedTargetRef === '/customer-asset/customer-contact'" class="page-embed-hint">联系人保存后将同步任务状态与进度；完成条件以当前任务规则为准。</p>
+          <p v-else-if="workbench.trustedTargetRef === '/pms/project-management/project-master-detail'" class="page-embed-hint">维护最终用户外部人员后，将按当前任务规则同步完成状态。</p>
           <p v-else class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
           <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :readonly="taskPending"
             @changed="handleEmbeddedBusinessChanged" @updated="handleEmbeddedBusinessChanged" />
@@ -345,6 +346,7 @@ import ConfigurationWorkbench from '@/views/pms/engineering/configuration/with-d
 import JointTestWorkbench from '@/views/pms/engineering/joint-test/with-device-logs.vue'
 import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
 import CustomerContactsWorkbench from '@/views/pms/customer/contacts/index.vue'
+import ProjectEndUsersWorkbench from './ProjectEndUsersWorkbench.vue'
 
 defineOptions({ name: 'ProjectFlowPanel' })
 
@@ -443,11 +445,14 @@ const advancing = ref(false)
 const advanceError = ref('')
 const loadReadiness = async () => {
   const projectId = props.projectId
+  readiness.value = undefined
+  if (props.project.lifecycleStatus !== 'ACTIVE') return
   // 只读评估在共享库锁冲突时会瞬时失败，短暂重试；仍失败才隐藏推进操作，不阻塞工作区
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (projectId !== props.projectId || props.project.lifecycleStatus !== 'ACTIVE') return
     try {
       const result = await getProjectStageAdvanceReadiness(projectId)
-      if (projectId === props.projectId) readiness.value = result
+      if (projectId === props.projectId && props.project.lifecycleStatus === 'ACTIVE') readiness.value = result
       return
     } catch {
       if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 400))
@@ -582,7 +587,8 @@ const pageEmbedComponents: Record<string, Component> = {
   '/pms/engineering/execution/imp-configuration': ConfigurationWorkbench,
   '/pms/engineering/execution/imp-joint-test': JointTestWorkbench,
   '/pms/imp-training': TrainingWorkbench,
-  '/customer-asset/customer-contact': CustomerContactsWorkbench
+  '/customer-asset/customer-contact': CustomerContactsWorkbench,
+  '/pms/project-management/project-master-detail': ProjectEndUsersWorkbench
 }
 const pageEmbed = computed(() =>
   workbench.value?.bindingType === 'PAGE'
@@ -650,7 +656,8 @@ const handleEmbeddedBusinessChanged = async () => {
   const token = sequence, refresh = ++embeddedRefresh
   const previousVersion = workbench.value?.task.version
   // 联系人规则由提交后的事件重评；给异步完成留出回读窗口，期间不展示旧版本任务动作。
-  const attempts = workbench.value?.trustedTargetRef === '/customer-asset/customer-contact' ? 16 : 1
+  const attempts = ['/customer-asset/customer-contact', '/pms/project-management/project-master-detail']
+    .includes(workbench.value?.trustedTargetRef || '') ? 16 : 1
   const stillCurrent = () => current(token) && refresh === embeddedRefresh
   pageSyncing.value = true
   try {
@@ -691,6 +698,10 @@ const refreshSummary = async () => {
 defineExpose({ requestLeave, reload, refreshSummary })
 
 watch(() => [props.projectId, props.selection?.kind, props.selection?.stageCode, props.selection?.taskId], load, { immediate: true })
+watch(() => props.project.lifecycleStatus, () => {
+  if (props.selection?.kind === 'stage') void loadReadiness()
+  else readiness.value = undefined
+})
 onBeforeUnmount(() => {
   ++sequence
   tasks.reset()
@@ -725,6 +736,11 @@ onBeforeUnmount(() => {
 .flow-panel,
 .flow-panel :deep(.el-card__body) {
   overflow: visible;
+}
+
+/* 嵌入割接表单时由宿主提供吸附栏，避免两条底栏重叠导致误触任务操作。 */
+.flow-panel :deep(.cutover-task-workbench .cut-actions--sticky) {
+  position: static;
 }
 
 .flow-action-bar {

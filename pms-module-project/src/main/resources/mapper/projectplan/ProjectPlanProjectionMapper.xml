@@ -69,7 +69,7 @@
             stage_code=#{query.definition.stageCode},parent_task_code=#{query.definition.parentTaskCode},
             parent_task_id=#{query.definition.parentTaskId},root_task_id=#{query.definition.rootTaskId},tree_depth=#{query.definition.treeDepth},
             priority=#{query.definition.priority},sort_order=#{query.definition.sortOrder},estimated_hours=#{query.definition.estimatedHours},
-            description=#{query.definition.description},satisfaction_timing=#{query.definition.satisfactionTiming},
+            required_task=#{query.definition.requiredTask},description=#{query.definition.description},satisfaction_timing=#{query.definition.satisfactionTiming},
             acc_satisfaction_template_id=#{query.definition.accSatisfactionTemplateId},template_revision_id=#{query.definition.templateRevisionId},
             template_version=#{query.definition.templateVersion},satisfaction_rule_version=#{query.definition.satisfactionRuleVersion},
             satisfaction_threshold=#{query.definition.satisfactionThreshold},

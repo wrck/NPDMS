@@ -56,9 +56,15 @@ public class ProjectRuleClosureService {
         if (stages.stream().anyMatch(stage -> !Set.of("PENDING", "DONE", "TERMINATED").contains(stage.getStatus())))
             return new Closure(false, false);
         var tasks = graph.selectTasksForUpdate(query);
-        if (tasks.stream().anyMatch(task -> (task.getActualStartTime() != null || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
+        if (tasks.stream().filter(cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy::required)
+                .anyMatch(task -> (task.getActualStartTime() != null || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
                 && !Set.of("DONE", "CLOSED").contains(task.getStatus()))) return new Closure(false, false);
-        if (executions.selectCurrentForUpdate(scope).stream().anyMatch(round -> round.getStartedAt() != null
+        var optionalTaskIds = tasks.stream().filter(task -> !cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy.required(task))
+                .map(cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO::getId)
+                .collect(java.util.stream.Collectors.toSet());
+        if (executions.selectCurrentForUpdate(scope).stream()
+                .filter(round -> !"TASK".equals(round.getNodeKind()) || !optionalTaskIds.contains(round.getNodeInstanceId()))
+                .anyMatch(round -> round.getStartedAt() != null
                 && !Set.of("DONE", "TERMINATED").contains(round.getStatus()))) return new Closure(false, false);
         var program = snapshot.getRulePrograms().get(key);
         if (program == null) return new Closure(false, true);

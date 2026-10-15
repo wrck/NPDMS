@@ -109,7 +109,7 @@ import { buildCreateRequest, newIntentKey, cutoverPlanRecoveryAction, parseSeria
 import { useOperationClient } from '@/components/BusinessView/operationHost'
 import { requireOperationResult, resultRecord } from '@/components/BusinessView/operationClient'
 
-const props = defineProps<{ projectId?: WireLong }>()
+const props = withDefaults(defineProps<{ projectId?: WireLong; operationObjectType?: 'CUTOVER_TASK' | 'CUTOVER_APPROVAL'; createAllowed?: boolean }>(), { operationObjectType: 'CUTOVER_TASK', createAllowed: true })
 const emit = defineEmits<{ close: []; created: [taskId: WireLong] }>()
 const message = useMessage()
 const operationClient = useOperationClient()
@@ -130,7 +130,7 @@ const optionsError = ref('')
 const form = reactive({ configurationCode: '', taskName: '', background: '', cutoverType: '', networkMode: null as string | null, scheduledTime: '' })
 const selectedConfiguration = computed(() => configurationChoices.value.find(choice => choice.code === form.configurationCode))
 watch(() => form.configurationCode, () => { form.cutoverType = ''; form.networkMode = null })
-const canSubmit = computed(() => Boolean(projectContext.value && !projectError.value && !projectLoading.value && !resolving.value
+const canSubmit = computed(() => Boolean((props.createAllowed || unknownResult.value) && projectContext.value && !projectError.value && !projectLoading.value && !resolving.value
   && selectedDevices.value.length && form.configurationCode && form.taskName.trim() && form.background.trim() && form.cutoverType && form.scheduledTime))
 const projectFields = computed(() => {
   const value = projectContext.value?.project
@@ -266,12 +266,13 @@ const openDevicePicker = async () => {
   devicePickerVisible.value = true
   await loadDevices()
 }
-let pendingCreate: { key: string; data: CutoverApi.CreateCutoverTaskRequest; input: typeof form & { serialNumbers: string[] } } | null = null
+let pendingCreate: { key: string; data: CutoverApi.CreateCutoverTaskRequest; input: Pick<CutoverApi.CreateCutoverTaskRequest, 'configurationCode' | 'taskName' | 'background' | 'cutoverType' | 'networkMode' | 'scheduledTime' | 'serialNumbers'> } | null = null
 const submit = async () => {
   if (!canSubmit.value || submitting.value) return
   submitting.value = true
   try {
     if (!pendingCreate) {
+      if (!props.createAllowed) return
       const serials = selectedDevices.value.map(device => device.serialNumber)
       const result = await CutoverApi.resolveCreationDevices(serials)
       const candidate = result.context.candidates.find(value => String(value.project.projectId) === projectId.value)
@@ -279,14 +280,16 @@ const submit = async () => {
         message.warning('设备归属已变化，请重新选择本项目设备。')
         return
       }
-      pendingCreate = { key: newIntentKey(), data: buildCreateRequest(candidate, form), input: { ...form, serialNumbers: serials } }
+      const data = buildCreateRequest(candidate, form)
+      const { configurationCode, taskName, background, cutoverType, networkMode, scheduledTime, serialNumbers } = data
+      pendingCreate = { key: newIntentKey(), data, input: { configurationCode, taskName, background, cutoverType, networkMode, scheduledTime, serialNumbers } }
     }
     let taskId: WireLong
     if (props.projectId) {
       if (!operationClient.value) throw new Error('项目执行上下文尚未就绪，请重新打开任务')
-      const result = await operationClient.value.execute({ operationCode: 'CUT.CUTOVER_TASK.CREATE', input: pendingCreate.input, key: pendingCreate.key,
+      const result = await operationClient.value.execute({ operationCode: `CUT.${props.operationObjectType}.CREATE`, input: pendingCreate.input, key: pendingCreate.key,
         validateResult: value => {
-          requireOperationResult(value.ownerContext === 'CUT' && value.objectType === 'CUTOVER_TASK' && resultRecord(value.response))
+          requireOperationResult(value.ownerContext === 'CUT' && value.objectType === props.operationObjectType && resultRecord(value.response))
           requireOperationResult(String(value.response.taskId) === value.objectId)
         } })
       taskId = result.objectId

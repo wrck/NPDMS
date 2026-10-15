@@ -7,13 +7,13 @@
         </el-select>
       </template></el-table-column>
       <el-table-column label="姓名" min-width="195"><template #default="{ row, $index }">
-        <el-select v-if="row.roleCode === 'CUSTOMER' && !contactReadonly" :data-testid="'support-customer-' + $index" :model-value="row.customerContactReference ? String(row.customerContactReference.contactId) : undefined" filterable clearable placeholder="选择项目客户联系记录" @update:model-value="selectCustomer($index, $event)">
+        <el-select v-if="row.roleCode === 'CUSTOMER' && !contactReadonly" :data-testid="'support-customer-' + $index" :model-value="row.customerContactReference ? String(row.customerContactReference.contactId) : row.personName || undefined" filterable allow-create clearable placeholder="选择项目联系人或输入姓名" @update:model-value="selectCustomer($index, $event)">
           <el-option v-for="contact in contacts" :key="String(contact.contactId)" :label="contact.name" :value="String(contact.contactId)" />
         </el-select>
         <el-input v-else :data-testid="'support-name-' + $index" :model-value="row.personName" :disabled="contactReadonly" @update:model-value="update($index, 'personName', $event)" />
       </template></el-table-column>
       <el-table-column label="任务描述" min-width="240"><template #default="{ row, $index }"><el-input :model-value="row.dutyDescription" :disabled="readonly || patchApproved" @update:model-value="update($index, 'dutyDescription', $event)" /></template></el-table-column>
-      <el-table-column label="联系电话" min-width="180"><template #default="{ row, $index }"><el-input :data-testid="'support-phone-' + $index" :model-value="row.phone" :disabled="contactReadonly || row.roleCode === 'CUSTOMER'" @update:model-value="update($index, 'phone', $event)" /></template></el-table-column>
+      <el-table-column label="联系电话" min-width="180"><template #default="{ row, $index }"><el-input :data-testid="'support-phone-' + $index" :model-value="row.phone" :disabled="contactReadonly || !!row.customerContactReference" @update:model-value="update($index, 'phone', $event)" /></template></el-table-column>
       <el-table-column label="到位时间" min-width="230"><template #default="{ row, $index }"><el-date-picker :data-testid="'support-arrival-' + $index" :model-value="row.arrivalTime || null" :disabled="contactReadonly" type="datetime" value-format="x" @update:model-value="updateArrival($index, $event)" /></template></el-table-column>
       <el-table-column v-if="!readonly && !patchApproved" label="操作" width="80" fixed="right"><template #default="{ $index }"><el-button :data-testid="'remove-support-' + $index" link type="danger" @click="remove($index)">删除</el-button></template></el-table-column>
       <el-table-column v-if="patchApproved" label="操作" width="120" fixed="right"><template #default="{ row }"><el-button v-if="row.arrangementId" :data-testid="'patch-support-' + row.roleCode" link type="primary" @click="$emit('patch', row)">更新联系人</el-button></template></el-table-column>
@@ -39,7 +39,7 @@ const selectCustomer = (index: number, id: string | undefined) => {
   const contact = props.contacts.find(c => String(c.contactId) === id)
   emit('update:modelValue', props.modelValue.map((row, rowIndex) => rowIndex === index ? {
     ...row, customerContactReference: contact ? { contactId: contact.contactId, contactVersion: contact.contactVersion } : null,
-    personName: contact?.name || '', phone: contact?.mobile || contact?.phone || ''
+    personName: contact?.name || id?.trim() || '', phone: contact?.mobile || contact?.phone || ''
   } : row))
 }
 const rows = computed(() => props.modelValue)

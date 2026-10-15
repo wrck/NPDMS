@@ -23,6 +23,17 @@ const document = (): TemplateDesignerDocument => ({
 })
 
 describe('delivery canvas edits real rule references', () => {
+  it('new tasks are required and optional survives a save without changing legacy missing values', () => {
+    const model = document()
+    const stage = createDeliveryNode(model, 'STAGE', undefined, '准备', { x: 0, y: 0 })
+    createDeliveryNode(model, 'TASK', stage.code, '任务', { x: 1, y: 1 })
+    expect(model.tasks[0].required).toBe(true)
+    model.tasks[0].required = false
+    expect((JSON.parse(JSON.stringify(model)) as TemplateDesignerDocument).tasks[0].required).toBe(false)
+    delete model.tasks[0].required
+    captureInlineRules(model)
+    expect((JSON.parse(JSON.stringify(model)) as TemplateDesignerDocument).tasks[0]).not.toHaveProperty('required')
+  })
   it.each(['STAGE', 'TASK'] as const)('projects explicit business facts from a %s without adding a completion condition', (kind) => {
     const model = document()
     const prep = createDeliveryNode(model, 'STAGE', undefined, '工前准备', { x: 0, y: 0 })

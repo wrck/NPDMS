@@ -75,6 +75,17 @@ class ProjectPlanStageTaskInstallerTest {
         when(projections.advanceTaskTreeVersion(any())).thenReturn(1); when(projections.retireUnstartedTask(any())).thenReturn(1);
         when(projections.retireUnstartedStage(any())).thenReturn(1); when(projections.closeTaskContract(any())).thenReturn(1); when(projections.closeStageContract(any())).thenReturn(1);
     }
+    @Test void changingTaskRequirementUpdatesProjectionAndFreezesNewContract() {
+        taskContract.setDefinitionSnapshot("{\"sourceEvidence\":\"retained\"}");
+        var after = copy(); after.getTasks().getFirst().setRequired(false);
+        assertTrue(install(after, 73L).tasksChanged());
+        verify(projections).updateTaskDefinition(argThat(update -> Boolean.FALSE.equals(update.definition().getRequiredTask())));
+        verify(contracts).insert(argThat((ProjectTaskExecutionContractDO contract) -> contract.getDefinitionSnapshot() != null
+                && !JsonUtils.parseTree(contract.getDefinitionSnapshot()).path("required").asBoolean()
+                && "retained".equals(JsonUtils.parseTree(contract.getDefinitionSnapshot()).path("sourceEvidence").asText())));
+        assertTrue(actual.getTasks().getFirst().getRequiredTask());
+    }
+
     @Test void addsCustomStageAndNestedTasksWhilePreservingExistingIdentitiesWorkAndContracts() {
         var after = copy();
         var stage = new TemplateExecutionSnapshot.StageContract(); stage.setNodeKey("stage:c"); stage.setCode("CUSTOM"); stage.setName("自定义交付"); stage.setCompletionRule(before.getStages().getFirst().getCompletionRule()); after.getStages().add(stage);

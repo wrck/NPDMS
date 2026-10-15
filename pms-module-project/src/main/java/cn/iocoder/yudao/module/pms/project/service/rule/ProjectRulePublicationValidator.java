@@ -167,6 +167,15 @@ public class ProjectRulePublicationValidator {
                                 "闭环审批通过条件只能独立用于正常闭环PAGE任务的完成规则"));
                     continue;
                 }
+                if ("PROJECT_END_USER_EXISTS".equals(leaf.predicate())) {
+                    if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.memberPage(
+                                    binding.getType(), String.valueOf(binding.getParameters()))
+                            || !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.automatic(program))
+                        issues.add(new Issue(path + "." + slots[i], "RULE_END_USER_COMPLETION_BINDING_REQUIRED",
+                                "最终用户完成条件只能独立用于项目成员PAGE任务的完成规则"));
+                    continue;
+                }
                 if ("PROJECT_CONTACT_EXISTS".equals(leaf.predicate())) {
                     if (kind != DeliveryDefinitionKind.TASK || i != 1 || binding == null
                             || !"PAGE".equals(binding.getType()) || binding.getParameters() == null

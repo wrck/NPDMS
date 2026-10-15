@@ -1,0 +1,9 @@
+  - treeitem "现场工勘PRE_SURVEY 进行中 按需 0%":
+  - treeitem "需求分析PRE_REQUIREMENT 进行中 按需 0%":
+  - treeitem "施工计划PLAN_CONSTRUCTION 进行中 按需 0%":
+  - treeitem "硬件实施DEPLOY_HARDWARE 进行中 按需 0%":
+  - treeitem "配置调试DEPLOY_CONFIG 完成 100%":
+  - treeitem "业务联调DEPLOY_JOINT 完成 100%":
+  - treeitem "割接上线DEPLOY_CUTOVER 完成 100%":
+  - treeitem "现场培训ACCEPT_TRAINING 进行中 按需 0%":
+  - treeitem "满意度调查ACCEPT_SATISFACTION 进行中 按需 0%":

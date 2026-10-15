@@ -12,4 +12,11 @@
     <artifactId>pms-module-engineering-api</artifactId>
     <name>${project.artifactId}</name>
     <description>PMS 交付准备与方案跨模块公开契约</description>
+    <dependencies>
+        <!-- 新增可空适用性字段不改变历史冻结上下文的JSON形状。 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+        </dependency>
+    </dependencies>
 </project>

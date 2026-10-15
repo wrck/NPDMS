@@ -49,6 +49,51 @@ class ProjectBusinessContextApiImplTest {
     }
 
     @Test
+    void optionalHardwareIsExcludedOnlyByExplicitFrozenPolicy() {
+        var plans = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "plans", plans);
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(29L), Set.of()));
+        when(projects.selectById(29L)).thenReturn(project); project.setActivePlanVersionId(101L);
+        var snapshot = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot();
+        var task = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.TaskContract();
+        task.setCode("HARDWARE"); task.setRequired(false);
+        var binding = new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot.BindingContract();
+        binding.setType("BUSINESS_OBJECT"); binding.setTargetContextCode("IMP"); binding.setTargetObjectType("INSTALLATION"); task.setBinding(binding);
+        snapshot.setTasks(java.util.List.of(task));
+        snapshot.setImplementationReadiness(new cn.iocoder.yudao.module.pms.project.domain.template.TemplateImplementationReadiness(java.util.Map.of("EXE_02", "HARDWARE")));
+        var plan = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO();
+        plan.setId(101L); plan.setVersion(3L);
+        plan.setExecutionSnapshot(cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader.canonicalJson(snapshot));
+        when(plans.selectEffective(any())).thenReturn(plan);
+        var policy = service.implementationRequirements(query);
+        assertTrue(policy.configured()); assertEquals(101L, policy.planVersionId()); assertTrue(policy.requiredSourceCodes().isEmpty());
+    }
+
+    @Test
+    void legacyFrozenPlanWithoutPolicyKeepsAllFourOwnerRequirements() {
+        var plans = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "plans", plans);
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(29L), Set.of()));
+        when(projects.selectById(29L)).thenReturn(project); project.setActivePlanVersionId(101L);
+        var plan = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO();
+        plan.setId(101L); plan.setVersion(3L);
+        plan.setExecutionSnapshot(cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader.canonicalJson(
+                new cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshot()));
+        when(plans.selectEffective(any())).thenReturn(plan);
+        var policy = service.implementationRequirements(query);
+        assertFalse(policy.configured()); assertEquals(Set.of("EXE_01", "EXE_02", "EXE_03", "EXE_04"), policy.requiredSourceCodes());
+    }
+
+    @Test
+    void forbiddenScopeCannotReadFrozenImplementationPlan() {
+        var plans = mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "plans", plans);
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(), Set.of(29L)));
+        assertThrows(ServiceException.class, () -> service.implementationRequirements(query));
+        verifyNoInteractions(projects, plans);
+    }
+
+    @Test
     void authorizedSnapshotKeepsProjectCustomerDepartmentAndVersionsDistinct() {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(29L), Set.of()));
         when(projects.selectById(29L)).thenReturn(project);

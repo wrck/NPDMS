@@ -60,12 +60,14 @@ public class TemplateOperationCompilation {
         if (source == null) return result;
         if (source.getStages() != null) for (int i = 0; i < source.getStages().size(); i++) {
             var node = source.getStages().get(i);
-            if (node != null && node.getWorkBinding() != null && node.getWorkBinding().getOperationContract() != null)
+            if (node != null && node.getWorkBinding() != null && node.getWorkBinding().getOperationContract() != null
+                    && !node.getWorkBinding().getOperationContract().isNull())
                 result.add(new NodeBinding("STAGE", node.getNodeKey(), "stages[" + i + "].workBinding.operationContract", node.getWorkBinding()));
         }
         if (source.getTasks() != null) for (int i = 0; i < source.getTasks().size(); i++) {
             var node = source.getTasks().get(i);
-            if (node != null && node.getWorkBinding() != null && node.getWorkBinding().getOperationContract() != null)
+            if (node != null && node.getWorkBinding() != null && node.getWorkBinding().getOperationContract() != null
+                    && !node.getWorkBinding().getOperationContract().isNull())
                 result.add(new NodeBinding("TASK", node.getNodeKey(), "tasks[" + i + "].workBinding.operationContract", node.getWorkBinding()));
         }
         return result;

@@ -8,7 +8,7 @@ export const ruleNativeOptionsKey: InjectionKey<ComputedRef<string[] | undefined
 export function nativeOptions(document: TemplateDesignerDocument, key?: string): string[] {
   if (!key || document.matchRuleKey === key || document.closureRuleKey === key
     || document.transitions.some(edge => edge.conditionRuleKey === key)) return []
-  const allowed = new Set(['STAGE_NATIVE_STATUS', 'TASK_NATIVE_STATUS', 'PROJECT_CONTACT_EXISTS', 'NORMAL_CLOSURE_APPROVED'])
+  const allowed = new Set(['STAGE_NATIVE_STATUS', 'TASK_NATIVE_STATUS', 'PROJECT_CONTACT_EXISTS', 'PROJECT_END_USER_EXISTS', 'NORMAL_CLOSURE_APPROVED'])
   let used = false
   for (const [nodes, type] of [[document.stages, 'STAGE_NATIVE'], [document.tasks, 'TASK_NATIVE']] as const) {
     for (const node of nodes) {
@@ -20,6 +20,9 @@ export function nativeOptions(document: TemplateDesignerDocument, key?: string):
           if (type !== 'TASK_NATIVE' || node.completionRuleKey !== key || node.exitRuleKey === key
             || node.workBinding?.type !== 'PAGE' || node.workBinding.parameters?.routePath !== '/pms/project/normal-closure'
             || !('stageCode' in node) || !document.stages.some(stage => stage.code === node.stageCode && stage.terminal)) allowed.delete(predicate)
+        } else if (predicate === 'PROJECT_END_USER_EXISTS') {
+          if (type !== 'TASK_NATIVE' || node.completionRuleKey !== key || node.exitRuleKey === key
+            || node.workBinding?.type !== 'PAGE' || node.workBinding.parameters?.routePath !== '/pms/project-management/project-master-detail') allowed.delete(predicate)
         } else if (predicate === 'PROJECT_CONTACT_EXISTS') {
           if (type !== 'TASK_NATIVE' || node.completionRuleKey !== key || node.exitRuleKey === key
             || node.workBinding?.type !== 'PAGE' || node.workBinding.parameters?.routePath !== '/customer-asset/customer-contact') allowed.delete(predicate)

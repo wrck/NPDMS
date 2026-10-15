@@ -26,6 +26,7 @@
       <el-table-column label="人员" min-width="110"><template #default="{ row }">
         {{ row.memberName || '姓名未记录' }}
       </template></el-table-column>
+      <el-table-column label="单位" min-width="130" show-overflow-tooltip><template #default="{ row }">{{ row.companyName || '—' }}</template></el-table-column>
       <el-table-column label="角色" min-width="95"><template #default="{ row }">{{ roleLabel(row.memberRole) }}</template></el-table-column>
       <el-table-column label="联系电话" min-width="125"><template #default="{ row }">{{ row.mobile || '—' }}</template></el-table-column>
       <el-table-column label="邮箱" min-width="155" show-overflow-tooltip><template #default="{ row }">{{ row.email || '—' }}</template></el-table-column>
@@ -45,7 +46,7 @@
     <el-text v-if="project.lifecycleStatus !== 'ACTIVE'" type="info">项目已关闭，成员只读。</el-text>
     <el-dialog v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
       :width="dialogWidth" append-to-body :close-on-click-modal="false" destroy-on-close>
-      <UnifiedMemberForm v-if="memberVisible && dialogProject?.version != null" :project="dialogProject"
+      <UnifiedMemberForm v-if="memberVisible && dialogProject?.version != null" :project="dialogProject" :default-role="initialRole"
         :primary-user-id="managers?.primaryUserId ?? undefined" :member="selected" :rejoin="rejoin" @cancel="memberVisible = false" @saved="saved" />
     </el-dialog>
     <el-dialog v-model="removeVisible" title="移出项目成员" :width="dialogWidth" append-to-body :close-on-click-modal="false">
@@ -76,7 +77,7 @@ import UnifiedMemberForm from './OrdinaryMemberForm.vue'
 import { checkPermi } from '@/utils/permission'
 
 const memberRoles = Members.MEMBER_ROLE
-const props = defineProps<{ project: Projects.ProjectMasterVO }>()
+const props = defineProps<{ project: Projects.ProjectMasterVO; initialRole?: Members.ProjectMemberRole; readonly?: boolean }>()
 const emit = defineEmits<{ updated: [] }>()
 const roles: Record<string, string> = Object.fromEntries(Members.memberRoleOptions.map(role => [role.value, role.label]))
 const roleLabel = (role: string) => roles[Members.logicalMemberRole(role)] || role
@@ -93,7 +94,7 @@ const requiresReplacementPrimary = computed(() => selected.value?.memberRole ===
   && selected.value.userId === managers.value?.primaryUserId && retainedManagers.value.length > 0)
 const mobile = useMediaQuery('(max-width: 767px)')
 const dialogWidth = computed(() => mobile.value ? '96%' : '680px')
-const editable = computed(() => props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
+const editable = computed(() => !props.readonly && props.project.lifecycleStatus === 'ACTIVE' && !loading.value && !opening.value && !error.value)
 const removalSubmission = createSubmissionIdempotencyState()
 let sequence = 0
 const canMaintain = (row: Members.MemberRecord) => Members.memberRoleOptions.some(role =>
@@ -158,7 +159,7 @@ const saved = async () => {
   emit('updated')
 }
 const remove = async () => {
-  if (removing.value || !selected.value || dialogProject.value?.version == null) return
+  if (props.readonly || removing.value || !selected.value || dialogProject.value?.version == null) return
   if (!removeReason.value.trim()) { removeError.value = '请填写退出原因'; return }
   if (requiresReplacementPrimary.value && !replacementPrimaryUserId.value) { removeError.value = '请选择接任主责项目经理'; return }
   removing.value = true
@@ -178,6 +179,9 @@ watch(() => props.project.id, () => {
   total.value = 0
   reload()
 }, { immediate: true })
+watch(() => props.readonly, value => {
+  if (value) memberVisible.value = removeVisible.value = false
+})
 onBeforeUnmount(() => sequence++)
 </script>
 <style scoped>

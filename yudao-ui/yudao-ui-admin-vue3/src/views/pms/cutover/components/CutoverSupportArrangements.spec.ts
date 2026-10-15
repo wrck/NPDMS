@@ -26,6 +26,29 @@ const contacts = [
 ]
 
 describe('保障人员明细', () => {
+  it('客户可显式手填，选择已有记录后锁定电话，重新手填清除引用', async () => {
+    const rows = ref<CutoverPlanSupportArrangement[]>([{ arrangementId: null, roleCode: 'CUSTOMER',
+      personName: '', dutyDescription: '验收', phone: '', arrivalTime: 1, customerContactReference: null }])
+    const page = mount(defineComponent({ setup: () => () => h(Support, {
+      modelValue: rows.value, contacts, 'onUpdate:modelValue': value => { rows.value = value }
+    }) }), {}, controls)
+    const change = async (id: string, value: string) => {
+      await (findByTestId(page.root, id)!.props!['onUpdate:modelValue'] as (value: string) => void)(value)
+      await nextTick()
+    }
+    expect(findByTestId(page.root, 'support-customer-0')?.props?.['allow-create']).toBeDefined()
+    await change('support-customer-0', '验收手填客户')
+    await change('support-phone-0', '00000000003')
+    expect(rows.value[0]).toMatchObject({ personName: '验收手填客户', phone: '00000000003', customerContactReference: null })
+    await change('support-customer-0', '601')
+    expect(findByTestId(page.root, 'support-phone-0')?.props?.disabled).toBe(true)
+    expect(rows.value[0].customerContactReference?.contactId).toBe('601')
+    await change('support-customer-0', '另一位手填客户')
+    expect(rows.value[0]).toMatchObject({ personName: '另一位手填客户', phone: '', customerContactReference: null })
+    expect(findByTestId(page.root, 'support-phone-0')?.props?.disabled).toBe(false)
+    page.app.unmount()
+  })
+
   it('新增同角色两人、逐行选择客户，删除其中一行不覆盖另一行', async () => {
     const rows = ref<CutoverPlanSupportArrangement[]>([])
     const page = mount(defineComponent({ setup: () => () => h(Support, {

@@ -49,6 +49,10 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
         row.setDecision(current.isReady() ? "READY" : "NOT_READY");
         row.setProjectScopeVersion(current.projectScopeVersion());
         row.setApprovedPlanId(current.approvedPlan().planId()); row.setApprovedPlanVersion(current.approvedPlan().planVersion());
+        if (current.planApplicability() != null) {
+            row.setProjectPlanVersionId(current.planApplicability().planVersionId());
+            row.setProjectPlanVersion(current.planApplicability().planVersion());
+        }
         row.setEvaluatedBy(actor());
         snapshots.insert(row);
         snapshotStore.insert(new ImplementationReadinessSnapshotStore.Write(row, current, unmet(current), actor(), row.getCreateTime()));
@@ -136,22 +140,39 @@ public class ImplementationReadinessService implements ImplementationReadinessAp
                 throw failure(INVALID_REQUEST, "设备范围版本已变化，请重新校验");
             return fact;
         }).toList();
+        var policyQuery = new ProjectBusinessContextApi.Query(query.tenantId(), actor(), query.projectId(), project.scopeVersion());
+        var requirements = lock ? projects.lockImplementationRequirements(
+                new ProjectBusinessContextApi.Revalidation(policyQuery, project.projectVersion())) : projects.implementationRequirements(policyQuery);
+        if (requirements == null) throw failure(OWNER_DATA_CORRUPTED, "PROJ冻结实施前置不可用");
+        var applicable = requirements.requiredSourceCodes().stream().map(SourceCode::valueOf)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        var planApplicability = requirements.configured()
+                ? new PlanApplicability(requirements.planVersionId(), requirements.planVersion(), applicable) : null;
         var owner = new ReadinessProjectQuery(query.tenantId(), query.projectId(), lock);
         var plan = sources.approvedSolutions(owner).stream().filter(row -> Integer.valueOf(0).equals(row.getReviewLevel())
                 || Integer.valueOf(1).equals(row.getReviewLevel()) && reviews.approved(row, lock)).findFirst()
                 .orElseThrow(() -> failure(SNAPSHOT_NOT_FOUND, "尚无 SCH-05 最终批准的实施方案"));
-        var installed = sources.installations(owner).stream().map(row -> new ImplementationReadinessRules.Record(
+        var installed = !applicable.contains(SourceCode.EXE_02) ? List.<ImplementationReadinessRules.Record>of()
+                : sources.installations(owner).stream().map(row -> new ImplementationReadinessRules.Record(
                 row.getId(), row.getVersion(), row.getEquipmentId(), Integer.valueOf(2).equals(row.getStatus())
                 && row.getEffectiveFrom() != null && row.getInstallLocation() != null && !row.getInstallLocation().isBlank())).toList();
-        var configured = sources.configurations(owner).stream().map(row -> new ImplementationReadinessRules.Record(
+        var configured = !applicable.contains(SourceCode.EXE_03) ? List.<ImplementationReadinessRules.Record>of()
+                : sources.configurations(owner).stream().map(row -> new ImplementationReadinessRules.Record(
                 row.getId(), row.getVersion(), row.getEquipmentId(), Integer.valueOf(2).equals(row.getStatus()))).toList();
-        var tested = sources.jointTests(owner).stream().map(row -> new ImplementationReadinessRules.Record(
+        var tested = !applicable.contains(SourceCode.EXE_04) ? List.<ImplementationReadinessRules.Record>of()
+                : sources.jointTests(owner).stream().map(row -> new ImplementationReadinessRules.Record(
                 row.getId(), row.getVersion(), row.getEquipmentId(), Integer.valueOf(2).equals(row.getStatus()))).toList();
         return new ImplementationReadinessContextFact(project.scopeVersion(), selected,
-                new ApprovedPlanFact(plan.getId(), plan.getVersion()), List.of(arrival(query, all, lock),
-                ImplementationReadinessRules.milestone(SourceCode.EXE_02, installed, all),
-                ImplementationReadinessRules.milestone(SourceCode.EXE_03, configured, all),
-                ImplementationReadinessRules.milestone(SourceCode.EXE_04, tested, all)));
+                new ApprovedPlanFact(plan.getId(), plan.getVersion()), List.of(
+                applicable.contains(SourceCode.EXE_01) ? arrival(query, all, lock) : notApplicable(SourceCode.EXE_01),
+                applicable.contains(SourceCode.EXE_02) ? ImplementationReadinessRules.milestone(SourceCode.EXE_02, installed, all) : notApplicable(SourceCode.EXE_02),
+                applicable.contains(SourceCode.EXE_03) ? ImplementationReadinessRules.milestone(SourceCode.EXE_03, configured, all) : notApplicable(SourceCode.EXE_03),
+                applicable.contains(SourceCode.EXE_04) ? ImplementationReadinessRules.milestone(SourceCode.EXE_04, tested, all) : notApplicable(SourceCode.EXE_04)),
+                planApplicability);
+    }
+
+    private static SourceFact notApplicable(SourceCode code) {
+        return new SourceFact(code, CompletionStatus.NOT_APPLICABLE, 0L, List.of(), List.of(), false);
     }
 
     private SourceFact arrival(ImplementationReadinessQuery query, List<DeviceFact> all, boolean lock) {

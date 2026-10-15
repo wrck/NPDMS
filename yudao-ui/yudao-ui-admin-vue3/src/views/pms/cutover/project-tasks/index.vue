@@ -1,5 +1,5 @@
 <template>
-  <CutoverTaskCreate v-if="createVisible && canCreate" :project-id="projectId" @close="createVisible = false" @created="createdTask" />
+  <CutoverTaskCreate v-if="createVisible" :project-id="projectId" :operation-object-type="operationObjectType" :create-allowed="canCreate" @close="createVisible = false" @created="createdTask" />
   <CutoverTaskDetail v-else-if="selectedTaskId" :key="`${projectId}:${selectedTaskId}`" :task-id="selectedTaskId"
     :project-id="projectId" :readonly="readonly" @close="closeDetail" @changed="loadTasks" />
   <section v-else class="project-cutover-tasks" data-testid="project-cutover-tasks">
@@ -35,7 +35,7 @@ import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
 import CutoverTaskDetail from '../task-detail/index.vue'
 import CutoverTaskCreate from '../task-create/index.vue'
 
-const props = defineProps<{ projectId: WireLong; objectId?: WireLong; readonly?: boolean; allowedActions?: string[] }>()
+const props = defineProps<{ projectId: WireLong; objectId?: WireLong; readonly?: boolean; allowedActions?: string[]; operationObjectType?: 'CUTOVER_TASK' | 'CUTOVER_APPROVAL' }>()
 const operationClient = useOperationClient()
 const canCreate = computed(() => !props.readonly && !!operationClient.value && !!props.allowedActions?.includes('CREATE'))
 const selectedTaskId = ref<WireLong | null>(null)

@@ -29,6 +29,7 @@ export interface ProjectWorkspace {
 }
 
 export interface TaskNode {
+  requiredTask?: boolean
   taskId: number
   projectId?: number
   parentTaskId?: number

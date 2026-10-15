@@ -26,6 +26,8 @@ public class ProjectMemberAssignmentRespVO {
 
     @Schema(description = "成员姓名")
     private String memberName;
+    private String externalMobile;
+    private String externalEmail;
 
     @Schema(description = "System人员主档中的当前联系电话")
     private String mobile;

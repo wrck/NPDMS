@@ -14,6 +14,7 @@ import AcceptanceReportPage from '@/views/pms/acceptance/acceptance-report/index
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 import ProjectSchedulePanel from '@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue'
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
+import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
 import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
 import ProjectCutoverCoverage from '@/views/pms/cutover/project-coverage/index.vue'
 import CutoverBusinessEntry from '@/views/pms/cutover/components/CutoverBusinessEntry.vue'
@@ -52,6 +53,15 @@ const positiveId = isBusinessViewId
 // Paths only select these statically imported components; URL metadata never becomes an import or command.
 const adapters: readonly Adapter[] = [
   {
+    ...businessPageRoutes.CUT_CUTOVER_APPROVAL_WORKBENCH,
+    component: markRaw(ProjectCutoverTasks),
+    resolve: ({ registration, resolvedContext }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, operationObjectType: 'CUTOVER_APPROVAL' }
+        : undefined
+  },
+  {
     ...businessPageRoutes.IMP_ARRIVAL_RECEIPT,
     component: markRaw(OwnerCompletionEntry),
     resolve: ({ registration, resolvedContext }) =>
@@ -69,10 +79,10 @@ const adapters: readonly Adapter[] = [
   },
   {
     ...businessPageRoutes.IMP_TRAINING_CONFIRMATION,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(TrainingWorkbench),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '现场培训', tab: 'training' }
+        ? { projectId: resolvedContext.project.id }
         : undefined
   },
   {

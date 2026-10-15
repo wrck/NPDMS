@@ -27,4 +27,7 @@ public class ImplementationReadinessSnapshotDO extends TenantBaseDO {
     private Long approvedPlanId;
     /** 原计划版本；历史原件缺失时可空，新业务按既有来源/提交规则必填 */
     private Long approvedPlanVersion;
+    /** 显式适用性来自PROJ冻结计划；历史快照两字段为空，仍要求全部四类事实。 */
+    private Long projectPlanVersionId;
+    private Long projectPlanVersion;
 }

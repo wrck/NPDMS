@@ -319,11 +319,11 @@ watch([projectInfo, () => form.value.versionLabel], applyAutoName)
 watch(
   () => form.value.projectId,
   async (pid) => {
-    const id = Number(pid)
-    if (!id || id <= 0) return
+    const id = pid
+    if (!id || !/^[1-9]\d*$/.test(String(id))) return
     try {
       const project = await ProjectApi.getProject(id)
-      if (Number(form.value.projectId) === id) projectInfo.value = project
+      if (String(form.value.projectId) === String(id)) projectInfo.value = project
     } catch {
       // 项目信息获取失败时保持手输名称
     }
@@ -333,7 +333,7 @@ watch(
 
 const solutionLabel = (row: SolutionVO) => `${row.name}（${row.versionLabel || '未设版本'}）`
 const pickSolution = (id: number | string) => {
-  const row = rows.value.find(item => item.id === Number(id))
+  const row = rows.value.find(item => String(item.id) === String(id))
   if (row) openForm(row)
 }
 

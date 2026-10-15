@@ -8,7 +8,7 @@ vi.mock('@/api/pms/project/projects', () => ({ queryTree: vi.fn(), getClosureGua
 const apps: Array<{ unmount: () => void }> = []
 const passed = { allowed: true, treeVersion: 1, blockers: [], pendingProgressProjects: [] }
 const flush = async () => { for (let i = 0; i < 6; i++) await nextTick() }
-const render = (initial: { projectId: number; treeVersion?: number }) => {
+const render = (initial: { projectId: string | number; treeVersion?: string | number }) => {
   const props = reactive(initial)
   const child = ref<any>()
   const host = defineComponent({ setup: () => () => h(Panel, { ...props, ref: child }) })
@@ -64,4 +64,11 @@ it('rejects invalid explicit project or tree versions instead of silently queryi
   }
   expect(ProjectsApi.queryTree).not.toHaveBeenCalled()
   expect(ProjectsApi.getClosureGuard).not.toHaveBeenCalled()
+})
+
+it('preserves Snowflake project IDs and decimal string tree versions without numeric conversion', async () => {
+  const projectId = '2110018733130579973'
+  const page = render({ projectId, treeVersion: '15' }); await flush()
+  expect(ProjectsApi.getClosureGuard).toHaveBeenCalledExactlyOnceWith(projectId, '15')
+  expect(findByTestId(page.root, 'closure-tree-passed')).toBeDefined()
 })

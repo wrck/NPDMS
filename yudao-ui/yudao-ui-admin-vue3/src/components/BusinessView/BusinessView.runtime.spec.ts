@@ -5,6 +5,7 @@ import BusinessViewHost from './BusinessViewHost.vue'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import { businessViewTargetKey, resolveStandaloneBusinessEntityView, resolveBusinessView, type BusinessViewTarget } from './registry'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
+import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
 import * as FormApi from '@/api/pms/platform/dynamic-form'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
@@ -24,6 +25,8 @@ vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
+vi.mock('@/views/pms/engineering/training/TrainingPrintTemplates.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/engineering/training/TrainingPrintPreview.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue', async () => {
   const { defineComponent, h, ref } = await import('vue')
   // 工期面板的既定离开协议：不暴露 requestLeave，仅暴露 discardChanges（关闭抽屉）。
@@ -195,10 +198,33 @@ beforeEach(() => {
 })
 
 describe('PM-03 BusinessView runtime', () => {
+  it('embeds the existing training workspace with the exact project and readonly boundary', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey: 'IMP_TRAINING_CONFIRMATION', ownerContext: 'IMP', entityType: 'TRAINING', supportedActions: ['QUERY'] })
+    data.resolvedContext.project = { id: '2110018733130579974' }
+    data.readonly = true
+    data.allowedActions = ['QUERY', 'CREATE', 'UPDATE']
+    const view = resolveBusinessView(data)
+    expect(view.component).toBe(TrainingWorkbench)
+    expect(view.props).toEqual({ projectId: '2110018733130579974', readonly: true, allowedActions: [] })
+    data.registration.ownerContext = 'OTHER'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+  })
+
+  it('resolves the new approval workbench with exact projection identity while retaining the readonly registration', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey: 'CUT_CUTOVER_APPROVAL_WORKBENCH', ownerContext: 'CUT', entityType: 'CUTOVER_APPROVAL', supportedActions: ['QUERY', 'CREATE'] })
+    data.allowedActions = ['QUERY', 'CREATE']
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, operationObjectType: 'CUTOVER_APPROVAL', allowedActions: ['QUERY', 'CREATE'] })
+    data.registration.entityType = 'CUTOVER_TASK'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+    Object.assign(data.registration, { componentKey: 'CUT_CUTOVER_APPROVAL', entityType: 'CUTOVER_APPROVAL', supportedActions: ['QUERY'] })
+    data.allowedActions = ['QUERY']
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, mode: 'APPROVAL' })
+  })
   it.each([
     ['IMP_ARRIVAL_RECEIPT', 'IMP', 'ARRIVAL', 'arrival'],
     ['IMP_PROJECT_INSTALLATION', 'IMP', 'INSTALLATION', 'installation'],
-    ['IMP_TRAINING_CONFIRMATION', 'IMP', 'TRAINING', 'training'],
     ['CUT_CUTOVER_APPROVAL', 'CUT', 'CUTOVER_APPROVAL', 'cutover']
   ])('resolves %s to its existing Owner workspace and rejects a different Owner', (componentKey, ownerContext, entityType, tab) => {
     const data = target('PAGE')

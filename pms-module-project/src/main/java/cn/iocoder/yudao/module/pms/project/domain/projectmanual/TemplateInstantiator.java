@@ -119,6 +119,7 @@ public final class TemplateInstantiator {
             instance.setSortOrder(task.getSortOrder());
             instance.setEstimatedHours(task.getEstimatedHours());
             instance.setSatisfactionTiming(task.getSatisfactionTiming());
+            instance.setRequiredTask(!Boolean.FALSE.equals(task.getRequired()));
             instance.setDescription(task.getDescription());
             instance.setSourceDefinitionId(task.getId());
             instance.setStatus(ProjectRules.TASK_STATUS_PENDING_ASSIGN);

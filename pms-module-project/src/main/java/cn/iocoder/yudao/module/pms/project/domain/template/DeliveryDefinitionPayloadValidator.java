@@ -7,7 +7,7 @@ import java.util.*;
 public final class DeliveryDefinitionPayloadValidator {
     private DeliveryDefinitionPayloadValidator() { }
     public static final Set<String> PREDICATES = Set.of("TASK_NATIVE_STATUS", "STAGE_NATIVE_STATUS",
-            "TASK", "MILESTONE", "DELIVERABLE", "STATE", "APPROVAL", "PROCESS", "BUSINESS_FACT", "PROJECT_CONTACT_EXISTS", "NORMAL_CLOSURE_APPROVED");
+            "TASK", "MILESTONE", "DELIVERABLE", "STATE", "APPROVAL", "PROCESS", "BUSINESS_FACT", "PROJECT_CONTACT_EXISTS", "PROJECT_END_USER_EXISTS", "NORMAL_CLOSURE_APPROVED");
     public static final Set<String> BINDING_TYPES = Set.of("STAGE_NATIVE", "TASK_NATIVE", "PAGE", "BUSINESS_OBJECT",
             "BUSINESS_COMPONENT", "DYNAMIC_FORM", "APPROVAL", "COMPOSITE");
 
@@ -133,7 +133,7 @@ public final class DeliveryDefinitionPayloadValidator {
                 if (anchor == cn.iocoder.yudao.module.pms.project.domain.rule.RelativeTimeCondition.Anchor.NODE_COMPLETED)
                     require(code(text(parameters, "sourceNodeKey")), "sourceNodeKey: version-local node required");
                 else require(!parameters.has("sourceNodeKey"), "activation uses the current node");
-            } else if (Set.of("PROJECT_CONTACT_EXISTS", "NORMAL_CLOSURE_APPROVED").contains(predicate)) {
+            } else if (Set.of("PROJECT_CONTACT_EXISTS", "PROJECT_END_USER_EXISTS", "NORMAL_CLOSURE_APPROVED").contains(predicate)) {
                 fields(parameters, Set.of());
             } else if ("CONSTANT".equals(predicate)) {
                 fields(parameters, Set.of("value")); bool(parameters, "value");

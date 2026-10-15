@@ -6,6 +6,7 @@ import { acceptanceReportOperationActions } from '@/api/pms/acceptance/acceptanc
 export interface PagePresentation { pageUrl: string; query: Readonly<Record<string, string>> }
 /** The single code-owned directory for embedded routes; the Vue registry adds only static components. */
 export const businessPageRoutes = {
+  CUT_CUTOVER_APPROVAL_WORKBENCH: { componentKey: 'CUT_CUTOVER_APPROVAL_WORKBENCH', componentVersion: '1', ownerContext: 'CUT', entityType: 'CUTOVER_APPROVAL', viewSource: 'PAGE', pageUrl: '/pms/cutover/approval-workbench', operationActions: { 'CUT.CUTOVER_APPROVAL.CREATE': ['CREATE'] } as Record<string, readonly string[]> },
   IMP_ARRIVAL_RECEIPT: { componentKey: 'IMP_ARRIVAL_RECEIPT', componentVersion: '1', ownerContext: 'IMP', entityType: 'ARRIVAL', viewSource: 'PAGE', pageUrl: '/pms/engineering/execution/imp-arrival' },
   IMP_PROJECT_INSTALLATION: { componentKey: 'IMP_PROJECT_INSTALLATION', componentVersion: '1', ownerContext: 'IMP', entityType: 'INSTALLATION', viewSource: 'PAGE', pageUrl: '/pms/engineering/execution/imp-installation' },
   IMP_TRAINING_CONFIRMATION: { componentKey: 'IMP_TRAINING_CONFIRMATION', componentVersion: '1', ownerContext: 'IMP', entityType: 'TRAINING', viewSource: 'PAGE', pageUrl: '/pms/imp-training' },

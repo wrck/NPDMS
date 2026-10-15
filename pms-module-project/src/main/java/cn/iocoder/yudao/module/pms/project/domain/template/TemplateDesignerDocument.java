@@ -29,6 +29,8 @@ public class TemplateDesignerDocument {
     private Match match = new Match();
     private String processDefinitionKey;
     private JsonNode closurePolicy;
+    @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+    private TemplateImplementationReadiness implementationReadiness;
     private List<StageNode> stages = new ArrayList<>();
     private List<TaskNode> tasks = new ArrayList<>();
     private List<MilestoneNode> milestones = new ArrayList<>();
@@ -92,6 +94,8 @@ public class TemplateDesignerDocument {
         private Integer priority;
         private Integer sortOrder;
         private java.math.BigDecimal estimatedHours;
+        @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+        private Boolean required;
         private String satisfactionTiming;
         private String description;
         private WorkBindingSpec workBinding;
@@ -225,6 +229,7 @@ public class TemplateDesignerDocument {
         result.getMatch().setMajorProjectLevel(content.getMajorProjectLevel());
         result.setProcessDefinitionKey(content.getProcessDefinitionKey());
         result.setClosurePolicy(content.getClosurePolicy() == null ? null : content.getClosurePolicy().toJson());
+        result.setImplementationReadiness(content.getImplementationReadiness());
         result.setSourceEvidence(content.getDefinitionSnapshot());
 
         DefinitionSnapshotIndex definitions = new DefinitionSnapshotIndex(content.getDefinitionSnapshot());
@@ -261,6 +266,7 @@ public class TemplateDesignerDocument {
                 task.setSortOrder(source.getSortOrder());
                 task.setEstimatedHours(source.getEstimatedHours());
                 task.setSatisfactionTiming(source.getSatisfactionTiming());
+                task.setRequired(source.getRequired());
                 task.setDescription(source.getDescription());
                 task.setWorkBinding(binding(source));
                 task.setPermission(permission(source, definitions));

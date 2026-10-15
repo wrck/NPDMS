@@ -33,6 +33,8 @@ final class TemplateExecutionSnapshotHasher {
         root.put("match", snapshot.getMatch());
         root.put("processDefinitionKey", snapshot.getProcessDefinitionKey());
         root.put("closurePolicy", snapshot.getClosurePolicy());
+        if (snapshot.getImplementationReadiness() != null)
+            root.put("implementationReadiness", snapshot.getImplementationReadiness());
         root.put("stages", snapshot.getStages().stream()
                 .sorted(Comparator.comparing(TemplateExecutionSnapshot.StageContract::getNodeKey))
                 .map(TemplateExecutionSnapshotHasher::semanticStage).toList());
@@ -70,6 +72,7 @@ final class TemplateExecutionSnapshotHasher {
 
     private static Map<String, Object> semanticTask(TemplateExecutionSnapshot.TaskContract row) {
         Map<String, Object> map = baseNode(row.getNodeKey(), row.getCode(), row.getName());
+        if (row.getRequired() != null) map.put("required", row.getRequired());
         map.put("parentTaskCode", row.getParentTaskCode());
         map.put("stageCode", row.getStageCode());
         map.put("priority", row.getPriority());

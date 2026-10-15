@@ -83,7 +83,11 @@ public class ImplementationReadinessSnapshotStore {
                                 .map(CutoverReadinessSourceObjectDO::getSourceObjectId).toList(),
                         watermarkRows.stream().filter(value -> row.getId().equals(value.getSourceFactId()))
                                 .map(value -> new WatermarkEntry(value.getAxisCode(), value.getObjectId(), value.getFactVersion())).toList(),
-                        row.getReopenedFlag())).toList());
+                        row.getReopenedFlag())).toList(),
+                root.getProjectPlanVersionId() == null && root.getProjectPlanVersion() == null ? null
+                        : new PlanApplicability(root.getProjectPlanVersionId(), root.getProjectPlanVersion(),
+                        sourceRows.stream().filter(row -> !CompletionStatus.NOT_APPLICABLE.name().equals(row.getCompletionStatusCode()))
+                                .map(row -> SourceCode.valueOf(row.getSourceCode())).collect(Collectors.toSet())));
         return new ImplementationReadinessSnapshotFact(root.getTenantId(), root.getProjectId(), root.getId(), root.getSnapshotNo(),
                 0L, "CUTOVER", ImplementationReadinessSnapshotFact.Decision.valueOf(root.getDecision()), context,
                 unmetRows.stream().map(CutoverReadinessUnmetDO::getUnmetCode).toList(), root.getCreateTime());

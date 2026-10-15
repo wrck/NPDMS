@@ -54,3 +54,13 @@ it('offers approval closure only for a terminal closure task completion rule', (
   terminal.terminal = true; node.exitRuleKey = 'ready'; expect(nativeOptions(document, 'ready')).not.toContain('NORMAL_CLOSURE_APPROVED')
   node.exitRuleKey = undefined; document.closureRuleKey = 'ready'; expect(nativeOptions(document, 'ready')).not.toContain('NORMAL_CLOSURE_APPROVED')
 })
+
+it('allows external end users only at the project member page completion slot', () => {
+  const document = emptyDesignerDocument(); const node = task(); node.exitRuleKey = undefined; node.completionRuleKey = 'ready'
+  node.workBinding = { type: 'PAGE', parameters: { routePath: '/pms/project-management/project-master-detail' } }; document.tasks.push(node)
+  expect(nativeOptions(document, 'ready')).toContain('PROJECT_END_USER_EXISTS')
+  expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_CONTACT_EXISTS')
+  node.exitRuleKey = 'ready'; expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_END_USER_EXISTS')
+  node.exitRuleKey = undefined; node.workBinding.parameters = { routePath: '/customer-asset/customer-contact' }
+  expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_END_USER_EXISTS')
+})

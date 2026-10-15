@@ -127,6 +127,53 @@ describe('详情式新建割接任务', () => {
     expect(api.createCutoverTask).not.toHaveBeenCalled(); expect(textOf(findByTestId(view.root, 'created-task-detail')!)).toBe('701'); view.app.unmount()
   })
 
+  it('creates through the approval projection and rejects a mismatched result identity', async () => {
+    operation.enabled = true
+    operation.execute.mockImplementation(async request => {
+      const result = { ownerContext: 'CUT', objectType: 'CUTOVER_APPROVAL', objectId: '701', response: { taskId: '701' } }
+      expect(() => request.validateResult({ ...result, objectType: 'CUTOVER_TASK' })).toThrow()
+      request.validateResult(result)
+      return result
+    })
+    const view = mount(ProjectTasks, { projectId: '101', allowedActions: ['CREATE'], operationObjectType: 'CUTOVER_APPROVAL' }, controls); await flush()
+    await click(view.root, 'create-project-cutover')
+    await update(view.root, 'create-serials', 'SN-401'); await click(view.root, 'resolve-create-serials'); await fillTask(view.root); await click(view.root, 'submit-create-detail')
+    expect(operation.execute).toHaveBeenCalledWith(expect.objectContaining({ operationCode: 'CUT.CUTOVER_APPROVAL.CREATE', input: expect.objectContaining({ serialNumbers: ['SN-401'], scheduledTime: new Date('2026-11-01T10:00:00').getTime() }) }))
+    expect(api.createCutoverTask).not.toHaveBeenCalled()
+    expect(textOf(findByTestId(view.root, 'created-task-detail')!)).toBe('701'); view.app.unmount()
+  })
+
+  it('retains the embedded pending request when the host hides CREATE during recovery', async () => {
+    operation.enabled = true
+    const actions = ref(['CREATE'])
+    operation.execute.mockImplementationOnce(async () => { actions.value = []; throw new Error('network interrupted') })
+    operation.execute.mockResolvedValueOnce({ objectId: '701' })
+    const host = defineComponent({ setup: () => () => h(ProjectTasks, { projectId: '101', allowedActions: actions.value }) })
+    const view = mount(host, {}, controls); await flush()
+    await click(view.root, 'create-project-cutover')
+    await update(view.root, 'create-serials', 'SN-401'); await click(view.root, 'resolve-create-serials'); await fillTask(view.root)
+    await click(view.root, 'submit-create-detail')
+    expect(findByTestId(view.root, 'submit-create-detail')!.props!.disabled).toBe(false)
+    const first = operation.execute.mock.calls[0][0]
+    await click(view.root, 'submit-create-detail')
+    expect(operation.execute.mock.calls[1][0].key).toBe(first.key)
+    expect(operation.execute.mock.calls[1][0].input).toEqual(first.input)
+    expect(textOf(findByTestId(view.root, 'created-task-detail')!)).toBe('701'); view.app.unmount()
+  })
+
+  it('blocks new creation when the host withdraws CREATE before submission', async () => {
+    operation.enabled = true
+    const actions = ref(['CREATE'])
+    const host = defineComponent({ setup: () => () => h(ProjectTasks, { projectId: '101', allowedActions: actions.value }) })
+    const view = mount(host, {}, controls); await flush()
+    await click(view.root, 'create-project-cutover')
+    await update(view.root, 'create-serials', 'SN-401'); await click(view.root, 'resolve-create-serials'); await fillTask(view.root)
+    actions.value = []; await flush()
+    expect(findByTestId(view.root, 'submit-create-detail')!.props!.disabled).toBe(true)
+    await click(view.root, 'submit-create-detail')
+    expect(operation.execute).not.toHaveBeenCalled(); view.app.unmount()
+  })
+
   it('shows frozen serials in a readonly device table even if one current product lookup fails', async () => {
     assets.getDevice.mockResolvedValueOnce({ summary: { productCode: 'CODE-401', productModel: 'MODEL-401' } }).mockRejectedValueOnce(new Error('unavailable'))
     const view = mount(TaskDevices, { detail: { task: { id: '701' }, devices: [device(), device('402')] } }, controls); await flush()

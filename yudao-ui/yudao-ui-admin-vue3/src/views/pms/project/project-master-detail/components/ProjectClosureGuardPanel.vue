@@ -52,11 +52,12 @@
 import { onBeforeUnmount, ref, watch } from 'vue'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import type { ProjectClosureGuardVO } from '@/api/pms/project/projects'
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 
-const props = defineProps<{ projectId: number; projectName?: string; treeVersion?: number }>()
+const props = defineProps<{ projectId: string | number; projectName?: string; treeVersion?: string | number }>()
 const loading = ref(false)
 const result = ref<ProjectClosureGuardVO>()
-const resolvedTreeVersion = ref<number>()
+const resolvedTreeVersion = ref<string | number>()
 const errorText = ref('')
 let evaluationSequence = 0
 
@@ -67,8 +68,8 @@ const evaluate = async () => {
   result.value = undefined
   resolvedTreeVersion.value = undefined
   errorText.value = ''
-  if (!Number.isSafeInteger(projectId) || projectId <= 0 ||
-      (hintedVersion !== undefined && (!Number.isSafeInteger(hintedVersion) || hintedVersion <= 0))) {
+  if (!isBusinessViewId(projectId) ||
+      (hintedVersion !== undefined && !isBusinessViewId(hintedVersion))) {
     loading.value = false
     errorText.value = '项目或项目树版本无效，未执行检查。'
     return
@@ -79,7 +80,7 @@ const evaluate = async () => {
       projectId, { queryType: 'CHILDREN', pageSize: 1 }
     )).treeVersion
     if (sequence !== evaluationSequence) return
-    if (!Number.isSafeInteger(version) || version <= 0) throw new Error('Invalid tree version')
+    if (!isBusinessViewId(version)) throw new Error('Invalid tree version')
     resolvedTreeVersion.value = version
     const checked = await ProjectsApi.getClosureGuard(projectId, version)
     if (sequence === evaluationSequence) result.value = checked

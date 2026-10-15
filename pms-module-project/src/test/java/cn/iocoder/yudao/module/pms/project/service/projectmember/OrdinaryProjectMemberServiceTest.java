@@ -70,6 +70,80 @@ class OrdinaryProjectMemberServiceTest {
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
+    @Test void externalEndUserNeedsNoAccountAndNeverBecomesExecutionIdentity() {
+        var external = new MemberValues(null, "END_USER", "", "", false, null,
+                new ExternalPerson("最终用户甲", "客户单位", "123", "a@example.test"));
+        service.mutate(new Command(100L, 0L, Action.ADD, null, external, "加入", "external-add"), actor());
+        var saved = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberMapper).insert(saved.capture());
+        assertNull(saved.getValue().getUserId());
+        assertEquals(Boolean.FALSE, saved.getValue().getAuthorizationConfirmed());
+        assertEquals("最终用户甲", saved.getValue().getMemberName());
+        assertEquals("客户单位", saved.getValue().getCompanyName());
+        assertEquals("123", saved.getValue().getExternalMobile());
+        verifyNoInteractions(users, projectManagers, serviceManagers);
+        assertFalse(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.TASK_EXECUTION_CODES.contains("END_USER"));
+        assertFalse(cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles.MANAGEMENT_CODES.contains("END_USER"));
+    }
+
+    @Test void externalEditAppendsIntervalAndRemovalKeepsOldDetails() {
+        var previous = member("END_USER"); previous.setUserId(null); previous.setMemberName("旧姓名");
+        previous.setExternalMobile("旧电话"); when(memberMapper.selectById(10L)).thenReturn(previous);
+        var values = new MemberValues(null, "END_USER", "原职责", "原备注", false, null,
+                new ExternalPerson("新姓名", null, "新电话", null));
+        service.mutate(new Command(100L, 0L, Action.UPDATE, 10L, values, "变更", "external-update"), actor());
+        var closed = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberMapper).updateById(closed.capture());
+        assertNotNull(closed.getValue().getEffectiveTo()); assertNull(closed.getValue().getMemberName());
+        assertEquals("旧姓名", previous.getMemberName()); assertEquals("旧电话", previous.getExternalMobile());
+        var appended = ArgumentCaptor.forClass(ProjectMemberAssignmentDO.class);
+        verify(memberMapper).insert(appended.capture());
+        assertNull(appended.getValue().getUserId());
+        assertEquals(Boolean.FALSE, appended.getValue().getAuthorizationConfirmed());
+        verifyNoInteractions(users);
+    }
+
+    @Test void unchangedExternalDetailsDoNotWriteAndRemovalOnlyClosesHistory() {
+        var previous = member("END_USER"); previous.setUserId(null); previous.setMemberName("姓名");
+        previous.setCompanyName("单位"); previous.setExternalMobile("电话"); previous.setExternalEmail("a@example.test");
+        when(memberMapper.selectById(10L)).thenReturn(previous);
+        var values = new MemberValues(null, "END_USER", "原职责", "原备注", false, null,
+                new ExternalPerson("姓名", "单位", "电话", "a@example.test"));
+        assertFalse(service.mutate(new Command(100L, 0L, Action.UPDATE, 10L, values, "", "external-same"), actor()).changed());
+        verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
+        verify(memberMapper, never()).updateById(any(ProjectMemberAssignmentDO.class));
+        assertTrue(service.mutate(new Command(100L, 0L, Action.REMOVE, 10L, null, "退出", "external-remove"), actor()).changed());
+        assertEquals("姓名", previous.getMemberName()); assertEquals("电话", previous.getExternalMobile());
+        verify(memberMapper, never()).deleteById(anyLong()); verifyNoInteractions(users);
+    }
+
+    @Test void externalRequiresNameAndRespectsStoredColumnBounds() {
+        for (var person : List.of(new ExternalPerson(" ", null, null, null),
+                new ExternalPerson("x".repeat(129), null, null, null),
+                new ExternalPerson("name", "x".repeat(256), null, null),
+                new ExternalPerson("name", null, "x".repeat(65), null),
+                new ExternalPerson("name", null, null, "x".repeat(256)))) {
+            var values = new MemberValues(null, "END_USER", null, null, false, null, person);
+            assertThrows(ServiceException.class, () -> service.mutate(
+                    new Command(100L, 0L, Action.ADD, null, values, "", "external-invalid"), actor()));
+        }
+        verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class)); verifyNoInteractions(users);
+    }
+
+    @Test void rejectsAccountOnExternalRoleAndMissingAccountOnInternalRole() {
+        var external = new ExternalPerson("姓名", null, null, null);
+        for (var values : List.of(new MemberValues(40L, "END_USER", null, null, false, null, external),
+                new MemberValues(null, "TEAM_MEMBER", null, null),
+                new MemberValues(null, "END_USER", null, null, true, null, external),
+                new MemberValues(null, "END_USER", null, null, false, new ServiceScope("L1", "PRIMARY", null, 1L, "D"), external),
+                new MemberValues(40L, "TEAM_MEMBER", null, null, false, null, external))) {
+            assertThrows(ServiceException.class, () -> service.mutate(
+                    new Command(100L, 0L, Action.ADD, null, values, "加入", "invalid-external"), actor()));
+        }
+        verify(memberMapper, never()).insert(any(ProjectMemberAssignmentDO.class));
+        verifyNoInteractions(users);
+    }
+
     @Test void addsQualifiedTeamMemberWithoutCompanyScopeAndKeepsManagerFacts() {
         var result = service.mutate(command(Action.ADD, null, "TEAM_MEMBER", "现场实施", "人员备注", 0), actor());
         assertEquals(1, result.version()); assertTrue(result.changed());

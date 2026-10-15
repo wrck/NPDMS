@@ -132,7 +132,8 @@ public class ProjectStageCompletionService {
                     ownerLinks = owner.facts().links();
                 }
             }
-            boolean unfinishedWork = tasks.stream().filter(task -> stage.getCode().equals(task.getStageCode()))
+            boolean unfinishedWork = tasks.stream().filter(cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy::required)
+                    .filter(task -> stage.getCode().equals(task.getStageCode()))
                     .anyMatch(task -> (task.getActualStartTime() != null || startedTasks.contains(task.getId()) || Set.of("IN_PROGRESS", "PENDING_ACCEPT").contains(task.getStatus()))
                             && !Set.of("DONE", "CLOSED").contains(task.getStatus()));
             if (unfinishedWork) {

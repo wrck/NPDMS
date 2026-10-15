@@ -91,6 +91,13 @@ public class TemplateCompiler {
         if (!issues.isEmpty()) return new Compilation(null, null, List.copyOf(issues));
 
         TemplateExecutionSnapshot snapshot = buildSnapshot(source);
+        try {
+            if (snapshot.getImplementationReadiness() != null)
+                snapshot.getImplementationReadiness().validate(snapshot.getTasks());
+            cn.iocoder.yudao.module.pms.project.domain.template.TaskRequirementPolicy.validateDependencies(snapshot);
+        } catch (IllegalArgumentException invalid) {
+            return new Compilation(null, null, List.of(new Issue("tasks", "INVALID_TASK_REQUIREMENTS", invalid.getMessage())));
+        }
         operations.install(snapshot);
         if (versioned) {
             snapshot.setExecutionSchemaVersion(TemplateVersionSnapshot.SCHEMA_VERSION);
@@ -558,6 +565,7 @@ public class TemplateCompiler {
         result.setMatch(copyMatch(source.getMatch()));
         result.setProcessDefinitionKey(source.getProcessDefinitionKey());
         result.setClosurePolicy(copy(source.getClosurePolicy()));
+        result.setImplementationReadiness(source.getImplementationReadiness());
         for (TemplateDesignerDocument.StageNode sourceStage : source.getStages()) result.getStages().add(stage(sourceStage));
         for (TemplateDesignerDocument.TaskNode sourceTask : source.getTasks()) result.getTasks().add(task(sourceTask));
         for (TemplateDesignerDocument.MilestoneNode sourceNode : source.getMilestones()) result.getMilestones().add(milestone(sourceNode));
@@ -599,6 +607,7 @@ public class TemplateCompiler {
         target.setNodeKey(source.getNodeKey()); target.setCode(source.getCode()); target.setName(source.getName());
         target.setParentTaskCode(source.getParentTaskCode()); target.setStageCode(source.getStageCode()); target.setPriority(source.getPriority());
         target.setSortOrder(source.getSortOrder()); target.setEstimatedHours(source.getEstimatedHours()); target.setSatisfactionTiming(source.getSatisfactionTiming());
+        target.setRequired(source.getRequired());
         target.setDescription(source.getDescription()); target.setBinding(binding(source.getWorkBinding())); target.setPermission(permission(source.getPermission()));
         target.setCompletionRule(rule(source.getCompletionRule())); target.setGateRef(source.getGateRef());
         if (source.getSource() != null) {

@@ -6,22 +6,30 @@
       </el-select>
     </el-form-item>
     <p>{{ roleHint }}</p>
-    <el-form-item label="人员" required>
-      <el-select v-model="userId" aria-label="人员" filterable remote :remote-method="search"
-        :loading="searching" :disabled="!candidateReady || saving" placeholder="按姓名或账号搜索">
-        <el-option v-for="user in candidates" :key="user.id" :value="user.id"
-          :label="`${user.nickname}（${user.username}）`" />
-        <template #footer>
-          <el-button v-if="candidates.length < total" link :loading="searching" @click="more">加载更多人员</el-button>
-        </template>
-      </el-select>
-    </el-form-item>
-    <el-form-item label="联系电话">
-      <el-input :model-value="selectedPerson?.mobile || ''" aria-label="联系电话" readonly placeholder="选择人员后显示" />
-    </el-form-item>
-    <el-form-item label="邮箱">
-      <el-input :model-value="selectedPerson?.email || ''" aria-label="邮箱" readonly placeholder="选择人员后显示" />
-    </el-form-item>
+    <template v-if="isExternal">
+      <el-form-item label="姓名" required><el-input v-model="externalName" aria-label="姓名" maxlength="128" :disabled="saving" /></el-form-item>
+      <el-form-item label="单位"><el-input v-model="externalCompany" aria-label="单位" maxlength="255" :disabled="saving" /></el-form-item>
+      <el-form-item label="联系电话"><el-input v-model="externalMobile" aria-label="联系电话" maxlength="64" :disabled="saving" /></el-form-item>
+      <el-form-item label="邮箱"><el-input v-model="externalEmail" aria-label="邮箱" maxlength="255" :disabled="saving" /></el-form-item>
+    </template>
+    <template v-else>
+      <el-form-item label="人员" required>
+        <el-select v-model="userId" aria-label="人员" filterable remote :remote-method="search"
+          :loading="searching" :disabled="!candidateReady || saving" placeholder="按姓名或账号搜索">
+          <el-option v-for="user in candidates" :key="user.id" :value="user.id"
+            :label="`${user.nickname}（${user.username}）`" />
+          <template #footer>
+            <el-button v-if="candidates.length < total" link :loading="searching" @click="more">加载更多人员</el-button>
+          </template>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="联系电话">
+        <el-input :model-value="selectedPerson?.mobile || ''" aria-label="联系电话" readonly placeholder="选择人员后显示" />
+      </el-form-item>
+      <el-form-item label="邮箱">
+        <el-input :model-value="selectedPerson?.email || ''" aria-label="邮箱" readonly placeholder="选择人员后显示" />
+      </el-form-item>
+    </template>
     <el-form-item v-if="memberRole === memberRoles.PROJECT_MANAGER || memberRole === memberRoles.SERVICE_MANAGER" label="主责">
       <el-checkbox v-model="primary" aria-label="设为当前角色主责" :disabled="saving">设为当前角色主责</el-checkbox>
       <p class="form-helper">首次添加自动成为该角色主责；勾选可切换主责，取消勾选不自动撤销已有主责。</p>
@@ -44,12 +52,18 @@ import { checkPermi } from '@/utils/permission'
 import { createSubmissionIdempotencyState } from '@/views/pms/project/projects/submissionIdempotency'
 
 const memberRoles = Members.MEMBER_ROLE
-const props = defineProps<{ project: Projects.ProjectMasterVO; primaryUserId?: number; member?: Members.MemberRecord; rejoin?: boolean }>()
+const props = defineProps<{ project: Projects.ProjectMasterVO; primaryUserId?: number; member?: Members.MemberRecord; rejoin?: boolean; defaultRole?: Members.ProjectMemberRole }>()
 const emit = defineEmits<{ saved: []; cancel: [] }>()
 const userId = ref<number>()
 const availableRoles = computed(() => Members.memberRoleOptions.filter(role => checkPermi([role.permission])))
 const memberRole = ref<Members.ProjectMemberRole>(Members.logicalMemberRole(props.member?.memberRole || '') as Members.ProjectMemberRole
+  || (props.defaultRole && availableRoles.value.some(role => role.value === props.defaultRole) ? props.defaultRole : undefined)
   || (availableRoles.value.some(role => role.value === memberRoles.TEAM_MEMBER) ? memberRoles.TEAM_MEMBER : availableRoles.value[0]?.value) || memberRoles.TEAM_MEMBER)
+const isExternal = computed(() => memberRole.value === memberRoles.END_USER)
+const externalName = ref(props.member?.memberName || '')
+const externalCompany = ref(props.member?.companyName || '')
+const externalMobile = ref(props.member?.mobile || '')
+const externalEmail = ref(props.member?.email || '')
 const primary = ref(props.member?.memberRole === memberRoles.PROJECT_MANAGER
   ? props.member.userId === props.primaryUserId
   : !!props.member && props.member.assignmentType !== 'COLLABORATOR')
@@ -74,7 +88,7 @@ const clearCandidate = () => {
 }
 const candidateParams = () => ({ projectRole: memberRole.value })
 const search = async (value: string, append = false) => {
-  if (!candidateReady.value) return
+  if (isExternal.value || !candidateReady.value) return
   const request = ++sequence
   keyword = value
   const requestedPage = append ? pageNo + 1 : 1
@@ -93,11 +107,11 @@ const search = async (value: string, append = false) => {
 const more = () => search(keyword, true)
 onMounted(async () => {
   if (!props.member) return
-  if (!candidateReady.value) return
+  if (isExternal.value || !candidateReady.value) return
   const request = ++sequence
   searching.value = true
   try {
-    const result = await Members.getMemberCandidates(props.project.id!, { pageNo: 1, pageSize: 1, userId: props.member.userId, ...candidateParams() })
+    const result = await Members.getMemberCandidates(props.project.id!, { pageNo: 1, pageSize: 1, userId: props.member.userId ?? undefined, ...candidateParams() })
     if (request !== sequence) return
     candidates.value = result.list
     total.value = result.total
@@ -110,12 +124,14 @@ onBeforeUnmount(() => sequence++)
 const submit = async () => {
   if (saving.value) return
   error.value = ''
-  if (!candidateReady.value || !userId.value || props.project.version == null) {
-    error.value = '请选择项目角色和有效人员'; return
+  if (!candidateReady.value || (isExternal.value ? !externalName.value.trim() : !userId.value) || props.project.version == null) {
+    error.value = isExternal.value ? '请选择项目角色并填写最终用户姓名' : '请选择项目角色和有效人员'; return
   }
-  const data: Members.MemberMutation = { userId: userId.value, memberRole: memberRole.value,
+  const data: Members.MemberMutation = { userId: isExternal.value ? null : userId.value!, memberRole: memberRole.value,
     responsibility: responsibility.value.trim(), remark: remark.value.trim(), reason: reason.value.trim(),
     primary: memberRole.value === memberRoles.PROJECT_MANAGER || memberRole.value === memberRoles.SERVICE_MANAGER ? primary.value : undefined }
+  if (isExternal.value) data.externalPerson = { name: externalName.value.trim(), companyName: externalCompany.value.trim(),
+    mobile: externalMobile.value.trim(), email: externalEmail.value.trim() }
   const assignmentId = props.rejoin ? undefined : props.member?.id
   saving.value = true
   try {

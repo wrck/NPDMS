@@ -296,6 +296,7 @@ public class ProjectTaskQueryService {
         response.setTaskCode(task.getCode());
         response.setName(task.getName());
         response.setStageCode(task.getStageCode());
+        response.setRequiredTask(task.getRequiredTask());
         response.setBusinessLevelCode(task.getBusinessLevelCode());
         response.setStatus(task.getStatus());
         response.setPriority(task.getPriority());
@@ -320,6 +321,7 @@ public class ProjectTaskQueryService {
         response.setTreeDepth(task.getTreeDepth());
         response.setBusinessLevelCode(task.getBusinessLevelCode());
         response.setStageCode(task.getStageCode());
+        response.setRequiredTask(task.getRequiredTask());
         response.setStatus(task.getStatus());
         response.setPriority(task.getPriority());
         response.setSortOrder(task.getSortOrder());

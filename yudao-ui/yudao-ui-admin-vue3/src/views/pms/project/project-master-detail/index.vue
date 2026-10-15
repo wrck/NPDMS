@@ -533,7 +533,7 @@
 
         <!-- 现场培训（6.1/ACC-01）：内嵌完整工作台（新建/编辑/生成培训记录表/外发/作废） -->
         <div v-if="detail?.id && visitedTabs.has('training')" v-show="activeTab === 'training'" class="min-w-0" data-testid="project-pane-training">
-          <TrainingWorkbench :key="`training-${detail.id}`" :project-id="detail.id" />
+          <TrainingWorkbench :key="`training-${detail.id}`" :project-id="detail.id" :readonly="detail.lifecycleStatus !== 'ACTIVE'" />
         </div>
 
 

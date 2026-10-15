@@ -76,6 +76,43 @@ class ImplementationReadinessValidationTest {
         corrupted(() -> source(List.of(), List.of()));
     }
 
+    @Test
+    void legacyContextCannotAcceptNotApplicableWithoutExplicitPolicy() {
+        var valid = context(false);
+        corrupted(() -> new ImplementationReadinessContextFact(1L, valid.devices(), valid.approvedPlan(), notApplicableSources()));
+    }
+
+    @Test
+    void explicitEmptyApplicabilityCanBeReadyWithoutManufacturingOwnerFacts() {
+        var valid = context(false);
+        var fact = new ImplementationReadinessContextFact(1L, valid.devices(), valid.approvedPlan(), notApplicableSources(),
+                new PlanApplicability(21L, 3L, java.util.Set.of()));
+        assertTrue(fact.isReady());
+        assertTrue(fact.sourceFacts().stream().allMatch(source -> source.sourceObjectIds().isEmpty() && source.watermarkEntries().isEmpty()));
+    }
+
+    @Test
+    void explicitlyRequiredIncompleteSourceStillPreventsReadiness() {
+        var valid = context(false); var sources = new ArrayList<>(notApplicableSources());
+        sources.set(1, new SourceFact(SourceCode.EXE_02, CompletionStatus.NOT_COMPLETED, 0L, List.of(), List.of(), false));
+        var fact = new ImplementationReadinessContextFact(1L, valid.devices(), valid.approvedPlan(), sources,
+                new PlanApplicability(21L, 3L, java.util.Set.of(SourceCode.EXE_02)));
+        assertFalse(fact.isReady());
+    }
+
+    @Test
+    void notApplicableSourceRejectsFabricatedEvidenceVersionAndReopenedFlag() {
+        corrupted(() -> new SourceFact(SourceCode.EXE_02, CompletionStatus.NOT_APPLICABLE, 0L, List.of(1L), watermark(), false));
+        corrupted(() -> new SourceFact(SourceCode.EXE_02, CompletionStatus.NOT_APPLICABLE, 1L, List.of(), List.of(), false));
+        corrupted(() -> new SourceFact(SourceCode.EXE_02, CompletionStatus.NOT_APPLICABLE, 0L, List.of(), watermark(), false));
+        corrupted(() -> new SourceFact(SourceCode.EXE_02, CompletionStatus.NOT_APPLICABLE, 0L, List.of(), List.of(), true));
+    }
+
+    private static List<SourceFact> notApplicableSources() {
+        return Arrays.stream(SourceCode.values()).map(code -> new SourceFact(code,
+                CompletionStatus.NOT_APPLICABLE, 0L, List.of(), List.of(), false)).toList();
+    }
+
     private static void corrupted(Runnable operation) {
         assertEquals(OWNER_DATA_CORRUPTED,
                 assertThrows(ImplementationReadinessException.class, operation::run).getCode());

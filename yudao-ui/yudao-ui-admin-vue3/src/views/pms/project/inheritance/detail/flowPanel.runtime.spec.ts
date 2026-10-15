@@ -69,11 +69,11 @@ vi.mock('../../project-master-detail/components/ProjectNormalClosurePanel.vue', 
 }) }))
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
-const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}) => {
+const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}, lifecycleStatus = ref('ACTIVE')) => {
   const child = ref<any>()
   const changed = vi.fn()
   const wrapper = defineComponent({ setup: () => () => h(FlowPanel, {
-    ref: child, projectId: 9, project: { id: 9 }, selection, onChanged: changed,
+    ref: child, projectId: 9, project: { id: 9, lifecycleStatus: lifecycleStatus.value }, selection, onChanged: changed,
     instances: { stages: [{ stageCode: 'S2', entryCriteria: '真实准入', exitCriteria: '真实准出' }], gates: stageGates, ...instancesExtra }
   } as any) })
   const view = mount(wrapper, {}, { ElDescriptions: passthrough, ElDescriptionsItem: passthrough,
@@ -313,6 +313,26 @@ it('renders a not-yet-entered stage normally while hiding its operation entries'
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '提交与查看')).toBeUndefined()
   expect(text).not.toContain('推进至')
   expect(text).toContain('刷新业务结果')
+})
+
+it('does not query advancement when viewing or refreshing a normally closed project', async () => {
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], {}, ref('NORMAL_CLOSED')); await flush()
+  await view.exposed().refreshSummary(); await flush()
+  expect(projects.getProjectStageAdvanceReadiness).not.toHaveBeenCalled()
+  expect(textOf(view.root)).not.toContain('推进至')
+  expect(api.getProjectWorkspace).toHaveBeenCalled()
+})
+
+it('discards an in-flight advancement result after the project closes', async () => {
+  let finish!: (value: unknown) => void
+  projects.getProjectStageAdvanceReadiness.mockImplementationOnce(() => new Promise(resolve => { finish = resolve }))
+  const lifecycle = ref('ACTIVE')
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], {}, lifecycle); await flush()
+  lifecycle.value = 'NORMAL_CLOSED'; await flush()
+  finish({ currentStage: 'S2', nextStage: 'S3', advanceAllowed: true, gates: [] }); await flush()
+  expect(view.state().readiness).toBeUndefined()
+  expect(textOf(view.root)).not.toContain('推进至 S3')
+  expect(projects.getProjectStageAdvanceReadiness).toHaveBeenCalledTimes(1)
 })
 
 it('keeps the stage advance button hidden while exit gates are unmet but still explains the progress', async () => {

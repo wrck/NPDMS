@@ -16,6 +16,7 @@ public class ProjectTaskDetailRespVO {
     private Integer treeDepth;
     private String businessLevelCode;
     private String stageCode;
+    private Boolean requiredTask;
     private String status;
     private Integer priority;
     private Integer sortOrder;

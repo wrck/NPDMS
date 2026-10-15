@@ -26,6 +26,7 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
     private final ProjectScopeApi scopes;
     private final ProjectParticipantFactApi participants;
     private final PermissionApi permissions;
+    private final NormalClosurePolicyResolver policies;
     public record Actor(Long tenantId, Long userId, String correlationId) {}
     public record Context(ProjectMasterDO project, Long treeVersion) {}
 
@@ -119,7 +120,7 @@ public class NormalClosureAccess implements cn.iocoder.yudao.module.pms.project.
         var project = context.project();
         return new ClosureContext(project.getId(), project.getTenantId(), project.getVersion(),
                 project.getLifecycleStatus(), project.getCurrentStage(), project.getManagerId(), project.getRootId(),
-                context.treeVersion(), project.getClosurePolicySnapshot(), project.getTaskTreeVersion(),
+                context.treeVersion(), policies.resolve(project).policyJson(), project.getTaskTreeVersion(),
                 project.getTaskProgressVersion(), project.getLifecycleTemplateId(), project.getLifecycleTemplateRevisionNo());
     }
 

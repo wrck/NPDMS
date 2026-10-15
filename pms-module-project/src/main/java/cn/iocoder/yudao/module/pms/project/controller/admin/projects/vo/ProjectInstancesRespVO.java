@@ -84,6 +84,7 @@ public class ProjectInstancesRespVO {
 
     @Data
     public static class TaskItem {
+        private Boolean requiredTask;
         @Schema(description = "任务码（项目内唯一）")
         private String taskCode;
         @Schema(description = "任务名称（快照）")

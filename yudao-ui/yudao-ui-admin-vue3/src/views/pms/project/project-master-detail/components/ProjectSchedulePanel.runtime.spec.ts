@@ -188,6 +188,22 @@ it('guards navigation without discarding changes when the user cancels', async (
   }
 })
 
+it('excludes external members and service-manager rows without a valid system account from approval candidates', async () => {
+  vi.mocked(MemberApi.getMemberPage).mockResolvedValueOnce({ list: [
+    { userId: null, memberName: '外部人员', memberRole: 'END_USER' },
+    { userId: null, memberName: '无账号', memberRole: 'SERVICE_MANAGER' },
+    { userId: 0, memberName: '无效账号', memberRole: 'SERVICE_MANAGER' },
+    { userId: 9, memberName: '经理', memberRole: 'SERVICE_MANAGER' }
+  ], total: 4 } as any)
+  const app = render()
+  try {
+    await flush()
+    await app.state.openSubmit()
+    expect(app.state.approvers.map((person: { userId: number }) => person.userId)).toEqual([9])
+    expect(app.state.approverId).toBe(9)
+  } finally { app.app.unmount() }
+})
+
 it('collects all current service-manager pages and deduplicates multiple responsibilities', async () => {
   vi.mocked(MemberApi.getMemberPage)
     .mockResolvedValueOnce({

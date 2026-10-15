@@ -19,7 +19,7 @@ import java.util.*;
 /** 项目入口使用项目可信执行上下文；后续业务仍由独立 CUT 工作台维护。 */
 @Component
 public class CutoverProjectOperationAdapter implements ProjectBusinessOperationProvider,
-        ProjectBusinessOperationCommandAdapter, ProjectBusinessOperationAccessProvider, ProjectOperationRuntimeCapability {
+        ProjectBusinessOperationCommandAdapter, ProjectBusinessOperationAccessProvider {
     public static final String CREATE = "CUT.CUTOVER_TASK.CREATE";
     private final CutoverTaskIntakeApi intake;
     private final CutoverTaskMapper tasks;

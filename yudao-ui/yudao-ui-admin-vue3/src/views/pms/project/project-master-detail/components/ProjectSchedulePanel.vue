@@ -290,7 +290,8 @@ const loading = ref(false),
 const durationVisible = ref(false),
   submitVisible = ref(false),
   approverId = ref<number>()
-const approvers = ref<MemberApi.MemberRecord[]>([]),
+type ServiceManagerApprover = MemberApi.MemberRecord & { userId: number }
+const approvers = ref<ServiceManagerApprover[]>([]),
   approversLoading = ref(false),
   approverError = ref('')
 const adjustmentReason = ref('')
@@ -561,7 +562,9 @@ const openSubmit = async () => {
     approvers.value = [
       ...new Map(
         members
-          .filter((person) => MemberApi.logicalMemberRole(person.memberRole) === 'SERVICE_MANAGER')
+          .filter((person): person is ServiceManagerApprover =>
+            MemberApi.logicalMemberRole(person.memberRole) === 'SERVICE_MANAGER'
+            && typeof person.userId === 'number' && Number.isInteger(person.userId) && person.userId > 0)
           .map((person) => [person.userId, person])
       ).values()
     ]

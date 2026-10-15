@@ -87,7 +87,7 @@ export function createDeliveryNode(
       node = { ...common, start: true, terminal: false, sortOrder: document.stages.length }
       document.stages.push(node)
     } else {
-      node = { ...common, stageCode: stageCode!, sortOrder: document.tasks.length }
+      node = { ...common, required: true, stageCode: stageCode!, sortOrder: document.tasks.length }
       document.tasks.push(node)
     }
     Reflect.deleteProperty(node, 'completionRule')

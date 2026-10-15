@@ -30,6 +30,34 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
     private final ProjectMasterMapper projects;
     private final ProjectScopeApi scopes;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper members;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectPlanVersionMapper plans;
+
+    @Override
+    public ImplementationRequirements implementationRequirements(Query query) {
+        inspect(query);
+        return implementationRequirements(projects.selectById(query.projectId()));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public ImplementationRequirements lockImplementationRequirements(Revalidation query) {
+        lockAndRevalidate(query);
+        return implementationRequirements(projects.selectByIdForUpdate(query.query().projectId()));
+    }
+
+    private ImplementationRequirements implementationRequirements(ProjectMasterDO project) {
+        if (project == null) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        var all = cn.iocoder.yudao.module.pms.project.domain.template.TemplateImplementationReadiness.SOURCES;
+        if (project.getActivePlanVersionId() == null) return new ImplementationRequirements(null, null, false, all);
+        var plan = plans.selectEffective(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.query.ProjectPlanScopeQuery(
+                project.getTenantId(), project.getId()));
+        if (plan == null || !Objects.equals(plan.getId(), project.getActivePlanVersionId())) throw exception(PROJECT_PLAN_VERSION_CONFLICT);
+        var snapshot = cn.iocoder.yudao.module.pms.project.domain.template.TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
+        var policy = snapshot.getImplementationReadiness();
+        return new ImplementationRequirements(plan.getId(), plan.getVersion(), policy != null,
+                policy == null ? all : policy.requiredSources(snapshot.getTasks()));
+    }
 
     @Override
     public AccessScope currentActorScope(ActorQuery query) {
