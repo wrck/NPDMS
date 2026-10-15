@@ -1,0 +1,10 @@
+{
+  "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/dal/mysql/sync/GenericSyncJdbcStore.java": "2a738e2b390222c727c6ef3c8efea9e9adc3da4e054beccfcad29ff566a5238c",
+  "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/SyncDefinition.java": "4d743c1ff4c540468bd58e89f236d23fc6669473a65000f84ba67b527dbf5dec",
+  "pms-module-integration/src/main/resources/sync/generic-templates.json": "f62f1d45746e96610559c30b862393be8970a04ceb1ec0980b797d59ad2203a5",
+  "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/generic/GenericSyncEngine.java": "70f212c6a72a807cc78f388f8a28e8c333f6679e882e71340d48a6472d9fb45f",
+  "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/SyncRunService.java": "346fec60de84d37085e65a68178169a696a42b6d7c93d3452e36beaa248fd0f7",
+  "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/SyncBindingSnapshots.java": "3a59e1d0ac3048c7dbcdd970268f1fe805f712678bf7760f9a9f763e35d7656f",
+  "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/SyncEvidenceSelection.java": "5691a8df2ac67940760bf1e999fdf7858e090738abb93ec1781059da9f1f8ffa",
+  "yudao-server/src/test/java/cn/iocoder/yudao/server/sync/ShipmentFullChainMySqlTest.java": "591577611ad20da4a13c3f62e16e0b7ba5cbd06b633752b741c8fd89b5688f9e"
+}

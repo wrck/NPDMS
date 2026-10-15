@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-10-15",
+  "repository": "wrck/NPDMS",
+  "branch": "fix/visio-template-followup",
+  "codeBase": "7094787dd2059cb04c782942860e73f863594b68",
+  "overallAcceptance": "NOT_PASSED",
+  "productionChangesInThisConsolidation": false,
+  "fixtures": {
+    "BaselineInitialMigrationMySqlTest.java": "39dc92b753b0ce2debc9049f595f7a3f35bc309e490dd7d53a023a02d2c217e2",
+    "BaselineInterruptedRetryMySqlTest.java": "a5f04ce54a4283db68c922b023d3c9492f15a46bfe835316af8878b83545b356"
+  },
+  "baselineEmptyRecheck": {
+    "runId": "2110405569336590338",
+    "source0Rows": 120639,
+    "source0Seconds": 470.704568802,
+    "completedInitialMigration": false,
+    "outcome": "FAIL_PERFORMANCE",
+    "observerErrors": 0
+  },
+  "interruptedRetry": {
+    "runId": "2110566377844752385",
+    "retryOf": "2110405569336590338",
+    "restartPolicy": "RESTART_ALL",
+    "freshEmptyTarget": false,
+    "startedAt": "2026-10-15T03:00:11.383307182Z",
+    "source0EndedAt": "2026-10-15T03:03:00.048270458Z",
+    "source0Rows": 120639,
+    "source0Seconds": 167.557242887,
+    "status": "FAILED",
+    "error": "java.net.SocketTimeoutException: Read timed out",
+    "committedRows": 120639,
+    "committedChunks": 242,
+    "sourceIndex": 1,
+    "summary": {
+      "UNCHANGED": 120639,
+      "EVIDENCE_REUSED": 120639
+    },
+    "mavenExitCode": 1,
+    "mavenInvocations": 1,
+    "observerStatus": "PASS",
+    "observerErrors": 0,
+    "diskGuardTriggered": false,
+    "latestObservedFreeBytes": 19159805952,
+    "correctnessVerificationCompleted": false,
+    "rootCauseBeyondSocketTimeout": "NOT_YET_ESTABLISHED"
+  },
+  "retryPolicy": {
+    "performanceAutoStop": false,
+    "scope": "2026-10-15 interrupted retry only",
+    "diskGuardBytes": 2147483648,
+    "historicalResultsPreserved": true
+  },
+  "verification": {
+    "retryFixtureHistoricalBaselineTestCompile": "PASS",
+    "retryFixtureTestCompileSeconds": 48.721903801,
+    "currentFormalHeadFullBuild": "NOT_RUN",
+    "frontendBrowser": "NOT_RUN",
+    "changedDataSyncAfterRetry": "NOT_RUN"
+  }
+}
