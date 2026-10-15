@@ -26,6 +26,7 @@ export interface StageBusinessContext {
   /** PAGE 绑定冻结的应用内路由入口，仅用于导航。 */
   routePath?: string
   instanceResolutionStrategy?: string
+  bindingParameters?: Record<string, unknown>
   businessView?: BusinessViewRegistrationVO
   ownerActions: string[]
   readonly: boolean

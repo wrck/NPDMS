@@ -45,7 +45,7 @@ const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean]; 'switc
 const message = useMessage()
 const { barTarget } = useBusinessActionBar()
 const capture = (): BusinessViewTarget => ({ registration: { ...props.registration }, resolvedContext: { ...props.resolvedContext },
-  allowedActions: [...(props.allowedActions || [])], readonly: props.readonly })
+  allowedActions: [...(props.allowedActions || [])], readonly: props.readonly, capabilityPrefetch: props.capabilityPrefetch })
 const active = shallowRef(capture())
 const operation = useOperationHost(active, () => emit('changed'))
 provide(operationClientKey, operation.client)
@@ -111,8 +111,17 @@ const retry = async () => {
   await operation.reopen()
 }
 onErrorCaptured(() => { loadError.value = '业务组件暂不可用；请先确认已提交操作的结果，再重试装载。'; return false })
+const refresh = async (reload: () => Promise<boolean>) => {
+  const sequence = ++switchSequence, key = activeKey.value
+  if (!(await requestLeave()) || sequence !== switchSequence) return false
+  if (!await reload() || activeKey.value !== key) return false
+  if (contentRef.value?.discardChanges?.() === false) return false
+  loadError.value = ''; setDirty(false); retryNo.value++
+  await operation.reopen()
+  return true
+}
 onBeforeRouteLeave(requestLeave)
-defineExpose({ requestLeave, isDirty: () => dirty.value || !!operation.client.value?.isBusy() || !!operation.client.value?.hasUncertain(), viewSettled })
+defineExpose({ requestLeave, refresh, isDirty: () => dirty.value || !!operation.client.value?.isBusy() || !!operation.client.value?.hasUncertain(), viewSettled })
 </script>
 <style scoped>
 .business-view-host { min-width: 0; }

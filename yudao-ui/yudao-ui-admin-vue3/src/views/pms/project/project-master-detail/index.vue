@@ -590,6 +590,10 @@ defineOptions({ name: 'PmsProjectMasterDetail' })
 
 const route = useRoute()
 const router = useRouter()
+const routeProjectId = computed(() => {
+  const id = route.query.projectId
+  return typeof id === 'string' && /^[1-9]\d*$/.test(id) ? id : undefined
+})
 const approvalDrawerRef = ref<InstanceType<typeof ProjectApprovalDrawer>>()
 provide(projectApprovalDetailKey, (id) => approvalDrawerRef.value?.open(id))
 
@@ -730,7 +734,7 @@ const switchTab = async (key: string) => {
 const primaryContact = ref<ContactsApi.ContactVO>()
 const primaryContactPending = ref(false)
 const loadPrimaryContact = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId.value
   if (!id || !checkPermi(['pms:customer-contact:query'])) return
   try {
     const page = await ContactsApi.getProjectPage(id, { pageNo: 1, pageSize: 1, status: 0 })
@@ -851,7 +855,7 @@ const handleFlowChanged = async () => {
 
 // ============ 数据加载 ============
 const loadDetail = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId.value
   if (!id) return
   detail.value = await ProjectsApi.getProject(id)
 }
@@ -867,12 +871,12 @@ const handleScheduleChanged = async () => {
   stageTreeToken.value++
 }
 const loadInstances = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId.value
   if (!id) return
   instances.value = await ProjectsApi.getProjectInstances(id)
 }
 const loadRiskCount = async () => {
-  const id = Number(route.query.projectId)
+  const id = routeProjectId.value
   if (!id || !checkPermi(['pms:project-risk:query'])) return
   try {
     riskCount.value = ((await RiskApi.getProjectRiskListByProjectId(id)) || []).length

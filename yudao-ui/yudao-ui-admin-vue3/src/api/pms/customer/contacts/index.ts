@@ -32,14 +32,14 @@ export interface ProjectContactContext {
 }
 const master = '/api/v1/pms/customer-contacts'
 export interface ContactHistoryVO { id: number; projectRelationId: number; actionCode: string; beforeValues?: string; afterValues?: string; actorUserId: number; occurredAt: string; restorable: boolean }
-const project = (projectId: number) => `/api/v1/pms/projects/${projectId}/customer-contacts`
+const project = (projectId: number | string) => `/api/v1/pms/projects/${projectId}/customer-contacts`
 export const getMasterPage = (params: PageParam & { customerId?: number; name?: string; status?: number }) =>
   request.get<{ list: ContactVO[]; total: number }>({ url: master, params })
 export const createMaster = (data: ContactVO, key: string) => request.post<number>({ url: master, data, headers: { 'Idempotency-Key': key } })
 export const updateMaster = (data: ContactVO) => request.put({ url: `${master}/${data.id}`, data })
 export const deleteMaster = (data: ContactVO) => request.delete({ url: `${master}/${data.id}`, params: { customerId: data.customerId }, headers: { 'If-Match': String(data.version) } })
 export const getProjectContext = (id: number) => request.get<ProjectContactContext>({ url: `${project(id)}/context` })
-export const getProjectPage = (id: number, params: PageParam & { status?: number; name?: string }) => request.get<{ list: ContactVO[]; total: number }>({ url: project(id), params })
+export const getProjectPage = (id: number | string, params: PageParam & { status?: number; name?: string }) => request.get<{ list: ContactVO[]; total: number }>({ url: project(id), params })
 export const getProjectSources = (id: number, params: PageParam) => request.get<{ list: ContactVO[]; total: number }>({ url: `${project(id)}/sources`, params })
 export const getProjectHistory = (id: number, params: PageParam) => request.get<{ list: ContactHistoryVO[]; total: number }>({ url: `${project(id)}/history`, params })
 export const associateCustomer = (id: number, customerId: number, expectedProjectVersion: number) => request.post({ url: `${project(id)}/actions/associate-customer`, data: { customerId, expectedProjectVersion } })

@@ -1,17 +1,26 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import FlowPanel from '../../project-master-detail/components/ProjectFlowPanel.vue'
+import * as BusinessApi from '@/api/pms/project/task-business'
+import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
+import { createProjectBusinessApi, getDirectBusinessView } from '@/api/pms/platform/business'
 import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 const api = vi.hoisted(() => ({ getProjectWorkspace: vi.fn(), getProjectTasks: vi.fn(), getTaskWorkbench: vi.fn() }))
 const leave = vi.hoisted(() => vi.fn())
 const businessRefresh = vi.hoisted(() => vi.fn())
+const ownerMounted = vi.hoisted(() => vi.fn())
+const planReads = vi.hoisted(() => ({ model: vi.fn(), page: vi.fn(), form: vi.fn() }))
 const gates = vi.hoisted(() => ({ getStageGateWorkbench: vi.fn() }))
 const projects = vi.hoisted(() => ({ getProjectStageAdvanceReadiness: vi.fn(), advanceProjectStage: vi.fn(), startProjectStageGateProcess: vi.fn() }))
 vi.mock('@/api/pms/project/stage-gates', () => gates)
 vi.mock('@/api/pms/project/task-workbench', () => api)
 vi.mock('@/api/pms/project/projects', () => projects)
 vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
+vi.mock('@/api/pms/platform/business', () => ({ getDirectBusinessView: vi.fn(),
+  createProjectBusinessApi: vi.fn(base => ({ base, ...planReads })) }))
+vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 42, getTenantId: () => 7, getVisitTenantId: () => undefined }))
 vi.mock('@/components/UserTag/index.vue', () => ({ default: defineComponent({
   inheritAttrs: false, setup: (_, { attrs }) => () => h('span', String(attrs.userId ?? ''))
 }) }))
@@ -21,8 +30,7 @@ vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {} }))
 // 用户store在node环境依赖浏览器storage，浅mock挡住加载链
 vi.mock('@/store/modules/user', () => ({ useUserStore: vi.fn(), useUserStoreWithOut: vi.fn() }))
-// 任务点击时刻的预取会同步调用业务上下文API，mock为立即完成的Promise避免拖垮工作区加载
-vi.mock('@/api/pms/project/task-business', () => ({ getTaskBusinessContext: vi.fn(() => Promise.resolve({})) }))
+vi.mock('@/api/pms/project/task-business', () => ({ openTask: vi.fn(), getTaskBusinessContext: vi.fn() }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: (v: unknown) => String(v) }))
 vi.mock('./StageBusinessPanel.vue', () => ({ default: defineComponent({
   props: { readonly: Boolean },
@@ -42,8 +50,23 @@ vi.mock('../../project-master-detail/components/ProjectTaskDetailsEditor.vue', (
   setup(_, { expose }) { expose({ requestLeave: () => true }); return () => h('div', '任务资料与进度') }
 }) }))
 vi.mock('../../project-master-detail/components/TaskBusinessPanel.vue', () => ({ default: defineComponent({
-  props: { readonly: Boolean },
-  setup(props, { expose }) { expose({ requestLeave: leave, refresh: businessRefresh, loading: false }); return () => h('div', { 'data-task-readonly': String(props.readonly) }, 'Owner业务内容') }
+  props: { readonly: Boolean, capabilityPrefetch: Object, initialOpening: Object },
+  setup(props, { expose }) {
+    ownerMounted(props)
+    const draft = ref('')
+    expose({ requestLeave: leave, refresh: businessRefresh, loading: false })
+    return () =>
+      h('div', { 'data-task-readonly': String(props.readonly) }, [
+        'Owner业务内容',
+        h('input', {
+          'data-owner-draft': true,
+          value: draft.value,
+          onChange: (value: string) => {
+            draft.value = value
+          },
+        }),
+      ])
+  },
 }) }))
 // 交付件弹窗内部走真实文件API（node环境无window），浅mock为入口桩
 vi.mock('../../project-master-detail/components/ProjectDeliverableDialog.vue', () => ({ default: defineComponent({
@@ -61,19 +84,72 @@ vi.mock('@/views/pms/engineering/training/index.vue', () => ({ default: defineCo
 vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '客户联系人') }) }))
 const apps: { unmount: () => void }[] = []
 const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
-const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}) => {
+const render = (selection: Record<string, unknown>, stageGates: { stageCode: string }[] = [], instancesExtra: Record<string, unknown> = {}, project: Record<string, unknown> = { id: 9 }) => {
   const child = ref<any>()
+  const changed = vi.fn()
   const wrapper = defineComponent({ setup: () => () => h(FlowPanel, {
-    ref: child, projectId: 9, project: { id: 9 }, selection,
+    ref: child, projectId: 9, project, selection, onChanged: changed,
     instances: { stages: [{ stageCode: 'S2', entryCriteria: '真实准入', exitCriteria: '真实准出' }], gates: stageGates, ...instancesExtra }
   } as any) })
   const view = mount(wrapper, {}, { ElDescriptions: passthrough, ElDescriptionsItem: passthrough,
     ElTable: passthrough, ElTableColumn: tableColumn, DictTag: passthrough })
   apps.push(view.app)
-  return { ...view, state: () => child.value.$.setupState, exposed: () => child.value }
+  return { ...view, changed, state: () => child.value.$.setupState, exposed: () => child.value }
 }
+it('opens a task with one request and hands its resolved context and capability to the Owner', async () => {
+  let release!: (value: any) => void
+  vi.mocked(BusinessApi.openTask).mockReturnValueOnce(new Promise(resolve => { release = resolve }))
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10551 })
+  await flush()
+  expect(ownerMounted).not.toHaveBeenCalled()
+  expect(BusinessApi.openTask).toHaveBeenCalledExactlyOnceWith(10551)
+  expect(api.getProjectWorkspace).not.toHaveBeenCalled()
+  expect(api.getTaskWorkbench).not.toHaveBeenCalled()
+  expect(BusinessApi.getTaskBusinessContext).not.toHaveBeenCalled()
+  expect(inspectOperationCapabilities).not.toHaveBeenCalled()
+  expect(getDirectBusinessView).not.toHaveBeenCalled()
+  expect(createProjectBusinessApi).not.toHaveBeenCalled()
+  const capability = { node: { projectId: 9, id: 10551, kind: 'TASK' }, actions: [], presentation: { status: 'AVAILABLE' } }
+  const opening = { workspace: { projectId: 9, stageTaskNavigation: [] },
+    workbench: { task: { taskId: 10551, projectId: 9, version: 1 }, bindingType: 'BUSINESS_OBJECT' },
+    businessContext: { taskId: 10551, projectId: 9, links: [{ objectId: '33' }] }, capabilities: capability }
+  release(opening); await flush()
+  expect(ownerMounted.mock.calls[0][0].initialOpening).toEqual(opening)
+  const offered = ownerMounted.mock.calls[0][0].capabilityPrefetch
+  expect(await offered.take({ projectId: 9, nodeKind: 'TASK', nodeId: 10551, objectId: '33' })).toEqual(capability)
+  expect(offered.take({ projectId: 9, nodeKind: 'TASK', nodeId: 10551, objectId: '33' })).toBeUndefined()
+  expect(textOf(view.root)).toContain('Owner业务内容')
+})
+it('does not mount an abandoned task opening', async () => {
+  let release!: (value: any) => void
+  vi.mocked(BusinessApi.openTask).mockReturnValueOnce(new Promise(resolve => { release = resolve }))
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10552 })
+  await flush(); view.app.unmount(); apps.splice(apps.indexOf(view.app), 1)
+  release({ workspace: { projectId: 9 }, workbench: { task: { taskId: 10552, projectId: 9 }, bindingType: 'BUSINESS_OBJECT' } })
+  await flush()
+  expect(ownerMounted).not.toHaveBeenCalled()
+  expect(inspectOperationCapabilities).not.toHaveBeenCalled()
+  expect(getDirectBusinessView).not.toHaveBeenCalled()
+  expect(createProjectBusinessApi).not.toHaveBeenCalled()
+})
+it('rejects an opening for another project before mounting any business content', async () => {
+  vi.mocked(BusinessApi.openTask).mockResolvedValueOnce({ workspace: { projectId: 10 },
+    workbench: { task: { taskId: 10, projectId: 10 }, bindingType: 'BUSINESS_OBJECT' } } as any)
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(ownerMounted).not.toHaveBeenCalled()
+  expect(textOf(view.root)).toContain('内容加载失败')
+})
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.mocked(BusinessApi.openTask).mockImplementation(async () => {
+    // Existing presentation fixtures supply the two projections of the opening response.
+    const [workspace, workbench] = await Promise.all([api.getProjectWorkspace(9), api.getTaskWorkbench(10)])
+    return { workspace: { projectId: 9, ...workspace }, workbench: { ...workbench, task: { projectId: 9, ...workbench.task } } } as any
+  })
+  vi.mocked(getDirectBusinessView).mockResolvedValue({ ownerModule: 'SOL', entityType: 'stagePlanBatch', stableCode: 'SOL_STAGE_PLAN_BATCH', apiBase: '/api/v1/pms/stage-plan-business' })
+  planReads.model.mockResolvedValue({ fields: [], operations: [] })
+  planReads.page.mockResolvedValue({ list: [], total: 0 })
+  planReads.form.mockResolvedValue({ entity: { available: true, ref: { entityId: '33' }, fieldValues: { projectId: 9 } } })
   leave.mockResolvedValue(false)
   api.getProjectWorkspace.mockResolvedValue({ stageTaskNavigation: [{ stageCode: 'S2', stageName: '计划', taskCount: 0 }] })
   api.getProjectTasks.mockResolvedValue({ rows: [], taskTreeVersion: 1 })
@@ -81,7 +157,6 @@ beforeEach(() => {
   projects.getProjectStageAdvanceReadiness.mockResolvedValue({ currentStage: 'S2', nextStage: null, advanceAllowed: false, gates: [] })
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
-
 it('loads configured gates for the selected parallel stage and does not show an empty extra panel for other stages', async () => {
   gates.getStageGateWorkbench.mockResolvedValue({ projectId: '9', stageCode: 'S2', planVersionId: '51', executionId: '61', executionRound: 2, gates: [] })
   const selected = reactive({ kind: 'stage', stageCode: 'S2' })
@@ -120,7 +195,7 @@ it('shows the template-frozen deliverables of the task as a read-only checklist'
   expect(text).toContain('自动满足交付要求')
 })
 
-it('starts independent task reads together and waits for both before exposing Owner actions', async () => {
+it('waits for the complete task opening before exposing Owner actions', async () => {
   let finishWorkspace!: (value: unknown) => void
   api.getProjectWorkspace.mockReturnValueOnce(new Promise(resolve => { finishWorkspace = resolve }))
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 })
@@ -132,7 +207,7 @@ it('starts independent task reads together and waits for both before exposing Ow
   expect(textOf(view.root)).toContain('Owner业务内容')
 })
 
-it('keeps task actions closed if the parallel workspace request fails', async () => {
+it('keeps task actions closed when opening fails', async () => {
   api.getProjectWorkspace.mockRejectedValueOnce(new Error('403'))
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 })
   await flush()
@@ -141,7 +216,7 @@ it('keeps task actions closed if the parallel workspace request fails', async ()
   expect(textOf(view.root)).not.toContain('任务状态操作')
 })
 
-it('ignores a completed parallel load from the previously selected task', async () => {
+it('ignores an opening response from the previously selected task', async () => {
   let finishOld!: (value: unknown) => void
   api.getTaskWorkbench.mockReturnValueOnce(new Promise(resolve => { finishOld = resolve }))
   const selection = reactive({ kind: 'task', stageCode: 'S2', taskId: 10 })

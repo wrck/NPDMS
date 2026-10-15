@@ -51,13 +51,14 @@ class ProjectTaskBusinessControllerTest {
                 JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission",
                 null, null, 1L, "PUBLISHED", Set.of());
         var context = new TaskBusinessContext(10L, 20L, 30L, 2, "SOL", "SITE_SURVEY", "survey-list", 40L,
-                "REFERENCE_EXISTING", List.of(), Set.of("LINK"), null, "a".repeat(64), Set.of("QUERY", "CREATE"), view, true, null);
+                "REFERENCE_EXISTING", List.of(), Set.of("LINK"), null, "a".repeat(64), Set.of("QUERY", "CREATE"), view, true, null, JsonUtils.parseTree("{\"configurationName\":\"field-review\"}"));
         when(service.getContext(eq(10L), eq(0L), eq(9L), anyString())).thenReturn(context);
 
         var response = JsonUtils.parseTree(JsonUtils.toJsonString(controller.context(10L)));
 
         assertEquals("a".repeat(64), response.path("data").path("factVersion").asText());
         assertEquals(40L, response.path("data").path("businessView").path("id").asLong());
+        assertEquals("field-review", response.path("data").path("bindingParameters").path("configurationName").asText());
         assertEquals(Set.of("QUERY", "CREATE"), controller.context(10L).getData().ownerActions());
         assertNull(TenantContextHolder.getTenantId());
     }

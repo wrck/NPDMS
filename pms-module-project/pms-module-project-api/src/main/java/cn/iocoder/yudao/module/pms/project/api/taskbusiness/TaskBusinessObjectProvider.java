@@ -87,7 +87,14 @@ public interface TaskBusinessObjectProvider {
         public CompletionFact { completionFacts = Map.copyOf(completionFacts); }
     }
 
-    record Context(Long tenantId, Long actorId, Long projectId, Long taskId, String correlationId) {}
+    record Context(Long tenantId, Long actorId, Long projectId, Long taskId, String correlationId, String bindingParameters) {
+        public Context(Long tenantId, Long actorId, Long projectId, Long taskId, String correlationId) {
+            this(tenantId, actorId, projectId, taskId, correlationId, null);
+        }
+        public Context withBindingParameters(String parameters) {
+            return new Context(tenantId, actorId, projectId, taskId, correlationId, parameters);
+        }
+    }
 
     record BusinessObjectFact(String objectId, String displayName, String factVersion,
                               Set<String> allowedActions, Map<String, Boolean> completionFacts,

@@ -41,15 +41,26 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
 
     @Override
     public TaskBindingInspection inspect(TaskBindingInspectionQuery query) {
+        return inspect(query, null, null);
+    }
+
+    public TaskBindingInspection inspect(ProjectTaskQueryService.TaskRead read,
+            cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessContext context) {
+        var actor = read.actor();
+        return inspect(new TaskBindingInspectionQuery(actor.tenantId(), read.task().getId(), actor.actorId(), actor.correlationId()), read, context);
+    }
+
+    private TaskBindingInspection inspect(TaskBindingInspectionQuery query, ProjectTaskQueryService.TaskRead read,
+            cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessContext initialContext) {
         if (query == null || query.tenantId() == null || query.taskId() == null || query.actorId() == null) {
             return TaskBindingInspection.failed(bindingType(), "BINDING_FACT_UNKNOWN");
         }
-        var context = businessService.getContext(query.taskId(), query.tenantId(), query.actorId(), query.correlationId());
+        var context = read == null ? businessService.getContext(query.taskId(), query.tenantId(), query.actorId(), query.correlationId()) : initialContext;
         if (context == null || context.recoverableError() != null || context.factVersion() == null) {
             return TaskBindingInspection.failed(bindingType(), context == null || context.recoverableError() == null
                     ? "BINDING_FACT_UNKNOWN" : context.recoverableError());
         }
-        var task = taskMapper.selectTask(new TaskByIdQuery(query.tenantId(), query.taskId()));
+        var task = read == null ? taskMapper.selectTask(new TaskByIdQuery(query.tenantId(), query.taskId())) : read.task();
         if (task == null || !Objects.equals(task.getProjectId(), context.projectId())) {
             return TaskBindingInspection.failed(bindingType(), "BINDING_FACT_UNKNOWN");
         }
@@ -64,14 +75,14 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
         if (transitions.isEmpty()) {
             return new TaskBindingInspection(bindingType(), Set.of(), context.factVersion(), null);
         }
-        boolean superAdmin = Objects.equals(query.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+        boolean superAdmin = read == null && Objects.equals(query.tenantId(), cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
                 && permissionApi.hasAnyRoles(query.actorId(), cn.iocoder.yudao.module.system.enums.permission.RoleCodeEnum.SUPER_ADMIN.getCode());
-        var assignment = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
-                Set.of(task.getId()))).stream().findFirst().orElse(null);
-        var memberships = memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now()));
-        boolean assignee = superAdmin || TaskExecutionPolicy.permits(task.getProjectId(), query.actorId(), assignment, memberships);
-        boolean manager = superAdmin || memberships.stream().anyMatch(row ->
-                Objects.equals(task.getProjectId(), row.getProjectId()) && "PROJECT_MANAGER".equals(row.getMemberRole()));
+        var assignment = read == null ? assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(query.tenantId(),
+                Set.of(task.getId()))).stream().findFirst().orElse(null) : read.assignment();
+        var memberships = read == null ? memberMapper.selectActiveByUser(new ActiveProjectMemberQuery(query.tenantId(), query.actorId(), LocalDateTime.now())) : java.util.List.<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO>of();
+        boolean assignee = read == null ? superAdmin || TaskExecutionPolicy.permits(task.getProjectId(), query.actorId(), assignment, memberships) : read.assignee();
+        boolean manager = read == null ? superAdmin || memberships.stream().anyMatch(row ->
+                Objects.equals(task.getProjectId(), row.getProjectId()) && "PROJECT_MANAGER".equals(row.getMemberRole())) : read.projectManager();
         Set<String> allowed = new HashSet<>();
         for (var transition : transitions) {
             String action = transition.getActionCode();
@@ -85,7 +96,11 @@ public class TaskBusinessBindingHostProvider implements TaskBindingHostProvider 
                 default -> false;
             };
             if (!roleAllowed || (execute ? !assignee : !manager)
-                    || !permissionApi.hasAnyPermissions(query.actorId(), PERMISSIONS.get(action))) continue;
+                    || !(read == null ? permissionApi.hasAnyPermissions(query.actorId(), PERMISSIONS.get(action)) : read.permission(PERMISSIONS.get(action)))) continue;
+            if (read != null) {
+                if (read.scope(execute ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_MANAGE)) allowed.add(action);
+                continue;
+            }
             var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(query.tenantId(), query.actorId(),
                     task.getProjectId(), execute ? ProjectScopeApi.ACTION_EDIT : ProjectScopeApi.ACTION_MANAGE));
             if (scope != null && scope.fullProjectIds() != null && scope.fullProjectIds().contains(task.getProjectId())) {

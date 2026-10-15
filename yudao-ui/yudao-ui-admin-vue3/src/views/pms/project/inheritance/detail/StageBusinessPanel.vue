@@ -6,7 +6,7 @@
     <el-alert v-if="!error && !context?.recoverableError && context?.bindingType === 'STAGE_NATIVE'" type="info" :closable="false"
       title="本阶段使用原生办理；按阶段自身的完成与门禁规则判定，不挂载外部业务页面。" />
     <BusinessViewHost v-if="context?.businessView" ref="hostRef" :registration="context.businessView"
-      :resolved-context="{ project, stageExecution: context.execution, stageCode: context.stageCode }" :allowed-actions="error || loading || readonly ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly || !!readonly"
+      :resolved-context="{ project, stageExecution: context.execution, stageCode: context.stageCode, bindingParameters: context.bindingParameters }" :allowed-actions="error || loading || readonly ? [] : context.ownerActions" :readonly="!!error || loading || context.readonly || !!readonly"
       @changed="handleChanged" @dirty-change="emit('dirty-change', $event)" />
     <StageApprovalPanel v-if="context?.bindingType === 'APPROVAL'" ref="approvalRef" :workbench="context"
       :disabled="!!error || loading || !!readonly" @changed="handleChanged" />
@@ -56,14 +56,19 @@ const load = async () => {
       : value
     // 上报冻结绑定类型：STAGE_NATIVE 无办理区，父级据此整节隐藏（标题与本面板）
     emit('binding', context.value?.bindingType)
+    return !context.value.recoverableError
   } catch {
     if (token === sequence) error.value = '阶段业务上下文加载失败，请重试。'
+    return false
   } finally {
     if (token === sequence) loading.value = false
   }
 }
 const requestLeave = async () => (await hostRef.value?.requestLeave()) !== false && (await approvalRef.value?.requestLeave()) !== false
-const refresh = async () => { if (await requestLeave()) await load() }
+const refresh = async () => {
+  if (hostRef.value) await hostRef.value.refresh(async () => await load() === true)
+  else if (await requestLeave()) await load()
+}
 const handleChanged = async () => { await load(); emit('changed') }
 const router = useRouter()
 const openPage = () => {

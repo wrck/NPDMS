@@ -8,6 +8,7 @@ public record StageBusinessContext(Long projectId, Long stageId, String stageCod
         String instanceResolutionStrategy, BusinessViewRevision businessView,
         Set<String> ownerActions, boolean readonly, String recoverableError,
         cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectStageExecutionContext execution,
-        cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.View approval) {
+        cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.View approval,
+        tools.jackson.databind.JsonNode bindingParameters) {
     public StageBusinessContext { ownerActions = Set.copyOf(ownerActions); }
 }

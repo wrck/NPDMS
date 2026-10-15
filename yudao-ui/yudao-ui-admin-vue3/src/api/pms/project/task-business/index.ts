@@ -1,6 +1,9 @@
 import request from '@/config/axios'
 import type { BusinessViewId, BusinessViewRegistrationVO } from '@/api/pms/platform/business-view'
 import { businessViewIdKey } from '@/api/pms/platform/business-view/ids'
+import type { TaskWorkbench, ProjectWorkspace } from '@/api/pms/project/task-workbench'
+import type { OperationCapabilities } from '@/api/pms/project/execution-operations'
+import type { BusinessPageOpening } from '@/api/pms/platform/business'
 
 export interface BusinessArtifact {
   artifactId: string
@@ -46,6 +49,7 @@ export interface TaskBusinessContext {
   componentKey: string
   businessViewRevisionId?: BusinessViewId
   instanceResolutionStrategy: string
+  bindingParameters?: Record<string, unknown>
   links: TaskBusinessLink[]
   allowedActions: string[]
   recoverableError?: string
@@ -56,6 +60,14 @@ export interface TaskBusinessContext {
   businessView?: BusinessViewRegistrationVO
 }
 const base = (id: BusinessViewId) => `/api/v1/pms/project-tasks/${businessViewIdKey(id)}/business`
+export interface TaskOpening {
+  workspace: ProjectWorkspace
+  workbench: TaskWorkbench
+  businessContext?: TaskBusinessContext
+  capabilities?: OperationCapabilities
+  businessPage?: BusinessPageOpening
+}
+export const openTask = (id: BusinessViewId) => request.get<TaskOpening>({ url: `${base(id)}/opening` })
 export const getTaskBusinessContext = (id: BusinessViewId) =>
   request.get<TaskBusinessContext>({ url: `${base(id)}/context` })
 export const getTaskBusinessCandidates = (id: BusinessViewId) =>

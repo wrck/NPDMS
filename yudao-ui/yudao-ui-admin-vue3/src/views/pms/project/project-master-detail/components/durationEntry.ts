@@ -1,5 +1,10 @@
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 
+export const isDurationProjectId = (value: unknown) =>
+  typeof value === 'number'
+    ? Number.isSafeInteger(value) && value > 0
+    : typeof value === 'string' && /^[1-9][0-9]*$/.test(value)
+
 // Use the server's assignment fact; a displayed stage label does not describe parallel active stages.
 export const initialDurationHint = (project: ProjectMasterVO) =>
   project.projectManagerAssigned === false

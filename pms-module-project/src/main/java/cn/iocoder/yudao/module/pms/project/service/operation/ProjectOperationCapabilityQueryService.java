@@ -34,8 +34,16 @@ public class ProjectOperationCapabilityQueryService {
             ProjectBusinessExecutionSelection expected) {
         if (objectId != null && (objectId.isBlank() || objectId.length() > 128)) throw new IllegalArgumentException("BUSINESS_OBJECT_ID_INVALID");
         var context = contexts.resolve(projectId, kind, nodeId, expected);
+        return inspectResolved(context, objectId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public ProjectOperationCapabilities inspectResolved(ProjectOperationContextResolver.Context context, String objectId,
+            BusinessViewRevision observedView) {
+        if (objectId != null && (objectId.isBlank() || objectId.length() > 128)) throw new IllegalArgumentException("BUSINESS_OBJECT_ID_INVALID");
+        Long projectId = context.project().getId();
         var binding = context.binding();
-        var presentation = presentation(context, objectId);
+        var presentation = presentation(context, objectId, observedView);
         if (context.reason() != null) return new ProjectOperationCapabilities(context.node(), context.selection(),
                 List.of(), presentation, null, context.reason());
         if (binding == null || binding.getOperationContract() == null)
@@ -75,8 +83,9 @@ public class ProjectOperationCapabilityQueryService {
         return new ProjectOperationCapabilities(context.node(), context.selection(), actions, presentation, factVersion, ownerError);
     }
 
-    private ProjectOperationCapabilities.Presentation presentation(ProjectOperationContextResolver.Context context, String objectId) {
-        var observation = presentation(context.binding());
+    private ProjectOperationCapabilities.Presentation presentation(ProjectOperationContextResolver.Context context, String objectId,
+            BusinessViewRevision observedView) {
+        var observation = presentation(context.binding(), observedView);
         var configured = context.presentation();
         if (configured == null) return observation;
         try {
@@ -95,13 +104,14 @@ public class ProjectOperationCapabilityQueryService {
         }
     }
 
-    private ProjectOperationCapabilities.Presentation presentation(TemplateExecutionSnapshot.BindingContract binding) {
+    private ProjectOperationCapabilities.Presentation presentation(TemplateExecutionSnapshot.BindingContract binding, BusinessViewRevision observedView) {
         if (binding == null || binding.getBusinessViewSnapshot() == null)
             return new ProjectOperationCapabilities.Presentation(null, "UNAVAILABLE", "VIEW_NOT_BOUND");
         try {
             var frozen = JsonUtils.convertObject(binding.getBusinessViewSnapshot(), BusinessViewRevision.class);
             if (frozen == null || frozen.id() == null) throw new IllegalArgumentException("VIEW_INVALID");
-            var current = views.getRevision(new BusinessViewQueryApi.Query(frozen.id(), BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE));
+            var current = observedView != null && Objects.equals(observedView.id(), frozen.id()) ? observedView
+                    : views.getRevision(new BusinessViewQueryApi.Query(frozen.id(), BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE));
             if (current == null || !Objects.equals(current.id(), frozen.id())
                     || !Objects.equals(current.ownerContext(), binding.getTargetContextCode())
                     || !Objects.equals(current.entityType(), binding.getTargetObjectType())

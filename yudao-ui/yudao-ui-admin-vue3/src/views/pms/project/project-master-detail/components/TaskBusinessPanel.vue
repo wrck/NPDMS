@@ -12,8 +12,9 @@
         v-if="registration && project"
         ref="hostRef"
         :registration="registration"
-        :resolved-context="{ project, taskId: context.taskId, taskExecution: context.execution, businessObjectId: selectedObject }"
+        :resolved-context="{ project, taskId: context.taskId, taskExecution: context.execution, businessObjectId: selectedObject, bindingParameters: context.bindingParameters }"
         :allowed-actions="ownerActions"
+        :capability-prefetch="openingCapabilities || capabilityPrefetch"
         :readonly="viewReadonly"
         @changed="ownerChanged"
         @dirty-change="dirty = $event"
@@ -42,8 +43,9 @@
   </section>
 </template>
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
+import { resolvedOperationCapabilities, type OperationCapabilityPrefetch } from '@/components/BusinessView/operationCapabilityPrefetch'
 import * as BusinessApi from '@/api/pms/project/task-business'
 import type { TaskBusinessContext } from '@/api/pms/project/task-business'
 import {
@@ -52,15 +54,13 @@ import {
 } from '@/api/pms/platform/business-view'
 import { getProject, type ProjectMasterVO } from '@/api/pms/project/projects'
 import { legacyOwnerId } from '@/api/pms/platform/business-view/ids'
-import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
-import {
-  prefetchTaskView, takeTaskViewPrefetch, taskBusinessContextKey, requirementWorkspaceKey
-} from '../taskViewPrefetch'
 const props = defineProps<{
   taskId: BusinessViewId
   taskVersion: number
   readonly?: boolean
   initialProject?: ProjectMasterVO
+  initialOpening?: BusinessApi.TaskOpening
+  capabilityPrefetch?: OperationCapabilityPrefetch
 }>()
 const emit = defineEmits<{
   changed: []
@@ -68,6 +68,8 @@ const emit = defineEmits<{
   'dirty-change': [boolean]
 }>()
 const context = ref<TaskBusinessContext>()
+const openingCapabilities = shallowRef<OperationCapabilityPrefetch>()
+let openingUsed = false
 const project = ref<Omit<ProjectMasterVO, 'id'> & { id?: BusinessViewId }>()
 const registration = ref<BusinessViewRegistrationVO>()
 const hostRef = ref<InstanceType<typeof BusinessViewHost>>()
@@ -120,28 +122,21 @@ const restoreTarget = () => {
   error.value = '业务页面切换未完成，请先处理当前未保存的内容后重试。'
   clearFactVersion()
 }
-const load = async (useInitialProject = false) => {
+const load = async (useInitialProject = false, notifyProject = false) => {
   const current = ++sequence, epoch = generation, taskId = props.taskId
   const isCurrent = () => current === sequence && currentTask(epoch, taskId)
   loading.value = true
   error.value = ''
   clearFactVersion()
   try {
-    const next = await (takeTaskViewPrefetch<TaskBusinessContext>(taskBusinessContextKey(taskId))
-      ?? BusinessApi.getTaskBusinessContext(taskId))
+    const supplied = !openingUsed && useInitialProject && sameTask(props.initialOpening?.businessContext?.taskId, taskId)
+      ? props.initialOpening : undefined
+    openingUsed = true
+    const opening = supplied ?? (context.value?.businessView?.componentKey.startsWith('DIRECT_BUSINESS_')
+      ? await BusinessApi.openTask(taskId) : undefined)
+    const next = await (opening?.businessContext ?? BusinessApi.getTaskBusinessContext(taskId))
     if (!isCurrent()) return
     if (!sameTask(next.taskId, taskId)) throw new Error('Task context mismatch')
-    // 需求分析：把工作区读取也提前到 Owner 项目解析与 BusinessViewHost 装载之前并行；
-    // 仅在 enclosing 项目与业务上下文一致（EntityPanel 直接复用 initialProject）时预取，
-    // 键与 EntityPanel.workspace 的实参严格一致。未命中时 EntityPanel 照常直查。
-    const execution = next.execution
-    const initialProjectId = props.initialProject?.id
-    if (next.businessView?.componentKey === 'PROJ_REQUIREMENT_ANALYSIS' && execution != null
-        && initialProjectId != null && String(initialProjectId) === String(next.projectId)) {
-      const workspaceProjectId = legacyOwnerId(initialProjectId)
-      prefetchTaskView(requirementWorkspaceKey(workspaceProjectId, undefined, execution.taskId),
-        () => RequirementAnalysisApi.workspace(workspaceProjectId, undefined, execution.taskId))
-    }
     // Reuse the enclosing project's authorized response only on entry and only
     // for the same project. Refreshes still query current Owner project facts.
     const initialProject = useInitialProject && props.initialProject?.id != null &&
@@ -159,6 +154,9 @@ const load = async (useInitialProject = false) => {
       registration.value?.id !== next.businessView?.id ||
       !next.links.some((row) => row.objectId === selectedObject.value)
     )
+    openingCapabilities.value = opening?.capabilities ? resolvedOperationCapabilities({
+      projectId: next.projectId, nodeKind: 'TASK', nodeId: taskId, objectId: next.links[0]?.objectId
+    }, opening.capabilities) : undefined
     context.value = next
     project.value = detail
     registration.value = next.businessView
@@ -168,12 +166,16 @@ const load = async (useInitialProject = false) => {
     emit('fact-version', next.recoverableError || switchingDirtyTarget ? undefined : next.factVersion)
     // Outbox may complete the task without changing its already-confirmed Owner facts.
     // Refresh the enclosing workbench from the task version, not only the business fact version.
-    if (next.execution && next.execution.taskVersion !== props.taskVersion) emit('changed')
+    // An explicit refresh also updates the project summary/tree when the workbench
+    // already has the new task version. Automatic reads keep the version guard.
+    if (notifyProject || (next.execution && next.execution.taskVersion !== props.taskVersion)) emit('changed')
+    return true
   } catch {
     if (isCurrent()) {
       error.value = '无法读取业务关联或 Owner 项目上下文（可能缺少项目查询权限），请重试；原业务数据未改变。'
       clearFactVersion()
     }
+    return false
   } finally {
     if (isCurrent()) loading.value = false
   }
@@ -189,7 +191,9 @@ const requestLeave = async () => {
 }
 const refresh = async () => {
   const epoch = generation, taskId = props.taskId
-  if (await requestLeave() && currentTask(epoch, taskId)) await load()
+  const reload = async () => currentTask(epoch, taskId) && await load(false, true) === true
+  if (hostRef.value) await hostRef.value.refresh(reload)
+  else if (await requestLeave() && currentTask(epoch, taskId)) await reload()
 }
 const ownerChanged = () => {
   // A retained old Host may finish an Owner request after the parent selected another task.

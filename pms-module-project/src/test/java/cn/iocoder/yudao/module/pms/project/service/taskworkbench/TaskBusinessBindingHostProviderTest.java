@@ -122,6 +122,6 @@ class TaskBusinessBindingHostProviderTest {
     private TaskBusinessContext context(String error) {
         return new TaskBusinessContext(10L, 20L, 40L, 2, "SOL", "SITE_SURVEY", "survey-list", 50L,
                 "REFERENCE_EXISTING", List.of(), Set.of("LINK"), error, "a".repeat(64),
-                Set.of("QUERY", "CREATE", "COMPLETE"), null, true, null);
+                Set.of("QUERY", "CREATE", "COMPLETE"), null, true, null, null);
     }
 }

@@ -16,6 +16,19 @@ export interface BusinessNamedConfiguration {key:string;name:string;fields:Busin
 export interface BusinessFieldConfiguration { version: number; fields: BusinessFieldSetting[]; profiles?:BusinessNamedConfiguration[];defaultProfile?:string }
 export interface BusinessSort { fieldCode: string; direction: 'ASC' | 'DESC' }
 export interface BusinessPage { list: BusinessEntityData[]; total: number }
+export interface ProjectBusinessRecordFormData extends BusinessEntityFormData { entity: BusinessEntityData }
+export interface BusinessPageInitialRequest { projectId: BusinessId; initialEntityId?: BusinessId; configurationName?: string; bindingParameters?: string }
+export interface BusinessPageInitialData {
+  request: BusinessPageInitialRequest
+  model: ModelDetailVO
+  configuration: BusinessFieldConfiguration
+  pageSize: number
+  records: BusinessPage
+  forms: ProjectBusinessRecordFormData[]
+  relatedPages: BusinessPageInitialData[]
+  context: Record<string, unknown>
+}
+export interface BusinessPageOpening { view: DirectBusinessView; data: BusinessPageInitialData }
 
 /** One client factory for every inherited business Controller; no catalog/operation-dispatch URL. */
 export const createProjectBusinessApi = (prefix: string) => {

@@ -57,13 +57,23 @@ public class ProjectOperationContextResolver {
     private record FrozenNode(TemplateExecutionSnapshot.BindingContract binding, JsonNode execution) { }
 
     public Context resolve(Long projectId, String kind, Long nodeId, ProjectBusinessExecutionSelection expected) {
+        return resolve(projectId, kind, nodeId, expected, null);
+    }
+
+    public Context resolve(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService.TaskRead read) {
+        read.requireCaller(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId());
+        return resolve(read.project().getId(), "TASK", read.task().getId(), null, read);
+    }
+
+    private Context resolve(Long projectId, String kind, Long nodeId, ProjectBusinessExecutionSelection expected,
+            cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService.TaskRead read) {
         Long tenant = TenantContextHolder.getRequiredTenantId(), actor = SecurityFrameworkUtils.getLoginUserId();
         if (actor == null || actor <= 0 || projectId == null || projectId <= 0 || nodeId == null || nodeId <= 0
                 || !Set.of("TASK", "STAGE").contains(String.valueOf(kind))) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         Node summary;
         ProjectTaskInstanceDO task = null;
         if ("TASK".equals(kind)) {
-            task = taskAccess.read(nodeId, tenant, actor);
+            task = read == null ? taskAccess.read(nodeId, tenant, actor) : read.task();
             if (!Objects.equals(projectId, task.getProjectId())) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
             summary = new Node(projectId, kind, nodeId, task.getCode(), task.getName(), task.getStatus());
         } else {
@@ -76,7 +86,7 @@ public class ProjectOperationContextResolver {
             var stage = stages.getFirst();
             summary = new Node(projectId, kind, nodeId, stage.getCode(), stage.getName(), stage.getStatus());
         }
-        var project = projects.selectById(projectId);
+        var project = read == null ? projects.selectById(projectId) : read.project();
         if (project == null || !tenant.equals(project.getTenantId())) throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
         var scope = new ProjectPlanScopeQuery(tenant, projectId);
         var plan = plans.selectEffective(scope);
@@ -109,8 +119,8 @@ public class ProjectOperationContextResolver {
                 if (!Objects.equals(current.executionId(), round.getId()) || !Objects.equals(current.planVersionId(), plan.getId()))
                     return unavailable(tenant, actor, project, summary, "EXECUTION_CONTEXT_STALE");
                 selection = new ProjectBusinessExecutionSelection(current, null);
-                permitted = current.writable() && taskAccess.executable(task, project,
-                        new TaskBusinessObjectProvider.Context(tenant, actor, projectId, nodeId, null));
+                permitted = current.writable() && (read == null ? taskAccess.executable(task, project,
+                        new TaskBusinessObjectProvider.Context(tenant, actor, projectId, nodeId, null)) : read.permitted("pms:project-task:execute"));
             } else {
                 var current = executions.inspectStage(new ProjectStageExecutionQuery(projectId, nodeId, round.getContractId()));
                 if (!Objects.equals(current.executionId(), round.getId()) || !Objects.equals(current.planVersionId(), plan.getId()))

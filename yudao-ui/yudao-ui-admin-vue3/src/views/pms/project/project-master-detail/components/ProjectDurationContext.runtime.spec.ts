@@ -82,7 +82,7 @@ const flush = async () => {
   }
 }
 const apps: { unmount: () => void }[] = []
-const render = (component: Component, readonly = false, id: number | undefined = 1) => {
+const render = (component: Component, readonly = false, id: number | string | undefined = 1) => {
   const props = reactive({ project: { id, version: 7, projectName: '主线工期验收项目', projectEndDate: undefined as string | undefined, projectManagerAssigned: true }, readonly })
   const child = ref<any>()
   const wrapper = defineComponent({ setup: () => () => h(component, { ...props, ref: child }) })
@@ -213,7 +213,29 @@ describe('PRE-01 existing duration components in project views', () => {
     expect(view.state().canWrite).toBe(true)
   })
 
-  it.each([0, -1, NaN, Number.MAX_SAFE_INTEGER + 1])(
+  it('reads a long project ID without converting or truncating it', async () => {
+    const projectId = '2110018733130579972'
+    api.getByProjectId.mockResolvedValue({ ...plan(1), projectId })
+    const view = render(Panel, false, projectId)
+    await flush()
+    expect(api.getByProjectId).toHaveBeenCalledWith(projectId)
+    expect(view.state().plan.projectId).toBe(projectId)
+  })
+
+  it('preserves a long project ID in the initial duration write', async () => {
+    const projectId = '2110018733130579972'
+    const view = render(Drawer, false, projectId)
+    view.child.value.openInitial()
+    view.state().formRef = { validate: async () => true }
+    Object.assign(view.state().form, { startDate: '2026-10-15', endDate: '2026-12-31' })
+    await view.state().save()
+    expect(api.createInitial).toHaveBeenCalledWith({
+      projectId, expectedProjectVersion: 7, calculationBasis: 'DATE_RANGE',
+      startDate: '2026-10-15', endDate: '2026-12-31'
+    }, expect.any(String))
+  })
+
+  it.each([0, -1, NaN, Number.MAX_SAFE_INTEGER + 1, '0', '-1', '1e3', '1.5', ' 1 ', 'invalid'])(
     'rejects invalid project %s without offering initial creation',
     async (id) => {
       const view = render(Panel, false, id)

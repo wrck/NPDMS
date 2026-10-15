@@ -25,6 +25,9 @@ public interface ProjectBusinessRuntimeApi {
     record DeliveryFacts(Map<String,Boolean> facts,String factVersion) {
         public DeliveryFacts { facts=Map.copyOf(facts); }
     }
+    record UserInspection(Set<String> allowedActions,List<Observation> objects) {
+        public UserInspection { allowedActions=Set.copyOf(allowedActions);objects=List.copyOf(objects); }
+    }
     List<Definition> definitions();
     DeliveryFacts deliveryFacts(Query query,boolean lock);
     Observation inspect(Query query);

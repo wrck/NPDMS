@@ -32,7 +32,7 @@ export const updateProjectRisk = (data: ProjectRiskVO) =>
   request.put({ url: `${baseUrl}/update`, data })
 export const deleteProjectRisk = (id: number) =>
   request.delete({ url: `${baseUrl}/delete`, params: { id } })
-export const getProjectRiskListByProjectId = (projectId: number) =>
+export const getProjectRiskListByProjectId = (projectId: number | string) =>
   request.get({ url: `${baseUrl}/list-by-project`, params: { projectId } })
 export const transitionProjectRiskStatus = (
   riskId: number,

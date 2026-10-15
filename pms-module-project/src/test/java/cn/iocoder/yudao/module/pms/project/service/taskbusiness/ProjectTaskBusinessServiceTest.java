@@ -2,6 +2,8 @@ package cn.iocoder.yudao.module.pms.project.service.taskbusiness;
 
 import cn.iocoder.yudao.framework.common.exception.ServiceException;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.*;
 import cn.iocoder.yudao.module.pms.platform.api.command.PlatformCommandExecutionApi;
@@ -13,6 +15,8 @@ import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectTaskEx
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskbusiness.ProjectTaskBusinessLinkMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.ProjectTaskRuntimeMapper;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService.*;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService.TaskRead;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
 import org.junit.jupiter.api.*;
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -113,6 +117,58 @@ class ProjectTaskBusinessServiceTest {
         return row;
     }
     LinkCommand command() { return new LinkCommand(10L, "x", 3, 2, "key"); }
+
+    TaskRead openingRead() {
+        contract.setComponentKey("DIRECT_BUSINESS_SITE_SURVEY");
+        contract.setBindingParameterSnapshot("{\"bindingType\":\"BUSINESS_COMPONENT\",\"businessViewRevisionId\":40,\"instanceResolutionStrategy\":\"REFERENCE_EXISTING\",\"configurationName\":\"frozen-config\"}");
+        when(views.getRevision(any())).thenReturn(new BusinessViewRevision(40L, "SiteSurvey", "survey", 1L,
+                "PRE", BusinessViewComponentProvider.ViewSource.PAGE, contract.getComponentKey(), "1", null,
+                JsonUtils.parseTree("{}"), JsonUtils.parseTree("[]"), "query", "command", "permission", null, null,
+                1L, "PUBLISHED", Set.of("UPDATE")));
+        var read = mock(TaskRead.class);
+        when(read.actor()).thenReturn(new TaskWorkbenchActor(1L, 5L, "opening"));
+        when(read.task()).thenReturn(task); when(read.project()).thenReturn(project);
+        when(read.contract()).thenReturn(contract); when(read.permitted("pms:project-task:update")).thenReturn(true);
+        return read;
+    }
+    TaskBusinessContext open(TaskRead read) {
+        TenantContextHolder.setTenantId(1L);
+        try (var security = mockStatic(SecurityFrameworkUtils.class)) {
+            security.when(SecurityFrameworkUtils::getLoginUserId).thenReturn(5L);
+            return service.open(read, execution(true));
+        } finally { TenantContextHolder.clear(); }
+    }
+
+    @Test void openingUsesOwnerFactsAndFrozenBindingWithoutRereadingTaskAuthorization() {
+        var read = openingRead();
+        when(links.selectActive(any())).thenReturn(List.of(row(51, "x")));
+        var result = open(read);
+        assertNull(result.recoverableError());
+        assertTrue(result.executionAllowed());
+        assertEquals("v1", result.links().getFirst().factVersion());
+        assertEquals("frozen-config", result.bindingParameters().get("configurationName").asText());
+        assertEquals(contract.getComponentKey(), result.businessView().componentKey());
+        verify(read).requireCaller(1L, 5L);
+        verify(provider).inspectContextAndObjects(argThat(ctx -> ctx.tenantId().equals(1L)
+                && ctx.actorId().equals(5L) && ctx.projectId().equals(20L) && ctx.taskId().equals(10L)), eq(List.of("x")));
+        verify(links, never()).selectCurrentContract(any());
+        verifyNoInteractions(access, executionApi);
+    }
+
+    @Test void openingRejectsRevokedOwnerPermissionAndMismatchedFrozenView() {
+        var read = openingRead();
+        when(provider.inspectContext(any())).thenReturn(Set.of());
+        var denied = open(read);
+        assertEquals("OWNER_CONTEXT_FORBIDDEN", denied.recoverableError());
+        assertNull(denied.businessView());
+        assertFalse(denied.executionAllowed());
+        when(provider.inspectContext(any())).thenReturn(Set.of("QUERY"));
+        when(views.getRevision(any())).thenReturn(null);
+        var unavailable = open(read);
+        assertEquals("VIEW_IDENTITY_MISMATCH", unavailable.recoverableError());
+        assertTrue(unavailable.ownerActions().isEmpty());
+        assertFalse(unavailable.executionAllowed());
+    }
 
     @Test void contextUsesOneOwnerInspectionAndRejectsMissingForeignOrDuplicateFacts() {
         when(links.selectActive(any())).thenReturn(List.of(row(51, "x")));

@@ -162,6 +162,8 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
         :task-id="workbench.task.taskId"
         :task-version="workbench.task.version"
         :initial-project="project"
+        :initial-opening="taskOpening"
+        :capability-prefetch="taskCapabilityPrefetch"
         :readonly="taskPending || ['DONE', 'CLOSED', 'CANCELLED'].includes(workbench.task.status || '')"
         @changed="handleBusinessChanged"
         @fact-version="handleBusinessFactChanged"
@@ -299,7 +301,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, provide, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, provide, ref, shallowRef, watch } from 'vue'
 import type { Component } from 'vue'
 import { onBeforeRouteUpdate, useRouter } from 'vue-router'
 import { generateUUID } from '@/utils'
@@ -308,7 +310,7 @@ import { DICT_TYPE } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as TaskWorkbenchApi from '@/api/pms/project/task-workbench'
 import * as BusinessApi from '@/api/pms/project/task-business'
-import { prefetchTaskView, taskBusinessContextKey } from '../taskViewPrefetch'
+import { resolvedOperationCapabilities, type OperationCapabilityPrefetch } from '@/components/BusinessView/operationCapabilityPrefetch'
 import {
   advanceProjectStage,
   getProjectStageAdvanceReadiness,
@@ -391,6 +393,8 @@ const stageDeliverables = computed(() =>
 )
 const hasStageGates = computed(() => props.instances?.gates.some(gate => gate.stageCode === props.selection?.stageCode))
 const workbench = ref<TaskWorkbench>()
+const taskCapabilityPrefetch = shallowRef<OperationCapabilityPrefetch>()
+const taskOpening = shallowRef<BusinessApi.TaskOpening>()
 // 任务维度复用同一未进入判定：导航快照缺 stageCode 时以工作台任务补位
 const taskPending = computed(() => {
   if (props.selection?.kind !== 'task') return false
@@ -595,6 +599,8 @@ const load = async () => {
   const token = ++sequence
   loadError.value = ''
   workbench.value = undefined
+  taskCapabilityPrefetch.value = undefined
+  taskOpening.value = undefined
   businessFactVersion.value = undefined
   advanceError.value = ''
   stageBindingType.value = undefined
@@ -608,18 +614,18 @@ const load = async () => {
       await Promise.all([loadWorkspace(token), tasks.reload()])
     } else if (selection.taskId != null) {
       const taskId = selection.taskId
-      // 点击时刻并行预取业务上下文：TaskBusinessPanel 挂载后直接命中，省去第二波串行等待；
-      // 非业务绑定任务的结果无人消费，预取 TTL 到期自动失效。
-      prefetchTaskView(taskBusinessContextKey(taskId), () => BusinessApi.getTaskBusinessContext(taskId))
-      // Both endpoints authorize independently. Publish together so a failed
-      // workspace read cannot expose a partially loaded task action panel.
-      const [nextWorkspace, nextWorkbench] = await Promise.all([
-        TaskWorkbenchApi.getProjectWorkspace(props.projectId),
-        TaskWorkbenchApi.getTaskWorkbench(selection.taskId)
-      ])
+      const opening = await BusinessApi.openTask(taskId)
       if (!current(token)) return
-      workspace.value = nextWorkspace
-      workbench.value = nextWorkbench
+      if (String(opening.workbench.task.taskId) !== String(taskId)
+          || String(opening.workbench.task.projectId) !== String(props.projectId)
+          || String(opening.workspace.projectId) !== String(props.projectId)) throw new Error('Task opening scope mismatch')
+      taskOpening.value = opening
+      if (opening.capabilities) taskCapabilityPrefetch.value = resolvedOperationCapabilities({
+        projectId: props.projectId, nodeKind: 'TASK', nodeId: taskId,
+        objectId: opening.businessContext?.links[0]?.objectId
+      }, opening.capabilities)
+      workspace.value = opening.workspace
+      workbench.value = opening.workbench
     }
   } catch {
     if (current(token)) loadError.value = '内容加载失败，请重新加载。'

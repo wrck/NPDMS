@@ -9,7 +9,8 @@ public record TaskBusinessContext(Long taskId, Long projectId, Long executionCon
         Long businessViewRevisionId, String instanceResolutionStrategy,
         List<TaskBusinessLinkFact> links, Set<String> allowedActions, String recoverableError, String factVersion,
         Set<String> ownerActions, BusinessViewRevision businessView, boolean executionAllowed,
-        cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution) {
+        cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution,
+        tools.jackson.databind.JsonNode bindingParameters) {
     public TaskBusinessContext {
         links = List.copyOf(links);
         allowedActions = Set.copyOf(allowedActions);

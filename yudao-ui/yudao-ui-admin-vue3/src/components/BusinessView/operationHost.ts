@@ -14,7 +14,8 @@ export function editingTargetKey(target: BusinessViewTarget): string {
   const view = target.registration, context = target.resolvedContext
   // Execution versions and registry enable/disable updates do not change an Owner editing buffer.
   return JSON.stringify([view.id, view.componentKey, view.componentVersion, view.ownerContext, view.entityType,
-    view.viewSource, view.dynamicFormRevisionId, context.project?.id, context.instanceId, context.businessObjectId, context.taskId, context.stageExecution?.stageId])
+    view.viewSource, view.dynamicFormRevisionId, context.project?.id, context.instanceId, context.businessObjectId, context.taskId, context.stageExecution?.stageId,
+    context.bindingParameters])
 }
 export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed: () => void) {
   const observation = shallowRef<OperationCapabilities>()
@@ -54,7 +55,8 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
     }
     checking.value = true
     try {
-      const value = await inspectOperationCapabilities(target)
+      const opening = mode.value === 'CHECKING' ? active.value.capabilityPrefetch?.take(target) : undefined
+      const value = await (opening ?? inspectOperationCapabilities(target))
       if (disposed || sequence !== generation) return
       if (String(value.node.projectId) !== String(target.projectId) || String(value.node.id) !== String(target.nodeId)
         || value.node.kind !== target.nodeKind) throw new Error('EXECUTION_CONTEXT_MISMATCH')

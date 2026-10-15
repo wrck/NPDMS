@@ -143,7 +143,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import { backwardDuration } from './backwardDuration'
-import { initialDurationHint } from './durationEntry'
+import { initialDurationHint, isDurationProjectId } from './durationEntry'
 import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
@@ -163,7 +163,7 @@ import {
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ saved: []; 'dirty-change': [value: boolean] }>()
 const canWrite = computed(
-  () => !props.readonly && Number.isSafeInteger(props.project.id) && props.project.id! > 0
+  () => !props.readonly && isDurationProjectId(props.project.id)
 )
 let contextVersion = 0
 const message = useMessage()

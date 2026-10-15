@@ -6,9 +6,11 @@ import { inspectOperationCapabilities } from '@/api/pms/project/execution-operat
 import request from '@/config/axios'
 import { editingTargetKey, useOperationHost } from './operationHost'
 import { selectionClient } from './operationClient'
+import { resolvedOperationCapabilities } from './operationCapabilityPrefetch'
 import type { BusinessViewTarget } from './registry'
 
 vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
+vi.mock('@/utils/auth', () => ({ getCurrentUserId: () => 42, getTenantId: () => 7, getVisitTenantId: () => undefined }))
 vi.mock('@/config/axios', () => ({ default: { post: vi.fn() } }))
 vi.mock('@/config/axios/service', () => ({ service: { defaults: { transformResponse: [] } } }))
 const selection = (round = '90') => ({ task: { projectId: '1', taskId: '2', executionContractId: '3',
@@ -24,8 +26,8 @@ const capability = (reason: string | null = null, round = '90') => ({
     ownerPermitted: true, executionPermitted: true, runtimeAvailable: true, allowed: true,
     pre: { outcome: 'NO_ADDITIONAL_RULE' }, post: { outcome: 'NOT_EVALUATED' } }]
 })
-function harness() {
-  const active = shallowRef(target()), changed = vi.fn()
+function harness(initial = target()) {
+  const active = shallowRef(initial), changed = vi.fn()
   let state!: ReturnType<typeof useOperationHost>
   const wrapper = mount(defineComponent({ setup() { state = useOperationHost(active, changed); return () => h('div') } }))
   return { active, changed, wrapper, get state() { return state } }
@@ -35,6 +37,45 @@ const flushPromises = async () => {
 }
 beforeEach(() => vi.clearAllMocks())
 describe('retained Owner view and execution routing', () => {
+  it('uses resolved opening capabilities once and obtains a fresh observation on refresh', async () => {
+    const initial = { ...target(), capabilityPrefetch: resolvedOperationCapabilities({ projectId: 1, nodeKind: 'TASK', nodeId: 2 }, capability() as never) }
+    const view = harness(initial)
+    try {
+      expect(view.state.mode.value).toBe('CHECKING')
+      expect(view.state.client.value).toBeUndefined()
+      await flushPromises()
+      expect(view.state.mode.value).toBe('CONTROLLED')
+      expect(inspectOperationCapabilities).not.toHaveBeenCalled()
+      vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+      await view.state.refresh()
+      expect(inspectOperationCapabilities).toHaveBeenCalledTimes(1)
+    } finally { view.wrapper.app.unmount() }
+  })
+  it('keeps actions closed when the initial capability handoff fails and retries freshly', async () => {
+    const take = vi.fn().mockImplementationOnce(() => Promise.reject(new Error('initial inspection unavailable')))
+    const view = harness({ ...target(), capabilityPrefetch: { take } })
+    try {
+      await flushPromises()
+      expect(view.state.mode.value).toBe('CHECKING')
+      expect(view.state.failure.value).toBe('initial inspection unavailable')
+      expect(view.state.client.value).toBeUndefined()
+      vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+      await view.state.refresh()
+      expect(view.state.mode.value).toBe('CONTROLLED')
+      expect(inspectOperationCapabilities).toHaveBeenCalledTimes(1)
+    } finally { view.wrapper.app.unmount() }
+  })
+  it.each(['node', 'object'])('inspects again when the initial %s does not match', async changed => {
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+    const capabilityPrefetch = resolvedOperationCapabilities({ projectId: 1, nodeKind: 'TASK', nodeId: changed === 'node' ? 3 : 2,
+      objectId: changed === 'object' ? 99 : undefined }, capability() as never)
+    const view = harness({ ...target(), capabilityPrefetch })
+    try {
+      await flushPromises()
+      expect(inspectOperationCapabilities).toHaveBeenCalledTimes(1)
+      expect(view.state.mode.value).toBe('CONTROLLED')
+    } finally { view.wrapper.app.unmount() }
+  })
   it('does not mount a usable client until inspection resolves; queries do not call commands', async () => {
     vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
     const view = harness()

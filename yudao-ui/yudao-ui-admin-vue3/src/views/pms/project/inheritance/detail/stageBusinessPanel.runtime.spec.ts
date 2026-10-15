@@ -4,6 +4,8 @@ import StageBusinessPanel from './StageBusinessPanel.vue'
 import { mount, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const api = vi.hoisted(() => ({ getStageBusinessContext: vi.fn() }))
 const leave = vi.hoisted(() => vi.fn())
+const refresh = vi.hoisted(() => vi.fn())
+const dirty = vi.hoisted(() => vi.fn())
 const ownerUnmounted = vi.hoisted(() => vi.fn())
 const ownerContext = vi.hoisted(() => vi.fn())
 const router = vi.hoisted(() => ({ push: vi.fn() }))
@@ -19,7 +21,7 @@ vi.mock('./StageApprovalPanel.vue', () => ({ default: defineComponent({
 vi.mock('@/components/BusinessView/BusinessViewHost.vue', () => ({ default: defineComponent({
   props: ['resolvedContext', 'readonly', 'allowedActions'],
   setup(props, { expose }) {
-    expose({ requestLeave: leave }); onUnmounted(ownerUnmounted)
+    expose({ requestLeave: leave, refresh, isDirty: dirty }); onUnmounted(ownerUnmounted)
     return () => { ownerContext(props.resolvedContext); return h('div', `Owner:${props.resolvedContext.project.id}; readonly:${props.readonly}; actions:${props.allowedActions.join(',')}`) }
   }
 }) }))
@@ -33,7 +35,11 @@ const render = () => {
   apps.push(view.app)
   return { ...view, project, component: () => child.value, state: () => child.value.$.setupState }
 }
-beforeEach(() => { vi.clearAllMocks(); leave.mockResolvedValue(false); api.getStageBusinessContext.mockResolvedValue(native) })
+beforeEach(() => {
+  vi.clearAllMocks(); leave.mockResolvedValue(false); api.getStageBusinessContext.mockResolvedValue(native)
+  dirty.mockReturnValue(false)
+  refresh.mockImplementation(async reload => await leave() ? await reload() : false)
+})
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 it('loads native stage from its own context endpoint without manufacturing an external page', async () => {
   const view = render(); await flush()
@@ -59,6 +65,36 @@ it('retains the loaded Owner body when a post-save context refresh fails', async
   expect(textOf(view.root)).not.toContain('actions:QUERY')
   expect(view.state().context.ownerActions).toEqual(['QUERY', 'COMPLETE'])
   expect(textOf(view.root)).toContain('阶段业务上下文加载失败')
+})
+it('refreshes through the shared Host and reports context failure without dropping the frozen binding', async () => {
+  const bindingParameters = { configurationName: 'frozen-stage-config' }
+  api.getStageBusinessContext.mockResolvedValue({ ...native, bindingParameters,
+    bindingType: 'BUSINESS_OBJECT', businessView: { id: 88 } })
+  const view = render(); await flush()
+  leave.mockResolvedValue(true)
+  await view.component().refresh(); await flush()
+  expect(refresh).toHaveBeenCalledOnce()
+  expect(await refresh.mock.results[0].value).toBe(true)
+  expect(api.getStageBusinessContext).toHaveBeenCalledTimes(2)
+  expect(ownerContext.mock.lastCall![0].bindingParameters).toEqual(bindingParameters)
+  api.getStageBusinessContext.mockRejectedValueOnce(new Error('unavailable'))
+  await view.component().refresh(); await flush()
+  expect(await refresh.mock.results[1].value).toBe(false)
+  expect(ownerUnmounted).not.toHaveBeenCalled()
+  expect(textOf(view.root)).toContain('阶段业务上下文加载失败')
+})
+it('retains dirty content when the refreshed frozen binding is unavailable', async () => {
+  api.getStageBusinessContext.mockResolvedValueOnce({ ...native, readonly: false, ownerActions: ['QUERY'],
+    bindingType: 'BUSINESS_OBJECT', businessView: { id: 88 } })
+  const view = render(); await flush()
+  dirty.mockReturnValue(true); leave.mockResolvedValue(true)
+  api.getStageBusinessContext.mockResolvedValueOnce({ ...native, bindingType: 'BUSINESS_OBJECT',
+    recoverableError: 'VIEW_IDENTITY_MISMATCH' })
+  await view.component().refresh(); await flush()
+  expect(await refresh.mock.results[0].value).toBe(false)
+  expect(ownerUnmounted).not.toHaveBeenCalled()
+  expect(textOf(view.root)).toContain('Owner:9; readonly:true; actions:')
+  expect(textOf(view.root)).toContain('VIEW_IDENTITY_MISMATCH')
 })
 it('rejects a context for another project instead of mounting its view', async () => {
   api.getStageBusinessContext.mockResolvedValue({ ...native, projectId: '10', bindingType: 'BUSINESS_OBJECT', businessView: { id: 88 } })

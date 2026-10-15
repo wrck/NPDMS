@@ -6,6 +6,7 @@ import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { BusinessViewRegistrationVO, BusinessViewId } from '@/api/pms/platform/business-view'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { TaskExecutionContext } from '@/api/pms/project/task-business'
+import type { OperationCapabilityPrefetch } from './operationCapabilityPrefetch'
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
@@ -24,6 +25,7 @@ export interface BusinessViewResolvedContext {
   stageExecution?: StageExecutionContext
   stageCode?: string
   taskExecution?: TaskExecutionContext
+  bindingParameters?: Record<string, unknown>
 }
 export interface BusinessViewTarget {
   registration: BusinessViewRegistrationVO
@@ -31,6 +33,7 @@ export interface BusinessViewTarget {
   allowedActions: string[]
   readonly?: boolean
   presentation?: PagePresentation
+  capabilityPrefetch?: OperationCapabilityPrefetch
 }
 interface Adapter {
   componentKey: string
@@ -205,7 +208,7 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
       execution:target.resolvedContext.taskExecution || target.resolvedContext.stageExecution ? {
         ...(target.resolvedContext.taskExecution?{task:target.resolvedContext.taskExecution}:{}),
         ...(target.resolvedContext.stageExecution?{stage:target.resolvedContext.stageExecution}:{})}:undefined,
-      stageCode:target.resolvedContext.stageCode}}
+      stageCode:target.resolvedContext.stageCode,bindingParameters:target.resolvedContext.bindingParameters}}
   }
   if (!adapter && registration.componentKey.startsWith('DECLARED_BUSINESS_') && registration.componentVersion === '1'
       && registration.viewSource === 'PAGE' && registration.dynamicFormRevisionId == null && !target.presentation
@@ -253,5 +256,6 @@ export const businessViewTargetKey = (target: BusinessViewTarget) =>
     target.resolvedContext.businessObjectId,
     target.resolvedContext.taskId,
     target.resolvedContext.stageExecution?.stageId,
-    target.resolvedContext.stageExecution?.executionId
+    target.resolvedContext.stageExecution?.executionId,
+    target.resolvedContext.bindingParameters
   ])

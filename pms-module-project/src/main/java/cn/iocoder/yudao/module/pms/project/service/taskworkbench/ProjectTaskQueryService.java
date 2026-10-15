@@ -76,6 +76,15 @@ public class ProjectTaskQueryService {
 
     public ProjectWorkspaceRespVO getWorkspace(Long projectId, TaskWorkbenchActor actor) {
         TaskAccess access = resolveAccess(projectId, actor, true);
+        return workspace(access, actor, null);
+    }
+
+    public ProjectWorkspaceRespVO getWorkspace(TaskRead read) {
+        return workspace(read.value.access(), read.actor, read);
+    }
+
+    private ProjectWorkspaceRespVO workspace(TaskAccess access, TaskWorkbenchActor actor, TaskRead read) {
+        Long projectId = access.project().getId();
         Map<String, Long> counts = taskMapper.selectStageCounts(access.visibilityQuery()).stream()
                 .collect(Collectors.toMap(TaskStageCount::stageCode, TaskStageCount::taskCount));
         List<ProjectWorkspaceRespVO.StageTaskNavigation> navigation = stageMapper.selectListByProjectId(projectId)
@@ -88,7 +97,7 @@ public class ProjectTaskQueryService {
         response.setStageTaskNavigation(navigation);
         response.setTaskTreeVersion(access.project().getTaskTreeVersion());
         response.setProjectionWatermark(watermark(access.project()));
-        response.setAllowedActions(workspaceAllowedActions(access, actor));
+        response.setAllowedActions(workspaceAllowedActions(access, actor, read));
         response.setDescriptionLimit(TaskRichText.MAX_LENGTH);
         return response;
     }
@@ -157,21 +166,32 @@ public class ProjectTaskQueryService {
     public ProjectTaskWorkbenchRespVO getWorkbench(Long taskId, TaskWorkbenchActor actor) {
         TaskAndAccess value = requireFullTask(taskId, actor);
         ProjectTaskExecutionContractDO contract = contractMapper.selectCurrentByTaskId(taskId);
+        return workbench(value, actor, contract, null, null);
+    }
+
+    public ProjectTaskWorkbenchRespVO openingWorkbench(TaskRead read, TaskBindingInspection inspection) {
+        return workbench(read.value, read.actor, read.contract, inspection, read);
+    }
+
+    private ProjectTaskWorkbenchRespVO workbench(TaskAndAccess value, TaskWorkbenchActor actor,
+            ProjectTaskExecutionContractDO contract, TaskBindingInspection initialInspection, TaskRead read) {
+        Long taskId = value.task().getId();
         ProjectTaskWorkbenchRespVO response = new ProjectTaskWorkbenchRespVO();
-        response.setTask(taskDetail(value, actor));
+        response.setTask(read == null ? taskDetail(value, actor)
+                : toDetail(read.task(), read.assignment == null ? null : read.assignment.getAssigneeUserId()));
         response.setDeliverables(taskDeliverables(value.task()));
         if (contract == null || !Objects.equals(contract.getTenantId(), actor.tenantId())) {
             response.setAllowedActions(Set.of());
             response.setRecoverableError("BINDING_FACT_UNKNOWN");
             return response;
         }
-        TaskBindingInspection inspection = bindingRegistry.inspect(contract.getWorkBindingTypeCode(),
+        TaskBindingInspection inspection = initialInspection != null ? initialInspection : bindingRegistry.inspect(contract.getWorkBindingTypeCode(),
                 new TaskBindingInspectionQuery(actor.tenantId(), taskId, actor.actorId(), actor.correlationId()));
         response.setExecutionContractId(contract.getId());
         response.setContractVersion(contract.getContractVersion());
         response.setBindingType(contract.getWorkBindingTypeCode());
         response.setTrustedTargetRef(trustedTargetRef(contract));
-        response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor));
+        response.setAllowedActions(workbenchAllowedActions(value, inspection.allowedActions(), actor, read));
         response.setFactVersion(inspection.factVersion());
         response.setRecoverableError(inspection.recoverableError());
         if ("RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode())) {
@@ -198,6 +218,63 @@ public class ProjectTaskQueryService {
             catch (RuntimeException unavailable) { response.setRecoverableError("TASK_APPROVAL_FACT_UNAVAILABLE"); }
         }
         return response;
+    }
+
+    /** Server-created observation shared only by the task opening query, never by command execution. */
+    public TaskRead openTaskRead(Long taskId, TaskWorkbenchActor actor) {
+        validateActor(actor);
+        if (taskId == null || taskId <= 0 || !hasPermission(actor.actorId(), "pms:project-task:query"))
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        var value = requireFullTask(taskId, actor);
+        if (!Objects.equals(value.task().getTenantId(), actor.tenantId()) || !Objects.equals(value.task().getId(), taskId))
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        var contract = contractMapper.selectCurrentByTaskId(taskId);
+        if (contract != null && (!Objects.equals(contract.getTenantId(), actor.tenantId())
+                || !Objects.equals(contract.getProjectTaskId(), taskId) || contract.getEffectiveTo() != null))
+            throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        var assignment = assignmentMapper.selectCurrent(new CurrentTaskAssignmentsQuery(actor.tenantId(), Set.of(taskId)))
+                .stream().findFirst().orElse(null);
+        return new TaskRead(value, actor, contract, assignment);
+    }
+
+    public final class TaskRead {
+        private final TaskAndAccess value;
+        private final TaskWorkbenchActor actor;
+        private final ProjectTaskExecutionContractDO contract;
+        private final ProjectTaskAssignmentDO assignment;
+        private final Map<String, Boolean> permissions = new java.util.HashMap<>();
+        private final Map<String, Boolean> scopes = new java.util.HashMap<>();
+        private TaskRead(TaskAndAccess value, TaskWorkbenchActor actor, ProjectTaskExecutionContractDO contract,
+                         ProjectTaskAssignmentDO assignment) {
+            this.value = value; this.actor = actor; this.contract = contract; this.assignment = assignment;
+            permissions.put("pms:project-task:query", true); scopes.put(ProjectScopeApi.ACTION_VIEW, true);
+        }
+        public ProjectTaskInstanceDO task() { return value.task(); }
+        public ProjectMasterDO project() { return value.access().project(); }
+        public ProjectTaskExecutionContractDO contract() { return contract; }
+        public TaskWorkbenchActor actor() { return actor; }
+        public ProjectTaskAssignmentDO assignment() { return assignment; }
+        public boolean projectManager() { return value.access().projectManager(); }
+        public boolean assignee() { return value.access().superAdmin() || TaskExecutionPolicy.permits(
+                project().getId(), actor.actorId(), assignment, value.access().memberships()); }
+        public boolean permission(String permission) {
+            return permissions.computeIfAbsent(permission, code -> hasPermission(actor.actorId(), code));
+        }
+        public boolean scope(String action) {
+            return scopes.computeIfAbsent(action, code -> projectTreeScopeService.resolve(new ProjectScopeQuery(
+                    actor.tenantId(), actor.actorId(), project().getId(), code, value.access().projectTreeVersion()))
+                    .visibility(project().getId()) == ProjectTreeScopeService.Visibility.FULL);
+        }
+        public boolean permitted(String permission) {
+            return "ACTIVE".equals(project().getLifecycleStatus()) && task().getStatus() != null
+                    && !Set.of("DONE", "CLOSED", "CANCELLED", "CANCELED").contains(task().getStatus())
+                    && permission(permission) && assignee()
+                    && scope(value.access().superAdmin() ? ProjectScopeApi.ACTION_MANAGE : ProjectScopeApi.ACTION_EDIT);
+        }
+        public void requireCaller(Long tenantId, Long actorId) {
+            if (!Objects.equals(actor.tenantId(), tenantId) || !Objects.equals(actor.actorId(), actorId))
+                throw exception(PROJECT_TASK_SCOPE_FORBIDDEN);
+        }
     }
 
     /** 交付件为模板冻结的应交清单：按任务码过滤，阶段级（无任务码）行不属于任何任务视图。 */
@@ -246,7 +323,7 @@ public class ProjectTaskQueryService {
         Set<Long> full = fullProjectAccess
                 ? Set.of() : Set.copyOf(taskMapper.selectFullTaskIds(visibilityQuery));
         return new TaskAccess(project, visibilityQuery, fullProjectAccess, full, projectManager,
-                treeVersion.getTreeVersion());
+                treeVersion.getTreeVersion(), superAdmin, List.copyOf(memberships));
     }
 
     private TaskAndAccess requireFullTask(Long taskId, TaskWorkbenchActor actor) {
@@ -353,33 +430,48 @@ public class ProjectTaskQueryService {
     }
 
     private Set<String> workspaceAllowedActions(TaskAccess access, TaskWorkbenchActor actor) {
+        return workspaceAllowedActions(access, actor, null);
+    }
+    private Set<String> workspaceAllowedActions(TaskAccess access, TaskWorkbenchActor actor, TaskRead read) {
         if (access.project().getActivePlanVersionId() != null) {
             if (!"ACTIVE".equals(access.project().getLifecycleStatus())
-                    || !hasPermission(actor.actorId(), "pms:project-plan:manage")) return Set.of();
+                    || !(read == null ? hasPermission(actor.actorId(), "pms:project-plan:manage")
+                    : read.permission("pms:project-plan:manage"))) return Set.of();
+            if (read != null) return read.scope(ProjectScopeApi.ACTION_EDIT) ? Set.of("MANAGE_PLAN") : Set.of();
             var scope = projectTreeScopeService.resolve(new ProjectScopeQuery(actor.tenantId(), actor.actorId(),
                     access.project().getId(), ProjectScopeApi.ACTION_EDIT, access.projectTreeVersion()));
             return scope.visibility(access.project().getId()) == ProjectTreeScopeService.Visibility.FULL
                     ? Set.of("MANAGE_PLAN") : Set.of();
         }
-        if (!activeProjectManagerWithManageScope(access, actor)
-                || !hasPermission(actor.actorId(), "pms:project-task:create")) return Set.of();
+        if (!activeProjectManagerWithManageScope(access, actor, read)
+                || !(read == null ? hasPermission(actor.actorId(), "pms:project-task:create")
+                : read.permission("pms:project-task:create"))) return Set.of();
         return Set.of("CREATE");
     }
 
     private Set<String> workbenchAllowedActions(TaskAndAccess value, Set<String> bindingActions,
                                                 TaskWorkbenchActor actor) {
+        return workbenchAllowedActions(value, bindingActions, actor, null);
+    }
+    private Set<String> workbenchAllowedActions(TaskAndAccess value, Set<String> bindingActions,
+                                                TaskWorkbenchActor actor, TaskRead read) {
         Set<String> actions = new HashSet<>(bindingActions);
-        if (!activeProjectManagerWithManageScope(value.access(), actor)
+        if (!activeProjectManagerWithManageScope(value.access(), actor, read)
                 || Set.of("DONE", "CLOSED").contains(value.task().getStatus())) return Set.copyOf(actions);
-        if (hasPermission(actor.actorId(), "pms:project-task:update")) actions.add("UPDATE");
+        java.util.function.Predicate<String> permission = code -> read == null ? hasPermission(actor.actorId(), code) : read.permission(code);
+        if (permission.test("pms:project-task:update")) actions.add("UPDATE");
         if (value.access().project().getActivePlanVersionId() == null
-                && hasPermission(actor.actorId(), "pms:project-task:move")) actions.add("MOVE");
-        if (hasPermission(actor.actorId(), "pms:project-task:assign")) actions.add("ASSIGN");
+                && permission.test("pms:project-task:move")) actions.add("MOVE");
+        if (permission.test("pms:project-task:assign")) actions.add("ASSIGN");
         return Set.copyOf(actions);
     }
 
     private boolean activeProjectManagerWithManageScope(TaskAccess access, TaskWorkbenchActor actor) {
+        return activeProjectManagerWithManageScope(access, actor, null);
+    }
+    private boolean activeProjectManagerWithManageScope(TaskAccess access, TaskWorkbenchActor actor, TaskRead read) {
         if (!access.projectManager() || !"ACTIVE".equals(access.project().getLifecycleStatus())) return false;
+        if (read != null) return read.scope(ProjectScopeApi.ACTION_MANAGE);
         ProjectTreeScopeService.ProjectTreeScope scope = projectTreeScopeService.resolve(new ProjectScopeQuery(
                 actor.tenantId(), actor.actorId(), access.project().getId(), ProjectScopeApi.ACTION_MANAGE,
                 access.projectTreeVersion()));
@@ -444,6 +536,6 @@ public class ProjectTaskQueryService {
     private record Cursor(Integer sortOrder, Long taskId) {}
     private record TaskAccess(ProjectMasterDO project, TaskVisibilityQuery visibilityQuery,
                               boolean fullProjectAccess, Set<Long> fullTaskIds, boolean projectManager,
-                              long projectTreeVersion) {}
+                              long projectTreeVersion, boolean superAdmin, List<ProjectMemberAssignmentDO> memberships) {}
     private record TaskAndAccess(ProjectTaskInstanceDO task, TaskAccess access) {}
 }

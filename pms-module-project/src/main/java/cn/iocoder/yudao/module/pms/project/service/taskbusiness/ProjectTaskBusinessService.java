@@ -105,8 +105,25 @@ public class ProjectTaskBusinessService {
 
     public TaskBusinessContext getContext(Long taskId, Long tenantId, Long actorId, String correlationId) {
         var task = access.read(taskId, tenantId, actorId);
-        var ctx = new Context(tenantId, actorId, task.getProjectId(), taskId, correlationId);
-        var contract = linkMapper.selectCurrentContract(query(ctx));
+        var unbound = new Context(tenantId, actorId, task.getProjectId(), taskId, correlationId);
+        var contract = linkMapper.selectCurrentContract(query(unbound));
+        var ctx = contract == null ? unbound : unbound.withBindingParameters(contract.getBindingParameterSnapshot());
+        return readContext(task, ctx, contract, null, null);
+    }
+
+    public TaskBusinessContext open(cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService.TaskRead read,
+            cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution) {
+        var actor = read.actor();
+        read.requireCaller(cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId(),
+                cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId());
+        var ctx = new Context(actor.tenantId(), actor.actorId(), read.project().getId(), read.task().getId(), actor.correlationId());
+        if (read.contract() != null) ctx = ctx.withBindingParameters(read.contract().getBindingParameterSnapshot());
+        return readContext(read.task(), ctx, read.contract(), read, execution);
+    }
+
+    private TaskBusinessContext readContext(ProjectTaskInstanceDO task, Context ctx, ProjectTaskExecutionContractDO contract,
+            cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskQueryService.TaskRead read,
+            cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext initialExecution) {
         TaskBusinessBinding binding = null;
         try {
             requireContract(contract, ctx);
@@ -115,6 +132,7 @@ public class ProjectTaskBusinessService {
             var rows = linkMapper.selectActive(query(ctx));
             rows.forEach(row -> requireLink(row, ctx, contract));
             var objectIds = rows.stream().map(ProjectTaskBusinessLinkDO::getObjectId).distinct().toList();
+            // Opening supplies execution/binding facts. The module owns its page reads for every entry.
             var inspection = provider.inspectContextAndObjects(ctx, objectIds);
             if (inspection == null) throw failure("OWNER_FACT_INVALID");
             var objects = new HashMap<String, BusinessObjectFact>();
@@ -125,9 +143,10 @@ public class ProjectTaskBusinessService {
             }
             var facts = inspectRows(ctx, contract, rows, row -> objects.get(row.getObjectId()));
             String reason = binding.unavailableReason();
-            var execution = executionContext(ctx, contract);
+            var execution = read == null ? executionContext(ctx, contract) : initialExecution;
             boolean writable = reason == null && !"READ_ONLY_AGGREGATE".equals(binding.instanceResolutionStrategy())
-                    && access.writable(task, access.project(task.getProjectId()), ctx) && execution != null && execution.writable();
+                    && (read == null ? access.writable(task, access.project(task.getProjectId()), ctx) : read.permitted("pms:project-task:update"))
+                    && execution != null && execution.writable();
             Set<String> actions = Set.of();
             Set<String> ownerActions = inspection.allowedActions();
             BusinessViewRevision view = null;
@@ -170,9 +189,10 @@ public class ProjectTaskBusinessService {
         var binding = TaskBusinessBinding.parse(locked.contract());
         var provider = registry.require(binding.ownerContext(), binding.objectType());
         var rows = linkMapper.selectActiveForUpdate(query(ctx));
-        var before = inspectRows(ctx, locked.contract(), rows, provider, false);
+        var scoped = ctx.withBindingParameters(locked.contract().getBindingParameterSnapshot());
+        var before = inspectRows(scoped, locked.contract(), rows, provider, false);
         if (!expectedFactVersion.equals(before.factVersion())) throw failure("FACT_VERSION_CONFLICT");
-        var result = inspectRows(ctx, locked.contract(), rows, provider, true);
+        var result = inspectRows(scoped, locked.contract(), rows, provider, true);
         if (!expectedFactVersion.equals(result.factVersion())) throw failure("FACT_VERSION_CONFLICT");
         return result;
     }
@@ -246,9 +266,10 @@ public class ProjectTaskBusinessService {
         if (linkId != null && existing == null) throw failure("LINK_NOT_ACTIVE");
         String target = linkId == null ? objectId : existing.getObjectId();
         String action = linkId == null ? "LINK" : "UNLINK";
-        BusinessObjectFact inspected = validateFact(provider.inspect(ctx, target), target);
+        var scoped = ctx.withBindingParameters(locked.contract().getBindingParameterSnapshot());
+        BusinessObjectFact inspected = validateFact(provider.inspect(scoped, target), target);
         requireAction(inspected, action);
-        BusinessObjectFact fact = validateFact(provider.lockAndRevalidate(ctx, target, inspected.factVersion()), target);
+        BusinessObjectFact fact = validateFact(provider.lockAndRevalidate(scoped, target, inspected.factVersion()), target);
         if (!inspected.factVersion().equals(fact.factVersion())) throw failure("FACT_VERSION_CONFLICT");
         requireAction(fact, action);
         if (linkId == null && existing != null)
@@ -281,7 +302,7 @@ public class ProjectTaskBusinessService {
         var contract = linkMapper.selectCurrentContract(query(ctx));
         requireContract(contract, ctx);
         var binding = TaskBusinessBinding.parse(contract);
-        return new ReadState(ctx, contract, binding, registry.require(binding.ownerContext(), binding.objectType()));
+        return new ReadState(ctx.withBindingParameters(contract.getBindingParameterSnapshot()), contract, binding, registry.require(binding.ownerContext(), binding.objectType()));
     }
 
     private Locked lock(Context ctx) {
@@ -380,7 +401,8 @@ public class ProjectTaskBusinessService {
                 c == null ? null : c.getContractVersion(), c == null ? null : c.getTargetContextCode(),
                 c == null ? null : c.getTargetObjectType(), c == null ? null : c.getComponentKey(),
                 b == null ? null : b.businessViewRevisionId(), b == null ? null : b.instanceResolutionStrategy(),
-                links, actions, error, factVersion, ownerActions, businessView, executionAllowed, execution);
+                links, actions, error, factVersion, ownerActions, businessView, executionAllowed, execution,
+                b == null ? null : JsonUtils.parseTree(c.getBindingParameterSnapshot()));
     }
     private BusinessViewRevision historicalView(TaskBusinessBinding binding) {
         var view = businessViews.getRevision(new BusinessViewQueryApi.Query(binding.businessViewRevisionId(),

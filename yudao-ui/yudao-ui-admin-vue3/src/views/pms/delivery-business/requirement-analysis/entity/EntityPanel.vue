@@ -78,7 +78,6 @@ import RequirementBriefingSection from './RequirementBriefingSection.vue'
 import RevisionDrawer from './RevisionDrawer.vue'
 import CompareDrawer from './CompareDrawer.vue'
 import { stableCommandIntent } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
-import { takeTaskViewPrefetch, requirementWorkspaceKey } from '@/views/pms/project/project-master-detail/taskViewPrefetch'
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
@@ -220,11 +219,7 @@ const load = async () => {
   detailLoading.value = true
   errorText.value = ''
   try {
-    // 命中任务办理路径的点击时刻预取（键与本 workspace 实参严格一致）；未命中照常直查。
-    const prefetched = takeTaskViewPrefetch<Workspace>(
-      requirementWorkspaceKey(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId))
-    const current = await (prefetched
-      ?? RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId))
+    const current = await RequirementAnalysisApi.workspace(projectId, props.stageExecution?.stageId, props.taskExecution?.taskId)
     if (sequence !== loadSequence) return
     const value = await readWorkspaceDetail(current, revisionId, projectId)
     if (sequence !== loadSequence) return

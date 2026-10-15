@@ -630,7 +630,7 @@ export const getProjectPage = (params: ProjectPageParams) =>
   request.get<{ list: ProjectMasterVO[]; total: number }>({ url: `${baseUrl}/page`, params })
 
 /** 项目详情（基本信息+四维+模板绑定） */
-export const getProject = (id: number) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
+export const getProject = (id: number | string) => request.get<ProjectMasterVO>({ url: `${baseUrl}/${id}` })
 
 export const classifyProject = (
   id: number,
@@ -667,7 +667,7 @@ export const updateProject = (data: {
 }) => request.put<boolean>({ url: `${baseUrl}/${data.id}`, data })
 
 /** 实例视图（按冻结模板版本只读） */
-export const getProjectInstances = (id: number) =>
+export const getProjectInstances = (id: number | string) =>
   request.get<ProjectInstancesVO>({ url: `${baseUrl}/${id}/instances` })
 
 /** 当前阶段准出门禁与相邻阶段推进准备度 */

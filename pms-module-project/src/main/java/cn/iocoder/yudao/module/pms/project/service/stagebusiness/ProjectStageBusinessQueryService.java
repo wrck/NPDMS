@@ -64,7 +64,7 @@ public class ProjectStageBusinessQueryService {
             if ("STAGE_NATIVE".equals(contract.getBindingType())) {
                 return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
                         contract.getBindingVersion(), contract.getBindingType(), null, null, null,
-                        Set.of(), true, null, null, null);
+                        Set.of(), true, null, null, null, null);
             }
             if ("PAGE".equals(contract.getBindingType())) {
                 // PAGE 只冻结导航入口：路由取自绑定参数，不承载Owner业务目标，也不产生完成事实。
@@ -75,7 +75,7 @@ public class ProjectStageBusinessQueryService {
                 boolean readonly = !"ACTIVE".equals(project.getLifecycleStatus()) || !"ACTIVE".equals(stage.getStatus());
                 return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(),
                         contract.getBindingVersion(), contract.getBindingType(), routePath, null, null,
-                        Set.of("QUERY"), readonly, null, null, null);
+                        Set.of("QUERY"), readonly, null, null, null, null);
             }
             if ("APPROVAL".equals(contract.getBindingType())) {
                 var execution = executions.inspectStage(new ProjectStageExecutionQuery(projectId, stage.getId(), contract.getId()));
@@ -88,7 +88,7 @@ public class ProjectStageBusinessQueryService {
                         contract.getBindingVersion(), contract.getBindingType(), null, null, null,
                         readonly ? Set.of("QUERY") : Set.of("QUERY", "APPROVAL"), readonly,
                         approval.current().outcome() == cn.iocoder.yudao.module.pms.project.api.approval.ProjectNodeApprovalApi.Outcome.UNKNOWN
-                                ? approval.current().reason() : null, execution, approval);
+                                ? approval.current().reason() : null, execution, approval, null);
             }
             if (binding == null || binding.getBusinessViewSnapshot() == null)
                 return unavailable(projectId, stageCode, stage, contract, "VIEW_NOT_FROZEN");
@@ -128,7 +128,8 @@ public class ProjectStageBusinessQueryService {
                     || execution == null || !execution.writable();
             return new StageBusinessContext(projectId, stage.getId(), stageCode, contract.getId(), contract.getBindingVersion(),
                     contract.getBindingType(), null, strategy, view, readonly ? Set.of("QUERY") : result.allowedActions(), readonly,
-                    execution == null && "ACTIVE".equals(stage.getStatus()) ? "STAGE_EXECUTION_UNAVAILABLE" : null, execution, null);
+                    execution == null && "ACTIVE".equals(stage.getStatus()) ? "STAGE_EXECUTION_UNAVAILABLE" : null, execution, null,
+                    binding.getParameters());
         } catch (RuntimeException unavailable) {
             return unavailable(projectId, stageCode, stage, contract, "STAGE_BINDING_UNAVAILABLE");
         }
@@ -155,6 +156,6 @@ public class ProjectStageBusinessQueryService {
             ProjectStageExecutionContractDO contract, String reason) {
         return new StageBusinessContext(projectId, stage == null ? null : stage.getId(), code,
                 contract == null ? null : contract.getId(), contract == null ? null : contract.getBindingVersion(),
-                contract == null ? null : contract.getBindingType(), null, null, null, Set.of(), true, reason, null, null);
+                contract == null ? null : contract.getBindingType(), null, null, null, Set.of(), true, reason, null, null, null);
     }
 }

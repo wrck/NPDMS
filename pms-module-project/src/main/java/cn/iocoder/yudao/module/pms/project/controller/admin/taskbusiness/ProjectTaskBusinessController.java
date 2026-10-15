@@ -31,6 +31,15 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 public class ProjectTaskBusinessController {
     private final ProjectTaskBusinessService service;
     private final Environment environment;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskOpeningQueryService openingQueries;
+
+    @GetMapping("/opening")
+    @PreAuthorize("@ss.hasPermission('pms:project-task:query')")
+    public CommonResult<cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskOpeningQueryService.Opening> opening(@PathVariable @Positive Long taskId) {
+        return trustedTenant(() -> success(openingQueries.open(taskId,
+                new cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor(tenant(), actor(), correlation()))));
+    }
 
     @GetMapping("/context")
     @PreAuthorize("@ss.hasPermission('pms:project-task:query')")

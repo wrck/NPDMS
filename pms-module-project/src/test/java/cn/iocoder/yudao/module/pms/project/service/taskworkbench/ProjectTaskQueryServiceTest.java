@@ -422,6 +422,57 @@ class ProjectTaskQueryServiceTest {
         verifyNoInteractions(admission);
     }
 
+    @Test void openingSharesTaskScopeAssignmentAndPermissionReadsButNextOpeningReauthorizes() {
+        stubProjectScope(true);
+        projectMapper.selectById(100L).setActivePlanVersionId(50L);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        var contract = new ProjectTaskExecutionContractDO();
+        contract.setId(91L); contract.setTenantId(0L); contract.setProjectTaskId(11L);
+        contract.setWorkBindingTypeCode("BUSINESS_COMPONENT"); contract.setContractVersion(1);
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:query")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:update")).thenReturn(true);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-plan:manage")).thenReturn(true);
+        org.mockito.Mockito.clearInvocations(projectMapper);
+        var read = service.openTaskRead(11L, actor());
+        assertTrue(service.getWorkspace(read).getAllowedActions().contains("MANAGE_PLAN"));
+        assertTrue(service.openingWorkbench(read, new TaskBindingInspection("BUSINESS_COMPONENT", Set.of(), "v1", null))
+                .getAllowedActions().contains("UPDATE"));
+        assertTrue(read.permitted("pms:project-task:update"));
+        assertTrue(read.scope(ProjectScopeApi.ACTION_MANAGE));
+        verify(taskMapper).selectTask(any()); verify(projectMapper).selectById(100L);
+        verify(memberMapper).selectActiveByUser(any()); verify(assignmentMapper).selectCurrent(any());
+        verify(contractMapper).selectCurrentByTaskId(11L);
+        verify(permissionApi).hasAnyPermissions(9L, "pms:project-task:update");
+        verify(projectTreeScopeService).resolve(argThat(query -> ProjectScopeApi.ACTION_EDIT.equals(query.actionCode())));
+        verify(projectTreeScopeService).resolve(argThat(query -> ProjectScopeApi.ACTION_MANAGE.equals(query.actionCode())));
+        verifyNoInteractions(bindingRegistry);
+        assertThrows(RuntimeException.class, () -> read.requireCaller(0L, 10L));
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:query")).thenReturn(false);
+        assertThrows(RuntimeException.class, () -> service.openTaskRead(11L, actor()));
+    }
+
+    @Test void openingRejectsForeignContractBeforeReturningAnyProjection() {
+        stubProjectScope(true);
+        when(taskMapper.selectTask(any())).thenReturn(task(11L, null, 0));
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:query")).thenReturn(true);
+        var contract = new ProjectTaskExecutionContractDO(); contract.setTenantId(2L); contract.setProjectTaskId(11L);
+        when(contractMapper.selectCurrentByTaskId(11L)).thenReturn(contract);
+        assertThrows(RuntimeException.class, () -> service.openTaskRead(11L, actor()));
+        verifyNoInteractions(assignmentMapper, bindingRegistry, deliverableInitializationApplicationService);
+    }
+
+    @Test void openingRejectsTaskIdentityMismatchBeforeReadingItsContract() {
+        stubProjectScope(true);
+        var foreign = task(11L, null, 0); foreign.setTenantId(2L);
+        when(taskMapper.selectTask(any())).thenReturn(foreign);
+        when(permissionApi.hasAnyPermissions(9L, "pms:project-task:query")).thenReturn(true);
+        assertThrows(RuntimeException.class, () -> service.openTaskRead(11L, actor()));
+        foreign.setTenantId(0L); foreign.setId(12L);
+        assertThrows(RuntimeException.class, () -> service.openTaskRead(11L, actor()));
+        verifyNoInteractions(contractMapper, assignmentMapper, bindingRegistry);
+    }
+
     private void stubProjectRecord() {
         ProjectMasterDO project = new ProjectMasterDO();
         project.setId(100L);
