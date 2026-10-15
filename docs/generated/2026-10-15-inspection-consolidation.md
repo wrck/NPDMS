@@ -1,6 +1,6 @@
 # 巡检专项实现与验证记录
 
-记录日期：2026-10-15。状态：独立巡检的管理员模拟在线、离线及在线失败转离线闭环已完成真实浏览器验收，Task2/3/4均已归档；普通工程师/服务经理正向及正式权威产品资料仍有缺口。旧巡检专用源码已退出，用户批准按预览执行后，186行旧数据清理、16项菜单退休及三项迁移已完成，姓名展示及退休源码冻结包已部署；最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级受并行CRM schema缺口阻断。本文保留过程和失败证据，不替代PRD或完整业务验收结论。
+记录日期：2026-10-15。状态：独立巡检的管理员模拟在线、离线及在线失败转离线闭环已完成真实浏览器验收，Task2/3/4均已归档；普通工程师/服务经理正向及正式权威产品资料仍有缺口。旧巡检专用源码已退出，用户批准按预览执行后，186行旧数据清理、16项菜单退休及三项迁移已完成，姓名展示及退休源码冻结包已部署；最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级经后续V479补齐已恢复，复验见续记。本文保留过程和失败证据，不替代PRD或完整业务验收结论。 后续用户扩大授权后，旧维保30行和空旧服务父目录亦已清理，新业务28表保持；该轮最终浏览器复核通过，见清理续记。
 
 来源：[用户批准范围及六份资料对应表](../superpowers/plans/2026-10-15-inspection-special.md)、[PRD V1.8第11章](../baseline/prd-v1.8.md#第十一章-巡检服务模块功能需求)和同目录011～013修订。逐命令运行策略已按用户后续明确指示收口为整批下发、现有整体超时；保留原规则配置和历史，不新增逐命令执行机制。未修改正式PRD。
 
@@ -17,7 +17,7 @@
 | 反馈 | 误报列表、同规则版本统计、明细权限、有效性确认、Excel/CSV快照导出及规则缺失反馈；优化仅创建新草稿。导出保留所选标注/确认版本及当时有效性，不随之后的确认或报告替换变化。 |
 | 文件与治理 | 普通附件使用PLT文件能力，客户获准证明可选。报告/日志/证据冻结后禁止替换，归档任务只读。PM-10的INSPECTION提供方改查新任务及未闭环问题，包括已取消任务仍未处置的问题，不推进项目流程。已批准旧数据清理后，客户引用守卫仅查新模型，取消或删除的历史任务仍计数。 |
 
-新入口为 `/pms/inspection/workbench`、`/pms/inspection/tasks`、`/pms/inspection/tasks/:taskId`、`/pms/inspection/rules`。新业务接口及跨Owner扩展见 [API设计的巡检专项契约](../design/10-api-design.md)。旧 `/pms/srv-*` 专用前后端源码及共享页面旧引用已退出；最终冻结包已部署，16项旧菜单已退休，六表186行已按批准预览清理；最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级受并行CRM schema缺口阻断。
+新入口为 `/pms/inspection/workbench`、`/pms/inspection/tasks`、`/pms/inspection/tasks/:taskId`、`/pms/inspection/rules`。新业务接口及跨Owner扩展见 [API设计的巡检专项契约](../design/10-api-design.md)。旧 `/pms/srv-*` 专用前后端源码及共享页面旧引用已退出；最终冻结包已部署，16项旧菜单已退休，六表186行已按批准预览清理；最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级经后续V479补齐已恢复，复验见续记。
 
 ## 迁移与初始化
 
@@ -197,7 +197,7 @@ PDF分页修复通过11项定向测试后，完整受控构建用时2分23秒、
 
 证据为`.run/build/inspection-browser-acceptance/cut-reuse/online-and-fallback-final-summary.json`、`task3-archived-final-detail.json`和`task4-archived-final-detail.json`。本机SSH fixture共执行两条`show version`，进程17088已正常停止且密码清除，见`ssh-fixture-stopped.json`；这些是明确模拟输入，不是真实生产设备验收。独立只读复核`final-acceptance-readonly.json`确认16个报告文件均匹配PLT精确版本，CUS来源一致，CUT原项目、经理、设备、任务、闭环及设备范围六组字段全保持，当前CUT项目PM-10未闭环问题和非终态巡检任务均为0。
 
-源码退出已清理旧54个后端、8个前端专用文件、共享详情旧面板及8个旧字典常量，维保和服务等级常量保留。姓名字段和显示已随最终冻结包部署，最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级受并行CRM schema缺口阻断。29项Java/MySQL定向检查通过（问题15、查询7、治理6、MySQL1）；前端3新文件Prettier、5文件ESLint、3个SFC编译和本地imports解析通过，HEAD旧共享文件对照ESLint亦通过。巡检目录没有既有Vitest用例，不能计为测试通过；历史迁移保护脚本2项通过。证据见`.run/build/inspection-retirement-inventory/frontend-final-validation.*`，未执行全量Vite构建或全局vue-tsc。
+源码退出已清理旧54个后端、8个前端专用文件、共享详情旧面板及8个旧字典常量，维保和服务等级常量保留。姓名字段和显示已随最终冻结包部署，最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级经后续V479补齐已恢复，复验见续记。29项Java/MySQL定向检查通过（问题15、查询7、治理6、MySQL1）；前端3新文件Prettier、5文件ESLint、3个SFC编译和本地imports解析通过，HEAD旧共享文件对照ESLint亦通过。巡检目录没有既有Vitest用例，不能计为测试通过；历史迁移保护脚本2项通过。证据见`.run/build/inspection-retirement-inventory/frontend-final-validation.*`，未执行全量Vite构建或全局vue-tsc。
 
 16项菜单退休先在隔离事务验证首次16、重放0、维保4项不变及回滚fixture0，随后获批执行；详见下述最终结果。普通角色正向未验，模拟产品适配UI已验收，正式权威产品、DPtech规则包和UMC后置边界保留。
 
@@ -209,13 +209,13 @@ MAIN已全文及截图复核`cut-reuse/product-adaptation-final-summary.json`及
 
 执行前只读复核`cleanup-before-approval-readonly.json`确认源186行逐行等于备份，18个保护触发器、DDL及0外键不变。已批准预览的删除关联影响为：项目1001的客户更正引用守卫计数由旧3+新1共4变为1，1002～1010各由3变为0；现行新任务继续计入历史，不因清理旧表而排除。用户明确回复“批准按预览执行并完成部署验收”后，真实186行清理提交成功且18个保护触发器恢复，见`retirement-run-20261015T091048223607Z.json`。最终只读`retirement-final-readonly-verification.json`确认六表均0、18个定义原样、4项维保及角色/字典不变，新SRV、CUS、报告引用、PM-10逐字段不变，CUT六组一致。
 
-最终完整构建2分20秒成功、22项保护检查通过、ValidateOnly退出0，冻结清单`79cf3215-5869-4498-8bb5-5b95f033cfa1`；54个旧源码对应jar条目为0，8个新/共享保留条目均存在。首轮虽构建退出0，但构建中并行源码变化使冻结被拒（freezeExit1、无manifest、未运行ValidateOnly），原失败证据`retirement-final-freeze-first-status.json`保留。重试证据为`.run/build/inspection-deployment/retirement-final-freeze-status.json`、`retirement-final-freeze-retry1.log`和`retirement-final-validate.log`。获批后冻结包已受控部署：宿主52560 SUCCEEDED/exit0并退出，新后端42252固定local,dac、监听59191、health200，运行包b48d摘要与清单匹配，22项保护通过、锁释放；DAC8132、前端50732、网关38068保持。见`retirement-final-deployment-status.json`。最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级受并行CRM schema缺口阻断，实际浏览器证据见下段。
+最终完整构建2分20秒成功、22项保护检查通过、ValidateOnly退出0，冻结清单`79cf3215-5869-4498-8bb5-5b95f033cfa1`；54个旧源码对应jar条目为0，8个新/共享保留条目均存在。首轮虽构建退出0，但构建中并行源码变化使冻结被拒（freezeExit1、无manifest、未运行ValidateOnly），原失败证据`retirement-final-freeze-first-status.json`保留。重试证据为`.run/build/inspection-deployment/retirement-final-freeze-status.json`、`retirement-final-freeze-retry1.log`和`retirement-final-validate.log`。获批后冻结包已受控部署：宿主52560 SUCCEEDED/exit0并退出，新后端42252固定local,dac、监听59191、health200，运行包b48d摘要与清单匹配，22项保护通过、锁释放；DAC8132、前端50732、网关38068保持。见`retirement-final-deployment-status.json`。最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级经后续V479补齐已恢复，复验见续记，实际浏览器证据见下段。
 
-最终退休只读浏览器复核结果：六个旧GET返回HTTP200的JSON业务码404，新任务详情正向基线code0；四个旧页面显示平台404页，SPA导航HTTP仍为200。新workbench/tasks/rules查询均code0，各自菜单高亮且无loading。Task2/3/4仍ARCHIVED/v28、v33、v16，姓名JSON已复核。证据为`cut-reuse/final-retirement-six-old-api-get.json`、`final-retirement-four-old-pages.json`和`final-retirement-new-pages-summary.json`。CUS列表正常UI查询code0，共3条，对应Task2/3/4版本28/33/16；Task3来源深链刷新仍ARCHIVED/v33。客户列表正常，服务等级的单独500仍保留。最终证据为`.run/build/inspection-browser-acceptance/cut-reuse/final-retirement-browser-summary.json`、`final-retirement-customer-three-history.json`及`final-retirement-task3-final-stop.png`；MAIN已全文复核并目视最终Task3截图。
+最终退休只读浏览器复核结果：六个旧GET返回HTTP200的JSON业务码404，新任务详情正向基线code0；四个旧页面显示平台404页，SPA导航HTTP仍为200。新workbench/tasks/rules查询均code0，各自菜单高亮且无loading。Task2/3/4仍ARCHIVED/v28、v33、v16，姓名JSON已复核。证据为`cut-reuse/final-retirement-six-old-api-get.json`、`final-retirement-four-old-pages.json`和`final-retirement-new-pages-summary.json`。CUS列表正常UI查询code0，共3条，对应Task2/3/4版本28/33/16；Task3来源深链刷新仍ARCHIVED/v33。客户列表正常；17:21当时服务等级单独500的历史保留，后续恢复见续记。最终证据为`.run/build/inspection-browser-acceptance/cut-reuse/final-retirement-browser-summary.json`、`final-retirement-customer-three-history.json`及`final-retirement-task3-final-stop.png`；MAIN已全文复核并目视最终Task3截图。
 
-共享入口复核发现一个真实未通过项：服务等级列表`GET /admin-api/pms/service-level/page`返回HTTP200/业务码500，当前日志`.run/logs/satisfaction-manual-backend.log:4182`为`Unknown column 'erp_customer_code'`，调用链为CustomerQueryApiImpl→CustomerServiceLevelController:94。只读`parallel-crm-schema-gap-readonly.json`确认Flyway最大installed_rank为423、最新478.4，客户表尚无该列；该列来自同工作树并行CRM CustomerMasterDO改动，对应V479尚未应用，不在本次批准477.8/.9/478.4三脚本中。本次仅删除旧六表数据、未修改cus_customer_master；没有擅自应用V479或回滚并行源码。该共享入口未通过，需CRM任务完成其schema部署，不宣称已修复或旧功能全部正常。
+17:21当时共享入口复核发现一个真实未通过项：服务等级列表`GET /admin-api/pms/service-level/page`返回HTTP200/业务码500，当时日志`.run/logs/satisfaction-manual-backend.log:4182`为`Unknown column 'erp_customer_code'`，调用链为CustomerQueryApiImpl→CustomerServiceLevelController:94。只读`parallel-crm-schema-gap-readonly.json`确认Flyway最大installed_rank为423、最新478.4，客户表尚无该列；该列来自同工作树并行CRM CustomerMasterDO改动，对应V479尚未应用，不在本次批准477.8/.9/478.4三脚本中。本次仅删除旧六表数据、未修改cus_customer_master；没有擅自应用V479或回滚并行源码。该时点共享入口未通过，需CRM任务完成其schema部署；后续恢复见续记，不抹去该失败。
 
-旧project-detail的native项目页头“项目不存在”属于既有旧模型路径限制；旧巡检tab移除已验证，共享CUT子页code0并显示7条已归档记录。工作台状态首次采样瞬时opacity0，过渡结束后4标签均opacity1、宽49px、高20px、稳定可见，不作为缺陷。CUS列表及Task3来源深链刷新已通过最终复核；服务等级的单独失败仍按上段保留。
+旧project-detail的native项目页头“项目不存在”属于既有旧模型路径限制；旧巡检tab移除已验证，共享CUT子页code0并显示7条已归档记录。工作台状态首次采样瞬时opacity0，过渡结束后4标签均opacity1、宽49px、高20px、稳定可见，不作为缺陷。CUS列表及Task3来源深链刷新已通过最终复核；17:21的服务等级单独失败按上段保留，后续恢复见续记。
 
 ## 部署与仍待闭环事项
 
@@ -234,7 +234,19 @@ MAIN已全文及截图复核`cut-reuse/product-adaptation-final-summary.json`及
    用户随后明确要求“继续复用割接项目的负责人和验收用户”。割接已验证身份为admin办理发起人/服务经理、c02407办理二线、b00106办理研发；本次据此核对当前授权，不执行此前提出的fast/fcus临时角色和主服务经理替换方案。
    当前只读核实三者均启用：admin具有super_admin及SERVICE_MANAGER/PROJECT_MANAGER角色，且是目标项目有效主责负责人；c02407仅probSupporter，b00106仅probRD，均无巡检权限或目标项目成员关系，只有基础文件查询/预览/下载权限。证据为`cut-reuse/cut-actors-current-readonly.json`；文件基础权限不等于巡检对象访问资格。管理员正向办理不得标记为普通角色正向验收，另两账号的实际登录、查询拒绝及文件票据拒绝已通过上述复验。未改变账号权限或项目指派。
 3. 离线模拟任务2已完成创建、保存重开、失败恢复、四版报告及历史保留、标注/误报、PROCESS处理证据、问题闭环、申请/确认归档和客户历史，当前ARCHIVED/版本28/customerArchiveId1。无证据闭环曾被正确拒绝，旧上传槽过期及修复历史均保留；详见上述UI、文件逐字节及独立只读交叉证据。在线及在线失败转离线模拟闭环随后已完成，管理员正向办理不等于普通角色正向验收，也不代表正式生产资料和规则组合齐备。
-4. 用户批准预览后已完成旧54后端/8前端退出、六表186行真实清理、16项菜单退休、477.8/.9/478.4迁移和79cf冻结包部署；独立只读确认六表0、18触发器定义与新业务/CUT/维保保护均保持，最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级受并行CRM schema缺口阻断。备份及历史失败证据继续保留，未改现行规则、审计或已执行迁移原件。
+4. 用户批准预览后已完成旧54后端/8前端退出、六表186行真实清理、16项菜单退休、477.8/.9/478.4迁移和79cf冻结包部署；独立只读确认六表0、18触发器定义与新业务/CUT/维保保护均保持，最终只读复核已完成，巡检新旧入口、CUS及CUT通过；服务等级经后续V479补齐已恢复，复验见续记。备份及历史失败证据继续保留，未改现行规则、审计或已执行迁移原件。
 5. UMC真实对接及正式DPtech判定规则包按批准范围后置，不能把平台基础报告或配置示例表述为其完成。
 
 尚未执行Git提交或推送；保留工作树中既有CUT并行修改和用户临时文件。
+
+## 服务等级后续复验续记
+
+后续用户要求继续处理服务等级500时，只读核对发现并行会话已于20:44:12应用V479（installed_rank425、checksum1710823682、success1），原SQL与历史checksum一致；当前24306/npdms_domain_test的erp_customer_code已存在，为nullable varchar(50)，最新V480/rank426。证据为`.run/build/inspection-retirement-inventory/crm-service-level-schema-recheck.json`。该迁移不是本会话执行，本轮没有迁移、源码修改或重启。真实浏览器打开、刷新、第2页、标准筛选第1页、清空筛选及退出首页再重开均HTTP200/code0，总数24→标准8→24；原页1/页2各10条且ID无交集。首页10条客户名称齐全，原500恢复复验通过。证据为`.run/build/inspection-browser-acceptance/cut-reuse/crm-service-level-recheck-summary.json`；本轮0业务写、0迁移、0服务操作。部分历史行customerId1/2/3无名称，只读证据`.run/build/inspection-retirement-inventory/crm-service-level-missing-customers-readonly.json`确认cus_customer_master确实无这3个ID，不臆造客户或映射。旧GENERAL/IMPORTANT/STRATEGIC等级标签空白仅记录观察，未扩大本次500处理范围；不能据此宣称24条姓名均齐全或整个CRM验收通过。
+
+## 旧维保与空父目录后续清理续记
+
+用户后续明确授权清理旧父目录、残留页面及旧维保30行，保留新业务；这扩展了前述“旧维保不在删除范围”的历史边界。pms_srv_maintenance_retired的tenant1共30行已提交删除、当前0行，3个原保护触发器定义一致。此前ACL私有备份回读一致，隔离恢复、注入失败回滚、正常清理及3个保护恢复均通过。源码检查无旧维保页/API实现，旧巡检页面此前已退出；本轮未删新页面、未改业务代码或重启。
+
+新增`sql/migrations/V480_1__retire_empty_legacy_service_directory.sql`通过Compose Flyway仅应用480.1，退出0，默认validate419项通过。旧父目录19265已停用、隐藏并逻辑删除，其唯一role_menu逻辑删除，子菜单原样；28张新巡检、CUS历史及客户服务等级业务表全行指纹前后一致。菜单隔离验证使用原隔离schema的两张独立测试副本，仅替换表名，覆盖active child阻断、首次1+1、重放0+0及回滚fixture0；本轮自建空测试表随后删除。原隔离菜单已有目标ID，首次保护检查停止且未修改原种子，没有覆盖种子。
+
+证据位于`.run/build/maintenance-retirement/`：`retirement-batch-preview.json`、`retirement-batch-rehearsal.json`、`menu-isolated-validation.json`、`final-readonly-verification.json`及`migration-package/execution-result.json`。该轮最终浏览器复核通过：刷新权限后父目录19265及“巡检维保”消失，旧`/pms/service/srv-maintenance`显示平台404；新巡检工作台code0，Task3仍ARCHIVED/v33，服务级别code0/total24。证据为`.run/build/inspection-browser-acceptance/cut-reuse/maintenance-retirement-final-summary.json`，MAIN已读取摘要并目视截图；普通角色正向、正式产品/DPtech规则包与UMC边界仍保留，不代表整个新业务全面验收。
