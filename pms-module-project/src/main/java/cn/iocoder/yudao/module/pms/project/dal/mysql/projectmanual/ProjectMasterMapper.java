@@ -24,6 +24,9 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMasterMapper extends BaseMapperX<ProjectMasterDO> {
+    List<ProjectMasterDO> selectBusinessOptions(@Param("query")
+            cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessOptionsQuery query);
+
     default Long selectCountCustomerReferences(cn.iocoder.yudao.module.pms.project.dal.mysql.project.query.CustomerProjectReferenceQuery query) {
         return selectCount(new LambdaQueryWrapperX<ProjectMasterDO>()
                 .eq(ProjectMasterDO::getTenantId, query.tenantId()).eq(ProjectMasterDO::getCustomerId, query.customerId()));

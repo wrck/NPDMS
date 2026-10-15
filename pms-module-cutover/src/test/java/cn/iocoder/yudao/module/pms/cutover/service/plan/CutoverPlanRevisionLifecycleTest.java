@@ -54,6 +54,21 @@ import static org.mockito.Mockito.*;
 class CutoverPlanRevisionLifecycleTest {
 
     @Test
+    void userRevisionCopiesInvalidatedUnsubmittedDraftWithoutRequiringApproval() {
+        Fixture fixture = fixture("INVALIDATED", null, ApprovalStatus.PAUSED_SOURCE_INVALIDATED, "SOURCE_REPLACED");
+        fixture.source.setApprovalInstanceId(null); fixture.source.setApprovalVersion(null);
+        fixture.source.setInvalidationReasonCode("USER_REVISION");
+        var result = fixture.service.revise(new ReviseCutoverPlanCommand(1L, 8L, 50L, 6L, 601L,
+                "USER_REVISION", "user-revision-draft", "user-revision-draft"));
+        assertThat(result.revisionNo()).isEqualTo(2);
+        assertThat(fixture.derived.get().getSourcePlanRevisionId()).isEqualTo(601L);
+        assertThat(fixture.derived.get().getRevisionReasonCode()).isEqualTo("USER_REVISION");
+        assertThat(fixture.derived.get().getApprovalInstanceId()).isNull();
+        assertThat(fixture.source.getStatusCode()).isEqualTo("INVALIDATED");
+        assertThat(fixture.contents.get(fixture.derived.get().getId())).isEqualTo(fixture.contents.get(601L));
+    }
+
+    @Test
     void rejectedApprovalCreatesNextDraftWithoutOverwritingSource() {
         Fixture fixture = fixture("SUBMITTED", 1, ApprovalStatus.REJECTED, "APPROVAL_REJECTED");
 

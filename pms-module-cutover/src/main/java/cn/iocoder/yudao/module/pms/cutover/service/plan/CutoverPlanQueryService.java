@@ -90,7 +90,7 @@ public class CutoverPlanQueryService {
                     new CutoverPlanHistoryQuery(tenantId, task.getId()));
             if (history == null) return null;
             return history.reversed().stream().filter(plan -> "INVALIDATED".equals(plan.getStatusCode())
-                            && plan.getCurrentMarker() == null && positive(plan.getApprovalInstanceId())
+                            && plan.getCurrentMarker() == null && (positive(plan.getApprovalInstanceId()) || "USER_REVISION".equals(plan.getInvalidationReasonCode()))
                             && !hasDirectSuccessor(tenantId, task.getId(), plan.getId()))
                     .findFirst().orElse(null);
     }
@@ -135,7 +135,7 @@ public class CutoverPlanQueryService {
                 && "DRAFT".equals(plan.getStatusCode()) && (context.canSave() || context.canSubmit());
         boolean comparable = draftActionRequested && comparableSource(context, task, plan);
         boolean contentComplete = comparable && context.canSubmit() && approvalFactApi != null && complete(tenantId, plan);
-        boolean revisable = ownerP4 && editAllowed && plan != null && context.canSave() && approval != null
+        boolean revisable = ownerP4 && editAllowed && plan != null && context.canSave()
                 && canRevise(context, task, plan, approval);
         CutoverDashboardCandidate candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(),
                 task.getCurrentStage(), task.getTaskStatus(), task.getOwnerUserId(), actorId, task.getManualGrade());
@@ -146,6 +146,11 @@ public class CutoverPlanQueryService {
         var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
                 .p4(context.canCreate(), context.canSave(), context.canSubmit());
         List<String> actions = new ArrayList<>(ACTION_POLICY.allowedActions(candidate, facts, permissions));
+        if (ownerP4 && editAllowed && context.canCreate() && plan != null && plan.getCurrentMarker() == null
+                && "INVALIDATED".equals(plan.getStatusCode()) && "USER_REVISION".equals(plan.getInvalidationReasonCode())) actions.add("CREATE_DRAFT");
+        if ("NEW_PLATFORM".equals(task.getTaskOrigin()) && "P5".equals(task.getCurrentStage()) && "APPROVING".equals(task.getTaskStatus())
+                && Objects.equals(task.getOwnerUserId(), actorId) && editAllowed && context.canSave()
+                && approval != null && approval.status() == ApprovalStatus.PENDING) actions.add("WITHDRAW_APPROVAL");
         if (plan != null && "DRAFT".equals(plan.getStatusCode()) && context.canDownload()) actions.add("DOWNLOAD_DRAFT");
         return List.copyOf(actions);
     }
@@ -153,9 +158,13 @@ public class CutoverPlanQueryService {
     private boolean canRevise(CutoverPlanContext context, CutoverTaskDO task, CutoverPlanRevisionDO plan,
                               CutoverApprovalFact approval) {
         Long tenantId = context.tenantId(); Long actorId = context.actorId();
-        if (!positive(plan.getApprovalInstanceId()) || hasDirectSuccessor(tenantId, task.getId(), plan.getId())) {
+        if (hasDirectSuccessor(tenantId, task.getId(), plan.getId())) {
             return false;
         }
+        if ("INVALIDATED".equals(plan.getStatusCode()) && plan.getCurrentMarker() == null && "USER_REVISION".equals(plan.getInvalidationReasonCode())) {
+            return approval == null || approval.status() == ApprovalStatus.WITHDRAWN || approval.status() == ApprovalStatus.REJECTED;
+        }
+        if (approval == null) return false;
         if ("SUBMITTED".equals(plan.getStatusCode()) && Objects.equals(plan.getCurrentMarker(), 1)) {
             return approval.status() == ApprovalStatus.REJECTED;
         }

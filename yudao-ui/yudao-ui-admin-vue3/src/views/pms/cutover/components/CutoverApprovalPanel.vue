@@ -152,6 +152,7 @@ const writableContent = computed(() => {
 const statusLabels = {
   PENDING: '审批中',
   PAUSED_SOURCE_INVALIDATED: '来源失效暂停',
+  WITHDRAWN: '负责人已撤回',
   APPROVED: '已通过',
   REJECTED: '已驳回'
 }

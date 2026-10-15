@@ -39,23 +39,26 @@ public final class CutoverChecklistResponses {
         }
     }
 
+    @lombok.Builder
     public record CurrentResult(Integer resultVersion, String resultSourceCode, String answerSnapshot,
             String factDescription, String manualEvidenceFileReference, Long collectionTaskId,
-            Long collectionResultReferenceId, Long collectionResultVersion, String loadFailureCode) {
+            Long collectionResultReferenceId, Long collectionResultVersion, String loadFailureCode, String originalFailureCode) {
         public static CurrentResult from(CutoverChecklistView.CurrentResult value) {
             if (value == null) return null;
-            return new CurrentResult(value.resultVersion(), value.resultSourceCode(), value.answerSnapshot(),
-                    value.factDescription(), value.manualEvidenceFileReference(), value.collectionTaskId(),
-                    value.collectionResultReferenceId(), value.collectionResultVersion(), value.loadFailureCode());
+            return CurrentResult.builder().resultVersion(value.resultVersion()).resultSourceCode(value.resultSourceCode())
+                    .answerSnapshot(value.answerSnapshot()).factDescription(value.factDescription())
+                    .manualEvidenceFileReference(value.manualEvidenceFileReference()).collectionTaskId(value.collectionTaskId())
+                    .collectionResultReferenceId(value.collectionResultReferenceId()).collectionResultVersion(value.collectionResultVersion())
+                    .loadFailureCode(value.loadFailureCode()).originalFailureCode(value.originalFailureCode()).build();
         }
     }
 
     public record MatchingOptions(Long configurationRevisionId, Integer configurationRevisionNo, List<Option> cutoverTypes,
-            List<Option> networkModes, List<Option> deviceTypes, List<String> selectedDeviceTypeCodes) {
+            List<Option> networkModes, List<Option> deviceTypes, cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput matchingInput) {
         public static MatchingOptions from(CutoverChecklistMatchingOptions value) {
             if (value == null) return null;
             return new MatchingOptions(value.configurationRevisionId(), value.configurationRevisionNo(), value.cutoverTypes() == null ? null : value.cutoverTypes().stream().map(Option::from).toList(),
-                    value.networkModes() == null ? null : value.networkModes().stream().map(Option::from).toList(), value.deviceTypes() == null ? null : value.deviceTypes().stream().map(Option::from).toList(), value.selectedDeviceTypeCodes());
+                    value.networkModes() == null ? null : value.networkModes().stream().map(Option::from).toList(), value.deviceTypes() == null ? null : value.deviceTypes().stream().map(Option::from).toList(), value.matchingInput());
         }
     }
 

@@ -160,7 +160,17 @@ class CutoverChecklistPositiveLoopMySqlTest {
 
     @Test
     void completesP3GenerateDirectManualAndSubmitIntoP4WithRealTransactionAndMyBatis() {
-        ChecklistCommandResult generated = service.generate(new GenerateChecklistCommand(tenantId, ACTOR_ID, taskId, 2L, 1L, 7L, List.of(), Map.of(), "generate-loop", "corr-generate-loop"));
+        ChecklistCommandResult generated = service.generate(GenerateChecklistCommand.builder()
+                .tenantId(tenantId)
+                .actorId(ACTOR_ID)
+                .taskId(taskId)
+                .expectedTaskVersion(2L)
+                .expectedAssessmentVersion(1L)
+                .expectedProjectScopeVersion(7L)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("配置变更", "普通双机", List.of()))
+                .selectedConflictDefinitions(Map.of())
+                .idempotencyKey("generate-loop")
+                .correlationId("corr-generate-loop").build());
         ChecklistCommandResult saved = service.save(new SaveChecklistCommand(tenantId,
                 ACTOR_ID,
                 taskId,

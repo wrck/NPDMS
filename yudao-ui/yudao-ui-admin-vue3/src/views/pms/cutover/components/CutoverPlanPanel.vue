@@ -1,7 +1,7 @@
 <template>
   <section v-loading="loading" class="cutover-plan-panel">
     <el-alert title="使用在线模板编制割接方案，或上传已有完整方案。提交后冻结本次方案及引用信息供审批。" type="info" :closable="false" show-icon />
-    <template v-if="plan && plan.planRevisionId !== null">
+    <template v-if="plan && plan.planRevisionId !== null && !creatingReplacement">
       <section class="cut-card">
       <header class="cut-card__header plan-heading">
         <div>
@@ -69,6 +69,9 @@
           :loading="writing"
           @click="revise"
         >创建修订版</el-button>
+        <el-button v-if="!props.readonly && plan.allowedActions.includes('WITHDRAW_APPROVAL')" data-testid="withdraw-plan"
+          v-hasPermi="['pms:cutover-task:save-plan']" type="warning" :loading="writing" @click="withdraw">撤回审批并修订方案</el-button>
+        <el-button v-if="canCreate" data-testid="replace-invalidated-plan" :disabled="writing" @click="creatingReplacement = true">重新编制方案</el-button>
       </footer>
       <el-descriptions v-if="downloaded" :column="1" border class="download-result">
         <el-descriptions-item label="初稿文件"><PmsFileVersionReferenceList owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
@@ -153,6 +156,7 @@ const emit = defineEmits<{ changed: [] }>()
 const message = useMessage()
 const loading = ref(false)
 const writing = ref(false)
+const creatingReplacement = ref(false)
 const plan = ref<CutoverPlanView | null>(null)
 const draftContent = ref<WritableCutoverPlanContent | null>(null)
 const downloaded = ref<DownloadCutoverPlanDraftResult | null>(null)
@@ -162,7 +166,7 @@ const createFileReads = ref(0)
 const pendingUploads = computed(() => editorUploadPending.value || createFileReads.value > 0
   || !!createUploadRef.value && (createUploadRef.value.isBusy() || createUploadRef.value.hasPendingFile()))
 const visiblePlanActions = computed(() => plan.value?.allowedActions.some(action => action === 'DOWNLOAD_DRAFT'
-  || (!props.readonly && ['SAVE_DRAFT', 'SUBMIT_PLAN', 'REVISE_PLAN'].includes(action))))
+  || (!props.readonly && ['SAVE_DRAFT', 'SUBMIT_PLAN', 'REVISE_PLAN', 'WITHDRAW_APPROVAL', 'CREATE_DRAFT'].includes(action))))
 const createMode = ref<'ONLINE_TEMPLATE_STANDARD' | 'ONLINE_TEMPLATE_SIMPLE_D' | 'FULL_FILE_UPLOAD'>(
   props.manualGrade === 'D' ? 'ONLINE_TEMPLATE_SIMPLE_D' : 'ONLINE_TEMPLATE_STANDARD'
 )
@@ -182,7 +186,7 @@ const modeLabel = computed(() => ({
   FULL_FILE_UPLOAD: '完整方案文件'
 }[plan.value?.content?.editMode || 'ONLINE_TEMPLATE_STANDARD']))
 const approvalLabel = computed(() => ({
-  PENDING: '审批中', PAUSED_SOURCE_INVALIDATED: '来源变化，审批暂停', APPROVED: '审批通过', REJECTED: '审批驳回'
+  PENDING: '审批中', PAUSED_SOURCE_INVALIDATED: '来源变化，审批暂停', WITHDRAWN: '已撤回', APPROVED: '审批通过', REJECTED: '审批驳回'
 }[plan.value?.approvalFact?.status || 'PENDING']))
 const approvalTone = computed(() => plan.value?.approvalFact?.status === 'APPROVED'
   ? 'success'
@@ -194,6 +198,7 @@ const refresh = async () => {
   loading.value = true
   try {
     plan.value = await CutoverApi.getCutoverPlan(props.taskId)
+    creatingReplacement.value = false
     if (downloaded.value && (String(downloaded.value.planRevisionId) !== String(plan.value.planRevisionId)
       || downloaded.value.planVersion !== plan.value.planVersion)) downloaded.value = null
     const content = plan.value.content
@@ -337,10 +342,24 @@ const submit = async () => {
 }
 const revise = async () => {
   if (!plan.value?.planRevisionId) return
-  const reason = plan.value.status === 'INVALIDATED' ? 'SOURCE_REPLACED' : 'APPROVAL_REJECTED'
+  const reason = plan.value.status === 'INVALIDATED'
+    ? plan.value.approvalFact?.status === 'PAUSED_SOURCE_INVALIDATED' ? 'SOURCE_REPLACED' : 'USER_REVISION'
+    : 'APPROVAL_REJECTED'
   const result = await runIntent(`revise:${plan.value.planRevisionId}:${reason}`,
     (key) => CutoverApi.reviseCutoverPlan({ taskId: props.taskId, taskVersion: props.taskVersion, data: { sourcePlanRevisionId: plan.value!.planRevisionId!, reason }, idempotencyKey: key }))
   if (result) message.success('修订草稿已创建')
+}
+const withdraw = async () => {
+  if (!sourceSnapshot.value?.projectScopeVersion || !plan.value?.allowedActions.includes('WITHDRAW_APPROVAL')) return
+  let reason: string
+  try { reason = (await message.prompt('撤回将取消未完成的审批节点，保留已办意见，并生成新的方案草稿。请输入撤回原因。', '撤回审批')).value.trim() }
+  catch { return }
+  if (!reason || reason.length > 1000) { message.warning('请填写 1～1000 字的撤回原因'); return }
+  const command = { taskId: props.taskId, taskVersion: props.taskVersion, targetStage: 'P4' as const,
+    data: { expectedProjectScopeVersion: sourceSnapshot.value.projectScopeVersion, reason } }
+  if (await runIntent(JSON.stringify(['withdraw', command]), idempotencyKey => CutoverApi.reviseCutoverTask({ ...command, idempotencyKey }))) {
+    message.success('审批已撤回，方案修订草稿已创建')
+  }
 }
 const patchSupport = async (row: CutoverPlanSupportArrangement) => {
   if (!row.arrangementId || plan.value?.planVersion === null || plan.value?.planVersion === undefined) return

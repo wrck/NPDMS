@@ -201,7 +201,17 @@ class CutoverFullFlowMySqlTest {
         if ("D".equals(grade)) {
             p4 = new ChecklistCommandResult(created.taskId(), null, null, null, "SKIPPED", "P4", p3.version(), false);
         } else {
-        ChecklistCommandResult generated = checklistService.generate(new GenerateChecklistCommand(tenantId, ACTOR_ID, created.taskId(), p3.version(), assessment.assessmentVersion(), PROJECT_SCOPE_VERSION, List.of("FW"), Map.of(), "checklist-generate", "corr-checklist-generate"));
+        ChecklistCommandResult generated = checklistService.generate(GenerateChecklistCommand.builder()
+                .tenantId(tenantId)
+                .actorId(ACTOR_ID)
+                .taskId(created.taskId())
+                .expectedTaskVersion(p3.version())
+                .expectedAssessmentVersion(assessment.assessmentVersion())
+                .expectedProjectScopeVersion(PROJECT_SCOPE_VERSION)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("NETWORK_TOPOLOGY_CHANGE", "DUAL", List.of("FW")))
+                .selectedConflictDefinitions(Map.of())
+                .idempotencyKey("checklist-generate")
+                .correlationId("corr-checklist-generate").build());
         ChecklistCommandResult savedChecklist = checklistService.save(new SaveChecklistCommand(tenantId,
                 ACTOR_ID,
                 created.taskId(),

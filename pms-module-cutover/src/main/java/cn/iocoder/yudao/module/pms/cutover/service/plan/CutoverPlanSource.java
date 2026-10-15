@@ -103,6 +103,8 @@ public class CutoverPlanSource implements CutoverPlanSourcePort {
                 var result = byItem.get(item.getId());
                 var feedback = result == null ? null : resultStorage.feedback(result);
                 boolean failed = feedback != null ? Boolean.FALSE.equals(feedback.getCheckNormalFlag())
+                        || (feedback.getCheckNormalFlag() == null && "DUAL_MACHINE_CHECK".equals(item.getItemTypeCode())
+                            && Boolean.FALSE.equals(feedback.getExecutedFlag()))
                         : result != null && hasFailedDecision(JsonUtils.getObjectMapper().valueToTree(resultStorage.value(
                         new cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistResultStore.Read(item, result))));
                 if (failed) {

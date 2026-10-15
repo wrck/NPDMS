@@ -14,4 +14,5 @@ public interface CutoverAssessmentMapper extends BaseMapperX<CutoverAssessmentDO
     int updateDraftIfMatch(@Param("query") CutoverAssessmentDraftUpdate query);
     int submitIfMatch(@Param("query") CutoverAssessmentSubmitUpdate query);
     int deleteDraftDeviceFacts(@Param("query") CutoverAssessmentRowQuery query);
+    int invalidateForRevisionIfMatch(@Param("query") cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverRevisionInvalidationUpdate query);
 }

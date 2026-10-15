@@ -2,6 +2,7 @@ import { defineComponent, h, nextTick } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import CutoverTaskWorkbench from './index.vue'
 import CutoverTaskDetail from '../task-detail/index.vue'
+import CutoverTaskCreateRoute from '../task-create/route.vue'
 import {
   button,
   findByTestId,
@@ -20,16 +21,22 @@ const runtime = {
 
 const api = vi.hoisted(() => ({
   resolveCreateContext: vi.fn(),
+  resolveCreationDevices: vi.fn(),
+  searchCreationProjects: vi.fn(),
+  getCreationProject: vi.fn(),
   getCreationOptions: vi.fn(),
   createCutoverTask: vi.fn(),
   getCutoverDashboardKpis: vi.fn(),
   getCutoverTaskPage: vi.fn(),
   getCutoverTaskDetail: vi.fn(),
+  getCutoverRevisionOptions: vi.fn(),
+  reviseCutoverTask: vi.fn(),
   getCutoverApprovalTodos: vi.fn(),
   getCutoverApprovalReassignmentCandidates: vi.fn(),
   saveCutoverAssessment: vi.fn(),
   submitCutoverAssessment: vi.fn(),
   getCutoverChecklistMatchingOptions: vi.fn(),
+  getCutoverChecklistRevisions: vi.fn(),
   getCutoverExternalState: vi.fn(async () => null),
   getCutoverChecklist: vi.fn(),
   generateCutoverChecklist: vi.fn(),
@@ -115,10 +122,37 @@ const controls = {
   ElResult: passthrough,
   ElTable: passthrough,
   ElTableColumn: workbenchTableColumn,
-  ElDialog: passthrough
+  ElDialog: dialog
 }
 
 describe('CUT P1-P6 controlled UI integration', () => {
+  it('requires explicit configuration selection and a reason before creating a revision', async () => {
+    configureControlledApi()
+    runtime.stage = 'P4'
+    api.getCutoverTaskDetail.mockImplementation(async () => ({ ...taskDetail(), allowedActions: ['REVISE_CHECKLIST'] }))
+    api.getCutoverRevisionOptions.mockResolvedValue([{ revisionId: '42', code: 'CORE_STANDARD', name: '核心网标准配置', revisionNo: 3 }])
+    api.reviseCutoverTask.mockImplementation(async () => { runtime.stage = 'P3'; return {} })
+    const mounted = mount(CutoverTaskDetail, { taskId: '101' }, controls)
+    await flush()
+    await clickLabel(mounted.root, '调研及风险考察')
+    await flush()
+    await click(mounted.root, 'revise-current-step')
+    await flush()
+    expect(api.getCutoverRevisionOptions).toHaveBeenCalledWith('101')
+    expect(findByTestId(mounted.root, 'revision-configuration')?.props?.modelValue).toBe('')
+    expect(findByTestId(mounted.root, 'confirm-step-revision')?.props?.disabled).toBe(true)
+    expect(api.reviseCutoverTask).not.toHaveBeenCalled()
+    await update('revision-configuration', '42', mounted.root)
+    await update('revision-reason', '采用校正后的检查规则', mounted.root)
+    await click(mounted.root, 'confirm-step-revision')
+    await flush()
+    expect(api.reviseCutoverTask).toHaveBeenCalledWith(expect.objectContaining({ taskId: '101', targetStage: 'P3',
+      data: { expectedProjectScopeVersion: '12', reason: '采用校正后的检查规则', configurationRevisionId: '42' },
+      idempotencyKey: expect.any(String) }))
+    expect(runtime.stage).toBe('P3')
+    mounted.app.unmount()
+  })
+
   it('runs the existing mounted workbench components through one A-grade archived task', async () => {
     configureControlledApi()
     const mounted = mount(CutoverTaskWorkbench, {}, controls)
@@ -126,20 +160,21 @@ describe('CUT P1-P6 controlled UI integration', () => {
     await flush()
     await click(mounted.root, 'create-cutover-task')
     await flush()
-
-    await update('create-serials', ' sn-001 ', mounted.root)
-    await clickLabel(mounted.root, '解析项目')
-    await flush()
-    await update('create-project-candidates', '9007199254741001', mounted.root)
-    await clickLabel(mounted.root, '下一步')
-    await update('create-task-name', '核心网割接', mounted.root)
-    await update('create-background', '设备替换', mounted.root)
-    await update('create-cutover-type', 'CORE_REPLACEMENT', mounted.root)
-    await update('create-scheduled-time', '2026-09-03T10:00:00', mounted.root)
-    await clickLabel(mounted.root, '创建并进入 P2')
-    await flush()
-    expect(router.push).toHaveBeenLastCalledWith('/pms/cutover/tasks/101')
+    expect(router.push).toHaveBeenLastCalledWith('/pms/cutover/tasks/create')
     mounted.app.unmount()
+    const creation = mount(CutoverTaskCreateRoute, {}, controls)
+    await flush()
+    await update('create-serials', ' sn-001 ', creation.root)
+    await click(creation.root, 'resolve-create-serials')
+    await flush()
+    await update('create-task-name', '核心网割接', creation.root)
+    await update('create-background', '设备替换', creation.root)
+    await update('create-cutover-type', 'CORE_REPLACEMENT', creation.root)
+    await update('create-scheduled-time', '2026-09-03T10:00:00', creation.root)
+    await click(creation.root, 'submit-create-detail')
+    await flush()
+    expect(router.replace).toHaveBeenLastCalledWith('/pms/cutover/tasks/101')
+    creation.app.unmount()
     const detail = mount(CutoverTaskDetail, { taskId: '101' }, controls)
     await flush()
 
@@ -199,7 +234,8 @@ function configureControlledApi() {
   runtime.closureStatus = 'DRAFT'
   Object.values(api).forEach((mock) => mock.mockReset())
   router.push.mockClear()
-  api.getCutoverChecklistMatchingOptions.mockResolvedValue({ selectedDeviceTypeCodes: ['ROUTER'], deviceTypes: [{ code: 'ROUTER', label: '路由器' }] })
+  api.getCutoverChecklistRevisions.mockResolvedValue([])
+  api.getCutoverChecklistMatchingOptions.mockResolvedValue({ matchingInput: { cutoverType: 'CORE_REPLACEMENT', networkMode: null, deviceTypeCodes: ['ROUTER'] }, deviceTypes: [{ value: 'ROUTER', label: '路由器' }] })
   api.getCutoverExternalState.mockResolvedValue(null)
   api.getProjectContactChoices.mockResolvedValue([])
   api.getCreationOptions.mockResolvedValue([{ revisionId: '41', code: 'CORE_STANDARD', name: '核心网标准配置', revisionNo: 2, cutoverTypes: [{ value: 'CORE_REPLACEMENT', label: '核心替换' }], networkModes: [], deviceTypes: [{ value: 'ROUTER', label: '路由器' }] }])
@@ -209,6 +245,11 @@ function configureControlledApi() {
     trace.push('read:P1:owners')
     return createContext()
   })
+  api.searchCreationProjects.mockResolvedValue([])
+  api.getCreationProject.mockResolvedValue({ project: createContext().candidates[0].project, customerServiceLevel: 'GOLD' })
+  api.resolveCreationDevices.mockImplementation(async () => ({ context: createContext(), devices: [
+    { deviceId: '9007199254742001', serialNumber: 'SN-001', productCode: 'CODE-1', productModel: 'MODEL-1' }
+  ] }))
   api.createCutoverTask.mockImplementation(async () => {
     trace.push('write:P1:create')
     runtime.stage = 'P2'

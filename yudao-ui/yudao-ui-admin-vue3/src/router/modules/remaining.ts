@@ -46,6 +46,12 @@ const remainingRouter: AppRouteRecordRaw[] = [
       meta: { hidden: true, canTo: true, title: '项目割接范围覆盖', activeMenu: '/pms/cutover/workbench' } }]
   },
   {
+    path: '/pms/cutover/tasks/create', component: Layout, name: 'PmsCutoverTaskCreateRoot',
+    meta: { hidden: true },
+    children: [{ path: '', name: 'PmsCutoverTaskCreate', component: () => import('@/views/pms/cutover/task-create/route.vue'),
+      meta: { hidden: true, canTo: true, noCache: true, title: '新建割接任务', activeMenu: '/pms/cutover/tasks' } }]
+  },
+  {
     path: '/pms/cutover/tasks/:taskId', component: Layout, name: 'PmsCutoverTaskDetailRoot',
     meta: { hidden: true },
     children: [{ path: '', name: 'PmsCutoverTaskDetail', component: () => import('@/views/pms/cutover/task-detail/route.vue'),

@@ -2,14 +2,38 @@
   <section v-loading="loading" class="checklist-panel" aria-label="调研及风险考察">
     <el-alert title="按任务的割接类型、组网模式、设备类型及等级匹配清单。同页填写调研、风险和双机检查结果，提交后带入割接方案。" type="info" :closable="false" show-icon />
     <el-alert v-if="gapMessage" :title="gapMessage" type="warning" :closable="false" show-icon />
+    <el-alert v-if="historicalRevisionId" :title="`历史清单只读。${selectedRevision?.invalidatedReason ? `修订原因：${selectedRevision.invalidatedReason}` : ''}`" type="info" :closable="false" />
+    <el-alert v-else-if="revisions.some(row => row.status === 'INVALIDATED') && checklist?.status === 'DRAFT'"
+      title="历史填报和可复用材料已带入。设备采集、技术公告需按本次实施信息重新核验，原始结果可在历史清单查看。" type="info" :closable="false" />
     <section class="cut-card">
-      <header class="cut-card__header"><h3><Icon icon="ep:search" />割接信息采集</h3><small v-if="checklist">第 {{ checklist.checklistVersion }} 版，{{ checklist.status === 'DRAFT' ? '填写中' : '已提交' }}</small></header>
+      <header class="cut-card__header checklist-heading">
+        <h3><Icon icon="ep:search" />割接信息采集</h3>
+        <div class="checklist-version-info">
+          <small v-if="checklist">第 {{ checklist.checklistVersion }} 版，{{ checklist.status === 'DRAFT' ? '填写中' : checklist.status === 'INVALIDATED' ? '历史版本' : '已提交' }}</small>
+          <div v-if="revisions.length" class="checklist-revisions">
+            <label for="checklist-revision">清单版本</label>
+            <el-select id="checklist-revision" :model-value="selectedRevisionId" :disabled="loading || saving || submitting || rematching || externalBusy" @change="selectRevision">
+              <el-option label="当前版本" value="CURRENT" />
+              <el-option v-for="revision in revisions.filter(row => row.status === 'INVALIDATED')" :key="String(revision.checklistId)"
+                :value="String(revision.checklistId)" :label="`第 ${revision.checklistVersion} 版 · 历史只读`" />
+            </el-select>
+          </div>
+        </div>
+      </header>
       <div class="cut-card__body">
         <div class="matching-grid">
-          <div class="cut-form-field"><label>割接类型</label><span class="cut-form-value">{{ cutoverTypeLabel }}</span></div>
-          <div class="cut-form-field"><label>高可靠性组网模式</label><span class="cut-form-value">{{ networkModeLabel }}</span></div>
+          <div class="cut-form-field"><label for="checklist-cutover-type">割接类型<span class="cut-required"> *</span></label>
+            <el-select id="checklist-cutover-type" v-model="cutoverType" :disabled="matchingDisabled" placeholder="请选择割接类型">
+              <el-option v-for="option in matchingOptions?.cutoverTypes || []" :key="option.value" :label="option.label" :value="option.value" />
+            </el-select>
+          </div>
+          <div class="cut-form-field"><label for="checklist-network-mode">高可靠性组网模式</label>
+            <el-select id="checklist-network-mode" v-model="networkMode" :disabled="matchingDisabled" clearable placeholder="不涉及高可靠性组网">
+              <el-option v-for="option in matchingOptions?.networkModes || []" :key="option.value" :label="option.label" :value="option.value" />
+            </el-select>
+          </div>
           <div class="cut-form-field"><label for="checklist-device-types">设备类型<span class="cut-required"> *</span></label>
-            <el-select v-if="matchingOptions" id="checklist-device-types" v-model="deviceTypeCodes" multiple placeholder="请选择设备类型" :disabled="(!(canGenerate && !checklist) && !canRematch) || loading || generating || rematching || saving || submitting || externalBusy">
+            <el-select v-if="matchingOptions" id="checklist-device-types" v-model="deviceTypeCodes" multiple placeholder="请选择设备类型" :disabled="matchingDisabled">
               <el-option v-for="option in matchingOptions.deviceTypes" :key="option.value" :label="option.label" :value="option.value" />
             </el-select>
           </div>
@@ -20,18 +44,18 @@
           <el-button v-if="!checklist && canGenerate" type="primary" v-hasPermi="['pms:cutover-task:save-checklist']" :loading="generating" :disabled="!deviceTypeCodes.length || loading" @click="generate">生成清单</el-button>
           <el-button v-if="canRematch" v-hasPermi="['pms:cutover-task:save-checklist']" :loading="rematching" :disabled="!deviceTypeCodes.length || loading || saving || submitting || externalBusy" @click="rematch">重新匹配清单</el-button>
         </div>
-        <el-alert v-if="checklist && selectionChanged" title="设备类型选择尚未生效，请重新匹配后再提交。" type="warning" :closable="false" show-icon />
+        <el-alert v-if="checklist && selectionChanged && !historicalRevisionId" title="割接实施信息尚未生效，请重新匹配后再提交。" type="warning" :closable="false" show-icon />
       </div>
     </section>
     <template v-if="checklist">
-      <section v-if="externalState?.devices.length" class="cut-card">
+      <section v-if="deviceVersions.length" class="cut-card">
         <header class="cut-card__header"><h3>设备软件版本</h3><small>技术公告按每台设备的版本查询</small></header>
         <div class="cut-card__body">
           <el-table :data="deviceVersions" border>
             <el-table-column label="设备序列号" prop="sn" min-width="160" />
             <el-table-column label="设备型号" min-width="180"><template #default="{ row }"><el-input v-model="row.productModel" :disabled="readonly || !canSave || externalBusy" aria-label="设备型号" /></template></el-table-column>
             <el-table-column label="当前软件版本" min-width="180"><template #default="{ row }"><el-input v-model="row.currentSoftwareVersion" :disabled="readonly || !canSave || externalBusy" aria-label="当前软件版本" /></template></el-table-column>
-            <el-table-column v-if="detail.task.cutoverType === 'VERSION_UPGRADE'" label="目标软件版本" min-width="180"><template #default="{ row }"><el-input v-model="row.targetSoftwareVersion" :disabled="readonly || !canSave || externalBusy" aria-label="目标软件版本" /></template></el-table-column>
+            <el-table-column v-if="matchingOptions?.matchingInput.cutoverType === 'VERSION_UPGRADE'" label="目标软件版本" min-width="180"><template #default="{ row }"><el-input v-model="row.targetSoftwareVersion" :disabled="readonly || !canSave || externalBusy" aria-label="目标软件版本" /></template></el-table-column>
           </el-table>
           <p v-if="deviceVersionsDirty" class="cut-help">版本尚未保存。保存后，旧查询结果会保留，但须按新版本重新加载并核查。</p>
           <el-button v-if="!readonly && canSave" class="mt-12px" :disabled="!deviceVersionsDirty || saving || submitting" :loading="externalBusy" @click="saveVersions">保存设备版本</el-button>
@@ -109,6 +133,10 @@ const props = defineProps<{
 const emit = defineEmits<{ navigate: [target: CutoverNavigationTarget] }>()
 const message = useMessage()
 const checklist = ref<CutoverChecklistView | null>(null)
+const revisions = ref<CutoverApi.CutoverChecklistRevision[]>([])
+const selectedRevisionId = ref('CURRENT')
+const historicalRevisionId = computed(() => selectedRevisionId.value === 'CURRENT' ? undefined : selectedRevisionId.value)
+const selectedRevision = computed(() => revisions.value.find(row => String(row.checklistId) === historicalRevisionId.value))
 const externalState = ref<CutoverExternalState | null>(null)
 const deviceVersions = ref<CutoverChecklistDeviceVersion[]>([])
 const savedDeviceVersions = ref('')
@@ -117,6 +145,8 @@ const externalFeedbacks = reactive<Record<string, CutoverExternalFeedback[]>>({}
 const savedExternalFeedbacks = reactive<Record<string, string>>({})
 const deviceVersionsDirty = computed(() => JSON.stringify(deviceVersions.value) !== savedDeviceVersions.value)
 const matchingOptions = ref<CutoverChecklistMatchingOptions | null>(null)
+const cutoverType = ref(props.detail.task.cutoverType)
+const networkMode = ref(props.detail.task.networkMode || '')
 const deviceTypeCodes = ref<string[]>([])
 const frozenDeviceTypeCodes = ref<string[]>([])
 const rematching = ref(false)
@@ -140,15 +170,17 @@ const canRequestCollection = computed(() => hasAction('REQUEST_COLLECTION'))
 const canSubmit = computed(() => hasAction('SUBMIT_CHECKLIST'))
 const canExport = computed(() => checklist.value !== null
   && ['DRAFT', 'SUBMITTED'].includes(checklist.value.status))
-const readonly = computed(() => props.readonly || props.detail.task.currentStage !== 'P3'
+const readonly = computed(() => props.readonly || !!historicalRevisionId.value || props.detail.task.currentStage !== 'P3'
   || props.detail.task.manualGrade === 'D' || checklist.value?.status !== 'DRAFT')
 const canRematch = computed(() => !readonly.value && canSave.value)
-const selectionChanged = computed(() => JSON.stringify([...deviceTypeCodes.value].sort()) !== JSON.stringify([...frozenDeviceTypeCodes.value].sort()))
+const matchingDisabled = computed(() => (!(canGenerate.value && !checklist.value) && !canRematch.value)
+  || loading.value || generating.value || rematching.value || saving.value || submitting.value || externalBusy.value)
+const selectionChanged = computed(() => cutoverType.value !== (matchingOptions.value?.matchingInput.cutoverType ?? props.detail.task.cutoverType)
+  || (networkMode.value || null) !== (matchingOptions.value?.matchingInput.networkMode || null)
+  || JSON.stringify([...deviceTypeCodes.value].sort()) !== JSON.stringify([...frozenDeviceTypeCodes.value].sort()))
 const frozenTypeLabels = computed(() => frozenDeviceTypeCodes.value.map(code => matchingOptions.value?.deviceTypes.find(option => option.value === code)?.label || code).join('、'))
 const search = ref('')
 const applicableItems = computed(() => checklist.value?.items.filter((item) => item.applicable) || [])
-const cutoverTypeLabel = computed(() => matchingOptions.value?.cutoverTypes?.find(option => option.value === props.detail.task.cutoverType)?.label || props.detail.task.cutoverType || '未配置')
-const networkModeLabel = computed(() => matchingOptions.value?.networkModes?.find(option => option.value === props.detail.task.networkMode)?.label || props.detail.task.networkMode || '未配置')
 const itemSections = computed(() => [
   { code: 'BACKGROUND', label: '割接背景', icon: 'ep:document' },
   { code: 'BUSINESS_SURVEY', label: '业务调研项', icon: 'ep:edit' },
@@ -181,34 +213,40 @@ const load = async () => {
   const taskId = props.detail.task.id
   loading.value = true
   try {
-    const [options, current] = await Promise.all([
-      CutoverApi.getCutoverChecklistMatchingOptions(taskId),
-      CutoverApi.getCutoverChecklist(taskId).catch(error => {
+    const [options, current, history] = await Promise.all([
+      CutoverApi.getCutoverChecklistMatchingOptions(taskId, historicalRevisionId.value),
+      CutoverApi.getCutoverChecklist(taskId, historicalRevisionId.value).catch(error => {
         if (error?.response?.status === 404) return null
         message.error('调研清单加载失败，请刷新重试')
         throw error
-      })
+      }),
+      CutoverApi.getCutoverChecklistRevisions(taskId)
     ])
     if (sequence !== loadSequence) return
-    const external = current ? await CutoverApi.getCutoverExternalState(taskId) : null
+    const external = current ? await CutoverApi.getCutoverExternalState(taskId, historicalRevisionId.value) : null
     if (sequence !== loadSequence) return
     const changedChecklist = String(current?.checklistId) !== String(checklist.value?.checklistId)
-    const nextFrozenDeviceTypeCodes = current ? [...options.selectedDeviceTypeCodes] : []
+    const nextFrozenDeviceTypeCodes = current ? [...options.matchingInput.deviceTypeCodes] : []
     const frozenTypesChanged = JSON.stringify([...nextFrozenDeviceTypeCodes].sort()) !== JSON.stringify([...frozenDeviceTypeCodes.value].sort())
     matchingOptions.value = options
+    revisions.value = history
     checklist.value = current
     hydrateExternal(external)
     frozenDeviceTypeCodes.value = nextFrozenDeviceTypeCodes
-    if (changedChecklist || frozenTypesChanged) deviceTypeCodes.value = [...nextFrozenDeviceTypeCodes]
+    if (changedChecklist || frozenTypesChanged) {
+      deviceTypeCodes.value = [...nextFrozenDeviceTypeCodes]
+      cutoverType.value = options.matchingInput.cutoverType
+      networkMode.value = options.matchingInput.networkMode || ''
+    }
     hydrateAnswers()
     savedAnswers.value = JSON.stringify(answers)
   } finally {
     if (sequence === loadSequence) loading.value = false
   }
 }
-// 普通填报只更新结果及并发版本，避免重复加载匹配配置。
+// 普通填报只更新结果及并发版本；匹配条件和历史列表在生成、重匹配、切换版本时加载。
 const refreshResults = async () => {
-  const current = await CutoverApi.getCutoverChecklist(props.detail.task.id)
+  const current = await CutoverApi.getCutoverChecklist(props.detail.task.id, historicalRevisionId.value)
   if (String(current.checklistId) !== String(checklist.value?.checklistId)) {
     await load()
     return
@@ -216,6 +254,14 @@ const refreshResults = async () => {
   checklist.value = current
   hydrateAnswers()
   savedAnswers.value = JSON.stringify(answers)
+}
+const selectRevision = async (value: string) => {
+  if (value === selectedRevisionId.value) return
+  if (!historicalRevisionId.value && (JSON.stringify(answers) !== savedAnswers.value || deviceVersionsDirty.value || selectionChanged.value)) {
+    try { await message.confirm('切换版本会放弃尚未保存的填写，是否继续？') } catch { return }
+  }
+  selectedRevisionId.value = value
+  await load()
 }
 const writeDraft = async <T, C extends object>(command: {
   action: string; request: C; send: (request: C & { idempotencyKey: string }) => Promise<T>; refresh?: () => Promise<void>
@@ -262,15 +308,16 @@ const beforeWrite = async () => {
   return false
 }
 const generate = async () => {
-  if (!canGenerate.value || !deviceTypeCodes.value.length || !props.detail.assessment || !props.detail.project.projectScopeVersion) return
+  const selectedType = cutoverType.value
+  if (!selectedType || !canGenerate.value || !deviceTypeCodes.value.length || !props.detail.assessment || !props.detail.project.projectScopeVersion) return
   if (!(await beforeWrite())) return
   generating.value = true
   try {
     const outcome = await writeDraft({ action: 'generateCutoverChecklist', request: { taskId: props.detail.task.id, data: {
       expectedTaskVersion: props.detail.task.version,
-      expectedAssessmentVersion: props.detail.assessment.assessmentVersion,
+      expectedAssessmentVersion: props.detail.assessment.rowVersion,
       expectedProjectScopeVersion: props.detail.project.projectScopeVersion,
-      deviceTypeCodes: [...deviceTypeCodes.value],
+      matchingInput: { cutoverType: selectedType, networkMode: networkMode.value || null, deviceTypeCodes: [...deviceTypeCodes.value] },
       selectedConflictDefinitions: {}
     } }, send: CutoverApi.generateCutoverChecklist, refresh: async () => { await props.refreshDraft?.(); await load() } })
     if (!outcome.writeCalled || !outcome.refreshSucceeded) return
@@ -366,9 +413,11 @@ const save = async () => {
   } finally { externalBusy.value = false }
 }
 const rematch = async () => {
-  if (!canRematch.value || !checklist.value || !props.detail.assessment || !deviceTypeCodes.value.length) return
+  const selectedType = cutoverType.value
+  if (!selectedType || !canRematch.value || !checklist.value || !props.detail.assessment || !deviceTypeCodes.value.length) return
   if (!(await beforeWrite())) return
   const selected = [...deviceTypeCodes.value]
+  const matchingInput = { cutoverType: selectedType, networkMode: networkMode.value || null, deviceTypeCodes: selected }
   rematching.value = true
   try {
     if (JSON.stringify(answers) !== savedAnswers.value && !(await save())) return
@@ -376,16 +425,16 @@ const rematch = async () => {
     deviceTypeCodes.value = selected
     const outcome = await writeDraft({ action: 'rematchCutoverChecklist', request: { taskId: props.detail.task.id, data: {
       expectedTaskVersion: checklist.value.taskVersion,
-      expectedAssessmentVersion: props.detail.assessment.assessmentVersion,
+      expectedAssessmentVersion: props.detail.assessment.rowVersion,
       expectedProjectScopeVersion: checklist.value.projectScopeVersion,
       checklistId: checklist.value.checklistId,
       expectedChecklistVersion: checklist.value.checklistFactVersion,
       expectedInputSnapshotHash: checklist.value.inputSnapshotHash,
-      deviceTypeCodes: selected,
+      matchingInput,
       selectedConflictDefinitions: {}
     } }, send: CutoverApi.rematchCutoverChecklist, refresh: async () => { await props.refreshDraft?.(); await load() } })
     if (!outcome.writeCalled || !outcome.refreshSucceeded) return
-    message.success('已按所选设备类型重新匹配清单')
+    message.success('割接实施信息已保存，清单已重新匹配')
 
 
   } finally { deviceTypeCodes.value = selected; rematching.value = false }
@@ -406,7 +455,7 @@ const saveManual = async (stableItemKey: string, file: ChecklistFileHandle, fact
     } }, send: CutoverApi.saveManualChecklistResult, refresh: async () => {
       await refreshResults()
       if (checklist.value?.items.find(item => item.stableItemKey === stableItemKey)?.workModeCode === 'EXTERNAL') {
-        hydrateExternal(await CutoverApi.getCutoverExternalState(props.detail.task.id))
+        hydrateExternal(await CutoverApi.getCutoverExternalState(props.detail.task.id, historicalRevisionId.value))
       }
     } })
     if (!outcome.writeCalled || !outcome.refreshSucceeded) return
@@ -489,7 +538,7 @@ const submit = async () => {
     if (!(await save())) return
     const result = await CutoverApi.submitCutoverChecklist({ taskId: props.detail.task.id, data: {
       expectedTaskVersion: checklist.value.taskVersion,
-      expectedAssessmentVersion: props.detail.assessment.assessmentVersion,
+      expectedAssessmentVersion: props.detail.assessment.rowVersion,
       expectedProjectScopeVersion: checklist.value.projectScopeVersion,
       checklistId: checklist.value.checklistId,
       expectedChecklistVersion: checklist.value.checklistFactVersion
@@ -516,6 +565,10 @@ onBeforeUnmount(() => { loadSequence++ })
 
 <style scoped>
 .checklist-panel { min-width: 0; }
+.checklist-heading { flex-wrap: wrap; gap: 12px; }
+.checklist-version-info, .checklist-revisions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.checklist-revisions label { font-size: 12px; color: var(--el-text-color-secondary); }
+.checklist-revisions .el-select { width: 190px; }
 .matching-grid { display: grid; grid-template-columns: 1.4fr 1.2fr 1.2fr .55fr; gap: 16px; }
 .matching-grid .el-select { width: 100%; }
 .matching-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; }

@@ -89,6 +89,10 @@ import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCheck
 
 /** P3 清单运行服务；由割接运行配置装配正式 Owner 适配器。 */
 public class CutoverChecklistApplicationService {
+    @jakarta.annotation.Resource
+    private CutoverChecklistRevisionService checklistRevisions;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort projectContext;
 
     private static final String ACTION_EDIT = "ACTION_EDIT";
     private static final String ACTION_VIEW = "ACTION_VIEW";
@@ -158,11 +162,11 @@ public class CutoverChecklistApplicationService {
     @Transactional(rollbackFor = Exception.class)
     public ChecklistCommandResult generate(GenerateChecklistCommand command) {
         requireGenerate(command);
-        CutoverTaskDO snapshot = requireP3Task(taskMapper.selectById(command.taskId()), command);
+        CutoverTaskDO snapshot = requireOwner(taskMapper.selectById(command.taskId()), command);
         requireScope(projectScopePort.inspect(command.actorId(), snapshot.getProjectId(), ACTION_EDIT),
                 snapshot, command.expectedProjectScopeVersion());
-        CutoverFrozenConfiguration configuration = resolveConfiguration(snapshot);
-        MatchContext context = matchContext(snapshot, configuration, command);
+        var configuration = resolveConfiguration(snapshot);
+        requireMatchInput(configuration, command.matchingInput());
         PlatformCommandExecutionApi.ExecutionResult<ChecklistCommandResult> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "CUT:CHECKLIST_GENERATE:" + command.taskId(), command.actorId(), command.idempotencyKey()),
@@ -170,10 +174,13 @@ public class CutoverChecklistApplicationService {
                         "taskVersion", command.expectedTaskVersion(),
                         "assessmentVersion", command.expectedAssessmentVersion(),
                         "projectScopeVersion", command.expectedProjectScopeVersion(),
-                        "deviceTypeCodes", command.deviceTypeCodes().stream().sorted().toList(),
+                        "matchingInput", command.matchingInput(),
                         "selectedConflictDefinitions", command.selectedConflictDefinitions()))),
                 ChecklistCommandResult.class,
-                () -> generateOnce(command, snapshot, configuration, context),
+                () -> {
+                    requireP3Task(snapshot, command);
+                    return generateOnce(command, snapshot, configuration);
+                },
                 result -> successFacts("CUTOVER_CHECKLIST_GENERATE", result, command.correlationId()));
         requireCompleted(execution.decision());
         return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
@@ -183,11 +190,11 @@ public class CutoverChecklistApplicationService {
     @Transactional(rollbackFor = Exception.class)
     public ChecklistCommandResult rematch(RematchChecklistCommand command) {
         requireRematch(command);
-        CutoverTaskDO snapshot = requireP3Task(taskMapper.selectById(command.taskId()), command);
+        CutoverTaskDO snapshot = requireOwner(taskMapper.selectById(command.taskId()), command);
         requireScope(projectScopePort.inspect(command.actorId(), snapshot.getProjectId(), ACTION_EDIT),
                 snapshot, command.expectedProjectScopeVersion());
-        CutoverFrozenConfiguration configuration = resolveConfiguration(snapshot);
-        MatchContext context = matchContext(snapshot, configuration, command);
+        var configuration = resolveConfiguration(snapshot);
+        requireMatchInput(configuration, command.matchingInput());
         PlatformCommandExecutionApi.ExecutionResult<ChecklistCommandResult> execution = commandExecutionApi.execute(
                 new PlatformCommandExecutionApi.IdempotencyScope(command.tenantId(),
                         "CUT:CHECKLIST_REMATCH:" + command.taskId(), command.actorId(), command.idempotencyKey()),
@@ -198,35 +205,44 @@ public class CutoverChecklistApplicationService {
                         "checklistVersion", command.expectedChecklistVersion(),
                         "inputSnapshotHash", command.expectedInputSnapshotHash(),
                         "projectScopeVersion", command.expectedProjectScopeVersion(),
-                        "deviceTypeCodes", command.deviceTypeCodes().stream().sorted().toList(),
+                        "matchingInput", command.matchingInput(),
                         "selectedConflictDefinitions", command.selectedConflictDefinitions()))),
-                ChecklistCommandResult.class, () -> rematchOnce(command, configuration, context),
+                ChecklistCommandResult.class, () -> {
+                    requireP3Task(snapshot, command);
+                    return rematchOnce(command, configuration);
+                },
                 result -> successFacts("CUTOVER_CHECKLIST_REMATCH", result, command.correlationId()));
         requireCompleted(execution.decision());
         return execution.decision() == PlatformCommandExecutionApi.Decision.REPLAY_COMPLETED
                 ? execution.response().replayedCopy() : execution.response();
     }
 
-    public CutoverChecklistMatchingOptions getMatchingOptions(CutoverChecklistContext context, Long taskId) {
+    public CutoverChecklistMatchingOptions getMatchingOptions(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
+        var context = query.context(); Long taskId = query.taskId();
         require(context != null && positive(taskId), INVALID_REQUEST, "清单匹配选项查询参数非法");
         CutoverTaskDO task = taskMapper.selectById(taskId);
         require(task != null && Objects.equals(task.getTenantId(), context.tenantId()), NOT_FOUND, "割接任务不存在");
         var scope = projectScopePort.inspect(context.actorId(), task.getProjectId(), ACTION_VIEW);
         require(scope != null && scope.allowed() && Objects.equals(scope.projectId(), task.getProjectId()),
                 NOT_FOUND, "割接任务不存在");
-        CutoverFrozenConfiguration configuration = resolveConfiguration(task);
-        CutoverChecklistDO checklist = checklistMapper.selectCurrent(new CutoverChecklistRowQuery(
-                context.tenantId(), taskId, null));
+        CutoverChecklistDO checklist = readChecklist(query);
+        CutoverFrozenConfiguration configuration = checklist == null ? resolveConfiguration(task)
+                : configurationService.resolveFrozen(new CutoverFrozenConfigurationQuery(context.tenantId(), checklist.getConfigurationRevisionId(), checklist.getConfigurationCode(), checklist.getConfigurationRevisionNo()));
         List<String> selected = new ArrayList<>();
+        String type = task.getCutoverType(); String mode = task.getNetworkMode();
         if (checklist != null) {
-            selected.addAll(checklistMetadata.dimensions(checklist).getOrDefault("DEVICE_TYPE", List.of()));
+            var dimensions = checklistMetadata.dimensions(checklist);
+            selected.addAll(dimensions.getOrDefault("DEVICE_TYPE", List.of()));
+            type = dimensions.getOrDefault("CUTOVER_TYPE", List.of(type)).getFirst();
+            mode = dimensions.getOrDefault("NETWORK_MODE", List.of()).stream().findFirst().orElse(null);
         }
         return new CutoverChecklistMatchingOptions(configuration.revisionId(), configuration.revisionNo(),
                 dimensionOptions(configuration, "CUTOVER_TYPE"), dimensionOptions(configuration, "NETWORK_MODE"),
-                dimensionOptions(configuration, "DEVICE_TYPE"), List.copyOf(selected));
+                dimensionOptions(configuration, "DEVICE_TYPE"), new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput(type, mode, selected));
     }
 
-    public CutoverChecklistView getView(Long tenantId, Long actorId, Long taskId) {
+    public CutoverChecklistView getView(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
+        Long tenantId = query.context().tenantId(); Long actorId = query.context().actorId(); Long taskId = query.taskId();
         require(positive(tenantId) && positive(actorId) && positive(taskId), INVALID_REQUEST, "清单查询参数非法");
         CutoverTaskDO task = taskMapper.selectById(taskId);
         require(task != null && Objects.equals(task.getTenantId(), tenantId), NOT_FOUND, "割接任务不存在");
@@ -234,8 +250,7 @@ public class CutoverChecklistApplicationService {
                 ACTION_VIEW);
         require(scope != null && scope.allowed() && Objects.equals(scope.projectId(), task.getProjectId()),
                 NOT_FOUND, "当前清单不存在");
-        CutoverChecklistDO checklist = checklistMapper.selectCurrent(new CutoverChecklistRowQuery(
-                tenantId, taskId, null));
+        CutoverChecklistDO checklist = readChecklist(query);
         require(checklist != null, NOT_FOUND, "当前清单不存在");
         List<CutoverChecklistItemDO> items = withSchemas(itemMapper.selectListByChecklist(new CutoverChecklistItemsQuery(
                 tenantId, checklist.getId())));
@@ -245,11 +260,12 @@ public class CutoverChecklistApplicationService {
         List<CutoverChecklistView.Item> viewItems = items.stream().map(item -> {
             CutoverChecklistItemResultDO current = currentResults.get(item.getId());
             CutoverChecklistView.CurrentResult resultView = current == null ? null
-                    : new CutoverChecklistView.CurrentResult(current.getResultVersion(),
-                    current.getResultSourceCode(), resultStorage.answer(new CutoverChecklistResultStore.Read(item, current)), current.getFactDescription(),
-                    manualReference(current), current.getCollectionTaskId(),
-                    current.getCollectionResultReferenceId(), current.getCollectionResultVersion(),
-                    current.getLoadFailureCode());
+                    : CutoverChecklistView.CurrentResult.builder().resultVersion(current.getResultVersion())
+                    .resultSourceCode(current.getResultSourceCode()).answerSnapshot(resultStorage.answer(new CutoverChecklistResultStore.Read(item, current)))
+                    .factDescription(current.getFactDescription()).manualEvidenceFileReference(manualReference(current))
+                    .collectionTaskId(current.getCollectionTaskId()).collectionResultReferenceId(current.getCollectionResultReferenceId())
+                    .collectionResultVersion(current.getCollectionResultVersion()).loadFailureCode(current.getLoadFailureCode())
+                    .originalFailureCode(current.getOriginalFailureCode()).build();
             return new CutoverChecklistView.Item(item.getId(), item.getStableItemKey(), item.getItemTypeCode(),
                     item.getItemName(), item.getItemDescription(), item.getInterfaceFormatCode(),
                     item.getInterfaceSchemaSnapshot(), item.getWorkModeCode(),
@@ -262,6 +278,26 @@ public class CutoverChecklistApplicationService {
                 checklist.getInputSnapshotHash(), JsonUtils.toJsonString(configurationService.resolveFrozen(new CutoverFrozenConfigurationQuery(
                         tenantId, checklist.getConfigurationRevisionId(), checklist.getConfigurationCode(), checklist.getConfigurationRevisionNo()))),
                 checklistMetadata.matchTrace(checklist), checklistMetadata.gap(checklist), viewItems);
+    }
+
+    private CutoverChecklistDO readChecklist(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
+        var rowQuery = new CutoverChecklistRowQuery(query.context().tenantId(), query.taskId(), query.checklistId());
+        if (query.checklistId() == null) return checklistMapper.selectCurrent(rowQuery);
+        require(positive(query.checklistId()), INVALID_REQUEST, "清单版本标识无效");
+        var row = checklistMapper.selectHistorical(rowQuery);
+        require(row != null, NOT_FOUND, "历史清单不存在");
+        return row;
+    }
+
+    public record RevisionSummary(Long checklistId, Long checklistVersion, String status, String invalidatedReason) { }
+
+    public List<RevisionSummary> history(cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery query) {
+        var task = taskMapper.selectById(query.taskId()); var context = query.context();
+        require(task != null && Objects.equals(task.getTenantId(), context.tenantId()), NOT_FOUND, "割接任务不存在");
+        var scope = projectScopePort.inspect(context.actorId(), task.getProjectId(), ACTION_VIEW);
+        require(scope != null && scope.allowed() && Objects.equals(scope.projectId(), task.getProjectId()), NOT_FOUND, "割接任务不存在");
+        return checklistMapper.selectHistory(new CutoverChecklistRowQuery(context.tenantId(), query.taskId(), null)).stream()
+                .map(row -> new RevisionSummary(row.getId(), row.getChecklistVersion(), row.getStatusCode(), row.getInvalidatedReason())).toList();
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -444,6 +480,9 @@ public class CutoverChecklistApplicationService {
         LockedDraft locked = lockDraft(command);
         CutoverChecklistItemDO item = byStableKey(locked.items()).get(command.stableItemKey());
         require(item != null && Boolean.TRUE.equals(item.getApplicableFlag()), NOT_FOUND, "清单项不存在");
+        CutoverChecklistItemResultDO prior = resultMapper.selectCurrentForUpdate(new CutoverChecklistCurrentResultQuery(command.tenantId(), item.getId()));
+        require(CutoverChecklistEvidenceRules.allowsManual(item, prior),
+                INVALID_REQUEST, "只有材料上传项或已有自动采集失败事实的项目可使用人工证据");
         CutoverChecklistFilePort.FileFact fact = filePort.lockAndRevalidate(CutoverChecklistFilePort.FileQuery.builder()
                 .tenantId(command.tenantId())
                 .actorId(command.actorId())
@@ -453,7 +492,6 @@ public class CutoverChecklistApplicationService {
                 .handle(command.fileHandle())
                 .build());
         requireFileFact(command.fileHandle(), fact);
-        CutoverChecklistItemResultDO prior = resultMapper.selectCurrentForUpdate(new CutoverChecklistCurrentResultQuery(command.tenantId(), item.getId()));
         if ("EXTERNAL".equals(item.getWorkModeCode())) {
             externalBulletins.requireManual(new CutoverExternalBulletinStore.Read(item, prior));
         }
@@ -464,11 +502,14 @@ public class CutoverChecklistApplicationService {
                 .checklistItemId(item.getId())
                 .resultSourceCode("MANUAL")
                 .originalFailedCollectionTaskId(prior != null && "COLLECTION".equals(prior.getResultSourceCode())
-                        && present(prior.getLoadFailureCode()) ? prior.getCollectionTaskId() : null)
+                        && present(prior.getLoadFailureCode()) ? prior.getCollectionTaskId()
+                        : prior == null ? null : prior.getOriginalFailedCollectionTaskId())
                 .originalFailedResultVersion(prior != null && "COLLECTION".equals(prior.getResultSourceCode())
-                        && present(prior.getLoadFailureCode()) ? prior.getResultVersion().longValue() : null)
+                        && present(prior.getLoadFailureCode()) ? Long.valueOf(prior.getResultVersion())
+                        : prior == null ? null : prior.getOriginalFailedResultVersion())
                 .originalFailureCode(prior != null && "COLLECTION".equals(prior.getResultSourceCode())
-                        && present(prior.getLoadFailureCode()) ? prior.getLoadFailureCode() : null)
+                        && present(prior.getLoadFailureCode()) ? prior.getLoadFailureCode()
+                        : prior == null ? null : prior.getOriginalFailureCode())
                 .factDescription(command.factDescription())
                 .selectionReasonCode("MANUAL_EVIDENCE_SELECTED")
                 .build(), null, fact));
@@ -499,23 +540,27 @@ public class CutoverChecklistApplicationService {
     }
 
     private ChecklistCommandResult generateOnce(GenerateChecklistCommand command, CutoverTaskDO snapshot,
-                                                CutoverFrozenConfiguration configuration, MatchContext context) {
+                                                CutoverFrozenConfiguration configuration) {
         lockScope(command.actorId(), snapshot, command.expectedProjectScopeVersion());
+        MatchContext context = matchContext(snapshot, configuration, command);
         CutoverTaskDO task = requireP3Task(taskMapper.selectForUpdate(
                 new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command);
         CutoverAssessmentDO assessment = requireAssessment(command.tenantId(), task,
                 command.expectedAssessmentVersion());
         require(checklistMapper.selectCurrentForUpdate(new CutoverChecklistRowQuery(command.tenantId(),
                 task.getId(), null)) == null, STATE_CONFLICT, "任务已有当前清单");
+        updateMatchingInput(task, command);
         CutoverChecklistDO checklist = new CutoverChecklistDO();
         checklist.setId(nextId());
         checklist.setTenantId(command.tenantId());
         checklist.setCutoverTaskId(task.getId());
         checklist.setAssessmentId(assessment.getId());
         checklist.setAssessmentVersion(assessment.getAssessmentVersion());
-        checklist.setChecklistVersion(1L);
+        Long maxChecklistVersion = checklistMapper.selectMaxChecklistVersion(new CutoverChecklistRowQuery(command.tenantId(), task.getId(), null));
+        checklist.setChecklistVersion((maxChecklistVersion == null ? 0 : maxChecklistVersion) + 1);
         checklist.setStatusCode("DRAFT");
         checklist.setInputSnapshotHash(sha256(context.inputSnapshot()));
+        checklist.setMatchingProjectVersion(context.projectVersion());
         CutoverChecklistMetadataStore.applyRoot(new CutoverChecklistMetadataStore.RootWrite(checklist, task, context.gap()));
         checklist.setVersion(0L);
         checklist.setCreator(String.valueOf(command.actorId()));
@@ -528,14 +573,18 @@ public class CutoverChecklistApplicationService {
         for (ResolvedItem resolved : context.items()) {
             insertSystemItem(command, checklist, resolved, configuration);
         }
+        checklistMapper.selectHistory(new CutoverChecklistRowQuery(command.tenantId(), task.getId(), null)).stream()
+                .filter(previous -> !Objects.equals(previous.getId(), checklist.getId()) && "INVALIDATED".equals(previous.getStatusCode()))
+                .findFirst().ifPresent(previous -> checklistRevisions.copyItems(new CutoverChecklistRevisionService.Copy(previous, checklist,
+                        command.actorId(), LocalDateTime.now(clock), true)));
         return result(task, checklist, 0L, "DRAFT", false);
     }
 
     private ChecklistCommandResult rematchOnce(RematchChecklistCommand command,
-                                               CutoverFrozenConfiguration configuration,
-                                               MatchContext context) {
+                                               CutoverFrozenConfiguration configuration) {
         CutoverTaskDO snapshot = requireP3Task(taskMapper.selectById(command.taskId()), command);
         lockScope(command.actorId(), snapshot, command.expectedProjectScopeVersion());
+        MatchContext context = matchContext(snapshot, configuration, command);
         CutoverTaskDO task = requireP3Task(taskMapper.selectForUpdate(
                 new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command);
         CutoverAssessmentDO assessment = requireAssessment(command.tenantId(), task,
@@ -545,6 +594,7 @@ public class CutoverChecklistApplicationService {
                 command.expectedChecklistVersion());
         require(Objects.equals(checklist.getInputSnapshotHash(), command.expectedInputSnapshotHash()),
                 VERSION_CONFLICT, "清单匹配输入已变化");
+        updateMatchingInput(task, command);
         List<CutoverChecklistItemDO> items = withSchemas(itemMapper.selectListForUpdate(
                 new CutoverChecklistItemsQuery(command.tenantId(), checklist.getId())));
         Map<String, CutoverChecklistItemDO> existing = byStableKey(items);
@@ -583,6 +633,7 @@ public class CutoverChecklistApplicationService {
         Long nextChecklistVersion = checklist.getChecklistVersion() + 1;
         checklist.setChecklistVersion(nextChecklistVersion); checklist.setAssessmentId(assessment.getId());
         checklist.setAssessmentVersion(assessment.getAssessmentVersion()); checklist.setInputSnapshotHash(sha256(context.inputSnapshot()));
+        checklist.setMatchingProjectVersion(context.projectVersion());
         checklist.setUpdater(String.valueOf(command.actorId()));
         CutoverChecklistMetadataStore.applyRoot(new CutoverChecklistMetadataStore.RootWrite(checklist, task, context.gap()));
         require(checklistMapper.rematchIfMatch(new CutoverChecklistRematchUpdate(checklist, command.expectedChecklistVersion())) == 1,
@@ -598,6 +649,13 @@ public class CutoverChecklistApplicationService {
     private ChecklistSubmissionFacts submitOnce(SubmitChecklistCommand command) {
         CutoverTaskDO snapshot = requireP3Task(taskMapper.selectById(command.taskId()), command);
         lockScope(command.actorId(), snapshot, command.expectedProjectScopeVersion());
+        var inspectedChecklist = requireDraft(checklistMapper.selectCurrent(new CutoverChecklistRowQuery(
+                command.tenantId(), command.taskId(), command.checklistId())), command.expectedChecklistVersion());
+        if (inspectedChecklist.getMatchingProjectVersion() != null) {
+            var currentProject = lockProjectForMatching(snapshot);
+            require(Objects.equals(inspectedChecklist.getMatchingProjectVersion(), (long) currentProject.projectVersion()),
+                    VERSION_CONFLICT, "项目匹配事实已变化，请重新匹配清单后提交");
+        }
         CutoverTaskDO task = requireP3Task(taskMapper.selectForUpdate(
                 new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command);
         CutoverAssessmentDO assessment = requireAssessment(command.tenantId(), task,
@@ -617,6 +675,11 @@ public class CutoverChecklistApplicationService {
         Map<Long, CutoverChecklistItemDO> definitions = items.stream().collect(Collectors.toMap(CutoverChecklistItemDO::getId, Function.identity()));
         for (CutoverChecklistItemResultDO answer : results) {
             CutoverChecklistItemDO definition = definitions.get(answer.getChecklistItemId());
+            if (definition != null && Boolean.TRUE.equals(definition.getApplicableFlag())
+                    && "MANUAL".equals(answer.getResultSourceCode())) {
+                require(CutoverChecklistEvidenceRules.allowsManual(definition, answer), STATE_CONFLICT,
+                        "人工降级缺少自动失败来源，请重新核验：" + definition.getItemName());
+            }
             if (definition != null && Boolean.TRUE.equals(definition.getApplicableFlag())
                     && "EXTERNAL".equals(definition.getWorkModeCode())) {
                 externalBulletins.validateSubmission(new CutoverExternalBulletinStore.Read(definition, answer));
@@ -784,11 +847,16 @@ public class CutoverChecklistApplicationService {
         return assessment;
     }
 
-    private CutoverTaskDO requireP3Task(CutoverTaskDO task, CutoverTaskMutation command) {
+    private CutoverTaskDO requireOwner(CutoverTaskDO task, CutoverTaskMutation command) {
         Long tenantId = command.tenantId(); Long actorId = command.actorId();
-        Long expectedVersion = command.expectedTaskVersion();
         require(task != null && Objects.equals(task.getTenantId(), tenantId), NOT_FOUND, "割接任务不存在");
         require(Objects.equals(task.getOwnerUserId(), actorId), DATA_SCOPE_FORBIDDEN, "仅任务负责人可维护P3清单");
+        return task;
+    }
+
+    private CutoverTaskDO requireP3Task(CutoverTaskDO task, CutoverTaskMutation command) {
+        requireOwner(task, command);
+        Long expectedVersion = command.expectedTaskVersion();
         require(CutoverTaskRules.ORIGIN_NEW_PLATFORM.equals(task.getTaskOrigin())
                         && CutoverTaskRules.STAGE_P3.equals(task.getCurrentStage())
                         && CutoverTaskRules.STATUS_SURVEYING.equals(task.getTaskStatus())
@@ -831,27 +899,52 @@ public class CutoverChecklistApplicationService {
                 task.getConfigurationRevisionId(), task.getConfigurationCode(), task.getConfigurationRevisionNo()));
     }
 
-    private MatchContext matchContext(CutoverTaskDO task, CutoverFrozenConfiguration configuration,
-                                      CutoverChecklistMatchMutation command) {
+    private void requireMatchInput(CutoverFrozenConfiguration configuration,
+                                   cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput input) {
+        require(input != null && input.deviceTypeCodes() != null, INVALID_REQUEST, "请填写割接实施信息");
+        require(dimensionOptions(configuration, "CUTOVER_TYPE").stream().anyMatch(option -> option.value().equals(input.cutoverType())),
+                INVALID_REQUEST, "请选择任务冻结配置中的有效割接类型");
+        require(input.networkMode() == null || dimensionOptions(configuration, "NETWORK_MODE").stream()
+                .anyMatch(option -> option.value().equals(input.networkMode())), INVALID_REQUEST, "高可靠性组网模式无效");
         List<Option> options = dimensionOptions(configuration, "DEVICE_TYPE");
         Set<String> allowed = options.stream().map(Option::value).collect(Collectors.toSet());
-        List<String> deviceTypeCodes = command.deviceTypeCodes().stream().sorted().toList();
+        List<String> deviceTypeCodes = input.deviceTypeCodes().stream().sorted().toList();
         require(!deviceTypeCodes.isEmpty() && new LinkedHashSet<>(deviceTypeCodes).size() == deviceTypeCodes.size()
                         && deviceTypeCodes.stream().allMatch(allowed::contains),
                 INVALID_REQUEST, "请选择任务冻结配置中的有效设备类型");
+    }
+
+    private MatchContext matchContext(CutoverTaskDO task, CutoverFrozenConfiguration configuration,
+                                      CutoverChecklistMatchMutation command) {
+        var input = command.matchingInput();
+        List<Option> options = dimensionOptions(configuration, "DEVICE_TYPE");
+        List<String> deviceTypeCodes = input.deviceTypeCodes().stream().sorted().toList();
         Map<String, List<String>> dimensions = new LinkedHashMap<>();
-        dimensions.put("CUTOVER_TYPE", List.of(task.getCutoverType()));
-        if (present(task.getNetworkMode())) {
-            dimensions.put("NETWORK_MODE", List.of(task.getNetworkMode()));
+        dimensions.put("CUTOVER_TYPE", List.of(input.cutoverType()));
+        if (input.networkMode() != null) {
+            dimensions.put("NETWORK_MODE", List.of(input.networkMode()));
         }
         dimensions.put("DEVICE_TYPE", deviceTypeCodes);
         dimensions.put("CUTOVER_LEVEL", List.of(task.getManualGrade()));
+        Long projectVersion = null;
+        var majorLevels = dimensionOptions(configuration, "PROJECT_MAJOR_LEVEL");
+        if (!majorLevels.isEmpty()) {
+            var locked = lockProjectForMatching(task);
+            String level = locked.majorProjectLevel();
+            if (present(level)) {
+                require(majorLevels.stream().anyMatch(option -> option.value().equals(level)),
+                        FROZEN_CONFIGURATION_INVALID, "项目重大项目级别未在冻结配置字典中定义，请先核对项目主数据来源映射");
+                dimensions.put("PROJECT_MAJOR_LEVEL", List.of(level));
+            }
+            projectVersion = (long) locked.projectVersion();
+        }
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("taskId", task.getId());
-        snapshot.put("taskVersion", task.getVersion());
+        snapshot.put("taskVersion", task.getVersion() + (matchingInputChanged(task, command) ? 1 : 0));
         snapshot.put("assessmentId", task.getCurrentAssessmentId());
         snapshot.put("assessmentVersion", command.expectedAssessmentVersion());
         snapshot.put("projectScopeVersion", task.getProjectScopeVersion());
+        snapshot.put("matchingProjectVersion", projectVersion);
         snapshot.put("configurationRevisionId", task.getConfigurationRevisionId());
         snapshot.put("configurationCode", task.getConfigurationCode());
         snapshot.put("configurationRevisionNo", task.getConfigurationRevisionNo());
@@ -881,7 +974,34 @@ public class CutoverChecklistApplicationService {
                         Comparator.nullsLast(Integer::compareTo))
                 .thenComparing(value -> value.item().stableItemKey()));
         return new MatchContext(JsonUtils.toJsonString(snapshot), matched.gap(), List.copyOf(resolved),
-                Map.copyOf(dimensions), matched.matchedRuleIds());
+                Map.copyOf(dimensions), matched.matchedRuleIds(), projectVersion);
+    }
+
+    private static boolean matchingInputChanged(CutoverTaskDO task, CutoverChecklistMatchMutation command) {
+        return !Objects.equals(task.getCutoverType(), command.matchingInput().cutoverType())
+                || !Objects.equals(task.getNetworkMode(), command.matchingInput().networkMode());
+    }
+
+    /** 锁顺序：项目范围、项目主数据、割接任务；提交前不持有 CUT 行锁时重验。 */
+    private cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.ProjectContextFact lockProjectForMatching(CutoverTaskDO task) {
+        var project = projectContext.inspect(cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.Inspection.builder()
+                .tenantId(task.getTenantId()).projectId(task.getProjectId())
+                .expectedProjectScopeVersion(task.getProjectScopeVersion()).build());
+        var locked = projectContext.lockAndRevalidate(project);
+        require(locked != null && Objects.equals(locked.tenantId(), task.getTenantId())
+                        && Objects.equals(locked.projectId(), task.getProjectId())
+                        && locked.projectScopeVersion() == task.getProjectScopeVersion(),
+                VERSION_CONFLICT, "项目匹配事实已变化");
+        return locked;
+    }
+
+    private void updateMatchingInput(CutoverTaskDO task, CutoverChecklistMatchMutation command) {
+        if (!matchingInputChanged(task, command)) return;
+        require(taskMapper.updateMatchingInputIfMatch(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskMatchingInputUpdate(
+                task, command.matchingInput(), command.actorId())) == 1, VERSION_CONFLICT, "割接实施信息已变化");
+        task.setCutoverType(command.matchingInput().cutoverType());
+        task.setNetworkMode(command.matchingInput().networkMode());
+        task.setVersion(task.getVersion() + 1);
     }
 
     private static List<Option> dimensionOptions(CutoverFrozenConfiguration configuration, String dimensionCode) {
@@ -1105,7 +1225,8 @@ public class CutoverChecklistApplicationService {
         history.setId(nextId());
         history.setTenantId(command.tenantId());
         history.setCutoverTaskId(command.taskId());
-        history.setSequenceNo(3);
+        Integer sequence = taskMapper.selectMaxStageHistorySequence(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
+        history.setSequenceNo((sequence == null ? 0 : sequence) + 1);
         history.setFromStage(CutoverTaskRules.STAGE_P3);
         history.setToStage(CutoverTaskRules.STAGE_P4);
         history.setFromStatus(CutoverTaskRules.STATUS_SURVEYING);
@@ -1348,7 +1469,7 @@ public class CutoverChecklistApplicationService {
     }
 
     private record MatchContext(String inputSnapshot, boolean gap, List<ResolvedItem> items,
-                                Map<String, List<String>> dimensions, List<Long> matchedRuleIds) {
+                                Map<String, List<String>> dimensions, List<Long> matchedRuleIds, Long projectVersion) {
     }
 
     private record CollectionSelectionSnapshot(Long collectionTaskId, Long deviceId, Long commandTemplateId,

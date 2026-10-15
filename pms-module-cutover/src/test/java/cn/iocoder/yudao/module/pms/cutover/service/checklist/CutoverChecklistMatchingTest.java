@@ -46,10 +46,10 @@ class CutoverChecklistMatchingTest {
         assertTrue(inserted.getValue().getApplicableFlag());
         verifyNoInteractions(fixture.devices);
 
-        var options = fixture.service.getMatchingOptions(new CutoverChecklistContext(1L, 8L, "corr"), 1000L);
+        var options = fixture.service.getMatchingOptions(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(new CutoverChecklistContext(1L, 8L, "corr"), 1000L, null));
         assertEquals(3000L, options.configurationRevisionId());
         assertEquals(1, options.configurationRevisionNo());
-        assertEquals(List.of("FW"), options.selectedDeviceTypeCodes());
+        assertEquals(List.of("FW"), options.matchingInput().deviceTypeCodes());
         assertEquals(List.of("FW", "SW"), options.deviceTypes().stream().map(option -> option.value()).toList());
         assertEquals("防火墙", options.deviceTypes().getFirst().label());
     }
@@ -85,13 +85,22 @@ class CutoverChecklistMatchingTest {
         when(fixture.scopes.inspect(any(), any(), any())).thenReturn(
                 new CutoverProjectScopePort.ProjectScopeFact(10L, 7L, false));
         assertEquals(NOT_FOUND, assertThrows(CutoverChecklistException.class,
-                () -> fixture.service.getMatchingOptions(new CutoverChecklistContext(1L, 8L, "corr"), 1000L)).getCode());
+                () -> fixture.service.getMatchingOptions(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(new CutoverChecklistContext(1L, 8L, "corr"), 1000L, null))).getCode());
         verifyNoInteractions(fixture.configuration);
     }
 
     private static GenerateChecklistCommand command(List<String> types) {
-        return new GenerateChecklistCommand(1L, 8L, 1000L, 2L, 1L, 7L,
-                types, Map.of(), "generate-1", "corr");
+        return GenerateChecklistCommand.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .taskId(1000L)
+                .expectedTaskVersion(2L)
+                .expectedAssessmentVersion(1L)
+                .expectedProjectScopeVersion(7L)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("配置变更", null, types))
+                .selectedConflictDefinitions(Map.of())
+                .idempotencyKey("generate-1")
+                .correlationId("corr").build();
     }
 
     private static final class Fixture {
@@ -135,8 +144,8 @@ class CutoverChecklistMatchingTest {
             });
             when(items.insert(any(CutoverChecklistItemDO.class))).thenReturn(1);
             var frozen = new CutoverFrozenConfiguration(3000L, "CUT-CONFIG", 1, "PUBLISHED",
-                    "{\"pms_device_type\":[{\"value\":\"FW\",\"label\":\"防火墙\"},{\"value\":\"SW\",\"label\":\"交换机\"}]}",
-                    "[{\"code\":\"DEVICE_TYPE\",\"enabled\":true,\"valueSource\":\"DICT:pms_device_type\"}]",
+                    "{\"pms_cutover_task_type\":[{\"value\":\"配置变更\",\"label\":\"配置变更\"},{\"value\":\"版本升级\",\"label\":\"版本升级\"}],\"pms_cutover_task_network_mode\":[{\"value\":\"普通双机\",\"label\":\"普通双机\"}],\"pms_device_type\":[{\"value\":\"FW\",\"label\":\"防火墙\"},{\"value\":\"SW\",\"label\":\"交换机\"}]}",
+                    "[{\"code\":\"CUTOVER_TYPE\",\"enabled\":true,\"valueSource\":\"DICT:pms_cutover_task_type\"},{\"code\":\"NETWORK_MODE\",\"enabled\":true,\"valueSource\":\"DICT:pms_cutover_task_network_mode\"},{\"code\":\"DEVICE_TYPE\",\"enabled\":true,\"valueSource\":\"DICT:pms_device_type\"}]",
                     List.of(new CutoverFrozenConfiguration.ItemDefinition(4000L, "RISK-FW", 1,
                             "RISK", "防火墙风险", null, "TEXT", "{\"type\":\"string\"}", "DIRECT", true, 10)),
                     List.of(new CutoverFrozenConfiguration.BindingRule(5000L, "FW-ONLY", 4000L, 1,

@@ -6,6 +6,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectConte
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverReadinessPort;
 
 import java.util.List;
+import java.util.Objects;
 
 /** 修订014：外部参考事实不能成为独立割接的通用准入条件。 */
 final class CutoverContextSupport {
@@ -15,6 +16,24 @@ final class CutoverContextSupport {
 
     static boolean requiresImplementationReadiness(String sourceType) {
         return "PROJECT_EVENT".equals(sourceType);
+    }
+
+    /** P1原有冻结契约；重大项目级别由P3匹配单独按项目版本重验。 */
+    static boolean sameFrozenProject(CutoverProjectContextPort.ProjectContextFact expected,
+                                     CutoverProjectContextPort.ProjectContextFact current) {
+        return expected != null && current != null
+                && Objects.equals(expected.tenantId(), current.tenantId())
+                && Objects.equals(expected.projectId(), current.projectId())
+                && expected.projectVersion() == current.projectVersion()
+                && Objects.equals(expected.projectCode(), current.projectCode())
+                && Objects.equals(expected.projectName(), current.projectName())
+                && Objects.equals(expected.customerId(), current.customerId())
+                && Objects.equals(expected.customerCode(), current.customerCode())
+                && Objects.equals(expected.customerName(), current.customerName())
+                && Objects.equals(expected.departmentId(), current.departmentId())
+                && Objects.equals(expected.departmentCode(), current.departmentCode())
+                && Objects.equals(expected.departmentName(), current.departmentName())
+                && expected.projectScopeVersion() == current.projectScopeVersion();
     }
 
     static CutoverReadinessPort.ReadinessFact independentReadiness(Long projectId, List<Long> deviceIds) {

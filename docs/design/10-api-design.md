@@ -311,8 +311,11 @@ PROJ继续拥有任务命令，ACC拥有验收业务命令与事实。修订018�
 | `/cutover-tasks/statistics` | GET | CUT-01 V2按授权可见的CutoverTask聚合首页KPI | 只读聚合，不改变任务状态或P1～P6流程，不返回无权任务明细 |
 | `/cutover-tasks/{id}` | GET detail | 按任务ID查询统一详情；不将审批资格扩展为普通项目查看权限 |
 | `/cutover-tasks/{id}/assessment` | PUT save draft；`actions/submit` POST | 一线提交问卷与人工等级；保存与提交均携带If-Match、Assessment-If-Match和Idempotency-Key；用服经理在P5复核，不新增P2审批 |
+| `/cutover-tasks/{id}/actions/revise-assessment`、`actions/revise-checklist`、`actions/withdraw-plan` | POST | 任务负责人携带If-Match、Idempotency-Key、projectScopeVersion及reason；按目标阶段对应写权限校验。审批前生成新草稿并使下游失效留存；P5在同一事务撤回未结束审批、取消未办节点后修订。已批准或归档不可调用 |
+| `/cutover-tasks/{id}/revision-options` | GET | 具有评估或清单写权限且在项目编辑范围内的任务负责人，查询同一配置当前生效的已发布版本；已批准或归档任务不可使用 |
 | `/cutover-tasks/{id}/checklist` | detail、save draft、submit | P3同一工作台返回checklistId/version、inputSnapshotHash、匹配项、界面格式、当前选择结果、CollectionTask/结果引用和重新匹配差异；D级不存在该资源 | save/submit携带If-Match与Idempotency-Key；提交只读取当前适用项和当前选择结果，全部必填满足后冻结版本 |
 | `/cutover-tasks/{id}/checklist/actions/rematch` | POST | 输入checklistVersion、inputSnapshotHash和新维度，预览或应用差异 | 保留stableItemKey未变的有效答案；移出项仅留历史，不进入当前提交；已提交版本不得原位重匹配 |
+| `/cutover-tasks/{id}/checklist/revisions` | GET | 返回当前及历史清单修订；清单detail、matching-options、external-state以可选checklistId读取同任务历史。历史访问仍要求当前项目查看范围，不开放历史写入 |
 | `/cutover-tasks/{id}/checklist/actions/export` | POST | CUT-03 V2导出当前授权清单版本 | 按清单项、设备和字段权限裁剪；导出不改变清单、任务或流程状态 |
 | `/cutover-tasks/{id}/checklist/items/{stableItemKey}/collection-requests` | POST | 关联平台正式采集执行，携带现行任务、清单版本与Idempotency-Key；绑定清单项和冻结设备范围，技术成功不直接判定采集项通过 |
 | `/cutover-tasks/{id}/plan` | GET、PUT；`actions/{create-draft|download-draft|submit|revise}` POST | 文件/安全/归属/人工确认校验；不强制解析全部模板字段；审批使用独立审批实例资源 |
@@ -323,6 +326,12 @@ PROJ继续拥有任务命令，ACC拥有验收业务命令与事实。修订018�
 | `/cutover-configurations/revisions`、`/cutover-configurations/revisions/{revisionId}` | GET、POST、PUT；`actions/{copy|validate|publish|disable}` POST | 创建、保存、复制、发布、停用携带Idempotency-Key；修改既有修订携带If-Match；发布版本不可覆盖，校验为只读操作 |
 
 以上为真实物理前缀`/api/v1/pms`下的割接资源，不再叠加`/admin-api`。割接路径接入既有身份、租户、权限及访问日志链；其他模块的路径行为保持既有契约。HTTP响应由割接VO显式投影，Long和时间沿用Yudao序列化，错误携带稳定reasonCode/recoveryAction；版本冲突刷新，未确定结果以同一幂等键及原始载荷重试，刷新失败时暂停后续写入。旧任务、方案、风险接口已退役，不提供兼容读写入口。
+
+2026-10-15已确认的主动修订合同见`Q-CUTOVER-ACTIVE-REVISION-20261015`。`WITHDRAWN`为审批终止事实，单独保存撤回人、时间、原因；原已办意见及来源修订保持不变。重新提交创建新审批实例，沿方案来源修订找到前序审批并建立替代关系。修订失败时评估、清单、方案、审批和任务阶段在同一事务回滚；重复命令返回首次结果。
+
+P2/P3主动修订请求可选`configurationRevisionId`，不传则保留任务当前配置。选择新配置时，在同一事务锁定并验证同一配置的有效发布修订及当前类型、组网值，然后更新当前任务的精确配置引用；原清单与方案继续保存原配置引用。P3随后重新匹配，不把旧清单直接标成新配置；按稳定采集项编码和相同字段定义承接填报及正式文件引用，字段变化的项重新填写，自动查询和采集重新确认。P4方案撤回入口不得单独变更配置。
+
+P3生成及重新匹配的`matchingInput`包含`cutoverType/networkMode/deviceTypeCodes`，按任务冻结配置校验取值。类型或组网变化以任务版本CAS更新；所有匹配维度存于清单关系表。`PROJECT_MAJOR_LEVEL`只从PROJ已有`ProjectBusinessContextApi.inspect/lockAndRevalidate`的`Context.majorProjectLevel`取得，锁定范围及项目版本后冻结`matchingProjectVersion`；不得采信客户端传入级别或跨模块查表。该值沿CRM权威字典映射，不把空值、无或未映射值推断为重大项目；配置草稿按用户裁决仅将正式办事处级、市场级、公司级关联重大项目备件项。
 
 PROJ公开`ProjectCutoverContextFactApi.inspect(ProjectCutoverContextFactQuery)`与`lockAndRevalidate(ProjectCutoverContextFactRevalidationQuery)`。inspect Query固定携带正数`tenantId/projectId`；重验Query携带从前次`FOUND`原样复制的完整`ExpectedProjectCutoverContextFact`，tenant必须与受信运行时上下文一致。`FOUND`返回同一ProjectMaster行的`tenantId/projectId/projectVersion/projectCode/projectName/customerId/customerCode/customerName/departmentId/departmentCode/departmentName`完整事实；三个编码字段最大64字符，`projectName/customerName/departmentName`最大255字符。`NOT_FOUND/INACTIVE`无Fact，写重验的`VERSION_CONFLICT`返回当前完整Fact。锁定方法以`MANDATORY`加入CUT写事务并锁定项目当前行，锁后逐字段比较完整Expected与currentFact；任一字段变化均返回`VERSION_CONFLICT`，Expected只作并发守卫，CUT只冻结Owner返回的currentFact。Owner损坏和Provider不可用分别使用公共稳定失败。客户字段和部门字段是项目发生时展示快照，CUT仍分别以`ProjectScopeApi.treeVersion`做用户范围重验、以`CustomerServiceLevelFactApi`取得当前服务等级；不得跨Context读表、拼接Summary或以projectVersion替代treeVersion。精确机器合同见`specs/features/F-CUT-002-project-context-fact-contract.json`。当前master尚未包含公共Java接口或生产Provider。
 
@@ -826,6 +835,15 @@ GET `/api/v1/pms/device-configuration-log-archives/{fileId}/parse` 返回每设�
 GET `/pms/asset/devices/page` 增补bootVersion、cpldVersion、warrantyMonths、extendedCount，沿用原设备可见范围；boot/cpld只取DEVICE_LOG来源，续保次数统计全部未删除续保记录，列表分页不逐台读取设备详情。
 
 GET `/api/v1/pms/implementation/installation-records/current-addresses`：projectId及equipmentIds（1～200个正整数）返回当前已完成且effectiveFrom存在、effectiveTo为空的设备安装地址。要求pms:imp-installation:query和项目VIEW范围，租户及项目条件在服务端生效；无匹配为空，不返回历史或其他项目数据。序列号页每个不超过200条的分页只需设备页与当前地址2次业务请求，旧详情、维保和安装历史接口保留。
+
+### 2026-10-15 割接详情式新建与项目已发货设备选择
+
+需求方确认：新建割接任务直接进入详情式新建页，支持先选项目或先输入设备序列号；项目资料自动回填，设备序列号、产品编码、产品型号独立按行展示。仅新建阶段可增删设备，创建后的设备范围保持只读；原创建事务、活动设备唯一性、来源版本及项目嵌入入口的执行上下文校验继续生效。
+
+- CUT 新增只读 `GET /api/v1/pms/cutover-tasks/creation-projects?keyword=...`、`GET .../creation-projects/{projectId}` 和 `GET .../creation-projects/{projectId}/devices?keyword=...&pageNo=...&pageSize=...`。均要求 `pms:cutover-task:create`；项目选项和详情只在当前租户、当前主体 `ACTION_EDIT` 范围内返回。设备分页由 AST 提供，固定限制当前直接归属项目、未删除、非空序列号且 `shipmentTime` 存在，不能借用关联合同扩大到其他项目。
+- CUT 新增只读 `POST /api/v1/pms/cutover-tasks/creation-devices/resolve`，输入 `serialNumbers`，复用原上下文解析与授权，返回项目候选及设备产品资料；无发货事实的设备不能成为本选择器的可选项。唯一项目候选自动回填，多候选仍显式选择，不能静默丢弃其他项目设备。提交继续使用既有创建接口及其来源水位。
+- PROJ 在既有 `ProjectBusinessContextApi` 增加 `presentation(Query)`，返回经项目范围校验的当前项目展示资料及有效成员名称；独立于冻结 `Context`，不改变既有来源相等性、快照或锁定契约。AST 在既有 `ProjectDeviceShipmentApi` 增加 `pageDevices(DeviceQuery)`，对象传参并返回分页结果；租户及当前主体必须有效，Owner 再校验项目可见范围。
+- 查询不创建任务、不修改项目或设备归属。产品编码、产品型号从 AST 读取，项目名称、经理、销售、行业及级别从 PROJ 读取，客户服务等级沿用 CUS 正式事实；缺失信息不猜测。旧接口、旧新建向导原件及已创建任务历史保留。
 
 ### 2026-10-09 设备当前安装地址投影统一
 

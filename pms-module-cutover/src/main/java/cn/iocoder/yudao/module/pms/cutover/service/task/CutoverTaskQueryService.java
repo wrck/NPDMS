@@ -186,7 +186,7 @@ public class CutoverTaskQueryService {
                     storedDevices.stream().map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList());
             require(currentDevices != null, AST_PROVIDER_UNAVAILABLE, "设备事实不可用");
             currentDevices = currentDevices.stream().filter(device -> task.getProjectId().equals(device.projectId())).toList();
-            boolean comparable = Objects.equals(storedProject, currentProject)
+            boolean comparable = sameFrozenProject(storedProject, currentProject)
                     && equivalentDevices(storedDevices, currentDevices);
             if (!requiresImplementationReadiness(task.getIntakeSourceType())) {
                 return new P2ActionEligibility(true, comparable);
@@ -251,7 +251,7 @@ public class CutoverTaskQueryService {
         CutoverAssessmentDO assessmentRow = task.getCurrentAssessmentId() == null
                 ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
         CutoverTaskViews.Assessment assessment = assessment(assessmentRow);
-        CutoverChecklistDO checklist = CutoverTaskRules.STAGE_P3.equals(task.getCurrentStage())
+        CutoverChecklistDO checklist = Set.of("P3", "P4", "P5").contains(task.getCurrentStage())
                 ? checklistMapper.selectCurrent(new CutoverChecklistRowQuery(tenantId, taskId, null)) : null;
         P2ActionEligibility p2Eligibility = CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
                 ? p2ActionEligibility(context, task,
@@ -316,7 +316,23 @@ public class CutoverTaskQueryService {
         var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
                 .p2p3(context.canSaveAssessment(), context.canSubmitAssessment(), context.canSaveChecklist(),
                         context.canRequestCollection(), context.canSubmitChecklist());
-        return List.copyOf(ACTION_POLICY.allowedActions(candidate, facts, permissions));
+        var actions = new java.util.ArrayList<>(ACTION_POLICY.allowedActions(candidate, facts, permissions));
+        if ("NEW_PLATFORM".equals(task.getTaskOrigin()) && Objects.equals(task.getOwnerUserId(), context.actorId())
+                && (context.canSaveAssessment() || context.canSaveChecklist())
+                && java.util.Set.of("P3", "P4", "P5").contains(task.getCurrentStage())) {
+            var editScope = projectScopePort.inspect(context.actorId(), task.getProjectId(), "ACTION_EDIT");
+            if (editScope != null && editScope.allowed() && Objects.equals(editScope.projectId(), task.getProjectId())) {
+                if (context.canSaveAssessment() && assessment != null && "SUBMITTED".equals(assessment.getAssessmentStatus())) {
+                    try { CutoverTaskRules.revisionTarget(task.getCurrentStage(), task.getTaskStatus(), task.getManualGrade(), "P2"); actions.add("REVISE_ASSESSMENT"); }
+                    catch (IllegalArgumentException unavailable) { /* 状态机决定可用动作。 */ }
+                }
+                if (context.canSaveChecklist() && checklist != null && "SUBMITTED".equals(checklist.getStatusCode())) {
+                    try { CutoverTaskRules.revisionTarget(task.getCurrentStage(), task.getTaskStatus(), task.getManualGrade(), "P3"); actions.add("REVISE_CHECKLIST"); }
+                    catch (IllegalArgumentException unavailable) { /* 状态机决定可用动作。 */ }
+                }
+            }
+        }
+        return List.copyOf(actions);
     }
 
     protected static boolean equivalentDevices(List<CutoverDeviceScopePort.DeviceFact> stored,

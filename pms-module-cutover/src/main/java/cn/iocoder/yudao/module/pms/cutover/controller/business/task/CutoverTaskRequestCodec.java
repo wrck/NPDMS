@@ -85,6 +85,15 @@ public final class CutoverTaskRequestCodec {
         exact(body, Set.of(), "empty-command");
     }
 
+    public CutoverTaskReqVO.Revision revision(JsonNode body) {
+        require(body != null && body.isObject(), "revise-task");
+        Set<String> keys = new HashSet<>();
+        body.properties().forEach(entry -> keys.add(entry.getKey()));
+        require(keys.containsAll(Set.of("expectedProjectScopeVersion", "reason"))
+                && Set.of("expectedProjectScopeVersion", "reason", "configurationRevisionId").containsAll(keys), "revise-task keys");
+        return read(body, CutoverTaskReqVO.Revision.class);
+    }
+
     private <T> T read(JsonNode body, Class<T> type) {
         try {
             return objectMapper.treeToValue(body, type);

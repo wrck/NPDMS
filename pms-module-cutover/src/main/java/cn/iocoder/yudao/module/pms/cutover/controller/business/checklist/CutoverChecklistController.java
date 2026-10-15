@@ -69,10 +69,19 @@ public class CutoverChecklistController {
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
-    public CommonResult<CutoverChecklistResponses.View> get(@PathVariable("taskId") Long taskId) {
+    public CommonResult<CutoverChecklistResponses.View> get(@PathVariable("taskId") Long taskId,
+            @org.springframework.web.bind.annotation.RequestParam(value = "checklistId", required = false) Long checklistId) {
         requireId(taskId);
         var trusted = requestContext.current();
-        return success(CutoverChecklistResponses.View.from(service.getView(trusted.tenantId(), trusted.actorId(), taskId)));
+        return success(CutoverChecklistResponses.View.from(service.getView(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(trusted, taskId, checklistId))));
+    }
+
+    @GetMapping("/revisions")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    public CommonResult<java.util.List<CutoverChecklistApplicationService.RevisionSummary>> revisions(@PathVariable("taskId") Long taskId) {
+        requireId(taskId);
+        return success(service.history(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(requestContext.current(), taskId, null)));
     }
 
     @PostMapping("/actions/export")
@@ -96,10 +105,11 @@ public class CutoverChecklistController {
     @GetMapping("/external-state")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
     public CommonResult<CutoverExternalChecklistResponses.State> externalState(
-            @PathVariable("taskId") Long taskId) {
+            @PathVariable("taskId") Long taskId,
+            @org.springframework.web.bind.annotation.RequestParam(value = "checklistId", required = false) Long checklistId) {
         requireId(taskId);
         return success(CutoverExternalChecklistResponses.State
-                .from(external.state(requestContext.current(), taskId)));
+                .from(external.state(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(requestContext.current(), taskId, checklistId))));
     }
 
     @PutMapping("/device-versions")
@@ -143,9 +153,11 @@ public class CutoverChecklistController {
 
     @GetMapping("/matching-options")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
-    public CommonResult<CutoverChecklistResponses.MatchingOptions> matchingOptions(@PathVariable("taskId") Long taskId) {
+    public CommonResult<CutoverChecklistResponses.MatchingOptions> matchingOptions(@PathVariable("taskId") Long taskId,
+            @org.springframework.web.bind.annotation.RequestParam(value = "checklistId", required = false) Long checklistId) {
         requireId(taskId);
-        return success(CutoverChecklistResponses.MatchingOptions.from(service.getMatchingOptions(requestContext.current(), taskId)));
+        return success(CutoverChecklistResponses.MatchingOptions.from(service.getMatchingOptions(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(requestContext.current(), taskId, checklistId))));
     }
 
     @PostMapping("/actions/generate")
@@ -158,10 +170,13 @@ public class CutoverChecklistController {
         require(request != null, "generate request");
         requireVersionHeaders(headers, request);
         var trusted = requestContext.current();
-        return success(CutoverChecklistResponses.ChecklistCommandResult.from(service.generate(new GenerateChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
-                request.expectedTaskVersion(), request.expectedAssessmentVersion(),
-                request.expectedProjectScopeVersion(), request.deviceTypeCodes(), definitions(request.selectedConflictDefinitions()),
-                header(CutoverRequestHeaders.value(headers, "Idempotency-Key"), "Idempotency-Key"), trusted.correlationId()))));
+        return success(CutoverChecklistResponses.ChecklistCommandResult.from(service.generate(GenerateChecklistCommand.builder()
+                .tenantId(trusted.tenantId()).actorId(trusted.actorId()).taskId(taskId)
+                .expectedTaskVersion(request.expectedTaskVersion()).expectedAssessmentVersion(request.expectedAssessmentVersion())
+                .expectedProjectScopeVersion(request.expectedProjectScopeVersion()).matchingInput(request.matchingInput())
+                .selectedConflictDefinitions(definitions(request.selectedConflictDefinitions()))
+                .idempotencyKey(header(CutoverRequestHeaders.value(headers, "Idempotency-Key"), "Idempotency-Key"))
+                .correlationId(trusted.correlationId()).build())));
     }
 
     @PostMapping("/actions/rematch")
@@ -174,11 +189,15 @@ public class CutoverChecklistController {
         require(request != null, "rematch request");
         requireVersionHeaders(headers, request);
         var trusted = requestContext.current();
-        return success(CutoverChecklistResponses.ChecklistCommandResult.from(service.rematch(new RematchChecklistCommand(trusted.tenantId(), trusted.actorId(), taskId,
-                request.expectedTaskVersion(), request.expectedAssessmentVersion(), request.checklistId(),
-                request.expectedChecklistVersion(), request.expectedInputSnapshotHash(),
-                request.expectedProjectScopeVersion(), request.deviceTypeCodes(), definitions(request.selectedConflictDefinitions()),
-                header(CutoverRequestHeaders.value(headers, "Idempotency-Key"), "Idempotency-Key"), trusted.correlationId()))));
+        return success(CutoverChecklistResponses.ChecklistCommandResult.from(service.rematch(RematchChecklistCommand.builder()
+                .tenantId(trusted.tenantId()).actorId(trusted.actorId()).taskId(taskId)
+                .expectedTaskVersion(request.expectedTaskVersion()).expectedAssessmentVersion(request.expectedAssessmentVersion())
+                .checklistId(request.checklistId()).expectedChecklistVersion(request.expectedChecklistVersion())
+                .expectedInputSnapshotHash(request.expectedInputSnapshotHash())
+                .expectedProjectScopeVersion(request.expectedProjectScopeVersion()).matchingInput(request.matchingInput())
+                .selectedConflictDefinitions(definitions(request.selectedConflictDefinitions()))
+                .idempotencyKey(header(CutoverRequestHeaders.value(headers, "Idempotency-Key"), "Idempotency-Key"))
+                .correlationId(trusted.correlationId()).build())));
     }
 
     @PutMapping

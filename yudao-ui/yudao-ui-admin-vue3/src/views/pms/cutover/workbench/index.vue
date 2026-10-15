@@ -50,7 +50,7 @@
         <section class="cut-card" aria-labelledby="cutover-self-list-title">
           <header class="cut-card__header">
             <h2 id="cutover-self-list-title"><Icon icon="ep:edit-pen" />自建割接任务</h2>
-            <el-button data-testid="create-cutover-task" type="primary" v-hasPermi="['pms:cutover-task:create']" @click="createVisible = true"><Icon icon="ep:plus" />新增割接任务</el-button>
+            <el-button data-testid="create-cutover-task" type="primary" v-hasPermi="['pms:cutover-task:create']" @click="router.push('/pms/cutover/tasks/create')"><Icon icon="ep:plus" />新增割接任务</el-button>
           </header>
           <el-table v-loading="loading" :data="selfCreatedTasks" :empty-text="listError ? '自建列表未加载成功' : '暂无自建割接任务，可新增任务'" row-key="id" @row-dblclick="openDetail">
             <el-table-column label="项目名称" min-width="270"><template #default="{ row }"><button type="button" class="project-link" @click="openDetail(row)">{{ row.projectName }}</button><small v-if="row.taskName !== row.projectName" class="task-subtitle">{{ row.taskName }}</small></template></el-table-column>
@@ -62,7 +62,6 @@
           <Pagination v-model:page="selfCreatedQuery.pageNo" v-model:limit="selfCreatedQuery.pageSize" :total="selfCreatedTotal" @pagination="loadPage" />
         </section>
       </template>
-    <CutoverCreateWizard v-model="createVisible" @created="createdTask" />
 
     <el-dialog v-model="todoVisible" title="我的审批待办" width="min(920px, 94vw)">
       <el-table v-loading="approvalQueueLoading" :data="approvalTodos" row-key="approvalInstanceId">
@@ -137,7 +136,6 @@ import { checkPermi } from '@/utils/permission'
 import { getProject, getProjectPage, type ProjectMasterVO } from '@/api/pms/project/projects'
 import * as CutoverApi from '@/api/pms/cutover'
 import type { CutoverDashboardKpiData } from '@/api/pms/cutover'
-import CutoverCreateWizard from '../components/CutoverCreateWizard.vue'
 import CutoverDashboardKpis from '../components/CutoverDashboardKpis.vue'
 import CutoverTaskTable from '../components/CutoverTaskTable.vue'
 import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
@@ -155,7 +153,6 @@ const route = useRoute()
 const kpiLoading = ref(false)
 const kpis = ref<CutoverDashboardKpiData | null>(null)
 const kpiError = ref<string | null>(null)
-const createVisible = ref(false)
 const todoVisible = ref(false)
 const reassignmentQueueVisible = ref(false)
 const approvalQueueLoading = ref(false)
@@ -300,7 +297,6 @@ const openDetail = async (row: { id: CutoverApi.WireLong; approvalOnly?: boolean
     await router.push(`/pms/cutover/approvals/${approvalId}`)
   } else await router.push(`/pms/cutover/tasks/${row.id}`)
 }
-const createdTask = async (id: CutoverApi.WireLong) => { await refreshListAndKpis(); await openDetail({ id }) }
 onMounted(refreshListAndKpis)
 onActivated(() => { if (!loading.value) void refreshListAndKpis() })
 onBeforeUnmount(() => { listSequence++; projectSequence++ })

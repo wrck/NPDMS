@@ -40,7 +40,7 @@ public final class CutoverChecklistExportService {
                 INVALID_EXPORT_REQUEST, "导出请求非法");
         CutoverChecklistView view;
         try {
-            view = checklistService.getView(tenantId, actorId, taskId);
+            view = checklistService.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(context, taskId, null));
         } catch (CutoverChecklistException exception) {
             throw translate(exception);
         } catch (CutoverOwnerFactException exception) {

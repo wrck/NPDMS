@@ -27,8 +27,10 @@
       </el-select>
       <el-button :disabled="!selectedDeviceId" @click="collectionDialog?.open(item.itemId)">{{ readonly ? '查看采集日志' : '设备采集与日志' }}</el-button>
       <el-button v-if="!readonly && allowCollection" @click="loadExecutions">选择已有采集记录</el-button>
-      <BusinessCollectionDialog ref="collectionDialog" entry="cutover-checklist" :device-id="selectedDeviceId" @accepted="acceptExecution" @closed="emit('refresh')" />
-      <el-dialog v-model="executionsVisible" title="选择本项采集记录" width="min(900px, 94vw)">
+      <Teleport to="body">
+        <BusinessCollectionDialog ref="collectionDialog" entry="cutover-checklist" :device-id="selectedDeviceId" align-center @accepted="acceptExecution" @closed="emit('refresh')" />
+      </Teleport>
+      <el-dialog v-model="executionsVisible" title="选择本项采集记录" width="min(900px, 94vw)" append-to-body align-center>
         <el-table :data="executions" v-loading="executionsLoading">
           <el-table-column label="设备" prop="task.deviceName" min-width="160" />
           <el-table-column label="命令模板" prop="templateName" min-width="180" />
@@ -105,10 +107,18 @@ const emit = defineEmits<{
   externalSave: [stableItemKey: string]
   externalFeedback: [stableItemKey: string, value: CutoverExternalFeedback[]]
 }>()
-const canUseManual = computed(() => props.item.workModeCode !== 'EXTERNAL' || (!props.versionDirty
-  && props.externalState?.manualFallback && props.externalState.contextCurrent
-  && props.externalState.queries.some(query => query.succeeded === false
-    && props.externalState?.selectedQueryIds.some(id => String(id) === String(query.id)))))
+const canUseManual = computed(() => {
+  if (props.item.workModeCode === 'MANUAL') return true
+  if (props.item.workModeCode === 'COLLECTION') {
+    const result = props.item.currentResult
+    return !!result && ((result.resultSourceCode === 'COLLECTION' && !!result.loadFailureCode)
+      || (result.resultSourceCode === 'MANUAL' && !!result.originalFailureCode))
+  }
+  return props.item.workModeCode === 'EXTERNAL' && !props.versionDirty
+    && props.externalState?.manualFallback && props.externalState.contextCurrent
+    && props.externalState.queries.some(query => query.succeeded === false
+      && props.externalState?.selectedQueryIds.some(id => String(id) === String(query.id)))
+})
 const externalDeviceNames = computed(() => Object.fromEntries(props.devices.map(device => [String(device.deviceId), device.serialNumber])))
 const factDescription = ref('')
 const selectedDeviceId = ref('')

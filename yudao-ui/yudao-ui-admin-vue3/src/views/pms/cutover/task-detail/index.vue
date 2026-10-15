@@ -12,9 +12,16 @@
         :task-id="taskId" complete-after-decision @changed="handleApprovalChanged" @decided="emit('close')" />
       <template v-else-if="detail">
         <CutoverWorkbenchSteps :steps="detail.workbenchSteps" :selected="selectedStage" @select="selectedStage = $event" />
+        <div v-if="revisionTarget && !readonly && !detailError" class="cut-actions">
+          <span class="cut-help">修订保留原版本，并使后续清单或方案失效；审批中会先撤回当前审批。</span>
+          <el-button data-testid="revise-current-step" type="warning" :loading="revising" @click="openRevision">
+            {{ detail.task.currentStage === 'P5' ? '撤回审批并修订此步骤' : '修订此步骤' }}
+          </el-button>
+        </div>
         <template v-if="activeStagePanel === 'ASSESSMENT'">
-          <el-alert title="根据问卷填写评估信息，人工确定A/B/C/D等级。D级使用简易割接流程；历史步骤仅供查看。" type="info" :closable="false" show-icon />
+          <el-alert title="根据问卷填写评估信息，人工确定A/B/C/D等级。D级使用简易割接流程；已提交内容需通过修订创建新版本。" type="info" :closable="false" show-icon />
           <CutoverProjectContextCard :detail="detail" />
+          <CutoverTaskDevices :detail="detail" />
           <CutoverAssessmentPanel :model="assessmentModel" :customer-service-level="detail.customerServiceLevel?.serviceLevelCode"
             :editable="!readonly && !detailError && detail.allowedActions.includes('SAVE_ASSESSMENT')"
             :submittable="!readonly && !detailError && (detail.allowedActions.includes('SUBMIT_ASSESSMENT') || (detail.allowedActions.includes('SAVE_ASSESSMENT') && checkPermi(['pms:cutover-task:submit-assessment'])))"
@@ -31,6 +38,32 @@
         <el-empty v-else description="当前步骤暂无可查看的内容" />
       </template>
     </div>
+    <el-dialog v-model="revisionVisible" title="创建修订" width="min(560px, 94vw)" append-to-body align-center
+      :close-on-click-modal="!revising" :show-close="!revising">
+      <el-alert :title="revisionImpact" type="warning" :closable="false" show-icon />
+      <el-form label-position="top" class="mt-4">
+        <el-form-item label="本次使用的配置">
+          <el-select v-model="revisionConfigurationId" :loading="revisionOptionsLoading" :disabled="revising"
+            class="w-full" data-testid="revision-configuration">
+            <el-option label="沿用当前配置" value="" />
+            <el-option v-for="option in revisionOptions" :key="String(option.revisionId)" :value="String(option.revisionId)"
+              :label="`${option.name} · 版本 ${option.revisionNo}`" />
+          </el-select>
+          <span class="cut-help">选择新配置后需重新匹配；未变化的填报和材料可沿用，原版本保留在历史记录中。</span>
+        </el-form-item>
+        <el-form-item label="修订原因" required>
+          <el-input v-model="revisionReason" type="textarea" :rows="3" maxlength="1000" show-word-limit
+            :disabled="revising" data-testid="revision-reason" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button :disabled="revising" @click="revisionVisible = false">取消</el-button>
+        <el-button type="primary" :loading="revising" :disabled="!revisionReason.trim() || revisionOptionsLoading"
+          data-testid="confirm-step-revision" @click="reviseStep">
+          {{ detail?.task.currentStage === 'P5' ? '撤回审批并创建修订' : '创建修订' }}
+        </el-button>
+      </template>
+    </el-dialog>
   </section>
 </template>
 
@@ -42,6 +75,7 @@ import * as CutoverApi from '@/api/pms/cutover'
 import type { AssessmentAnswers, CutoverTaskDetail, ManualGrade, WireLong } from '@/api/pms/cutover'
 import { activeCutoverStagePanel, createCutoverWriteCoordinator } from '../shared/cutoverTaskInteraction'
 import CutoverProjectContextCard from '../components/CutoverProjectContextCard.vue'
+import CutoverTaskDevices from '../components/CutoverTaskDevices.vue'
 import CutoverAssessmentPanel from '../components/CutoverAssessmentPanel.vue'
 import CutoverApprovalPanel from '../components/CutoverApprovalPanel.vue'
 import CutoverChecklistPanel from '../components/CutoverChecklistPanel.vue'
@@ -59,6 +93,20 @@ const selectedStage = ref<CutoverApi.CutoverStage | null>(null)
 const approvalReload = ref(0)
 const saving = ref(false)
 const submitting = ref(false)
+const revising = ref(false)
+const revisionVisible = ref(false)
+const revisionReason = ref('')
+const revisionConfigurationId = ref('')
+const revisionOptions = ref<CutoverApi.IntakeOption[]>([])
+const revisionOptionsLoading = ref(false)
+const revisionWrites = createCutoverWriteCoordinator()
+const revisionTarget = computed<'P2' | 'P3' | null>(() => {
+  if (selectedStage.value === 'P2' && detail.value?.allowedActions.includes('REVISE_ASSESSMENT')) return 'P2'
+  if (selectedStage.value === 'P3' && detail.value?.allowedActions.includes('REVISE_CHECKLIST')) return 'P3'
+  return null
+})
+const revisionImpact = computed(() => `${detail.value?.task.currentStage === 'P5' ? '当前审批将先撤回。' : ''}${revisionTarget.value === 'P2'
+  ? '后续清单及方案将失效，需要重新确认等级并继续填写。' : '后续方案将失效，需要重新提交清单并编制方案。'}`)
 let loadSequence = 0
 const assessmentWrites = createCutoverWriteCoordinator()
 const assessmentModel = reactive<{ answers: AssessmentAnswers; manualGrade: ManualGrade | null }>({ answers: emptyAnswers(), manualGrade: null })
@@ -97,6 +145,34 @@ const refreshDetail = async () => {
   }
 }
 const reloadDetail = async () => { try { await refreshDetail() } catch { /* 错误由详情页展示，历史数据不可继续办理。 */ } }
+
+const openRevision = async () => {
+  if (!revisionTarget.value || !detail.value) return
+  revisionReason.value = ''
+  revisionConfigurationId.value = ''
+  revisionOptions.value = []
+  revisionVisible.value = true
+  revisionOptionsLoading.value = true
+  try { revisionOptions.value = await CutoverApi.getCutoverRevisionOptions(detail.value.task.id) }
+  catch { revisionVisible.value = false }
+  finally { revisionOptionsLoading.value = false }
+}
+const reviseStep = async () => {
+  const targetStage = revisionTarget.value
+  if (!targetStage || !detail.value?.project.projectScopeVersion || revising.value) return
+  const reason = revisionReason.value.trim()
+  if (!reason || reason.length > 1000) { message.warning('请填写 1～1000 字的修订原因'); return }
+  const command = { taskId: detail.value.task.id, taskVersion: detail.value.task.version, targetStage,
+    data: { expectedProjectScopeVersion: detail.value.project.projectScopeVersion, reason,
+      ...(revisionConfigurationId.value ? { configurationRevisionId: revisionConfigurationId.value } : {}) } }
+  revising.value = true
+  try {
+    const result = await revisionWrites.run(JSON.stringify(command), idempotencyKey => CutoverApi.reviseCutoverTask({ ...command, idempotencyKey }), refreshDetail)
+    if (!result.refreshSucceeded) { message.warning('修订已完成，详情刷新失败，请先刷新后继续'); return }
+    revisionVisible.value = false
+    if (result.writeCalled) { message.success('修订已创建，原版本已保留'); emit('changed') }
+  } finally { revising.value = false }
+}
 
 const persistAssessment = async () => {
   if (!detail.value) return false

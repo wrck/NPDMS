@@ -20,12 +20,12 @@ class CutoverChecklistExportServiceTest {
     void exportsAuthorizedViewAndAuditsOnlySafeCounts() {
         CutoverChecklistApplicationService checklistService = mock(CutoverChecklistApplicationService.class);
         OperationAuditApi auditApi = mock(OperationAuditApi.class);
-        when(checklistService.getView(9L, 12L, 31L)).thenReturn(new CutoverChecklistView(
+        when(checklistService.getView(org.mockito.ArgumentMatchers.any())).thenReturn(new CutoverChecklistView(
                 31L, "P3", 7L, 19L, 41L, 3L, 2L, "SUBMITTED", "hash", "config", "trace", null,
                 List.of(new CutoverChecklistView.Item(51L, "survey-1", "BUSINESS_SURVEY", "survey",
                         null, "TEXT", null, "DIRECT", true, "CONFIGURATION", true, 1,
-                        new CutoverChecklistView.CurrentResult(1, "DIRECT", "answer", null,
-                                null, null, null, null, null)))));
+                        CutoverChecklistView.CurrentResult.builder().resultVersion(1).resultSourceCode("DIRECT")
+                                .answerSnapshot("answer").build()))));
         CutoverChecklistExportService service = new CutoverChecklistExportService(checklistService,
                 new CutoverChecklistWorkbookWriter(), auditApi);
 

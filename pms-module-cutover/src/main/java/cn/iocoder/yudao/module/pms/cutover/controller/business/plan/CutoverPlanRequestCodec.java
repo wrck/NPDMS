@@ -66,7 +66,7 @@ public final class CutoverPlanRequestCodec {
     public Revise revise(JsonNode body) {
         exact(body, REVISE, "revise");
         String reason = textField(body, "reason", 32);
-        if (!List.of("APPROVAL_REJECTED", "DUTY_CHANGED", "SOURCE_REPLACED").contains(reason)) throw invalid("reason");
+        if (!List.of("APPROVAL_REJECTED", "DUTY_CHANGED", "SOURCE_REPLACED", "USER_REVISION").contains(reason)) throw invalid("reason");
         return new Revise(wireLong(body.get("sourcePlanRevisionId"), "sourcePlanRevisionId", true), reason);
     }
 

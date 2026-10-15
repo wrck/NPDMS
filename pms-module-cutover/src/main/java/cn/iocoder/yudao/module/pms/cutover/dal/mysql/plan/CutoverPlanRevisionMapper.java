@@ -32,4 +32,5 @@ public interface CutoverPlanRevisionMapper extends BaseMapperX<CutoverPlanRevisi
     int replaceSubmittedIfMatch(@Param("query") CutoverPlanReplacementUpdate query);
     int submitDraftIfMatch(@Param("query") CutoverPlanSubmitUpdate query);
     int invalidateSubmittedIfMatch(@Param("query") CutoverPlanInvalidationUpdate query);
+    int invalidateForRevisionIfMatch(@Param("query") cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverRevisionInvalidationUpdate query);
 }

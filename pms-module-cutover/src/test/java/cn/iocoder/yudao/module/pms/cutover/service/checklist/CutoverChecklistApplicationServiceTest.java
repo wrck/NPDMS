@@ -57,7 +57,17 @@ class CutoverChecklistApplicationServiceTest {
     void completesP3WithDirectCustomAndControlledManualEvidence() {
         Fixture fixture = fixture();
 
-        ChecklistCommandResult generated = fixture.service.generate(new GenerateChecklistCommand(1L, 8L, 1000L, 2L, 1L, 7L, List.of("ROUTER"), Map.of(), "generate-1", "corr-generate-1"));
+        ChecklistCommandResult generated = fixture.service.generate(GenerateChecklistCommand.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .taskId(1000L)
+                .expectedTaskVersion(2L)
+                .expectedAssessmentVersion(1L)
+                .expectedProjectScopeVersion(7L)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("配置变更", "普通双机", List.of("ROUTER")))
+                .selectedConflictDefinitions(Map.of())
+                .idempotencyKey("generate-1")
+                .correlationId("corr-generate-1").build());
         ChecklistItemCommandResult transientCustom = fixture.service.addCustomItem(new AddCustomItemCommand(1L,
                 8L,
                 1000L,
@@ -115,7 +125,7 @@ class CutoverChecklistApplicationServiceTest {
                 generated.checklistId(),
                 custom.checklistVersion(),
                 7L,
-                "SYS-IP",
+                "SYS-MATERIAL",
                 CutoverChecklistFilePort.FileHandle.builder()
                         .artifactId(90L)
                         .versionNo(2)
@@ -125,8 +135,21 @@ class CutoverChecklistApplicationServiceTest {
                         .build(),
                 "现场截图",
                 cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
-        CutoverChecklistView beforeRematch = fixture.service.getView(1L, 8L, 1000L);
-        ChecklistCommandResult rematched = fixture.service.rematch(new RematchChecklistCommand(1L, 8L, 1000L, 2L, 1L, generated.checklistId(), manual.checklistVersion(), beforeRematch.inputSnapshotHash(), 7L, List.of("ROUTER"), Map.of(), "rematch-1", "corr-rematch-1"));
+        CutoverChecklistView beforeRematch = fixture.service.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "corr-read"), 1000L, null));
+        ChecklistCommandResult rematched = fixture.service.rematch(RematchChecklistCommand.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .taskId(1000L)
+                .expectedTaskVersion(2L)
+                .expectedAssessmentVersion(1L)
+                .checklistId(generated.checklistId())
+                .expectedChecklistVersion(manual.checklistVersion())
+                .expectedInputSnapshotHash(beforeRematch.inputSnapshotHash())
+                .expectedProjectScopeVersion(7L)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("配置变更", "普通双机", List.of("ROUTER")))
+                .selectedConflictDefinitions(Map.of())
+                .idempotencyKey("rematch-1")
+                .correlationId("corr-rematch-1").build());
         var accepted = fixture.service.requestCollection(new RequestCollectionCommand(
                 1L, 8L, 1000L, 2L, generated.checklistId(), rematched.checklistFactVersion(), 7L,
                 "SYS-COLLECT", 400L, 700L, "collect-1", "corr-collect-1"));
@@ -141,7 +164,7 @@ class CutoverChecklistApplicationServiceTest {
                 generated.checklistId(), collection.checklistVersion(), 7L,
                 List.of(new SaveChecklistCommand.DirectAnswer("SYS-COLLECT", "{\"value\":{\"status\":\"ok\"}}")),
                 cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
-        CutoverChecklistView view = fixture.service.getView(1L, 8L, 1000L);
+        CutoverChecklistView view = fixture.service.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "corr-read"), 1000L, null));
         ChecklistCommandResult submitted = fixture.service.submit(new SubmitChecklistCommand(
                 1L, 8L, 1000L, 2L, 1L, generated.checklistId(), analyzed.checklistFactVersion(), 7L,
                 "submit-1", "corr-submit-1"));
@@ -152,12 +175,12 @@ class CutoverChecklistApplicationServiceTest {
         assertEquals("DRAFT", generated.checklistStatus());
         assertEquals(3, saved.checklistFactVersion());
         assertEquals(4, custom.checklistVersion());
-        assertEquals(2, manual.resultVersion());
+        assertEquals(1, manual.resultVersion());
         assertEquals(2, rematched.checklistVersion());
-        assertEquals(4, view.items().size());
-        assertEquals("MANUAL", view.items().stream().filter(item -> "SYS-IP".equals(item.stableItemKey()))
+        assertEquals(5, view.items().size());
+        assertEquals("MANUAL", view.items().stream().filter(item -> "SYS-MATERIAL".equals(item.stableItemKey()))
                 .findFirst().orElseThrow().currentResult().resultSourceCode());
-        assertEquals("现场截图", view.items().stream().filter(item -> "SYS-IP".equals(item.stableItemKey()))
+        assertEquals("现场截图", view.items().stream().filter(item -> "SYS-MATERIAL".equals(item.stableItemKey()))
                 .findFirst().orElseThrow().currentResult().factDescription());
         assertEquals(9100L, view.items().stream().filter(item -> "SYS-COLLECT".equals(item.stableItemKey()))
                 .findFirst().orElseThrow().currentResult().collectionResultReferenceId());
@@ -181,8 +204,138 @@ class CutoverChecklistApplicationServiceTest {
                         .map(PlatformCommandExecutionApi.BusinessEvent::eventType).toList());
         verify(fixture.collectionPort, times(1)).request(any());
         verify(fixture.collectionPort, times(2)).inspect(any());
-        assertFalse(fixture.results.stream().filter(row -> "DIRECT".equals(row.getResultSourceCode()))
+        assertTrue(fixture.results.stream().filter(row -> "DIRECT".equals(row.getResultSourceCode()))
                 .allMatch(row -> row.getSelectionEndedAt() == null));
+    }
+
+    @Test
+    void rejectsManualReplacementOfDirectAndCollectionWithoutFailure() {
+        var fixture = fixture(); var generated = generate(fixture);
+        for (var key : List.of("SYS-IP", "SYS-COLLECT")) {
+            var error = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
+                    () -> fixture.service.selectManual(manual(generated, 0L, key)));
+            assertEquals(CutoverChecklistException.Code.INVALID_REQUEST, error.getCode());
+        }
+        assertTrue(fixture.results.isEmpty());
+    }
+
+    @Test
+    void refusesSubmissionOfLegacyManualFallbackWithoutFailureEvidence() {
+        var fixture = fixture(); var generated = generate(fixture);
+        var view = fixture.service.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "read"), 1000L, null));
+        var item = view.items().stream().filter(value -> "SYS-COLLECT".equals(value.stableItemKey())).findFirst().orElseThrow();
+        var oldManual = new CutoverChecklistItemResultDO();
+        oldManual.setId(81L); oldManual.setTenantId(1L); oldManual.setChecklistItemId(item.itemId());
+        oldManual.setResultVersion(1); oldManual.setResultSourceCode("MANUAL");
+        oldManual.setFactDescription("旧入口录入但没有自动失败来源");
+        fixture.results.add(oldManual);
+
+        var error = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
+                () -> fixture.service.submit(new SubmitChecklistCommand(1L, 8L, 1000L, 2L, 1L,
+                        generated.checklistId(), generated.checklistFactVersion(), 7L, "legacy-manual", "legacy-manual")));
+
+        assertEquals(CutoverChecklistException.Code.STATE_CONFLICT, error.getCode());
+        assertTrue(error.getMessage().contains("人工降级缺少自动失败来源"));
+        assertEquals("P3", fixture.task.get().getCurrentStage());
+        assertTrue(fixture.history.isEmpty());
+    }
+
+    @Test
+    void retainsOriginalCollectionFailureWhenManualEvidenceIsReplaced() {
+        var fixture = fixture(); var generated = generate(fixture);
+        var view = fixture.service.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "read"), 1000L, null));
+        var item = view.items().stream().filter(value -> "SYS-COLLECT".equals(value.stableItemKey())).findFirst().orElseThrow();
+        var failure = new CutoverChecklistItemResultDO(); failure.setId(81L); failure.setTenantId(1L);
+        failure.setChecklistItemId(item.itemId()); failure.setResultVersion(3); failure.setResultSourceCode("COLLECTION");
+        failure.setCollectionStatusCode("FAILED"); failure.setCollectionTaskId(99L); failure.setLoadFailureCode("SSH_FAILED");
+        fixture.results.add(failure);
+        fixture.service.selectManual(manual(generated, 0L, "SYS-COLLECT"));
+        fixture.service.selectManual(manual(generated, 1L, "SYS-COLLECT"));
+        var selected = fixture.results.stream().filter(value -> value.getSelectionEndedAt() == null).findFirst().orElseThrow();
+        assertEquals("MANUAL", selected.getResultSourceCode());
+        assertEquals(99L, selected.getOriginalFailedCollectionTaskId());
+        assertEquals(3L, selected.getOriginalFailedResultVersion());
+        assertEquals("SSH_FAILED", selected.getOriginalFailureCode());
+        assertEquals("SSH_FAILED", failure.getLoadFailureCode());
+        assertTrue(failure.getSelectionEndedAt() != null);
+    }
+
+    private static ChecklistCommandResult generate(Fixture fixture) {
+        return fixture.service.generate(GenerateChecklistCommand.builder().tenantId(1L).actorId(8L).taskId(1000L)
+                .expectedTaskVersion(2L).expectedAssessmentVersion(1L).expectedProjectScopeVersion(7L)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("配置变更", "普通双机", List.of("ROUTER")))
+                .selectedConflictDefinitions(Map.of()).idempotencyKey("generate").correlationId("generate").build());
+    }
+
+    @Test
+    void matchingUsesLockedProjectLevelAndRejectsUnmappedValuesBeforeWriting() {
+        for (String level : List.of("无", "办事处级", "未映射历史值")) {
+            var fixture = fixture();
+            var configurationService = (CutoverChecklistConfigurationQueryService)
+                    org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "configurationService");
+            var original = configurationService.resolveFrozen(null);
+            var dictionaries = (tools.jackson.databind.node.ObjectNode) cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(original.dictionarySnapshot());
+            dictionaries.set("majorProjectLevel", cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("[{\"value\":\"无\",\"label\":\"无\"},{\"value\":\"办事处级\",\"label\":\"办事处级\"}]"));
+            var dimensions = (tools.jackson.databind.node.ArrayNode) cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(original.dimensionDefinitionSnapshot());
+            dimensions.add(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{\"code\":\"PROJECT_MAJOR_LEVEL\",\"enabled\":true,\"valueSource\":\"DICT:majorProjectLevel\"}"));
+            when(configurationService.resolveFrozen(any())).thenReturn(new CutoverFrozenConfiguration(original.revisionId(), original.configurationCode(),
+                    original.revisionNo(), original.statusCode(), dictionaries.toString(), dimensions.toString(), original.items(), original.rules()));
+            var owner = mock(cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.class);
+            var fact = cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.ProjectContextFact.builder()
+                    .tenantId(1L).projectId(10L).projectVersion(12).projectScopeVersion(7L).majorProjectLevel(level).build();
+            when(owner.inspect(any())).thenReturn(fact); when(owner.lockAndRevalidate(fact)).thenReturn(fact);
+            org.springframework.test.util.ReflectionTestUtils.setField(fixture.service, "projectContext", owner);
+            var metadata = (CutoverChecklistMetadataStore) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "checklistMetadata");
+            if ("未映射历史值".equals(level)) {
+                var error = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class, () -> generate(fixture));
+                assertEquals(CutoverChecklistException.Code.FROZEN_CONFIGURATION_INVALID, error.getCode());
+                verify(metadata, org.mockito.Mockito.never()).replace(any());
+                assertTrue(fixture.platform.facts.isEmpty());
+            } else {
+                var generated = generate(fixture);
+                var write = org.mockito.ArgumentCaptor.forClass(CutoverChecklistMetadataStore.Write.class);
+                verify(metadata).replace(write.capture());
+                assertEquals(List.of(level), write.getValue().dimensions().get("PROJECT_MAJOR_LEVEL"));
+                assertEquals(12L, write.getValue().checklist().getMatchingProjectVersion());
+                verify(owner).lockAndRevalidate(fact);
+                var changed = cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.ProjectContextFact.builder()
+                        .tenantId(1L).projectId(10L).projectVersion(13).projectScopeVersion(7L).majorProjectLevel("办事处级").build();
+                when(owner.inspect(any())).thenReturn(changed); when(owner.lockAndRevalidate(changed)).thenReturn(changed);
+                var stale = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
+                        () -> fixture.service.submit(new SubmitChecklistCommand(1L, 8L, 1000L, 2L, 1L, generated.checklistId(),
+                                generated.checklistFactVersion(), 7L, "stale-project", "stale-project")));
+                assertEquals(CutoverChecklistException.Code.VERSION_CONFLICT, stale.getCode());
+                assertEquals("P3", fixture.task.get().getCurrentStage());
+            }
+        }
+    }
+
+    @Test
+    void changedMatchingInputsAdvanceTaskOnceAndReplayOriginalRequest() {
+        var fixture = fixture();
+        var mapper = (CutoverTaskMapper) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "taskMapper");
+        when(mapper.updateMatchingInputIfMatch(any())).thenReturn(1);
+        var command = GenerateChecklistCommand.builder().tenantId(1L).actorId(8L).taskId(1000L)
+                .expectedTaskVersion(2L).expectedAssessmentVersion(1L).expectedProjectScopeVersion(7L)
+                .matchingInput(new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("版本升级", null, List.of("ROUTER")))
+                .selectedConflictDefinitions(Map.of()).idempotencyKey("changed-input").correlationId("changed-input").build();
+        var generated = fixture.service.generate(command);
+        var replay = fixture.service.generate(command);
+        assertEquals(3L, fixture.task.get().getVersion());
+        assertEquals("版本升级", fixture.task.get().getCutoverType());
+        org.junit.jupiter.api.Assertions.assertNull(fixture.task.get().getNetworkMode());
+        assertEquals(generated.checklistId(), replay.checklistId());
+        assertTrue(replay.replayed());
+        verify(mapper, times(1)).updateMatchingInputIfMatch(any());
+    }
+
+    private static SelectManualResultCommand manual(ChecklistCommandResult generated, long version, String key) {
+        return new SelectManualResultCommand(1L, 8L, 1000L, 2L, generated.checklistId(), version, 7L, key,
+                CutoverChecklistFilePort.FileHandle.builder().artifactId(90L).versionNo(2).referenceKey("ref-90")
+                        .fileFactVersion(new CutoverChecklistFilePort.FileFactVersion(3, 4, 5)).scopeVersion(7L).build(),
+                "现场核验材料", cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent());
     }
 
     private static Fixture fixture() {
@@ -227,16 +380,20 @@ class CutoverChecklistApplicationServiceTest {
         assessment.setSimpleFlow(false);
         assessment.setVersion(1L);
         CutoverFrozenConfiguration configuration = new CutoverFrozenConfiguration(3000L, "CUT-CONFIG", 1,
-                "PUBLISHED", "{\"pms_device_type\":[{\"value\":\"ROUTER\",\"label\":\"路由器\"}]}",
-                "[{\"code\":\"DEVICE_TYPE\",\"valueSource\":\"DICT:pms_device_type\",\"enabled\":true}]", List.of(
+                "PUBLISHED", "{\"pms_cutover_task_type\":[{\"value\":\"配置变更\",\"label\":\"配置变更\"},{\"value\":\"版本升级\",\"label\":\"版本升级\"}],\"pms_cutover_task_network_mode\":[{\"value\":\"普通双机\",\"label\":\"普通双机\"}],\"pms_device_type\":[{\"value\":\"ROUTER\",\"label\":\"路由器\"}]}",
+                "[{\"code\":\"CUTOVER_TYPE\",\"enabled\":true,\"valueSource\":\"DICT:pms_cutover_task_type\"},{\"code\":\"NETWORK_MODE\",\"enabled\":true,\"valueSource\":\"DICT:pms_cutover_task_network_mode\"},{\"code\":\"DEVICE_TYPE\",\"valueSource\":\"DICT:pms_device_type\",\"enabled\":true}]", List.of(
                 new CutoverFrozenConfiguration.ItemDefinition(4000L, "SYS-IP", 1, "TEXT", "管理地址", null,
                         "TEXT", "{\"type\":\"string\"}", "DIRECT", true, 10),
                 new CutoverFrozenConfiguration.ItemDefinition(4001L, "SYS-COLLECT", 1, "TEXT", "设备采集", null,
-                        "TEXT", "{\"type\":\"object\"}", "COLLECTION", true, 20)),
+                        "TEXT", "{\"type\":\"object\"}", "COLLECTION", true, 20),
+                new CutoverFrozenConfiguration.ItemDefinition(4002L, "SYS-MATERIAL", 1, "TEXT", "人工材料", null,
+                        "FILE", "{}", "MANUAL", true, 30)),
                 List.of(
                 new CutoverFrozenConfiguration.BindingRule(5000L, "RULE-IP", 4000L, 1,
                         "{\"CUTOVER_TYPE\":[\"配置变更\"],\"DEVICE_TYPE\":[\"ROUTER\"]}", 100, true, 0),
                 new CutoverFrozenConfiguration.BindingRule(5001L, "RULE-COLLECT", 4001L, 1,
+                        "{\"CUTOVER_TYPE\":[\"配置变更\"],\"DEVICE_TYPE\":[\"ROUTER\"]}", 90, true, 0),
+                new CutoverFrozenConfiguration.BindingRule(5002L, "RULE-MATERIAL", 4002L, 1,
                         "{\"CUTOVER_TYPE\":[\"配置变更\"],\"DEVICE_TYPE\":[\"ROUTER\"]}", 90, true, 0)));
         CutoverProjectScopePort.ProjectScopeFact scope = new CutoverProjectScopePort.ProjectScopeFact(10L, 7L, true);
         CutoverChecklistFilePort.FileFactVersion fileVersion =

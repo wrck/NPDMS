@@ -13,4 +13,23 @@
             <otherwise>AND 1 = 0</otherwise>
         </choose>
     </select>
+    <sql id="projectShippedDeviceScope">
+        FROM ast_device
+        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId} AND deleted = b'0'
+          AND shipment_time IS NOT NULL AND sn IS NOT NULL AND TRIM(sn) &lt;&gt; ''
+        <if test="query.keyword != null and query.keyword != ''">
+            AND (sn LIKE CONCAT('%', #{query.keyword}, '%')
+                OR product_code LIKE CONCAT('%', #{query.keyword}, '%')
+                OR product_model LIKE CONCAT('%', #{query.keyword}, '%'))
+        </if>
+    </sql>
+    <select id="selectProjectDevices" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
+        SELECT id, sn, product_code, product_model
+        <include refid="projectShippedDeviceScope"/>
+        ORDER BY sn, id
+        LIMIT #{query.offset}, #{query.pageSize}
+    </select>
+    <select id="countProjectDevices" resultType="java.lang.Long">
+        SELECT COUNT(*) <include refid="projectShippedDeviceScope"/>
+    </select>
 </mapper>

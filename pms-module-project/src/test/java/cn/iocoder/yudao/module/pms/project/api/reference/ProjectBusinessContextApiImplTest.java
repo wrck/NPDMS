@@ -72,6 +72,34 @@ class ProjectBusinessContextApiImplTest {
     }
 
     @Test
+    void presentationUsesAuthorizedProjectAndCurrentMemberNamesWithoutChangingFrozenContext() {
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(29L), Set.of()));
+        when(projects.selectById(29L)).thenReturn(project);
+        project.setManagerName("项目经理"); project.setIndustryName("金融"); project.setMajorProjectLevel("公司级");
+        var manager = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
+        manager.setMemberRole("SERVICE_MANAGER"); manager.setMemberName("服务经理");
+        var sales = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO();
+        sales.setMemberRole("SALES_REPRESENTATIVE"); sales.setMemberName("销售");
+        when(members.selectActiveForAssignmentState(any())).thenReturn(java.util.List.of(manager, manager, sales));
+        var frozen = service.inspect(query);
+        var result = service.presentation(query);
+        assertEquals("项目经理", result.projectManagerName());
+        assertEquals("服务经理", result.serviceManagerNames());
+        assertEquals("销售", result.salesNames());
+        assertEquals("金融", result.industryName());
+        assertEquals("客户67", result.customerName());
+        assertEquals(frozen, service.inspect(query));
+        verify(members).selectActiveForAssignmentState(argThat(value -> value.projectId().equals(29L) && value.effectiveAt() != null));
+    }
+
+    @Test
+    void presentationCannotReadMembersOutsideScope() {
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(), Set.of(29L)));
+        assertThrows(ServiceException.class, () -> service.presentation(query));
+        verifyNoInteractions(projects, members);
+    }
+
+    @Test
     void missingPermissionAndStaleScopeCannotReadProject() {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(29L, 41L, Set.of(), Set.of(29L)));
         assertEquals(PROJECT_TREE_SCOPE_FORBIDDEN.getCode(), assertThrows(ServiceException.class,

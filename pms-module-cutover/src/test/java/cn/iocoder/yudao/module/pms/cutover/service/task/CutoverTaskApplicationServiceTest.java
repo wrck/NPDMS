@@ -93,6 +93,26 @@ class CutoverTaskApplicationServiceTest {
     }
 
     @Test
+    void stillRejectsChangedFrozenProjectVersionAndNameWithMajorProjectMetadata() {
+        for (String changed : List.of("VERSION", "NAME")) {
+            Fixture fixture = fixture();
+            var created = fixture.service().create(createCommand("create-stale-project"));
+            var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
+            if ("VERSION".equals(changed)) fixture.task().get().setProjectVersion(2L);
+            else fixture.task().get().setProjectName("旧项目名称");
+
+            var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                    () -> fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(),
+                            saved.assessmentRowVersion(), "stale-project")));
+
+            assertEquals(CutoverTaskApplicationException.Code.PROJECT_CONTEXT_STALE, failure.code());
+            assertEquals("P2", fixture.task().get().getCurrentStage());
+            assertEquals("DRAFT", fixture.assessment().get().getAssessmentStatus());
+            assertEquals(List.of("P1_ACCEPTED"), fixture.history().stream().map(CutoverTaskStageHistoryDO::getTriggerType).toList());
+        }
+    }
+
+    @Test
     void replaysCompletedCreateBeforeReadingMutableOwnerFacts() {
         Fixture fixture = fixture();
         CreateCutoverTaskCommand command = createCommand("create-replay");
@@ -167,6 +187,7 @@ class CutoverTaskApplicationServiceTest {
                         .departmentCode("OFFICE-300")
                         .departmentName("一号办事处")
                         .projectScopeVersion(7L)
+                        .majorProjectLevel("公司级")
                         .build();
         List<CutoverDeviceScopePort.DeviceFact> devices = List.of(
                 new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L));
@@ -192,7 +213,7 @@ class CutoverTaskApplicationServiceTest {
                 .projectId(100L)
                 .expectedProjectScopeVersion(7L)
                 .build())).thenReturn(projectFact);
-        when(projectContext.lockAndRevalidate(projectFact)).thenReturn(projectFact);
+        when(projectContext.lockAndRevalidate(any())).thenReturn(projectFact);
         when(deviceScope.resolveBySerials(List.of("SN-400"))).thenReturn(devices);
         when(deviceScope.lockAndRevalidate(100L, devices)).thenReturn(devices);
         when(productType.resolveAuthorized(8L, List.of(400L))).thenReturn(productTypes);

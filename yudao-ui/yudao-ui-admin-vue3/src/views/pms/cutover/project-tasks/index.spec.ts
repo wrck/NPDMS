@@ -5,7 +5,7 @@ import ProjectTasks from './index.vue'
 
 const api = vi.hoisted(() => ({ getCutoverTaskPage: vi.fn(), getCutoverDashboardKpis: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
-vi.mock('../components/CutoverCreateWizard.vue', () => ({ default: defineComponent({ render: () => null }) }))
+vi.mock('../task-create/index.vue', () => ({ default: defineComponent({ render: () => null }) }))
 vi.mock('../task-detail/index.vue', () => ({ default: defineComponent({
   props: ['taskId', 'projectId', 'readonly'], emits: ['close'], setup(props, { emit }) {
     return () => h('section', { 'data-testid': 'shared-detail', ...props }, [

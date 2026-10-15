@@ -101,6 +101,61 @@ public class CutoverChecklistMetadataStore {
         return result;
     }
 
+    public record RevisionWrite(CutoverChecklistDO source, CutoverChecklistDO target, Long actorId, LocalDateTime time) { }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void carryDeviceVersions(RevisionWrite command) {
+        if (!"DRAFT".equals(command.target().getStatusCode())
+                || !Objects.equals(command.source().getTenantId(), command.target().getTenantId())
+                || !Objects.equals(command.source().getCutoverTaskId(), command.target().getCutoverTaskId())) {
+            throw new IllegalArgumentException("软件版本只能沿用同任务的历史清单");
+        }
+        var prior = devices.selectListByParents(CutoverChecklistDeviceContextListQuery.builder()
+                .tenantId(command.source().getTenantId()).checklistIds(Set.of(command.source().getId())).build()).stream()
+                .collect(Collectors.toMap(CutoverChecklistDeviceContextDO::getDeviceId, value -> value));
+        boolean upgrade = dimensions(command.target()).getOrDefault("CUTOVER_TYPE", List.of()).contains("VERSION_UPGRADE");
+        for (var current : devices.selectListByParents(CutoverChecklistDeviceContextListQuery.builder()
+                .tenantId(command.target().getTenantId()).checklistIds(Set.of(command.target().getId())).build())) {
+            var source = prior.get(current.getDeviceId());
+            if (source == null) continue;
+            var update = CutoverChecklistDeviceContextDO.builder().id(current.getId()).productModel(source.getProductModel())
+                    .currentSoftwareVersion(source.getCurrentSoftwareVersion())
+                    .targetSoftwareVersion(upgrade ? source.getTargetSoftwareVersion() : null).build();
+            update.setUpdater(String.valueOf(command.actorId())); update.setUpdateTime(command.time());
+            if (devices.updateById(update) != 1) throw new IllegalStateException("修订设备版本上下文复制失败");
+        }
+    }
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void copyToRevision(RevisionWrite command) {
+        var source = command.source(); var target = command.target();
+        if (!"DRAFT".equals(target.getStatusCode()) || !Objects.equals(source.getTenantId(), target.getTenantId())
+                || !Objects.equals(source.getCutoverTaskId(), target.getCutoverTaskId())
+                || !Objects.equals(source.getConfigurationRevisionId(), target.getConfigurationRevisionId())) {
+            throw new IllegalArgumentException("清单修订只能复制同任务、同配置的来源事实");
+        }
+        for (var sourceRow : inputs.selectListByParents(CutoverChecklistInputDimensionListQuery.builder()
+                .tenantId(source.getTenantId()).checklistIds(Set.of(source.getId())).build())) {
+            var row = new CutoverChecklistInputDimensionDO(); org.springframework.beans.BeanUtils.copyProperties(sourceRow, row);
+            row.setId(null); row.setChecklistId(target.getId()); row.setCreateUserId(command.actorId()); row.setCreateTime(command.time());
+            inputs.insert(row);
+        }
+        for (var sourceRow : candidates.selectListByParents(CutoverChecklistMatchCandidateListQuery.builder()
+                .tenantId(source.getTenantId()).checklistIds(Set.of(source.getId())).build())) {
+            var row = new CutoverChecklistMatchCandidateDO(); org.springframework.beans.BeanUtils.copyProperties(sourceRow, row);
+            row.setId(null); row.setChecklistId(target.getId()); row.setCreator(String.valueOf(command.actorId()));
+            row.setUpdater(String.valueOf(command.actorId())); row.setCreateTime(command.time()); row.setUpdateTime(command.time());
+            candidates.insert(row);
+        }
+        for (var sourceRow : devices.selectListByParents(CutoverChecklistDeviceContextListQuery.builder()
+                .tenantId(source.getTenantId()).checklistIds(Set.of(source.getId())).build())) {
+            var row = new CutoverChecklistDeviceContextDO(); org.springframework.beans.BeanUtils.copyProperties(sourceRow, row);
+            row.setId(null); row.setChecklistId(target.getId()); row.setCreator(String.valueOf(command.actorId()));
+            row.setUpdater(String.valueOf(command.actorId())); row.setCreateTime(command.time()); row.setUpdateTime(command.time());
+            devices.insert(row);
+        }
+    }
+
     public String matchTrace(CutoverChecklistDO root) {
         var rows = candidates.selectListByParents(CutoverChecklistMatchCandidateListQuery.builder()
                 .tenantId(root.getTenantId()).checklistIds(Set.of(root.getId())).build());

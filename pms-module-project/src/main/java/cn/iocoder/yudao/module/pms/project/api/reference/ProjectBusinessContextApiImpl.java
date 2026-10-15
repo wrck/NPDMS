@@ -2,16 +2,23 @@ package cn.iocoder.yudao.module.pms.project.api.reference;
 
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectAllScopeQuery;
+import cn.iocoder.yudao.module.pms.project.api.participant.ProjectMemberRoles;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectBusinessOptionsQuery;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.Objects;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
@@ -22,6 +29,26 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
     private final ProjectMasterMapper projects;
     private final ProjectScopeApi scopes;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper members;
+
+    @Override
+    public List<Option> searchOptions(OptionsQuery query) {
+        if (query == null) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        var actor = ActorQuery.builder().tenantId(query.tenantId()).actorId(query.actorId()).build();
+        validateActor(actor);
+        var visible = Set.copyOf(scopes.resolveAllCurrent(new ProjectAllScopeQuery(
+                actor.tenantId(), actor.actorId(), ProjectScopeApi.ACTION_VIEW)));
+        if (visible.isEmpty()) return List.of();
+        return projects.selectBusinessOptions(ProjectBusinessOptionsQuery.builder().tenantId(actor.tenantId())
+                .visibleProjectIds(visible).keyword(query.keyword() == null ? "" : query.keyword().trim()).build()).stream()
+                .map(row -> new Option(row.getId(), row.getProjectCode(), row.getProjectName(), row.getCustomerName())).toList();
+    }
+
+    private static void validateActor(ActorQuery query) {
+        if (query == null || query.tenantId() == null || query.actorId() == null || query.actorId() <= 0
+                || !Objects.equals(query.tenantId(), TenantContextHolder.getTenantId())) {
+            throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        }
+    }
 
     @Override
     public ServiceManagers serviceManagers(Query query) {
@@ -71,6 +98,34 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
     }
 
     @Override
+    public Presentation presentation(Query query) {
+        inspect(query);
+        var project = projects.selectById(query.projectId());
+        context(query, project);
+        var currentMembers = members.selectActiveForAssignmentState(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectAssignmentStateQuery(
+                        query.projectId(), LocalDateTime.now()));
+        String manager = project.getManagerName();
+        if (manager == null || manager.isBlank()) manager = presentationNames(currentMembers, Set.of(ProjectMemberRoles.PROJECT_MANAGER));
+        return Presentation.builder().projectId(project.getId()).projectCode(project.getProjectCode())
+                .projectName(project.getProjectName()).customerName(project.getCustomerName())
+                .projectManagerName(manager).serviceManagerNames(presentationNames(currentMembers, ProjectMemberRoles.SERVICE_CODES))
+                .salesNames(presentationNames(currentMembers, ProjectMemberRoles.SALES_CODES))
+                .departmentName(project.getDepartmentName())
+                .industryName(project.getIndustryName() == null || project.getIndustryName().isBlank()
+                        ? project.getIndustryCode() : project.getIndustryName())
+                .majorProjectLevel(project.getMajorProjectLevel()).build();
+    }
+
+    private static String presentationNames(
+            List<cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO> members,
+            Set<String> roles) {
+        return members.stream().filter(member -> roles.contains(member.getMemberRole()))
+                .map(cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO::getMemberName)
+                .filter(name -> name != null && !name.isBlank()).distinct().sorted().collect(Collectors.joining("、"));
+    }
+
+    @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public Context lockAndRevalidate(Revalidation expected) {
         if (expected == null || expected.expectedProjectVersion() == null) throw exception(PROJECT_VERSION_CONFLICT);
@@ -117,6 +172,7 @@ public class ProjectBusinessContextApiImpl implements ProjectBusinessContextApi 
                 .customerName(project.getCustomerName())
                 .departmentId(project.getDepartmentId())
                 .departmentCode(project.getDepartmentCode())
-                .departmentName(project.getDepartmentName()).build();
+                .departmentName(project.getDepartmentName())
+                .majorProjectLevel(project.getMajorProjectLevel()).build();
     }
 }

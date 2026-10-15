@@ -17,6 +17,6 @@ public interface CutoverProjectContextPort {
                               String projectCode, String projectName,
                               Long customerId, String customerCode, String customerName,
                               Long departmentId, String departmentCode, String departmentName,
-                              long projectScopeVersion) {
+                              long projectScopeVersion, String majorProjectLevel) {
     }
 }

@@ -42,6 +42,8 @@ public class CutoverChecklistDO extends BaseBusinessEntity {
     private Long sourceTaskVersion;
     /** 生成时项目范围版本；历史原件缺失时可空，新业务按既有来源/提交规则必填 */
     private Long projectScopeVersion;
+    /** 匹配项目主数据维度时由项目 Owner 锁定的版本；旧配置未消费该维度时为空。 */
+    private Long matchingProjectVersion;
     /** 消费的配置修订ID；历史原件缺失时可空，新业务按既有来源/提交规则必填 */
     private Long configurationRevisionId;
     /** 消费的配置编码；历史原件缺失时可空，新业务按既有来源/提交规则必填 */

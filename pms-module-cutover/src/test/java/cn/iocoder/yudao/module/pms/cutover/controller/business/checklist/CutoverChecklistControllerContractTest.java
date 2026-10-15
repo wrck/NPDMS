@@ -51,7 +51,9 @@ class CutoverChecklistControllerContractTest {
         when(service.generate(org.mockito.ArgumentMatchers.any())).thenReturn(
                 new ChecklistCommandResult(31L, 41L, 1L, 0L, "DRAFT", "P3", 7L, false));
 
-        controller.generate(31L, headers("intent-1"), new CutoverChecklistReqVO.Generate(7L, 2L, 19L, List.of(), Map.of("risk-1", new CutoverChecklistReqVO.SelectedDefinition(71L, 3))));
+        controller.generate(31L, headers("intent-1"), new CutoverChecklistReqVO.Generate(7L, 2L, 19L,
+                new cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput("CONFIGURATION_CHANGE", null, List.of()),
+                Map.of("risk-1", new CutoverChecklistReqVO.SelectedDefinition(71L, 3))));
         ArgumentCaptor<GenerateChecklistCommand> generate = ArgumentCaptor.forClass(GenerateChecklistCommand.class);
         verify(service).generate(generate.capture());
         assertThat(generate.getValue()).satisfies(command -> {

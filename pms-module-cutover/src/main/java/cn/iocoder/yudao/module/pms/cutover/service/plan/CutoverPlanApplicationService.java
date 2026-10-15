@@ -303,7 +303,8 @@ public class CutoverPlanApplicationService {
         CutoverTaskDO inspectedTask = requireOwnedP4(taskMapper.selectById(command.taskId()), command);
         CutoverPlanRevisionDO inspectedSource = requireRevisionSource(planMapper.selectById(
                 command.sourcePlanRevisionId()), command);
-        CutoverApprovalFact inspectedApproval = inspectApprovalFact(command.tenantId(), inspectedSource);
+        CutoverApprovalFact inspectedApproval = positive(inspectedSource.getApprovalInstanceId())
+                ? inspectApprovalFact(command.tenantId(), inspectedSource) : null;
         requireRevisionReason(command.reason(), inspectedSource, inspectedApproval);
         CutoverPlanSourcePort.SourceFacts inspectedFacts = inspectSource(command.tenantId(), command.actorId(),
                 command.taskId());
@@ -319,7 +320,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanRevisionDO source = requireRevisionSource(planMapper.selectByIdForUpdate(
                 new CutoverPlanRevisionQuery(command.tenantId(), command.taskId(), command.sourcePlanRevisionId())),
                 command);
-        CutoverApprovalFact approval = lockApprovalFact(command.tenantId(), source, inspectedApproval);
+        CutoverApprovalFact approval = inspectedApproval == null ? null : lockApprovalFact(command.tenantId(), source, inspectedApproval);
         requireRevisionReason(command.reason(), source, approval);
         CutoverPlanRevisionDO current = planMapper.selectCurrentForUpdate(new CutoverPlanRevisionQuery(
                 command.tenantId(), command.taskId(), null));
@@ -347,7 +348,7 @@ public class CutoverPlanApplicationService {
             throw failure(OWNER_DATA_CORRUPTED, "修订来源内容无法按当前事实重建");
         }
         LocalDateTime now = LocalDateTime.now(clock);
-        if (approval.status() == ApprovalStatus.REJECTED
+        if (approval != null && approval.status() == ApprovalStatus.REJECTED && "SUBMITTED".equals(source.getStatusCode())
                 && planMapper.replaceSubmittedIfMatch(new CutoverPlanReplacementUpdate(command.tenantId(),
                 source.getId(), source.getVersion(), source.getVersion() + 1, String.valueOf(command.actorId()), now)) != 1) {
             throw failure(VERSION_CONFLICT, "来源方案版本已变化");
@@ -526,6 +527,16 @@ public class CutoverPlanApplicationService {
         Integer maxRevision = planMapper.selectMaxRevisionNo(new CutoverPlanHistoryQuery(command.tenantId(), command.taskId()));
         CutoverPlanRevisionDO row = newPlan(command, task, lockedFacts, decoded, file,
                 (maxRevision == null ? 0 : maxRevision) + 1);
+        // 等级/模板变化后允许重新编制正文，仍保留被替代方案与撤回审批的追溯链。
+        planMapper.selectListHistory(new CutoverPlanHistoryQuery(command.tenantId(), command.taskId())).reversed().stream()
+                .filter(previous -> "INVALIDATED".equals(previous.getStatusCode())
+                        && "USER_REVISION".equals(previous.getInvalidationReasonCode()) && previous.getCurrentMarker() == null)
+                .findFirst().ifPresent(previous -> {
+                    if (!planMapper.selectListDirectSuccessors(new CutoverPlanSuccessorQuery(command.tenantId(), command.taskId(), previous.getId())).isEmpty()) {
+                        throw failure(STATE_CONFLICT, "被替代方案已存在后续版本");
+                    }
+                    row.setSourcePlanRevisionId(previous.getId()); row.setRevisionReasonCode("USER_REVISION");
+                });
         if (planMapper.insert(row) != 1) throw failure(STATE_CONFLICT, "草稿创建失败");
         storage.replaceDraft(CutoverPlanStorage.Write.builder().plan(row).source(lockedFacts.snapshot())
                 .content(decoded == null ? null : decoded.rootSnapshot()).actorId(command.actorId()).time(LocalDateTime.now(clock)).build());
@@ -912,8 +923,7 @@ public class CutoverPlanApplicationService {
         if (source == null || !Objects.equals(source.getTenantId(), command.tenantId())
                 || !Objects.equals(source.getCutoverTaskId(), command.taskId())
                 || !Objects.equals(source.getId(), command.sourcePlanRevisionId())
-                || !"NEW_PLATFORM".equals(source.getOriginCode())
-                || !positive(source.getApprovalInstanceId())) {
+                || !"NEW_PLATFORM".equals(source.getOriginCode())) {
             throw failure(NOT_FOUND, "来源方案不可见");
         }
         return source;
@@ -921,6 +931,15 @@ public class CutoverPlanApplicationService {
 
     private static void requireRevisionReason(String reason, CutoverPlanRevisionDO source,
                                               CutoverApprovalFact approval) {
+        if ("USER_REVISION".equals(reason)) {
+            if (!"INVALIDATED".equals(source.getStatusCode()) || source.getCurrentMarker() != null
+                    || !"USER_REVISION".equals(source.getInvalidationReasonCode())
+                    || approval != null && approval.status() != ApprovalStatus.WITHDRAWN && approval.status() != ApprovalStatus.REJECTED) {
+                throw failure(STATE_CONFLICT, "来源方案不是已撤回或被前序修订替代的版本");
+            }
+            return;
+        }
+        if (approval == null) throw failure(STATE_CONFLICT, "该修订原因需要正式审批事实");
         if ("DUTY_CHANGED".equals(reason)) {
             throw failure(STATE_CONFLICT, "APPROVAL_STATE_CONFLICT", "CUT",
                     null, source.getVersion(), approval.approvalVersion(), "批准后职责变化的P6回退合同尚未锁定");
@@ -1126,16 +1145,21 @@ public class CutoverPlanApplicationService {
 
     private Long previousApprovalInstanceId(Long tenantId, Long taskId, CutoverPlanRevisionDO plan) {
         if (plan.getSourcePlanRevisionId() == null) return null;
-        CutoverPlanRevisionDO source = planMapper.selectById(plan.getSourcePlanRevisionId());
-        if (source == null || !Objects.equals(source.getTenantId(), tenantId)
-                || !Objects.equals(source.getCutoverTaskId(), taskId)
-                || !positive(source.getApprovalInstanceId())) {
-            throw failure(OWNER_DATA_CORRUPTED, "替代审批来源身份损坏");
-        }
-        if (!List.of("APPROVAL_REJECTED", "SOURCE_REPLACED").contains(plan.getRevisionReasonCode())) {
+        if (!List.of("APPROVAL_REJECTED", "SOURCE_REPLACED", "USER_REVISION").contains(plan.getRevisionReasonCode())) {
             throw failure(OWNER_DATA_CORRUPTED, "派生方案审批关系非法");
         }
-        return source.getApprovalInstanceId();
+        java.util.Set<Long> visited = new java.util.HashSet<>();
+        Long sourceId = plan.getSourcePlanRevisionId();
+        while (sourceId != null) {
+            if (!visited.add(sourceId)) throw failure(OWNER_DATA_CORRUPTED, "方案修订来源存在循环");
+            CutoverPlanRevisionDO source = planMapper.selectById(sourceId);
+            if (source == null || !Objects.equals(source.getTenantId(), tenantId) || !Objects.equals(source.getCutoverTaskId(), taskId)) {
+                throw failure(OWNER_DATA_CORRUPTED, "替代审批来源身份损坏");
+            }
+            if (positive(source.getApprovalInstanceId())) return source.getApprovalInstanceId();
+            sourceId = source.getSourcePlanRevisionId();
+        }
+        return null;
     }
 
     private CutoverApprovalCommandResult pauseApproval(InvalidateCutoverPlanSourceCommand command,
@@ -1384,7 +1408,7 @@ public class CutoverPlanApplicationService {
         if (command == null || !positive(command.tenantId()) || !positive(command.actorId())
                 || !positive(command.taskId()) || command.expectedTaskVersion() == null
                 || command.expectedTaskVersion() < 0 || !positive(command.sourcePlanRevisionId())
-                || !List.of("APPROVAL_REJECTED", "DUTY_CHANGED", "SOURCE_REPLACED").contains(command.reason())
+                || !List.of("APPROVAL_REJECTED", "DUTY_CHANGED", "SOURCE_REPLACED", "USER_REVISION").contains(command.reason())
                 || !validText(command.idempotencyKey(), 128) || !validText(command.correlationId(), 128)) {
             throw failure(INVALID_REQUEST, "修订方案命令非法");
         }

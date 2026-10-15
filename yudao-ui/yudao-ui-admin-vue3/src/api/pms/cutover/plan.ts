@@ -55,7 +55,7 @@ export const patchApprovedCutoverPlanContact = (command: { taskId: WireLong; arr
 
 export const reviseCutoverPlan = (command: { taskId: WireLong; taskVersion: WireLong; data: {
     sourcePlanRevisionId: WireLong
-    reason: 'APPROVAL_REJECTED' | 'SOURCE_REPLACED'
+    reason: 'APPROVAL_REJECTED' | 'SOURCE_REPLACED' | 'USER_REVISION'
   }; idempotencyKey: string }) =>
   request.post<CutoverPlanView>({
     url: `${baseUrl}/${command.taskId}/plan/actions/revise`,

@@ -2,6 +2,23 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper">
+    <select id="selectBusinessOptions" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO">
+        SELECT p.id, p.project_code, p.project_name, p.customer_name
+        FROM proj_project p
+        WHERE p.tenant_id = #{query.tenantId} AND p.deleted = b'0'
+        <choose>
+            <when test="query.visibleProjectIds != null and !query.visibleProjectIds.isEmpty()">
+                AND p.id IN
+                <foreach collection="query.visibleProjectIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1 = 0</otherwise>
+        </choose>
+        <if test="query.keyword != null and query.keyword != ''">
+            AND INSTR(LOWER(CONCAT_WS(' ', p.project_code, p.project_name)), LOWER(#{query.keyword})) &gt; 0
+        </if>
+        ORDER BY p.project_name, p.id
+        LIMIT 100
+    </select>
     <update id="correctCustomerIfMatch">
         UPDATE proj_project SET customer_id=#{query.customerId}, customer_code=#{query.customerCode}, customer_name=#{query.customerName},
           version=version+1, updater=#{query.updater}, update_time=CURRENT_TIMESTAMP(3)

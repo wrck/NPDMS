@@ -9,5 +9,15 @@ public interface ProjectDeviceShipmentApi {
      */
     Set<Long> resolveShippedProjectIds(Query query);
 
+    /** 仅当前直接归属项目的已发货设备，不扩大到关联合同或历史归属。 */
+    DevicePage pageDevices(DeviceQuery query);
+
     record Query(Long tenantId, Set<Long> visibleProjectIds) {}
+
+    @lombok.Builder
+    record DeviceQuery(Long tenantId, Long actorId, Long projectId, String keyword, int pageNo, int pageSize) {}
+    record Device(Long deviceId, String serialNumber, String productCode, String productModel) {}
+    record DevicePage(java.util.List<Device> list, long total) {
+        public DevicePage { list = java.util.List.copyOf(list); }
+    }
 }

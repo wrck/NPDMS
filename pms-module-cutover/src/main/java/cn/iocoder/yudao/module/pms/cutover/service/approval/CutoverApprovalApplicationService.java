@@ -323,6 +323,34 @@ public class CutoverApprovalApplicationService {
                 : execution.response();
     }
 
+    @org.springframework.transaction.annotation.Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public CutoverApprovalFact withdrawForRevision(cn.iocoder.yudao.module.pms.cutover.service.approval.command.WithdrawCutoverApprovalCommand command) {
+        var task = command.task(); var plan = command.plan();
+        long actorId = currentUserId.getAsLong();
+        require(actorId > 0 && Objects.equals(command.actorId(), actorId) && Objects.equals(task.getOwnerUserId(), actorId),
+                STATE_CONFLICT, "只有任务负责人可以撤回审批");
+        require("P5".equals(task.getCurrentStage()) && "APPROVING".equals(task.getTaskStatus())
+                        && "SUBMITTED".equals(plan.getStatusCode()) && Objects.equals(plan.getCutoverTaskId(), task.getId())
+                        && Objects.equals(plan.getTenantId(), task.getTenantId())
+                        && command.reason() != null && !command.reason().isBlank() && command.reason().length() <= 1000,
+                STATE_CONFLICT, "当前方案不可撤回");
+        var instance = instanceMapper.selectByTaskAndPlanForUpdate(new ApprovalInstanceLockQuery(task.getTenantId(), null,
+                task.getId(), plan.getId()));
+        require(instance != null && Objects.equals(instance.getId(), plan.getApprovalInstanceId())
+                        && "PENDING".equals(instance.getStatusCode()), STATE_CONFLICT, "审批已结束，不能撤回");
+        LocalDateTime now = LocalDateTime.now(clock);
+        workflow.cancel(instance, actorId);
+        instance.setWithdrawUserId(actorId); instance.setWithdrawTime(now); instance.setWithdrawReason(command.reason());
+        instance.setUpdater(String.valueOf(actorId)); instance.setUpdateTime(now);
+        require(instanceMapper.withdrawForRevisionIfMatch(instance) == 1, VERSION_CONFLICT, "审批事实已变化");
+        instance.setStatusCode("WITHDRAWN"); instance.setHoldReasonCode(null); instance.setVersion(instance.getVersion() + 1);
+        for (var node : nodeMapper.open(new CutoverApprovalNodesQuery(task.getTenantId(), instance.getId()))) {
+            node.setStatusCode("CANCELLED"); node.setUpdater(String.valueOf(actorId)); node.setUpdateTime(now);
+            require(nodeMapper.updateById(node) == 1, VERSION_CONFLICT, "审批节点已变化");
+        }
+        return fact(instance);
+    }
+
     private CutoverApprovalCommandResult pauseNew(CutoverApprovalPauseCommand command, long actorId) {
         CutoverApprovalInstanceDO instance = instanceMapper.selectByIdForUpdate(new ApprovalInstanceLockQuery(
                 command.tenantId(), command.approvalInstanceId(), null, null));
@@ -442,7 +470,7 @@ public class CutoverApprovalApplicationService {
         var current = locked.current();
         Long userId = current.outcome() == ProjectCutoverServiceManagerPort.Outcome.FOUND ? current.userId() : null;
         return new NodeDraft(code, CutoverApprovalNodeFacts.manager(current),
-                userId == null ? "SERVICE_MANAGER_NOT_UNIQUE" : null);
+                userId == null ? "ROUTE_CANDIDATE_NOT_UNIQUE" : null);
     }
 
     private NodeDraft roleCandidate(long tenantId, String code) {
@@ -457,7 +485,7 @@ public class CutoverApprovalApplicationService {
         CutoverApprovalInstanceDO previous = instanceMapper.selectByIdForUpdate(new ApprovalInstanceLockQuery(
                 command.tenantId(), command.previousApprovalInstanceId(), null, null));
         require(previous != null && Objects.equals(previous.getTaskId(), command.taskId())
-                        && List.of("REJECTED", "PAUSED_SOURCE_INVALIDATED").contains(previous.getStatusCode())
+                        && List.of("REJECTED", "PAUSED_SOURCE_INVALIDATED", "WITHDRAWN").contains(previous.getStatusCode())
                         && previous.getReplacementApprovalInstanceId() == null,
                 STATE_CONFLICT, "前序审批不可被替代");
         previous.setReplacementApprovalInstanceId(replacementId);

@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanStorage;
 import cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCustomResultStore;
 import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistResultStore;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistEvidenceRules;
 import jakarta.annotation.Resource;
 import cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskSnapshotStore;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -57,6 +58,8 @@ public class CutoverApprovalSourceAssembler {
     private CutoverCustomResultStore customResults;
     @Resource
     private CutoverFieldDefinitionStore fieldDefinitions;
+    @Resource
+    private CutoverProjectContextPort projectContext;
 
     private final CutoverTaskMapper taskMapper;
     private final CutoverAssessmentMapper assessmentMapper;
@@ -79,6 +82,19 @@ public class CutoverApprovalSourceAssembler {
     }
 
     public LockedSource lockAndAssemble(CutoverApprovalStartCommand command) {
+        CutoverPlanRevisionDO inspectedPlan = planMapper.selectById(command.planRevisionId());
+        require(inspectedPlan != null && Objects.equals(inspectedPlan.getTenantId(), command.tenantId())
+                        && Objects.equals(inspectedPlan.getCutoverTaskId(), command.taskId())
+                        && inspectedPlan.getSourceProjectId() != null && inspectedPlan.getSourceProjectVersion() != null
+                        && inspectedPlan.getSourceProjectScopeVersion() != null,
+                SOURCE_STALE, "P4方案事实已变化");
+        var inspectedProject = projectContext.inspect(CutoverProjectContextPort.Inspection.builder()
+                .tenantId(command.tenantId()).projectId(inspectedPlan.getSourceProjectId())
+                .expectedProjectScopeVersion(inspectedPlan.getSourceProjectScopeVersion()).build());
+        requirePlanProject(inspectedPlan, inspectedProject);
+        // P4已按相同顺序锁定来源；单独组装时也先锁项目，再锁CUT事实。
+        CutoverProjectContextPort.ProjectContextFact project = projectContext.lockAndRevalidate(inspectedProject);
+        requirePlanProject(inspectedPlan, project);
         CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
         require(task != null && Objects.equals(task.getVersion(), command.expectedTaskVersion())
                 && "P4".equals(task.getCurrentStage()) && "PLAN_DRAFTING".equals(task.getTaskStatus()),
@@ -109,6 +125,8 @@ public class CutoverApprovalSourceAssembler {
                 if (!Boolean.TRUE.equals(item.getApplicableFlag())) continue;
                 CutoverChecklistItemResultDO result = resultByItem.get(item.getId());
                 require(result != null, BUSINESS_INCOMPLETE, "清单存在未完成项");
+                require(!"MANUAL".equals(result.getResultSourceCode()) || CutoverChecklistEvidenceRules.allowsManual(item, result),
+                        BUSINESS_INCOMPLETE, "人工降级缺少自动失败来源，请修订清单：" + item.getItemName());
                 ChecklistResultSnapshot row = snapshot(item, result);
                 if ("BUSINESS_SURVEY".equals(item.getItemTypeCode())) surveyRows.add(row);
                 else if (List.of("RISK", "DUAL_MACHINE_CHECK").contains(item.getItemTypeCode())) riskRows.add(row);
@@ -121,7 +139,7 @@ public class CutoverApprovalSourceAssembler {
                 && Objects.equals(plan.getRevisionNo(), command.planRevisionNo())
                 && Objects.equals(plan.getGradeCode(), command.grade()), SOURCE_STALE, "P4方案事实已变化");
 
-        CutoverProjectContextPort.ProjectContextFact project = CutoverTaskSnapshotStore.project(task);
+        requirePlanProject(plan, project);
         CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
         String serviceLevel = assessment.getServiceLevelCode();
         ApprovalSourceSnapshot snapshot = new ApprovalSourceSnapshot(command.sourceSnapshotVersion(), task.getId(),
@@ -141,6 +159,14 @@ public class CutoverApprovalSourceAssembler {
                 new PlanApprovalSnapshot(plan.getId(), plan.getRevisionNo(), plan.getVersion(),
                         normalizedPlanSource(plan), completePlanContent(task.getTenantId(), plan)));
         return new LockedSource(task, assessment, checklist, plan, codec.encode(snapshot));
+    }
+
+    private static void requirePlanProject(CutoverPlanRevisionDO plan, CutoverProjectContextPort.ProjectContextFact project) {
+        require(project != null && Objects.equals(plan.getTenantId(), project.tenantId())
+                        && Objects.equals(plan.getSourceProjectId(), project.projectId())
+                        && Objects.equals(plan.getSourceProjectVersion(), (long) project.projectVersion())
+                        && Objects.equals(plan.getSourceProjectScopeVersion(), project.projectScopeVersion()),
+                SOURCE_STALE, "方案项目来源已变化，请修订后重新提交");
     }
 
     private JsonNode normalizedPlanSource(CutoverPlanRevisionDO plan) {

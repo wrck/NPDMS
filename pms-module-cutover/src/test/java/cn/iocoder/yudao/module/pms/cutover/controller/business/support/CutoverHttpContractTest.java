@@ -50,13 +50,13 @@ class CutoverHttpContractTest {
         var controller = new CutoverChecklistController(service, mock(CutoverChecklistExportService.class),
                 () -> new CutoverChecklistContext(1L, 9L, "http-contract"));
         var mvc = standaloneSetup(controller).setControllerAdvice(new CutoverCommandExceptionAdvice()).build();
-        when(service.getView(anyLong(), anyLong(), anyLong())).thenThrow(
+        when(service.getView(any())).thenThrow(
                 new CutoverChecklistException(CutoverChecklistException.Code.VERSION_CONFLICT, "清单已更新"));
         mvc.perform(get("/api/v1/pms/cutover-tasks/101/checklist"))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.data.reasonCode").value("VERSION_CONFLICT"))
                 .andExpect(jsonPath("$.data.recoveryAction").value("REFRESH_AGGREGATE"));
         doThrow(new CutoverChecklistException(CutoverChecklistException.Code.COLLECTION_FACT_INVALID, "采集事实已更新"))
-                .when(service).getView(anyLong(), anyLong(), anyLong());
+                .when(service).getView(any());
         mvc.perform(get("/api/v1/pms/cutover-tasks/101/checklist"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.data.recoveryAction").value("REFRESH_OWNER_FACTS"));

@@ -204,6 +204,8 @@ export interface CutoverTaskDetail {
     | 'SAVE_CHECKLIST'
     | 'REQUEST_COLLECTION'
     | 'SUBMIT_CHECKLIST'
+    | 'REVISE_ASSESSMENT'
+    | 'REVISE_CHECKLIST'
   >
 }
 
@@ -231,6 +233,7 @@ export interface CutoverChecklistResult {
   collectionResultReferenceId: WireLong | null
   collectionResultVersion: WireLong | null
   loadFailureCode: string | null
+  originalFailureCode?: string | null
 }
 
 export interface CutoverChecklistItem {
@@ -436,6 +439,7 @@ export type CutoverPlanAllowedAction =
   | 'DOWNLOAD_DRAFT'
   | 'SUBMIT_PLAN'
   | 'REVISE_PLAN'
+  | 'WITHDRAW_APPROVAL'
   | 'UPDATE_APPROVED_CONTACTS'
 
 export interface CutoverPlanView {
@@ -448,13 +452,13 @@ export interface CutoverPlanView {
   originCode: 'NEW_PLATFORM' | null
   status: 'DRAFT' | 'SUBMITTED' | 'INVALIDATED' | null
   sourcePlanRevisionId: WireLong | null
-  revisionReason: 'INITIAL' | 'APPROVAL_REJECTED' | 'DUTY_CHANGED' | 'SOURCE_REPLACED' | null
+  revisionReason: 'INITIAL' | 'APPROVAL_REJECTED' | 'DUTY_CHANGED' | 'SOURCE_REPLACED' | 'USER_REVISION' | null
   sourceSnapshot: CutoverPlanSourceSnapshot | null
   content: CutoverPlanContent | null
   approvalFact: {
     approvalInstanceId: WireLong
     approvalVersion: number
-    status: 'PENDING' | 'PAUSED_SOURCE_INVALIDATED' | 'APPROVED' | 'REJECTED'
+    status: 'PENDING' | 'PAUSED_SOURCE_INVALIDATED' | 'WITHDRAWN' | 'APPROVED' | 'REJECTED'
     decisionAt: WireDateTime | null
     rejectionReason: string | null
   } | null
@@ -499,6 +503,7 @@ export type CutoverApprovalNodeStatus =
 export type CutoverApprovalStatus =
   | 'PENDING'
   | 'PAUSED_SOURCE_INVALIDATED'
+  | 'WITHDRAWN'
   | 'APPROVED'
   | 'REJECTED'
 
@@ -887,7 +892,11 @@ export interface CutoverChecklistMatchingOptions {
   configurationRevisionId: WireLong
   configurationRevisionNo: number
   deviceTypes: Array<{ value: string; label: string }>
-  selectedDeviceTypeCodes: string[]
+  matchingInput: { cutoverType: string; networkMode: string | null; deviceTypeCodes: string[] }
+}
+
+export interface CutoverChecklistRevision {
+  checklistId: WireLong; checklistVersion: number; status: 'DRAFT' | 'SUBMITTED' | 'INVALIDATED'; invalidatedReason: string | null
 }
 
 export interface IntakeOption {

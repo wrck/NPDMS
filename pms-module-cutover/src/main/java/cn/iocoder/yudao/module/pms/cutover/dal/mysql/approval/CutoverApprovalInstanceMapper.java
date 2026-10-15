@@ -15,6 +15,7 @@ import java.util.List;
 
 @Mapper
 public interface CutoverApprovalInstanceMapper extends BaseMapperX<CutoverApprovalInstanceDO> {
+    int withdrawForRevisionIfMatch(@Param("query") CutoverApprovalInstanceDO query);
     CutoverApprovalInstanceDO selectByTaskAndPlanForUpdate(@Param("query") ApprovalInstanceLockQuery query);
     CutoverApprovalInstanceDO selectByIdForUpdate(@Param("query") ApprovalInstanceLockQuery query);
     CutoverApprovalInstanceDO selectCurrentByTask(@Param("query") ApprovalTaskQuery query);

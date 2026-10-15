@@ -30,8 +30,9 @@ import static org.mockito.Mockito.*;
 
 class CutoverApprovalStartServiceTest {
 
-    @Test
-    void startsGradeARouteWithRealInitiatorAndOnePendingNotificationThenReplays() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void startsGradeARouteWithRealInitiatorAndOnePendingNotificationThenReplays(boolean replacesWithdrawn) {
         CutoverApprovalSourceAssembler assembler = mock(CutoverApprovalSourceAssembler.class);
         CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
         CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
@@ -44,6 +45,13 @@ class CutoverApprovalStartServiceTest {
         when(assembler.lockAndAssemble(any())).thenReturn(
                 new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, CutoverApprovalControlledPorts.approvalSource("A")));
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
+        Long previousId = replacesWithdrawn ? 800L : null;
+        var previous = new CutoverApprovalInstanceDO();
+        previous.setId(previousId); previous.setTenantId(1L); previous.setTaskId(100L);
+        previous.setStatusCode("WITHDRAWN"); previous.setVersion(2L);
+        previous.setWithdrawUserId(202L); previous.setWithdrawReason("修订调研结果");
+        when(instances.selectByIdForUpdate(any())).thenReturn(previous);
+        when(instances.updateStateIfMatch(any())).thenReturn(1);
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
         DirectPlatform platform = new DirectPlatform();
@@ -65,14 +73,14 @@ class CutoverApprovalStartServiceTest {
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverExecutionReadinessPolicy.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", mock(CutoverApprovalStorage.class));
         CutoverApprovalStartCommand command = new CutoverApprovalStartCommand(1L, 100L, 5L, 900L, 1,
-                "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-1");
+                "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, previousId, "start-1", "corr-1");
 
         CutoverApprovalStartResult started = service.start(command);
         CutoverApprovalStartCommand sameBusinessNewCorrelation = new CutoverApprovalStartCommand(1L, 100L, 5L,
-                900L, 1, "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-2");
+                900L, 1, "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, previousId, "start-1", "corr-2");
         CutoverApprovalStartResult replayed = service.start(sameBusinessNewCorrelation);
         CutoverApprovalStartCommand changed = new CutoverApprovalStartCommand(1L, 100L, 6L, 900L, 1,
-                "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, null, "start-1", "corr-1");
+                "A", 600L, 2L, 700L, 3L, 1, planSubmittedAt, previousId, "start-1", "corr-1");
         CutoverApprovalApplicationException conflict = assertThrows(CutoverApprovalApplicationException.class,
                 () -> service.start(changed));
 
@@ -109,10 +117,17 @@ class CutoverApprovalStartServiceTest {
         assertTrue(notificationCaptor.getAllValues().stream().allMatch(value -> value.getNextRetryAt() == null));
         assertEquals(1, platform.facts.size());
         assertEquals(CutoverApprovalApplicationException.Code.IDEMPOTENCY_CONFLICT, conflict.code());
+        if (replacesWithdrawn) {
+            assertEquals(started.fact().approvalInstanceId(), previous.getReplacementApprovalInstanceId());
+            assertEquals("WITHDRAWN", previous.getStatusCode());
+            assertEquals("修订调研结果", previous.getWithdrawReason());
+            verify(instances, times(1)).updateStateIfMatch(any());
+        }
     }
 
-    @Test
-    void keepsGradeDLeadTimeDisabledWithoutReadingUnavailableInputs() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void keepsGradeDLeadTimeDisabledAndHoldsAnUnresolvedServiceManager(boolean managerUnresolved) {
         CutoverApprovalSourceAssembler assembler = mock(CutoverApprovalSourceAssembler.class);
         CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
         CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
@@ -127,6 +142,17 @@ class CutoverApprovalStartServiceTest {
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
         when(nodes.insert(any(CutoverApprovalNodeDO.class))).thenReturn(1);
         when(notifications.insert(any(CutoverApprovalNotificationDO.class))).thenReturn(1);
+        var managers = CutoverApprovalControlledPorts.serviceManager(301L);
+        if (managerUnresolved) {
+            managers = mock(cn.iocoder.yudao.module.pms.cutover.service.approval.port.ProjectCutoverServiceManagerPort.class);
+            var missing = new cn.iocoder.yudao.module.pms.cutover.service.approval.port.ProjectCutoverServiceManagerPort.ServiceManagerFact(
+                    cn.iocoder.yudao.module.pms.cutover.service.approval.port.ProjectCutoverServiceManagerPort.Outcome.NOT_UNIQUE,
+                    1L, 10L, null, null, null, null, LocalDateTime.of(2026, 9, 1, 1, 0));
+            when(managers.inspectCurrent(org.mockito.ArgumentMatchers.anyLong(), org.mockito.ArgumentMatchers.anyLong(), any())).thenReturn(missing);
+            when(managers.lockAndRevalidate(missing)).thenReturn(
+                    new cn.iocoder.yudao.module.pms.cutover.service.approval.port.ProjectCutoverServiceManagerPort.ServiceManagerRevalidation(
+                            cn.iocoder.yudao.module.pms.cutover.service.approval.port.ProjectCutoverServiceManagerPort.Revalidation.STALE, missing));
+        }
         CutoverApprovalApplicationService service = new CutoverApprovalApplicationService(assembler,
                 instances,
                 nodes,
@@ -135,7 +161,7 @@ class CutoverApprovalStartServiceTest {
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.CutoverApprovalReassignmentMapper.class),
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskMapper.class),
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.CutoverTaskStageHistoryMapper.class),
-                CutoverApprovalControlledPorts.serviceManager(301L),
+                managers,
                 CutoverApprovalControlledPorts.roleCandidates(),
                 CutoverApprovalControlledPorts.projectScope(202L),
                 new DirectPlatform(),
@@ -153,6 +179,17 @@ class CutoverApprovalStartServiceTest {
         verify(instances).insert(root.capture());
         assertFalse(root.getValue().getLeadTimeEnabled());
         assertNull(root.getValue().getLeadTimeSnapshot());
+        assertEquals("PENDING", root.getValue().getStatusCode());
+        assertEquals(managerUnresolved ? "ROUTE_CANDIDATE_NOT_UNIQUE" : null, root.getValue().getHoldReasonCode());
+        if (managerUnresolved) {
+            verify(notifications, never()).insert(any(CutoverApprovalNotificationDO.class));
+            var capturedNodes = ArgumentCaptor.forClass(CutoverApprovalNodeDO.class);
+            verify(nodes, times(2)).insert(capturedNodes.capture());
+            var managerNode = capturedNodes.getAllValues().get(1);
+            assertEquals("SERVICE_MANAGER", managerNode.getNodeCode());
+            assertEquals("WAITING", managerNode.getStatusCode());
+            assertNull(managerNode.getCurrentApproverUserId());
+        }
     }
 
     @Test

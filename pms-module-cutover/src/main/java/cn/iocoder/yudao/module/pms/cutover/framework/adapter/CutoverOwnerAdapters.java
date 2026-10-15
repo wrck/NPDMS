@@ -100,6 +100,7 @@ public class CutoverOwnerAdapters {
                         .departmentCode(value.departmentCode())
                         .departmentName(value.departmentName())
                         .projectScopeVersion(value.scopeVersion())
+                        .majorProjectLevel(value.majorProjectLevel())
                         .build();
             }
         };

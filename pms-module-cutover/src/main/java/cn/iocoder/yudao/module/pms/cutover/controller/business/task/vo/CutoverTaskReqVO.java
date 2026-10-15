@@ -5,6 +5,7 @@ import java.util.List;
 
 /** F-CUT-002 六路由请求模型。 */
 public final class CutoverTaskReqVO {
+    public record Revision(Long expectedProjectScopeVersion, String reason, Long configurationRevisionId) { }
 
     private CutoverTaskReqVO() {
     }

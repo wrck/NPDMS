@@ -21,4 +21,8 @@ public interface CutoverChecklistMapper extends BaseMapperX<CutoverChecklistDO> 
     int submitIfMatch(@Param("query") CutoverChecklistSubmitUpdate query);
 
     int rematchIfMatch(@Param("query") CutoverChecklistRematchUpdate query);
+    Long selectMaxChecklistVersion(@Param("query") CutoverChecklistRowQuery query);
+    java.util.List<CutoverChecklistDO> selectHistory(@Param("query") CutoverChecklistRowQuery query);
+    CutoverChecklistDO selectHistorical(@Param("query") CutoverChecklistRowQuery query);
+    int invalidateForRevisionIfMatch(@Param("query") cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverRevisionInvalidationUpdate query);
 }

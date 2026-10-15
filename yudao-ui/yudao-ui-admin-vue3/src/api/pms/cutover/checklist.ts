@@ -2,7 +2,7 @@ import request, { baseUrl } from './request'
 import type {
   WireLong, ChecklistFileHandle, CutoverChecklistView, CutoverChecklistCommandResult,
   CutoverChecklistDeviceVersion, CutoverExternalQuery, CutoverExternalFeedback,
-  CutoverExternalState, CutoverChecklistMutation, CutoverChecklistMatchingOptions
+  CutoverExternalState, CutoverChecklistMutation, CutoverChecklistMatchingOptions, CutoverChecklistRevision
 } from './types'
 
 export interface ChecklistWrite<T = CutoverChecklistMutation> { taskId: WireLong; data: T; idempotencyKey: string }
@@ -16,12 +16,14 @@ const headers = (command: ChecklistWrite<ChecklistVersions>) => ({
 const itemUrl = (command: ChecklistItemWrite<unknown>) =>
   `${baseUrl}/${command.taskId}/checklist/items/${encodeURIComponent(command.stableItemKey)}`
 
-export const getCutoverChecklist = (taskId: WireLong) =>
-  request.get<CutoverChecklistView>({ url: `${baseUrl}/${taskId}/checklist`, silentError: true })
-export const getCutoverExternalState = (taskId: WireLong) =>
-  request.get<CutoverExternalState>({ url: `${baseUrl}/${taskId}/checklist/external-state` })
-export const getCutoverChecklistMatchingOptions = (taskId: WireLong) =>
-  request.get<CutoverChecklistMatchingOptions>({ url: `${baseUrl}/${taskId}/checklist/matching-options` })
+export const getCutoverChecklist = (taskId: WireLong, checklistId?: WireLong) =>
+  request.get<CutoverChecklistView>({ url: `${baseUrl}/${taskId}/checklist`, params: { checklistId }, silentError: true })
+export const getCutoverExternalState = (taskId: WireLong, checklistId?: WireLong) =>
+  request.get<CutoverExternalState>({ url: `${baseUrl}/${taskId}/checklist/external-state`, params: { checklistId } })
+export const getCutoverChecklistMatchingOptions = (taskId: WireLong, checklistId?: WireLong) =>
+  request.get<CutoverChecklistMatchingOptions>({ url: `${baseUrl}/${taskId}/checklist/matching-options`, params: { checklistId } })
+export const getCutoverChecklistRevisions = (taskId: WireLong) =>
+  request.get<CutoverChecklistRevision[]>({ url: `${baseUrl}/${taskId}/checklist/revisions` })
 
 export const saveCutoverDeviceVersions = (command: ChecklistWrite<CutoverChecklistMutation & { devices: CutoverChecklistDeviceVersion[] }>) =>
   request.put<WireLong>({ url: `${baseUrl}/${command.taskId}/checklist/device-versions`, data: command.data, headers: headers(command) })
@@ -35,7 +37,8 @@ export const saveCutoverExternalFeedback = (command: ChecklistItemWrite<CutoverC
 
 export interface ChecklistMatchInput {
   expectedTaskVersion: WireLong; expectedAssessmentVersion: WireLong; expectedProjectScopeVersion: WireLong;
-  deviceTypeCodes: string[]; selectedConflictDefinitions: Record<string, { itemDefinitionId: WireLong; itemDefinitionVersion: number }>
+  matchingInput: { cutoverType: string; networkMode: string | null; deviceTypeCodes: string[] };
+  selectedConflictDefinitions: Record<string, { itemDefinitionId: WireLong; itemDefinitionVersion: number }>
 }
 export const generateCutoverChecklist = (command: ChecklistWrite<ChecklistMatchInput>) =>
   request.post({ url: `${baseUrl}/${command.taskId}/checklist/actions/generate`, data: command.data, headers: headers(command) })

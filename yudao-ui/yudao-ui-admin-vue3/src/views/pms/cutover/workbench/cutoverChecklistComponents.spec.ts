@@ -15,7 +15,8 @@ import {
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
 const downloadFile = vi.hoisted(() => ({ excel: vi.fn() }))
 const checklistApi = vi.hoisted(() => ({
-  getCutoverChecklistMatchingOptions: vi.fn(async () => ({ selectedDeviceTypeCodes: ['ROUTER'], deviceTypes: [{ value: 'ROUTER', label: '路由器' }] })),
+  getCutoverChecklistMatchingOptions: vi.fn(async () => ({ matchingInput: { cutoverType: 'CONFIGURATION_CHANGE', networkMode: null, deviceTypeCodes: ['ROUTER'] }, deviceTypes: [{ value: 'ROUTER', label: '路由器' }] })),
+  getCutoverChecklistRevisions: vi.fn(async () => []),
   getCutoverExternalState: vi.fn(async () => null),
   getCutoverChecklist: vi.fn(),
   saveCutoverChecklist: vi.fn(),
@@ -108,7 +109,10 @@ describe('F-CUT-003 mounted checklist field', () => {
 
     const input = findInput(mounted.root, '请填写核查事实')!
     await (input.props?.['onUpdate:modelValue'] as (value: string) => void)('已核查')
-    const uploader = findByTestId(mounted.root, 'manual-uploader')!
+    expect(findByTestId(mounted.root, 'manual-uploader')).toBeUndefined()
+    const material = mount(CutoverChecklistField, { item: { ...item, workModeCode: 'MANUAL' }, readonly: false, allowSave: true, onManual: (...args: unknown[]) => manual.push(args) }, controls)
+    const uploader = findByTestId(material.root, 'manual-uploader')!
+    expect(uploader.props?.disabled).not.toBe(true)
     await (uploader.props?.onClick as () => Promise<void>)()
     await nextTick()
 
@@ -121,6 +125,7 @@ describe('F-CUT-003 mounted checklist field', () => {
       fileFactVersion: { artifactVersion: 2, referenceVersion: 3, availabilityVersion: 5 }
     })
     expect(typeof (manual[0][1] as { artifactId: unknown }).artifactId).toBe('string')
+    material.app.unmount()
     mounted.app.unmount()
   })
 
@@ -238,6 +243,7 @@ describe('F-CUT-003 mounted checklist field', () => {
     await vi.waitFor(() => expect(findInput(mounted.root, '请填写核查事实')?.props?.['model-value']).toBe('未手动保存的现场事实'))
     expect(savedAnswer).toBe('{"value":"未手动保存的现场事实"}')
     expect(checklistApi.getCutoverChecklistMatchingOptions).toHaveBeenCalledOnce()
+    expect(checklistApi.getCutoverChecklistRevisions).toHaveBeenCalledOnce()
     expect(checklistApi.getCutoverExternalState).toHaveBeenCalledOnce()
     mounted.app.unmount()
     checklistApi.saveCutoverChecklist.mockReset()
@@ -254,8 +260,8 @@ describe('F-CUT-003 mounted checklist field', () => {
     })
     checklistApi.getCutoverChecklist.mockReset()
     checklistApi.getCutoverChecklist
-      .mockResolvedValueOnce(checklistView(null, 3))
-      .mockResolvedValueOnce(checklistView(null, 4))
+      .mockResolvedValueOnce({ ...checklistView(null, 3), items: [{ ...item, workModeCode: 'MANUAL' }] })
+      .mockResolvedValueOnce({ ...checklistView(null, 4), items: [{ ...item, workModeCode: 'MANUAL' }] })
     checklistApi.saveManualChecklistResult.mockResolvedValue(undefined)
     checklistApi.submitCutoverChecklist.mockResolvedValue({
       replayed: false,
@@ -299,7 +305,7 @@ describe('F-CUT-003 mounted checklist field', () => {
     await (submit.props?.onClick as () => Promise<void>)()
     expect(checklistApi.submitCutoverChecklist).toHaveBeenCalledWith({ taskId: '101', idempotencyKey: expect.any(String), data: {
       expectedTaskVersion: 7,
-      expectedAssessmentVersion: 2,
+      expectedAssessmentVersion: 5,
       expectedProjectScopeVersion: '12',
       checklistId: '201',
       expectedChecklistVersion: 4
@@ -383,7 +389,7 @@ const taskDetail = {
   task: { id: '101', currentStage: 'P3', manualGrade: 'A' },
   project: { projectScopeVersion: '12' },
   devices: [{ deviceId: '9007199254740991', serialNumber: 'SN-001', projectAssignmentVersion: '7' }],
-  assessment: { assessmentVersion: 2 },
+  assessment: { assessmentVersion: 2, rowVersion: 5 },
   allowedActions: ['SAVE_CHECKLIST', 'REQUEST_COLLECTION', 'SUBMIT_CHECKLIST']
 } as CutoverTaskDetail
 

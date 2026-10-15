@@ -53,6 +53,95 @@ public class CutoverTaskController {
     private final CutoverTaskListService listService;
     private final CutoverDashboardQueryService dashboard;
     private final CutoverDashboardRequestContext dashboardContext;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskRevisionService revisionService;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskCreationQueryService creationQueries;
+
+    @GetMapping("/creation-projects")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:create')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi.Option>> creationProjects(
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        return success(creationQueries.projects(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskCreationQueryService.ProjectOptionsQuery(
+                requestContext.current(), keyword)));
+    }
+
+    @GetMapping("/creation-projects/{projectId}")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:create')")
+    public CommonResult<cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskCreationQueryService.ProjectContext> creationProject(
+            @PathVariable("projectId") Long projectId) {
+        return success(creationQueries.project(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskCreationQueryService.ProjectQuery(
+                requestContext.current(), projectId)));
+    }
+
+    @GetMapping("/creation-projects/{projectId}/devices")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:create')")
+    public CommonResult<cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi.DevicePage> creationDevices(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "pageNo", defaultValue = "1") int pageNo,
+            @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
+        return success(creationQueries.devices(cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskCreationQueryService.DevicePageQuery.builder()
+                .context(requestContext.current()).projectId(projectId).keyword(keyword).pageNo(pageNo).pageSize(pageSize).build()));
+    }
+
+    @PostMapping("/creation-devices/resolve")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:create')")
+    public CommonResult<ResolvedCreationDevices> resolveCreationDevices(@RequestBody JsonNode body) {
+        var request = requestCodec.resolveCreateContext(body);
+        var result = creationQueries.resolve(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskCreationQueryService.ResolveQuery(
+                requestContext.current(), request.serialNumbers()));
+        return success(new ResolvedCreationDevices(createContext(result.context()), result.devices()));
+    }
+
+    public record ResolvedCreationDevices(CutoverCreateContextRespVO context,
+            List<cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi.Device> devices) {}
+
+    @GetMapping("/{taskId}/revision-options")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:save-assessment', 'pms:cutover-task:save-checklist')")
+    public CommonResult<List<cn.iocoder.yudao.module.pms.cutover.controller.business.task.vo.CutoverCreationOptionRespVO>> revisionOptions(
+            @PathVariable("taskId") Long taskId) {
+        requireId(taskId);
+        return success(revisionService.configurationOptions(new cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskRevisionService.ConfigurationOptionsQuery(
+                requestContext.current(), taskId)).stream()
+                .map(cn.iocoder.yudao.module.pms.cutover.controller.business.task.vo.CutoverCreationOptionRespVO::from).toList());
+    }
+
+    @PostMapping("/{taskId}/actions/revise-assessment")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-assessment')")
+    public CommonResult<CutoverTaskResponses.TaskCommand> reviseAssessment(@PathVariable("taskId") Long taskId,
+            @RequestHeader org.springframework.http.HttpHeaders headers, @RequestBody JsonNode body) {
+        return success(reviseTask(new RevisionHttp(taskId, headers, body, "P2")));
+    }
+
+    @PostMapping("/{taskId}/actions/revise-checklist")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-checklist')")
+    public CommonResult<CutoverTaskResponses.TaskCommand> reviseChecklist(@PathVariable("taskId") Long taskId,
+            @RequestHeader org.springframework.http.HttpHeaders headers, @RequestBody JsonNode body) {
+        return success(reviseTask(new RevisionHttp(taskId, headers, body, "P3")));
+    }
+
+    @PostMapping("/{taskId}/actions/withdraw-plan")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-plan')")
+    public CommonResult<CutoverTaskResponses.TaskCommand> withdrawPlan(@PathVariable("taskId") Long taskId,
+            @RequestHeader org.springframework.http.HttpHeaders headers, @RequestBody JsonNode body) {
+        return success(reviseTask(new RevisionHttp(taskId, headers, body, "P4")));
+    }
+
+    private record RevisionHttp(Long taskId, org.springframework.http.HttpHeaders headers, JsonNode body, String targetStage) { }
+
+    private CutoverTaskResponses.TaskCommand reviseTask(RevisionHttp input) {
+        requireId(input.taskId());
+        var request = requestCodec.revision(input.body()); var trusted = requestContext.current();
+        return CutoverTaskResponses.TaskCommand.from(revisionService.revise(
+                cn.iocoder.yudao.module.pms.cutover.service.task.command.ReviseCutoverTaskCommand.builder()
+                        .tenantId(trusted.tenantId()).actorId(trusted.actorId()).taskId(input.taskId())
+                        .expectedTaskVersion(version(input.headers().getFirst("If-Match")))
+                        .expectedProjectScopeVersion(request.expectedProjectScopeVersion()).targetStage(input.targetStage()).reason(request.reason())
+                        .configurationRevisionId(request.configurationRevisionId())
+                        .idempotencyKey(header(input.headers().getFirst("Idempotency-Key"), "Idempotency-Key"))
+                        .correlationId(trusted.correlationId()).build()));
+    }
 
     public CutoverTaskController(CutoverTaskApplicationService applicationService,
                                  CutoverTaskQueryService queryService,

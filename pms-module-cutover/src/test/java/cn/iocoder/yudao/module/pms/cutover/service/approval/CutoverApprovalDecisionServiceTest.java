@@ -32,6 +32,38 @@ import static org.mockito.Mockito.*;
 class CutoverApprovalDecisionServiceTest {
 
     @Test
+    void ownerWithdrawsOnlyOpenNodesAndRetainsCompletedReviews() {
+        Fixture f = new Fixture(11L); f.givenRoot(2, "SERVICE_MANAGER");
+        f.root.setPlanRevisionNo(1);
+        var task = f.tasks.selectForUpdate(null); task.setOwnerUserId(11L);
+        var plan = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanRevisionDO();
+        plan.setId(200L); plan.setTenantId(1L); plan.setCutoverTaskId(10L); plan.setStatusCode("SUBMITTED"); plan.setApprovalInstanceId(100L);
+        var pending = node(102L, 2, "SERVICE_MANAGER", "PENDING", 22L);
+        var waiting = node(103L, 3, "SECOND_LINE", "WAITING", 33L);
+        when(f.instances.selectByTaskAndPlanForUpdate(any())).thenReturn(f.root);
+        when(f.instances.withdrawForRevisionIfMatch(any())).thenReturn(1);
+        when(f.nodes.open(any())).thenReturn(List.of(pending, waiting));
+        when(f.nodes.updateById(any(CutoverApprovalNodeDO.class))).thenReturn(1);
+        var workflow = mock(CutoverWorkflowCoordinator.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(f.service, "workflow", workflow);
+        var result = f.service.withdrawForRevision(new WithdrawCutoverApprovalCommand(task, plan, 11L, "重新确认调研结果"));
+        assertThat(result.status()).isEqualTo(cn.iocoder.yudao.module.pms.cutover.api.approval.dto.ApprovalStatus.WITHDRAWN);
+        assertThat(f.root.getWithdrawReason()).isEqualTo("重新确认调研结果");
+        assertThat(f.root.getWithdrawUserId()).isEqualTo(11L);
+        assertThat(f.root.getDecisionAt()).isNull();
+        assertThat(List.of(pending, waiting)).extracting(CutoverApprovalNodeDO::getStatusCode).containsOnly("CANCELLED");
+        verify(workflow).cancel(f.root, 11L);
+        verifyNoInteractions(f.reviews);
+        verify(f.nodes, times(2)).updateById(any(CutoverApprovalNodeDO.class));
+        assertThatThrownBy(() -> f.service.withdrawForRevision(new WithdrawCutoverApprovalCommand(task, plan, 11L, "重复撤回")))
+                .isInstanceOf(CutoverApprovalApplicationException.class);
+        task.setOwnerUserId(22L);
+        assertThatThrownBy(() -> f.service.withdrawForRevision(new WithdrawCutoverApprovalCommand(task, plan, 11L, "越权撤回")))
+                .isInstanceOf(CutoverApprovalApplicationException.class);
+        verify(workflow, times(1)).cancel(any(), anyLong());
+    }
+
+    @Test
     void intermediateApproveActivatesNextNodeAndCreatesPendingNotification() {
         Fixture f = new Fixture(11L);
         f.givenRoot(1, "INITIATOR");

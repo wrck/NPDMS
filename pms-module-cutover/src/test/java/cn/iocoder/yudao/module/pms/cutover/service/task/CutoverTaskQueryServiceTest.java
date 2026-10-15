@@ -23,6 +23,8 @@ import cn.iocoder.yudao.module.pms.cutover.service.task.view.CutoverTaskViews;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -79,6 +81,7 @@ class CutoverTaskQueryServiceTest {
                 .departmentCode("OFF-01")
                 .departmentName("华东办事处")
                 .projectScopeVersion(7L)
+                .majorProjectLevel("公司级")
                 .build();
         device = new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 5L);
         customer = new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 201L, "C-201", "示例客户",
@@ -137,6 +140,13 @@ class CutoverTaskQueryServiceTest {
         assertThat(detail.workbenchSteps()).extracting(CutoverTaskViews.WorkbenchStep::stage)
                 .containsExactly("P2", "P3", "P4", "P5", "P6");
         assertThat(detail.workbenchSteps().getFirst().isCurrent()).isTrue();
+
+        task.setProjectVersion(2L);
+        assertThat(service.detail(new CutoverTaskContext(1L, 9L, "query-stale-version", true, true, false, false, false), 701L)
+                .allowedActions()).containsExactly("SAVE_ASSESSMENT");
+        task.setProjectVersion(3L); task.setProjectName("旧项目名称");
+        assertThat(service.detail(new CutoverTaskContext(1L, 9L, "query-stale-name", true, true, false, false, false), 701L)
+                .allowedActions()).containsExactly("SAVE_ASSESSMENT");
     }
 
     @Test
@@ -159,6 +169,32 @@ class CutoverTaskQueryServiceTest {
 
         assertThat(detail.allowedActions()).containsExactly(
                 "SAVE_CHECKLIST", "REQUEST_COLLECTION", "SUBMIT_CHECKLIST");
+    }
+
+    @ParameterizedTest
+    @CsvSource({"P4,PLAN_DRAFTING", "P5,APPROVING"})
+    void exposesSubmittedChecklistRevisionAfterAdvancing(String stage, String status) {
+        CutoverTaskDO task = task();
+        task.setCurrentStage(stage);
+        task.setTaskStatus(status);
+        task.setManualGrade("A");
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
+        CutoverAssessmentDO assessment = assessment();
+        assessment.setAssessmentStatus("SUBMITTED");
+        when(assessmentMapper.selectById(801L)).thenReturn(assessment);
+        var checklist = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO();
+        checklist.setStatusCode("SUBMITTED");
+        when(checklistMapper.selectCurrent(any())).thenReturn(checklist);
+
+        var detail = service.detail(new CutoverTaskContext(1L, 9L, "revision-query", true, true, true, true, true), 701L);
+
+        assertThat(detail.allowedActions()).contains("REVISE_ASSESSMENT", "REVISE_CHECKLIST")
+                .doesNotContain("SAVE_CHECKLIST", "SUBMIT_CHECKLIST");
     }
 
     private CutoverTaskSnapshotStore.Context frozenContext() {

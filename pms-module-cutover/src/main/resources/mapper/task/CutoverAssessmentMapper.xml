@@ -102,6 +102,15 @@
             submit_time = #{query.assessment.submittedAt}
         WHERE <include refid="draftIdentity"/>
     </update>
+    <update id="invalidateForRevisionIfMatch">
+        UPDATE cut_assessment
+        SET assessment_status_code = 'INVALIDATED', current_marker = NULL,
+            invalidate_user_id = #{query.actorId}, invalidate_time = #{query.time}, invalidation_reason = #{query.reason},
+            version = version + 1, updater = #{query.actorId}, update_time = #{query.time}
+        WHERE tenant_id = #{query.tenantId} AND task_id = #{query.taskId} AND id = #{query.sourceId}
+          AND version = #{query.expectedVersion} AND assessment_status_code = 'SUBMITTED' AND current_marker = 1 AND deleted = 0
+    </update>
+
     <delete id="deleteDraftDeviceFacts">
         DELETE d FROM cut_assessment_device d
         JOIN cut_assessment a ON a.id = d.assessment_id AND a.tenant_id = d.tenant_id

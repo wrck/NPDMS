@@ -31,9 +31,11 @@ public interface CutoverTaskMapper extends BaseMapperX<CutoverTaskDO> {
     int linkAssessmentIfMatch(@Param("query") CutoverTaskAssessmentLinkUpdate query);
     int transitionIfMatch(@Param("query") CutoverTaskTransitionUpdate query);
     int submitChecklistIfMatch(@Param("query") CutoverTaskChecklistSubmitUpdate query);
+    int updateMatchingInputIfMatch(@Param("query") cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskMatchingInputUpdate query);
     int submitPlanIfMatch(@Param("query") CutoverTaskPlanSubmitUpdate query);
     Integer selectMaxStageHistorySequence(@Param("query") CutoverTaskRowQuery query);
     int returnToPlanForSourceInvalidation(@Param("query") CutoverTaskSourceInvalidationUpdate query);
     int transitionFromApprovalIfMatch(@Param("query") CutoverTaskApprovalTransitionUpdate query);
     int archiveFromP6IfMatch(@Param("query") CutoverTaskArchiveUpdate query);
+    int reviseIfMatch(@Param("query") cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverTaskRevisionUpdate query);
 }

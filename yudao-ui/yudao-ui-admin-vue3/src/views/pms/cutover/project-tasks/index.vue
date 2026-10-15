@@ -1,5 +1,6 @@
 <template>
-  <CutoverTaskDetail v-if="selectedTaskId" :key="`${projectId}:${selectedTaskId}`" :task-id="selectedTaskId"
+  <CutoverTaskCreate v-if="createVisible && canCreate" :project-id="projectId" @close="createVisible = false" @created="createdTask" />
+  <CutoverTaskDetail v-else-if="selectedTaskId" :key="`${projectId}:${selectedTaskId}`" :task-id="selectedTaskId"
     :project-id="projectId" :readonly="readonly" @close="closeDetail" @changed="loadTasks" />
   <section v-else class="project-cutover-tasks" data-testid="project-cutover-tasks">
     <div class="task-toolbar">
@@ -23,7 +24,6 @@
       </template></el-table-column>
     </el-table>
     <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="loadTasks" />
-    <CutoverCreateWizard v-if="canCreate" v-model="createVisible" :project-id="projectId" @created="createdTask" />
   </section>
 </template>
 
@@ -33,7 +33,7 @@ import type { CutoverTaskSummary, WireLong } from '@/api/pms/cutover'
 import { useOperationClient } from '@/components/BusinessView/operationHost'
 import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
 import CutoverTaskDetail from '../task-detail/index.vue'
-import CutoverCreateWizard from '../components/CutoverCreateWizard.vue'
+import CutoverTaskCreate from '../task-create/index.vue'
 
 const props = defineProps<{ projectId: WireLong; objectId?: WireLong; readonly?: boolean; allowedActions?: string[] }>()
 const operationClient = useOperationClient()
@@ -68,7 +68,7 @@ const loadTasks = async () => {
   } finally { if (sequence === loadSequence) loading.value = false }
 }
 const closeDetail = async () => { selectedTaskId.value = null; await loadTasks() }
-const createdTask = async (id: WireLong) => { selectedTaskId.value = id; await loadTasks() }
+const createdTask = async (id: WireLong) => { createVisible.value = false; selectedTaskId.value = id; await loadTasks() }
 watch(() => [props.projectId, props.objectId], () => {
   tasks.value = []
   total.value = 0

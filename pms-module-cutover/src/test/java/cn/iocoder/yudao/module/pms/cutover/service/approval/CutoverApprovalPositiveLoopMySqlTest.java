@@ -533,6 +533,18 @@ class CutoverApprovalPositiveLoopMySqlTest {
         @Bean Clock clock() { return Clock.fixed(Instant.parse("2026-09-01T00:00:00Z"), ZoneOffset.UTC); }
         @Bean CurrentActor actor() { return new CurrentActor(); }
         @Bean ControlledOwners owners() { return new ControlledOwners(); }
+        @Bean CutoverProjectContextPort projectContext(ControlledOwners owners) {
+            return new CutoverProjectContextPort() {
+                public ProjectContextFact inspect(Inspection query) {
+                    var source = owners.facts.snapshot();
+                    return ProjectContextFact.builder().tenantId(query.tenantId()).projectId(source.projectId())
+                            .projectVersion(source.projectVersion()).projectScopeVersion(source.projectScopeVersion())
+                            .projectCode("PRJ-1").projectName("割接项目").customerId(99L).customerCode("CUS-1")
+                            .customerName("客户").departmentId(88L).departmentCode("OFF-1").departmentName("交付部").build();
+                }
+                public ProjectContextFact lockAndRevalidate(ProjectContextFact expected) { return expected; }
+            };
+        }
         @Bean ProjectCutoverServiceManagerPort manager() { return CutoverApprovalControlledPorts.serviceManager(301L); }
         @Bean CutoverApprovalRoleCandidatePort candidates() { return CutoverApprovalControlledPorts.roleCandidates(); }
         @Bean CutoverApprovalProjectScopePort approvalScope() {

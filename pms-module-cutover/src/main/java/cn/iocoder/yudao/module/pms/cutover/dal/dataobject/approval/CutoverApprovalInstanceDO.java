@@ -41,6 +41,9 @@ public class CutoverApprovalInstanceDO extends BaseBusinessEntity {
     @TableField(value = "decide_time")
     private LocalDateTime decisionAt;
     private String rejectionReason;
+    private Long withdrawUserId;
+    private LocalDateTime withdrawTime;
+    private String withdrawReason;
 
 
     /** 提交时任务版本；历史原件缺失时可空，新业务按既有来源/提交规则必填 */

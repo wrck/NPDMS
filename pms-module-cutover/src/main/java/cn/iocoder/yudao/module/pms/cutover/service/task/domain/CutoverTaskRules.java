@@ -52,4 +52,20 @@ public final class CutoverTaskRules {
 
     public record SubmissionTarget(String stage, String status, boolean simpleFlow) {
     }
+
+    public record RevisionTarget(String stage, String status, boolean replaceAssessment, boolean replaceChecklist) { }
+
+    /** 2026-10-15 已确认：审批前修订；审批中须先撤回；批准后不由本入口回退。 */
+    public static RevisionTarget revisionTarget(String stage, String status, String grade, String target) {
+        boolean beforeApproval = ("P3".equals(stage) && STATUS_SURVEYING.equals(status))
+                || ("P4".equals(stage) && STATUS_PLAN_DRAFTING.equals(status))
+                || ("P5".equals(stage) && "APPROVING".equals(status));
+        if (!beforeApproval) throw new IllegalArgumentException("当前阶段不允许修订前序内容");
+        if (STAGE_P2.equals(target)) return new RevisionTarget(STAGE_P2, STATUS_GRADE_CONFIRMING, true, false);
+        if (STAGE_P3.equals(target) && Set.of("P4", "P5").contains(stage) && grade != null && Set.of("A", "B", "C").contains(grade)) {
+            return new RevisionTarget(STAGE_P3, STATUS_SURVEYING, false, true);
+        }
+        if (STAGE_P4.equals(target) && "P5".equals(stage)) return new RevisionTarget(STAGE_P4, STATUS_PLAN_DRAFTING, false, false);
+        throw new IllegalArgumentException("修订目标不是可返回的已完成步骤");
+    }
 }

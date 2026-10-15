@@ -21,14 +21,14 @@ public final class CutoverChecklistReqVO {
 
     public record Generate(Long expectedTaskVersion, Long expectedAssessmentVersion,
                            Long expectedProjectScopeVersion,
-                           List<String> deviceTypeCodes,
+                           cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput matchingInput,
                            Map<String, SelectedDefinition> selectedConflictDefinitions) implements TaskVersioned {
     }
 
     public record Rematch(Long expectedTaskVersion, Long expectedAssessmentVersion,
                           Long expectedProjectScopeVersion, Long checklistId,
                           Long expectedChecklistVersion, String expectedInputSnapshotHash,
-                          List<String> deviceTypeCodes,
+                          cn.iocoder.yudao.module.pms.cutover.service.checklist.command.CutoverChecklistMatchInput matchingInput,
                           Map<String, SelectedDefinition> selectedConflictDefinitions) implements DraftVersioned {
     }
 

@@ -331,7 +331,8 @@ public class CutoverTaskApplicationService {
         insertHistory(CutoverTaskStageHistoryDO.builder()
                 .tenantId(command.tenantId())
                 .cutoverTaskId(task.getId())
-                .sequenceNo(2)
+                .sequenceNo(java.util.Optional.ofNullable(taskMapper.selectMaxStageHistorySequence(
+                        new CutoverTaskRowQuery(command.tenantId(), command.taskId()))).orElse(0) + 1)
                 .fromStage(CutoverTaskRules.STAGE_P2)
                 .toStage(target.stage())
                 .fromStatus(CutoverTaskRules.STATUS_GRADE_CONFIRMING)
@@ -436,7 +437,7 @@ public class CutoverTaskApplicationService {
                 .projectId(project.projectId())
                 .expectedProjectScopeVersion(project.projectScopeVersion())
                 .build(), lockedProject);
-        require(project.equals(lockedProject), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
+        require(sameFrozenProject(project, lockedProject), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
         List<CutoverDeviceScopePort.DeviceFact> lockedDevices = orderedDevices(deviceScopePort.lockAndRevalidate(
                 project.projectId(), devices));
         requireEquivalentDevices(devices, lockedDevices);
@@ -640,7 +641,7 @@ public class CutoverTaskApplicationService {
         CreateCutoverTaskCommand.ExpectedCreateContext expected = command.expectedContext();
         require(expected != null && expected.project() != null && expected.devices() != null,
                 INVALID_REQUEST, "创建期望上下文不完整");
-        require(expected.project().equals(current.project()), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
+        require(sameFrozenProject(expected.project(), current.project()), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
         requireEquivalentDevices(expected.devices(), current.devices());
     }
 

@@ -99,6 +99,16 @@
           AND deleted = b'0'
     </update>
 
+    <update id="updateMatchingInputIfMatch">
+        UPDATE cut_task
+        SET cutover_type_code = #{query.input.cutoverType}, network_mode_code = #{query.input.networkMode},
+            version = version + 1, updater = #{query.actorId}, update_time = NOW(3)
+        WHERE tenant_id = #{query.task.tenantId} AND id = #{query.task.id} AND version = #{query.task.version}
+          AND owner_user_id = #{query.actorId} AND task_origin_code = 'NEW_PLATFORM'
+          AND current_stage_code = 'P3' AND task_status_code = 'SURVEYING'
+          AND manual_grade_code IN ('A', 'B', 'C') AND deleted = b'0'
+    </update>
+
     <update id="submitChecklistIfMatch">
         UPDATE cut_task
         SET current_stage_code = 'P4',
@@ -165,6 +175,25 @@
           AND current_stage_code = 'P5'
           AND task_status_code = 'APPROVING'
           AND deleted = b'0'
+    </update>
+
+    <update id="reviseIfMatch">
+        UPDATE cut_task
+        SET current_stage_code = #{query.target.stage}, task_status_code = #{query.target.status},
+            current_assessment_id = #{query.assessmentId},
+            <if test="query.configuration != null">
+                configuration_revision_id = #{query.configuration.id},
+                configuration_code = #{query.configuration.configurationCode},
+                configuration_revision_no = #{query.configuration.revisionNo},
+            </if>
+            manual_grade_code = <choose><when test="query.target.replaceAssessment">NULL</when><otherwise>#{query.source.manualGrade}</otherwise></choose>,
+            version = version + 1, updater = #{query.actorId}, update_time = NOW(3)
+        WHERE tenant_id = #{query.source.tenantId} AND id = #{query.source.id} AND version = #{query.source.version}
+          AND owner_user_id = #{query.actorId} AND task_origin_code = 'NEW_PLATFORM' AND deleted = b'0'
+          AND current_stage_code = #{query.source.currentStage} AND task_status_code = #{query.source.taskStatus}
+          AND ((current_stage_code = 'P3' AND task_status_code = 'SURVEYING' AND #{query.target.stage} = 'P2')
+            OR (current_stage_code = 'P4' AND task_status_code = 'PLAN_DRAFTING' AND #{query.target.stage} IN ('P2','P3'))
+            OR (current_stage_code = 'P5' AND task_status_code = 'APPROVING' AND #{query.target.stage} IN ('P2','P3','P4')))
     </update>
 
     <update id="archiveFromP6IfMatch">
