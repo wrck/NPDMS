@@ -20,6 +20,13 @@ public class SyncDefinition {
     private String taskKey;
     private String sourceSystem;
     private Long connectionId;
+    /** Retains an obsolete task and its receipts while directing new work to the consolidated task. */
+    private Long mergedIntoTaskId;
+    /** Runtime-only INT connection identity, retained when the reader resolves the INFRA datasource ID. */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Long configuredConnectionId;
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private Long executionActorId;
     private String mode;
     @Builder.Default private String loadingMode = "UPSERT";
     private boolean clearBeforeLoad;
@@ -66,7 +73,19 @@ public class SyncDefinition {
         private String readMode;
         private String table;
         private String sql;
+        /** Reuse an earlier grouped SQL cursor; this object retains its original binding identity. */
+        private String queryRef;
+        /** SQL grouping identity and JSON projection column, used only by the shared query's first source. */
+        private String groupKey;
+        private String rowProjection;
+        /** Reuse immutable source evidence from a successful full import on the same tenant/connection. */
+        private String evidenceAdapter;
+        private String evidenceObject;
         private Map<String,Object> parameters;
+        /** Local membership matching against one immutable published P16 run. */
+        private String publishedProjectMatch;
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        private List<cn.iocoder.yudao.module.pms.integration.api.sync.DppmsProjectBindingApi.ProjectBinding> publishedProjects;
         private String sourceKey;
         /** Once-only tables without a primary key: full original fields plus parent identity. */
         private List<String> sourceKeyColumns;

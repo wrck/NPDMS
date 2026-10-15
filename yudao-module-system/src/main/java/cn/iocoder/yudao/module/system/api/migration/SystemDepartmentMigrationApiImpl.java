@@ -25,6 +25,33 @@ public class SystemDepartmentMigrationApiImpl implements SystemDepartmentMigrati
     private final CacheManager caches;
     @Override public List<Department> getCatalogue(){return departments.selectCatalogue(new DepartmentMigrationTenantQuery(TenantContextHolder.getRequiredTenantId()));}
     @Override public List<Result> preview(Request request){validate(request);return plan(request,getCatalogue(),false);}
+    @Override public List<Result> previewAfterOrganization(OrganizationPreview preview) {
+        if(preview==null || preview.preceding()==null)throw new IllegalArgumentException("同批组织预览上下文缺失");
+        var request=preview.request();validate(request);
+        var catalogue=new ArrayList<>(getCatalogue());
+        var requiredParents=new HashSet<String>();
+        request.entries().forEach(entry->{if(entry.parentCode()!=null)requiredParents.add(entry.parentCode());});
+        var codes=new HashSet<String>();catalogue.forEach(department->codes.add(department.code()));
+        var proposed=new HashSet<String>();
+        for(var result:preview.preceding()) {
+            if(result==null || result.after()==null || "CONFLICT".equals(result.action()) || "ISSUE".equals(result.action()))
+                throw new IllegalArgumentException("前置组织预览未通过，不能承接拟建父部门");
+            var node=result.after();
+            if(!"CREATED".equals(result.action()) || !"DEPARTMENT".equals(node.type()) || !requiredParents.contains(node.code()))continue;
+            if(!Objects.equals(node.managedBy(),request.owner()) || result.before()!=null || node.id()!=null
+                    || !proposed.add(node.code()) || codes.contains(node.code()))
+                throw new IllegalArgumentException("同批拟建父部门的来源归属或身份冲突");
+            var department=node.department();
+            if(department.getTenantId()!=null && !Objects.equals(department.getTenantId(),request.tenantId())
+                    || Boolean.TRUE.equals(department.getDeleted()))
+                throw new IllegalArgumentException("同批拟建父部门跨租户或已删除");
+            // Only a required parent is visible to this preview. No ID, binding, or formal row is invented.
+            catalogue.add(new Department(null,node.code(),node.name(),node.parentId(),node.sort(),department.getLeaderUserId(),
+                    department.getPhone(),department.getEmail(),node.status(),node.version(),department.getCreator(),
+                    department.getCreateTime(),department.getUpdater(),department.getUpdateTime()));
+        }
+        return plan(request,catalogue,false);
+    }
     @Override @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
     public List<Result> apply(Request request) {
         requireRepeatableRead();validate(request);
@@ -59,7 +86,7 @@ public class SystemDepartmentMigrationApiImpl implements SystemDepartmentMigrati
         Map<String,Department> byCode=new HashMap<>();
         for(var department:current)if(department.code()!=null && byCode.put(department.code(),department)!=null)
             throw new IllegalArgumentException("当前租户部门编码重复，不能任选关联");
-        Map<String,Department> planned=new HashMap<>();List<Result> results=new ArrayList<>();
+        Map<String,PlannedDepartment> planned=new HashMap<>();List<Result> results=new ArrayList<>();
         for(var entry:request.entries()) {
             Department before=byCode.get(entry.code());
             if(entry.targetId()!=null && (before==null || !entry.targetId().equals(before.id())))
@@ -80,18 +107,20 @@ public class SystemDepartmentMigrationApiImpl implements SystemDepartmentMigrati
                 continue;
             }
             Department parent=entry.parentCode()==null?null:byCode.get(entry.parentCode());
-            if(entry.parentCode()!=null && (parent==null || parent.status()!=0))throw new IllegalArgumentException("批准的父部门不存在、跨租户或停用，不能按前缀伪造");
-            Department after=new Department(allocate?IdWorker.getId():null,entry.code(),entry.name(),parent==null?0L:parent.id(),0,entry.leaderUserId(),null,null,
+            if(entry.parentCode()!=null && (parent==null || !Objects.equals(parent.status(),0)))throw new IllegalArgumentException("批准的父部门不存在、跨租户或停用，不能按前缀伪造");
+            Department after=new Department(allocate?IdWorker.getId():null,entry.code(),entry.name(),parent==null?Long.valueOf(0):parent.id(),0,entry.leaderUserId(),null,null,
                     entry.status(),0,entry.creator(),entry.createTime(),entry.updater(),entry.updateTime());
-            Department alias=planned.putIfAbsent(entry.code(),after);
+            var alias=planned.putIfAbsent(entry.code(),new PlannedDepartment(after,entry.parentCode()));
             if(alias!=null) {
-                if(!sameDefinition(alias,after))throw new IllegalArgumentException("来源同码部门的名称、层级、状态或历史时间冲突");
-                after=alias;
+                if(!Objects.equals(alias.parentCode(),entry.parentCode()) || !sameDefinition(alias.department(),after))
+                    throw new IllegalArgumentException("来源同码部门的名称、层级、状态或历史时间冲突");
+                after=alias.department();
             }
             results.add(new Result(entry.object(),entry.sourceKey(),null,after,"CREATED"));
         }
         return List.copyOf(results);
     }
+    private record PlannedDepartment(Department department,String parentCode) {}
     private static boolean sameDefinition(Department first,Department second){return Objects.equals(first.code(),second.code()) && Objects.equals(first.name(),second.name())
             && Objects.equals(first.parentId(),second.parentId()) && Objects.equals(first.status(),second.status())
             && Objects.equals(first.createTime(),second.createTime()) && Objects.equals(first.updateTime(),second.updateTime())

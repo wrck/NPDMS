@@ -39,7 +39,7 @@ public class DppmsDictionaryDataSyncAdapter implements DataSyncAdapter {
         var task=tasks.required(SyncFieldMapper.primaryKey(owner[2]));
         var definition=JsonUtils.parseObject(task.getDefinition(),SyncDefinition.class);
         var run=task.getActiveRunId()==null?null:runs.selectScoped(new SyncQueries.Id(tenant,task.getActiveRunId()));
-        if(!Objects.equals(task.getTenantId(),tenant) || !ADAPTER.equals(task.getAdapter()) || !"DPPMS".equals(task.getSourceSystem())
+        if(!Objects.equals(task.getTenantId(),tenant) || !DppmsConsolidation.accepts(task,ADAPTER) || !"DPPMS".equals(task.getSourceSystem())
                 || definition==null || !"ONCE".equals(definition.mode()) || definition.resetMappingsBeforeLoad()
                 || run==null || !Objects.equals(run.getTenantId(),tenant) || !Objects.equals(run.getTaskId(),task.getId())
                 || !Objects.equals(run.getConfigVersion(),task.getVersion()) || !Objects.equals(run.getPreview(),!apply)

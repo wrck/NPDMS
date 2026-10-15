@@ -23,7 +23,7 @@ public final class DppmsProjectFactsSyncTemplate {
         else mappings.add(SyncDefinition.Mapping.builder().source("id").target("_expectedFingerprint").conversion("LOOKUP").values(Map.of()).build());
         return SyncDefinition.Source.builder().object(state?STATE:PARTY).sourceObject(state?STATE:PARTY)
                 .sourceKey(state?"projectId":"id").readMode("SQL")
-                .sql(DppmsMigrationSql.initial(state?"project-status-attributes":"project-related-parties"))
-                .parameters(Map.of("projectTypes","10","projectIds","")).columns(List.of()).filters(List.of()).mappings(mappings).build();
+                .sql(DppmsMigrationSql.initial(state?"project-status-attributes-published":"project-related-parties-published"))
+                .publishedProjectMatch(state?"CANONICAL_ID":"ID").parameters(Map.of("projectTypes","10,afss,afxx","projectIds","")).columns(List.of()).filters(List.of()).mappings(mappings).build();
     }
 }

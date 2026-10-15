@@ -9,7 +9,7 @@ public final class DppmsContractReceivableSyncTemplate {
     public static SyncDefinition create(Long connectionId) {
         if(connectionId==null || connectionId<=0)throw new IllegalArgumentException("回款来源连接无效");
         var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).sourceKey("id")
-                .updatedAt("update_time").readMode("SQL").sql(DppmsMigrationSql.initial("contract-receivables"))
+                .updatedAt("update_time").readMode("SQL").sql(DppmsMigrationSql.initial("contract-receivables-independent"))
                 .parameters(Map.of("contractNos","")).columns(List.of()).filters(List.of())
                 .mappings(ContractReceivableMigrationApi.ORIGINAL_COLUMNS.stream().map(name->SyncDefinition.Mapping.builder()
                         .source(name).target(name).conversion("DIRECT").build()).toList()).build();

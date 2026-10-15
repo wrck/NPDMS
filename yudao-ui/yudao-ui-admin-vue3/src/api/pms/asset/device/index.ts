@@ -346,11 +346,6 @@ export const assignCustomer = (
     headers: { 'If-Match': String(expectedVersion), 'Idempotency-Key': idempotencyKey }
   })
 
-export interface ProductCatalogLabel {
-  productCode: string
-  productName: string | null
-  productModel: string | null
-}
 export interface DeviceShipmentVO {
   id: number | string
   deviceSn: string
@@ -367,8 +362,6 @@ export interface DeviceShipmentVO {
   productName?: string
   secondaryProductModel?: string
   secondaryProductName?: string
-  dppmsCatalogLabels?: ProductCatalogLabel[]
-  secondaryDppmsCatalogLabels?: ProductCatalogLabel[]
   sourceUpdatedAt?: string
   secondarySn?: string
   secondaryItem?: string

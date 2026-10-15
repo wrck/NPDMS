@@ -8,7 +8,7 @@ import java.util.List;
     ProjectProductConfigurationDO selectRecordForUpdate(@Param("query") ProjectProductConfigurationRecordQuery query);
     List<ProjectProductConfigurationDO> selectBusinessRecordsForUpdate(@Param("query") ProjectProductConfigurationBusinessQuery query);
     Long countAllProjectRecords(@Param("query") ProjectProductConfigurationProjectQuery query);
-    List<ProjectProductConfigurationDO> selectProjectPage(@Param("query") AssociatedPageQuery query);
-    Long countProject(@Param("query") AssociatedPageQuery query);
+    List<ProjectProductConfigurationDO> selectProjectPage(@Param("query") ProjectDisplayCachePageQuery query);
+    Long countProject(@Param("query") ProjectDisplayCachePageQuery query);
     List<ProjectProductConfigurationDO> selectPathNodes(@Param("query") ProjectConfigurationPathQuery query);
 }

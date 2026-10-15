@@ -22,11 +22,13 @@ public class EhrOrganizationAdapter implements DataSyncAdapter {
                         new ObjectDescriptor("DEPARTMENT","部门",department,"SYSTEM","Department","system_dept",true)),
                 List.of("RETAIN","DISABLE"),List.of("UPSERT","INSERT_ONLY","INSERT_IGNORE"),true);
     }
-    public List<Change> preview(Batch batch) { return execute(batch,false); }
-    public List<Change> apply(Batch batch) { return execute(batch,true); }
+    record PreviewPlan(List<Change> changes,List<ManagedOrganizationApi.Result> organization) {}
+    public List<Change> preview(Batch batch) { return execute(batch,false).changes(); }
+    PreviewPlan previewPlan(Batch batch) { return execute(batch,false); }
+    public List<Change> apply(Batch batch) { return execute(batch,true).changes(); }
     public void refreshCaches() { organization.refreshCaches(); }
 
-    private List<Change> execute(Batch batch,boolean apply) {
+    private PreviewPlan execute(Batch batch,boolean apply) {
         Map<String,Row> rows=new LinkedHashMap<>();
         Map<String,Binding> bindings=new HashMap<>();
         batch.bindings().forEach(b->bindings.put(key(b.object(),b.sourceKey()),b));
@@ -115,7 +117,7 @@ public class EhrOrganizationAdapter implements DataSyncAdapter {
                     before,after,
                     "CONFLICT".equals(action)?"目标已存在、由其他来源管理或接管字段不一致":null));
         }
-        return changes;
+        return new PreviewPlan(List.copyOf(changes),List.copyOf(results));
     }
     private static String key(String object,String sourceKey) { return object+":"+sourceKey; }
     private static String reference(Object value) {

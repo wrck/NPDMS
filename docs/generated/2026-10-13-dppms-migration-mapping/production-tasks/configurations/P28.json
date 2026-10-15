@@ -1,5 +1,17 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P28",
+  "catalogueTaskKey": "P15",
+  "catalogueTaskName": "正式合同、发货合同引用与发货事实",
+  "standaloneTask": false,
+  "isPrimaryComponent": false,
+  "catalogueDependencies": [
+    "P01",
+    "P10",
+    "P12",
+    "P14"
+  ],
+  "baselineTask": {
     "key": "P28",
     "name": "设备发货事实",
     "businessOwners": [
@@ -1137,5 +1149,11 @@
     "pm_project_group_relationship"
   ],
   "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
-  "ownerSqlFiles": []
+  "ownerSqlFiles": [],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

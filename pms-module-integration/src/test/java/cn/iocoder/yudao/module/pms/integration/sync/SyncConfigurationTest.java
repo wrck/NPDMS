@@ -31,14 +31,14 @@ class SyncConfigurationTest {
         assertEquals("RESTART_ALL",actual.effectiveRestartPolicy());
         assertEquals(0,actual.queryTimeoutSeconds());
     }
-    @Test void dppmsTemplateUsesSingleQueryStreamingByDefault() {
+    @Test void dppmsTemplateUsesReviewedConsolidatedStreamingSettings() {
         var definition=DppmsOrderSyncTemplate.create(1L);
         assertEquals("STREAMING_CURSOR",definition.effectiveReadStrategy());
         assertEquals("RESTART_ALL",definition.effectiveRestartPolicy());
         assertFalse(definition.autoPaging());
-        assertEquals(2000,definition.effectiveFetchSize());
-        assertEquals(1000,definition.effectiveChunkSize());
-        assertEquals(0,definition.queryTimeoutSeconds());
+        assertEquals(200,definition.effectiveFetchSize());
+        assertEquals(200,definition.effectiveChunkSize());
+        assertEquals(180,definition.queryTimeoutSeconds());
     }
     @Test void legacyAutoPagingStillSelectsKeysetStrategy() {
         var definition=EhrSyncTemplate.create(1L).toBuilder().autoPaging(true).readStrategy("SNAPSHOT").build();

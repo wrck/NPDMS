@@ -40,7 +40,7 @@ class DppmsProjectContractRelationSyncAdapterTest {
         doAnswer(call->{var query=(ReferenceQuery)call.getArgument(0);
             return query.references().stream().map(ref->new ResolvedReference(ref.sourceKey(),ref.projectId(),0L,11L)).toList();}).when(relations).resolveReferences(any());
         var binding=projectBinding("50370",10L,"10","P1");
-        when(bindings.selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter())))).thenReturn(List.of(binding));
+        when(bindings.selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter()) && "pm_project_header".equals(q.sourceObject())))).thenReturn(List.of(binding));
         when(relations.apply(any())).thenAnswer(call->{Request request=call.getArgument(0);var e=request.entries().getFirst();var x=e.incoming();
             return List.of(new Result(e.sourceKey(),"CREATED",null,new Relation(30L,x.tenantId(),x.projectId(),x.contractId(),x.relationRole(),
                     x.sourceSystem(),x.sourceTable(),x.sourceRecordKey(),x.effectiveFrom(),x.effectiveTo(),x.status(),0,x.creator(),x.createTime(),x.updater(),x.updateTime(),false)));});
@@ -153,7 +153,7 @@ class DppmsProjectContractRelationSyncAdapterTest {
         var proof=projectBinding("50370",10L,"10","P1");var fields=JsonUtils.parseMap(proof.getFieldsJson());
         ((Map<String,Object>)fields.get("originalFields")).replaceAll((key,value)->value==null?tools.jackson.databind.node.NullNode.getInstance():value);
         ((Map<String,Object>)fields.get("project")).put("projectCode","P1-1");proof.setFieldsJson(JsonUtils.toJsonString(fields));
-        when(bindings.selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter())))).thenReturn(List.of(proof));
+        when(bindings.selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter()) && "pm_project_header".equals(q.sourceObject())))).thenReturn(List.of(proof));
         var result=adapter.apply(batch(row(),List.of(),false)).getFirst();
         verify(relations).apply(argThat(request->"P1-1".equals(request.entries().getFirst().sourceProjectCode())
                 && Long.valueOf(18L).equals(request.entries().getFirst().sourceConnectionId())));
@@ -449,7 +449,7 @@ class DppmsProjectContractRelationSyncAdapterTest {
                 long contract=contractIds.computeIfAbsent(source.get("contractNo").toString(),k->2000L+contractIds.size());
                 f.put("contractId",contract);f.put("expectedProjectVersion",0);rows.add(new Row(OBJECT,key,f,null));
             }
-            when(bindings.selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter())))).thenAnswer(call->projectBindings.values().stream()
+            when(bindings.selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter()) && "pm_project_header".equals(q.sourceObject())))).thenAnswer(call->projectBindings.values().stream()
                     .filter(binding->((SyncQueries.IdentitySources)call.getArgument(0)).sourceKeys().contains(binding.getSourceKey())).toList());
             when(users.getHistoricalIdentitiesByUsername(eq(1L),anySet())).thenAnswer(call->List.of(
                     new SystemUserMigrationApi.HistoricalIdentity(21L,"x01861"),new SystemUserMigrationApi.HistoricalIdentity(22L,"x00270"),
@@ -573,7 +573,7 @@ class DppmsProjectContractRelationSyncAdapterTest {
         var all=actualRows("approved-contract-identical-bridges.json");
         var mixed=new ArrayList<Row>(all.stream().filter(row->"16210120062918N-L".equals(row.fields().get("contractNo"))).toList());
         mixed.add(1,row());
-        doReturn(List.of(projectBinding("50370",10L,"10","P1"))).when(bindings).selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter())));
+        doReturn(List.of(projectBinding("50370",10L,"10","P1"))).when(bindings).selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter()) && "pm_project_header".equals(q.sourceObject())));
         var changes=adapter.apply(duplicates(mixed,List.of(),false));assertEquals(4,changes.size());
         assertEquals(mixed.stream().map(Row::sourceKey).toList(),changes.stream().map(Change::sourceKey).toList());
         assertEquals(3,changes.stream().filter(change->change.action().equals("SKIPPED") && change.targetId()==null).count());
@@ -674,7 +674,7 @@ class DppmsProjectContractRelationSyncAdapterTest {
         assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(missing,List.of(),false)));
         verifyNoOwnerMutation();
         doReturn(List.of(projectBinding("50370",10L,"10","P1"))).when(bindings)
-                .selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter())));
+                .selectIdentitySources(argThat(q->q!=null && "DPPMS_PROJECT_MASTER".equals(q.adapter()) && "pm_project_header".equals(q.sourceObject())));
         var rows=List.of(excluded,row());var result=adapter.apply(duplicates(rows,List.of(),false));
         assertEquals(rows.stream().map(Row::sourceKey).toList(),result.stream().map(Change::sourceKey).toList());
         assertEquals("SKIPPED",result.getFirst().action());assertEquals("CREATED",result.getLast().action());

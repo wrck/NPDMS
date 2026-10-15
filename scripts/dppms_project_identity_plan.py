@@ -15,6 +15,7 @@ def plan_project_identities(source_rows, occupied_codes, established_codes=None)
     established_codes = established_codes or {}
     canonical = {}
     originals = {}
+    source_by_id = {}
     for row in source_rows:
         source_id = int(row['projectId'])
         identity = (row['projectType'], row['projectCode'])
@@ -23,7 +24,16 @@ def plan_project_identities(source_rows, occupied_codes, established_codes=None)
         if source_id in originals:
             raise ValueError('PROJECT_SOURCE_ID_DUPLICATE')
         originals[source_id] = identity
+        if 'disabled' not in row or 'effectiveTo' not in row:
+            raise ValueError('PROJECT_VALIDITY_EVIDENCE_REQUIRED')
+        source_by_id[source_id] = row
         canonical[identity] = max(source_id, canonical.get(identity, 0))
+    def valid(row):
+        return row['disabled'] in (False, 0, '0', b'\x00') and row['effectiveTo'] is None
+    # MAX precedes validity. An invalid newest row must never resurrect an older version.
+    canonical = {identity: key for identity, key in canonical.items() if valid(source_by_id[key])}
+    originals = {key: identity for key, identity in originals.items()
+                 if identity in canonical and valid(source_by_id[key])}
     if not set(established_codes).issubset(set(canonical.values())):
         raise ValueError('PROJECT_BINDING_IS_NOT_CANONICAL')
     reserved = set(occupied_codes) | {identity[1] for identity in canonical}

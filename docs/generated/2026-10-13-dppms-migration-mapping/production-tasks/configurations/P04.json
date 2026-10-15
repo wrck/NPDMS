@@ -1,5 +1,14 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P04",
+  "catalogueTaskKey": "P04",
+  "catalogueTaskName": "账号与任职资料",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P01"
+  ],
+  "baselineTask": {
     "key": "P04",
     "name": "账号与任职资料",
     "businessOwners": [

@@ -69,9 +69,12 @@ class DppmsRoleSyncTemplateTest {
         var definition = DppmsRoleSyncTemplate.create(55L);
         assertDoesNotThrow(() -> new SyncDefinitionValidator(List.of(adapter)).validate(definition));
         for (var source : definition.sources()) {
-            String sql = MysqlSyncReader.compile(source).sql();
-            assertTrue(sql.contains("r.*")); assertTrue(sql.contains("COALESCE"));
-            assertFalse(sql.contains("password")); assertFalse(source.syncPrimaryKey());
+            if(source.queryRef()==null){
+                String sql = MysqlSyncReader.compile(source).sql();
+                assertTrue(sql.contains("r.*")); assertTrue(sql.contains("COALESCE"));
+                assertFalse(sql.contains("password"));
+            }else assertNull(source.sql());
+            assertFalse(source.syncPrimaryKey());
             assertEquals("migrationVersion", source.updatedAt());
         }
         var fnd = definition.sources().getLast();

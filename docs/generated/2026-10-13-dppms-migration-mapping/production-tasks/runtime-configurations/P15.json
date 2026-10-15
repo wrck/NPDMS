@@ -1,0 +1,1008 @@
+{
+  "catalogueTaskKey": "P15",
+  "name": "P15 正式合同、发货合同引用与发货事实",
+  "enabled": false,
+  "definition": {
+    "adapter": "TABLE_MAPPING",
+    "autoPaging": false,
+    "chunkSize": 500,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 1000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 600,
+    "readStrategy": "STREAMING_CURSOR",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": "_groupKey",
+        "issueField": "migration_issue",
+        "mappings": [],
+        "object": "CONTRACT",
+        "parameters": {
+          "projectIds": "",
+          "contractNos": "",
+          "projectTypes": "10",
+          "approvedContractNos": "31020181224A12,31020211228A12",
+          "customerCodeOverrides": "{\"31020220620A23\":\"C00013\",\"31120220620A37\":\"C00013\"}"
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": "_sourceRows",
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "pm_order_data_from_erp",
+        "sql": "SELECT source_keys._groupKey,\n CASE source_keys.objectRank\n WHEN 3 THEN CAST(JSON_ARRAY(JSON_OBJECT('object','DEVICE_SN','fields',JSON_OBJECT('id',b.`id`,'pack_id',b.`pack_id`,'item',b.`item`,'barcode',b.`barcode`,'com_barcode',b.`com_barcode`,'rma_no',b.`rma_no`,'isRMA',b.`isRMA`,'item2',b.`item2`,'barcode2',b.`barcode2`,'orderNumber',b.`orderNumber`,'lineNum',b.`lineNum`,'profitCenter',b.`profitCenter`,'soleAgentSuffix',b.`soleAgentSuffix`,'warrantyStartDate',b.`warrantyStartDate`,'warrantyMonth',b.`warrantyMonth`,'rmaBarcode',b.`rmaBarcode`,'updateTime',b.`updateTime`,'syncTime',b.`syncTime`,'uuid',b.`uuid`,'shipment_time',p.packdate,'contract_no',f.contract_code,'event_type',CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 'UNCLASSIFIED' ELSE 'SHIPMENT' END,'rma_marked',CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 1 ELSE 0 END))) AS CHAR)\n WHEN 4 THEN CAST(JSON_ARRAY(JSON_OBJECT('object','DEVICE_RELATION','fields',JSON_OBJECT('id',relation.`id`,'sn1',relation.`sn1`,'item1',relation.`item1`,'sn2',relation.`sn2`,'item2',relation.`item2`,'contract',relation.`contract`,'createtime',relation.`createtime`,'updatetime',relation.`updatetime`))) AS CHAR)\n ELSE source_keys._sourceRows END AS _sourceRows\nFROM (\nSELECT 0 AS objectRank,CAST(NULL AS UNSIGNED) AS sourceId,CONCAT('0:',SHA2(CAST(JSON_ARRAY(r.`company_code`,r.`contract_no`) AS CHAR),256)) AS _groupKey,\n CAST(JSON_ARRAYAGG(JSON_OBJECT('object','CONTRACT','fields',JSON_OBJECT('id',r.`id`,'company_code',r.`company_code`,'contract_no',r.`contract_no`,'customer_code',r.`customer_code`,'customer_name',r.`customer_name`,'migration_issue',r.`migration_issue`,'currency_name',r.`currency_name`,'currency_code',r.`currency_code`,'contract_amount',r.`contract_amount`,'contract_create_time',r.`contract_create_time`,'project_name',r.`project_name`,'project_code',r.`project_code`,'market_code',r.`market_code`,'market_name',r.`market_name`,'department_code',r.`department_code`,'department_name',r.`department_name`,'industry_code',r.`industry_code`,'industry_name',r.`industry_name`,'marketing_representative_code',r.`marketing_representative_code`,'marketing_representative_name',r.`marketing_representative_name`,'secondary_representative_code',r.`secondary_representative_code`,'system_name',r.`system_name`,'normalized_company_code',r.`normalized_company_code`,'master_origin',r.`master_origin`,'origin_table',r.`origin_table`))) AS CHAR) AS _sourceRows\nFROM (\nSELECT master.* FROM (SELECT erp.*,'DPPMS_ERP' AS master_origin,'pm_order_data_from_erp' AS origin_table FROM (SELECT approved.* FROM (SELECT normalized.*,CASE WHEN company_code='01' THEN '001' ELSE company_code END AS normalized_company_code FROM (SELECT e.*,CASE WHEN u.company_code IS NOT NULL THEN r.`currency_name` ELSE NULL END AS `currency_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`currency_name` ELSE NULL END AS `currency_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`contract_money_amount` ELSE NULL END AS `contract_amount`,CASE WHEN u.company_code IS NOT NULL THEN r.`contract_create_date` ELSE NULL END AS `contract_create_time`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`project_name`,r.`project_name`) ELSE NULL END AS `project_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`projectCode` ELSE NULL END AS `project_code`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`marketCode`,r.`marketCode`) ELSE NULL END AS `market_code`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`marketName`,r.`maketing_department_name`) ELSE NULL END AS `market_name`,CASE WHEN u.company_code IS NOT NULL THEN COALESCE(s.`office_code`,r.`officeCode`) ELSE NULL END AS `department_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`office_name` ELSE NULL END AS `department_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`industryId` ELSE NULL END AS `industry_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`industry_name` ELSE NULL END AS `industry_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`usernamec` ELSE NULL END AS `marketing_representative_code`,CASE WHEN u.company_code IS NOT NULL THEN r.`marketing_representative_name` ELSE NULL END AS `marketing_representative_name`,CASE WHEN u.company_code IS NOT NULL THEN r.`usernamec2` ELSE NULL END AS `secondary_representative_code`,CASE WHEN u.company_code IS NOT NULL THEN s.`systemName` ELSE NULL END AS `system_name` FROM (SELECT MIN(id) AS id,compCode AS company_code,contractNo AS contract_no,COALESCE(JSON_UNQUOTE(JSON_EXTRACT(:customerCodeOverrides,CONCAT('$.',JSON_QUOTE(contractNo)))),MIN(customerCode)) AS customer_code,MIN(customerName) AS customer_name, CASE WHEN (COUNT(DISTINCT NULLIF(customerCode,''))>1 AND JSON_UNQUOTE(JSON_EXTRACT(:customerCodeOverrides,CONCAT('$.',JSON_QUOTE(contractNo)))) IS NULL) OR COUNT(DISTINCT NULLIF(customerName,''))>1 THEN 'CONTRACT_CUSTOMER_CONFLICT' ELSE NULL END AS migration_issue FROM pm_order_data_from_erp WHERE contractNo IS NOT NULL AND contractNo<>'' AND compCode IS NOT NULL AND compCode<>'' GROUP BY compCode,contractNo) e LEFT JOIN (SELECT contractNo,MIN(compCode) AS company_code FROM pm_order_data_from_erp WHERE compCode IS NOT NULL AND compCode<>'' GROUP BY contractNo HAVING COUNT(DISTINCT compCode)=1) u ON u.contractNo=e.contract_no LEFT JOIN (SELECT contract_num,SUBSTRING(MAX(CASE WHEN `currency_name` IS NOT NULL AND CAST(`currency_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`currency_name` AS CHAR)) END),40) AS `currency_name`,SUBSTRING(MAX(CASE WHEN `contract_money_amount` IS NOT NULL AND CAST(`contract_money_amount` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`contract_money_amount` AS CHAR)) END),40) AS `contract_money_amount`,SUBSTRING(MAX(CASE WHEN `contract_create_date` IS NOT NULL AND CAST(`contract_create_date` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`contract_create_date` AS CHAR)) END),40) AS `contract_create_date`,SUBSTRING(MAX(CASE WHEN `project_name` IS NOT NULL AND CAST(`project_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`project_name` AS CHAR)) END),40) AS `project_name`,SUBSTRING(MAX(CASE WHEN `projectCode` IS NOT NULL AND CAST(`projectCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`projectCode` AS CHAR)) END),40) AS `projectCode`,SUBSTRING(MAX(CASE WHEN `marketCode` IS NOT NULL AND CAST(`marketCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`marketCode` AS CHAR)) END),40) AS `marketCode`,SUBSTRING(MAX(CASE WHEN `maketing_department_name` IS NOT NULL AND CAST(`maketing_department_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`maketing_department_name` AS CHAR)) END),40) AS `maketing_department_name`,SUBSTRING(MAX(CASE WHEN `officeCode` IS NOT NULL AND CAST(`officeCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`officeCode` AS CHAR)) END),40) AS `officeCode`,SUBSTRING(MAX(CASE WHEN `office_name` IS NOT NULL AND CAST(`office_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`office_name` AS CHAR)) END),40) AS `office_name`,SUBSTRING(MAX(CASE WHEN `industryId` IS NOT NULL AND CAST(`industryId` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`industryId` AS CHAR)) END),40) AS `industryId`,SUBSTRING(MAX(CASE WHEN `industry_name` IS NOT NULL AND CAST(`industry_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`industry_name` AS CHAR)) END),40) AS `industry_name`,SUBSTRING(MAX(CASE WHEN `usernamec` IS NOT NULL AND CAST(`usernamec` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`usernamec` AS CHAR)) END),40) AS `usernamec`,SUBSTRING(MAX(CASE WHEN `marketing_representative_name` IS NOT NULL AND CAST(`marketing_representative_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`marketing_representative_name` AS CHAR)) END),40) AS `marketing_representative_name`,SUBSTRING(MAX(CASE WHEN `usernamec2` IS NOT NULL AND CAST(`usernamec2` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(id AS CHAR),20,'0')),CAST(`usernamec2` AS CHAR)) END),40) AS `usernamec2` FROM sms_ofst_contract_head_sap GROUP BY contract_num) r ON r.contract_num=e.contract_no LEFT JOIN (SELECT contract_code,SUBSTRING(MAX(CASE WHEN `project_name` IS NOT NULL AND CAST(`project_name` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`project_name` AS CHAR)) END),65) AS `project_name`,SUBSTRING(MAX(CASE WHEN `marketCode` IS NOT NULL AND CAST(`marketCode` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`marketCode` AS CHAR)) END),65) AS `marketCode`,SUBSTRING(MAX(CASE WHEN `marketName` IS NOT NULL AND CAST(`marketName` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`marketName` AS CHAR)) END),65) AS `marketName`,SUBSTRING(MAX(CASE WHEN `office_code` IS NOT NULL AND CAST(`office_code` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`office_code` AS CHAR)) END),65) AS `office_code`,SUBSTRING(MAX(CASE WHEN `systemName` IS NOT NULL AND CAST(`systemName` AS CHAR)<>'' THEN CONCAT(RPAD(CAST(contract_id AS CHAR),64,' '),CAST(`systemName` AS CHAR)) END),65) AS `systemName` FROM fb_contract GROUP BY contract_code) s ON s.contract_code=e.contract_no) normalized) approved WHERE (:contractNos='' OR FIND_IN_SET(approved.contract_no,:contractNos))) erp UNION ALL SELECT CONCAT('PROJECT_CONTRACT|',q.company_code,'|',q.contractNo) AS `id`,q.company_code AS `company_code`,q.contractNo AS `contract_no`,NULL AS `customer_code`,NULL AS `customer_name`,NULL AS `migration_issue`,NULL AS `currency_name`,NULL AS `currency_code`,NULL AS `contract_amount`,NULL AS `contract_create_time`,NULL AS `project_name`,NULL AS `project_code`,NULL AS `market_code`,NULL AS `market_name`,NULL AS `department_code`,NULL AS `department_name`,NULL AS `industry_code`,NULL AS `industry_name`,NULL AS `marketing_representative_code`,NULL AS `marketing_representative_name`,NULL AS `secondary_representative_code`,NULL AS `system_name`,NULL AS `normalized_company_code`,'DPPMS' AS master_origin,'pm_project_contract' AS origin_table FROM (SELECT DISTINCT f.code AS company_code,c.contractNo\nFROM pm_project_contract c\nJOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nJOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)\nJOIN (SELECT projectCode,projectType,CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS identity_key,MAX(projectId) AS projectId FROM pm_project GROUP BY projectCode,projectType,CAST(projectCode AS BINARY),CAST(projectType AS BINARY)) canonical\n ON canonical.projectType=g.projectType AND canonical.projectCode=REPLACE(m.projectCode,'-his','') AND canonical.identity_key=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))\nJOIN (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p ON p.projectId=canonical.projectId\nJOIN fnd_company f ON f.id=p.compId\nWHERE FIND_IN_SET(g.projectType,:projectTypes)\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND FIND_IN_SET(c.contractNo,:approvedContractNos)) q) master\n) r\nJOIN (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope ON scope.contractNo=r.`contract_no`\nGROUP BY CAST(JSON_ARRAY(r.`company_code`,r.`contract_no`) AS CHAR),CAST(CAST(JSON_ARRAY(r.`company_code`,r.`contract_no`) AS CHAR) AS BINARY)\nUNION ALL\nSELECT 1 AS objectRank,CAST(NULL AS UNSIGNED) AS sourceId,CONCAT('1:',SHA2(CAST(JSON_ARRAY('DPPMS',r.`sync_evidence_key`) AS CHAR),256)) AS _groupKey,\n CAST(JSON_ARRAYAGG(JSON_OBJECT('object','SHIPMENT_CONTRACT','fields',JSON_OBJECT('contract_id',r.`contract_id`,'contract_code',r.`contract_code`,'office_code',r.`office_code`,'contract_type',r.`contract_type`,'customer_name',r.`customer_name`,'project_name',r.`project_name`,'warranty',r.`warranty`,'marketCode',r.`marketCode`,'marketName',r.`marketName`,'systemId',r.`systemId`,'systemName',r.`systemName`,'remark',r.`remark`,'company_code',r.`company_code`,'sync_evidence_key',r.`sync_evidence_key`,'sync_source_issue',r.`sync_source_issue`,'normalized_company_code',r.`normalized_company_code`))) AS CHAR) AS _sourceRows\nFROM (\nSELECT after_sales_scope.* FROM (SELECT normalized.*,CASE WHEN company_code='01' THEN '001' ELSE company_code END AS normalized_company_code FROM (SELECT f.*, e.company_code,\n       CASE WHEN f.contract_id IS NULL OR TRIM(f.contract_id) = ''\n            THEN CONCAT('invalid-source-key:', SHA2(CAST(JSON_OBJECT(\n                 'contract_id', f.contract_id, 'contract_code', f.contract_code,\n                 'office_code', f.office_code, 'contract_type', f.contract_type,\n                 'customer_name', f.customer_name, 'project_name', f.project_name,\n                 'warranty', f.warranty, 'marketCode', f.marketCode,\n                 'marketName', f.marketName, 'systemId', f.systemId,\n                 'systemName', f.systemName, 'remark', f.remark) AS CHAR), 256))\n            ELSE f.contract_id END AS sync_evidence_key,\n       CASE WHEN f.contract_id IS NULL OR TRIM(f.contract_id) = ''\n            THEN 'SOURCE_KEY_MISSING: fb_contract.contract_id'\n            ELSE NULL END AS sync_source_issue\nFROM fb_contract f\nLEFT JOIN (\n    SELECT contractNo, MIN(compCode) AS company_code\n    FROM pm_order_data_from_erp\n    WHERE compCode IS NOT NULL AND compCode <> ''\n    GROUP BY contractNo\n    HAVING COUNT(DISTINCT compCode) = 1\n) e ON e.contractNo = f.contract_code\n) normalized) after_sales_scope\n) r\nJOIN (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope ON scope.contractNo=r.`contract_code`\nGROUP BY CAST(JSON_ARRAY('DPPMS',r.`sync_evidence_key`) AS CHAR),CAST(CAST(JSON_ARRAY('DPPMS',r.`sync_evidence_key`) AS CHAR) AS BINARY)\nUNION ALL\nSELECT 2 AS objectRank,CAST(NULL AS UNSIGNED) AS sourceId,CONCAT('2:',SHA2(CAST(JSON_ARRAY('DPPMS',r.`packlist_id`) AS CHAR),256)) AS _groupKey,\n CAST(JSON_ARRAYAGG(JSON_OBJECT('object','PACKAGE','fields',JSON_OBJECT('packlist_id',r.`packlist_id`,'con_id',r.`con_id`,'packdate',r.`packdate`,'warrantyStartTime',r.`warrantyStartTime`,'warrantyEndTime',r.`warrantyEndTime`,'receiveName',r.`receiveName`,'emsNum',r.`emsNum`,'emsCompany',r.`emsCompany`,'carrier_name',r.`carrier_name`,'_scopeContractNo',r.`_scopeContractNo`))) AS CHAR) AS _sourceRows\nFROM (\nSELECT p.*,COALESCE(d.basicDataName,p.emsCompany) AS carrier_name,f.contract_code AS _scopeContractNo FROM fb_shipment p LEFT JOIN fnd_basic_data d ON d.dataTypeCode='01' AND d.basicDataId=p.emsCompany JOIN fb_contract f ON f.contract_id=p.con_id\n) r\nJOIN (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope ON scope.contractNo=r.`_scopeContractNo`\nGROUP BY CAST(JSON_ARRAY('DPPMS',r.`packlist_id`) AS CHAR),CAST(CAST(JSON_ARRAY('DPPMS',r.`packlist_id`) AS CHAR) AS BINARY)\nUNION ALL\nSELECT 3 AS objectRank,r.`id` AS sourceId,CONCAT('3:',LPAD(CAST(r.`id` AS CHAR),20,'0')) AS _groupKey,\n CAST(NULL AS CHAR) AS _sourceRows\nFROM (\nSELECT STRAIGHT_JOIN b.*,p.packdate AS shipment_time,f.contract_code AS contract_no,\n CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 'UNCLASSIFIED' ELSE 'SHIPMENT' END AS event_type,\n CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 1 ELSE 0 END AS rma_marked\nFROM (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope\nSTRAIGHT_JOIN fb_contract f ON f.contract_code=scope.contractNo\nSTRAIGHT_JOIN fb_shipment p ON p.con_id=f.contract_id\nSTRAIGHT_JOIN fb_shipment_barcode b ON b.pack_id=p.packlist_id\n) r\nUNION ALL\nSELECT 4 AS objectRank,r.`id` AS sourceId,CONCAT('4:',LPAD(CAST(r.`id` AS CHAR),20,'0')) AS _groupKey,\n CAST(NULL AS CHAR) AS _sourceRows\nFROM (\nSELECT after_sales_scope.* FROM (SELECT * FROM fb_shipment_barcode_relation WHERE sn1 <> sn2) after_sales_scope\n) r\nJOIN (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope ON scope.contractNo=r.`contract`\n) source_keys\nLEFT JOIN fb_shipment_barcode b ON source_keys.objectRank=3 AND b.id=source_keys.sourceId\nLEFT JOIN fb_shipment p ON p.packlist_id=b.pack_id\nLEFT JOIN fb_contract f ON f.contract_id=p.con_id\nLEFT JOIN fb_shipment_barcode_relation relation ON source_keys.objectRank=4 AND relation.id=source_keys.sourceId\n",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": [
+          {
+            "name": "contract",
+            "table": "com_contract",
+            "keys": [
+              "company_code",
+              "contract_no"
+            ],
+            "mode": "UPSERT",
+            "nullPolicy": "IGNORE",
+            "updateColumns": [
+              "currency_name",
+              "contract_amount",
+              "currency_code",
+              "contract_create_time",
+              "project_name",
+              "project_code",
+              "market_code",
+              "market_name",
+              "department_code",
+              "department_name",
+              "industry_code",
+              "industry_name",
+              "marketing_representative_code",
+              "marketing_representative_name",
+              "secondary_representative_code",
+              "system_name"
+            ],
+            "whenField": null,
+            "newerBy": null,
+            "tieBreaker": null,
+            "mappings": [
+              {
+                "constant": null,
+                "conversion": "DPPMS_COMPANY_CODE",
+                "defaultValue": null,
+                "source": "company_code",
+                "target": "company_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "contract_no",
+                "target": "contract_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "customer_code",
+                "target": "customer_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "customer_name",
+                "target": "customer_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "$SOURCE_KEY",
+                "target": "master_source_record_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "master_origin",
+                "target": "master_source_system",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "currency_name",
+                "target": "currency_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "currency_code",
+                "target": "currency_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "contract_amount",
+                "target": "contract_amount",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "contract_create_time",
+                "target": "contract_create_time",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "project_name",
+                "target": "project_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "project_code",
+                "target": "project_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "market_code",
+                "target": "market_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "market_name",
+                "target": "market_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "department_code",
+                "target": "department_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "department_name",
+                "target": "department_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "industry_code",
+                "target": "industry_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "industry_name",
+                "target": "industry_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "marketing_representative_code",
+                "target": "marketing_representative_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "marketing_representative_name",
+                "target": "marketing_representative_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "secondary_representative_code",
+                "target": "secondary_representative_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "system_name",
+                "target": "system_name",
+                "values": null
+              }
+            ],
+            "lookups": [
+              {
+                "table": "system_company",
+                "match": {
+                  "code": "company_code"
+                },
+                "outputs": {
+                  "company_id": "id",
+                  "company_name": "name"
+                },
+                "onMissing": "RETAIN"
+              }
+            ]
+          }
+        ],
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": "sync_source_issue",
+        "mappings": [],
+        "object": "SHIPMENT_CONTRACT",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "CONTRACT",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "sync_evidence_key",
+        "sourceKeyColumns": null,
+        "sourceObject": "fb_contract",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": [
+          {
+            "name": "shipmentContract",
+            "table": "com_shipment_contract_reference",
+            "keys": [
+              "source_system",
+              "source_record_key"
+            ],
+            "mode": "UPSERT",
+            "nullPolicy": "IGNORE",
+            "updateColumns": [
+              "contract_no",
+              "company_code",
+              "department_code",
+              "contract_type",
+              "customer_name",
+              "project_name",
+              "warranty_years",
+              "market_code",
+              "market_name",
+              "system_source_key",
+              "system_name",
+              "remark",
+              "contract_id",
+              "company_id",
+              "company_name",
+              "department_id",
+              "department_name"
+            ],
+            "whenField": null,
+            "newerBy": null,
+            "tieBreaker": null,
+            "mappings": [
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "contract_code",
+                "target": "contract_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DPPMS_COMPANY_CODE",
+                "defaultValue": null,
+                "source": "company_code",
+                "target": "company_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "office_code",
+                "target": "department_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "contract_type",
+                "target": "contract_type",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "customer_name",
+                "target": "customer_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "project_name",
+                "target": "project_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DPPMS_WARRANTY_YEARS",
+                "defaultValue": null,
+                "source": "warranty",
+                "target": "warranty_years",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "marketCode",
+                "target": "market_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "marketName",
+                "target": "market_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "systemId",
+                "target": "system_source_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "systemName",
+                "target": "system_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "remark",
+                "target": "remark",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "$SOURCE_KEY",
+                "target": "source_record_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "$SOURCE_SYSTEM",
+                "target": "source_system",
+                "values": null
+              }
+            ],
+            "lookups": [
+              {
+                "table": "com_contract",
+                "match": {
+                  "contract_no": "contract_no",
+                  "company_code": "company_code"
+                },
+                "outputs": {
+                  "contract_id": "id"
+                },
+                "onMissing": "RETAIN"
+              },
+              {
+                "table": "system_company",
+                "match": {
+                  "code": "company_code"
+                },
+                "outputs": {
+                  "company_id": "id",
+                  "company_name": "name"
+                },
+                "onMissing": "RETAIN"
+              },
+              {
+                "table": "system_dept",
+                "match": {
+                  "code": "department_code"
+                },
+                "outputs": {
+                  "department_id": "id",
+                  "department_name": "name"
+                },
+                "onMissing": "RETAIN"
+              }
+            ]
+          }
+        ],
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [],
+        "object": "PACKAGE",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "CONTRACT",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "packlist_id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fb_shipment",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": [
+          {
+            "name": "package",
+            "table": "com_shipment_package",
+            "keys": [
+              "source_system",
+              "source_record_key"
+            ],
+            "mode": "UPSERT",
+            "nullPolicy": "IGNORE",
+            "updateColumns": [
+              "shipment_time",
+              "warranty_start_time",
+              "warranty_end_time",
+              "receiver_name",
+              "express_no",
+              "carrier_name",
+              "shipment_contract_ref_id",
+              "carrier_code"
+            ],
+            "whenField": null,
+            "newerBy": null,
+            "tieBreaker": null,
+            "mappings": [
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "packlist_id",
+                "target": "package_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "packdate",
+                "target": "shipment_time",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "warrantyStartTime",
+                "target": "warranty_start_time",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "warrantyEndTime",
+                "target": "warranty_end_time",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "receiveName",
+                "target": "receiver_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "emsNum",
+                "target": "express_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "carrier_name",
+                "target": "carrier_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "$SOURCE_SYSTEM",
+                "target": "source_system",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "$SOURCE_KEY",
+                "target": "source_record_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "emsCompany",
+                "target": "carrier_code",
+                "values": null
+              }
+            ],
+            "lookups": [
+              {
+                "table": "com_shipment_contract_reference",
+                "match": {
+                  "source_system": "source_system",
+                  "source_record_key": "@con_id"
+                },
+                "outputs": {
+                  "shipment_contract_ref_id": "id"
+                },
+                "onMissing": "RETAIN"
+              }
+            ]
+          }
+        ],
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [],
+        "object": "DEVICE_SN",
+        "parameters": {},
+        "primaryTarget": "event",
+        "queryRef": "CONTRACT",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fb_shipment_barcode",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": [
+          {
+            "name": "event",
+            "table": "ast_device_shipment",
+            "keys": [
+              "source_system",
+              "source_key"
+            ],
+            "mode": "UPSERT",
+            "nullPolicy": "IGNORE",
+            "updateColumns": [],
+            "whenField": null,
+            "newerBy": null,
+            "tieBreaker": null,
+            "mappings": [
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "barcode",
+                "target": "device_sn",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "shipment_time",
+                "target": "shipment_time",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "pack_id",
+                "target": "package_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "pack_id",
+                "target": "legacy_package_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "contract_no",
+                "target": "contract_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "event_type",
+                "target": "event_type",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATE",
+                "defaultValue": null,
+                "source": "warrantyStartDate",
+                "target": "warranty_start_date",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "LONG",
+                "defaultValue": null,
+                "source": "warrantyMonth",
+                "target": "warranty_months",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "rma_no",
+                "target": "rma_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "rmaBarcode",
+                "target": "rma_related_sn",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "LONG",
+                "defaultValue": null,
+                "source": "rma_marked",
+                "target": "rma_marked",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "$SOURCE_SYSTEM",
+                "target": "source_system",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "$SOURCE_KEY",
+                "target": "source_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "updateTime",
+                "target": "source_updated_at",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "JSON",
+                "defaultValue": null,
+                "source": "$ROW",
+                "target": "source_payload",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "orderNumber",
+                "target": "order_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "lineNum",
+                "target": "line_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "item",
+                "target": "product_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "barcode2",
+                "target": "secondary_sn",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "item2",
+                "target": "secondary_item",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "com_barcode",
+                "target": "internal_serial_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "isRMA",
+                "target": "is_rma",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "profitCenter",
+                "target": "profit_center",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "soleAgentSuffix",
+                "target": "sole_agent_suffix",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "syncTime",
+                "target": "sync_time",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "uuid",
+                "target": "uuid",
+                "values": null
+              }
+            ],
+            "lookups": null
+          }
+        ],
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [],
+        "object": "DEVICE_RELATION",
+        "parameters": {},
+        "primaryTarget": "relation",
+        "queryRef": "CONTRACT",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fb_shipment_barcode_relation",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": [
+          {
+            "name": "relation",
+            "table": "ast_device_relationship",
+            "keys": [
+              "source_system",
+              "source_key"
+            ],
+            "mode": "UPSERT",
+            "nullPolicy": "IGNORE",
+            "updateColumns": [],
+            "whenField": null,
+            "newerBy": null,
+            "tieBreaker": null,
+            "mappings": [
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "sn1",
+                "target": "source_device_sn",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "sn2",
+                "target": "target_device_sn",
+                "values": null
+              },
+              {
+                "constant": "EXTRA_SN",
+                "conversion": "CONSTANT",
+                "defaultValue": null,
+                "source": null,
+                "target": "relationship_type",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "contract",
+                "target": "contract_no",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "createtime",
+                "target": "effective_from",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "$SOURCE_SYSTEM",
+                "target": "source_system",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "$SOURCE_KEY",
+                "target": "source_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "updatetime",
+                "target": "source_version",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "item1",
+                "target": "source_item",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "item2",
+                "target": "target_item",
+                "values": null
+              }
+            ],
+            "lookups": null
+          }
+        ],
+        "updatedAt": null
+      }
+    ],
+    "taskKey": "delivery-full-sync"
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439255301722114",
+  "runtimeVersion": 6,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T06:08:55.936008",
+  "previewRevisionReason": "仅rank3/4内部_groupKey按20位原主键排序，业务来源键、字段、范围与600秒上限保持。"
+}

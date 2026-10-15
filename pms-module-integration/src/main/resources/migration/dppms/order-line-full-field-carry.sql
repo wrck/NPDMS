@@ -14,3 +14,8 @@ JOIN (SELECT source,compCode,lineType,orderNumber,lineNum,MAX(syncTime) AS migra
       FROM pm_order_line_from_erp GROUP BY source,compCode,lineType,orderNumber,lineNum) g
   ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.lineType <=> g.lineType
      AND r.orderNumber <=> g.orderNumber AND r.lineNum <=> g.lineNum
+
+WHERE EXISTS (SELECT 1 FROM pm_order_data_from_erp scoped_order
+  JOIN (/* @include valid-contracts */) scope ON scope.contractNo=scoped_order.contractNo
+  WHERE scoped_order.source <=> r.source AND scoped_order.compCode <=> r.compCode
+    AND scoped_order.orderType <=> r.lineType AND scoped_order.orderNumber <=> r.orderNumber)

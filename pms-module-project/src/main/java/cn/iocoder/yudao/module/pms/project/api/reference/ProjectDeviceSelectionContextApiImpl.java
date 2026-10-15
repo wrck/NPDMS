@@ -22,9 +22,14 @@ public class ProjectDeviceSelectionContextApiImpl implements ProjectDeviceSelect
 
     @Override
     public Set<String> getContractNumbers(Long projectId) {
-        Long tenantId = TenantContextHolder.getRequiredTenantId();
-        Long userId = getLoginUserId();
-        if (projectId == null || projectId <= 0 || userId == null) throw exception(PROJECT_NOT_EXISTS);
+        return getContractNumbers(new Query(TenantContextHolder.getRequiredTenantId(),getLoginUserId(),projectId));
+    }
+
+    @Override
+    public Set<String> getContractNumbers(Query query) {
+        if(query==null || !Objects.equals(query.tenantId(),TenantContextHolder.getRequiredTenantId()))throw exception(PROJECT_NOT_EXISTS);
+        Long tenantId=query.tenantId(),userId=query.actorId(),projectId=query.projectId();
+        if(projectId==null || projectId<=0 || userId==null || userId<=0)throw exception(PROJECT_NOT_EXISTS);
         var scope = scopeApi.resolveCurrent(new ProjectCurrentScopeQuery(
                 tenantId, userId, projectId, ProjectScopeApi.ACTION_VIEW));
         if (scope == null || scope.fullProjectIds() == null || !scope.fullProjectIds().contains(projectId)) {

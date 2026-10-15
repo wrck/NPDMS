@@ -15,9 +15,10 @@ public final class DppmsUserRoleSyncTemplate {
     }
     private static SyncDefinition.Source source(boolean fnd) {
         String object=fnd?"FND_USER_ROLE":"T_USER_ROLE";
-        String sql=fnd?"SELECT "+String.join(",",COLUMNS.get(object))+" FROM fnd_user_info"
-                :"SELECT r.id,r.user_id,r.role_id,r.comp_id,u.user_name AS username FROM t_user_role r LEFT JOIN t_user u ON u.user_id=r.user_id";
-        return SyncDefinition.Source.builder().object(object).sourceObject(fnd?"fnd_user_info":"t_user_role").readMode("SQL").sql(sql)
+        return SyncDefinition.Source.builder().object(object).sourceObject(fnd?"fnd_user_info":"t_user_role")
+                .readMode(fnd?"EVIDENCE":"SQL").sql(fnd?null:DppmsMigrationSql.initial("user-roles-grouped"))
+                .evidenceAdapter(fnd?"DPPMS_USERS":null).evidenceObject(fnd?"fnd_user_info":null)
+                .groupKey(fnd?null:"_groupKey").rowProjection(fnd?null:"_sourceRows")
                 .parameters(Map.of()).columns(List.of()).filters(List.of()).sourceKey("id").updatedAt(null)
                 .mappings(COLUMNS.get(object).stream().map(column->SyncDefinition.Mapping.builder().target(column).source(column).conversion("DIRECT").build()).toList()).build();
     }

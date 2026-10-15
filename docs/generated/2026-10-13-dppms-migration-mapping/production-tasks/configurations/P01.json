@@ -1,5 +1,12 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P01",
+  "catalogueTaskKey": "P01",
+  "catalogueTaskName": "公司、部门与主管关联",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [],
+  "baselineTask": {
     "key": "P01",
     "name": "公司与基础部门",
     "businessOwners": [

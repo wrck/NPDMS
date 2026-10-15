@@ -14,6 +14,8 @@ import java.time.LocalDateTime;
 public class CustomerMasterDO extends BaseBusinessEntity {
 
     private String code;
+    @com.baomidou.mybatisplus.annotation.TableField(updateStrategy = com.baomidou.mybatisplus.annotation.FieldStrategy.ALWAYS)
+    private String erpCustomerCode;
     private String name;
     private String shortName;
     private String customerLevel;

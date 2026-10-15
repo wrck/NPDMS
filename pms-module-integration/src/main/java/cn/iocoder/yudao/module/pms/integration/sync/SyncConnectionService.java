@@ -14,6 +14,8 @@ import java.util.*;
 public class SyncConnectionService {
     private final SyncConnectionMapper mapper;
     private final ExternalDataSourceApi api;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<DppmsPublishedProjectScopeService> projectScopes;
     public record Info(Long id,String name,String url,String username) {}
     public record Save(Long id,Long dataSourceId,String name,String url,String username,String password) {
         @Override public String toString(){return "SyncConnectionSave[id="+id+"]";}
@@ -50,6 +52,8 @@ public class SyncConnectionService {
     }
     public SyncDefinition resolve(SyncDefinition d) {
         Long sourceId=required(d.connectionId()).getDataSourceId();
-        return d.toBuilder().connectionId(sourceId).build();
+        var scoped=d.sources().stream().anyMatch(PublishedProjectScopeRows::requested)
+                ?projectScopes.getObject().sourceScope(d):d;
+        return scoped.toBuilder().configuredConnectionId(d.connectionId()).connectionId(sourceId).build();
     }
 }

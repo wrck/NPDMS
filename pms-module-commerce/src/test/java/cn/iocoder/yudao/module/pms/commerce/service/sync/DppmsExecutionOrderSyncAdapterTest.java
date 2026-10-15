@@ -36,6 +36,19 @@ class DppmsExecutionOrderSyncAdapterTest {
         assertEquals(List.of("CREATED", "CREATED"), changes.stream().map(change -> change.action()).toList());
         assertTrue(changes.stream().noneMatch(change -> "CONFLICT".equals(change.action())));
     }
+    @Test void missingLocalOrganizationsDoNotDiscardIndependentExecutionOrders() {
+        var fields=new LinkedHashMap<>(row("1","独立执行单").fields());
+        fields.put("companyCode","001");fields.put("departmentCode","311202");
+        doAnswer(call->{
+            Collection<CrmExecutionOrderDO> created=call.getArgument(0);
+            var value=created.iterator().next();
+            assertNull(value.getCompanyId());assertNull(value.getDepartmentId());
+            assertEquals("001",value.getCompanyCode());assertEquals("162102",value.getDepartmentCode());
+            value.setId(42L);return true;
+        }).when(mapper).insertBatch(anyCollection(),eq(1000));
+        var result=adapter.apply(batch(new Row("EXECUTION_ORDER","1",fields,null)));
+        assertEquals("CREATED",result.getFirst().action());assertEquals(42L,result.getFirst().targetId());
+    }
 
     @Test void malformedMoneyBecomesAnIssueInsteadOfAWrite() {
         Map<String,Object> fields = new LinkedHashMap<>(row("1", "项目一").fields());

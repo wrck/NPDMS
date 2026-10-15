@@ -18,7 +18,7 @@ public final class DppmsContractCollectionPlanSyncTemplate {
         var columns = new ArrayList<>(ORIGINAL_COLUMNS); columns.addAll(ACTOR_COLUMNS); columns.addAll(ACTOR_REFERENCE_COLUMNS);
         String sql = DppmsMigrationSql.initial("contract-collection-plans");
         var source = SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).readMode("SQL").sql(sql)
-                .parameters(Map.of("planIds","")).sourceKey("id").updatedAt(null).columns(List.of()).filters(List.of())
+                .parameters(Map.of("planIds","","projectTypes","10","projectIds","")).sourceKey("id").updatedAt(null).columns(List.of()).filters(List.of())
                 .mappings(columns.stream().map(name -> SyncDefinition.Mapping.builder().source(name).target(name)
                         .conversion("DIRECT").build()).toList()).build();
         return SyncDefinition.builder().adapter(ADAPTER).sourceSystem("DPPMS").connectionId(connectionId)

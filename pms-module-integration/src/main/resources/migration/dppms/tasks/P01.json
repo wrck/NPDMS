@@ -1,0 +1,619 @@
+{
+  "cron": "0 0 * * * ?",
+  "mode": "ONCE",
+  "adapter": "DPPMS_ORGANIZATION",
+  "maxRows": 10000,
+  "fullCron": "0 0 2 * * ?",
+  "maxBytes": 67108864,
+  "chunkSize": 1000,
+  "fetchSize": 2000,
+  "autoPaging": false,
+  "retryCount": 0,
+  "loadingMode": "UPSERT",
+  "readStrategy": "SNAPSHOT",
+  "sourceSystem": "DPPMS",
+  "missingPolicy": "RETAIN",
+  "restartPolicy": "RESTART_ALL",
+  "overlapSeconds": 300,
+  "clearBeforeLoad": false,
+  "queryTimeoutSeconds": 0,
+  "retryIntervalSeconds": 60,
+  "resetMappingsBeforeLoad": false,
+  "sources": [
+    {
+      "sql": "@dppms:organization-grouped",
+      "table": null,
+      "object": "COMPANY",
+      "columns": [
+        "compID",
+        "compCode",
+        "compName",
+        "isDisabled"
+      ],
+      "filters": [],
+      "mappings": [
+        {
+          "source": "compCode",
+          "target": "code",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "compName",
+          "target": "name",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "isDisabled",
+          "target": "status",
+          "values": {
+            "0": 0,
+            "1": 1,
+            "NULL": 0,
+            "true": 1,
+            "false": 0
+          },
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "compID",
+      "updatedAt": null,
+      "parameters": {
+        "P02_departmentCode0": "163130",
+        "P03_departmentCode0": "167010",
+        "P03_departmentCode1": "167020",
+        "P03_departmentCode2": "167050",
+        "P03_departmentCode3": "162007003",
+        "P03_departmentCode4": "162012003",
+        "P03_departmentCode5": "162022003",
+        "P03_departmentCode6": "310409001",
+        "P03_departmentCode7": "310422001"
+      },
+      "sourceObject": "ehr_company",
+      "syncPrimaryKey": false,
+      "queryRef": null,
+      "groupKey": "_groupKey",
+      "rowProjection": "_sourceRows"
+    },
+    {
+      "sql": null,
+      "table": null,
+      "object": "DEPARTMENT",
+      "columns": [
+        "depID",
+        "depCode",
+        "depName",
+        "isDisabled",
+        "adminID",
+        "compID",
+        "depGrade"
+      ],
+      "filters": [],
+      "mappings": [
+        {
+          "source": "depCode",
+          "target": "code",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "depName",
+          "target": "name",
+          "values": {},
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null
+        },
+        {
+          "source": "isDisabled",
+          "target": "status",
+          "values": {
+            "0": 0,
+            "1": 1,
+            "NULL": 0,
+            "true": 1,
+            "false": 0
+          },
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null
+        },
+        {
+          "source": "adminID",
+          "target": "parentKey",
+          "values": {},
+          "constant": null,
+          "conversion": "REFERENCE",
+          "defaultValue": null
+        },
+        {
+          "source": "compID",
+          "target": "companyKey",
+          "values": {},
+          "constant": null,
+          "conversion": "REFERENCE",
+          "defaultValue": null
+        },
+        {
+          "source": "depID",
+          "target": "sort",
+          "values": {},
+          "constant": null,
+          "conversion": "LONG",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "depID",
+      "updatedAt": null,
+      "parameters": {},
+      "sourceObject": "ehr_department",
+      "syncPrimaryKey": false,
+      "queryRef": "COMPANY",
+      "groupKey": null,
+      "rowProjection": null
+    },
+    {
+      "sql": null,
+      "table": null,
+      "object": "fnd_department",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "departmentNum",
+          "target": "departmentNum",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "departmentName",
+          "target": "departmentName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "isparam",
+          "target": "isparam",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "status",
+          "target": "status",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEhrDepartmentId",
+          "target": "migrationEhrDepartmentId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationEhrDisabled",
+          "target": "migrationEhrDisabled",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "fnd_department",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryRef": "COMPANY",
+      "groupKey": null,
+      "rowProjection": null
+    },
+    {
+      "sql": null,
+      "table": null,
+      "object": "ehr_department",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "depID",
+          "target": "depID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCode",
+          "target": "depCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depName",
+          "target": "depName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depAbbr",
+          "target": "depAbbr",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "compID",
+          "target": "compID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "adminID",
+          "target": "adminID",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depGrade",
+          "target": "depGrade",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depType",
+          "target": "depType",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depProperty",
+          "target": "depProperty",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCost",
+          "target": "depCost",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "director",
+          "target": "director",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "director2",
+          "target": "director2",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depEmp",
+          "target": "depEmp",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depNum",
+          "target": "depNum",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectDate",
+          "target": "effectDate",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "xOrder",
+          "target": "xOrder",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "isDisabled",
+          "target": "isDisabled",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "disabledDate",
+          "target": "disabledDate",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "remark",
+          "target": "remark",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom1",
+          "target": "depCustom1",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom2",
+          "target": "depCustom2",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom3",
+          "target": "depCustom3",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom4",
+          "target": "depCustom4",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "depCustom5",
+          "target": "depCustom5",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_id",
+          "target": "migrationFnd_id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_departmentNum",
+          "target": "migrationFnd_departmentNum",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_departmentName",
+          "target": "migrationFnd_departmentName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_isparam",
+          "target": "migrationFnd_isparam",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_status",
+          "target": "migrationFnd_status",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_createTime",
+          "target": "migrationFnd_createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_effectiveFrom",
+          "target": "migrationFnd_effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_effectiveTo",
+          "target": "migrationFnd_effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationFnd_updateTime",
+          "target": "migrationFnd_updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationParentCode",
+          "target": "migrationParentCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorLoginCount",
+          "target": "migrationDirectorLoginCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorAccount",
+          "target": "migrationDirectorAccount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorFndCount",
+          "target": "migrationDirectorFndCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorFndId",
+          "target": "migrationDirectorFndId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorTCount",
+          "target": "migrationDirectorTCount",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "migrationDirectorTId",
+          "target": "migrationDirectorTId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "depID",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "ehr_department",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryRef": "COMPANY",
+      "groupKey": null,
+      "rowProjection": null
+    }
+  ],
+  "connectionId": null,
+  "evidencePolicy": "FULL"
+}

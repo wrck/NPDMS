@@ -1,0 +1,236 @@
+{
+  "catalogueTaskKey": "P10",
+  "name": "P10 CRM客户主档",
+  "enabled": false,
+  "definition": {
+    "adapter": "CRM_CUSTOMER",
+    "autoPaging": false,
+    "chunkSize": 500,
+    "clearBeforeLoad": false,
+    "connectionId": "2110439133532688385",
+    "cron": "0 30 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 30 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 60,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "STREAMING_CURSOR",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "CHECKPOINT_KEY",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "CRM",
+    "sources": [
+      {
+        "columns": [
+          "AccountId",
+          "AccountNumber",
+          "Name",
+          "Telephone1",
+          "EMailAddress1",
+          "Address1_Composite",
+          "new_mkt_unit_id",
+          "new_mkt_unit_idName",
+          "new_industry_level1_id",
+          "new_industry_level1_idName",
+          "new_industry_level2_id",
+          "new_industry_level2_idName",
+          "new_industry_level3_id",
+          "new_industry_level3_idName",
+          "new_industry_level4_id",
+          "new_industry_level4_idName",
+          "StateCode",
+          "ModifiedOn"
+        ],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "AccountNumber",
+            "target": "customerCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "Name",
+            "target": "customerName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "Telephone1",
+            "target": "contactPhone",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "EMailAddress1",
+            "target": "contactEmail",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "Address1_Composite",
+            "target": "address",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "STRING",
+            "defaultValue": null,
+            "source": "new_mkt_unit_id",
+            "target": "departmentCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "new_mkt_unit_idName",
+            "target": "departmentName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "STRING",
+            "defaultValue": null,
+            "source": "new_industry_level1_id",
+            "target": "marketCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "new_industry_level1_idName",
+            "target": "marketName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "STRING",
+            "defaultValue": null,
+            "source": "new_industry_level2_id",
+            "target": "systemCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "new_industry_level2_idName",
+            "target": "systemName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "STRING",
+            "defaultValue": null,
+            "source": "new_industry_level3_id",
+            "target": "expendCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "new_industry_level3_idName",
+            "target": "expendName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "STRING",
+            "defaultValue": null,
+            "source": "new_industry_level4_id",
+            "target": "industryCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "new_industry_level4_idName",
+            "target": "industryName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "ENUM",
+            "defaultValue": null,
+            "source": "StateCode",
+            "target": "lifecycleStatus",
+            "values": {
+              "0": "ENABLED",
+              "1": "DISABLED"
+            }
+          },
+          {
+            "constant": null,
+            "conversion": "STRING",
+            "defaultValue": null,
+            "source": "ModifiedOn",
+            "target": "sourceVersion",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DATETIME",
+            "defaultValue": null,
+            "source": "ModifiedOn",
+            "target": "dataAsOf",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "migrationIssue",
+            "target": "migrationIssue",
+            "values": null
+          }
+        ],
+        "object": "CUSTOMER",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "AccountId",
+        "sourceKeyColumns": null,
+        "sourceObject": "Account",
+        "sql": "SELECT AccountId,AccountNumber,Name,Telephone1,EMailAddress1,Address1_Composite,new_mkt_unit_id,new_mkt_unit_idName,new_industry_level1_id,new_industry_level1_idName,new_industry_level2_id,new_industry_level2_idName,new_industry_level3_id,new_industry_level3_idName,new_industry_level4_id,new_industry_level4_idName,StateCode,ModifiedOn,CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY AccountNumber)>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migrationIssue FROM Account",
+        "syncPrimaryKey": false,
+        "table": "Account",
+        "targets": null,
+        "updatedAt": "ModifiedOn"
+      }
+    ],
+    "taskKey": "crm-customer"
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439244857905153",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:00.731089"
+}

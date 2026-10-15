@@ -40,6 +40,66 @@ class SystemDepartmentMigrationTransactionTest {
     @AfterEach void close(){context.close();TenantContextHolder.clear();}
     private Entry entry(String code,Long target,Department last){return new Entry("fnd_department","9",code,"企业网市场部","160000",0,historical,historical,target,last,false);}
     private Request request(Entry entry){return new Request(1L,"integration:1:12",List.of(entry));}
+    private cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.Result proposedParent(String owner,Long tenant,Long id,Integer status,String action) {
+        var department=new cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO().setId(id).setCode("160000")
+                .setName("拟建父").setParentId(0L).setSort(0).setStatus(status).setVersion(0);
+        department.setTenantId(tenant);
+        return new cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.Result("parent",null,
+                new cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.Node(null,department,owner),action);
+    }
+    @Test void validatedSameBatchParentAllowsOnlyPreviewWithoutInventingIdsOrWriting() {
+        jdbc.update("DELETE FROM system_dept");
+        var input=request(entry("160300",null,null));
+        var proposed=proposedParent(input.owner(),1L,null,0,"CREATED");
+        var result=api.previewAfterOrganization(new OrganizationPreview(input,List.of(proposed))).getFirst();
+        assertEquals("CREATED",result.action());assertNull(result.after().id());assertNull(result.after().parentId());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_dept",Integer.class));
+        assertThrows(IllegalArgumentException.class,()->api.preview(input));
+        assertThrows(IllegalArgumentException.class,()->tx.execute(s->api.apply(input)));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_dept",Integer.class));
+    }
+    @Test void untrustedOrUnavailableContextCannotSupplyAParent() {
+        jdbc.update("DELETE FROM system_dept");var input=request(entry("160300",null,null));
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterOrganization(new OrganizationPreview(input,List.of())));
+        for(var parent:List.of(proposedParent("other",1L,null,0,"CREATED"),proposedParent(input.owner(),2L,null,0,"CREATED"),
+                proposedParent(input.owner(),1L,11L,0,"CREATED"),proposedParent(input.owner(),1L,null,1,"CREATED"),
+                proposedParent(input.owner(),1L,null,0,"CONFLICT")))
+            assertThrows(IllegalArgumentException.class,()->api.previewAfterOrganization(new OrganizationPreview(input,List.of(parent))));
+        var parent=proposedParent(input.owner(),1L,null,0,"CREATED");
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterOrganization(new OrganizationPreview(input,List.of(parent,parent))));
+        var deleted=proposedParent(input.owner(),1L,null,0,"CREATED");deleted.after().department().setDeleted(true);
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterOrganization(new OrganizationPreview(input,List.of(deleted))));
+        var before=new cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.Result("parent",parent.after(),parent.after(),"CREATED");
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterOrganization(new OrganizationPreview(input,List.of(before))));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_dept",Integer.class));
+    }
+    @Test void contextCannotOverrideAnExistingFormalParent() {
+        var input=request(entry("160300",null,null));
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterOrganization(new OrganizationPreview(input,List.of(proposedParent(input.owner(),1L,null,0,"CREATED")))));
+        assertEquals(1L,api.preview(input).getFirst().after().parentId());
+        assertEquals("市场部",jdbc.queryForObject("SELECT name FROM system_dept WHERE id=1",String.class));
+    }
+    @Test void sameChildCodeCannotAliasTwoDistinctUnassignedParentCodes() {
+        jdbc.update("DELETE FROM system_dept");
+        var first=entry("160300",null,null);
+        var second=new Entry("fnd_department","10","160300",first.name(),"162007",first.status(),
+                first.createTime(),first.updateTime(),null,null,false);
+        var input=new Request(1L,"integration:1:12",List.of(first,second));
+        var parentA=proposedParent(input.owner(),1L,null,0,"CREATED");
+        var parentB=proposedParent(input.owner(),1L,null,0,"CREATED");parentB.after().department().setCode("162007");
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterOrganization(new OrganizationPreview(input,List.of(parentA,parentB))));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_dept",Integer.class));
+    }
+    @Test void sameChildCodeWithSameProposedParentRetainsAliasBehavior() {
+        jdbc.update("DELETE FROM system_dept");var first=entry("160300",null,null);
+        var second=new Entry("fnd_department","10",first.code(),first.name(),first.parentCode(),first.status(),
+                first.createTime(),first.updateTime(),null,null,false);
+        var input=new Request(1L,"integration:1:12",List.of(first,second));
+        var results=api.previewAfterOrganization(new OrganizationPreview(input,List.of(proposedParent(input.owner(),1L,null,0,"CREATED"))));
+        assertEquals(2,results.size());assertEquals(results.getFirst().after(),results.getLast().after());
+        results.forEach(r->{assertNull(r.after().id());assertNull(r.after().parentId());});
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_dept",Integer.class));
+    }
     @Test void approvedParentHistoryAndNullAttributesAreUsedWithoutSourceIdReuse(){
         var input=request(entry("160300",null,null));assertNull(api.preview(input).getFirst().after().id());
         assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM system_dept",Integer.class));

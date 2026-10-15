@@ -82,11 +82,10 @@ SELECT c.id AS id,
 FROM pm_project_contract c
 LEFT JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)
   LEFT JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)
-LEFT JOIN (SELECT CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS projectIdentity,
-  MAX(projectId) AS projectId FROM pm_project
-  GROUP BY CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY))) canonical
-  ON canonical.projectIdentity=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))
-LEFT JOIN pm_project p ON p.projectId=canonical.projectId
+JOIN (/* @include valid-canonical-projects */) p
+  ON p.projectType=g.projectType AND p.projectCode=REPLACE(m.projectCode,'-his','')
+  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)
+  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)
 JOIN (
   -- Aggregate the full formal identity before applying task scope or streaming chunks.
   -- Picks encode status priority (1), timestamp (20), contract ID (20), member ID (20).

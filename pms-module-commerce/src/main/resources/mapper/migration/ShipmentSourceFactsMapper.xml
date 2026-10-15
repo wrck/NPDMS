@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ShipmentSourceFactsMapper">
+    <select id="selectFacts" resultType="cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi$Fact">
+        SELECT p.source_record_key AS packageSourceKey,p.shipment_time AS shipmentTime,c.contract_no AS contractNo
+        FROM com_shipment_package p
+        LEFT JOIN com_shipment_contract_reference c ON c.tenant_id=p.tenant_id AND c.deleted=0
+            AND c.source_system='DPPMS'
+            AND CAST(c.source_record_key AS BINARY(128))=CAST(p.shipment_contract_source_key AS BINARY(128))
+        WHERE p.tenant_id=#{query.tenantId} AND p.deleted=0 AND p.source_system='DPPMS'
+        <choose>
+            <when test="query.packageSourceKeys != null and !query.packageSourceKeys.isEmpty()">
+                AND CAST(p.source_record_key AS BINARY(128)) IN
+                <foreach collection="query.packageSourceKeys" item="key" open="(" separator="," close=")">CAST(#{key} AS BINARY(128))</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+    </select>
+</mapper>

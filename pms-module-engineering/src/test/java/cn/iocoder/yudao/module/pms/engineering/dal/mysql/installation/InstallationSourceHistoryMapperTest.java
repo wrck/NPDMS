@@ -21,11 +21,15 @@ class InstallationSourceHistoryMapperTest {
           CREATE TABLE imp_eng_installation(id BIGINT PRIMARY KEY,tenant_id BIGINT,project_id BIGINT,code VARCHAR(64),equipment_id BIGINT,
           install_location VARCHAR(255),address_id BIGINT,address_version BIGINT,address_snapshot VARCHAR(1000),location_snapshot VARCHAR(1000),
           install_time TIMESTAMP,effective_from TIMESTAMP,effective_to TIMESTAMP,status INT,remark VARCHAR(500),version BIGINT,
-          creator VARCHAR(64),create_time TIMESTAMP,updater VARCHAR(64) DEFAULT '1',update_time TIMESTAMP,deleted SMALLINT)
+          creator VARCHAR(64),create_time TIMESTAMP,updater VARCHAR(64) DEFAULT '1',update_time TIMESTAMP,deleted SMALLINT,
+          site_id BIGINT,site_version BIGINT,site_location_id BIGINT,site_location_version BIGINT,
+          location_resolution_status VARCHAR(16),installer_user_id BIGINT,environment_check VARCHAR(1000),
+          spec_check VARCHAR(1000),photo_url VARCHAR(500),result VARCHAR(1000),UNIQUE(tenant_id,project_id,code))
           """);
         jdbc.update("INSERT INTO imp_eng_installation(id,tenant_id,project_id,code,equipment_id,status,version,creator,updater,deleted) VALUES(700,1,100,'DPPMS-301',500,0,0,'1','1',0)");
         var config=new Configuration(new Environment("test",new JdbcTransactionFactory(),ds));config.setMapUnderscoreToCamelCase(true);
         String path="mapper/installation/InstallationMapper.xml";try(var xml=getClass().getClassLoader().getResourceAsStream(path)){assertNotNull(xml);new XMLMapperBuilder(xml,config,path,config.getSqlFragments()).parse();}
+        path="mapper/installation/InstallationHistoryInsertMapper.xml";try(var xml=getClass().getClassLoader().getResourceAsStream(path)){assertNotNull(xml);new XMLMapperBuilder(xml,config,path,config.getSqlFragments()).parse();}
         session=new SqlSessionFactoryBuilder().build(config).openSession();
     }
     @AfterEach void cleanup(){if(session!=null)session.close();}
@@ -53,5 +57,34 @@ class InstallationSourceHistoryMapperTest {
         InstallationDO row=session.selectOne(InstallationMapper.class.getName()+".selectCurrentRecordForUpdate",Map.of("query",new InstallationCurrentRecordQuery(1L,500L)));assertEquals(700L,row.getId());
         assertNull(session.selectOne(InstallationMapper.class.getName()+".selectCurrentRecordForUpdate",Map.of("query",new InstallationCurrentRecordQuery(2L,500L))));
         session.rollback();assertEquals(0,jdbc.queryForObject("SELECT status FROM imp_eng_installation WHERE id=700",Integer.class));
+    }
+    InstallationDO newHistory() {
+        var row=corrected(1L);row.setId(701L);row.setProjectId(100L);row.setEquipmentId(501L);
+        row.setCode("PROJECT-AZ-001");row.setLocationResolutionStatus("UNRESOLVED");row.setDeleted(false);return row;
+    }
+    @Test void firstInsertPreservesMappedAuditAndDoesNotTouchExistingHistory() {
+        var row=newHistory();assertEquals(1,session.getMapper(InstallationHistoryInsertMapper.class).insertHistorical(row));session.commit();
+        var values=jdbc.queryForMap("SELECT * FROM imp_eng_installation WHERE id=701");
+        assertNull(values.get("UPDATER"));assertNull(values.get("INSTALLER_USER_ID"));assertNull(values.get("SITE_ID"));
+        assertEquals("31",values.get("CREATOR"));assertEquals("UNRESOLVED",values.get("LOCATION_RESOLUTION_STATUS"));
+        assertEquals(row.getCreateTime(),((java.sql.Timestamp)values.get("CREATE_TIME")).toLocalDateTime());
+        assertEquals(row.getCreateTime(),((java.sql.Timestamp)values.get("UPDATE_TIME")).toLocalDateTime());
+        assertEquals(0,jdbc.queryForObject("SELECT status FROM imp_eng_installation WHERE id=700",Integer.class));
+    }
+    @Test void duplicateCodeFailsAndTransactionRollbackRemovesTheWholeInsert() {
+        var mapper=session.getMapper(InstallationHistoryInsertMapper.class);var row=newHistory();mapper.insertHistorical(row);
+        row.setId(702L);assertThrows(org.apache.ibatis.exceptions.PersistenceException.class,()->mapper.insertHistorical(row));session.rollback();
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));
+    }
+    @Test void boundHistoryLookupRequiresExactTenantProjectAndIdAndExposesDeletionForReplayRejection() {
+        var mapper=session.getMapper(InstallationHistoryInsertMapper.class);
+        var row=mapper.selectBoundRecordForUpdate(new InstallationHistoryInsertMapper.BoundRecord(1L,100L,700L));
+        assertEquals(700L,row.getId());assertEquals(500L,row.getEquipmentId());assertFalse(row.getDeleted());
+        assertNull(mapper.selectBoundRecordForUpdate(new InstallationHistoryInsertMapper.BoundRecord(2L,100L,700L)));
+        assertNull(mapper.selectBoundRecordForUpdate(new InstallationHistoryInsertMapper.BoundRecord(1L,101L,700L)));
+        assertNull(mapper.selectBoundRecordForUpdate(new InstallationHistoryInsertMapper.BoundRecord(1L,100L,701L)));
+        session.commit(true);
+        jdbc.update("UPDATE imp_eng_installation SET deleted=1 WHERE id=700");
+        assertTrue(mapper.selectBoundRecordForUpdate(new InstallationHistoryInsertMapper.BoundRecord(1L,100L,700L)).getDeleted());
     }
 }

@@ -1,0 +1,262 @@
+{
+  "catalogueTaskKey": "P06",
+  "name": "P06 用户角色关系",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_USER_ROLES",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "SNAPSHOT",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": "_groupKey",
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "user_id",
+            "target": "user_id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "role_id",
+            "target": "role_id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "comp_id",
+            "target": "comp_id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "username",
+            "target": "username",
+            "values": null
+          }
+        ],
+        "object": "T_USER_ROLE",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": "_sourceRows",
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "t_user_role",
+        "sql": "SELECT SHA2(CAST(JSON_ARRAY(u.user_name,r.role_id) AS CHAR),256) AS _groupKey,\n CAST(JSON_ARRAYAGG(JSON_OBJECT('object','T_USER_ROLE','fields',JSON_OBJECT(\n   'id',r.id,'user_id',r.user_id,'role_id',r.role_id,'comp_id',r.comp_id,'username',u.user_name,\n   'migrationCompanyCode',c.compCode))) AS CHAR) AS _sourceRows\nFROM t_user_role r\nLEFT JOIN t_user u ON u.user_id=r.user_id\nLEFT JOIN t_company c ON c.id=r.comp_id\nGROUP BY u.user_name,CAST(u.user_name AS BINARY),r.role_id",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": "DPPMS_USERS",
+        "evidenceObject": "fnd_user_info",
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "username",
+            "target": "username",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "email",
+            "target": "email",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "dpNo",
+            "target": "dpNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "realName",
+            "target": "realName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "roleIds",
+            "target": "roleIds",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "isemail",
+            "target": "isemail",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "status",
+            "target": "status",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "defaultPage",
+            "target": "defaultPage",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "pwdoverdue",
+            "target": "pwdoverdue",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createBy",
+            "target": "createBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createTime",
+            "target": "createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateBy",
+            "target": "updateBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateTime",
+            "target": "updateTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveFrom",
+            "target": "effectiveFrom",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveTo",
+            "target": "effectiveTo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "customInfo",
+            "target": "customInfo",
+            "values": null
+          }
+        ],
+        "object": "FND_USER_ROLE",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "EVIDENCE",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fnd_user_info",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439243515727873",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:00.420985"
+}

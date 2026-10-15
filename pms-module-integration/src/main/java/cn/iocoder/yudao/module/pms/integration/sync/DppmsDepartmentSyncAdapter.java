@@ -20,16 +20,19 @@ public class DppmsDepartmentSyncAdapter implements DataSyncAdapter {
         return new Descriptor("DPPMS_DEPARTMENTS","DPPMS正式部门补齐",List.of(new ObjectDescriptor("fnd_department","原部门目录",
                 columns.stream().map(column->new Field(column,column,"STRING",false)).toList(),"SYSTEM","Department","system_dept",false)),List.of("RETAIN"),List.of("UPSERT"),false);
     }
-    @Override public List<Change> preview(Batch batch){return execute(batch,false);}
-    @Override public List<Change> apply(Batch batch){return execute(batch,true);}
+    private record Execution(Batch batch,boolean apply,DppmsConsolidation.OrganizationPreviewBatch preview) {}
+    @Override public List<Change> preview(Batch batch){return execute(new Execution(batch,false,null));}
+    List<Change> previewAfterOrganization(DppmsConsolidation.OrganizationPreviewBatch preview){return execute(new Execution(preview.batch(),false,preview));}
+    @Override public List<Change> apply(Batch batch){return execute(new Execution(batch,true,null));}
     @Override public void refreshCaches(){departments.refreshCaches();}
-    private List<Change> execute(Batch batch,boolean apply) {
+    private List<Change> execute(Execution execution) {
+        var batch=execution.batch();boolean apply=execution.apply();
         if(!batch.full() || batch.clearBeforeLoad() || !"UPSERT".equals(batch.loadingMode()) || !"RETAIN".equals(batch.missingPolicy()))
             throw new IllegalArgumentException("部门承接必须完整预览，不清空、不删除来源缺失部门");
         long tenant=TenantContextHolder.getRequiredTenantId();String[] owner=batch.owner()==null?new String[0]:batch.owner().split(":");
         if(owner.length!=3 || !"integration".equals(owner[0]) || !Long.toString(tenant).equals(owner[1]))throw new IllegalArgumentException("部门承接所有权无效");
         var task=tasks.required(Long.parseLong(owner[2]));
-        if(!"DPPMS".equals(task.getSourceSystem()) || !"DPPMS_DEPARTMENTS".equals(task.getAdapter()))throw new IllegalArgumentException("部门承接不能混用来源任务");
+        if(!"DPPMS".equals(task.getSourceSystem()) || !DppmsConsolidation.accepts(task,"DPPMS_DEPARTMENTS"))throw new IllegalArgumentException("部门承接不能混用来源任务");
         Map<String,Binding> prior=new HashMap<>();
         for(var binding:batch.bindings())if(prior.put(binding.object()+":"+binding.sourceKey(),binding)!=null)throw new IllegalArgumentException("部门来源绑定重复");
         Set<String> codes=new HashSet<>();departments.getCatalogue().forEach(department->codes.add(department.code()));
@@ -54,9 +57,12 @@ public class DppmsDepartmentSyncAdapter implements DataSyncAdapter {
             entries.add(new Entry(row.object(),row.sourceKey(),code,text(row,"departmentName"),parent,status,created,updated,row.targetId(),last,
                     previous!=null && Boolean.TRUE.equals(previous.lastFields().get("_referenceOnly"))));
         }
-        var request=new Request(tenant,batch.owner(),entries);var results=apply?departments.apply(request):departments.preview(request);
+        var request=new Request(tenant,batch.owner(),entries);
+        var results=apply?departments.apply(request):execution.preview()==null?departments.preview(request):
+                departments.previewAfterOrganization(new OrganizationPreview(request,execution.preview().preceding()));
         return results.stream().map(result->new Change(result.object(),result.sourceKey(),result.after().id(),result.action(),fields(result.before(),false),fields(result.after(),"REFERENCED".equals(result.action())),
-                "复用正式部门16列；isparam/有效期按用户裁决不迁入；已有定义、负责人、联系方式与审计不覆盖")).toList();
+                "复用正式部门16列；isparam/有效期按用户裁决不迁入；已有定义、负责人、联系方式与审计不覆盖"
+                        +(result.after().parentId()==null?"；父部门来自同批已校验的拟建组织，目标ID待正式迁入生成":""))).toList();
     }
     private static Map<String,Object> fields(Department value,boolean reference) {
         Map<String,Object> result=new LinkedHashMap<>();if(value!=null)result.put("department",value);result.put("_referenceOnly",reference);return result;

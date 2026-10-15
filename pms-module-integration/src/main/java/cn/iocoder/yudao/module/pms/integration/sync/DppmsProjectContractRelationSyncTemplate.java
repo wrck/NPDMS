@@ -18,13 +18,13 @@ public final class DppmsProjectContractRelationSyncTemplate {
     }
     public static SyncDefinition create(Long connectionId) {
         if(connectionId==null || connectionId<=0) throw new IllegalArgumentException("项目合同来源连接无效");
-        String sql=DppmsMigrationSql.initial("project-contract-formal-relations");
+        String sql=DppmsMigrationSql.initial("project-contract-formal-relations-published");
         var mappings=new ArrayList<>(columns().stream().map(name->SyncDefinition.Mapping.builder().source(name).target(name).conversion("DIRECT").build()).toList());
         DppmsProjectContractFormalDecision.columns().forEach(name->mappings.add(SyncDefinition.Mapping.builder().source(name).target(name).conversion("DIRECT").build()));
         for(String name:List.of("reviewedBefore","migrationDecision")) mappings.add(SyncDefinition.Mapping.builder()
                 .source("relationOriginalKey").target(name).conversion("LOOKUP").values(Map.of()).build());
         var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).sourceKey("relationSourceKey")
-                .readMode("SQL").sql(sql).parameters(Map.of("projectTypes","10","projectIds","")).columns(List.of()).filters(List.of()).mappings(mappings).build();
+                .readMode("SQL").sql(sql).publishedProjectMatch("CODE").parameters(Map.of("projectTypes","10,afss,afxx","projectIds","")).columns(List.of()).filters(List.of()).mappings(mappings).build();
         return SyncDefinition.builder().adapter(ADAPTER).sourceSystem("DPPMS").connectionId(connectionId).mode("ONCE")
                 .loadingMode("UPSERT").missingPolicy("RETAIN").cron("0 0 2 * * ?").fullCron("0 0 2 ? * SUN")
                 .overlapSeconds(0).retryCount(0).retryIntervalSeconds(60).autoPaging(false).maxRows(10000)

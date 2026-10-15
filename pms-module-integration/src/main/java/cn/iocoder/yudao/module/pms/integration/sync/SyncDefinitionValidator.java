@@ -23,6 +23,7 @@ public class SyncDefinitionValidator {
         return "TABLE_MAPPING".equals(d.adapter()) ? d.adapter() + ":" + d.taskKey() : d.adapter();
     }
     public DataSyncAdapter adapter(String key) {
+        if(DppmsConsolidation.GROUPS.containsKey(key))return DppmsConsolidation.bind(key,adapters);
         var a=adapters.get(key);if(a==null) throw new IllegalArgumentException("业务适配器不存在");return a;
     }
     public List<DataSyncAdapter.Descriptor> descriptors(){
@@ -32,6 +33,8 @@ public class SyncDefinitionValidator {
                     d.supportsTargetClear(),adapter.supportsStreaming());
         }).toList());
         if (genericEngine != null) result.add(genericEngine.descriptor());
+        DppmsConsolidation.GROUPS.keySet().stream().filter(key->DppmsConsolidation.GROUPS.get(key).stream().allMatch(adapters::containsKey))
+                .sorted().forEach(key->result.add(adapter(key).descriptor()));
         return result;
     }
     public void validate(SyncDefinition d) {
@@ -82,16 +85,26 @@ public class SyncDefinitionValidator {
             if(!configured.equals(expected))
                 throw new IllegalArgumentException("流式来源对象必须按适配器声明顺序配置，避免跨对象依赖被提前提交");
         }
-        Set<String> objects=new HashSet<>(),sourceObjects=new HashSet<>();
+        DppmsInstallationStream.validate(d);
+        PublishedProjectScopeRows.validate(d);
+        SyncSourceProjection.validate(d);
+        Set<String> objects=new HashSet<>();
+        Map<String,String> sourceObjects=new HashMap<>();
         for(var s:d.sources()) {
             if(d.resetMappingsBeforeLoad()&&!s.syncPrimaryKey())
                 throw new IllegalArgumentException("仅重置映射后追加更新，须对所有来源对象启用源主键同步");
             if(!objects.add(s.object())||s.sourceObject()==null||s.sourceObject().length()>64
-                    ||s.sourceObject().isBlank()||!sourceObjects.add(s.sourceObject()))
+                    ||s.sourceObject().isBlank())
                 throw new IllegalArgumentException("来源对象身份重复或无效");
+            String previousObject=sourceObjects.putIfAbsent(s.sourceObject(),s.object());
+            if(previousObject!=null && !("DPPMS_ORGANIZATION".equals(d.adapter()) && "ehr_department".equals(s.sourceObject())
+                    && Set.of(previousObject,s.object()).equals(Set.of("DEPARTMENT","ehr_department"))))
+                throw new IllegalArgumentException("来源表重复；仅获准的EHR部门合并可保留两类原绑定身份");
             var object=descriptor.objects().stream().filter(o->o.name().equals(s.object())).findFirst()
                     .orElseThrow(()->new IllegalArgumentException("对象不属于适配器"));
-            MysqlSyncReader.compile(s);
+            if(SyncLocalOwnerReader.reference(s))SyncLocalOwnerReader.validate(new SyncLocalOwnerReader.Input(d,s));
+            else if(SyncSourceEvidenceReader.reference(s))SyncSourceEvidenceReader.validate(d,s);
+            else if (!SyncSourceProjection.reference(s)) MysqlSyncReader.compile(s);
             if(s.sourceKeyColumns()!=null && !s.sourceKeyColumns().isEmpty()
                     && (!"ONCE".equals(d.mode()) || !"SNAPSHOT".equals(readStrategy) || d.autoPaging() || s.syncPrimaryKey()))
                 throw new IllegalArgumentException("无主键来源的完整字段身份仅支持一次性整批读取，不支持源主键覆盖或游标恢复");

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceBootstrapSourceMapper">
+  <select id="selectSerialPage" resultType="java.lang.String">
+    SELECT MIN(device_sn) FROM ast_device_shipment
+    WHERE tenant_id=#{query.tenantId} AND deleted=0 AND source_system='DPPMS'
+    <if test="query.afterSn != null">AND CAST(device_sn AS BINARY)&gt;CAST(#{query.afterSn} AS BINARY)</if>
+    <if test="query.selectedSns != null and !query.selectedSns.isEmpty()">
+      AND device_sn IN <foreach collection="query.selectedSns" item="sn" open="(" separator="," close=")">#{sn}</foreach>
+    </if>
+    GROUP BY CAST(device_sn AS BINARY) ORDER BY CAST(device_sn AS BINARY) LIMIT 500
+  </select>
+  <select id="selectLatestShipments" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.shipment.DeviceShipmentDO">
+    SELECT ranked.* FROM (
+      SELECT s.*,ROW_NUMBER() OVER(PARTITION BY CAST(device_sn AS BINARY) ORDER BY shipment_time DESC,id DESC) AS latest_rank
+      FROM ast_device_shipment s WHERE tenant_id=#{query.tenantId} AND deleted=0
+      <choose>
+        <when test="query.deviceSns != null and !query.deviceSns.isEmpty()">
+          AND device_sn IN <foreach collection="query.deviceSns" item="sn" open="(" separator="," close=")">#{sn}</foreach>
+        </when>
+        <otherwise>AND 1=0</otherwise>
+      </choose>
+    ) ranked WHERE latest_rank=1
+  </select>
+</mapper>

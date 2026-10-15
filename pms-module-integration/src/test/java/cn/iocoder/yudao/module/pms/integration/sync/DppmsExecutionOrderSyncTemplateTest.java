@@ -35,7 +35,9 @@ class DppmsExecutionOrderSyncTemplateTest {
         assertTrue(sql.contains("pm_project_property_from_sms"));
         assertTrue(source.mappings().stream().anyMatch(m -> m.target().equals("executionNo") && m.source().equals("orderExecNumber")));
         assertTrue(source.mappings().stream().anyMatch(m -> m.target().equals("applyType") && m.source().equals("applyType")));
-        assertEquals(63, source.mappings().size());
-        assertTrue(source.mappings().stream().anyMatch(m -> m.target().equals("canonical_projectCode") && m.source().equals("canonical_projectCode")));
+        assertEquals(31, source.mappings().size());
+        assertFalse(source.mappings().stream().anyMatch(m -> m.target().startsWith("canonical_")));
+        assertFalse(sql.contains("pm_project "));
+        assertTrue(sql.contains("MAX(id)"));
     }
 }

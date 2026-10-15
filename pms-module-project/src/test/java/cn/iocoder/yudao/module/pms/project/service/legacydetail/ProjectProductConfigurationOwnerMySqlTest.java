@@ -66,7 +66,7 @@ class ProjectProductConfigurationOwnerMySqlTest {
     @AfterEach void cleanup() throws Exception {TenantContextHolder.clear();if(session!=null)session.close();if(db!=null&&!db.isClosed())db.close();}
     @Test void actualOwnerPersistsDuplicateRowsAllValuesAndAuditPrecision() {
         var result=owner.apply(prepare(),actor);assertEquals(3,result.rows().size());session.commit();
-        var rows=mapper.selectProjectPage(new AssociatedPageQuery(1L,100L,0,20));assertEquals(3,rows.size());
+        var rows=mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20));assertEquals(3,rows.size());
         assertEquals(List.of("3.000000","3.000000","4.000000"),rows.stream().map(row->row.getQuantity().toPlainString()).sorted().toList());
         for(var row:rows) {assertEquals("BusinessCode",row.getProjectCode());assertEquals("",row.getExecutionNo());
             assertNull(row.getParentCode());assertEquals(2,row.getItemGroup());assertEquals("ROOT,CHILD",row.getBomPath());assertEquals(2,row.getLevel());assertEquals("CRM",row.getDataSource());assertEquals("31",row.getCreator());assertEquals("31",row.getUpdater());
@@ -74,14 +74,14 @@ class ProjectProductConfigurationOwnerMySqlTest {
     }
     @Test void actualSqlKeepsTenantProjectDeletedAndCaseSensitiveBusinessIdentityBoundaries() throws Exception {
         owner.apply(prepare(),actor);session.commit();
-        var row=mapper.selectProjectPage(new AssociatedPageQuery(1L,100L,0,20)).getFirst();
+        var row=mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)).getFirst();
         assertNull(mapper.selectRecordForUpdate(new ProjectProductConfigurationRecordQuery(2L,100L,row.getId())));
         assertNull(mapper.selectRecordForUpdate(new ProjectProductConfigurationRecordQuery(1L,101L,row.getId())));
         assertFalse(mapper.selectBusinessRecordsForUpdate(ProjectProductConfigurationImportService.businessQuery(1L,100L,row)).isEmpty());
         row.setProjectCode("businesscode");assertTrue(mapper.selectBusinessRecordsForUpdate(ProjectProductConfigurationImportService.businessQuery(1L,100L,row)).isEmpty());
-        assertEquals(0,mapper.countProject(new AssociatedPageQuery(2L,100L,0,20)));
+        assertEquals(0,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(2L,"BusinessCode",0,20)));
         try(var sql=db.createStatement()){sql.executeUpdate("UPDATE proj_project_product_configuration SET deleted=1");}session.clearCache();
-        assertEquals(0,mapper.countProject(new AssociatedPageQuery(1L,100L,0,20)));assertTrue(mapper.selectProjectPage(new AssociatedPageQuery(1L,100L,0,20)).isEmpty());
+        assertEquals(0,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)));assertTrue(mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)).isEmpty());
         assertTrue(mapper.selectRecordForUpdate(new ProjectProductConfigurationRecordQuery(1L,100L,row.getId())).getDeleted());
     }
     @Test void successfulReplayDoesNotUpdateAndManualAuditChangeBlocksThroughActualMapper() throws Exception {
@@ -95,7 +95,7 @@ class ProjectProductConfigurationOwnerMySqlTest {
     }
     @Test void failedTransactionLeavesNoBusinessRowsOrAuditAssignments() throws Exception {
         owner.apply(prepare(),actor);session.rollback();session.clearCache();
-        assertEquals(0,mapper.countProject(new AssociatedPageQuery(1L,100L,0,20)));
+        assertEquals(0,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)));
     }
     @Test void anotherCaptureWithChangedQuantityIsBlockedUntilIdentityRulesAreAdjudicated() {
         owner.apply(prepare(),actor);session.commit();
@@ -103,26 +103,26 @@ class ProjectProductConfigurationOwnerMySqlTest {
         originals.getFirst().setPayloadJson(originals.getFirst().getPayloadJson().replace("\"quantity\":\"3\"","\"quantity\":\"9\""));
         originals.subList(1,originals.size()).clear();
         assertThrows(IllegalArgumentException.class,this::prepare);
-        assertEquals(3,mapper.countProject(new AssociatedPageQuery(1L,100L,0,20)));
+        assertEquals(3,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)));
     }
     @Test void pathLookupIsNullSafeAndCannotExpandAnEmptyOrForeignScope() {
         owner.apply(prepare(),actor);session.commit();
         var path=new ProjectConfigurationPathQuery.PathIdentity("BusinessCode","",2,"ROOT,CHILD");
-        assertEquals(3,mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,100L,List.of(path))).size());
-        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,100L,List.of())).isEmpty());
-        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(2L,100L,List.of(path))).isEmpty());
-        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,101L,List.of(path))).isEmpty());
-        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,100L,List.of(new ProjectConfigurationPathQuery.PathIdentity("businesscode","",2,"ROOT,CHILD")))).isEmpty());
+        assertEquals(3,mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,"BusinessCode",List.of(path))).size());
+        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,"BusinessCode",List.of())).isEmpty());
+        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(2L,"BusinessCode",List.of(path))).isEmpty());
+        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,"OtherCode",List.of(path))).isEmpty());
+        assertTrue(mapper.selectPathNodes(new ProjectConfigurationPathQuery(1L,"BusinessCode",List.of(new ProjectConfigurationPathQuery.PathIdentity("businesscode","",2,"ROOT,CHILD")))).isEmpty());
     }
 
     @Test void nativeDisplayUsesTheOriginalLatestExecutionRuleWithoutDeletingEarlierFacts() throws Exception {
         for(int i=0;i<originals.size();i++)originals.get(i).setPayloadJson(originals.get(i).getPayloadJson()
                 .replace("\"orderExecNumber\":\"\"","\"orderExecNumber\":\""+(i==0?"A001":"A002")+"\""));
         owner.apply(prepare(),actor);session.commit();
-        var query=new AssociatedPageQuery(1L,100L,0,20);var page=mapper.selectProjectPage(query);
+        var query=new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20);var page=mapper.selectProjectPage(query);
         assertEquals(2,page.size());assertEquals(2L,mapper.countProject(query));assertTrue(page.stream().allMatch(row->"A002".equals(row.getExecutionNo())));
         assertEquals(3L,mapper.countAllProjectRecords(new ProjectProductConfigurationProjectQuery(1L,100L)));
-        assertTrue(mapper.selectProjectPage(new AssociatedPageQuery(2L,100L,0,20)).isEmpty());
+        assertTrue(mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(2L,"BusinessCode",0,20)).isEmpty());
         try(var sql=db.createStatement()){sql.executeUpdate("UPDATE proj_project_product_configuration SET deleted=1 WHERE execution_no='A002'");}session.clearCache();
         var earlier=mapper.selectProjectPage(query);assertEquals(1,earlier.size());assertEquals("A001",earlier.getFirst().getExecutionNo());
         assertEquals(3L,mapper.countAllProjectRecords(new ProjectProductConfigurationProjectQuery(1L,100L)));

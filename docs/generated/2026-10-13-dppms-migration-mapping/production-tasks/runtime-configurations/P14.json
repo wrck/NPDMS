@@ -1,0 +1,358 @@
+{
+  "catalogueTaskKey": "P14",
+  "name": "P14 销售订单与订单行",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_ERP_ORDER",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 2000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 600,
+    "readStrategy": "STREAMING_CURSOR",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "source",
+            "target": "erpSource",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DPPMS_COMPANY_CODE",
+            "defaultValue": null,
+            "source": "compCode",
+            "target": "companyCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderNumber",
+            "target": "orderNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderType",
+            "target": "orderType",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationVersion",
+            "target": "sourceUpdatedAt",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationIssue",
+            "target": "migrationIssue",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "customerCode",
+            "target": "customerCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "customerName",
+            "target": "customerName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "salesType",
+            "target": "salesType",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "projectName",
+            "target": "sourceProjectName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderComment",
+            "target": "orderComment",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderCreateTime",
+            "target": "orderCreateTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "customerRequireTime",
+            "target": "customerRequiredTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "customInfo",
+            "target": "customInfo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "contractNo",
+            "target": "contractNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderExecNumber",
+            "target": "executionNo",
+            "values": null
+          }
+        ],
+        "object": "ORDER",
+        "parameters": {
+          "projectIds": "",
+          "projectTypes": "10"
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "pm_order_data_from_erp",
+        "sql": "SELECT r.*,g.migrationVersion,CASE WHEN g.payloadVariants>1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue\nFROM pm_order_data_from_erp r\nJOIN (SELECT source,compCode,orderType,orderNumber,MAX(syncTime) AS migrationVersion,COUNT(DISTINCT JSON_ARRAY(orderCreateTime,customerRequireTime,customerCode,customerName,projectName,orderComment,salesType,customInfo,contractNo,orderExecNumber)) AS payloadVariants\nFROM pm_order_data_from_erp GROUP BY source,compCode,orderType,orderNumber) g ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.orderType <=> g.orderType AND r.orderNumber <=> g.orderNumber\nJOIN (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope ON scope.contractNo=r.contractNo",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": "migrationVersion"
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "source",
+            "target": "erpSource",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DPPMS_COMPANY_CODE",
+            "defaultValue": null,
+            "source": "compCode",
+            "target": "companyCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderNumber",
+            "target": "orderNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "lineType",
+            "target": "orderType",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationVersion",
+            "target": "sourceUpdatedAt",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationIssue",
+            "target": "migrationIssue",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationParentExists",
+            "target": "migrationParentExists",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "lineNum",
+            "target": "lineNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "itemCode",
+            "target": "productCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "itemDesc",
+            "target": "productDesc",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderQuantity",
+            "target": "orderQuantity",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "openQuantity",
+            "target": "openQuantity",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "bundleCode",
+            "target": "bundleCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "warrantyMonth",
+            "target": "warrantyMonth",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "profitCenter",
+            "target": "profitCenter",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "realOrderExecNumber",
+            "target": "realExecutionNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "customInfo",
+            "target": "customInfo",
+            "values": null
+          }
+        ],
+        "object": "LINE",
+        "parameters": {
+          "sourceIds": "",
+          "projectIds": "",
+          "projectTypes": "10"
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "pm_order_line_from_erp",
+        "sql": "SELECT scoped.* FROM (\nSELECT r.*,g.migrationVersion,CASE WHEN g.payloadVariants>1 THEN 'DUPLICATE_BUSINESS_KEY_CONFLICT' ELSE NULL END AS migrationIssue ,EXISTS (SELECT 1 FROM pm_order_data_from_erp h WHERE h.source=r.source AND h.compCode=r.compCode\n AND h.orderType=r.lineType AND h.orderNumber=r.orderNumber GROUP BY h.source,h.compCode,h.orderType,h.orderNumber\n HAVING MAX(h.syncTime) IS NOT NULL AND COUNT(DISTINCT JSON_ARRAY(h.orderCreateTime,h.customerRequireTime,h.customerCode,\n h.customerName,h.projectName,h.orderComment,h.salesType,h.customInfo,h.contractNo,h.orderExecNumber))=1) AS migrationParentExists\nFROM pm_order_line_from_erp r\nJOIN (SELECT source,compCode,lineType,orderNumber,lineNum,MAX(syncTime) AS migrationVersion,COUNT(DISTINCT JSON_ARRAY(itemCode,itemDesc,orderQuantity,openQuantity,bundleCode,warrantyMonth,profitCenter,realOrderExecNumber,customInfo)) AS payloadVariants\nFROM pm_order_line_from_erp GROUP BY source,compCode,lineType,orderNumber,lineNum) g ON r.source <=> g.source AND r.compCode <=> g.compCode AND r.lineType <=> g.lineType AND r.orderNumber <=> g.orderNumber AND r.lineNum <=> g.lineNum\nWHERE EXISTS (SELECT 1 FROM pm_order_data_from_erp parent\n JOIN (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope ON scope.contractNo=parent.contractNo\n WHERE parent.source <=> r.source AND parent.compCode <=> r.compCode AND parent.orderType <=> r.lineType AND parent.orderNumber <=> r.orderNumber)\n) scoped WHERE (:sourceIds='' OR FIND_IN_SET(scoped.id,:sourceIds))",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": "migrationVersion"
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110306872558583810",
+  "runtimeVersion": 5,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T05:24:17.082917",
+  "previewRevisionReason": "切回批准的首次导入orders.sql，移除三个旧fieldCarry映射及两个空审查参数，LINE保持。"
+}

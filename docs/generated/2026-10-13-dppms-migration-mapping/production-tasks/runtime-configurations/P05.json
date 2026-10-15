@@ -1,0 +1,301 @@
+{
+  "catalogueTaskKey": "P05",
+  "name": "P05 角色定义及来源角色绑定",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_ROLES",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "SNAPSHOT",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": "_groupKey",
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "role_id",
+            "target": "sourceRoleId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "role_name",
+            "target": "sourceCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "role_name_zn",
+            "target": "name",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationSort",
+            "target": "sort",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "remark",
+            "target": "remark",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "ENUM",
+            "defaultValue": null,
+            "source": "status",
+            "target": "status",
+            "values": {
+              "1": 0
+            }
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "create_by",
+            "target": "creatorName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "creatorSourceKey",
+            "target": "creatorSourceKey",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "update_by",
+            "target": "updaterName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updaterSourceKey",
+            "target": "updaterSourceKey",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "create_time",
+            "target": "createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "update_time",
+            "target": "updateTime",
+            "values": null
+          }
+        ],
+        "object": "T_ROLE",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": "_sourceRows",
+        "sourceKey": "role_id",
+        "sourceKeyColumns": null,
+        "sourceObject": "t_role",
+        "sql": "SELECT businessKey AS _groupKey,CAST(JSON_ARRAYAGG(JSON_OBJECT('object',objectName,'fields',CAST(fields AS JSON))) AS CHAR) AS _sourceRows\nFROM (\nSELECT COALESCE(HEX(CAST(CASE r.role_name WHEN 'admin' THEN 'super_admin' WHEN 'projectManager' THEN 'PROJECT_MANAGER' ELSE r.role_name END AS BINARY)),CONCAT('INVALID:T_ROLE:',r.`role_id`)) AS businessKey,'T_ROLE' AS objectName,JSON_OBJECT('role_id',r.`role_id`,'role_name',r.`role_name`,'role_name_zn',r.`role_name_zn`,'home_page',r.`home_page`,'priority',r.`priority`,'status',r.`status`,'create_by',r.`create_by`,'create_time',r.`create_time`,'update_by',r.`update_by`,'update_time',r.`update_time`,'remark',r.`remark`,'migrationSort',r.`migrationSort`,'migrationVersion',r.`migrationVersion`,'creatorSourceKey',r.`creatorSourceKey`,'updaterSourceKey',r.`updaterSourceKey`) AS fields FROM (\nSELECT r.*, 100-r.priority AS migrationSort, COALESCE(r.update_time,r.create_time) AS migrationVersion, (SELECT CASE WHEN COUNT(*)=1 THEN MAX(u.user_id) ELSE NULL END FROM t_user u WHERE u.user_name=r.create_by) AS creatorSourceKey, (SELECT CASE WHEN COUNT(*)=1 THEN MAX(u.user_id) ELSE NULL END FROM t_user u WHERE u.user_name=r.update_by) AS updaterSourceKey FROM t_role r WHERE r.status<>0 OR r.status IS NULL\n) r\nUNION ALL\nSELECT COALESCE(HEX(CAST(CASE CAST(r.id AS CHAR) WHEN '1' THEN 'admin' WHEN '3' THEN 'user' WHEN '5' THEN 'projectAdmin' WHEN '6' THEN 'projectViewer' WHEN '9' THEN 'areaLeader' WHEN '10' THEN 'engineeManagerLeader' WHEN '11' THEN 'SERVICE_MANAGER' WHEN '12' THEN 'PROJECT_MANAGER' WHEN '13' THEN 'engineeManager' WHEN '14' THEN 'callbackPer' WHEN '15' THEN 'salesPeople' WHEN '16' THEN 'financialStaff' WHEN '17' THEN 'presalesStaff' WHEN '18' THEN 'probAdmin' WHEN '19' THEN 'probSupporter' WHEN '20' THEN 'probRD' WHEN '21' THEN 'warrantyCallbacker' WHEN '22' THEN 'componentAdmin' ELSE CONCAT('UNREVIEWED:',r.id) END AS BINARY)),CONCAT('INVALID:FND_ROLE:',r.`id`)) AS businessKey,'FND_ROLE' AS objectName,JSON_OBJECT('id',r.`id`,'roleName',r.`roleName`,'defaultPage',r.`defaultPage`,'status',r.`status`,'effectiveFrom',r.`effectiveFrom`,'effectiveTo',r.`effectiveTo`,'createBy',r.`createBy`,'createTime',r.`createTime`,'updateBy',r.`updateBy`,'updateTime',r.`updateTime`,'roleRemark',r.`roleRemark`,'migrationSort',r.`migrationSort`,'migrationVersion',r.`migrationVersion`,'creatorSourceKey',r.`creatorSourceKey`,'updaterSourceKey',r.`updaterSourceKey`) AS fields FROM (\nSELECT r.*, 100+r.id AS migrationSort, COALESCE(r.updateTime,r.createTime) AS migrationVersion, (SELECT CASE WHEN COUNT(*)=1 THEN MAX(u.id) ELSE NULL END FROM fnd_user_info u WHERE u.username=r.createBy AND NOT (u.username='c00733' AND u.id=233) AND NOT (u.username='w02459' AND u.id=118)) AS creatorSourceKey, (SELECT CASE WHEN COUNT(*)=1 THEN MAX(u.id) ELSE NULL END FROM fnd_user_info u WHERE u.username=r.updateBy AND NOT (u.username='c00733' AND u.id=233) AND NOT (u.username='w02459' AND u.id=118)) AS updaterSourceKey FROM fnd_roles r WHERE r.status<>0 OR r.status IS NULL\n) r\n) combined GROUP BY businessKey",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": "migrationVersion"
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "sourceRoleId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "ENUM",
+            "defaultValue": null,
+            "source": "id",
+            "target": "sourceCode",
+            "values": {
+              "1": "admin",
+              "3": "common",
+              "5": "projectAdmin",
+              "6": "projectViewer",
+              "9": "areaLeader",
+              "10": "engineeManagerLeader",
+              "11": "serviceManager",
+              "12": "programManager",
+              "13": "engineeManager",
+              "14": "callbackPer",
+              "15": "salesPeople",
+              "16": "financialStaff",
+              "17": "presalesStaff",
+              "18": "probAdmin",
+              "19": "probSupporter",
+              "20": "probRD",
+              "21": "warrantyCallbacker",
+              "22": "componentAdmin"
+            }
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "roleName",
+            "target": "name",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationSort",
+            "target": "sort",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "roleRemark",
+            "target": "remark",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "ENUM",
+            "defaultValue": null,
+            "source": "status",
+            "target": "status",
+            "values": {
+              "1": 0
+            }
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createBy",
+            "target": "creatorName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "creatorSourceKey",
+            "target": "creatorSourceKey",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateBy",
+            "target": "updaterName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updaterSourceKey",
+            "target": "updaterSourceKey",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createTime",
+            "target": "createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateTime",
+            "target": "updateTime",
+            "values": null
+          }
+        ],
+        "object": "FND_ROLE",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "T_ROLE",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fnd_roles",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": "migrationVersion"
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439243297624066",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:00.351695"
+}

@@ -96,11 +96,10 @@ public class DataSyncController {
     }
     @PostMapping("/templates/dppms-products")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
-    public CommonResult<SyncDefinition> productTemplate(@RequestBody ProductTemplate request) {
+    public CommonResult<SyncDefinition> productTemplate(@RequestBody DppmsProductCatalogSyncTemplate.Request request) {
         connections.required(request.connectionId());
-        return success(DppmsProductCatalogSyncTemplate.create(request.connectionId(), request.definitionRevisionId(), request.productCodes()));
+        return success(DppmsProductCatalogSyncTemplate.create(request));
     }
-    public record ProductTemplate(Long connectionId, Long definitionRevisionId, List<String> productCodes) {}
     @GetMapping("/templates/dppms-roles")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> roleTemplate(@RequestParam Long connectionId) {
@@ -109,7 +108,7 @@ public class DataSyncController {
     @GetMapping("/templates/dppms-ehr-departments")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> missingDepartmentTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsEhrDepartmentCompletionTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P01",connectionId)));
     }
     @GetMapping("/templates/dppms-project-master")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
@@ -119,12 +118,12 @@ public class DataSyncController {
     @GetMapping("/templates/dppms-project-identities")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> projectIdentityTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsProjectIdentitySyncTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsProjectMasterSyncTemplate.create(connectionId));
     }
     @GetMapping("/templates/dppms-collection-plans")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> collectionPlanTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsContractCollectionPlanSyncTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P23",connectionId)));
     }
     @GetMapping("/templates/dppms-device-relationships")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
@@ -138,12 +137,12 @@ public class DataSyncController {
     }
     @GetMapping("/templates/dppms-dictionary-data")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
-    public CommonResult<SyncDefinition> dictionaryData(@RequestParam Long connectionId){return success(DppmsDictionaryDataSyncTemplate.create(connectionId));}
+    public CommonResult<SyncDefinition> dictionaryData(@RequestParam Long connectionId){return success(DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P08",connectionId)));}
 
     @GetMapping("/templates/dppms-dictionary-types")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> dictionaryTypeTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsDictionaryTypeSyncTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P08",connectionId)));
     }
     @GetMapping("/templates/dppms-project-contract-relations")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
@@ -154,6 +153,21 @@ public class DataSyncController {
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> projectProductScopeTemplate(@RequestParam Long connectionId) {
         connections.required(connectionId);return success(DppmsProjectProductScopeSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-device-bootstrap")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> deviceBootstrapTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsDeviceBootstrapSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-installation-history")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> installationHistoryTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsInstallationSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-factory-history")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> factoryHistoryTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsFactoryHistorySyncTemplate.create(connectionId));
     }
     @GetMapping("/templates/dppms-project-real-products")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
@@ -193,7 +207,7 @@ public class DataSyncController {
     @GetMapping("/templates/dppms-project-associated-products")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> projectAssociatedProductTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsProjectAssociatedProductSyncTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P21",connectionId)));
     }
     @GetMapping("/templates/dppms-users")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
@@ -203,7 +217,7 @@ public class DataSyncController {
     @GetMapping("/templates/dppms-departments")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> departmentTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsDepartmentSyncTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P01",connectionId)));
     }
     @GetMapping("/templates/dppms-user-roles")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")

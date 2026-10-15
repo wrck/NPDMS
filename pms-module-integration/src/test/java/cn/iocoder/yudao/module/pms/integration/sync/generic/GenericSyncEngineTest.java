@@ -480,6 +480,149 @@ class GenericSyncEngineTest {
         assertEquals(0,count("ast_device"));assertEquals(0,count("ast_device_shipment"));
     }
 
+    @Test void genericOrdersValidateAndRoundTripSameVersionColumns() {
+        var orders=DppmsOrderSyncTemplate.create(1L);
+        var validator=new SyncDefinitionValidator(List.of());ReflectionTestUtils.setField(validator,"genericEngine",engine);
+        assertDoesNotThrow(()->validator.validate(orders));
+        var json=cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(orders);
+        var restored=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(json,SyncDefinition.class);
+        for(int index=0;index<2;index++) {
+            var before=orders.sources().get(index).targets().getFirst();var after=restored.sources().get(index).targets().getFirst();
+            assertFalse(before.sameVersionColumns().isEmpty());assertEquals(before.sameVersionColumns(),after.sameVersionColumns());
+            assertEquals(before.newerBy(),after.newerBy());assertEquals(before.keys(),after.keys());
+        }
+        assertDoesNotThrow(()->validator.validate(restored));
+        // Existing tasks using the original constructor remain explicitly opted out.
+        var legacy=definition(1).sources().getFirst().targets().getFirst();
+        assertNull(legacy.sameVersionColumns());assertDoesNotThrow(()->engine.validate(definition(1)));
+    }
+
+    @Test void genericOrderPreviewResolvesSameBatchParentWithoutWritingRealTargetIds() {
+        var orders=DppmsOrderSyncTemplate.create(1L);var time=java.time.LocalDateTime.of(2026,10,1,10,0);
+        var header=genericOrderRow(false,11,time,5);var line=genericOrderRow(true,21,time,5);
+        var preview=engine.bind(orders).preview(batch(header,line));
+        assertEquals(List.of("CREATED","CREATED"),preview.stream().map(DataSyncAdapter.Change::action).toList());
+        assertTrue(preview.stream().allMatch(change->change.targetId()==null));
+        assertTrue(preview.stream().allMatch(change->Boolean.TRUE.equals(change.after().get("_previewVirtualIds"))));
+        assertTrue(((Number)preview.getLast().after().get("line.order_id")).longValue()<0);
+        assertEquals(0,count("com_sales_order"));assertEquals(0,count("com_sales_order_line"));
+        var applied=apply(orders,header,line);
+        assertEquals(List.of("CREATED","CREATED"),applied.stream().map(DataSyncAdapter.Change::action).toList());
+        assertTrue(applied.stream().allMatch(change->change.targetId()!=null && change.targetId()>0));
+        assertEquals(applied.getFirst().targetId(),jdbc.queryForObject("SELECT order_id FROM com_sales_order_line",Long.class));
+        assertEquals(1,count("com_sales_order"));assertEquals(1,count("com_sales_order_line"));
+    }
+
+    @Test void genericOrderBusinessIdentitySurvivesNewRawIdsAndNewerQuantity() {
+        var orders=DppmsOrderSyncTemplate.create(1L);var time=java.time.LocalDateTime.of(2026,10,1,10,0);
+        var first=apply(orders,genericOrderRow(false,11,time,5),genericOrderRow(true,21,time,5));
+        var reloaded=apply(orders,genericOrderRow(false,111,time.plusDays(1),8),genericOrderRow(true,221,time.plusDays(1),8));
+        assertEquals(List.of("UPDATED","UPDATED"),reloaded.stream().map(DataSyncAdapter.Change::action).toList());
+        assertEquals(first.stream().map(DataSyncAdapter.Change::targetId).toList(),reloaded.stream().map(DataSyncAdapter.Change::targetId).toList());
+        assertEquals(1,count("com_sales_order"));assertEquals(1,count("com_sales_order_line"));
+        assertEquals(new java.math.BigDecimal("8"),jdbc.queryForObject("SELECT order_qty FROM com_sales_order_line",java.math.BigDecimal.class));
+        assertEquals(first.getFirst().targetId(),jdbc.queryForObject("SELECT order_id FROM com_sales_order_line",Long.class));
+        assertEquals("ORDER-BUSINESS-KEY",jdbc.queryForObject("SELECT source_record_key FROM com_sales_order",String.class));
+        assertEquals("LINE-BUSINESS-KEY",jdbc.queryForObject("SELECT source_record_key FROM com_sales_order_line",String.class));
+    }
+
+    @Test void genericOrderSameVersionQuantityConflictCannotWrite() {
+        var orders=DppmsOrderSyncTemplate.create(1L);var time=java.time.LocalDateTime.of(2026,10,1,10,0);
+        apply(orders,genericOrderRow(false,11,time,5),genericOrderRow(true,21,time,5));
+        var before=jdbc.queryForMap("SELECT * FROM com_sales_order_line");
+        var conflict=apply(orders,genericOrderRow(true,221,time,9)).getFirst();
+        assertEquals("CONFLICT",conflict.action());assertTrue(conflict.message().contains("SOURCE_VERSION_PAYLOAD_CONFLICT"));
+        assertEquals(before,jdbc.queryForMap("SELECT * FROM com_sales_order_line"));
+        assertEquals(1,count("com_sales_order"));assertEquals(1,count("com_sales_order_line"));
+    }
+
+    @Test void genericOrderJsonTextPreservesObjectsAndComparesSameVersionContent() {
+        var orders=DppmsOrderSyncTemplate.create(1L);var time=java.time.LocalDateTime.of(2026,10,1,10,0);
+        var line=genericOrderRow(true,21,time,5);var fields=new LinkedHashMap<>(line.fields());
+        fields.put("customInfo","{\"inventTransId\":\"10082799\",\"marker\":\"same\"}");
+        var source=new DataSyncAdapter.Row(line.object(),line.sourceKey(),fields,null);
+        var created=apply(orders,genericOrderRow(false,11,time,5),source);
+        assertEquals("CREATED",created.getLast().action());
+        var stored=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
+                jdbc.queryForObject("SELECT custom_info FROM com_sales_order_line",String.class));
+        assertTrue(stored.isObject());assertEquals("10082799",stored.get("inventTransId").asText());
+
+        jdbc.update("UPDATE com_sales_order_line SET custom_info=?",
+                "{ \"marker\" : \"same\", \"inventTransId\" : \"10082799\" }");
+        var before=jdbc.queryForMap("SELECT * FROM com_sales_order_line");
+        assertEquals("UNCHANGED",apply(orders,source).getFirst().action());
+        assertEquals(before,jdbc.queryForMap("SELECT * FROM com_sales_order_line"));
+
+        var changed=new LinkedHashMap<>(fields);
+        changed.put("customInfo","{\"inventTransId\":\"changed\",\"marker\":\"same\"}");
+        var conflict=apply(orders,new DataSyncAdapter.Row(line.object(),line.sourceKey(),changed,null)).getFirst();
+        assertEquals("CONFLICT",conflict.action());assertTrue(conflict.message().contains("SOURCE_VERSION_PAYLOAD_CONFLICT"));
+        assertEquals(before,jdbc.queryForMap("SELECT * FROM com_sales_order_line"));
+
+        var invalid=new LinkedHashMap<>(fields);invalid.put("customInfo","{");
+        assertEquals("ISSUE",apply(orders,new DataSyncAdapter.Row(line.object(),line.sourceKey(),invalid,null)).getFirst().action());
+        assertEquals(before,jdbc.queryForMap("SELECT * FROM com_sales_order_line"));
+        assertEquals(1,count("com_sales_order_line"));
+    }
+
+    @Test void genericOrderOlderVersionCannotOverwriteNewerQuantity() {
+        var orders=DppmsOrderSyncTemplate.create(1L);var time=java.time.LocalDateTime.of(2026,10,2,10,0);
+        apply(orders,genericOrderRow(false,11,time,8),genericOrderRow(true,21,time,8));
+        var before=jdbc.queryForMap("SELECT * FROM com_sales_order_line");
+        var old=apply(orders,genericOrderRow(true,221,time.minusDays(1),3)).getFirst();
+        assertEquals("UNCHANGED",old.action());assertEquals(before,jdbc.queryForMap("SELECT * FROM com_sales_order_line"));
+        assertEquals(1,count("com_sales_order_line"));
+    }
+
+    @Test void genericOrderSourceIssueCannotCreateTargets() {
+        var orders=DppmsOrderSyncTemplate.create(1L);var time=java.time.LocalDateTime.of(2026,10,1,10,0);
+        var source=genericOrderRow(false,11,time,5);var fields=new LinkedHashMap<>(source.fields());
+        fields.put("migrationIssue","DUPLICATE_BUSINESS_KEY_CONFLICT");
+        var invalid=new DataSyncAdapter.Row(source.object(),source.sourceKey(),fields,null);
+        var preview=engine.bind(orders).preview(batch(invalid)).getFirst();
+        assertEquals("ISSUE",preview.action());assertEquals("DUPLICATE_BUSINESS_KEY_CONFLICT",preview.message());
+        assertEquals("ISSUE",apply(orders,invalid).getFirst().action());
+        assertEquals(0,count("com_sales_order"));assertEquals(0,count("com_sales_order_line"));
+    }
+
+    @Test void genericOrderParentPrecheckConflictCannotCreateChildRows() {
+        var orders=DppmsOrderSyncTemplate.create(1L);var time=java.time.LocalDateTime.of(2026,10,1,10,0);
+        var header=genericOrderRow(false,11,time,5);var headerFields=new LinkedHashMap<>(header.fields());
+        headerFields.put("migrationIssue","DUPLICATE_BUSINESS_KEY_CONFLICT");
+        var line=genericOrderRow(true,21,time,5);var lineFields=new LinkedHashMap<>(line.fields());
+        lineFields.put("migrationIssue","PARENT_SOURCE_BUSINESS_KEY_CONFLICT");
+        var invalidHeader=new DataSyncAdapter.Row(header.object(),header.sourceKey(),headerFields,null);
+        var invalidLine=new DataSyncAdapter.Row(line.object(),line.sourceKey(),lineFields,null);
+        var preview=engine.bind(orders).preview(batch(invalidHeader,invalidLine));
+        assertEquals(List.of("ISSUE","ISSUE"),preview.stream().map(DataSyncAdapter.Change::action).toList());
+        assertEquals("PARENT_SOURCE_BUSINESS_KEY_CONFLICT",preview.getLast().message());
+        assertEquals(List.of("ISSUE","ISSUE"),apply(orders,invalidHeader,invalidLine).stream().map(DataSyncAdapter.Change::action).toList());
+        assertEquals(0,count("com_sales_order"));assertEquals(0,count("com_sales_order_line"));
+        // An independently valid line is now carried even while its exact local parent is unavailable.
+        var missingParent=apply(orders,line).getFirst();assertEquals("CREATED",missingParent.action());
+        assertTrue(missingParent.message().contains("关联未命中"));assertEquals(1,count("com_sales_order_line"));
+        assertNull(jdbc.queryForObject("SELECT order_id FROM com_sales_order_line",Long.class));
+    }
+
+    private DataSyncAdapter.Row genericOrderRow(boolean line,long rawId,java.time.LocalDateTime time,int quantity) {
+        var d=DppmsOrderSyncTemplate.create(1L);var source=d.sources().get(line?1:0);Map<String,Object> fields=new LinkedHashMap<>();
+        for(var step:source.targets()) {
+            for(var mapping:step.mappings())if(mapping.source()!=null && !mapping.source().startsWith("$"))fields.put(mapping.source(),null);
+            for(var lookup:step.lookups())lookup.match().values().stream().filter(v->v.startsWith("@")).forEach(v->fields.put(v.substring(1),null));
+        }
+        fields.put("migrationIssue",null);fields.put("source","D365");fields.put("company_code","001");fields.put("orderNumber","ORDER-1");
+        fields.put(line?"lineType":"orderType","0");fields.put("migrationVersion",time);fields.put("sourceVersion",time.toString());
+        fields.put("syncReceivedAt",time);fields.put("customInfo","{}");fields.put("id",rawId);
+        fields.put("originalRows",List.of(Map.of("id",rawId,"orderQuantity",quantity)));fields.put("originalRowCount",1);
+        var key=line?"LINE-BUSINESS-KEY":"ORDER-BUSINESS-KEY";
+        fields.put("migrationSourceKey",key);fields.put("sourceRecordKey",key);
+        if(line) {
+            fields.put("lineNum","1");fields.put("itemCode","PRODUCT-1");fields.put("itemDesc","Product");
+            fields.put("orderQuantity",quantity);fields.put("openQuantity",2);fields.put("deliveredQuantity",quantity-2);fields.put("warrantyMonth",12);
+        }
+        return new DataSyncAdapter.Row(source.object(),key,fields,null);
+    }
+
     @Test void newerShipmentChangesOldSourcesDerivedCurrentProjectionOnce() {
         var d=definition(2);
         var oldSource=row(d,"1",barcode("RECONCILE-SN"));

@@ -32,10 +32,10 @@ JOIN (
 JOIN pm_project_property_from_sms latest ON latest.id=selected.canonicalId
 LEFT JOIN (
   SELECT MIN(SUBSTRING_INDEX(projectCode,'-',1)) AS projectCode
-  FROM pm_project
+  FROM (/* @include valid-projects */) valid_projects
   WHERE (:projectTypes='' OR FIND_IN_SET(projectType,:projectTypes))
     AND (:projectIds='' OR FIND_IN_SET(projectId,:projectIds))
   GROUP BY CAST(SUBSTRING_INDEX(projectCode,'-',1) AS BINARY)
 ) project_scope ON project_scope.projectCode=r.projectCode
   AND CAST(project_scope.projectCode AS BINARY)=CAST(r.projectCode AS BINARY)
-WHERE (:projectTypes='' AND :projectIds='') OR project_scope.projectCode IS NOT NULL
+WHERE project_scope.projectCode IS NOT NULL

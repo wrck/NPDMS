@@ -17,8 +17,19 @@ import re
 
 CATALOG = Path(__file__).resolve().parents[1] / 'pms-module-project/src/main/resources/projectlegacy/dppms-detail-domains.json'
 SOURCE_SCHEMA = CATALOG.with_name('dppms-original-source-schema.json')
+PROJECT_SCOPE_SQL = Path(__file__).resolve().parents[1] / 'pms-module-integration/src/main/resources/migration/dppms/valid-projects.sql'
 SECRET = re.compile(r'password|passwd|pwd\s*[:=]|secret|token|authorization\s*[:=]|bearer\s+|private[ _-]?key|密码|口令|私钥|密钥|BEGIN[^\r\n]*PRIVATE KEY|[a-z][a-z0-9+.-]*://[^\s/]+:[^\s/]+@', re.I)
 REDACTED = '[敏感内容已隐藏]'
+
+
+def valid_project_sql():
+    sql = PROJECT_SCOPE_SQL.read_text('utf8')
+    values = {'projectTypes': '10', 'projectIds': ''}
+    params = []
+    def parameter(match):
+        params.append(values[match[1]])
+        return '%s'
+    return re.sub(r':([A-Za-z][A-Za-z0-9_]*)', parameter, sql), params
 
 
 def shipment_contracts(numbers):
@@ -123,6 +134,7 @@ class DppmsDetailReader:
         if not re.fullmatch(r'[1-9][0-9]*', pid):
             raise ValueError('INVALID_SOURCE_PROJECT_KEY')
         self.validate_source_schema()
+        self.validate_project_scope(pid)
         root = self.select('project', '`projectId`=%s', (pid,))
         if len(root) != 1:
             raise ValueError('SOURCE_PROJECT_NOT_UNIQUE')
@@ -201,6 +213,17 @@ class DppmsDetailReader:
         self.select_in('shipment-materials', 'item', material_codes)
         return self.bundle(selection, batch_key, expected_checksum)
 
+    def validate_project_scope(self, source_project_key):
+        """Use the same canonical-first SQL as P16 and the downstream task definitions."""
+        sql, params = valid_project_sql()
+        with self.connection.cursor() as cursor:
+            cursor.execute('SELECT canonicalProjectId FROM (' + sql + ') valid_project WHERE projectId=%s',
+                           [*params, source_project_key])
+            scoped = list(cursor.fetchall())
+        if len(scoped) != 1:
+            raise ValueError('SOURCE_PROJECT_NOT_EFFECTIVE')
+        self.canonical_project_id = str(scoped[0]['canonicalProjectId'])
+
     def collect_project_code_children(self, source_project_key, project_code):
         # The original DAO uses the first project-code segment for these two lists.
         # A shared segment cannot prove which split project owns a row.
@@ -214,12 +237,13 @@ class DppmsDetailReader:
         if not any(self.rows[code] for code in ['lease-products', 'configured-products']):
             return
         self.validate_source_schema()
+        scope, scope_params = valid_project_sql()
         with self.connection.cursor() as cursor:
-            cursor.execute('SELECT `projectId`,`projectCode` FROM `pm_project_header` '
-                           "WHERE SUBSTRING_INDEX(`projectCode`,'-',1)=%s "
-                           "AND BINARY SUBSTRING_INDEX(`projectCode`,'-',1)=BINARY %s", (query_code, query_code))
+            cursor.execute('SELECT projectId,projectCode FROM (' + scope + ') valid_candidate '
+                           "WHERE projectId=canonicalProjectId AND SUBSTRING_INDEX(projectCode,'-',1)=%s "
+                           "AND BINARY SUBSTRING_INDEX(projectCode,'-',1)=BINARY %s", [*scope_params, query_code, query_code])
             candidates = list(cursor.fetchall())
-        if len(candidates) != 1 or str(candidates[0]['projectId']) != str(source_project_key):
+        if len(candidates) != 1 or str(candidates[0]['projectId']) != getattr(self, 'canonical_project_id', str(source_project_key)):
             raise ValueError('SOURCE_ASSOCIATED_PROJECT_LINK_NOT_UNIQUE')
 
     def collect_real_product_upstream(self):

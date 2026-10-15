@@ -4,8 +4,6 @@ import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.asset.dal.dataobject.product.AssetProductOfficialDO;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.product.AssetProductOfficialMapper;
-import cn.iocoder.yudao.module.pms.asset.service.product.OfficialProductCatalogLabels;
-import cn.iocoder.yudao.module.pms.platform.api.entity.*;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import org.junit.jupiter.api.*;
 import org.mockito.ArgumentCaptor;
@@ -17,50 +15,39 @@ import static org.mockito.Mockito.*;
 
 class ProductCatalogMigrationApiImplTest {
     final AssetProductOfficialMapper products=mock(AssetProductOfficialMapper.class);
-    final EntityExtensionApi extensions=mock(EntityExtensionApi.class);
     final PermissionApi permissions=mock(PermissionApi.class);
-    final ProductCatalogMigrationApiImpl service=new ProductCatalogMigrationApiImpl(products,extensions,permissions);
+    final ProductCatalogMigrationApiImpl service=new ProductCatalogMigrationApiImpl(products,permissions);
     @BeforeEach void setup() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void clear() { TenantContextHolder.clear(); }
-    void allowed() {
-        when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true);
-        when(extensions.definition(eq(9L),any(),any())).thenReturn(new EntityExtensionApi.DefinitionRevision(9L,1L,"AST","ProductOfficial",1,
-                List.of(OfficialProductCatalogLabels.definition())));
-    }
+    void allowed() { when(permissions.hasAnyPermissions(eq(7L),any(String[].class))).thenReturn(true); }
     AssetProductOfficialDO existing() {
         var row=new AssetProductOfficialDO();row.setId(10L);row.setTenantId(1L);row.setProductCode("CODE");row.setVersion(5L);
         row.setProductName("CRM name");row.setProductModel("CRM model");row.setProductDesc("CRM desc");row.setTechnicalSpec("CRM spec");
         row.setStatus("INACTIVE");row.setSourceSystem("CRM");row.setSourceKey("crm-id");row.setCreator("99");return row;
     }
     Label label(String name) { return new Label("CODE",name,null); }
-    Request request(List<Entry> entries) { return new Request(1L,7L,9L,"run",entries); }
+    Request request(List<Entry> entries) { return new Request(1L,7L,"run",entries); }
     Entry entry(Label value) { return new Entry(value.productCode(),value,null,null); }
-    void target(AssetProductOfficialDO row,List<Label> labels) {
-        when(products.selectByProductCodeForUpdate(any())).thenReturn(row);
-        when(extensions.read(any(),any())).thenReturn(new EntityExtensionApi.Values(9L,
-                Map.of(OfficialProductCatalogLabels.FIELD,OfficialProductCatalogLabels.encode(labels)),2));
-    }
-    @Test void crmFieldsRemainUntouchedAndOriginalNullableLabelsGoToTheFormalExtension() {
-        allowed();var row=existing();target(row,List.of());
+    void target(AssetProductOfficialDO row) { when(products.selectByProductCodeForUpdate(any())).thenReturn(row); }
+    @Test void crmFieldsRemainUntouchedAndHistoricalLabelsDoNotTouchExtensions() {
+        allowed();var row=existing();target(row);
+        row.setUpdater("88");row.setUpdateTime(java.time.LocalDateTime.of(2020,1,1,0,0));
+        String beforeJson=JsonUtils.toJsonString(row);
         var result=service.apply(request(List.of(entry(label(" original name "))))).getFirst();
-        assertEquals("UPDATE",result.action());assertEquals(10L,result.targetId());
+        assertEquals("UNCHANGED",result.action());assertEquals(10L,result.targetId());
         assertEquals("CRM name",row.getProductName());assertEquals("CRM model",row.getProductModel());
         assertEquals("CRM desc",row.getProductDesc());assertEquals("CRM spec",row.getTechnicalSpec());
         assertEquals("INACTIVE",row.getStatus());assertEquals("CRM",row.getSourceSystem());assertEquals("99",row.getCreator());
+        assertEquals(beforeJson,JsonUtils.toJsonString(row));
         verify(products,never()).insert(any(AssetProductOfficialDO.class));verify(products,never()).updateById(any(AssetProductOfficialDO.class));
-        var capture=ArgumentCaptor.forClass(EntityExtensionApi.Save.class);verify(extensions).save(capture.capture());
-        var save=capture.getValue();assertEquals(10L,save.target().entity().entityId());assertEquals(5L,save.expectedEntityVersion());
-        assertEquals(2,save.expectedValueVersion());assertEquals(7L,save.actor().userId());
-        @SuppressWarnings("unchecked") Map<String,Object> decoded=JsonUtils.parseObject(JsonUtils.toJsonString(save.fields()),Map.class);
-        assertEquals(List.of(label(" original name ")),OfficialProductCatalogLabels.decode(decoded,"CODE"));
-        assertTrue(((Map<?,?>)((List<?>)decoded.get(OfficialProductCatalogLabels.FIELD)).getFirst()).containsKey("productModel"));
+
     }
-    @Test void replayDoesNotRewriteAndSourceChangeAppendsRatherThanErasingThePreviousLabel() {
-        allowed();target(existing(),List.of(label("first")));
+    @Test void historicalSnapshotLabelsAndChangedSourceDoNotRewriteCrmFields() {
+        allowed();target(existing());
         var replay=service.apply(request(List.of(new Entry("CODE",label("first"),10L,new Snapshot(10L,"CODE",List.of(label("first"))))))).getFirst();
-        assertEquals("UNCHANGED",replay.action());verify(extensions,never()).save(any());
+        assertEquals("UNCHANGED",replay.action());
         var changed=service.apply(request(List.of(new Entry("CODE",label("second"),10L,replay.after())))).getFirst();
-        assertEquals(List.of(label("first"),label("second")),changed.after().labels());verify(extensions).save(any());
+        assertEquals(List.of(new Label("CODE","CRM name","CRM model")),changed.after().labels());
     }
     @Test void missingProductIsActiveAndUsesApprovedCodeIdentityWithoutInventingASourceTime() {
         allowed();when(products.insert(any(AssetProductOfficialDO.class))).thenReturn(1);
@@ -69,7 +56,7 @@ class ProductCatalogMigrationApiImplTest {
         assertEquals("CODE",row.getProductCode());assertEquals(" Original ",row.getProductName());assertEquals(" Model ",row.getProductModel());
         assertEquals("ACTIVE",row.getStatus());assertEquals("DPPMS",row.getSourceSystem());assertEquals(" CODE ",row.getSourceKey());
         assertNull(row.getSourceUpdatedAt());assertNull(row.getSourceVersion());assertNotNull(row.getSyncedAt());
-        verify(extensions).save(argThat(save->save.target().entity().entityId().equals(row.getId())));
+
     }
     @Test void allPlansAreValidatedBeforeAnyWriteSoALaterManualChangeDoesNotApplyEarlierRows() {
         allowed();var row=existing();
@@ -77,11 +64,10 @@ class ProductCatalogMigrationApiImplTest {
             var query=(cn.iocoder.yudao.module.pms.asset.dal.mysql.product.query.ProductCatalogIdentityQuery)invocation.getArgument(0);
             return "CODE".equals(query.productCode())?row:null;
         });
-        when(extensions.read(any(),any())).thenReturn(new EntityExtensionApi.Values(9L,Map.of(),1));
         var earlier=entry(new Label("AAA","new",null));
-        var conflict=new Entry("CODE",label("changed"),10L,new Snapshot(10L,"CODE",List.of(label("deleted manually"))));
+        var conflict=new Entry("CODE",label("changed"),10L,new Snapshot(11L,"CODE",List.of(label("deleted manually"))));
         assertThrows(IllegalStateException.class,()->service.apply(request(List.of(earlier,conflict))));
-        verify(products,never()).insert(any(AssetProductOfficialDO.class));verify(extensions,never()).save(any());
+        verify(products,never()).insert(any(AssetProductOfficialDO.class));
     }
     @Test void deletedCrossTenantAndCaseConflictingIdentitiesCannotBeRevivedOrAdopted() {
         allowed();var row=existing();row.setDeleted(true);when(products.selectByProductCodeForUpdate(any())).thenReturn(row);
@@ -90,42 +76,53 @@ class ProductCatalogMigrationApiImplTest {
         assertThrows(IllegalStateException.class,()->service.apply(request(List.of(entry(label("x"))))));
         row.setTenantId(1L);row.setProductCode("code");
         assertThrows(IllegalStateException.class,()->service.apply(request(List.of(entry(label("x"))))));
-        verify(extensions,never()).read(any(),any());verify(extensions,never()).save(any());
+
     }
     @Test void mismatchingLabelsForANewConvertedCodeWaitForDecisionInsteadOfPickingAName() {
         allowed();assertThrows(IllegalStateException.class,()->service.apply(request(List.of(entry(label("one")),entry(new Label(" CODE ","two",null))))));
-        verify(products,never()).insert(any(AssetProductOfficialDO.class));verify(extensions,never()).save(any());
+        verify(products,never()).insert(any(AssetProductOfficialDO.class));
     }
     @Test void forbiddenOrForeignTenantRequestsFailBeforeBusinessReads() {
         assertThrows(IllegalArgumentException.class,()->service.apply(request(List.of(entry(label("x"))))));
-        verifyNoInteractions(products,extensions);TenantContextHolder.setTenantId(2L);
+        verifyNoInteractions(products);TenantContextHolder.setTenantId(2L);
         assertThrows(IllegalArgumentException.class,()->service.apply(request(List.of(entry(label("x"))))));
-        verifyNoInteractions(products,extensions);
+        verifyNoInteractions(products);
     }
     @Test void previewComputesFormalTargetsAndPreservationWithoutWrites() {
-        allowed();target(existing(),List.of());
+        allowed();target(existing());
         assertEquals(10L,service.preview(request(List.of(entry(label("x"))))).getFirst().targetId());
-        verify(products,never()).insert(any(AssetProductOfficialDO.class));verify(extensions,never()).save(any());
+        verify(products,never()).insert(any(AssetProductOfficialDO.class));
+        verify(products,never()).updateById(any(AssetProductOfficialDO.class));
     }
-    @Test void resolvingFormalCarryRequiresTheFullOriginalLabelAndNeverWrites() {
-        allowed();target(existing(),List.of(label("Original")));
+    @Test void emptyCodesAndTargetIdDriftCannotExpandReadsOrWrite() {
+        allowed();
+        assertThrows(IllegalArgumentException.class,()->service.apply(request(List.of(entry(new Label(" ",null,null))))));
+        assertThrows(IllegalArgumentException.class,()->service.resolve(new ResolveRequest(1L,7L,"run",List.of(new Label("",null,null)))));
+        assertTrue(service.apply(request(List.of())).isEmpty());verifyNoInteractions(products);
+        when(products.selectByProductCodeForUpdate(any())).thenReturn(existing());
+        assertThrows(IllegalStateException.class,()->service.apply(request(List.of(new Entry("CODE",label("old"),11L,null)))));
+        verify(products,never()).insert(any(AssetProductOfficialDO.class));verify(products,never()).updateById(any(AssetProductOfficialDO.class));
+    }
+    @Test void resolvingUsesCodeRegardlessOfHistoricalLabelsAndNeverWrites() {
+        allowed();target(existing());
         var result=service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label("Original"))));
-        assertEquals(List.of(new Snapshot(10L,"CODE",List.of(label("Original")))),result);
-        assertThrows(IllegalStateException.class,()->service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label("Other")))));
-        verify(products,never()).insert(any(AssetProductOfficialDO.class));verify(extensions,never()).save(any());
+        assertEquals(List.of(new Snapshot(10L,"CODE",List.of(new Label("CODE","CRM name","CRM model")))),result);
+        assertEquals(result,service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label("Other")))));
+        verify(products,never()).insert(any(AssetProductOfficialDO.class));
     }
-    @Test void formalDirectoryWithoutDeclaredLabelsDoesNotCountAsCompleteCarry() {
+    @Test void formalDirectoryDoesNotRequireExtensionsButMissingDirectoryFails() {
         allowed();when(products.selectByProductCodeForUpdate(any())).thenReturn(existing());
-        when(extensions.read(any(),any())).thenReturn(new EntityExtensionApi.Values(null,Map.of(),0));
+        assertEquals(10L,service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label(null)))).getFirst().productId());
+        when(products.selectByProductCodeForUpdate(any())).thenReturn(null);
         assertThrows(IllegalStateException.class,()->service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label(null)))));
-        verify(extensions,never()).save(any());
+
     }
     @Test void resolvingPreservesTenantPermissionsAndDoesNotReviveDeletedProducts() {
         assertThrows(IllegalArgumentException.class,()->service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label("Original")))));
-        verifyNoInteractions(products,extensions);
+        verifyNoInteractions(products);
         allowed();var row=existing();row.setDeleted(true);when(products.selectByProductCodeForUpdate(any())).thenReturn(row);
         assertThrows(IllegalStateException.class,()->service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label("Original")))));
-        verify(extensions,never()).read(any(),any());
+
         TenantContextHolder.setTenantId(2L);
         assertThrows(IllegalArgumentException.class,()->service.resolve(new ResolveRequest(1L,7L,"verify",List.of(label("Original")))));
     }

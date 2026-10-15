@@ -1,5 +1,18 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P30",
+  "catalogueTaskKey": "P30",
+  "catalogueTaskName": "设备主档及项目归属衔接",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P12",
+    "P14",
+    "P16",
+    "P18",
+    "P15"
+  ],
+  "baselineTask": {
     "key": "P30",
     "name": "设备主档及项目归属衔接",
     "businessOwners": [
@@ -2839,5 +2852,11 @@
     "owner-sql/DeviceShipmentMapper.xml",
     "owner-sql/DeviceAssignmentMapper.xml",
     "owner-sql/DeviceOrganizationMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

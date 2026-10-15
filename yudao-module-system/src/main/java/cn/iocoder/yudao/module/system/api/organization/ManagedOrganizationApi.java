@@ -14,7 +14,7 @@ public interface ManagedOrganizationApi {
         public String name(){return company!=null?company.getName():department.getName();}
         public Integer status(){return company!=null?company.getStatus():department.getStatus();}
         public Integer version(){return company!=null?company.getVersion():department.getVersion();}
-        public Long parentId(){return company!=null?0L:department.getParentId();}
+        public Long parentId(){return company!=null?Long.valueOf(0):department.getParentId();}
         public Integer sort(){return company!=null?0:department.getSort();}
     }
     record Entry(String key, String parentKey, Node entity) {

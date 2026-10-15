@@ -1,5 +1,12 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P25",
+  "catalogueTaskKey": "P25",
+  "catalogueTaskName": "设备逐次续保记录",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [],
+  "baselineTask": {
     "key": "P25",
     "name": "设备逐次续保记录",
     "businessOwners": [
@@ -591,5 +598,11 @@
   "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
   "ownerSqlFiles": [
     "owner-sql/DeviceWarrantyRenewalRecordMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

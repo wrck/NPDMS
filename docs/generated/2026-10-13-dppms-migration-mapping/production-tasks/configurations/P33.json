@@ -1,5 +1,16 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P33",
+  "catalogueTaskKey": "P33",
+  "catalogueTaskName": "普通安装历史及获准当前位置",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P04",
+    "P16",
+    "P30"
+  ],
+  "baselineTask": {
     "key": "P33",
     "name": "普通安装历史及获准当前位置",
     "businessOwners": [
@@ -2543,5 +2554,11 @@
   "ownerSqlFiles": [
     "owner-sql/InstallationMapper.xml",
     "owner-sql/DeviceLocationMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

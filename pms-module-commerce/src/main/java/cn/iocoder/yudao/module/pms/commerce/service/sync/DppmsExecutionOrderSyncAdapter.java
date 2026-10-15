@@ -95,7 +95,8 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
         for (Row source : batch.rows()) {
             try {
                 CrmExecutionOrderDO row = convert(selectedRevision(source), tenantId);
-                directory.associate(row);
+                directory.associate(new DppmsExecutionOrganizationReferences.Association(row,
+                        DppmsExecutionOrganizationReferences.Resolution.AVAILABLE));
                 String businessKey = key(row.getSourceSystem(), row.getExecutionNo());
                 CrmExecutionOrderDO old = existing.get(businessKey);
                 if(source.targetId()!=null && (old==null || !Objects.equals(source.targetId(),old.getId()))) {

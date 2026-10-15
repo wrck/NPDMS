@@ -1,5 +1,17 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P17",
+  "catalogueTaskKey": "P16",
+  "catalogueTaskName": "有效项目主档、来源身份与基础最终客户资料",
+  "standaloneTask": false,
+  "isPrimaryComponent": false,
+  "catalogueDependencies": [
+    "P01",
+    "P04",
+    "P08",
+    "P10"
+  ],
+  "baselineTask": {
     "key": "P17",
     "name": "全部原项目身份桥接",
     "businessOwners": [
@@ -855,5 +867,11 @@
   "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
   "ownerSqlFiles": [
     "owner-sql/SyncBindingMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

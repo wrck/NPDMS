@@ -66,7 +66,7 @@ class ProjectLeaseProductOwnerMySqlTest {
     @AfterEach void cleanup() throws Exception {TenantContextHolder.clear();if(session!=null)session.close();if(db!=null&&!db.isClosed())db.close();}
     @Test void actualOwnerPersistsDuplicateRowsAllValuesAndAuditPrecision() {
         var result=owner.apply(prepare(),actor);assertEquals(3,result.rows().size());session.commit();
-        var rows=mapper.selectProjectPage(new AssociatedPageQuery(1L,100L,0,20));assertEquals(3,rows.size());
+        var rows=mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20));assertEquals(3,rows.size());
         assertEquals(List.of("3.000000","3.000000","4.000000"),rows.stream().map(row->row.getQuantity().toPlainString()).sorted().toList());
         for(var row:rows) {assertEquals("BusinessCode",row.getProjectCode());assertEquals("",row.getExecutionNo());
             assertNull(row.getMemo());assertEquals("分类",row.getProductCategory());assertEquals("类型",row.getProductType());assertEquals(new java.math.BigDecimal("12.50"),row.getLeaseDuration());assertEquals("CRM",row.getDataSource());assertEquals("31",row.getCreator());assertEquals("31",row.getUpdater());
@@ -74,14 +74,14 @@ class ProjectLeaseProductOwnerMySqlTest {
     }
     @Test void actualSqlKeepsTenantProjectDeletedAndCaseSensitiveBusinessIdentityBoundaries() throws Exception {
         owner.apply(prepare(),actor);session.commit();
-        var row=mapper.selectProjectPage(new AssociatedPageQuery(1L,100L,0,20)).getFirst();
+        var row=mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)).getFirst();
         assertNull(mapper.selectRecordForUpdate(new ProjectLeaseProductRecordQuery(2L,100L,row.getId())));
         assertNull(mapper.selectRecordForUpdate(new ProjectLeaseProductRecordQuery(1L,101L,row.getId())));
         assertFalse(mapper.selectBusinessRecordsForUpdate(ProjectLeaseProductImportService.businessQuery(1L,100L,row)).isEmpty());
         row.setProjectCode("businesscode");assertTrue(mapper.selectBusinessRecordsForUpdate(ProjectLeaseProductImportService.businessQuery(1L,100L,row)).isEmpty());
-        assertEquals(0,mapper.countProject(new AssociatedPageQuery(2L,100L,0,20)));
+        assertEquals(0,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(2L,"BusinessCode",0,20)));
         try(var sql=db.createStatement()){sql.executeUpdate("UPDATE proj_project_lease_product SET deleted=1");}session.clearCache();
-        assertEquals(0,mapper.countProject(new AssociatedPageQuery(1L,100L,0,20)));assertTrue(mapper.selectProjectPage(new AssociatedPageQuery(1L,100L,0,20)).isEmpty());
+        assertEquals(0,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)));assertTrue(mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)).isEmpty());
         assertTrue(mapper.selectRecordForUpdate(new ProjectLeaseProductRecordQuery(1L,100L,row.getId())).getDeleted());
     }
     @Test void successfulReplayDoesNotUpdateAndManualAuditChangeBlocksThroughActualMapper() throws Exception {
@@ -95,7 +95,7 @@ class ProjectLeaseProductOwnerMySqlTest {
     }
     @Test void failedTransactionLeavesNoBusinessRowsOrAuditAssignments() throws Exception {
         owner.apply(prepare(),actor);session.rollback();session.clearCache();
-        assertEquals(0,mapper.countProject(new AssociatedPageQuery(1L,100L,0,20)));
+        assertEquals(0,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)));
     }
     @Test void anotherCaptureWithChangedQuantityIsBlockedUntilIdentityRulesAreAdjudicated() {
         owner.apply(prepare(),actor);session.commit();
@@ -103,17 +103,17 @@ class ProjectLeaseProductOwnerMySqlTest {
         originals.getFirst().setPayloadJson(originals.getFirst().getPayloadJson().replace("\"num\":\"3\"","\"num\":\"9\""));
         originals.subList(1,originals.size()).clear();
         assertThrows(IllegalArgumentException.class,this::prepare);
-        assertEquals(3,mapper.countProject(new AssociatedPageQuery(1L,100L,0,20)));
+        assertEquals(3,mapper.countProject(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20)));
     }
 
     @Test void nativeDisplayUsesTheOriginalLatestExecutionRuleWithoutDeletingEarlierFacts() throws Exception {
         for(int i=0;i<originals.size();i++)originals.get(i).setPayloadJson(originals.get(i).getPayloadJson()
                 .replace("\"orderExecNumber\":\"\"","\"orderExecNumber\":\""+(i==0?"A001":"A002")+"\""));
         owner.apply(prepare(),actor);session.commit();
-        var query=new AssociatedPageQuery(1L,100L,0,20);var page=mapper.selectProjectPage(query);
+        var query=new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(1L,"BusinessCode",0,20);var page=mapper.selectProjectPage(query);
         assertEquals(2,page.size());assertEquals(2L,mapper.countProject(query));assertTrue(page.stream().allMatch(row->"A002".equals(row.getExecutionNo())));
         assertEquals(3L,mapper.countAllProjectRecords(new ProjectLeaseProductProjectQuery(1L,100L)));
-        assertTrue(mapper.selectProjectPage(new AssociatedPageQuery(2L,100L,0,20)).isEmpty());
+        assertTrue(mapper.selectProjectPage(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(2L,"BusinessCode",0,20)).isEmpty());
         try(var sql=db.createStatement()){sql.executeUpdate("UPDATE proj_project_lease_product SET deleted=1 WHERE execution_no='A002'");}session.clearCache();
         var earlier=mapper.selectProjectPage(query);assertEquals(1,earlier.size());assertEquals("A001",earlier.getFirst().getExecutionNo());
         assertEquals(3L,mapper.countAllProjectRecords(new ProjectLeaseProductProjectQuery(1L,100L)));

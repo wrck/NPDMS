@@ -31,6 +31,12 @@ public class SyncTaskService {
     public ConfigurationCheck checkConfiguration(Save command) {
         validator.validate(command.definition());
         var d=command.definition();
+        if(d.mergedIntoTaskId()!=null) {
+            var target=required(d.mergedIntoTaskId());
+            if(!"DPPMS_PROJECT_IDENTITY".equals(d.adapter()) || !"DPPMS_PROJECT_MASTER".equals(target.getAdapter())
+                    || !Objects.equals(d.connectionId(),target.getConnectionId()) || !Objects.equals(d.sourceSystem(),target.getSourceSystem()))
+                throw new IllegalArgumentException("来源身份任务只能合并到同来源连接的项目主档任务");
+        }
         var existing=tasks.selectIdentity(new SyncQueries.TaskIdentity(tenant(),d.sourceSystem(),SyncDefinitionValidator.taskIdentity(d)));
         if(existing!=null&&!Objects.equals(existing.getId(),command.id()))
             return new ConfigurationCheck(false,existing.getId(),existing.getName(),
@@ -39,14 +45,14 @@ public class SyncTaskService {
             var current=required(command.id());
             if(!Objects.equals(current.getVersion(),command.expectedVersion()))
                 return new ConfigurationCheck(false,current.getId(),current.getName(),"配置版本冲突，请重新打开任务");
-            var previous=approvedProductKeyTransition(definition(current),d);
+            var previous=approvedLocalContractTransition(approvedOrderLineKeyTransition(approvedProductKeyTransition(definition(current),d),d),d);
             // The desired definition is validated above. Historical generic definitions can contain
             // adjudicated, retired columns; deciding binding scope must not revalidate that old catalog.
             boolean needsHistory=(!"TABLE_MAPPING".equals(previous.adapter()) && validator.adapter(previous).requiresAllBindings())
                     ||d.sources().stream().anyMatch(SyncDefinition.Source::syncPrimaryKey);
             List<SyncBindingDO> mapped=needsHistory?bindings.selectTask(new SyncQueries.Task(tenant(),current.getId())):List.of();
             boolean hasMapped=needsHistory?!mapped.isEmpty():bindings.hasTaskBindings(new SyncQueries.Task(tenant(),current.getId()));
-            if(hasMapped&&(!previous.sourceSystem().equals(d.sourceSystem())||!SyncDefinitionValidator.taskIdentity(previous).equals(SyncDefinitionValidator.taskIdentity(d))
+            if(hasMapped&&!approvedCacheTransition(previous,d)&&(!previous.sourceSystem().equals(d.sourceSystem())||!SyncDefinitionValidator.taskIdentity(previous).equals(SyncDefinitionValidator.taskIdentity(d))
                     ||!previous.connectionId().equals(d.connectionId())||!identities(previous).equals(identities(d))))
                 return new ConfigurationCheck(false,null,null,"已建立映射，不能替换来源身份。请沿用原连接、来源系统、来源对象及源主键列");
             for(var source:d.sources()) if(source.syncPrimaryKey()&&!d.clearBeforeLoad()&&!d.resetMappingsBeforeLoad()) {
@@ -90,6 +96,7 @@ public class SyncTaskService {
     public void schedule(Long id,int version,boolean enabled) {
         var t=locked(id);
         if(t.getVersion()!=version)throw new IllegalArgumentException("配置版本冲突");
+        if(enabled && definition(t).mergedIntoTaskId()!=null)throw new IllegalArgumentException("任务已合并，仅保留历史回执，不能启用调度");
         if(enabled && !Objects.equals(t.getVersion(),t.getValidatedVersion()))
             throw new IllegalArgumentException("启用前必须完成当前版本的完整预览确认");
         if(enabled&&(definition(t).clearBeforeLoad()||definition(t).resetMappingsBeforeLoad()))
@@ -145,7 +152,49 @@ public class SyncTaskService {
         }
         return changed?previous.toBuilder().sources(sources).build():previous;
     }
+    private static SyncDefinition approvedOrderLineKeyTransition(SyncDefinition previous,SyncDefinition desired) {
+        if(!"TABLE_MAPPING".equals(previous.adapter()) || !"TABLE_MAPPING".equals(desired.adapter())
+                || !"sales-orders-full-sync".equals(previous.taskKey()) || !Objects.equals(previous.taskKey(),desired.taskKey()))return previous;
+        var businessKey=List.of("source_system","company_code","order_type","order_no","line_no");
+        var sources=new ArrayList<SyncDefinition.Source>();
+        for(var source:previous.sources()) {
+            var next=desired.sources().stream().filter(s->Objects.equals(source.object(),s.object())).findFirst().orElse(null);
+            if(!"LINE".equals(source.object()) || !"pm_order_line_from_erp".equals(source.sourceObject()) || next==null) {
+                sources.add(source);continue;
+            }
+            var targets=source.targets().stream().map(step->{
+                boolean approved="com_sales_order_line".equals(step.table()) && List.of("order_id","line_no").equals(step.keys())
+                        && next.targets().stream().anyMatch(n->Objects.equals(n.name(),step.name())
+                            && Objects.equals(n.table(),step.table()) && businessKey.equals(n.keys()));
+                return approved?step.withKeys(businessKey):step;
+            }).toList();
+            sources.add(source.toBuilder().targets(targets).build());
+        }
+        return previous.toBuilder().sources(sources).build();
+    }
+    /** Change only the approved contract source; old bindings and frozen run definitions remain intact. */
+    private static SyncDefinition approvedLocalContractTransition(SyncDefinition previous,SyncDefinition desired) {
+        if(!"TABLE_MAPPING".equals(previous.adapter()) || !"TABLE_MAPPING".equals(desired.adapter())
+                || !"delivery-full-sync".equals(previous.taskKey()) || !Objects.equals(previous.taskKey(),desired.taskKey())
+                || !"DPPMS".equals(previous.sourceSystem()) || !"DPPMS".equals(desired.sourceSystem()))return previous;
+        var sources=previous.sources().stream().map(source->{
+            var next=desired.sources().stream().filter(s->Objects.equals(source.object(),s.object())).findFirst().orElse(null);
+            if(!"CONTRACT".equals(source.object()) || !"pm_order_data_from_erp".equals(source.sourceObject())
+                    || !"id".equals(source.sourceKey()) || next==null || !"LOCAL_OWNER".equals(next.readMode())
+                    || !"com_sales_order".equals(next.sourceObject()) || !"migrationKey".equals(next.sourceKey()))return source;
+            return source.toBuilder().sourceObject(next.sourceObject()).sourceKey(next.sourceKey()).build();
+        }).toList();
+        return previous.toBuilder().sources(sources).build();
+    }
     private static List<String> identities(SyncDefinition d) {
         return d.sources().stream().map(s->s.object()+":"+s.sourceObject()+":"+s.sourceKey()+ (s.targets()==null?"":":"+JsonUtils.toJsonString(s.targets().stream().map(t->List.of(t.name(),t.table(),t.keys())).toList()))).sorted().toList();
+    }
+    /** Only the adjudicated three display caches retire their old entity bindings, at successful refresh. */
+    private static boolean approvedCacheTransition(SyncDefinition previous,SyncDefinition desired) {
+        if(!cn.iocoder.yudao.module.pms.integration.sync.generic.GenericCacheRefresh.requested(desired)
+                || !Objects.equals(previous.connectionId(),desired.connectionId())
+                || !Objects.equals(previous.sourceSystem(),desired.sourceSystem()))return false;
+        return "DPPMS_PROJECT_ASSOCIATED_PRODUCTS".equals(previous.adapter()) && "project-display-cache".equals(desired.taskKey())
+                || "DPPMS_CONTRACT_COLLECTION_PLAN".equals(previous.adapter()) && "contract-plan-cache".equals(desired.taskKey());
     }
 }

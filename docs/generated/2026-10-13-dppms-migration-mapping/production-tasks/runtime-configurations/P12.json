@@ -1,0 +1,97 @@
+{
+  "catalogueTaskKey": "P12",
+  "name": "P12 DPPMS缺失产品补齐与编码关联",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_PRODUCT_CATALOG",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 2000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 180,
+    "readStrategy": "STREAMING_CURSOR",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "item",
+            "target": "item",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "itemname",
+            "target": "itemname",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "describe_",
+            "target": "describe_",
+            "values": null
+          }
+        ],
+        "object": "fb_items",
+        "parameters": {
+          "productCodes": ""
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "item",
+        "sourceKeyColumns": null,
+        "sourceObject": "fb_items",
+        "sql": "SELECT i.id,i.item,i.itemname,i.describe_ FROM fb_items i WHERE (:productCodes='' OR FIND_IN_SET(i.item,:productCodes))",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439245344444418",
+  "runtimeVersion": 1,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T05:24:16.645948",
+  "previewRevisionReason": "移除过时definitionRevision映射和SQL参数，采用当前Owner契约。"
+}

@@ -8,9 +8,6 @@
         placeholder="每行一个原产品编码；只承接填写的产品"
       />
     </el-form-item>
-    <el-form-item label="目录属性定义">
-      <el-input v-model="revision" placeholder="填写已有定义编号可复用；首次配置留空" />
-    </el-form-item>
     <el-form-item>
       <el-button :loading="loading" @click="configure">应用产品目录承接配置</el-button>
     </el-form-item>
@@ -23,7 +20,6 @@ const props = defineProps<{ modelValue: api.Definition }>()
 const emit = defineEmits<{ (event: 'update:modelValue', value: api.Definition): void }>()
 const message = useMessage()
 const codes = ref('')
-const revision = ref('')
 const loading = ref(false)
 watch(
   () => props.modelValue.sources,
@@ -34,7 +30,6 @@ watch(
       .sort((left, right) => Number(left.slice(11)) - Number(right.slice(11)))
       .map((key) => String(parameters[key]))
       .join('\n')
-    revision.value = String(parameters.migrationDefinitionRevisionId ?? '')
   },
   { immediate: true }
 )
@@ -44,19 +39,12 @@ const configure = async () => {
     message.error('请填写产品编码，且不能重复')
     return
   }
-  if (revision.value && !/^[1-9]\d*$/.test(revision.value)) {
-    message.error('目录属性定义编号须为正整数')
-    return
-  }
   loading.value = true
   try {
-    // Keep the published revision visible if subsequent template configuration fails.
-    revision.value = String(await api.configureDppmsProductDefinition(revision.value || undefined))
-    const definition = await api.getDppmsProductTemplate(
-      props.modelValue.connectionId,
-      revision.value,
-      selected
-    )
+    const definition = await api.getDppmsProductTemplate({
+      connectionId: props.modelValue.connectionId,
+      productCodes: selected
+    })
     emit('update:modelValue', definition)
     message.success('目录承接配置已应用，请保存任务并预览')
   } finally {

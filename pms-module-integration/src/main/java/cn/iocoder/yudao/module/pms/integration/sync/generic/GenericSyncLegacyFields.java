@@ -34,7 +34,7 @@ final class GenericSyncLegacyFields {
                 }
                 if(stepChanged) {
                     targets.add(new GenericTargetStep(step.name(),step.table(),step.keys(),step.mode(),step.nullPolicy(),
-                            step.updateColumns(),step.whenField(),step.newerBy(),step.tieBreaker(),step.mappings(),lookups));
+                            step.updateColumns(),step.whenField(),step.newerBy(),step.tieBreaker(),step.mappings(),lookups,step.sameVersionColumns()));
                     sourceChanged=true;
                 } else targets.add(step);
             }

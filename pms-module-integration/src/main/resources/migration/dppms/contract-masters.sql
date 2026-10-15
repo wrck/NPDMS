@@ -4,16 +4,14 @@ JOIN pm_project_group g ON g.projectGroupCode=c.projectGroupCode AND CAST(g.proj
 JOIN pm_project_group_relationship m ON m.projectGroupCode=c.projectGroupCode AND CAST(m.projectGroupCode AS BINARY)=CAST(c.projectGroupCode AS BINARY)
 JOIN (SELECT projectCode,projectType,CONCAT(CAST(projectType AS BINARY),0x00,CAST(projectCode AS BINARY)) AS identity_key,MAX(projectId) AS projectId FROM pm_project GROUP BY projectCode,projectType,CAST(projectCode AS BINARY),CAST(projectType AS BINARY)) canonical
  ON canonical.projectType=g.projectType AND canonical.projectCode=REPLACE(m.projectCode,'-his','') AND canonical.identity_key=CONCAT(CAST(g.projectType AS BINARY),0x00,CAST(REPLACE(m.projectCode,'-his','') AS BINARY))
-JOIN pm_project p ON p.projectId=canonical.projectId
+JOIN (/* @include valid-projects */) p ON p.projectId=canonical.projectId
 JOIN fnd_company f ON f.id=p.compId
 WHERE FIND_IN_SET(g.projectType,:projectTypes)
  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))
  AND FIND_IN_SET(c.contractNo,:approvedContractNos)) q) master JOIN (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m
  JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode
- JOIN pm_project p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType
+ JOIN (/* @include valid-projects */) p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType
  JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode
  WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))
  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))
- AND p.projectId=(SELECT MAX(newer.projectId) FROM pm_project newer
- WHERE newer.projectCode=p.projectCode AND newer.projectType=p.projectType
- AND CAST(newer.projectCode AS BINARY)=CAST(p.projectCode AS BINARY))) project_scope ON project_scope.contractNo=master.contract_no
+ AND p.projectId=p.canonicalProjectId) project_scope ON project_scope.contractNo=master.contract_no

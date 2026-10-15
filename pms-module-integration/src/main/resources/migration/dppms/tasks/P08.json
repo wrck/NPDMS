@@ -1,0 +1,253 @@
+{
+  "cron": "0 0 2 * * ?",
+  "mode": "ONCE",
+  "adapter": "DPPMS_DICTIONARIES",
+  "maxRows": 10000,
+  "taskKey": null,
+  "fullCron": "0 0 2 ? * SUN",
+  "maxBytes": 67108864,
+  "chunkSize": 1000,
+  "fetchSize": 2000,
+  "autoPaging": false,
+  "retryCount": 0,
+  "loadingMode": "UPSERT",
+  "readStrategy": "SNAPSHOT",
+  "sourceSystem": "DPPMS",
+  "missingPolicy": "RETAIN",
+  "restartPolicy": "RESTART_ALL",
+  "overlapSeconds": 0,
+  "clearBeforeLoad": false,
+  "queryTimeoutSeconds": 0,
+  "retryIntervalSeconds": 60,
+  "resetMappingsBeforeLoad": false,
+  "sources": [
+    {
+      "sql": "@dppms:dictionaries-grouped",
+      "table": null,
+      "object": "fnd_basic_data_type",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataTypeCode",
+          "target": "dataTypeCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataTypeName",
+          "target": "dataTypeName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "status",
+          "target": "status",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "definitionMissing",
+          "target": "definitionMissing",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "dataTypeCode",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "fnd_basic_data_type",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryRef": null,
+      "groupKey": "_groupKey",
+      "rowProjection": "_sourceRows"
+    },
+    {
+      "sql": null,
+      "table": null,
+      "object": "fnd_basic_data",
+      "columns": [],
+      "filters": [],
+      "targets": null,
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "dataTypeCode",
+          "target": "dataTypeCode",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "basicDataId",
+          "target": "basicDataId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "basicDataName",
+          "target": "basicDataName",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "basicDataAttri1",
+          "target": "basicDataAttri1",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "sortId",
+          "target": "sortId",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createTime",
+          "target": "createTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "createBy",
+          "target": "createBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "updatedAt": null,
+      "issueField": null,
+      "parameters": {},
+      "sourceObject": "fnd_basic_data",
+      "primaryTarget": null,
+      "syncPrimaryKey": false,
+      "queryRef": "fnd_basic_data_type",
+      "groupKey": null,
+      "rowProjection": null
+    }
+  ],
+  "connectionId": null,
+  "evidencePolicy": "FULL"
+}

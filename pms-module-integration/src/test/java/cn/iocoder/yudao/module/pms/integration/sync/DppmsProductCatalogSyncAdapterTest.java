@@ -25,14 +25,14 @@ class DppmsProductCatalogSyncAdapterTest {
     @AfterEach void clear() { TenantContextHolder.clear(); }
     Row row() {
         var fields=new LinkedHashMap<String,Object>();fields.put("id",null);fields.put("item"," CODE ");fields.put("itemname",null);
-        fields.put("describe_"," raw name ");fields.put(DppmsProductCatalogSyncTemplate.DEFINITION,9L);
+        fields.put("describe_"," raw name ");
         return new Row("fb_items"," CODE ",fields,null);
     }
     Batch batch(List<Row> rows,List<Binding> bindings) { return new Batch("integration:1:12",rows,bindings,false,"RETAIN",false,"UPSERT",false); }
     @Test void streamingChunksUseTheRealRunActorAndProductCodeWithEveryOriginalColumnRead() {
         run.setStatus("READING").setPreview(true);
         when(products.preview(any())).thenAnswer(invocation->{
-            Request request=invocation.getArgument(0);assertEquals(7L,request.actorId());assertEquals(9L,request.definitionRevisionId());
+            Request request=invocation.getArgument(0);assertEquals(7L,request.actorId());
             assertEquals("integration-run:13",request.correlationId());assertEquals(" CODE ",request.entries().getFirst().sourceKey());
             assertNull(request.entries().getFirst().label().productModel());assertEquals(" raw name ",request.entries().getFirst().label().productName());
             return List.of(new Result(" CODE ",10L,"UPDATE",null,new Snapshot(10L,"CODE",List.of(request.entries().getFirst().label()))));

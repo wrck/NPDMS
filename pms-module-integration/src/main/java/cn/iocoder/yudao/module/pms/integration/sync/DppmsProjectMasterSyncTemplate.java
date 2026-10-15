@@ -27,13 +27,19 @@ public final class DppmsProjectMasterSyncTemplate {
                 .source("creator".equals(kind)?"createBy":"updateBy").conversion("LOOKUP").values(Map.of("sys","sys","jiangyating","jiangyating")).build());
         String sql=DppmsMigrationSql.initial("project-master");
         var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT)
-                .readMode("SQL").sql(sql).parameters(Map.of("projectTypes","10","projectIds","","excludedFndActorIds","")).sourceKey("projectId").updatedAt(null)
+                .readMode("SQL").sql(sql).parameters(Map.of("projectTypes","10,afss,afxx","projectIds","","excludedFndActorIds","")).sourceKey("projectId").updatedAt(null)
+                .groupKey("_groupKey").rowProjection("_sourceRows")
                 .columns(columns).filters(List.of()).mappings(mappings).build();
+        var identity=SyncDefinition.Source.builder().object(DppmsProjectIdentitySyncTemplate.OBJECT).sourceObject("pm_project")
+                .readMode("SQL").queryRef(OBJECT).sourceKey("originalProjectId")
+                .columns(DppmsProjectIdentitySyncTemplate.COLUMNS).filters(List.of())
+                .mappings(DppmsProjectIdentitySyncTemplate.COLUMNS.stream().map(c->
+                        SyncDefinition.Mapping.builder().target(c).source("canonicalProjectId".equals(c)?"_groupKey":c).conversion("STRING").build()).toList()).build();
         return SyncDefinition.builder().connectionId(connectionId).sourceSystem("DPPMS").adapter(ADAPTER)
                 .mode("ONCE").loadingMode("UPSERT").missingPolicy("RETAIN")
                 .cron("0 0 2 * * ?").fullCron("0 0 2 ? * SUN").retryCount(0).retryIntervalSeconds(60)
                 .resetMappingsBeforeLoad(false).clearBeforeLoad(false).autoPaging(false)
                 .readStrategy("STREAMING_CURSOR").fetchSize(1000).chunkSize(500).restartPolicy("RESTART_ALL")
-                .queryTimeoutSeconds(0).maxRows(10000).maxBytes(64L*1024*1024).sources(List.of(source)).build();
+                .queryTimeoutSeconds(0).maxRows(10000).maxBytes(64L*1024*1024).sources(List.of(source,identity)).build();
     }
 }

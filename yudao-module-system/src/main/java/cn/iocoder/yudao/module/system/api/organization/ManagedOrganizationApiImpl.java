@@ -175,8 +175,10 @@ public class ManagedOrganizationApiImpl implements ManagedOrganizationApi {
             Node parentNode=parent==null?null:(parent.targetId()==null
                     ?byCode.get("DEPARTMENT:"+canonical(parent.code())):byId.get("DEPARTMENT:"+parent.targetId()));
             boolean assigned=command.assignedIdKeys().contains(e.key());
-            Long parentId=parent==null?0L:parentNode!=null?parentNode.id():
-                    command.assignedIdKeys().contains(parent.key())?parent.targetId():null;
+            Long parentId=null;
+            if(parent==null) parentId=0L;
+            else if(parentNode!=null) parentId=parentNode.id();
+            else if(command.assignedIdKeys().contains(parent.key())) parentId=parent.targetId();
             Node desired=desired(e,existing!=null?existing.id():assigned?e.targetId():null,parentId,existing==null?0:existing.version(),command.owner());
             boolean same=existing!=null && Objects.equals(existing.code(),e.code()) && Objects.equals(existing.name(),e.name())
                     && Objects.equals(existing.status(),e.status()) && ("COMPANY".equals(e.type())

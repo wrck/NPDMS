@@ -1,5 +1,12 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P11",
+  "catalogueTaskKey": "P11",
+  "catalogueTaskName": "CRM正式产品目录",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [],
+  "baselineTask": {
     "key": "P11",
     "name": "CRM正式产品目录",
     "businessOwners": [

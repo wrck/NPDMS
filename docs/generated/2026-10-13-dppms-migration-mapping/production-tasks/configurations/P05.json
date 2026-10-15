@@ -1,5 +1,14 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P05",
+  "catalogueTaskKey": "P05",
+  "catalogueTaskName": "角色定义及来源角色绑定",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P04"
+  ],
+  "baselineTask": {
     "key": "P05",
     "name": "角色定义及来源角色绑定",
     "businessOwners": [

@@ -14,9 +14,11 @@ public final class DppmsUserScopeSyncTemplate {
         return Collections.unmodifiableMap(result);
     }
     public static SyncDefinition create(Long connectionId) {
-        List<SyncDefinition.Source> sources=new ArrayList<>(DppmsUserSyncTemplate.create(connectionId).sources());
-        sources.add(SyncDefinition.Source.builder().object("t_user_role").sourceObject("t_user_role").readMode("SQL")
-                .sql("SELECT r.id,r.user_id,r.role_id,r.comp_id,u.user_name AS username,c.compCode AS migrationCompanyCode FROM t_user_role r LEFT JOIN t_user u ON u.user_id=r.user_id LEFT JOIN t_company c ON c.id=r.comp_id")
+        List<SyncDefinition.Source> sources=new ArrayList<>(DppmsUserSyncTemplate.create(connectionId).sources().stream().map(s->
+                s.toBuilder().readMode("EVIDENCE").sql(null).table(null).queryRef(null).groupKey(null).rowProjection(null)
+                        .parameters(Map.of()).evidenceAdapter("DPPMS_USERS").evidenceObject(s.object()).build()).toList());
+        sources.add(SyncDefinition.Source.builder().object("t_user_role").sourceObject("t_user_role").readMode("EVIDENCE")
+                .evidenceAdapter("DPPMS_USER_ROLES").evidenceObject("T_USER_ROLE")
                 .parameters(Map.of()).sourceKey("id").updatedAt(null).columns(List.of()).filters(List.of())
                 .mappings(columns().get("t_user_role").stream().map(column->SyncDefinition.Mapping.builder().target(column).source(column).conversion("DIRECT").build()).toList()).build());
         sources.add(SyncDefinition.Source.builder().object("fnd_user_power").sourceObject("fnd_user_power").readMode("SQL")

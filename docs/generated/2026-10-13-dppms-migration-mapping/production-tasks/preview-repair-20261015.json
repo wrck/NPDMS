@@ -1,0 +1,2712 @@
+{
+  "capturedAtUtc": "2026-10-14T23:14:42.833808+00:00",
+  "businessTaskCount": 27,
+  "sourceComponentCount": 37,
+  "intTaskCount": 21,
+  "retiredConfigurationCount": 1,
+  "configurationCount": 22,
+  "tasks": [
+    {
+      "key": "P01",
+      "name": "公司、部门与主管关联",
+      "componentKeys": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "taskId": "2110439242576203777",
+      "taskVersion": 1,
+      "resultVersion": 1,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110493084286287874",
+      "readCount": 180,
+      "summary": {
+        "CREATED": 180
+      },
+      "startedAt": "2026-10-15 06:08:57.014000",
+      "finishedAt": "2026-10-15 06:08:58.022000",
+      "error": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\runtime-20261015T060604\\yudao-server.jar",
+      "fullExpectedActionCounts": null,
+      "sampleCoverage": {
+        "count": 180,
+        "messages": {
+          "NO_MESSAGE": 171,
+          "OTHER_MESSAGE_NOT_EXPORTED": 1,
+          "保持待关联": 8
+        },
+        "actions": {
+          "CREATED": 180
+        },
+        "issueCoverage": "NO_ISSUE_ACTIONS_IN_RUN_SUMMARY",
+        "coverage": "FULL_RESULT_ROWS"
+      },
+      "repairRunHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110477169603653634",
+          "status": "FAILED",
+          "configVersion": 1,
+          "readCount": 180,
+          "summary": {
+            "FAILED": 180
+          },
+          "sampleCount": 0,
+          "sampleReasonCounts": {},
+          "sampleActionCounts": {},
+          "sampleWarningActions": {
+            "CREATED": 0
+          },
+          "startedAt": "2026-10-15 05:05:42.660000",
+          "finishedAt": "2026-10-15 05:05:45.102000",
+          "error": "执行失败（NullPointerException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\result-P01.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\runtime.json"
+        },
+        {
+          "phase": "phase2",
+          "runId": "2110481852200230914",
+          "status": "FAILED",
+          "configVersion": 1,
+          "readCount": 180,
+          "summary": {
+            "FAILED": 180
+          },
+          "sampleCount": 0,
+          "sampleReasonCounts": {},
+          "sampleActionCounts": {},
+          "sampleWarningActions": {
+            "CREATED": 0
+          },
+          "startedAt": "2026-10-15 05:24:19.075000",
+          "finishedAt": "2026-10-15 05:24:23.939000",
+          "error": "批准的父部门不存在、跨租户或停用，不能按前缀伪造",
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\result-P01.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\runtime.json"
+        },
+        {
+          "phase": "phase3",
+          "runId": "2110486316197965826",
+          "status": "PREVIEW_READY",
+          "configVersion": 1,
+          "readCount": 180,
+          "summary": {
+            "CREATED": 180
+          },
+          "sampleCount": 180,
+          "sampleReasonCounts": {
+            "NO_MESSAGE": 171,
+            "OTHER_MESSAGE_NOT_EXPORTED": 1,
+            "保持待关联": 8
+          },
+          "sampleActionCounts": {
+            "CREATED": 180
+          },
+          "sampleWarningActions": {
+            "CREATED": 0
+          },
+          "startedAt": "2026-10-15 05:42:03.377000",
+          "finishedAt": "2026-10-15 05:42:04.491000",
+          "error": null,
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase3\\result-P01.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase3\\runtime.json"
+        },
+        {
+          "phase": "phase4",
+          "runId": "2110493084286287874",
+          "status": "PREVIEW_READY",
+          "configVersion": 1,
+          "readCount": 180,
+          "summary": {
+            "CREATED": 180
+          },
+          "sampleCount": 180,
+          "sampleReasonCounts": {
+            "NO_MESSAGE": 171,
+            "OTHER_MESSAGE_NOT_EXPORTED": 1,
+            "保持待关联": 8
+          },
+          "sampleActionCounts": {
+            "CREATED": 180
+          },
+          "sampleWarningActions": {
+            "CREATED": 0
+          },
+          "startedAt": "2026-10-15 06:08:57.014000",
+          "finishedAt": "2026-10-15 06:08:58.022000",
+          "error": null,
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\result-P01.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\runtime.json"
+        }
+      ],
+      "sourceEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\result-P01.json",
+      "previousReportResult": {
+        "key": "P01",
+        "name": "公司、部门与主管关联",
+        "componentKeys": [
+          "P01",
+          "P02",
+          "P03"
+        ],
+        "taskId": "2110439242576203777",
+        "taskVersion": 0,
+        "resultVersion": 0,
+        "previewStatus": "FAILED",
+        "runId": "2110451929758576642",
+        "readCount": 180,
+        "summary": {
+          "FAILED": 180
+        },
+        "runHistory": [
+          {
+            "phase": "phase1",
+            "runId": "2110442039329722370",
+            "status": "FAILED",
+            "configVersion": 0,
+            "readCount": 180,
+            "summary": {
+              "FAILED": 180
+            },
+            "error": "执行失败（PlatformMigrationEvidenceException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "result-classifications.json",
+              "result-P01.json"
+            ]
+          },
+          {
+            "phase": "phase3",
+            "runId": "2110451929758576642",
+            "status": "FAILED",
+            "configVersion": 0,
+            "readCount": 180,
+            "summary": {
+              "FAILED": 180
+            },
+            "error": "存在目标归属或字段冲突，未写入任何业务记录",
+            "evidence": [
+              "phase3/result-P01.json",
+              "phase3/classification-P01.json",
+              "phase3/runtime.json"
+            ]
+          }
+        ],
+        "sampleCoverage": {
+          "count": 171,
+          "messages": {
+            "None": 158,
+            "目标已存在、由其他来源管理或接管字段不一致": 13
+          },
+          "coverage": "PARTIAL_RESULT_ROWS"
+        },
+        "fullExpectedActionCounts": {
+          "CREATED": 158,
+          "CONFLICT": 13
+        },
+        "confirmedRootCause": "原唯一批次异常已消除；保留13个真实保护冲突。完整预期动作171=158 CREATED+13 CONFLICT；来源读数及失败summary180不可当作动作总量。",
+        "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+        "taskVersionDiffersFromResultVersion": false
+      },
+      "confirmedRootCause": "主键/nullID/同批上下文及父alias已在当前phase4包真实预览通过；180为拟CREATED非正式创建，8主管待正式账号回补",
+      "sampleWarnings": {
+        "CREATED": 0
+      },
+      "sampleWarningBoundary": "CREATED样本中的公司关联未命中提示是警告，不是ISSUE；拟创建也不等于公司前置已就绪",
+      "technicalReadCompleted": true,
+      "businessBlockingSummary": {},
+      "businessExecutableConclusion": "未授权正式迁入；PREVIEW_READY只证明本次技术预览终态，不消除Owner/规格/数据ISSUE",
+      "durationSeconds": 1.008,
+      "businessFollowup": {
+        "pendingSupervisorAssociations": 8,
+        "requires": "正式账号来源绑定后同一P01回补",
+        "summaryIssueZeroDoesNotCompleteFollowup": true
+      }
+    },
+    {
+      "key": "P04",
+      "name": "账号与任职资料",
+      "componentKeys": [
+        "P04"
+      ],
+      "taskId": "2110439242966274050",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "FAILED",
+      "runId": "2110451979821789185",
+      "readCount": 1566,
+      "summary": {
+        "FAILED": 1566
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110442512279441410",
+          "status": "FAILED",
+          "configVersion": 0,
+          "readCount": 1566,
+          "summary": {
+            "FAILED": 1566
+          },
+          "error": "执行失败（StreamReadException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+          "evidence": [
+            "result-classifications.json",
+            "result-P04.json"
+          ]
+        },
+        {
+          "phase": "phase3",
+          "runId": "2110451979821789185",
+          "status": "FAILED",
+          "configVersion": 0,
+          "readCount": 1566,
+          "summary": {
+            "FAILED": 1566
+          },
+          "error": "执行失败（ServiceException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+          "evidence": [
+            "phase3/result-P04.json",
+            "phase3/classification-P04.json",
+            "phase3/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": "公司不存在（code1002029000），DppmsUserSyncAdapter:108 → CompanyApi.getCompanyByCode；正式公司前置缺口。",
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P05",
+      "name": "角色定义及来源角色绑定",
+      "componentKeys": [
+        "P05"
+      ],
+      "taskId": "2110439243297624066",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "FAILED",
+      "runId": "2110442606106021889",
+      "readCount": 31,
+      "summary": {
+        "FAILED": 31
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110442606106021889",
+          "status": "FAILED",
+          "configVersion": 0,
+          "readCount": 31,
+          "summary": {
+            "FAILED": 31
+          },
+          "error": "请先完成用户迁移及操作者绑定，再迁移角色审计字段",
+          "evidence": [
+            "result-classifications.json",
+            "result-P05.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P06",
+      "name": "用户角色关系",
+      "componentKeys": [
+        "P06"
+      ],
+      "taskId": "2110439243515727873",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "FAILED",
+      "runId": "2110442655988879361",
+      "readCount": 0,
+      "summary": {
+        "FAILED": 0
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110442655988879361",
+          "status": "FAILED",
+          "configVersion": 0,
+          "readCount": 0,
+          "summary": {
+            "FAILED": 0
+          },
+          "error": "共享来源证据：前置任务当前版本没有成功的完整迁入证据",
+          "evidence": [
+            "result-classifications.json",
+            "result-P06.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P07",
+      "name": "用户公司与部门范围",
+      "componentKeys": [
+        "P07"
+      ],
+      "taskId": "2110439243805134849",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "FAILED",
+      "runId": "2110442705154510850",
+      "readCount": 0,
+      "summary": {
+        "FAILED": 0
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110442705154510850",
+          "status": "FAILED",
+          "configVersion": 0,
+          "readCount": 0,
+          "summary": {
+            "FAILED": 0
+          },
+          "error": "共享来源证据：前置任务当前版本没有成功的完整迁入证据",
+          "evidence": [
+            "result-classifications.json",
+            "result-P07.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P08",
+      "name": "基础字典类型与字典项",
+      "componentKeys": [
+        "P08",
+        "P09"
+      ],
+      "taskId": "2110439244555915266",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "FAILED",
+      "runId": "2110442756761227265",
+      "readCount": 612,
+      "summary": {
+        "FAILED": 612
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110442756761227265",
+          "status": "FAILED",
+          "configVersion": 0,
+          "readCount": 612,
+          "summary": {
+            "FAILED": 612
+          },
+          "error": "DPPMS字典项：原人员缺少已核实的平台账号，等待裁决",
+          "evidence": [
+            "result-classifications.json",
+            "result-P08.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P10",
+      "name": "CRM客户主档",
+      "componentKeys": [
+        "P10"
+      ],
+      "taskId": "2110439244857905153",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110442809483628546",
+      "readCount": 59601,
+      "summary": {
+        "ISSUE": 83,
+        "CREATED": 59518
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110442809483628546",
+          "status": "PREVIEW_READY",
+          "configVersion": 0,
+          "readCount": 59601,
+          "summary": {
+            "ISSUE": 83,
+            "CREATED": 59518
+          },
+          "error": null,
+          "evidence": [
+            "result-classifications.json",
+            "result-P10.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 10000,
+        "messages": {
+          "None": 9917,
+          "DUPLICATE_CUSTOMER_CODE": 44,
+          "MISSING_CUSTOMER_NAME": 35,
+          "CUSTOMER_NAME_TOO_LONG": 4
+        },
+        "coverage": "SAMPLE_ONLY"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P11",
+      "name": "CRM正式产品目录",
+      "componentKeys": [
+        "P11"
+      ],
+      "taskId": "2110439245117952002",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110443092087443458",
+      "readCount": 8441,
+      "summary": {
+        "CREATED": 8441
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110443092087443458",
+          "status": "PREVIEW_READY",
+          "configVersion": 0,
+          "readCount": 8441,
+          "summary": {
+            "CREATED": 8441
+          },
+          "error": null,
+          "evidence": [
+            "result-classifications.json",
+            "result-P11.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 8441,
+        "messages": {
+          "None": 8441
+        },
+        "coverage": "SAMPLE_ONLY"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P12",
+      "name": "DPPMS缺失产品补齐与编码关联",
+      "componentKeys": [
+        "P12"
+      ],
+      "taskId": "2110439245344444418",
+      "taskVersion": 1,
+      "resultVersion": 1,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110481910438141954",
+      "readCount": 34976,
+      "summary": {
+        "INSERT": 34976
+      },
+      "startedAt": "2026-10-15 05:24:32.963000",
+      "finishedAt": "2026-10-15 05:25:31.552000",
+      "error": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\runtime-20261015T051831\\yudao-server.jar",
+      "fullExpectedActionCounts": null,
+      "sampleCoverage": {
+        "count": 2000,
+        "messages": {
+          "OTHER_MESSAGE_NOT_EXPORTED": 2000
+        },
+        "actions": {
+          "INSERT": 2000
+        },
+        "issueCoverage": "NO_ISSUE_ACTIONS_IN_RUN_SUMMARY",
+        "coverage": "SAMPLE_ONLY"
+      },
+      "repairRunHistory": [
+        {
+          "phase": "phase2",
+          "runId": "2110481910438141954",
+          "status": "PREVIEW_READY",
+          "configVersion": 1,
+          "readCount": 34976,
+          "summary": {
+            "INSERT": 34976
+          },
+          "sampleCount": 2000,
+          "sampleReasonCounts": {
+            "OTHER_MESSAGE_NOT_EXPORTED": 2000
+          },
+          "sampleActionCounts": {
+            "INSERT": 2000
+          },
+          "sampleWarningActions": {
+            "CREATED": 0
+          },
+          "startedAt": "2026-10-15 05:24:32.963000",
+          "finishedAt": "2026-10-15 05:25:31.552000",
+          "error": null,
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\result-P12.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\runtime.json"
+        }
+      ],
+      "sourceEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\result-P12.json",
+      "previousReportResult": {
+        "key": "P12",
+        "name": "DPPMS缺失产品补齐与编码关联",
+        "componentKeys": [
+          "P12"
+        ],
+        "taskId": "2110439245344444418",
+        "taskVersion": 0,
+        "resultVersion": 0,
+        "previewStatus": "FAILED",
+        "runId": "2110452073841307649",
+        "readCount": 0,
+        "summary": {},
+        "runHistory": [
+          {
+            "phase": "phase1",
+            "runId": "2110443144092618753",
+            "status": "FAILED",
+            "configVersion": 0,
+            "readCount": 0,
+            "summary": {},
+            "error": "执行失败（NullPointerException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "result-classifications.json",
+              "result-P12.json"
+            ]
+          },
+          {
+            "phase": "phase3",
+            "runId": "2110452073841307649",
+            "status": "FAILED",
+            "configVersion": 0,
+            "readCount": 0,
+            "summary": {},
+            "error": "目标主键要求无损的正整数 Long，来源主键无效: null",
+            "evidence": [
+              "phase3/result-P12.json",
+              "phase3/classification-P12.json",
+              "phase3/runtime.json"
+            ]
+          }
+        ],
+        "sampleCoverage": {
+          "count": 0,
+          "messages": {},
+          "coverage": "NO_RESULT_ROWS"
+        },
+        "fullExpectedActionCounts": null,
+        "confirmedRootCause": "NPE已消除，adapter:66的definitionRevisionId=null仍为Owner配置缺口。",
+        "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+        "taskVersionDiffersFromResultVersion": false
+      },
+      "confirmedRootCause": "已取消revision/标签扩展，按正式编码关联/仅补缺；不再列旧definition缺口",
+      "sampleWarnings": {
+        "CREATED": 0
+      },
+      "sampleWarningBoundary": "CREATED样本中的公司关联未命中提示是警告，不是ISSUE；拟创建也不等于公司前置已就绪",
+      "technicalReadCompleted": true,
+      "businessBlockingSummary": {},
+      "businessExecutableConclusion": "未授权正式迁入；PREVIEW_READY只证明本次技术预览终态，不消除Owner/规格/数据ISSUE",
+      "durationSeconds": 58.589
+    },
+    {
+      "key": "P13",
+      "name": "CRM执行单",
+      "componentKeys": [
+        "P13"
+      ],
+      "taskId": "2110439245579325441",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110443193249861634",
+      "readCount": 99895,
+      "summary": {
+        "ISSUE": 99895
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110443193249861634",
+          "status": "PREVIEW_READY",
+          "configVersion": 0,
+          "readCount": 99895,
+          "summary": {
+            "ISSUE": 99895
+          },
+          "error": null,
+          "evidence": [
+            "result-classifications.json",
+            "result-P13.json",
+            "P13-page-summary.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P14",
+      "name": "销售订单与订单行",
+      "componentKeys": [
+        "P14"
+      ],
+      "taskId": "2110306872558583810",
+      "taskVersion": 5,
+      "resultVersion": 5,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110507977953607682",
+      "readCount": 467190,
+      "summary": {
+        "ISSUE": 2138,
+        "CREATED": 465052
+      },
+      "startedAt": "2026-10-15 07:08:07.944000",
+      "finishedAt": "2026-10-15 07:10:34.179000",
+      "error": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\runtime-20261015T060604\\yudao-server.jar",
+      "fullExpectedActionCounts": null,
+      "sampleCoverage": {
+        "count": 2000,
+        "actions": {
+          "ISSUE": 2000
+        },
+        "messages": {
+          "PARENT_ORDER_MISSING: 未找到同ERP来源、公司、类型和订单号的父订单": 1590,
+          "DUPLICATE_BUSINESS_KEY_CONFLICT": 410
+        },
+        "pageChildCount": 0,
+        "coverage": "SAMPLE_ONLY",
+        "issueCoverage": "NOT_PROVEN_FULL_ISSUE_COVERAGE",
+        "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\classification-P14.json"
+      },
+      "repairRunHistory": [
+        {
+          "phase": "phase5",
+          "runId": "2110507977953607682",
+          "status": "PREVIEW_READY",
+          "configVersion": 5,
+          "readCount": 467190,
+          "summary": {
+            "ISSUE": 2138,
+            "CREATED": 465052
+          },
+          "sampleCount": 2000,
+          "sampleReasonCounts": {
+            "OTHER_MESSAGE_NOT_EXPORTED": 2000
+          },
+          "sampleActionCounts": {
+            "ISSUE": 2000
+          },
+          "sampleWarningActions": {
+            "CREATED": 0
+          },
+          "startedAt": "2026-10-15 07:08:07.944000",
+          "finishedAt": "2026-10-15 07:10:34.179000",
+          "error": null,
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\result-P14.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\runtime.json",
+          "pageClassification": {
+            "fullCounts": {
+              "ISSUE": 2138,
+              "CREATED": 465052
+            },
+            "pageSummaryCounts": {
+              "ISSUE": 2138,
+              "CREATED": 465052
+            },
+            "resultActionCounts": {
+              "ISSUE": 2000
+            },
+            "resultMessageCounts": {
+              "PARENT_ORDER_MISSING: 未找到同ERP来源、公司、类型和订单号的父订单": 1590,
+              "DUPLICATE_BUSINESS_KEY_CONFLICT": 410
+            },
+            "childCount": 0,
+            "pages": [
+              {
+                "runId": "2110507977953607682",
+                "page": null,
+                "status": null,
+                "readCount": 467190,
+                "sampleCount": 2000,
+                "fullCounts": {
+                  "ISSUE": 2138,
+                  "CREATED": 465052
+                }
+              }
+            ]
+          },
+          "pageClassificationEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\classification-P14.json"
+        }
+      ],
+      "sourceEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\result-P14.json",
+      "previousReportResult": {
+        "key": "P14",
+        "name": "销售订单与订单行",
+        "componentKeys": [
+          "P14"
+        ],
+        "taskId": "2110306872558583810",
+        "taskVersion": 4,
+        "resultVersion": 4,
+        "previewStatus": "PREVIEW_READY",
+        "runId": "2110461145676263425",
+        "readCount": 467190,
+        "summary": {
+          "ISSUE": 92194,
+          "CREATED": 374996
+        },
+        "runHistory": [
+          {
+            "phase": "phase1",
+            "runId": "2110444088469524481",
+            "status": "FAILED",
+            "configVersion": 1,
+            "readCount": 0,
+            "summary": {},
+            "error": "执行失败（RecoverableDataAccessException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "result-classifications.json",
+              "result-P14.json"
+            ]
+          },
+          {
+            "phase": "phase3",
+            "runId": "2110452130699292674",
+            "status": "FAILED",
+            "configVersion": 2,
+            "readCount": 0,
+            "summary": {},
+            "error": "来源缺少映射列: originalSourceFingerprint",
+            "evidence": [
+              "phase3/result-P14.json",
+              "phase3/classification-P14.json",
+              "phase3/runtime.json"
+            ]
+          },
+          {
+            "phase": "phase4",
+            "runId": "2110457041704988674",
+            "status": "FAILED",
+            "configVersion": 3,
+            "readCount": 90466,
+            "summary": {
+              "ISSUE": 90466
+            },
+            "error": "执行失败（RecoverableDataAccessException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "phase4/result-P14.json",
+              "phase4/classification-P14.json",
+              "phase4/runtime.json"
+            ]
+          },
+          {
+            "phase": "phase5",
+            "runId": "2110461145676263425",
+            "status": "PREVIEW_READY",
+            "configVersion": 4,
+            "readCount": 467190,
+            "summary": {
+              "ISSUE": 92194,
+              "CREATED": 374996
+            },
+            "error": null,
+            "evidence": [
+              "phase5/result-P14.json",
+              "phase5/classification-P14.json",
+              "phase5/runtime.json"
+            ]
+          }
+        ],
+        "sampleCoverage": {
+          "count": 2000,
+          "messages": {
+            "FIELD_CARRY_PROOF_MISSING: 来源或目标仍有未解决冲突，禁止自动接管": 2000
+          },
+          "coverage": "PARTIAL_RESULT_ROWS"
+        },
+        "fullExpectedActionCounts": null,
+        "confirmedRootCause": "v4 phase5 PREVIEW_READY：read467190=CREATED374996+ISSUE92194，ORDER+LINE均已读。2000样本均FIELD_CARRY_PROOF_MISSING，只是样本原因，不能外推92194。v3前半段及LINE超时历史保留。",
+        "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+        "taskVersionDiffersFromResultVersion": false
+      },
+      "confirmedRootCause": "新库首次迁入误带旧库专用fieldCarryProof，hasFieldCarry仅判断字段存在，空证明触发FIELD_CARRY_PROOF_MISSING。本轮移除3个ORDER恢复专用映射及空reviewed/unreviewed参数，沿既有正式首次导入Owner；旧证明/接管保护和历史保留，不放宽Owner校验。最新终态按本Run",
+      "sampleWarnings": {
+        "CREATED": 0
+      },
+      "sampleWarningBoundary": "CREATED样本中的公司关联未命中提示是警告，不是ISSUE；拟创建也不等于公司前置已就绪",
+      "technicalReadCompleted": true,
+      "businessBlockingSummary": {
+        "ISSUE": 2138
+      },
+      "businessExecutableConclusion": "未授权正式迁入；PREVIEW_READY只证明本次技术预览终态，不消除Owner/规格/数据ISSUE",
+      "durationSeconds": 146.235
+    },
+    {
+      "key": "P15",
+      "name": "正式合同、发货合同引用与发货事实",
+      "componentKeys": [
+        "P15",
+        "P26",
+        "P27",
+        "P28",
+        "P29"
+      ],
+      "taskId": "2110439255301722114",
+      "taskVersion": 6,
+      "resultVersion": 6,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110493133556776962",
+      "readCount": 3848169,
+      "summary": {
+        "ISSUE": 814,
+        "CREATED": 3847355
+      },
+      "startedAt": "2026-10-15 06:09:08.764000",
+      "finishedAt": "2026-10-15 07:05:47.151000",
+      "error": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\runtime-20261015T060604\\yudao-server.jar",
+      "fullExpectedActionCounts": null,
+      "sampleCoverage": {
+        "count": 10000,
+        "messages": {
+          "OTHER_MESSAGE_NOT_EXPORTED": 9186,
+          "CONTRACT_CUSTOMER_CONFLICT": 814
+        },
+        "actions": {
+          "CREATED": 9186,
+          "ISSUE": 814
+        },
+        "issueCoverage": "FULL_ISSUE_ACTIONS_PRESENT_IN_SAMPLE",
+        "coverage": "SAMPLE_ONLY"
+      },
+      "repairRunHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110477221705297921",
+          "status": "FAILED",
+          "configVersion": 4,
+          "readCount": 0,
+          "summary": {},
+          "sampleCount": 0,
+          "sampleReasonCounts": {},
+          "sampleActionCounts": {},
+          "sampleWarningActions": {
+            "CREATED": 0
+          },
+          "startedAt": "2026-10-15 05:05:55.082000",
+          "finishedAt": "2026-10-15 05:15:55.420000",
+          "error": "执行失败（QueryTimeoutException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\result-P15.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\runtime.json"
+        },
+        {
+          "phase": "phase4",
+          "runId": "2110493133556776962",
+          "status": "PREVIEW_READY",
+          "configVersion": 6,
+          "readCount": 3848169,
+          "summary": {
+            "ISSUE": 814,
+            "CREATED": 3847355
+          },
+          "sampleCount": 10000,
+          "sampleReasonCounts": {
+            "OTHER_MESSAGE_NOT_EXPORTED": 9186,
+            "CONTRACT_CUSTOMER_CONFLICT": 814
+          },
+          "sampleActionCounts": {
+            "CREATED": 9186,
+            "ISSUE": 814
+          },
+          "sampleWarningActions": {
+            "CREATED": 9186
+          },
+          "startedAt": "2026-10-15 06:09:08.764000",
+          "finishedAt": "2026-10-15 07:05:47.151000",
+          "error": null,
+          "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\result-P15.json",
+          "runtimeEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\runtime.json"
+        }
+      ],
+      "sourceEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\result-P15.json",
+      "previousReportResult": {
+        "key": "P15",
+        "name": "正式合同、发货合同引用与发货事实",
+        "componentKeys": [
+          "P15",
+          "P26",
+          "P27",
+          "P28",
+          "P29"
+        ],
+        "taskId": "2110439255301722114",
+        "taskVersion": 3,
+        "resultVersion": 3,
+        "previewStatus": "FAILED",
+        "runId": "2110462189927936001",
+        "readCount": 0,
+        "summary": {},
+        "runHistory": [
+          {
+            "phase": "phase1",
+            "runId": "2110444358905663490",
+            "status": "FAILED",
+            "configVersion": 0,
+            "readCount": 0,
+            "summary": {},
+            "error": "执行失败（QueryTimeoutException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "result-classifications.json",
+              "result-P15.json"
+            ]
+          },
+          {
+            "phase": "phase3",
+            "runId": "2110452186697445378",
+            "status": "FAILED",
+            "configVersion": 1,
+            "readCount": 0,
+            "summary": {},
+            "error": "执行失败（QueryTimeoutException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "phase3/result-P15.json",
+              "phase3/classification-P15.json",
+              "phase3/runtime.json"
+            ]
+          },
+          {
+            "phase": "phase4",
+            "runId": "2110458457018347521",
+            "status": "FAILED",
+            "configVersion": 2,
+            "readCount": 0,
+            "summary": {},
+            "error": "执行失败（QueryTimeoutException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "phase4/result-P15.json",
+              "phase4/classification-P15.json",
+              "phase4/runtime.json"
+            ]
+          },
+          {
+            "phase": "phase6",
+            "runId": "2110462189927936001",
+            "status": "FAILED",
+            "configVersion": 3,
+            "readCount": 0,
+            "summary": {},
+            "error": "执行失败（QueryTimeoutException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+            "evidence": [
+              "phase6/result-P15.json",
+              "phase6/classification-P15.json",
+              "phase6/runtime.json"
+            ]
+          }
+        ],
+        "sampleCoverage": {
+          "count": 0,
+          "messages": {},
+          "coverage": "NO_RESULT_ROWS"
+        },
+        "fullExpectedActionCounts": null,
+        "confirmedRootCause": "v3 phase6 Run2110462189927936001最终FAILED QueryTimeoutException，600秒/read0/summary{}。末尾STRAIGHT_JOIN连接顺序调整未解决聚合性能阻断；停止继续提高时限或请求。EXPLAIN临时节点7→6只是计划指标，估算不是实际行数；SQL_BIG_RESULT未采用。",
+        "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+        "taskVersionDiffersFromResultVersion": false
+      },
+      "confirmedRootCause": "B延后大JSON＋C主键顺序读键，业务字段/合同客户冲突保护及600秒保持；旧超时/中断作为历史，不套最新Run",
+      "sampleWarnings": {
+        "CREATED": 9186
+      },
+      "sampleWarningBoundary": "CREATED样本中的公司关联未命中提示是警告，不是ISSUE；拟创建也不等于公司前置已就绪",
+      "technicalReadCompleted": true,
+      "businessBlockingSummary": {
+        "ISSUE": 814
+      },
+      "businessExecutableConclusion": "未授权正式迁入；PREVIEW_READY只证明本次技术预览终态，不消除Owner/规格/数据ISSUE",
+      "durationSeconds": 3398.387
+    },
+    {
+      "key": "P16",
+      "name": "有效项目主档、来源身份与基础最终客户资料",
+      "componentKeys": [
+        "P16",
+        "P17"
+      ],
+      "taskId": "2110306158427996161",
+      "taskVersion": 1,
+      "resultVersion": 1,
+      "previewStatus": "FAILED",
+      "runId": "2110445161997438978",
+      "readCount": 0,
+      "summary": {},
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110445161997438978",
+          "status": "FAILED",
+          "configVersion": 1,
+          "readCount": 0,
+          "summary": {},
+          "error": "先完成用户迁移及来源绑定，再承接项目审计",
+          "evidence": [
+            "result-classifications.json",
+            "result-P16.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": "用户迁移及来源审计绑定前置阻断。",
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P18",
+      "name": "项目合同关系及正式商务关联",
+      "componentKeys": [
+        "P18"
+      ],
+      "taskId": "2110307139123380226",
+      "taskVersion": 3,
+      "resultVersion": 3,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110457506849107969",
+      "readCount": 82676,
+      "summary": {
+        "ISSUE": 82676
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110445255253594114",
+          "status": "FAILED",
+          "configVersion": 1,
+          "readCount": 0,
+          "summary": {},
+          "error": "执行失败（RecoverableDataAccessException），请检查连接、容量和服务状态；凭据及原始SQL不写入日志",
+          "evidence": [
+            "result-classifications.json",
+            "result-P18.json"
+          ]
+        },
+        {
+          "phase": "phase3",
+          "runId": "2110452998614036482",
+          "status": "FAILED",
+          "configVersion": 2,
+          "readCount": 0,
+          "summary": {},
+          "error": "来源缺少映射列: formalGroupSize",
+          "evidence": [
+            "phase3/result-P18.json",
+            "phase3/classification-P18.json",
+            "phase3/runtime.json"
+          ]
+        },
+        {
+          "phase": "phase4",
+          "runId": "2110457506849107969",
+          "status": "PREVIEW_READY",
+          "configVersion": 3,
+          "readCount": 82676,
+          "summary": {
+            "ISSUE": 82676
+          },
+          "error": null,
+          "evidence": [
+            "phase4/result-P18.json",
+            "phase4/classification-P18.json",
+            "phase4/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 10000,
+        "messages": {
+          "PROJECT_BINDING_MISSING：先迁入规范项目主档": 10000
+        },
+        "coverage": "PARTIAL_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": "v3 PREVIEW_READY82676，完整summary ISSUE82676；仅10000条样本归因为PROJECT_BINDING_MISSING，不能外推全部原因。",
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P19",
+      "name": "项目相关方与发货/执行状态资料",
+      "componentKeys": [
+        "P19"
+      ],
+      "taskId": "2110306421847064577",
+      "taskVersion": 1,
+      "resultVersion": 1,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110445525291274241",
+      "readCount": 265547,
+      "summary": {
+        "ISSUE": 265547
+      },
+      "runHistory": [
+        {
+          "phase": "phase1",
+          "runId": "2110445525291274241",
+          "status": "PREVIEW_READY",
+          "configVersion": 1,
+          "readCount": 265547,
+          "summary": {
+            "ISSUE": 265547
+          },
+          "error": null,
+          "evidence": [
+            "result-classifications.json",
+            "result-P19.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 500,
+        "messages": {
+          "PROJECT_BINDING_MISSING：先迁入规范项目主档": 500
+        },
+        "coverage": "SAMPLE_ONLY"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P20",
+      "name": "项目真实产品",
+      "componentKeys": [
+        "P20"
+      ],
+      "taskId": "2110439264646631425",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110447956364398593",
+      "readCount": 7818,
+      "summary": {
+        "ISSUE": 7818
+      },
+      "runHistory": [
+        {
+          "phase": "phase2",
+          "runId": "2110447956364398593",
+          "status": "PREVIEW_READY",
+          "configVersion": 0,
+          "readCount": 7818,
+          "summary": {
+            "ISSUE": 7818
+          },
+          "error": null,
+          "evidence": [
+            "phase2/result-P20.json",
+            "phase2/classification-P20.json",
+            "phase2/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 7818,
+        "messages": {
+          "PROJECT_BINDING_MISSING：先迁入规范项目主档": 7818
+        },
+        "coverage": "ALL_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P21",
+      "name": "项目租赁产品与产品配置",
+      "componentKeys": [
+        "P21"
+      ],
+      "taskId": "2110439264919261186",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110448007073533954",
+      "readCount": 1294,
+      "summary": {
+        "ISSUE": 1294
+      },
+      "runHistory": [
+        {
+          "phase": "phase2",
+          "runId": "2110448007073533954",
+          "status": "PREVIEW_READY",
+          "configVersion": 0,
+          "readCount": 1294,
+          "summary": {
+            "ISSUE": 1294
+          },
+          "error": null,
+          "evidence": [
+            "phase2/result-P21.json",
+            "phase2/classification-P21.json",
+            "phase2/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 1294,
+        "messages": {
+          "PROJECT_BINDING_MISSING：先迁入规范项目主档": 1294
+        },
+        "coverage": "ALL_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P22",
+      "name": "项目产品实施范围",
+      "componentKeys": [
+        "P22"
+      ],
+      "taskId": "2110439265175113729",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110448100925280258",
+      "readCount": 343858,
+      "summary": {
+        "ISSUE": 343858
+      },
+      "runHistory": [
+        {
+          "phase": "phase2",
+          "runId": "2110448100925280258",
+          "status": "PREVIEW_READY",
+          "configVersion": 0,
+          "readCount": 343858,
+          "summary": {
+            "ISSUE": 343858
+          },
+          "error": null,
+          "evidence": [
+            "phase2/result-P22.json",
+            "phase2/classification-P22.json",
+            "phase2/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 10000,
+        "messages": {
+          "PROJECT_BINDING_MISSING：先迁入规范项目主档": 10000
+        },
+        "coverage": "PARTIAL_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-consolidation-20261015T023133\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P23",
+      "name": "合同回款计划",
+      "componentKeys": [
+        "P23"
+      ],
+      "taskId": "2110439265489686530",
+      "taskVersion": 1,
+      "resultVersion": 1,
+      "previewStatus": "FAILED",
+      "runId": "2110453056197636097",
+      "readCount": 0,
+      "summary": {},
+      "runHistory": [
+        {
+          "phase": "phase3",
+          "runId": "2110453056197636097",
+          "status": "FAILED",
+          "configVersion": 1,
+          "readCount": 0,
+          "summary": {},
+          "error": "先完成已批准的用户迁移和审计绑定，再承接计划审计",
+          "evidence": [
+            "phase3/result-P23.json",
+            "phase3/classification-P23.json",
+            "phase3/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 0,
+        "messages": {},
+        "coverage": "NO_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": "用户审计绑定前置缺口。",
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P24",
+      "name": "合同实际回款信息",
+      "componentKeys": [
+        "P24"
+      ],
+      "taskId": "2110439265737150465",
+      "taskVersion": 1,
+      "resultVersion": 1,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110453111663112194",
+      "readCount": 79182,
+      "summary": {
+        "CREATED": 79182
+      },
+      "runHistory": [
+        {
+          "phase": "phase3",
+          "runId": "2110453111663112194",
+          "status": "PREVIEW_READY",
+          "configVersion": 1,
+          "readCount": 79182,
+          "summary": {
+            "CREATED": 79182
+          },
+          "error": null,
+          "evidence": [
+            "phase3/result-P24.json",
+            "phase3/classification-P24.json",
+            "phase3/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 500,
+        "messages": {
+          "39原字段复用正式回款信息；不生成收款或验收完成动作": 500
+        },
+        "coverage": "PARTIAL_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": "完整summary79182 CREATED、无ISSUE、业务写入0；原因明细仅500样本。",
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P25",
+      "name": "设备逐次续保记录",
+      "componentKeys": [
+        "P25"
+      ],
+      "taskId": "2110439265988808706",
+      "taskVersion": 0,
+      "resultVersion": 0,
+      "previewStatus": "PREVIEW_READY",
+      "runId": "2110454395728310274",
+      "readCount": 453443,
+      "summary": {
+        "CREATED": 453443
+      },
+      "runHistory": [
+        {
+          "phase": "phase3",
+          "runId": "2110454395728310274",
+          "status": "PREVIEW_READY",
+          "configVersion": 0,
+          "readCount": 453443,
+          "summary": {
+            "CREATED": 453443
+          },
+          "error": null,
+          "evidence": [
+            "phase3/result-P25.json",
+            "phase3/classification-P25.json",
+            "phase3/runtime.json"
+          ]
+        }
+      ],
+      "sampleCoverage": {
+        "count": 10000,
+        "messages": {
+          "原十字段承接正式续保记录；参考年数转月数，实际起止日期保持": 10000
+        },
+        "coverage": "PARTIAL_RESULT_ROWS"
+      },
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": "完整summary453443 CREATED、业务写入0。",
+      "runtimeJar": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-recheck-20261014\\runtime-preview-fix-20261015T030537\\yudao-server.jar",
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P30",
+      "name": "设备主档及项目归属衔接",
+      "componentKeys": [
+        "P30"
+      ],
+      "taskId": null,
+      "taskVersion": null,
+      "resultVersion": null,
+      "previewStatus": "NOT_PREVIEWED",
+      "runId": null,
+      "readCount": null,
+      "summary": null,
+      "runHistory": [],
+      "sampleCoverage": null,
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": null,
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P31",
+      "name": "项目成员历史、历史联系人与获准授权",
+      "componentKeys": [
+        "P31",
+        "P32"
+      ],
+      "taskId": null,
+      "taskVersion": null,
+      "resultVersion": null,
+      "previewStatus": "NOT_PREVIEWED",
+      "runId": null,
+      "readCount": null,
+      "summary": null,
+      "runHistory": [],
+      "sampleCoverage": null,
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": null,
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P33",
+      "name": "普通安装历史及获准当前位置",
+      "componentKeys": [
+        "P33"
+      ],
+      "taskId": null,
+      "taskVersion": null,
+      "resultVersion": null,
+      "previewStatus": "NOT_PREVIEWED",
+      "runId": null,
+      "readCount": null,
+      "summary": null,
+      "runHistory": [],
+      "sampleCoverage": null,
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": null,
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P34",
+      "name": "出厂软件版本记录",
+      "componentKeys": [
+        "P34"
+      ],
+      "taskId": null,
+      "taskVersion": null,
+      "resultVersion": null,
+      "previewStatus": "NOT_PREVIEWED",
+      "runId": null,
+      "readCount": null,
+      "summary": null,
+      "runHistory": [],
+      "sampleCoverage": null,
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": null,
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P35",
+      "name": "软件变更批次与设备版本历史",
+      "componentKeys": [
+        "P35",
+        "P36"
+      ],
+      "taskId": null,
+      "taskVersion": null,
+      "resultVersion": null,
+      "previewStatus": "NOT_PREVIEWED",
+      "runId": null,
+      "readCount": null,
+      "summary": null,
+      "runHistory": [],
+      "sampleCoverage": null,
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": null,
+      "taskVersionDiffersFromResultVersion": false
+    },
+    {
+      "key": "P37",
+      "name": "设备许可历史",
+      "componentKeys": [
+        "P37"
+      ],
+      "taskId": null,
+      "taskVersion": null,
+      "resultVersion": null,
+      "previewStatus": "NOT_PREVIEWED",
+      "runId": null,
+      "readCount": null,
+      "summary": null,
+      "runHistory": [],
+      "sampleCoverage": null,
+      "fullExpectedActionCounts": null,
+      "confirmedRootCause": null,
+      "runtimeJar": null,
+      "taskVersionDiffersFromResultVersion": false
+    }
+  ],
+  "preparedRequestFileCounts": {
+    "phase1": 2,
+    "phase2": 3,
+    "phase3": 2,
+    "phase4": 2,
+    "phase5": 1
+  },
+  "preparedRequestFileTotal": 10,
+  "recordedRootRunIdsByPhase": {
+    "phase1": [
+      "2110477169603653634",
+      "2110477221705297921"
+    ],
+    "phase2": [
+      "2110481852200230914",
+      "2110481910438141954",
+      "2110482204651790337"
+    ],
+    "phase3": [
+      "2110486316197965826",
+      "2110486367326531586"
+    ],
+    "phase4": [
+      "2110493084286287874",
+      "2110493133556776962"
+    ],
+    "phase5": [
+      "2110507977953607682"
+    ]
+  },
+  "recordedRootRunTotal": 10,
+  "requestCountBoundary": "准备请求文件数不等于已发POST次数；Run数按state实际runId，恢复中断Run独立记录",
+  "interruptedPreviewHistory": [
+    {
+      "runId": "2110482204651790337",
+      "status": "FAILED",
+      "readCount": 118000,
+      "summary": {
+        "ISSUE": 814,
+        "CREATED": 117186
+      },
+      "startedAt": "2026-10-15 05:25:43.109000",
+      "finishedAt": "2026-10-15 05:41:59.571000",
+      "error": "运行进程中断，已核对业务提交状态；可创建关联重试",
+      "configVersion": 5,
+      "fullPreviewComplete": false,
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase3\\old-P15-after-recover.json"
+    },
+    {
+      "runId": "2110486367326531586",
+      "status": "FAILED",
+      "readCount": 892000,
+      "summary": {
+        "ISSUE": 814,
+        "CREATED": 891186
+      },
+      "startedAt": "2026-10-15 05:42:15.569000",
+      "finishedAt": "2026-10-15 06:08:52.868000",
+      "error": "运行进程中断，已核对业务提交状态；可创建关联重试",
+      "configVersion": 5,
+      "fullPreviewComplete": false,
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\old-P15-after-recover.json"
+    }
+  ],
+  "oldReport": "preview-20261015.json",
+  "dependencies": "prerequisite-dependencies.md",
+  "regressionEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\streaming-context-tests.log",
+  "regression65": {
+    "passed": 65,
+    "failed": 0,
+    "skipped": 0
+  },
+  "additionalParentAliasEvidence": [
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\p01-parent-alias-red.log",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\p01-parent-alias-green.log"
+  ],
+  "businessWriteBoundary": "No formal migration; preview technical evidence and confirmed login audit tracked separately",
+  "retainedGaps": [
+    "P11 OWNER_ENTRY_REQUIRED",
+    "six non-full-INT-entry tasks",
+    "formal account/audit bindings and P06/P07 real SUCCESS snapshots"
+  ],
+  "terminalBaselineEvidence": [
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\auth-audit.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\baseline-after-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\baseline-before-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase1\\summary.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\auth-audit.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\baseline-after-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase2\\baseline-before-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase3\\auth-audit.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase3\\baseline-after-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase3\\baseline-before-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\after-auth-expiry.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\auth-audit.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\auth-expiry-verification.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\baseline-after-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\baseline-before-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\new-runs-before-auth-expiry.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\auth-audit.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\baseline-after-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\baseline-before-auth.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase5\\summary.json"
+  ],
+  "terminalBatchReconciliation": {
+    "capturedAtUtc": "2026-10-14T23:12:10.007365+00:00",
+    "database": "npdms_reverify_20261014",
+    "results": [
+      {
+        "run": {
+          "id": 2110493133556776962,
+          "task_id": 2110439255301722114,
+          "status": "PREVIEW_READY",
+          "preview": 1,
+          "config_version": 6,
+          "read_count": 3848169,
+          "summary_json": "{\"ISSUE\": 814, \"CREATED\": 3847355}",
+          "started_at": "2026-10-15 06:09:08.764000",
+          "finished_at": "2026-10-15 07:05:47.151000"
+        },
+        "terminal": true,
+        "batchGroups": [
+          {
+            "logicalObject": "CONTRACT",
+            "status": "COMPLETED",
+            "batchCount": 7697,
+            "sourceCount": "80517",
+            "expectedRowCount": "80517",
+            "nullSourceCountBatches": "0",
+            "nullExpectedCountBatches": "0"
+          },
+          {
+            "logicalObject": "DEVICE_RELATION",
+            "status": "COMPLETED",
+            "batchCount": 7697,
+            "sourceCount": "64712",
+            "expectedRowCount": "64712",
+            "nullSourceCountBatches": "0",
+            "nullExpectedCountBatches": "0"
+          },
+          {
+            "logicalObject": "DEVICE_SN",
+            "status": "COMPLETED",
+            "batchCount": 7697,
+            "sourceCount": "3518110",
+            "expectedRowCount": "3518110",
+            "nullSourceCountBatches": "0",
+            "nullExpectedCountBatches": "0"
+          },
+          {
+            "logicalObject": "PACKAGE",
+            "status": "COMPLETED",
+            "batchCount": 7697,
+            "sourceCount": "106635",
+            "expectedRowCount": "106635",
+            "nullSourceCountBatches": "0",
+            "nullExpectedCountBatches": "0"
+          },
+          {
+            "logicalObject": "SHIPMENT_CONTRACT",
+            "status": "COMPLETED",
+            "batchCount": 7697,
+            "sourceCount": "78195",
+            "expectedRowCount": "78195",
+            "nullSourceCountBatches": "0",
+            "nullExpectedCountBatches": "0"
+          }
+        ],
+        "sumKnownSourceCount": 3848169,
+        "nullSourceCountBatches": 0,
+        "sourceCountComplete": true,
+        "equalsRunReadCount": true,
+        "countBoundary": "logical-object source_count compared with run.read_count; if differing, preserve both without forcing equality",
+        "previewIssueBoundary": "SyncEvidenceService.complete receives empty changes in preview, so plt_migration_issue is not full preview ISSUE count. Use run.summary_json for full action counts.",
+        "contractReasonCheck": {
+          "selectedBatchCount": 162,
+          "indexStructure": [
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "PRIMARY",
+              "Seq_in_index": 1,
+              "Column_name": "id",
+              "Collation": "A",
+              "Cardinality": 6676758,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 2,
+              "Column_name": "batch_id",
+              "Collation": "A",
+              "Cardinality": 34418,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 3,
+              "Column_name": "source_system",
+              "Collation": "A",
+              "Cardinality": 32697,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 4,
+              "Column_name": "source_table",
+              "Collation": "A",
+              "Cardinality": 34418,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 5,
+              "Column_name": "source_record_key",
+              "Collation": "A",
+              "Cardinality": 6425840,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 2,
+              "Column_name": "batch_id",
+              "Collation": "A",
+              "Cardinality": 15699,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 3,
+              "Column_name": "id",
+              "Collation": "A",
+              "Cardinality": 7002675,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 2,
+              "Column_name": "source_system",
+              "Collation": "A",
+              "Cardinality": 150,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 3,
+              "Column_name": "source_table",
+              "Collation": "A",
+              "Cardinality": 2262,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 4,
+              "Column_name": "source_record_key",
+              "Collation": "A",
+              "Cardinality": 5035692,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 5,
+              "Column_name": "deleted",
+              "Collation": "A",
+              "Cardinality": 4277007,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            }
+          ],
+          "explain": [
+            {
+              "id": 1,
+              "select_type": "SIMPLE",
+              "table": "plt_migration_source_record",
+              "partitions": null,
+              "type": "range",
+              "possible_keys": "uk_plt_migration_source_identity,idx_plt_migration_source_cursor,idx_plt_migration_global_source_identity",
+              "key": "uk_plt_migration_source_identity",
+              "key_len": "16",
+              "ref": null,
+              "rows": 80517,
+              "filtered": 50.0,
+              "Extra": "Using index condition; Using where; Using temporary"
+            }
+          ],
+          "estimatedRows": 80517,
+          "counts": [
+            {
+              "reasonCode": "NO_SOURCE_MIGRATION_ISSUE",
+              "count": 79703
+            },
+            {
+              "reasonCode": "CONTRACT_CUSTOMER_CONFLICT",
+              "count": 814
+            }
+          ],
+          "coverage": "FULL_SELECTED_CONTRACT_BATCH_RECORDS_ONLY_NOT_OTHER_OBJECTS"
+        }
+      },
+      {
+        "run": {
+          "id": 2110507977953607682,
+          "task_id": 2110306872558583810,
+          "status": "PREVIEW_READY",
+          "preview": 1,
+          "config_version": 5,
+          "read_count": 467190,
+          "summary_json": "{\"ISSUE\": 2138, \"CREATED\": 465052}",
+          "started_at": "2026-10-15 07:08:07.944000",
+          "finished_at": "2026-10-15 07:10:34.179000"
+        },
+        "terminal": true,
+        "batchGroups": [
+          {
+            "logicalObject": "ORDER",
+            "status": "COMPLETED",
+            "batchCount": 91,
+            "sourceCount": "90466",
+            "expectedRowCount": "90466",
+            "nullSourceCountBatches": "0",
+            "nullExpectedCountBatches": "0"
+          },
+          {
+            "logicalObject": "LINE",
+            "status": "COMPLETED",
+            "batchCount": 377,
+            "sourceCount": "376724",
+            "expectedRowCount": "376724",
+            "nullSourceCountBatches": "0",
+            "nullExpectedCountBatches": "0"
+          }
+        ],
+        "sumKnownSourceCount": 467190,
+        "nullSourceCountBatches": 0,
+        "sourceCountComplete": true,
+        "equalsRunReadCount": true,
+        "countBoundary": "logical-object source_count compared with run.read_count; if differing, preserve both without forcing equality",
+        "previewIssueBoundary": "SyncEvidenceService.complete receives empty changes in preview, so plt_migration_issue is not full preview ISSUE count. Use run.summary_json for full action counts.",
+        "contractReasonCheck": {
+          "selectedBatchCount": 0,
+          "indexStructure": [
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "PRIMARY",
+              "Seq_in_index": 1,
+              "Column_name": "id",
+              "Collation": "A",
+              "Cardinality": 6676758,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 2,
+              "Column_name": "batch_id",
+              "Collation": "A",
+              "Cardinality": 34418,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 3,
+              "Column_name": "source_system",
+              "Collation": "A",
+              "Cardinality": 32697,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 4,
+              "Column_name": "source_table",
+              "Collation": "A",
+              "Cardinality": 34418,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 5,
+              "Column_name": "source_record_key",
+              "Collation": "A",
+              "Cardinality": 6425840,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 2,
+              "Column_name": "batch_id",
+              "Collation": "A",
+              "Cardinality": 15699,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 3,
+              "Column_name": "id",
+              "Collation": "A",
+              "Cardinality": 7002675,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 2,
+              "Column_name": "source_system",
+              "Collation": "A",
+              "Cardinality": 150,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 3,
+              "Column_name": "source_table",
+              "Collation": "A",
+              "Cardinality": 2262,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 4,
+              "Column_name": "source_record_key",
+              "Collation": "A",
+              "Cardinality": 5035692,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 5,
+              "Column_name": "deleted",
+              "Collation": "A",
+              "Cardinality": 4277007,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            }
+          ],
+          "coverage": "NO_CONTRACT_BATCHES"
+        },
+        "p14SourcePrecheck": {
+          "classificationBoundary": "完整来源预检分类，不是全部Owner运行原因。与run summary ISSUE独立对账。",
+          "byObject": {
+            "ORDER": {
+              "batchCount": 91,
+              "expectedSourceCountFromBatches": 90466,
+              "coverage": "FULL_SELECTED_OBJECT_SOURCE_PRECHECK",
+              "explain": [
+                {
+                  "id": 1,
+                  "select_type": "SIMPLE",
+                  "table": "plt_migration_source_record",
+                  "partitions": null,
+                  "type": "range",
+                  "possible_keys": "uk_plt_migration_source_identity,idx_plt_migration_source_cursor,idx_plt_migration_global_source_identity",
+                  "key": "uk_plt_migration_source_identity",
+                  "key_len": "16",
+                  "ref": null,
+                  "rows": 90466,
+                  "filtered": 50.0,
+                  "Extra": "Using index condition; Using where; Using temporary"
+                }
+              ],
+              "estimatedRows": 90466,
+              "counts": [
+                {
+                  "reasonCode": "NO_SOURCE_PRECHECK_ISSUE",
+                  "count": 90056
+                },
+                {
+                  "reasonCode": "DUPLICATE_BUSINESS_KEY_CONFLICT",
+                  "count": 410
+                }
+              ],
+              "classifiedSourceCount": 90466,
+              "sourcePrecheckProblemCount": 410,
+              "equalsBatchSourceCount": true
+            },
+            "LINE": {
+              "batchCount": 377,
+              "expectedSourceCountFromBatches": 376724,
+              "coverage": "FULL_SELECTED_OBJECT_SOURCE_PRECHECK",
+              "explain": [
+                {
+                  "id": 1,
+                  "select_type": "SIMPLE",
+                  "table": "plt_migration_source_record",
+                  "partitions": null,
+                  "type": "range",
+                  "possible_keys": "uk_plt_migration_source_identity,idx_plt_migration_source_cursor,idx_plt_migration_global_source_identity",
+                  "key": "uk_plt_migration_source_identity",
+                  "key_len": "16",
+                  "ref": null,
+                  "rows": 66352,
+                  "filtered": 50.0,
+                  "Extra": "Using index condition; Using where; Using temporary"
+                }
+              ],
+              "estimatedRows": 66352,
+              "counts": [
+                {
+                  "reasonCode": "NO_SOURCE_PRECHECK_ISSUE",
+                  "count": 374996
+                },
+                {
+                  "reasonCode": "PARENT_ORDER_SOURCE_PRECHECK_FALSE",
+                  "count": 1728
+                }
+              ],
+              "classifiedSourceCount": 376724,
+              "sourcePrecheckProblemCount": 1728,
+              "equalsBatchSourceCount": true
+            }
+          },
+          "sourceRecordIndexes": [
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "PRIMARY",
+              "Seq_in_index": 1,
+              "Column_name": "id",
+              "Collation": "A",
+              "Cardinality": 6676758,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 2,
+              "Column_name": "batch_id",
+              "Collation": "A",
+              "Cardinality": 34418,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 3,
+              "Column_name": "source_system",
+              "Collation": "A",
+              "Cardinality": 32697,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 4,
+              "Column_name": "source_table",
+              "Collation": "A",
+              "Cardinality": 34418,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 0,
+              "Key_name": "uk_plt_migration_source_identity",
+              "Seq_in_index": 5,
+              "Column_name": "source_record_key",
+              "Collation": "A",
+              "Cardinality": 6425840,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 2,
+              "Column_name": "batch_id",
+              "Collation": "A",
+              "Cardinality": 15699,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_source_cursor",
+              "Seq_in_index": 3,
+              "Column_name": "id",
+              "Collation": "A",
+              "Cardinality": 7002675,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 1,
+              "Column_name": "tenant_id",
+              "Collation": "A",
+              "Cardinality": 1,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 2,
+              "Column_name": "source_system",
+              "Collation": "A",
+              "Cardinality": 150,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 3,
+              "Column_name": "source_table",
+              "Collation": "A",
+              "Cardinality": 2262,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 4,
+              "Column_name": "source_record_key",
+              "Collation": "A",
+              "Cardinality": 5035692,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            },
+            {
+              "Table": "plt_migration_source_record",
+              "Non_unique": 1,
+              "Key_name": "idx_plt_migration_global_source_identity",
+              "Seq_in_index": 5,
+              "Column_name": "deleted",
+              "Collation": "A",
+              "Cardinality": 4277007,
+              "Sub_part": null,
+              "Packed": null,
+              "Null": "",
+              "Index_type": "BTREE",
+              "Comment": "",
+              "Index_comment": "",
+              "Visible": "YES",
+              "Expression": null
+            }
+          ],
+          "runSummaryIssueCount": 2138,
+          "allSelectedObjectPrechecksComplete": true,
+          "sourcePrecheckProblemTotal": 2138,
+          "equalsRunSummaryIssueCount": true,
+          "comparisonBoundary": "来源预检问题数不能直接解释成全部Owner ISSUE；完整对象范围计数先与批次source_count独立比较。"
+        }
+      }
+    ],
+    "codeEvidence": [
+      "SyncEvidenceService.java:40-42 logical release object",
+      "SyncEvidenceService.java:67-106 completion counters",
+      "SyncRunService.java:167/344 preview changes empty",
+      "MigrationBatchDO.java expectedRowCount/sourceCount/batchStatus",
+      "MigrationSourceRecordDO.java sourcePayload→source_payload"
+    ],
+    "privacy": "only counts/status/reason codes/index plan, no business rows or payload exported"
+  },
+  "performanceEvidence": [
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4-performance-observation.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4-performance-observation.md",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\p15-v3-device-stage-observations.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\P15-first-positive-read-observation.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\phase4\\P15-device-30second-throughput.json"
+  ],
+  "performanceBoundary": "不宣称C吞吐提升；首批157秒只是采样观察上界，不是精确首字节延时。",
+  "externalVerificationIndex": "D:\\CodexTaskArtifacts\\project-detail-followup\\preview-repair-20261015\\verification-index.md",
+  "currentStatusCounts": {
+    "PREVIEW_READY": 14,
+    "FAILED": 7,
+    "NOT_PREVIEWED": 6
+  },
+  "approvedQuestionEvidence": {
+    "Q024": "- Preview verification（2026-10-15，新验证库）: npdms_reverify_20261014 的P15 v6 / Run 2110493133556776962为PREVIEW_READY，完整读取3,848,169条。CONTRACT的80,517条完整来源证据中814条为CONTRACT_CUSTOMER_CONFLICT、79,703条无该源问题；保留明细的814个不同来源身份覆盖全部814 ISSUE。四份合同已批准特例参数保持，其他来源/客户冲突仍待裁决；本轮未正式迁入。见[修复预览报告](../generated/2026-10-13-dppms-migration-mapping/production-tasks/preview-repair-20261015.md)。",
+    "Q023": "- Preview verification（2026-10-15，新验证库）: P14 v5 / Run 2110507977953607682完整预览467,190条，PREVIEW_READY，ISSUE 2,138。ORDER 90,466条来源中410条重复业务内容冲突；LINE 376,724条来源中1,728条父订单预检不通过，来源预检合计与ISSUE数量相等。运行保留的2,000条问题明细仅含410条重复冲突及1,590条父订单缺失，不能当作全部Owner明细。误带旧库恢复证明的配置已修正，Q023/Q025及原恢复/归属保护保持，未任选执行单或正式写入。见[修复预览报告](../generated/2026-10-13-dppms-migration-mapping/production-tasks/preview-repair-20261015.md)。",
+    "statusDecisionHistoryUnchanged": true,
+    "DppmsIam035DecisionLine": 2196
+  }
+}

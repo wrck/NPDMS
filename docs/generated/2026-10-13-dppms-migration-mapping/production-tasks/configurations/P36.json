@@ -1,5 +1,15 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P36",
+  "catalogueTaskKey": "P35",
+  "catalogueTaskName": "软件变更批次与设备版本历史",
+  "standaloneTask": false,
+  "isPrimaryComponent": false,
+  "catalogueDependencies": [
+    "P04",
+    "P16"
+  ],
+  "baselineTask": {
     "key": "P36",
     "name": "设备软件版本历史",
     "businessOwners": [
@@ -1082,5 +1092,11 @@
   "adapterState": "NO_FULL_TASK_ENTRY",
   "ownerSqlFiles": [
     "owner-sql/DeviceSoftwareVersionRecordMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

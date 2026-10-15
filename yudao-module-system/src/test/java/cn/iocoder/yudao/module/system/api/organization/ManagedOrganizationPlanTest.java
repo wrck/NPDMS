@@ -8,6 +8,27 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ManagedOrganizationPlanTest {
+    private ManagedOrganizationApi.Node department(Long id,String code,Long parentId,String owner) {
+        return new ManagedOrganizationApi.Node(null,new DeptDO().setId(id).setCode(code).setName(code)
+                .setParentId(parentId).setStatus(0).setSort(1).setVersion(0),owner);
+    }
+    @Test void newParentAndChildKeepUnassignedIdsUntilApply() {
+        var parent=department(null,"P",null,null);var child=department(null,"C",null,null);
+        var entries=List.of(new ManagedOrganizationApi.Entry("p",null,parent),new ManagedOrganizationApi.Entry("c","p",child));
+        var result=ManagedOrganizationApiImpl.plan(new ManagedOrganizationApi.Command("owner",entries,false,Set.of(),"UPSERT",Set.of()),List.of());
+        assertEquals(List.of("CREATED","CREATED"),result.stream().map(ManagedOrganizationApi.Result::action).toList());
+        result.forEach(r->assertNull(r.after().id()));assertNull(result.getLast().after().parentId());
+        assertNull(parent.id());assertNull(child.id());assertNull(child.parentId());
+    }
+    @Test void existingAndAssignedParentIdsRemainAvailableToChildPlans() {
+        for(boolean assigned:List.of(false,true)) {
+            var entries=List.of(new ManagedOrganizationApi.Entry("p",null,department(assigned?21L:null,"P",0L,null)),
+                    new ManagedOrganizationApi.Entry("c","p",department(null,"C",null,null)));
+            var command=new ManagedOrganizationApi.Command("owner",entries,false,assigned?Set.of("p"):Set.of(),"UPSERT",Set.of());
+            var result=ManagedOrganizationApiImpl.plan(command,assigned?List.of():List.of(department(21L,"P",0L,"owner")));
+            assertEquals(21L,result.getLast().after().parentId());assertNull(result.getLast().after().id());
+        }
+    }
     private ManagedOrganizationApi.Node company(Long id,String owner) {
         return new ManagedOrganizationApi.Node(new CompanyDO().setId(id).setCode("001").setName("公司").setStatus(0).setVersion(0),null,owner);
     }

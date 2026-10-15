@@ -27,8 +27,10 @@ public class DppmsProjectBindingApiImpl implements DppmsProjectBindingApi {
             if(!query.sourceProjectKeys().contains(row.getSourceKey()))throw new IllegalArgumentException("DPPMS_PROJECT_BINDING_EVIDENCE_INVALID");
             add(result,masterBinding(row,query.tenantId(),query.sourceConnectionId()));
         }
-        var aliases=bindings.selectIdentitySources(new SyncQueries.IdentitySources(query.tenantId(),"DPPMS",query.sourceConnectionId(),
-                DppmsProjectIdentitySyncTemplate.ADAPTER,"pm_project",query.sourceProjectKeys()));
+        var aliases=new ArrayList<SyncBindingDO>();
+        for(String adapter:List.of(DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectIdentitySyncTemplate.ADAPTER))
+            aliases.addAll(bindings.selectIdentitySources(new SyncQueries.IdentitySources(query.tenantId(),"DPPMS",query.sourceConnectionId(),
+                    adapter,"pm_project",query.sourceProjectKeys())));
         var canonicalKeys=new LinkedHashSet<String>();
         for(var row:aliases){
             var saved=row.getFieldsJson()==null?null:JsonUtils.parseMap(row.getFieldsJson());

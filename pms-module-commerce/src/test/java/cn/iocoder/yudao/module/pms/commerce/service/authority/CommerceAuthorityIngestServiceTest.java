@@ -22,6 +22,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -560,6 +562,50 @@ class CommerceAuthorityIngestServiceTest {
                 && row.getAllocationVersion() == 2L && row.getAllocatedQty().compareTo(new BigDecimal("8")) == 0));
         verify(scopeImpactMapper).updateProjectVersionById(argThat(row -> row.getScopeVersion() == 5L
                 && "SOURCE_CONFLICT".equals(row.getLastChangeType())));
+    }
+
+    private cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged genericLineChange(Long tenant,String quantity) {
+        Map<String,Object> before=new LinkedHashMap<>();
+        before.put("id",301L);before.put("tenant_id",1L);before.put("order_qty",new BigDecimal("10"));
+        before.put("quantity_status","CONFIRMED");before.put("source_lifecycle_status","ACTIVE");
+        before.put("source_system","ERP");before.put("source_record_key","L-1");before.put("source_version","V1");
+        return new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged(tenant,List.of(
+                new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged.Target("com_sales_order_line",before,
+                        Map.of("order_qty",new BigDecimal(quantity),"source_version","V2"))));
+    }
+    private void prepareGenericScopeFreeze() {
+        var active=activeScope(301L,701L,901L,"8");
+        when(scopeImpactMapper.selectActiveScopesForUpdate(any())).thenReturn(List.of(active));
+        when(scopeImpactMapper.selectDetailsForUpdate(any())).thenReturn(List.of(activeDetail(701L,"8")));
+        when(scopeImpactMapper.releaseActiveScopeByVersion(any())).thenReturn(1);
+        when(scopeImpactMapper.insert(any(DeliveryScopeDO.class))).thenAnswer(inv->{inv.<DeliveryScopeDO>getArgument(0).setId(702L);return 1;});
+        when(scopeImpactMapper.insertScopeDetail(any())).thenReturn(1);
+        when(scopeImpactMapper.selectProjectVersionForUpdate(any())).thenReturn(watermark(901L,4L));
+        when(scopeImpactMapper.updateProjectVersionById(any())).thenReturn(1);
+    }
+    @Test void genericQuantityDecreaseFreezesScopeCopiesDetailsAndAdvancesWatermark() {
+        prepareGenericScopeFreeze();service.onGenericTargetsChanged(genericLineChange(1L,"5"));
+        verify(scopeImpactMapper).releaseActiveScopeByVersion(any());
+        verify(scopeImpactMapper).insert(argThat((DeliveryScopeDO scope)->"CONFLICT_FROZEN".equals(scope.getScopeStatus())
+                && scope.getAllocationVersion()==2L && scope.getAllocatedQty().compareTo(new BigDecimal("8"))==0));
+        verify(scopeImpactMapper).insertScopeDetail(argThat(detail->detail.getDeliveryScopeId()==702L
+                && detail.getAllocatedQty().compareTo(new BigDecimal("8"))==0 && "ITEM-1".equals(detail.getProductCode())));
+        verify(scopeImpactMapper).updateProjectVersionById(argThat(version->version.getScopeVersion()==5L
+                && "SOURCE_CONFLICT".equals(version.getLastChangeType())));
+    }
+    @Test void genericConfirmedQuantityIncreaseDoesNotTouchScopes() {
+        service.onGenericTargetsChanged(genericLineChange(1L,"12"));verifyNoInteractions(scopeImpactMapper);
+    }
+    @Test void genericForeignTenantEventFailsBeforeScopeSideEffects() {
+        assertThrows(CommerceAuthorityIngestException.class,()->service.onGenericTargetsChanged(genericLineChange(2L,"5")));
+        verifyNoInteractions(scopeImpactMapper);
+    }
+    @Test void genericScopeWriteFailurePropagatesToThePublishingTransaction() {
+        when(scopeImpactMapper.selectActiveScopesForUpdate(any())).thenReturn(List.of(activeScope(301L,701L,901L,"8")));
+        when(scopeImpactMapper.releaseActiveScopeByVersion(any())).thenReturn(0);
+        assertThrows(IllegalStateException.class,()->service.onGenericTargetsChanged(genericLineChange(1L,"5")));
+        verify(scopeImpactMapper,never()).insert(any(DeliveryScopeDO.class));
+        verify(scopeImpactMapper,never()).insertScopeDetail(any());verify(scopeImpactMapper,never()).updateProjectVersionById(any());
     }
 
     private CommerceAuthorityBatchCommand batch(String eventId, String batchId,

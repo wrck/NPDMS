@@ -1,0 +1,342 @@
+{
+  "catalogueTaskKey": "P21",
+  "name": "P21 项目租赁产品与产品配置",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "SNAPSHOT",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "projectCode",
+            "target": "projectCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderExecNumber",
+            "target": "orderExecNumber",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "productFirstName",
+            "target": "productFirstName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "productName",
+            "target": "productName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "productSubCode",
+            "target": "productSubCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "productSubModel",
+            "target": "productSubModel",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "productSubName",
+            "target": "productSubName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "num",
+            "target": "num",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "memo",
+            "target": "memo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "leaseDuration",
+            "target": "leaseDuration",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "dataSource",
+            "target": "dataSource",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "sourceProjectId",
+            "target": "sourceProjectId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "originalProjectCode",
+            "target": "originalProjectCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "projectType",
+            "target": "projectType",
+            "values": null
+          }
+        ],
+        "object": "pm_project_product_lease_line_from_crm",
+        "parameters": {
+          "projectIds": "",
+          "projectTypes": "10"
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "rowKey",
+        "sourceKeyColumns": [
+          "projectCode",
+          "orderExecNumber",
+          "productFirstName",
+          "productName",
+          "productSubCode",
+          "productSubModel",
+          "productSubName",
+          "num",
+          "memo",
+          "leaseDuration",
+          "dataSource",
+          "sourceProjectId"
+        ],
+        "sourceObject": "pm_project_product_lease_line_from_crm",
+        "sql": "SELECT l.*, p.projectId AS sourceProjectId, p.projectCode AS originalProjectCode, p.projectType\nFROM pm_project_product_lease_line_from_crm l\nJOIN (\n    SELECT p.projectId,p.projectCode,p.projectType,\n      CAST(SUBSTRING_INDEX(p.projectCode,'-',1) AS BINARY) AS queryProjectCode\n    FROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p\n    WHERE p.projectId=p.canonicalProjectId\n) p ON p.queryProjectCode=CAST(l.projectCode AS BINARY)",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "projectCode",
+            "target": "projectCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "orderExecNumber",
+            "target": "orderExecNumber",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "itemGroup",
+            "target": "itemGroup",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "itemCode",
+            "target": "itemCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "parentCode",
+            "target": "parentCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "quantity",
+            "target": "quantity",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "bomPaths",
+            "target": "bomPaths",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "itemModel",
+            "target": "itemModel",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "itemDesc",
+            "target": "itemDesc",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "level",
+            "target": "level",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "dataSource",
+            "target": "dataSource",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "sourceProjectId",
+            "target": "sourceProjectId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "originalProjectCode",
+            "target": "originalProjectCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "projectType",
+            "target": "projectType",
+            "values": null
+          }
+        ],
+        "object": "pm_project_product_config_level_info_from_crm",
+        "parameters": {
+          "projectIds": "",
+          "projectTypes": "10"
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "rowKey",
+        "sourceKeyColumns": [
+          "projectCode",
+          "orderExecNumber",
+          "itemGroup",
+          "itemCode",
+          "parentCode",
+          "quantity",
+          "bomPaths",
+          "itemModel",
+          "itemDesc",
+          "level",
+          "dataSource",
+          "sourceProjectId"
+        ],
+        "sourceObject": "pm_project_product_config_level_info_from_crm",
+        "sql": "SELECT l.*, p.projectId AS sourceProjectId, p.projectCode AS originalProjectCode, p.projectType\nFROM pm_project_product_config_level_info_from_crm l\nJOIN (\n    SELECT p.projectId,p.projectCode,p.projectType,\n      CAST(SUBSTRING_INDEX(p.projectCode,'-',1) AS BINARY) AS queryProjectCode\n    FROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p\n    WHERE p.projectId=p.canonicalProjectId\n) p ON p.queryProjectCode=CAST(l.projectCode AS BINARY)",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439264919261186",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:05.513085"
+}

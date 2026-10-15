@@ -76,6 +76,21 @@ class SyncRunTransactionTest {
         runner.execute(id);return id;
     }
     Map<String,Object> streamingRaw;
+    @Test void streamingStateOmitsSampleAndPartialUpdatesPreserveItWithAtomicRollback() {
+        Long id=runner.start(new SyncRunService.Start(taskId,context.getBean(SyncTaskService.class).required(taskId).getVersion(),UUID.randomUUID().toString(),true,true,false,null,false));
+        var mapper=context.getBean(SyncRunMapper.class);
+        String original=JsonUtils.toJsonString(List.of(new DataSyncAdapter.Change("ITEM","1",null,"INSERT",Map.of(),Map.of("large","x".repeat(10000)),"sample")));
+        var full=mapper.selectScoped(new SyncQueries.Id(1L,id));full.setResultJson(original).setReadCount(1);mapper.updateById(full);
+        var light=mapper.selectStreamingState(new SyncQueries.Id(1L,id));assertNull(light.getResultJson());assertNull(light.getConfigSnapshot());assertNull(light.getEvidenceJson());
+        light.setReadCount(2);mapper.updateById(light);
+        assertEquals(original,mapper.selectScoped(new SyncQueries.Id(1L,id)).getResultJson());
+        var tx=new org.springframework.transaction.support.TransactionTemplate(context.getBean(PlatformTransactionManager.class));
+        assertThrows(IllegalStateException.class,()->tx.executeWithoutResult(s->{
+            var state=mapper.selectStreamingState(new SyncQueries.Id(1L,id));state.setReadCount(3).setResultJson("[]");mapper.updateById(state);
+            throw new IllegalStateException("checkpoint failure");
+        }));
+        var after=mapper.selectScoped(new SyncQueries.Id(1L,id));assertEquals(2,after.getReadCount());assertEquals(original,after.getResultJson());
+    }
     void configureStreamingEvidence(String policy) throws Exception {
         streamingRaw=new LinkedHashMap<>(Map.of("id",42,"title","原始内容"));
         jdbc.execute("CREATE TABLE test_stream_item(id BIGINT PRIMARY KEY,title VARCHAR(100))");
@@ -240,6 +255,38 @@ class SyncRunTransactionTest {
         assertEquals(1,sample.size());assertEquals("CONFLICT",sample.getFirst().action());assertEquals("1",sample.getFirst().sourceKey());
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_stream_item",Integer.class));
         assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding",Integer.class));
+    }
+    @Test void installationSourceChunksCommitAsOneCompleteDeviceWithBindingsAndCheckpoint() throws Exception {
+        configureInstallationGroup(false);Long id=run(false);
+        assertEquals("SUCCESS",runner.required(id).getStatus());assertEquals(3,runner.required(id).getReadCount());
+        assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM test_installation_group",Integer.class));
+        assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+        assertEquals(upper,context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
+    }
+    @Test void installationOwnerFailureRollsBackWholeDeviceBindingsAndCheckpoint() throws Exception {
+        configureInstallationGroup(true);
+        Long id=runner.start(new SyncRunService.Start(taskId,context.getBean(SyncTaskService.class).required(taskId).getVersion(),UUID.randomUUID().toString(),false,true,false,null,false));
+        assertThrows(IllegalStateException.class,()->runner.execute(id));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_installation_group",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+        assertNull(context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());assertEquals("FAILED",runner.required(id).getStatus());
+    }
+    void configureInstallationGroup(boolean fail) throws Exception {
+        jdbc.execute("CREATE TABLE test_installation_group(id BIGINT PRIMARY KEY)");
+        taskId=context.getBean(SyncTaskService.class).save(new SyncTaskService.Save(null,null,"安装历史设备事务",DppmsInstallationSyncTemplate.create(1L)));
+        doAnswer(invocation->{
+            var consumer=invocation.<java.util.function.Consumer<SpringJdbcStreamingReader.StreamChunk>>getArgument(4);
+            for(int id=1;id<=3;id++) {
+                var row=new LinkedHashMap<String,Object>();
+                cn.iocoder.yudao.module.pms.engineering.api.installation.DppmsInstallationRecordMigrationApi.ORIGINAL_COLUMNS.forEach(n->row.put(n,null));
+                row.put("id",id);row.put("projectId",101);row.put("barcode","SN");row.put("originalProjectCode","P1");row.put("projectType","10");
+                row.put("installAddress",fail?"FAIL":"地址");
+                consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,DppmsInstallationSyncAdapter.OBJECT,"pm_project_shipment",List.of(row),id,100,false,id));
+                assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_installation_group",Integer.class));
+            }
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,DppmsInstallationSyncAdapter.OBJECT,"pm_project_shipment",List.of(),3,0,true,4));
+            return new SpringJdbcStreamingReader.StreamResult(upper,3,3);
+        }).when(context.getBean(SpringJdbcStreamingReader.class)).stream(any(),any(),anyBoolean(),any(),any());
     }
     void configureStreamingConflict() throws Exception {
         jdbc.execute("CREATE TABLE test_stream_item(id BIGINT PRIMARY KEY)");
@@ -629,6 +676,21 @@ class SyncRunTransactionTest {
     @Import({SyncRunService.class,SyncTaskService.class,SyncDefinitionValidator.class,SyncFieldMapper.class,EhrOrganizationAdapter.class,ManagedOrganizationApiImpl.class})
     @MapperScan(basePackageClasses={SyncTaskMapper.class,CompanyMapper.class,DeptMapper.class,ManagedOrganizationMapper.class})
     static class Config {
+        @Bean DataSyncAdapter installationGroupedAdapter(DataSource source) {
+            var jdbc=new JdbcTemplate(source);
+            return new DataSyncAdapter() {
+                public Descriptor descriptor(){return new DppmsInstallationSyncAdapter(null,null,null,null,null).descriptor();}
+                public boolean supportsStreaming(){return true;}public boolean requiresAllBindings(){return false;}public void refreshCaches(){}
+                public List<Change> preview(Batch batch){assertEquals(3,batch.rows().size());return batch.rows().stream().map(r->new Change(r.object(),r.sourceKey(),Long.valueOf(r.sourceKey()),"CREATED",Map.of(),r.fields(),null)).toList();}
+                public List<Change> apply(Batch batch){
+                    assertTrue(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+                    var changes=preview(batch);
+                    for(var change:changes){jdbc.update("INSERT INTO test_installation_group VALUES(?)",change.targetId());
+                        if("FAIL".equals(change.after().get("installAddress")))throw new IllegalStateException("installation owner failure");}
+                    return changes;
+                }
+            };
+        }
         @Bean DataSyncAdapter streamingConflictAdapter(DataSource source) {
             var jdbc=new JdbcTemplate(source);
             return new DataSyncAdapter() {
@@ -641,6 +703,8 @@ class SyncRunTransactionTest {
                 public List<Change> apply(Batch batch){jdbc.update("INSERT INTO test_stream_item VALUES(1)");return preview(batch);}
             };
         }
+        @Bean cn.iocoder.yudao.module.system.api.dict.DictDataApi dictDataApi(){return mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class);}
+        @Bean cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi shipmentSourceFactsApi(){return mock(cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.class);}
         @Bean GenericSyncJdbcStore jdbcStore(DataSource source){return new GenericSyncJdbcStore(source);}
         @Bean SpringJdbcStreamingReader streamingReader(){return mock(SpringJdbcStreamingReader.class);}
         @Bean cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine genericEngine() {return mock(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class);}
@@ -693,6 +757,7 @@ class SyncRunTransactionTest {
         @Bean SyncBatchLauncher launcher(){return mock(SyncBatchLauncher.class);}
         @Bean SyncEvidenceService evidence(){var e=mock(SyncEvidenceService.class);when(e.stage(any(),any(),any())).thenReturn(List.of());return e;}
         @Bean MysqlSyncReader reader(){return mock(MysqlSyncReader.class);}
+        @Bean SyncSourceEvidenceReader sourceEvidenceReader(){return mock(SyncSourceEvidenceReader.class);}
         @Bean SyncConnectionService connections(){var c=mock(SyncConnectionService.class);when(c.resolve(any())).thenAnswer(i->i.getArgument(0));return c;}
         @Bean RedissonClient redisson()throws Exception{
             var r=mock(RedissonClient.class);var lock=mock(RLock.class);

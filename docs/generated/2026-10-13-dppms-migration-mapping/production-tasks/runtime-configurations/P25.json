@@ -1,0 +1,146 @@
+{
+  "catalogueTaskKey": "P25",
+  "name": "P25 设备逐次续保记录",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_WARRANTY_RENEWAL",
+    "autoPaging": false,
+    "chunkSize": 500,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 1000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 180,
+    "readStrategy": "STREAMING_CURSOR",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "con_xb",
+            "target": "con_xb",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "barcode",
+            "target": "barcode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "grade",
+            "target": "grade",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "begin_date",
+            "target": "begin_date",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "end_date",
+            "target": "end_date",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "warranty",
+            "target": "warranty",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "remark",
+            "target": "remark",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "isyb",
+            "target": "isyb",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "state",
+            "target": "state",
+            "values": null
+          }
+        ],
+        "object": "fb_service",
+        "parameters": {
+          "deviceSns": "",
+          "projectIds": "",
+          "projectTypes": "10"
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "renewalSourceKey",
+        "sourceKeyColumns": null,
+        "sourceObject": "fb_service",
+        "sql": "SELECT r.id,r.con_xb,r.barcode,r.grade,r.begin_date,r.end_date,r.warranty,r.remark,r.isyb,r.state,\n CONCAT('fb_service:',r.id,':',COALESCE(r.barcode,'')) AS renewalSourceKey\n FROM (\n SELECT DISTINCT rn.barcode FROM (SELECT DISTINCT barcode FROM fb_service\n WHERE barcode IS NOT NULL AND barcode<>'' AND (:deviceSns='' OR FIND_IN_SET(barcode,:deviceSns))) rn\n STRAIGHT_JOIN fb_shipment_barcode sb ON sb.barcode=rn.barcode\n STRAIGHT_JOIN (SELECT DISTINCT s.packlist_id FROM (SELECT DISTINCT pc.contractNo FROM pm_project_group_relationship m\n JOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n JOIN (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n JOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n WHERE (:projectTypes='' OR FIND_IN_SET(p.projectType,:projectTypes))\n AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\n AND p.projectId=p.canonicalProjectId) pc STRAIGHT_JOIN fb_contract c ON c.contract_code=pc.contractNo STRAIGHT_JOIN fb_shipment s ON s.con_id=c.contract_id WHERE c.contract_type IN (0,11)) packages ON packages.packlist_id=sb.pack_id\n WHERE (sb.rma_no IS NULL OR sb.rma_no='' OR sb.rma_no='null')\n ) selected STRAIGHT_JOIN fb_service r ON r.barcode=selected.barcode\n WHERE :deviceSns='' OR FIND_IN_SET(r.barcode,:deviceSns)",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439265988808706",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:05.757591"
+}

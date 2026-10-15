@@ -1,0 +1,650 @@
+{
+  "catalogueTaskKey": "P01",
+  "name": "P01 公司、部门与主管关联",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_ORGANIZATION",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 * * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 * * ?",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 300,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "SNAPSHOT",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [
+          "compID",
+          "compCode",
+          "compName",
+          "isDisabled"
+        ],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": "_groupKey",
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "compCode",
+            "target": "code",
+            "values": {}
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "compName",
+            "target": "name",
+            "values": {}
+          },
+          {
+            "constant": null,
+            "conversion": "ENUM",
+            "defaultValue": null,
+            "source": "isDisabled",
+            "target": "status",
+            "values": {
+              "0": 0,
+              "1": 1,
+              "NULL": 0,
+              "true": 1,
+              "false": 0
+            }
+          }
+        ],
+        "object": "COMPANY",
+        "parameters": {
+          "P02_departmentCode0": "163130",
+          "P03_departmentCode0": "167010",
+          "P03_departmentCode1": "167020",
+          "P03_departmentCode2": "167050",
+          "P03_departmentCode3": "162007003",
+          "P03_departmentCode4": "162012003",
+          "P03_departmentCode5": "162022003",
+          "P03_departmentCode6": "310409001",
+          "P03_departmentCode7": "310422001"
+        },
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": "_sourceRows",
+        "sourceKey": "compID",
+        "sourceKeyColumns": null,
+        "sourceObject": "ehr_company",
+        "sql": "SELECT businessKey AS _groupKey,CAST(JSON_ARRAYAGG(JSON_OBJECT('object',objectName,'fields',CAST(fields AS JSON))) AS CHAR) AS _sourceRows\nFROM (\nSELECT CONCAT('COMPANY:',HEX(CAST(r.`compCode` AS BINARY))) AS businessKey,'COMPANY' AS objectName,JSON_OBJECT('compID',r.`compID`,'compCode',r.`compCode`,'compName',r.`compName`,'isDisabled',CAST(r.`isDisabled` AS UNSIGNED)) AS fields FROM (\nSELECT `compID`,`compCode`,`compName`,`isDisabled` FROM `ehr_company`\n) r\nUNION ALL\nSELECT CONCAT('DEPARTMENT:',HEX(CAST(r.`depCode` AS BINARY))) AS businessKey,'DEPARTMENT' AS objectName,JSON_OBJECT('depID',r.`depID`,'depCode',r.`depCode`,'depName',r.`depName`,'isDisabled',CAST(r.`isDisabled` AS UNSIGNED),'adminID',r.`adminID`,'compID',r.`compID`) AS fields FROM (\nSELECT `depID`,`depCode`,`depName`,`isDisabled`,`adminID`,`compID`,`depGrade` FROM `ehr_department` WHERE `depGrade` <= '2' AND LENGTH(`depCode`) = '6'\n) r\nUNION ALL\nSELECT CONCAT('DEPARTMENT:',HEX(CAST(r.`departmentNum` AS BINARY))) AS businessKey,'fnd_department' AS objectName,JSON_OBJECT('id',r.`id`,'departmentNum',r.`departmentNum`,'departmentName',r.`departmentName`,'isparam',r.`isparam`,'status',r.`status`,'createTime',r.`createTime`,'effectiveFrom',r.`effectiveFrom`,'effectiveTo',r.`effectiveTo`,'updateTime',r.`updateTime`,'migrationEhrDepartmentId',r.`migrationEhrDepartmentId`,'migrationEhrDisabled',r.`migrationEhrDisabled`) AS fields FROM (\nSELECT d.id,d.departmentNum,d.departmentName,d.isparam,d.status,d.createTime,d.effectiveFrom,d.effectiveTo,d.updateTime,e.depID AS migrationEhrDepartmentId,CAST(e.isDisabled AS UNSIGNED) AS migrationEhrDisabled FROM fnd_department d LEFT JOIN ehr_department e ON CAST(e.depCode AS BINARY)=CAST(d.departmentNum AS BINARY) WHERE d.departmentNum=:P02_departmentCode0\n) r\nUNION ALL\nSELECT CONCAT('DEPARTMENT:',HEX(CAST(r.`depCode` AS BINARY))) AS businessKey,'ehr_department' AS objectName,JSON_OBJECT('depID',r.`depID`,'depCode',r.`depCode`,'depName',r.`depName`,'depAbbr',r.`depAbbr`,'compID',r.`compID`,'adminID',r.`adminID`,'depGrade',r.`depGrade`,'depType',r.`depType`,'depProperty',r.`depProperty`,'depCost',r.`depCost`,'director',r.`director`,'director2',r.`director2`,'depEmp',r.`depEmp`,'depNum',r.`depNum`,'effectDate',r.`effectDate`,'xOrder',r.`xOrder`,'isDisabled',CAST(r.`isDisabled` AS UNSIGNED),'disabledDate',r.`disabledDate`,'remark',r.`remark`,'depCustom1',r.`depCustom1`,'depCustom2',r.`depCustom2`,'depCustom3',r.`depCustom3`,'depCustom4',r.`depCustom4`,'depCustom5',r.`depCustom5`,'migrationFnd_id',r.`migrationFnd_id`,'migrationFnd_departmentNum',r.`migrationFnd_departmentNum`,'migrationFnd_departmentName',r.`migrationFnd_departmentName`,'migrationFnd_isparam',r.`migrationFnd_isparam`,'migrationFnd_status',r.`migrationFnd_status`,'migrationFnd_createTime',r.`migrationFnd_createTime`,'migrationFnd_effectiveFrom',r.`migrationFnd_effectiveFrom`,'migrationFnd_effectiveTo',r.`migrationFnd_effectiveTo`,'migrationFnd_updateTime',r.`migrationFnd_updateTime`,'migrationParentCode',r.`migrationParentCode`,'migrationDirectorLoginCount',r.`migrationDirectorLoginCount`,'migrationDirectorAccount',r.`migrationDirectorAccount`,'migrationDirectorFndCount',r.`migrationDirectorFndCount`,'migrationDirectorFndId',r.`migrationDirectorFndId`,'migrationDirectorTCount',r.`migrationDirectorTCount`,'migrationDirectorTId',r.`migrationDirectorTId`) AS fields FROM (\nSELECT d.depID,d.depCode,d.depName,d.depAbbr,d.compID,d.adminID,d.depGrade,d.depType,d.depProperty,d.depCost,d.director,d.director2,d.depEmp,d.depNum,d.effectDate,d.xOrder,CAST(d.isDisabled AS UNSIGNED) AS isDisabled,d.disabledDate,d.remark,d.depCustom1,d.depCustom2,d.depCustom3,d.depCustom4,d.depCustom5,f.id AS migrationFnd_id,f.departmentNum AS migrationFnd_departmentNum,f.departmentName AS migrationFnd_departmentName,f.isparam AS migrationFnd_isparam,f.status AS migrationFnd_status,f.createTime AS migrationFnd_createTime,f.effectiveFrom AS migrationFnd_effectiveFrom,f.effectiveTo AS migrationFnd_effectiveTo,f.updateTime AS migrationFnd_updateTime,p.depCode AS migrationParentCode,l.loginCount AS migrationDirectorLoginCount,l.account AS migrationDirectorAccount,fu.matchCount AS migrationDirectorFndCount,fu.id AS migrationDirectorFndId,tu.matchCount AS migrationDirectorTCount,tu.id AS migrationDirectorTId FROM ehr_department d LEFT JOIN fnd_department f ON CAST(f.departmentNum AS BINARY)=CAST(d.depCode AS BINARY) LEFT JOIN ehr_department p ON p.depID=d.adminID LEFT JOIN (SELECT empID,COUNT(*) AS loginCount,MIN(account) AS account FROM ehr_login GROUP BY empID) l ON l.empID=d.director LEFT JOIN (SELECT username,COUNT(*) AS matchCount,MIN(id) AS id FROM fnd_user_info GROUP BY username) fu ON CAST(fu.username AS BINARY)=CAST(l.account AS BINARY) LEFT JOIN (SELECT user_name,COUNT(*) AS matchCount,MIN(user_id) AS id FROM t_user GROUP BY user_name) tu ON CAST(tu.user_name AS BINARY)=CAST(l.account AS BINARY) WHERE d.depCode IN (:P03_departmentCode0,:P03_departmentCode1,:P03_departmentCode2,:P03_departmentCode3,:P03_departmentCode4,:P03_departmentCode5,:P03_departmentCode6,:P03_departmentCode7)\n) r\n) combined GROUP BY businessKey",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [
+          "depID",
+          "depCode",
+          "depName",
+          "isDisabled",
+          "adminID",
+          "compID",
+          "depGrade"
+        ],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "depCode",
+            "target": "code",
+            "values": {}
+          },
+          {
+            "constant": null,
+            "conversion": "TRIM",
+            "defaultValue": null,
+            "source": "depName",
+            "target": "name",
+            "values": {}
+          },
+          {
+            "constant": null,
+            "conversion": "ENUM",
+            "defaultValue": null,
+            "source": "isDisabled",
+            "target": "status",
+            "values": {
+              "0": 0,
+              "1": 1,
+              "NULL": 0,
+              "true": 1,
+              "false": 0
+            }
+          },
+          {
+            "constant": null,
+            "conversion": "REFERENCE",
+            "defaultValue": null,
+            "source": "adminID",
+            "target": "parentKey",
+            "values": {}
+          },
+          {
+            "constant": null,
+            "conversion": "REFERENCE",
+            "defaultValue": null,
+            "source": "compID",
+            "target": "companyKey",
+            "values": {}
+          },
+          {
+            "constant": null,
+            "conversion": "LONG",
+            "defaultValue": null,
+            "source": "depID",
+            "target": "sort",
+            "values": {}
+          }
+        ],
+        "object": "DEPARTMENT",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "COMPANY",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "depID",
+        "sourceKeyColumns": null,
+        "sourceObject": "ehr_department",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "departmentNum",
+            "target": "departmentNum",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "departmentName",
+            "target": "departmentName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "isparam",
+            "target": "isparam",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "status",
+            "target": "status",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createTime",
+            "target": "createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveFrom",
+            "target": "effectiveFrom",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveTo",
+            "target": "effectiveTo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateTime",
+            "target": "updateTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEhrDepartmentId",
+            "target": "migrationEhrDepartmentId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEhrDisabled",
+            "target": "migrationEhrDisabled",
+            "values": null
+          }
+        ],
+        "object": "fnd_department",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "COMPANY",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fnd_department",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depID",
+            "target": "depID",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depCode",
+            "target": "depCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depName",
+            "target": "depName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depAbbr",
+            "target": "depAbbr",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "compID",
+            "target": "compID",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "adminID",
+            "target": "adminID",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depGrade",
+            "target": "depGrade",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depType",
+            "target": "depType",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depProperty",
+            "target": "depProperty",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depCost",
+            "target": "depCost",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "director",
+            "target": "director",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "director2",
+            "target": "director2",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depEmp",
+            "target": "depEmp",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depNum",
+            "target": "depNum",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectDate",
+            "target": "effectDate",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "xOrder",
+            "target": "xOrder",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "isDisabled",
+            "target": "isDisabled",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "disabledDate",
+            "target": "disabledDate",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "remark",
+            "target": "remark",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depCustom1",
+            "target": "depCustom1",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depCustom2",
+            "target": "depCustom2",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depCustom3",
+            "target": "depCustom3",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depCustom4",
+            "target": "depCustom4",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depCustom5",
+            "target": "depCustom5",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_id",
+            "target": "migrationFnd_id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_departmentNum",
+            "target": "migrationFnd_departmentNum",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_departmentName",
+            "target": "migrationFnd_departmentName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_isparam",
+            "target": "migrationFnd_isparam",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_status",
+            "target": "migrationFnd_status",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_createTime",
+            "target": "migrationFnd_createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_effectiveFrom",
+            "target": "migrationFnd_effectiveFrom",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_effectiveTo",
+            "target": "migrationFnd_effectiveTo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationFnd_updateTime",
+            "target": "migrationFnd_updateTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationParentCode",
+            "target": "migrationParentCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationDirectorLoginCount",
+            "target": "migrationDirectorLoginCount",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationDirectorAccount",
+            "target": "migrationDirectorAccount",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationDirectorFndCount",
+            "target": "migrationDirectorFndCount",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationDirectorFndId",
+            "target": "migrationDirectorFndId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationDirectorTCount",
+            "target": "migrationDirectorTCount",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationDirectorTId",
+            "target": "migrationDirectorTId",
+            "values": null
+          }
+        ],
+        "object": "ehr_department",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "COMPANY",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "depID",
+        "sourceKeyColumns": null,
+        "sourceObject": "ehr_department",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439242576203777",
+  "runtimeVersion": 1,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T05:05:41.122220",
+  "previewRevisionReason": "COMPANY 与 DEPARTMENT 不再复用旧主键；按正式业务编码及现有 Owner 承接，配置 v1。"
+}

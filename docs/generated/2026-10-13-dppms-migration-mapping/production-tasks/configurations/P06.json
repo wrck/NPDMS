@@ -1,5 +1,15 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P06",
+  "catalogueTaskKey": "P06",
+  "catalogueTaskName": "用户角色关系",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P04",
+    "P05"
+  ],
+  "baselineTask": {
     "key": "P06",
     "name": "用户角色关系",
     "businessOwners": [

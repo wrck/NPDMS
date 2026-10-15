@@ -6,4 +6,6 @@ import java.util.List;
 /** 校验并锁定属于当前项目或其关联合同的设备，返回服务器序列号快照。 */
 public interface ProjectDeviceSelectionApi {
     List<SelectedProjectDevice> validateSelection(Long projectId, List<Long> deviceIds);
+    record SelectionQuery(Long tenantId,Long actorId,Long projectId,List<Long> deviceIds) {}
+    List<SelectedProjectDevice> validateSelection(SelectionQuery query);
 }

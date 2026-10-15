@@ -9,6 +9,15 @@
 - RESOLVED
 - REJECTED
 
+### Q-DPPMS-VALID-PROJECT-SCOPE-20261015 — 只迁有效项目，排除历史无效项目
+
+- Status: RESOLVED（范围、SQL与停用配置已落实；未执行迁移）
+- User direction: “项目数据只保留有效项目，不把历史无用项目进行迁移”；“查询旧系统的相关sql，这些证据在第一次整理时就已经要求”。
+- Source evidence: 旧Struts `create_tmp_tb_project` 的活动SQL使用 `ISNULL(ph.effectiveTo)`，旧 `invalid_project_header` 只写失效时间；SpringMVC列表固定 `disabled=false` 并落到Mapper的 `ph.disabled = ...`，合并转出写 `disabled=true`，失效入口同时写停用与失效时间。[原调用链、SQL片段及派生查询](../generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md)。
+- Applied scope: 结合两代旧实现的失效表示，采用 `disabled=0 AND effectiveTo IS NULL`。沿用Q011“同类型同编码先取最大projectId”，再判断规范行有效性，不能先过滤再取最大值。旧ID自身也须有效且属于入选规范组；项目归属明细及各任务按项目限定的来源复用此集合，排除无效项目数据，不自动回挂到同码项目。projectState不作有效性过滤，已闭环而未失效/停用的项目仍在范围内。
+- Scope of revision: P16同一次查询及事务处理主档与入选旧身份；P17旧记录保留历史并禁止新运行。按追加的同源UNION及聚合复用规则，37份来源组件收敛为27项，21份INT配置已保存到npdms_reverify_20261014且全部停用；6项沿已有材料/Owner入口，完整INT入口缺口保留。共享基础资料、可空正式引用、Owner和历史/授权保护保持。
+- Verification boundary: 10月14日80,170条规范项目快照按新规则分类为79,429条有效、741条排除，仍为旧快照数量。32份新SQL已在MySQL5.7只读EXPLAIN核对，P16抽样一次读取主档及身份；Java/Python定向验证通过。新库配置保存前后155张业务及迁移记录表行数一致，没有发起预览/迁移或重算预计新增量；原库、现存项目与历史回执保持，原暂停决定继续有效。
+
 ### Q-LEGACY-PROJECT-ACTUAL-CREATION-SCOPE-20261013-026 — 本轮项目实际创建范围错误及后续处置
 
 - Status: RESTORED / REPLAY_AND_BROWSER_VERIFIED（2026-10-14）
@@ -36,6 +45,7 @@
 ### Q-LEGACY-MISSING-FORMAL-MASTERS-20261013-024 — 整表扩围后的合同及产品主档缺口
 
 - Status: OPEN / BLOCKED_BY_SPEC
+- Preview verification（2026-10-15，新验证库）: npdms_reverify_20261014 的P15 v6 / Run 2110493133556776962为PREVIEW_READY，完整读取3,848,169条。CONTRACT的80,517条完整来源证据中814条为CONTRACT_CUSTOMER_CONFLICT、79,703条无该源问题；保留明细的814个不同来源身份覆盖全部814 ISSUE。四份合同已批准特例参数保持，其他来源/客户冲突仍待裁决；本轮未正式迁入。见[修复预览报告](../generated/2026-10-13-dppms-migration-mapping/production-tasks/preview-repair-20261015.md)。
 - Latest decision（2026-10-14）: 需求方授权信息缺失时调用对应业务来源的既有迁移任务补齐基础资料。产品目录按原4列及已裁决的正式目录/实体扩展映射先预览，再补齐合法缺项；未知来源或同键异值仍阻断，不将此授权解释成任意选择合同客户或伪造合同资料。
 - Latest verification（2026-10-14）: 原目录任务2110070397648699394已正式补齐26,558个产品，8,418个来源编码UNCHANGED；重放2110077295412371457全部34,976个编码UNCHANGED。原4字段及正式扩展逐项一致，原8,447条目录的21列保持，真实产品选择器可查。产品缺口已关闭，本项仅剩合同来源/客户冲突；下文“尚未创建”为首次核查记录，不代表当前状态。
 - Evidence: 已迁入项目范围内196条合同关系涉及194个缺失正式合同号；去掉旧合同生成任务的20000条采集上限后，125个合同号有ERP来源分组，但全部存在CONTRACT_CUSTOMER_CONFLICT，另69个没有ERP分组。不能取MIN客户号或按技术ID任选。完整26原关系字段、原订单16字段和分组结果已冻结。产品原表34976编码中，8418个已有正式产品已沿既有规则承接全部原名称/型号；26558个没有正式产品，尚未创建。完整原4字段及缺口清单见[核查索引](../generated/2026-10-13-dppms-missing-formal-masters.json)。
@@ -46,6 +56,7 @@
 ### Q-LEGACY-ORDER-FULL-SOURCE-CONFLICTS-20261013-023 — 整表订单来源冲突及公司映射碰撞
 
 - Status: OPEN / BLOCKED_BY_SPEC
+- Preview verification（2026-10-15，新验证库）: P14 v5 / Run 2110507977953607682完整预览467,190条，PREVIEW_READY，ISSUE 2,138。ORDER 90,466条来源中410条重复业务内容冲突；LINE 376,724条来源中1,728条父订单预检不通过，来源预检合计与ISSUE数量相等。运行保留的2,000条问题明细仅含410条重复冲突及1,590条父订单缺失，不能当作全部Owner明细。误带旧库恢复证明的配置已修正，Q023/Q025及原恢复/归属保护保持，未任选执行单或正式写入。见[修复预览报告](../generated/2026-10-13-dppms-migration-mapping/production-tasks/preview-repair-20261015.md)。
 - Evidence: 完整91572条原订单只读核对发现169个同ERP／公司／类型／订单号业务键下的410条原记录内容不同；既有正式模板已将它们标为DUPLICATE_BUSINESS_KEY_CONFLICT。此外原11536（D365／01／0／SO078894）对应两个均未删除的正式订单2101599583586234873和2104958251101687810，公司原01与已转换001在正式映射后碰撞；已有整表裁决明确要求这种碰撞阻断并另列裁决。全部411条完整16原字段及相应正式行见[来源和目标证据](../generated/2026-10-13-dppms-order-conflicting-originals.json)。只读核对无正式写入，没有选择技术ID最大记录或重定向旧来源绑定。
 - Latest field audit（2026-10-14）: 410条归并为169组后，原模板参与冲突判断的10项业务属性中，全部组仅orderExecNumber不同，其余九项一致。现有订单头execution_no是单值，订单行real_execution_no是实际执行单号，不能未经原关联核实互相替代；须继续核对来源视图与正式订单行。目标MySQL因宿主M盘空间耗尽中断，未因此修改字段映射、任选主执行单或覆盖现值。逐组差异见私有证据full-preview-repair-order-difference-groups-20261014.json。
 - Original derivation verified（2026-10-14续办）: 已只读提取旧过程`splitSoleAgentLendOrderInfo`的订单头SELECT，165条ERP上游订单经69条总代借货来源关系展开，逐字段复现全部410条原订单，额外或缺失行均0。其中37组D365原订单号对应78条记录，132组SMS的`-L`订单号对应332条记录；差异来自原过程的执行单展开，不能直接当作普通版本重复。169组涉及1,728条原订单行，只有1组的头/行执行单集合完全一致，31组没有原订单行、32组有订单行执行单不在头集合内；因此不能用任意一条订单行或最大原ID确定单值主执行单。仅执行了原过程的SELECT，没有调用存储过程或写入来源库。完整来源、原过程、只读复现与逐组比较分别保存在私有证据`resume-preview-order-upstream-audit-20261014.json`、`resume-preview-order-original-routine-proof-20261014.json`、`resume-preview-order-execution-line-audit-20261014.json`；正式映射及Q023待裁决状态保持。

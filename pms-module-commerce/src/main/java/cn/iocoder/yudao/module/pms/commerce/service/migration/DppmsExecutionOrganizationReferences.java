@@ -37,22 +37,32 @@ public class DppmsExecutionOrganizationReferences {
         public Directory { companies = Map.copyOf(companies); departments = Map.copyOf(departments); }
 
         public void associate(CrmExecutionOrderDO incoming) {
+            associate(new Association(incoming,Resolution.REQUIRED));
+        }
+        public void associate(Association command) {
+            var incoming=command.incoming();
             if (incoming.getCompanyCode() != null && !incoming.getCompanyCode().isBlank()) {
                 var company = companies.get(incoming.getCompanyCode());
-                if (company == null) throw new IllegalArgumentException("DPPMS_EXECUTION_COMPANY_UNRESOLVED");
-                incoming.setCompanyId(company.id());
-                incoming.setCompanyName(company.name());
+                if (company == null && command.resolution()==Resolution.REQUIRED)
+                    throw new IllegalArgumentException("DPPMS_EXECUTION_COMPANY_UNRESOLVED");
+                if(company!=null) {
+                    incoming.setCompanyId(company.id());
+                    incoming.setCompanyName(company.name());
+                }
             }
             if (incoming.getDepartmentCode() != null && !incoming.getDepartmentCode().isBlank()) {
                 String code = incoming.getDepartmentCode();
                 // Only the nine explicitly adjudicated aliases are converted. Never truncate or use a parent.
                 if (code.matches("31120[2-9]|311210")) code = "1621" + code.substring(4);
                 var department = departments.get(code);
-                if (department == null) throw new IllegalArgumentException("DPPMS_EXECUTION_DEPARTMENT_UNRESOLVED");
+                if (department == null && command.resolution()==Resolution.REQUIRED)
+                    throw new IllegalArgumentException("DPPMS_EXECUTION_DEPARTMENT_UNRESOLVED");
                 incoming.setDepartmentCode(code);
-                incoming.setDepartmentId(department.id());
+                if(department!=null)incoming.setDepartmentId(department.id());
                 // department_name carries the original officeName; a current name does not replace it.
             }
         }
     }
+    public enum Resolution { REQUIRED, AVAILABLE }
+    public record Association(CrmExecutionOrderDO incoming,Resolution resolution) {}
 }

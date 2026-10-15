@@ -36,7 +36,10 @@ public class SyncEvidenceService {
         for(var source:snapshot.objects()) {
             var config=d.sources().stream().filter(s->s.object().equals(source.object())).findFirst().orElseThrow();
             String payload=JsonUtils.toJsonString(source.rows()),digest=sha(payload);
-            var batch=api.createImportBatch(new CreateImportBatchCommand(tenant,"INT",purpose,correlation,
+            // A consolidated query may project the same physical table into several logical objects.
+            // PLT identity includes releaseId and sourceTable, so retain the logical object there too.
+            String releaseId=correlation+":"+source.object();
+            var batch=api.createImportBatch(new CreateImportBatchCommand(tenant,"INT",purpose,releaseId,
                     d.sourceSystem(),source.sourceObject(),"SYNC_V1",source.rows().size(),digest,snapshot.upper(),
                     null,null,purpose+":"+source.object()+":"+unitKey,correlation));
             Map<String,Long> ids=new LinkedHashMap<>();

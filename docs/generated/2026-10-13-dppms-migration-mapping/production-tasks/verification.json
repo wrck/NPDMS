@@ -1,52 +1,395 @@
 {
-  "checkedAt": "2026-10-14T20:26:33",
-  "checkKind": "DOCUMENT_AND_CODE_PROVENANCE_ONLY",
-  "businessSqlExecuted": false,
+  "checkedAt": "2026-10-15T02:37:43.166283",
+  "checkKind": "CONSOLIDATED_RUNTIME_CONFIGURATION_AND_FROZEN_EVIDENCE",
+  "database": "npdms_reverify_20261014",
+  "taskCount": 27,
+  "sourceComponentCount": 37,
+  "savedCurrentConfigurations": 21,
+  "retainedHistoricalTasks": 1,
+  "previewCalls": 0,
+  "migrationCalls": 0,
   "businessWrites": 0,
-  "tasks": 37,
-  "sourceSqlFiles": 51,
-  "ownerMapperXmlFiles": 43,
-  "originalBusinessDictionariesPreserved": 11,
-  "historicalTargetProofFields": [
-    [
-      "P14",
-      "fieldCarryProof",
-      91161
-    ],
-    [
-      "P16",
-      "expectedProjectVersion",
-      10
-    ],
-    [
-      "P16",
-      "migrationRestoration",
-      6570
-    ],
-    [
-      "P19",
-      "_expectedFingerprint",
-      55
-    ],
-    [
-      "P22",
-      "baseline",
-      105
-    ]
+  "allTasksDisabled": true,
+  "protectedTableCount": 155,
+  "checks": {
+    "uniqueComponentCoverage": "PASS",
+    "dependencyDagAndOriginalPrerequisites": "PASS",
+    "originalSqlMappingsAndSchemaPreserved": "PASS",
+    "physicalQuerySharingAndRepeatedContractWriteRemoved": "PASS",
+    "serverConfigurationValidationAndReadback": "PASS",
+    "businessAndRunCountsUnchanged": "PASS",
+    "documentLinks": 1106
+  },
+  "javaTests": {
+    "run": 63,
+    "passed": 62,
+    "skipped": 1,
+    "failed": 0
+  },
+  "pythonTests": {
+    "run": 41,
+    "passed": 41
+  },
+  "sourceSqlChecks": [
+    {
+      "sql": "commerce-shipment-grouped.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "contract-collection-plans.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "contract-masters.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "contract-receivables.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "device-relationships.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "dictionaries-grouped.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "execution-orders.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "order-full-field-carry.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "order-line-full-field-carry.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "order-lines.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "orders.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "organization-grouped.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-contract-formal-relations.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-contract-relations.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-device-relationships.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-identities.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-lease-products.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-master.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-product-configurations.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-products.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-real-products.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-related-parties.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "project-status-attributes.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "roles-grouped.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "shipment-contracts.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "shipment-packages.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "shipments.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "user-roles-grouped.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "users-grouped.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "valid-contracts.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "valid-projects.sql",
+      "syntax": "PASS"
+    },
+    {
+      "sql": "warranty-renewals.sql",
+      "syntax": "PASS"
+    },
+    {
+      "check": "P16 master and identity one read",
+      "groups": 1,
+      "rows": 2,
+      "objects": [
+        "pm_project_header",
+        "pm_project_identity"
+      ]
+    }
   ],
-  "checkResults": {
-    "physicalTargetColumns": "PASS",
-    "sourceSqlFileContent": "PASS",
-    "frozenTaskVersions": "PASS",
-    "businessMappings": "PASS",
-    "sourceReferenceTableCoverage": "PASS",
-    "ownerSqlCopies": "PASS",
-    "links": "PASS",
-    "documentWhitespace": "PASS"
+  "packageBuild": "PASS",
+  "configurationSave": {
+    "database": "npdms_reverify_20261014",
+    "savedAt": "2026-10-15T02:35:37.362805",
+    "currentConfigurations": [
+      {
+        "catalogueTaskKey": "P01",
+        "name": "P01 公司、部门与主管关联",
+        "runtimeTaskId": "2110439242576203777",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.198216",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P04",
+        "name": "P04 账号与任职资料",
+        "runtimeTaskId": "2110439242966274050",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.283027",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P05",
+        "name": "P05 角色定义及来源角色绑定",
+        "runtimeTaskId": "2110439243297624066",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.351695",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P06",
+        "name": "P06 用户角色关系",
+        "runtimeTaskId": "2110439243515727873",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.420985",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P07",
+        "name": "P07 用户公司与部门范围",
+        "runtimeTaskId": "2110439243805134849",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.475386",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P08",
+        "name": "P08 基础字典类型与字典项",
+        "runtimeTaskId": "2110439244555915266",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.670035",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P10",
+        "name": "P10 CRM客户主档",
+        "runtimeTaskId": "2110439244857905153",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.731089",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P11",
+        "name": "P11 CRM正式产品目录",
+        "runtimeTaskId": "2110439245117952002",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.788303",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P12",
+        "name": "P12 DPPMS缺失产品补齐与编码关联",
+        "runtimeTaskId": "2110439245344444418",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.841234",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P13",
+        "name": "P13 CRM执行单",
+        "runtimeTaskId": "2110439245579325441",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:00.916381",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P14",
+        "name": "P14 销售订单与订单行",
+        "runtimeTaskId": "2110306872558583810",
+        "runtimeVersion": 1,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:03.132808",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P15",
+        "name": "P15 正式合同、发货合同引用与发货事实",
+        "runtimeTaskId": "2110439255301722114",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:03.214562",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P16",
+        "name": "P16 有效项目主档、来源身份与基础最终客户资料",
+        "runtimeTaskId": "2110306158427996161",
+        "runtimeVersion": 1,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.034231",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P18",
+        "name": "P18 项目合同关系及正式商务关联",
+        "runtimeTaskId": "2110307139123380226",
+        "runtimeVersion": 1,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.324531",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P19",
+        "name": "P19 项目相关方与发货/执行状态资料",
+        "runtimeTaskId": "2110306421847064577",
+        "runtimeVersion": 1,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.389253",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P20",
+        "name": "P20 项目真实产品",
+        "runtimeTaskId": "2110439264646631425",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.451813",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P21",
+        "name": "P21 项目租赁产品与产品配置",
+        "runtimeTaskId": "2110439264919261186",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.513085",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P22",
+        "name": "P22 项目产品实施范围",
+        "runtimeTaskId": "2110439265175113729",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.565525",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P23",
+        "name": "P23 合同回款计划",
+        "runtimeTaskId": "2110439265489686530",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.650041",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P24",
+        "name": "P24 合同实际回款信息",
+        "runtimeTaskId": "2110439265737150465",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.699096",
+        "enabled": false
+      },
+      {
+        "catalogueTaskKey": "P25",
+        "name": "P25 设备逐次续保记录",
+        "runtimeTaskId": "2110439265988808706",
+        "runtimeVersion": 0,
+        "database": "npdms_reverify_20261014",
+        "savedAt": "2026-10-15T02:35:05.757591",
+        "enabled": false
+      }
+    ],
+    "retiredIdentityTask": {
+      "runtimeTaskId": "2110306206737989633",
+      "mergedIntoTaskId": "2110306158427996161",
+      "version": 1,
+      "enabled": false,
+      "historyRetained": true,
+      "newRunsBlocked": true
+    },
+    "sourceConnections": {
+      "DPPMS": "2110305954295414785",
+      "CRM": "2110439133532688385"
+    },
+    "previewCalls": 0,
+    "migrationCalls": 0
   },
   "limitations": [
-    "CRM SQL Server full schema was not re-read",
-    "No production baseline bound",
-    "No business preview, migration, DDL, build, service operation or browser acceptance"
-  ]
+    "No migration, preview or browser business acceptance executed",
+    "CRM full SQL Server schema not refreshed",
+    "Six catalogue tasks still use existing collector/Owner paths without a full INT task entry",
+    "Existing formal Owner and first-import gaps remain; P19 new-database status definition is pending",
+    "P12 product-label dependency removal, P16 base final customer and P31 role-60 Owner work remain outside this consolidation",
+    "Protected business comparison checks row counts, not a new full-field migration reconciliation"
+  ],
+  "historicalVerification": {
+    "baselineCommit": "9610d1ae7",
+    "priorReport": "consolidation-previous-document-verification.json",
+    "sourceSnapshotDate": "2026-10-14"
+  }
 }

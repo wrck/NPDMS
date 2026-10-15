@@ -1,5 +1,15 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P13",
+  "catalogueTaskKey": "P13",
+  "catalogueTaskName": "CRM执行单",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P01",
+    "P10"
+  ],
+  "baselineTask": {
     "key": "P13",
     "name": "CRM执行单",
     "businessOwners": [
@@ -1893,5 +1903,11 @@
   "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
   "ownerSqlFiles": [
     "owner-sql/CrmExecutionOrderMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

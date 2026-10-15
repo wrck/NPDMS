@@ -17,9 +17,13 @@ public interface SystemDepartmentMigrationApi {
         }
     }
     record Request(Long tenantId,String owner,List<Entry> entries) {}
+    /** Ephemeral results from the preceding organization preview in the same request; never accepted by apply. */
+    record OrganizationPreview(Request request,
+            List<cn.iocoder.yudao.module.system.api.organization.ManagedOrganizationApi.Result> preceding) {}
     record Result(String object,String sourceKey,Department before,Department after,String action) {}
     List<Department> getCatalogue();
     List<Result> preview(Request request);
+    List<Result> previewAfterOrganization(OrganizationPreview preview);
     List<Result> apply(Request request);
     void refreshCaches();
 }

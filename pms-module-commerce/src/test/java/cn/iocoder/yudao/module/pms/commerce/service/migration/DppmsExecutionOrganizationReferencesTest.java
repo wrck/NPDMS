@@ -52,4 +52,20 @@ class DppmsExecutionOrganizationReferencesTest {
         company.setTenantId(1L);when(api.list()).thenReturn(List.of(node,node));
         assertThrows(IllegalStateException.class,references::load);
     }
+    @Test void optionalReferencesKeepCodesAndLaterResolveExactLocalOrganizations() {
+        var row=new CrmExecutionOrderDO();row.setCompanyCode("001");row.setDepartmentCode("311202");
+        row.setDepartmentName("来源办事处");
+        when(api.list()).thenReturn(List.of());
+        references.load().associate(new DppmsExecutionOrganizationReferences.Association(row,
+                DppmsExecutionOrganizationReferences.Resolution.AVAILABLE));
+        assertNull(row.getCompanyId());assertNull(row.getDepartmentId());
+        assertEquals("001",row.getCompanyCode());assertEquals("162102",row.getDepartmentCode());
+        var company=new CompanyDO();company.setId(71L);company.setTenantId(1L);company.setCode("001");
+        var dept=new DeptDO();dept.setId(81L);dept.setTenantId(1L);dept.setCode("162102");
+        when(api.list()).thenReturn(List.of(new ManagedOrganizationApi.Node(company,null,null),new ManagedOrganizationApi.Node(null,dept,null)));
+        references.load().associate(new DppmsExecutionOrganizationReferences.Association(row,
+                DppmsExecutionOrganizationReferences.Resolution.AVAILABLE));
+        assertEquals(71L,row.getCompanyId());assertEquals(81L,row.getDepartmentId());
+        assertEquals("来源办事处",row.getDepartmentName());
+    }
 }

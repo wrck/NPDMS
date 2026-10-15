@@ -27,7 +27,12 @@ class ProjectAssociatedDataServiceTest {
     ProjectSourceAttributesService sourceAttributes=mock(ProjectSourceAttributesService.class);
     ProjectAssociatedDataService service=new ProjectAssociatedDataService(access,mock(ProjectMasterMapper.class),
             mock(DppmsCommerceDetailImportApi.class),sourceAttributes,mock(cn.iocoder.yudao.module.pms.asset.api.migration.DppmsAssetSourceHistoryApi.class),mock(cn.iocoder.yudao.module.pms.asset.api.migration.DppmsWarrantySourceRecordsApi.class),mock(cn.iocoder.yudao.module.pms.engineering.api.installation.DppmsInstallationSourceQueryApi.class),importer,scopes,real,mock(ProjectRealProductImportService.class),lease,leaseOwner,configuration,configurationOwner);
-    @BeforeEach void setup(){TenantContextHolder.setTenantId(1L);}
+    @BeforeEach void setup(){
+        TenantContextHolder.setTenantId(1L);
+        var project=new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO();
+        project.setId(100L);project.setProjectCode("CODE-SUFFIX");
+        when(access.getProject(eq(100L),any())).thenReturn(project);
+    }
     @AfterEach void cleanup(){TenantContextHolder.clear();}
     Map<String,List<ProjectLegacyRecordDO>> records() {
         var row=new ProjectLegacyRecordDO();row.setSourceTable("pm_project_item");row.setSourceKey("301");

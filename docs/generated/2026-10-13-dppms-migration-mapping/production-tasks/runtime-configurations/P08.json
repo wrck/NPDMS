@@ -1,0 +1,270 @@
+{
+  "catalogueTaskKey": "P08",
+  "name": "P08 基础字典类型与字典项",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_DICTIONARIES",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "SNAPSHOT",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": "_groupKey",
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "dataTypeCode",
+            "target": "dataTypeCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "dataTypeName",
+            "target": "dataTypeName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "status",
+            "target": "status",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createTime",
+            "target": "createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createBy",
+            "target": "createBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateTime",
+            "target": "updateTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateBy",
+            "target": "updateBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveFrom",
+            "target": "effectiveFrom",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveTo",
+            "target": "effectiveTo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "definitionMissing",
+            "target": "definitionMissing",
+            "values": null
+          }
+        ],
+        "object": "fnd_basic_data_type",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": "_sourceRows",
+        "sourceKey": "dataTypeCode",
+        "sourceKeyColumns": null,
+        "sourceObject": "fnd_basic_data_type",
+        "sql": "SELECT HEX(CAST(typeCode AS BINARY)) AS _groupKey,\n  CAST(JSON_MERGE_PRESERVE(\n    CAST(CASE WHEN SUM(objectName='fnd_basic_data_type')=0 THEN\n      JSON_ARRAY(JSON_OBJECT('object','fnd_basic_data_type','fields',JSON_OBJECT('dataTypeCode',typeCode,'id',NULL,'dataTypeName',typeCode,'status',NULL,'createTime',NULL,'createBy',NULL,'updateTime',NULL,'updateBy',NULL,'effectiveFrom',NULL,'effectiveTo',NULL,'definitionMissing',1))) ELSE JSON_ARRAY() END AS JSON),\n    JSON_ARRAYAGG(JSON_OBJECT('object',objectName,'fields',CAST(fields AS JSON)))) AS CHAR) AS _sourceRows\nFROM (\n SELECT r.dataTypeCode AS typeCode,'fnd_basic_data_type' AS objectName,JSON_OBJECT('dataTypeCode',r.`dataTypeCode`,'id',r.`id`,'dataTypeName',r.`dataTypeName`,'status',r.`status`,'createTime',r.`createTime`,'createBy',r.`createBy`,'updateTime',r.`updateTime`,'updateBy',r.`updateBy`,'effectiveFrom',r.`effectiveFrom`,'effectiveTo',r.`effectiveTo`,'definitionMissing',0) AS fields FROM fnd_basic_data_type r\n UNION ALL\n SELECT r.dataTypeCode AS typeCode,'fnd_basic_data' AS objectName,JSON_OBJECT('id',r.`id`,'dataTypeCode',r.`dataTypeCode`,'basicDataId',r.`basicDataId`,'basicDataName',r.`basicDataName`,'basicDataAttri1',r.`basicDataAttri1`,'sortId',r.`sortId`,'createTime',r.`createTime`,'createBy',r.`createBy`,'updateTime',r.`updateTime`,'updateBy',r.`updateBy`,'effectiveFrom',r.`effectiveFrom`,'effectiveTo',r.`effectiveTo`) AS fields FROM fnd_basic_data r\n) combined\nGROUP BY typeCode,CAST(typeCode AS BINARY)",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "dataTypeCode",
+            "target": "dataTypeCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "basicDataId",
+            "target": "basicDataId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "basicDataName",
+            "target": "basicDataName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "basicDataAttri1",
+            "target": "basicDataAttri1",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "sortId",
+            "target": "sortId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createTime",
+            "target": "createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createBy",
+            "target": "createBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateTime",
+            "target": "updateTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateBy",
+            "target": "updateBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveFrom",
+            "target": "effectiveFrom",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveTo",
+            "target": "effectiveTo",
+            "values": null
+          }
+        ],
+        "object": "fnd_basic_data",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "fnd_basic_data_type",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fnd_basic_data",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439244555915266",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:00.670035"
+}

@@ -1,5 +1,15 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P32",
+  "catalogueTaskKey": "P31",
+  "catalogueTaskName": "项目成员历史、历史联系人与获准授权",
+  "standaloneTask": false,
+  "isPrimaryComponent": false,
+  "catalogueDependencies": [
+    "P04",
+    "P16"
+  ],
+  "baselineTask": {
     "key": "P32",
     "name": "历史最终客户联系人作为项目成员",
     "businessOwners": [
@@ -821,5 +831,11 @@
   "ownerSqlFiles": [
     "owner-sql/ProjectMemberAssignmentMapper.xml",
     "owner-sql/ProjectMemberHistoryMigrationMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

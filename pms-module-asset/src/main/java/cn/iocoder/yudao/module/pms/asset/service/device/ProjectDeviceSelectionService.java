@@ -45,11 +45,24 @@ public class ProjectDeviceSelectionService implements ProjectDeviceSelectionApi 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<SelectedProjectDevice> validateSelection(Long projectId, List<Long> deviceIds) {
-        if (deviceIds == null || deviceIds.stream().anyMatch(id -> id == null || id <= 0)
-                || new HashSet<>(deviceIds).size() != deviceIds.size()) throw exception(AST_DEVICE_SELECTION_INVALID);
-        var query = query(projectId);
-        if (deviceIds.isEmpty()) return List.of();
-        query.setDeviceIds(deviceIds);
+        if(deviceIds==null || deviceIds.stream().anyMatch(id->id==null || id<=0)
+                || new HashSet<>(deviceIds).size()!=deviceIds.size())throw exception(AST_DEVICE_SELECTION_INVALID);
+        var query=query(projectId);query.setDeviceIds(deviceIds);return validate(query);
+    }
+
+    @Override @Transactional(rollbackFor=Exception.class)
+    public List<SelectedProjectDevice> validateSelection(SelectionQuery request) {
+        if(request==null || !java.util.Objects.equals(request.tenantId(),TenantContextHolder.getRequiredTenantId()))throw exception(AST_DEVICE_SELECTION_INVALID);
+        var query=new ProjectDeviceSelectionQuery();query.setTenantId(request.tenantId());query.setProjectId(request.projectId());
+        query.setDeviceIds(request.deviceIds());
+        query.setContractNumbers(contextApi.getContractNumbers(new ProjectDeviceSelectionContextApi.Query(request.tenantId(),request.actorId(),request.projectId())));
+        return validate(query);
+    }
+    private List<SelectedProjectDevice> validate(ProjectDeviceSelectionQuery query) {
+        var deviceIds=query.getDeviceIds();
+        if(deviceIds==null || deviceIds.stream().anyMatch(id->id==null || id<=0)
+                || new HashSet<>(deviceIds).size()!=deviceIds.size())throw exception(AST_DEVICE_SELECTION_INVALID);
+        if(deviceIds.isEmpty())return List.of();
         var devices = mapper.selectSelectionForUpdate(query);
         if (devices.size() != deviceIds.size()) throw exception(AST_DEVICE_SELECTION_INVALID);
         return devices.stream().map(d -> new SelectedProjectDevice(d.getId(), d.getSn(), d.getName(),

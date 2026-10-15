@@ -19,7 +19,8 @@ class DppmsProjectMasterSyncAdapterTest {
     SyncTaskService tasks=mock(SyncTaskService.class);
     SyncRunMapper runs=mock(SyncRunMapper.class);
     SyncBindingMapper bindings=mock(SyncBindingMapper.class);
-    DppmsProjectMasterSyncAdapter adapter=new DppmsProjectMasterSyncAdapter(projects,tasks,runs,bindings);
+    DppmsProjectIdentitySyncAdapter identities=new DppmsProjectIdentitySyncAdapter(projects,tasks,runs,bindings);
+    DppmsProjectMasterSyncAdapter adapter=new DppmsProjectMasterSyncAdapter(projects,tasks,runs,bindings,identities);
     SyncTaskDO task;SyncRunDO run;
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
@@ -56,6 +57,34 @@ class DppmsProjectMasterSyncAdapterTest {
             return List.of(new Result("10","UPDATED",facts(),facts(),"正式承接"));});
         var result=adapter.apply(batch(row(),List.of())).getFirst();assertEquals(40L,result.targetId());
         assertEquals(37,((Map<?,?>)result.after().get("originalFields")).size());
+    }
+    @Test void consolidatedIdentityUsesThisTransactionMasterAndStillProtectsExistingIdentity() {
+        var master=row();master.fields().put("projectCode","OLD-CODE");
+        var alias=new Row(DppmsProjectIdentitySyncTemplate.OBJECT,"8",Map.of(
+                "originalProjectId","8","canonicalProjectId","10","projectType","10","projectCode","OLD-CODE"),null);
+        var request=new Batch("integration:1:12",List.of(master,alias),List.of(),true,"RETAIN",false,"UPSERT",false);
+        when(projects.apply(any())).thenReturn(List.of(new Result("10","CREATED",null,facts(),"承接")));
+        when(projects.inspectBindings(any())).thenReturn(List.of(facts()));
+        var changes=adapter.apply(request);
+        assertEquals(2,changes.size());assertEquals(40L,changes.get(1).targetId());
+        assertEquals("8",changes.get(1).sourceKey());
+        verify(bindings,never()).selectIdentitySources(any());verify(projects).lockBindings(any());
+        var changedAlias=new Row(alias.object(),alias.sourceKey(),alias.fields(),99L);
+        var prior=new Binding(alias.object(),alias.sourceKey(),99L,changes.get(1).after());
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(new Batch(request.owner(),
+                List.of(master,changedAlias),List.of(prior),true,"RETAIN",false,"UPSERT",false)));
+    }
+    @Test void consolidatedNewMasterPreviewDoesNotInventAFormalProjectId() {
+        run.setPreview(true).setStatus("VALIDATING");
+        var master=row();master.fields().put("projectCode","OLD-CODE");
+        var fields=JsonUtils.parseMap(JsonUtils.toJsonString(facts()));fields.put("id",null);
+        var preview=JsonUtils.parseObject(JsonUtils.toJsonString(fields),Facts.class);
+        when(projects.preview(any())).thenReturn(List.of(new Result("10","CREATED",null,preview,"待创建")));
+        var alias=new Row(DppmsProjectIdentitySyncTemplate.OBJECT,"8",Map.of(
+                "originalProjectId","8","canonicalProjectId","10","projectType","10","projectCode","OLD-CODE"),null);
+        var changes=adapter.preview(new Batch("integration:1:12",List.of(master,alias),List.of(),true,"RETAIN",false,"UPSERT",false));
+        assertNull(changes.get(1).targetId());verify(projects,never()).inspectBindings(any());
+        verify(projects,never()).lockBindings(any());
     }
     @Test void bindingRoundTripPreservesFormalDatesAndOriginalNullColumns() {
         when(projects.apply(any())).thenAnswer(call->{Request r=call.getArgument(0);var e=r.entries().getFirst();

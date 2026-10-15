@@ -1,5 +1,14 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P23",
+  "catalogueTaskKey": "P23",
+  "catalogueTaskName": "合同回款计划",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P04"
+  ],
+  "baselineTask": {
     "key": "P23",
     "name": "合同回款计划",
     "businessOwners": [
@@ -1864,5 +1873,11 @@
   "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
   "ownerSqlFiles": [
     "owner-sql/ContractCollectionPlanMapper.xml"
-  ]
+  ],
+  "projectScope": {
+    "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+    "requiresCreatedProjectForSourceFilter": false,
+    "runtimeScopeImplemented": true
+  }
 }

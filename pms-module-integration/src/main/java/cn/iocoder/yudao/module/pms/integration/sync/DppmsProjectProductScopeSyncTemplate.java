@@ -15,7 +15,7 @@ public final class DppmsProjectProductScopeSyncTemplate {
         // Optional approved audit baseline links earlier PLT imports; it carries no product business values.
         mappings.add(SyncDefinition.Mapping.builder().source("id").target("baseline").conversion("LOOKUP").values(Map.of()).build());
         var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).sourceKey("id").readMode("SQL")
-                .sql(DppmsMigrationSql.initial("project-products")).parameters(Map.of("projectTypes","10","projectIds",""))
+                .sql(DppmsMigrationSql.initial("project-products-published")).publishedProjectMatch("ID").parameters(Map.of("projectTypes","10,afss,afxx","projectIds",""))
                 .columns(List.of()).filters(List.of()).mappings(mappings).build();
         return SyncDefinition.builder().adapter(ADAPTER).sourceSystem("DPPMS").connectionId(connectionId).mode("ONCE")
                 .loadingMode("UPSERT").missingPolicy("RETAIN").cron("0 0 2 * * ?").fullCron("0 0 2 ? * SUN")

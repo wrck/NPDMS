@@ -22,24 +22,28 @@
     <select id="countAllProjectRecords" resultType="java.lang.Long">
         SELECT COUNT(*) FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
     </select>
-    <sql id="latestExecutionRows">
+    <sql id="displayCacheScope">
         FROM (
             SELECT *, MAX(execution_no) OVER (PARTITION BY project_code) AS display_execution_no
             FROM proj_project_product_configuration
-            WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'
+            WHERE tenant_id=#{query.tenantId} AND deleted=b'0'
+              AND project_code=#{query.sourceProjectCode}
+              AND CAST(project_code AS BINARY)=CAST(#{query.sourceProjectCode} AS BINARY)
         ) c
         WHERE c.execution_no=c.display_execution_no
     </sql>
     <select id="selectProjectPage" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO">
-        SELECT c.* <include refid="latestExecutionRows"/>
-        ORDER BY c.project_code, c.item_group, c.bom_path, c.id LIMIT #{query.offset},#{query.limit}
+        SELECT c.* <include refid="displayCacheScope"/>
+        ORDER BY c.execution_no,c.item_group,c.bom_path,c.id LIMIT #{query.offset},#{query.limit}
     </select>
     <select id="countProject" resultType="java.lang.Long">
-        SELECT COUNT(*) <include refid="latestExecutionRows"/>
+        SELECT COUNT(*) <include refid="displayCacheScope"/>
     </select>
     <select id="selectPathNodes" resultType="cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO">
         SELECT * FROM proj_project_product_configuration
-        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'
+        WHERE tenant_id=#{query.tenantId} AND deleted=b'0'
+          AND project_code=#{query.sourceProjectCode}
+          AND CAST(project_code AS BINARY)=CAST(#{query.sourceProjectCode} AS BINARY)
         <choose>
             <when test="query.paths.size() > 0">
                 AND (

@@ -34,7 +34,7 @@ public class GenericSyncTemplates {
                 }
                 targets.add(new GenericTargetStep(step.name(),step.table(),step.keys(),step.mode(),
                         step.nullPolicy(),step.updateColumns(),step.whenField(),step.newerBy(),step.tieBreaker(),
-                        mappings,step.lookups()));
+                        mappings,step.lookups(),step.sameVersionColumns()));
             }
             sources.add(source.toBuilder().targets(targets).build());
         }

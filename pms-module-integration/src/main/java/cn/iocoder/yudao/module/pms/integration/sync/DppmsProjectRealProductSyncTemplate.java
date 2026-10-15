@@ -14,7 +14,7 @@ public final class DppmsProjectRealProductSyncTemplate {
     public static SyncDefinition create(Long connectionId) {
         if(connectionId==null || connectionId<=0)throw new IllegalArgumentException("真实产品来源连接无效");
         var source=SyncDefinition.Source.builder().object(OBJECT).sourceObject(OBJECT).sourceKey("id").readMode("SQL")
-                .sql(DppmsMigrationSql.initial("project-real-products")).parameters(Map.of("projectTypes","10","projectIds",""))
+                .sql(DppmsMigrationSql.initial("project-real-products-published")).publishedProjectMatch("ID").parameters(Map.of("projectTypes","10,afss,afxx","projectIds",""))
                 .columns(List.of()).filters(List.of()).mappings(columns().stream().map(name->SyncDefinition.Mapping.builder()
                         .source(name).target(name).conversion("DIRECT").build()).toList()).build();
         return SyncDefinition.builder().adapter(ADAPTER).sourceSystem("DPPMS").connectionId(connectionId).mode("ONCE")

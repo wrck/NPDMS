@@ -1,5 +1,17 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P07",
+  "catalogueTaskKey": "P07",
+  "catalogueTaskName": "用户公司与部门范围",
+  "standaloneTask": false,
+  "isPrimaryComponent": true,
+  "catalogueDependencies": [
+    "P01",
+    "P04",
+    "P05",
+    "P06"
+  ],
+  "baselineTask": {
     "key": "P07",
     "name": "用户公司与部门范围",
     "businessOwners": [

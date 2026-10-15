@@ -24,9 +24,11 @@ public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
     private final SyncTaskService tasks;
     private final SyncRunMapper runs;
     private final SyncBindingMapper bindings;
+    private final DppmsProjectIdentitySyncAdapter identities;
     @Override public boolean supportsStreaming() { return true; }
     @Override public boolean requiresAllBindings() { return false; }
     @Override public boolean restoresSourceBindings() { return true; }
+    @Override public boolean sharesTargetAcrossSources() { return true; }
     @Override public void refreshCaches() {}
     @Override public Descriptor descriptor() {
         var fields=new ArrayList<Field>();
@@ -39,14 +41,28 @@ public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
         fields.add(new Field("migrationRestoration","获准恢复项目的原回执与全字段保护","OBJECT",false));
         fields.add(new Field("creatorHistoricalCode","获准保留的未关联创建人编码","STRING",false));
         fields.add(new Field("updaterHistoricalCode","获准保留的未关联更新人编码","STRING",false));
-        return new Descriptor(ADAPTER,"DPPMS项目正式主档",List.of(new ObjectDescriptor(OBJECT,"项目主表原37列",
-                fields,"PROJ","Project","proj_project",false)),List.of("RETAIN"),List.of("UPSERT"),false,true);
+        return new Descriptor(ADAPTER,"DPPMS有效项目主档与来源身份",List.of(new ObjectDescriptor(OBJECT,"项目主表原37列",
+                fields,"PROJ","Project","proj_project",false), identities.descriptor().objects().getFirst()),
+                List.of("RETAIN"),List.of("UPSERT"),false,true);
     }
     @Override @Transactional(isolation=Isolation.REPEATABLE_READ,rollbackFor=Exception.class)
     public List<Change> preview(Batch batch) { return execute(batch,false); }
     @Override public List<Change> apply(Batch batch) { return execute(batch,true); }
 
     private List<Change> execute(Batch batch,boolean apply) {
+        if(batch==null) throw new IllegalArgumentException("缺少项目迁移批次");
+        var aliasRows=batch.rows().stream().filter(r->DppmsProjectIdentitySyncTemplate.OBJECT.equals(r.object())).toList();
+        var masters=executeMasters(new Batch(batch.owner(),batch.rows().stream().filter(r->!DppmsProjectIdentitySyncTemplate.OBJECT.equals(r.object())).toList(),
+                batch.bindings().stream().filter(b->!DppmsProjectIdentitySyncTemplate.OBJECT.equals(b.object())).toList(),
+                batch.full(),batch.missingPolicy(),batch.adoptExisting(),batch.loadingMode(),batch.clearBeforeLoad()),apply);
+        if(aliasRows.isEmpty())return masters;
+        var result=new ArrayList<>(masters);
+        result.addAll(identities.consolidated(new DppmsProjectIdentitySyncAdapter.Consolidated(
+                new Batch(batch.owner(),aliasRows,batch.bindings().stream().filter(b->DppmsProjectIdentitySyncTemplate.OBJECT.equals(b.object())).toList(),
+                        batch.full(),batch.missingPolicy(),false,batch.loadingMode(),batch.clearBeforeLoad()),apply,masters)));
+        return List.copyOf(result);
+    }
+    private List<Change> executeMasters(Batch batch,boolean apply) {
         long tenant=TenantContextHolder.getRequiredTenantId();
         if (batch==null || batch.clearBeforeLoad() || !"UPSERT".equals(batch.loadingMode())
                 || !"RETAIN".equals(batch.missingPolicy())) throw new IllegalArgumentException("项目禁止清空、删除缺项或重置绑定");

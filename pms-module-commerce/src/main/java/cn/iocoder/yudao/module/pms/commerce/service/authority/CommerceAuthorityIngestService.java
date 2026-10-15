@@ -280,7 +280,8 @@ public class CommerceAuthorityIngestService {
         requireWrite(orderLineMapper.updateOwnerByVersion(
                 new OrderLineAuthorityUpdate(command.tenantId(), current, expectedVersion)), "订单行Owner更新失败");
         if (freezeScopes) {
-            freezeAffectedScopes(command, current.getId(), fact);
+            freezeAffectedScopes(new ScopeAuthorityChange(command.tenantId(), current.getId(), command.sourceSystem(),
+                    fact.sourceKey(), fact.sourceVersion(), fact.quantity(), fact.quantityStatus(), fact.lifecycleStatus()));
         }
         changes.changed = true;
     }
@@ -477,23 +478,53 @@ public class CommerceAuthorityIngestService {
         return current.getQuantity() != null && incoming.quantity().compareTo(current.getQuantity()) < 0;
     }
 
-    private void freezeAffectedScopes(CommerceAuthorityBatchCommand command, Long orderLineId,
-                                      CommerceOrderLineFact incoming) {
+    /** Generic SQL/mapping writes keep COM's scope history protection in the same chunk transaction. */
+    @org.springframework.context.event.EventListener
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY, rollbackFor = Exception.class)
+    public void onGenericTargetsChanged(cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged event) {
+        for (var target : event.targets()) {
+            if (!"com_sales_order_line".equals(target.table()) || target.before().isEmpty()) continue;
+            Map<String, Object> next = new LinkedHashMap<>(target.before());
+            next.putAll(target.after());
+            if (!Objects.equals(event.tenantId(), ((Number) next.get("tenant_id")).longValue()))
+                throw failure(OWNER_DATA_CORRUPTED, "订单行变更租户不一致");
+            BigDecimal quantity = decimalValue(next.get("order_qty"));
+            var lifecycle = CommerceSourceLifecycleStatus.valueOf(next.get("source_lifecycle_status").toString());
+            String quantityStatus = next.get("quantity_status").toString();
+            BigDecimal previousQuantity = decimalValue(target.before().get("order_qty"));
+            if (lifecycle != CommerceSourceLifecycleStatus.ACTIVE || quantity == null || !CONFIRMED.equals(quantityStatus)
+                    || previousQuantity != null && quantity.compareTo(previousQuantity) < 0) {
+                freezeAffectedScopes(new ScopeAuthorityChange(event.tenantId(), ((Number) next.get("id")).longValue(),
+                        next.get("source_system").toString(), next.get("source_record_key").toString(),
+                        next.get("source_version").toString(), quantity, quantityStatus, lifecycle));
+            }
+        }
+    }
+
+    private static BigDecimal decimalValue(Object value) {
+        return value == null ? null : new BigDecimal(value.toString());
+    }
+
+    private record ScopeAuthorityChange(Long tenantId, Long orderLineId, String sourceSystem, String sourceKey,
+                                        String sourceVersion, BigDecimal quantity, String quantityStatus,
+                                        CommerceSourceLifecycleStatus lifecycleStatus) {}
+
+    private void freezeAffectedScopes(ScopeAuthorityChange change) {
         List<DeliveryScopeDO> activeScopes = scopeImpactMapper.selectActiveScopesForUpdate(
-                new AuthorityScopeImpactQuery(command.tenantId(), orderLineId));
+                new AuthorityScopeImpactQuery(change.tenantId(), change.orderLineId()));
         if (activeScopes.isEmpty()) {
             return;
         }
         BigDecimal allocated = activeScopes.stream().map(DeliveryScopeDO::getAllocatedQty)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (incoming.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE
-                && CONFIRMED.equals(incoming.quantityStatus())
-                && incoming.quantity() != null && incoming.quantity().compareTo(allocated) >= 0) {
+        if (change.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE
+                && CONFIRMED.equals(change.quantityStatus())
+                && change.quantity() != null && change.quantity().compareTo(allocated) >= 0) {
             return;
         }
         List<Long> scopeIds = activeScopes.stream().map(DeliveryScopeDO::getId).toList();
         List<DeliveryScopeDetailDO> details = scopeImpactMapper.selectDetailsForUpdate(
-                new AuthorityScopeDetailsQuery(command.tenantId(), scopeIds));
+                new AuthorityScopeDetailsQuery(change.tenantId(), scopeIds));
         Map<Long, List<DeliveryScopeDetailDO>> detailsByScope = new LinkedHashMap<>();
         for (DeliveryScopeDetailDO detail : details) {
             detailsByScope.computeIfAbsent(detail.getDeliveryScopeId(), ignored -> new ArrayList<>()).add(detail);
@@ -502,10 +533,10 @@ public class CommerceAuthorityIngestService {
         Set<Long> affectedProjects = new TreeSet<>();
         for (DeliveryScopeDO active : activeScopes) {
             requireWrite(scopeImpactMapper.releaseActiveScopeByVersion(
-                    new AuthorityScopeReleaseUpdate(command.tenantId(), active.getId(), active.getVersion(), now, now)),
+                    new AuthorityScopeReleaseUpdate(change.tenantId(), active.getId(), active.getVersion(), now, now)),
                     "结束原ACTIVE范围失败");
 
-            DeliveryScopeDO conflict = base(new DeliveryScopeDO(), command.tenantId());
+            DeliveryScopeDO conflict = base(new DeliveryScopeDO(), change.tenantId());
             conflict.setOrderLineId(active.getOrderLineId());
             conflict.setProjectId(active.getProjectId());
             conflict.setProjectCode(active.getProjectCode());
@@ -535,7 +566,7 @@ public class CommerceAuthorityIngestService {
             conflict.setDepartmentCode(active.getDepartmentCode());
             conflict.setDepartmentName(active.getDepartmentName());
             conflict.setDepartmentVersion(active.getDepartmentVersion());
-            conflict.setSourceEvidence(conflictEvidence(command, incoming));
+            conflict.setSourceEvidence(conflictEvidence(change));
             conflict.setEffectiveFrom(now);
             conflict.setEffectiveTo(null);
             conflict.setStatus(active.getStatus());
@@ -543,16 +574,16 @@ public class CommerceAuthorityIngestService {
             requireWrite(scopeImpactMapper.insert(conflict), "追加CONFLICT范围失败");
 
             for (DeliveryScopeDetailDO detail : detailsByScope.getOrDefault(active.getId(), List.of())) {
-                DeliveryScopeDetailDO copy = copyDetail(detail, conflict.getId(), command.tenantId());
+                DeliveryScopeDetailDO copy = copyDetail(detail, conflict.getId(), change.tenantId());
                 requireWrite(scopeImpactMapper.insertScopeDetail(copy), "复制CONFLICT范围明细失败");
             }
-            conflictNotifier.request(command.tenantId(), conflict, incoming.sourceVersion(),
-                    allocated, incoming.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE
-                            && incoming.quantity() != null ? incoming.quantity() : BigDecimal.ZERO, now);
+            conflictNotifier.request(change.tenantId(), conflict, change.sourceVersion(),
+                    allocated, change.lifecycleStatus() == CommerceSourceLifecycleStatus.ACTIVE
+                            && change.quantity() != null ? change.quantity() : BigDecimal.ZERO, now);
             affectedProjects.add(active.getProjectId());
         }
         for (Long projectId : affectedProjects) {
-            incrementProjectWatermark(command.tenantId(), projectId, now);
+            incrementProjectWatermark(change.tenantId(), projectId, now);
         }
     }
 
@@ -599,12 +630,12 @@ public class CommerceAuthorityIngestService {
         requireWrite(scopeImpactMapper.updateProjectVersionById(row), "递增项目范围水位失败");
     }
 
-    private String conflictEvidence(CommerceAuthorityBatchCommand command, CommerceOrderLineFact fact) {
+    private String conflictEvidence(ScopeAuthorityChange change) {
         Map<String, Object> value = new LinkedHashMap<>();
         value.put("reason", "SOURCE_AUTHORITY_CHANGED");
-        value.put("sourceSystem", command.sourceSystem());
-        value.put("sourceKey", fact.sourceKey());
-        value.put("sourceVersion", fact.sourceVersion());
+        value.put("sourceSystem", change.sourceSystem());
+        value.put("sourceKey", change.sourceKey());
+        value.put("sourceVersion", change.sourceVersion());
         String json = JsonUtils.toJsonString(value);
         if (json.length() > 255) {
             throw failure(OWNER_DATA_CORRUPTED, "范围冲突来源证据超过物理上限");

@@ -8,6 +8,6 @@ import java.util.List;
     ProjectLeaseProductDO selectRecordForUpdate(@Param("query") ProjectLeaseProductRecordQuery query);
     List<ProjectLeaseProductDO> selectBusinessRecordsForUpdate(@Param("query") ProjectLeaseProductBusinessQuery query);
     Long countAllProjectRecords(@Param("query") ProjectLeaseProductProjectQuery query);
-    List<ProjectLeaseProductDO> selectProjectPage(@Param("query") AssociatedPageQuery query);
-    Long countProject(@Param("query") AssociatedPageQuery query);
+    List<ProjectLeaseProductDO> selectProjectPage(@Param("query") ProjectDisplayCachePageQuery query);
+    Long countProject(@Param("query") ProjectDisplayCachePageQuery query);
 }

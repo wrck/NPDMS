@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface DeviceFactoryVersionRecordMapper extends BaseMapperX<DeviceFactoryVersionRecordDO> {
+    DeviceFactoryVersionRecordDO selectGlobalRecordForUpdate(@Param("query") DeviceFactoryGlobalRecordQuery query);
     DeviceFactoryVersionRecordDO selectByIdForUpdate(@Param("query") DeviceFactoryVersionRecordIdentityQuery query);
     default PageResult<DeviceFactoryVersionRecordDO> selectPage(DeviceFactoryVersionRecordPageQuery query) {
         PageParam page=new PageParam();page.setPageNo(query.pageNo());page.setPageSize(query.pageSize());

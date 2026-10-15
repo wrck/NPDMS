@@ -6,7 +6,7 @@ SELECT l.*, p.projectCode AS originalProjectCode, p.projectType,
        u.memo AS upstream_memo, u.dataSource AS upstream_dataSource,
        COALESCE(u.matchCount,0) AS upstreamMatchCount
 FROM pm_project_product_line_real l
-LEFT JOIN pm_project p ON p.projectId=l.projectId
+JOIN (/* @include valid-projects */) p ON p.projectId=l.projectId
 LEFT JOIN (
   SELECT MIN(projectCode) AS projectCode, MIN(orderExecNumber) AS orderExecNumber,
     MIN(productFirstName) AS productFirstName, MIN(productName) AS productName,
@@ -27,4 +27,3 @@ LEFT JOIN (
  AND CAST(u.productSubName AS BINARY) <=> CAST(l.productSubName AS BINARY)
  AND u.num <=> l.num AND CAST(u.memo AS BINARY) <=> CAST(l.memo AS BINARY)
 WHERE (p.projectId IS NULL OR FIND_IN_SET(p.projectType,:projectTypes))
-  AND (:projectIds='' OR FIND_IN_SET(l.projectId,:projectIds))

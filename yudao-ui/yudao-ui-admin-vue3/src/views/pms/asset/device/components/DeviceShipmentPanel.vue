@@ -5,22 +5,6 @@
     </el-alert>
     <template v-else>
       <el-table :data="rows" row-key="id" empty-text="暂无发货记录">
-        <el-table-column label="DPPMS主产品目录名称及型号" min-width="260">
-          <template #default="{ row }">
-            <div v-for="(label, index) in row.dppmsCatalogLabels" :key="index">
-              {{ label.productName ?? '--' }} / {{ label.productModel ?? '--' }}
-            </div>
-            <span v-if="!row.dppmsCatalogLabels?.length">--</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="DPPMS副产品目录名称及型号" min-width="260">
-          <template #default="{ row }">
-            <div v-for="(label, index) in row.secondaryDppmsCatalogLabels" :key="index">
-              {{ label.productName ?? '--' }} / {{ label.productModel ?? '--' }}
-            </div>
-            <span v-if="!row.secondaryDppmsCatalogLabels?.length">--</span>
-          </template>
-        </el-table-column>
         <el-table-column
           v-for="field in shipmentFields"
           :key="field.key"

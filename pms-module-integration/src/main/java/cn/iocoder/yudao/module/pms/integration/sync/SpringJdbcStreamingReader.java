@@ -18,6 +18,7 @@ import java.util.function.Consumer;
 @org.springframework.stereotype.Component
 public class SpringJdbcStreamingReader {
     private final Optional<ExternalDataSourceApi> sources;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<SyncLocalOwnerReader> localOwners;
 
     // 双构造并存时 Spring 无法自动选定注入构造器，缺 @Autowired 会退化为默认构造器实例化而启动失败。
     @Autowired
@@ -35,6 +36,17 @@ public class SpringJdbcStreamingReader {
 
     public StreamResult stream(SyncDefinition definition, LocalDateTime lower, boolean full,
                                SyncStreamingState resume, Consumer<StreamChunk> consumer) throws SQLException {
+        if(definition.sources().stream().anyMatch(SyncLocalOwnerReader::reference) && (!full || resume!=null))
+            throw new IllegalArgumentException("本地Owner来源须从头完整读取");
+        if(definition.sources().stream().allMatch(SyncLocalOwnerReader::reference)) {
+            var upper=LocalDateTime.now();int[] sequence={0};long[] total={0};
+            for(int i=0;i<definition.sources().size();i++) {
+                var source=definition.sources().get(i);
+                streamLocal(new LocalRead(definition,source,i,upper,sequence,total,consumer));
+                consumer.accept(new StreamChunk(upper,i,source.object(),source.sourceObject(),List.of(),null,0,true,sequence[0]));
+            }
+            return new StreamResult(upper,total[0],sequence[0]);
+        }
         var sourceApi=sources.orElseThrow(()->new IllegalStateException("外部数据源服务不可用"));
         try (Connection connection=sourceApi.openReadOnly(definition.connectionId())) {
             // Honour the existing task query limit even when the source provider defaults to a shorter socket wait.
@@ -64,7 +76,10 @@ public class SpringJdbcStreamingReader {
             for(int sourceIndex=startSource;sourceIndex<definition.sources().size();sourceIndex++) {
                 var source=definition.sources().get(sourceIndex);
                 Object checkpoint=resume!=null&&sourceIndex==resume.sourceIndex()?resume.lastKey():null;
-                streamSource(jdbc,connection,definition,source,sourceIndex,lower,upper,full,checkpoint,sequence,totalRows,consumer);
+                if(SyncLocalOwnerReader.reference(source)) {
+                    streamLocal(new LocalRead(definition,source,sourceIndex,upper,sequence,totalRows,consumer));
+                } else if (!SyncSourceProjection.reference(source))
+                    streamSource(jdbc,connection,definition,source,sourceIndex,lower,upper,full,checkpoint,sequence,totalRows,consumer);
                 consumer.accept(new StreamChunk(upper,sourceIndex,source.object(),source.sourceObject(),List.of(),checkpoint,0,true,sequence[0]));
                 resume=null;
             }
@@ -73,9 +88,28 @@ public class SpringJdbcStreamingReader {
         }
     }
 
+    private record LocalRead(SyncDefinition definition,SyncDefinition.Source source,int sourceIndex,LocalDateTime upper,
+                             int[] sequence,long[] totalRows,Consumer<StreamChunk> consumer) {}
+    private void streamLocal(LocalRead read) {
+        var rows=localOwners.getObject().read(new SyncLocalOwnerReader.Input(read.definition(),read.source()));
+        var chunk=new ArrayList<Map<String,Object>>();long bytes=0;Object last=null;var keys=new HashSet<String>();
+        for(var row:rows) {
+            long size=estimateBytes(row);Object key=row.get(read.source().sourceKey());
+            if(key==null || key.toString().isBlank() || key.toString().length()>128 || !keys.add(key.toString()) || size>read.definition().maxBytes())
+                throw new IllegalArgumentException("本地Owner来源主键或容量无效");
+            if(!chunk.isEmpty() && (chunk.size()>=read.definition().effectiveChunkSize() || bytes+size>read.definition().maxBytes())) {
+                emit(read.upper(),read.sourceIndex(),read.source(),chunk,last,bytes,read.sequence(),read.totalRows(),read.consumer());
+                chunk=new ArrayList<>();bytes=0;
+            }
+            chunk.add(row);bytes+=size;last=key;
+        }
+        if(!chunk.isEmpty())emit(read.upper(),read.sourceIndex(),read.source(),chunk,last,bytes,read.sequence(),read.totalRows(),read.consumer());
+    }
+
     private void streamSource(JdbcTemplate jdbc,Connection connection,SyncDefinition definition,SyncDefinition.Source source,
                               int sourceIndex,LocalDateTime lower,LocalDateTime upper,boolean full,Object checkpoint,
                               int[] sequence,long[] totalRows,Consumer<StreamChunk> consumer)throws SQLException {
+        var scope=new PublishedProjectScopeRows(source);
         var base=compile(connection,source);
         verifyTransactionalTables(connection,base.sql(),new HashSet<>());
         List<Object> values=new ArrayList<>(base.values());
@@ -88,7 +122,7 @@ public class SpringJdbcStreamingReader {
             values.add(Timestamp.valueOf(upper));
         }
         boolean checkpointed="CHECKPOINT_KEY".equals(definition.effectiveRestartPolicy());
-        String key=MysqlSyncReader.identifier(connection,source.sourceKey());
+        String key=MysqlSyncReader.identifier(connection,SyncSourceProjection.readKey(source));
         if(checkpointed&&checkpoint!=null) {
             predicates.add(key+" > ?");
             values.add(checkpoint);
@@ -98,7 +132,7 @@ public class SpringJdbcStreamingReader {
         // Stable source-key ordering keeps duplicate detection O(1) and makes chunk boundaries deterministic.
         sql+=" ORDER BY "+key;
         final String query=sql;
-        final List<Object> args=List.copyOf(values);
+        final List<Object> args=Collections.unmodifiableList(new ArrayList<>(values));
         final int fetchSize=jdbcFetchSize(connection,definition.effectiveFetchSize());
         final int chunkSize=definition.effectiveChunkSize();
         final long maxBytes=definition.maxBytes();
@@ -125,7 +159,9 @@ public class SpringJdbcStreamingReader {
                 while(rs.next()) {
                     Map<String,Object> row=new LinkedHashMap<>();
                     for(int i=1;i<=metadata.getColumnCount();i++)row.put(names.get(i-1),normalize(rs.getObject(i)));
-                    Object rawKey=row.get(source.sourceKey());
+                    row=scope.apply(row);
+                    if(row==null)continue;
+                    Object rawKey=row.get(SyncSourceProjection.readKey(source));
                     if(rawKey==null||rawKey.toString().isBlank()||rawKey.toString().length()>128)
                         throw new IllegalArgumentException("来源主键缺失或无效: "+source.object());
                     String sourceKey=rawKey.toString();

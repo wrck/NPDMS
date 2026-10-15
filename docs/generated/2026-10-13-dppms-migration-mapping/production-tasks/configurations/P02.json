@@ -1,5 +1,12 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P02",
+  "catalogueTaskKey": "P01",
+  "catalogueTaskName": "公司、部门与主管关联",
+  "standaloneTask": false,
+  "isPrimaryComponent": false,
+  "catalogueDependencies": [],
+  "baselineTask": {
     "key": "P02",
     "name": "已批准的FND补充部门",
     "businessOwners": [

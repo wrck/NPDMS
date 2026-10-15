@@ -9,7 +9,23 @@ spec.loader.exec_module(identity)
 
 class ProjectIdentityPlanTest(unittest.TestCase):
     def row(self, source_id, project_type='10', code='A-0'):
-        return dict(projectId=source_id, projectType=project_type, projectCode=code)
+        return dict(projectId=source_id, projectType=project_type, projectCode=code, disabled=0, effectiveTo=None)
+
+    def test_invalid_latest_never_resurrects_an_older_valid_version(self):
+        rows = [self.row(1), dict(self.row(3), effectiveTo='2020-01-01'), self.row(4, code='B-0')]
+        plan = identity.plan_project_identities(rows, [])
+        self.assertEqual({4: 4}, plan['canonicalByOriginalId'])
+        self.assertEqual({4: 'B-0'}, plan['projectCodes'])
+
+    def test_invalid_alias_is_excluded_but_closed_valid_project_is_retained(self):
+        rows = [dict(self.row(1), disabled=1), dict(self.row(2), projectState='100')]
+        self.assertEqual({2: 2}, identity.plan_project_identities(rows, [])['canonicalByOriginalId'])
+        self.assertEqual({}, identity.plan_project_identities([dict(self.row(1), disabled=1)], [])['projectCodes'])
+
+    def test_validity_evidence_is_required(self):
+        row = self.row(1);row.pop('disabled')
+        with self.assertRaisesRegex(ValueError, 'PROJECT_VALIDITY_EVIDENCE_REQUIRED'):
+            identity.plan_project_identities([row], [])
 
     def test_largest_same_type_id_is_master_and_every_original_id_has_an_alias(self):
         plan = identity.plan_project_identities([self.row(7), self.row(2), self.row(5)], [])

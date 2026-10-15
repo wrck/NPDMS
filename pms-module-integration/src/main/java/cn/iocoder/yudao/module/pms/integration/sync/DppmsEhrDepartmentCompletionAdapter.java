@@ -23,16 +23,19 @@ public class DppmsEhrDepartmentCompletionAdapter implements DataSyncAdapter {
         return new Descriptor(DppmsEhrDepartmentCompletionTemplate.ADAPTER,"DPPMS八项缺失正式部门补齐",List.of(new ObjectDescriptor("ehr_department","EHR完整部门原字段",
                 DppmsEhrDepartmentCompletionTemplate.columns().stream().map(c->new Field(c,c,"STRING",false)).toList(),"SYSTEM","Department","system_dept",false)),List.of("RETAIN"),List.of("UPSERT"),false);
     }
-    @Override public List<Change> preview(Batch batch){return execute(batch,false);}
-    @Override public List<Change> apply(Batch batch){return execute(batch,true);}
+    private record Execution(Batch batch,boolean apply,DppmsConsolidation.OrganizationPreviewBatch preview) {}
+    @Override public List<Change> preview(Batch batch){return execute(new Execution(batch,false,null));}
+    List<Change> previewAfterOrganization(DppmsConsolidation.OrganizationPreviewBatch preview){return execute(new Execution(preview.batch(),false,preview));}
+    @Override public List<Change> apply(Batch batch){return execute(new Execution(batch,true,null));}
     @Override public void refreshCaches(){departments.refreshCaches();}
-    private List<Change> execute(Batch batch,boolean apply) {
+    private List<Change> execute(Execution execution) {
+        var batch=execution.batch();boolean apply=execution.apply();
         if(!batch.full() || batch.clearBeforeLoad() || !"UPSERT".equals(batch.loadingMode()) || !"RETAIN".equals(batch.missingPolicy()))
             throw new IllegalArgumentException("缺失目录补齐必须完整核对，不清空、不删除或自动扩展部门");
         long tenant=TenantContextHolder.getRequiredTenantId();String[] owner=batch.owner()==null?new String[0]:batch.owner().split(":");
         if(owner.length!=3 || !"integration".equals(owner[0]) || !Long.toString(tenant).equals(owner[1]))throw new IllegalArgumentException("目录补齐运行归属无效");
         var task=tasks.required(SyncFieldMapper.primaryKey(owner[2]));
-        if(!DppmsEhrDepartmentCompletionTemplate.ADAPTER.equals(task.getAdapter()) || !"DPPMS".equals(task.getSourceSystem()) || task.getActiveRunId()==null)
+        if(!DppmsConsolidation.accepts(task,DppmsEhrDepartmentCompletionTemplate.ADAPTER) || !"DPPMS".equals(task.getSourceSystem()) || task.getActiveRunId()==null)
             throw new IllegalArgumentException("缺失目录补齐任务身份无效");
         var run=runs.selectScoped(new SyncQueries.Id(tenant,task.getActiveRunId()));
         if(run==null || !Objects.equals(run.getTenantId(),tenant) || !Objects.equals(run.getTaskId(),task.getId()) || !Objects.equals(run.getConfigVersion(),task.getVersion())
@@ -66,8 +69,11 @@ public class DppmsEhrDepartmentCompletionAdapter implements DataSyncAdapter {
         }
         if(seen.size()!=DppmsEhrDepartmentCompletionTemplate.CODES.size())throw new IllegalArgumentException("已批准八项原部门缺项，未写入目录");
         var request=new Request(tenant,batch.owner(),entries);
-        return (apply?departments.apply(request):departments.preview(request)).stream().map(r->new Change(r.object(),r.sourceKey(),r.after().id(),r.action(),fields(r.before(),false),
-                fields(r.after(),"REFERENCED".equals(r.action())),"现有16列正式承接；11缺项及7全空字段按用户裁决不迁入；"+pending.getOrDefault(r.sourceKey(),"主管已精确关联或原空"))).toList();
+        var results=apply?departments.apply(request):execution.preview()==null?departments.preview(request):
+                departments.previewAfterOrganization(new OrganizationPreview(request,execution.preview().preceding()));
+        return results.stream().map(r->new Change(r.object(),r.sourceKey(),r.after().id(),r.action(),fields(r.before(),false),
+                fields(r.after(),"REFERENCED".equals(r.action())),"现有16列正式承接；11缺项及7全空字段按用户裁决不迁入；"+pending.getOrDefault(r.sourceKey(),"主管已精确关联或原空")
+                        +(r.after().parentId()==null?"；父部门来自同批已校验的拟建组织，目标ID待正式迁入生成":""))).toList();
     }
     private Long resolveLeader(Row row,long tenant,Long connection) {
         if(row.fields().get("director")==null)return null;

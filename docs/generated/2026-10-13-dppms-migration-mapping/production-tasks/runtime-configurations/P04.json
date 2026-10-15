@@ -1,0 +1,718 @@
+{
+  "catalogueTaskKey": "P04",
+  "name": "P04 账号与任职资料",
+  "enabled": false,
+  "definition": {
+    "adapter": "DPPMS_USERS",
+    "autoPaging": false,
+    "chunkSize": 1000,
+    "clearBeforeLoad": false,
+    "connectionId": "2110305954295414785",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 0,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "SNAPSHOT",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "RESTART_ALL",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "DPPMS",
+    "sources": [
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": "_groupKey",
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "user_id",
+            "target": "user_id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "user_name",
+            "target": "user_name",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "create_by",
+            "target": "create_by",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "create_time",
+            "target": "create_time",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "update_by",
+            "target": "update_by",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "update_time",
+            "target": "update_time",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "status",
+            "target": "status",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "needChangePwd",
+            "target": "needChangePwd",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "loginErrorCount",
+            "target": "loginErrorCount",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "isSysUser",
+            "target": "isSysUser",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "userCustom1",
+            "target": "userCustom1",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "userCustom2",
+            "target": "userCustom2",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "userCustom3",
+            "target": "userCustom3",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "userCustom4",
+            "target": "userCustom4",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "userCustom5",
+            "target": "userCustom5",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginCount",
+            "target": "migrationLoginCount",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginEmployeeId",
+            "target": "migrationLoginEmployeeId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginWorkNo",
+            "target": "migrationLoginWorkNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginName",
+            "target": "migrationLoginName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEmployeeId",
+            "target": "migrationEmployeeId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEmployeeWorkNo",
+            "target": "migrationEmployeeWorkNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEmployeeName",
+            "target": "migrationEmployeeName",
+            "values": null
+          }
+        ],
+        "object": "t_user",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": "_sourceRows",
+        "sourceKey": "user_id",
+        "sourceKeyColumns": null,
+        "sourceObject": "t_user",
+        "sql": "SELECT COALESCE(HEX(CAST(u.username AS BINARY)),CONCAT('INVALID:',u.objectName,':',u.sourceId)) AS _groupKey,\n  CAST(JSON_ARRAYAGG(JSON_OBJECT('object',u.objectName,'fields',\n    JSON_MERGE_PRESERVE(CAST(u.fields AS JSON),CAST(CASE WHEN u.objectName='t_user_info' THEN JSON_OBJECT() ELSE\n      JSON_OBJECT('migrationLoginCount',l.loginCount,'migrationLoginEmployeeId',l.empID,\n        'migrationLoginWorkNo',l.workNo,'migrationLoginName',l.name,\n        'migrationEmployeeId',e.empID,'migrationEmployeeWorkNo',e.workNo,'migrationEmployeeName',e.name)\n      END AS JSON)))) AS CHAR) AS _sourceRows\nFROM (\nSELECT 't_user' AS objectName,CAST(r.`user_id` AS CHAR) AS sourceId,r.user_name AS username,JSON_OBJECT('user_id',r.`user_id`,'user_name',r.`user_name`,'create_by',r.`create_by`,'create_time',r.`create_time`,'update_by',r.`update_by`,'update_time',r.`update_time`,'status',r.`status`,'needChangePwd',CAST(r.needChangePwd AS UNSIGNED),'loginErrorCount',r.`loginErrorCount`,'isSysUser',r.`isSysUser`,'userCustom1',r.`userCustom1`,'userCustom2',r.`userCustom2`,'userCustom3',r.`userCustom3`,'userCustom4',r.`userCustom4`,'userCustom5',r.`userCustom5`) AS fields FROM t_user r\nUNION ALL\nSELECT 't_user_info' AS objectName,CAST(r.`id` AS CHAR) AS sourceId,a.user_name AS username,JSON_OBJECT('id',r.`id`,'workNo',r.`workNo`,'realName',r.`realName`,'eName',r.`eName`,'compID',r.`compID`,'depID',r.`depID`,'jobID',r.`jobID`,'reportTo',r.`reportTo`,'wfreportTo',r.`wfreportTo`,'empStatus',r.`empStatus`,'jobStatus',r.`jobStatus`,'empType',r.`empType`,'sex',r.`sex`,'birthday',r.`birthday`,'email',r.`email`,'mobile',r.`mobile`,'telphone',r.`telphone`,'avatar',r.`avatar`,'remark',r.`remark`,'state',r.`state`,'user_id',r.`user_id`,'custom1',r.`custom1`,'custom2',r.`custom2`,'custom3',r.`custom3`,'custom4',r.`custom4`,'custom5',r.`custom5`,'migrationCompanyCode',r.`migrationCompanyCode`,'migrationDepartmentCode',r.`migrationDepartmentCode`,'migrationPositionCode',r.`migrationPositionCode`,'migrationVerifiedEmployeeId',r.`migrationVerifiedEmployeeId`) AS fields FROM (SELECT u.id,u.workNo,u.realName,u.eName,u.compID,u.depID,u.jobID,u.reportTo,u.wfreportTo,u.empStatus,u.jobStatus,u.empType,u.sex,u.birthday,u.email,u.mobile,u.telphone,u.avatar,u.remark,u.state,u.user_id,u.custom1,u.custom2,u.custom3,u.custom4,u.custom5,c.compCode AS migrationCompanyCode,d.depCode AS migrationDepartmentCode,j.jobCode AS migrationPositionCode,e.empID AS migrationVerifiedEmployeeId FROM t_user_info u LEFT JOIN t_company c ON c.id=u.compID LEFT JOIN ehr_department d ON d.depID=u.depID LEFT JOIN ehr_job j ON j.jobID=u.jobID LEFT JOIN t_user a ON a.user_id=u.user_id LEFT JOIN ehr_employee e ON e.empID=a.userCustom4 AND CAST(e.workNo AS BINARY)=CAST(u.workNo AS BINARY) AND u.workNo<>'') r LEFT JOIN t_user a ON a.user_id=r.user_id\nUNION ALL\nSELECT 'fnd_user_info' AS objectName,CAST(r.`id` AS CHAR) AS sourceId,r.username AS username,JSON_OBJECT('id',r.`id`,'username',r.`username`,'email',r.`email`,'dpNo',r.`dpNo`,'realName',r.`realName`,'roleIds',r.`roleIds`,'isemail',r.`isemail`,'status',r.`status`,'defaultPage',r.`defaultPage`,'pwdoverdue',r.`pwdoverdue`,'createBy',r.`createBy`,'createTime',r.`createTime`,'updateBy',r.`updateBy`,'updateTime',r.`updateTime`,'effectiveFrom',r.`effectiveFrom`,'effectiveTo',r.`effectiveTo`,'customInfo',r.`customInfo`) AS fields FROM fnd_user_info r\n) u\nLEFT JOIN (SELECT account,COUNT(*) AS loginCount,MIN(empID) AS empID,MIN(workNo) AS workNo,MIN(name) AS name\n  FROM ehr_login GROUP BY account) l ON CAST(l.account AS BINARY)=CAST(u.username AS BINARY)\nLEFT JOIN ehr_employee e ON e.empID=l.empID\nGROUP BY COALESCE(HEX(CAST(u.username AS BINARY)),CONCAT('INVALID:',u.objectName,':',u.sourceId))",
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "workNo",
+            "target": "workNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "realName",
+            "target": "realName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "eName",
+            "target": "eName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "compID",
+            "target": "compID",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "depID",
+            "target": "depID",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "jobID",
+            "target": "jobID",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "reportTo",
+            "target": "reportTo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "wfreportTo",
+            "target": "wfreportTo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "empStatus",
+            "target": "empStatus",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "jobStatus",
+            "target": "jobStatus",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "empType",
+            "target": "empType",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "sex",
+            "target": "sex",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "birthday",
+            "target": "birthday",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "email",
+            "target": "email",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "mobile",
+            "target": "mobile",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "telphone",
+            "target": "telphone",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "avatar",
+            "target": "avatar",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "remark",
+            "target": "remark",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "state",
+            "target": "state",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "user_id",
+            "target": "user_id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "custom1",
+            "target": "custom1",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "custom2",
+            "target": "custom2",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "custom3",
+            "target": "custom3",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "custom4",
+            "target": "custom4",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "custom5",
+            "target": "custom5",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationCompanyCode",
+            "target": "migrationCompanyCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationDepartmentCode",
+            "target": "migrationDepartmentCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationPositionCode",
+            "target": "migrationPositionCode",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationVerifiedEmployeeId",
+            "target": "migrationVerifiedEmployeeId",
+            "values": null
+          }
+        ],
+        "object": "t_user_info",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "t_user",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "t_user_info",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      },
+      {
+        "columns": [],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "id",
+            "target": "id",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "username",
+            "target": "username",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "email",
+            "target": "email",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "dpNo",
+            "target": "dpNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "realName",
+            "target": "realName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "roleIds",
+            "target": "roleIds",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "isemail",
+            "target": "isemail",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "status",
+            "target": "status",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "defaultPage",
+            "target": "defaultPage",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "pwdoverdue",
+            "target": "pwdoverdue",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createBy",
+            "target": "createBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "createTime",
+            "target": "createTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateBy",
+            "target": "updateBy",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "updateTime",
+            "target": "updateTime",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveFrom",
+            "target": "effectiveFrom",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "effectiveTo",
+            "target": "effectiveTo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "customInfo",
+            "target": "customInfo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginCount",
+            "target": "migrationLoginCount",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginEmployeeId",
+            "target": "migrationLoginEmployeeId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginWorkNo",
+            "target": "migrationLoginWorkNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationLoginName",
+            "target": "migrationLoginName",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEmployeeId",
+            "target": "migrationEmployeeId",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEmployeeWorkNo",
+            "target": "migrationEmployeeWorkNo",
+            "values": null
+          },
+          {
+            "constant": null,
+            "conversion": "DIRECT",
+            "defaultValue": null,
+            "source": "migrationEmployeeName",
+            "target": "migrationEmployeeName",
+            "values": null
+          }
+        ],
+        "object": "fnd_user_info",
+        "parameters": {},
+        "primaryTarget": null,
+        "queryRef": "t_user",
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "id",
+        "sourceKeyColumns": null,
+        "sourceObject": "fnd_user_info",
+        "sql": null,
+        "syncPrimaryKey": false,
+        "table": null,
+        "targets": null,
+        "updatedAt": null
+      }
+    ],
+    "taskKey": null
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439242966274050",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:00.283027"
+}

@@ -1,0 +1,141 @@
+{
+  "adapter": "TABLE_MAPPING",
+  "taskKey": "contract-plan-cache",
+  "sourceSystem": "DPPMS",
+  "connectionId": null,
+  "mode": "ONCE",
+  "loadingMode": "FULL_CACHE_REPLACE",
+  "clearBeforeLoad": true,
+  "resetMappingsBeforeLoad": false,
+  "missingPolicy": "RETAIN",
+  "cron": "0 0 2 * * ?",
+  "fullCron": "0 0 2 ? * SUN",
+  "overlapSeconds": 0,
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "maxRows": 10000,
+  "maxBytes": 67108864,
+  "readStrategy": "SNAPSHOT",
+  "fetchSize": 2000,
+  "chunkSize": 500,
+  "restartPolicy": "RESTART_ALL",
+  "evidencePolicy": "FULL",
+  "sources": [
+    {
+      "object": "PLAN",
+      "sourceObject": "pm_pb_plan_from_sms",
+      "readMode": "TABLE",
+      "table": "pm_pb_plan_from_sms",
+      "sourceKey": "cacheRowOrdinal",
+      "columns": [
+        "id",
+        "contractNo",
+        "batchCode",
+        "basicDataName",
+        "referenceEventName",
+        "eventPlanHappenDate",
+        "afterDaysNum",
+        "eventActualFinishDate",
+        "marketingFeedback",
+        "createBy",
+        "createTime",
+        "updateBy",
+        "updateTime",
+        "effectiveFrom",
+        "effectiveTo",
+        "dataSource"
+      ],
+      "filters": [],
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "com_contract_collection_plan",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "mappings": [
+            {
+              "source": "contractNo",
+              "target": "contract_no",
+              "conversion": "STRING"
+            },
+            {
+              "source": "batchCode",
+              "target": "batch_code",
+              "conversion": "STRING"
+            },
+            {
+              "source": "basicDataName",
+              "target": "collection_item_name",
+              "conversion": "STRING"
+            },
+            {
+              "source": "referenceEventName",
+              "target": "reference_event_name",
+              "conversion": "STRING"
+            },
+            {
+              "source": "eventPlanHappenDate",
+              "target": "event_planned_at",
+              "conversion": "DATETIME"
+            },
+            {
+              "source": "afterDaysNum",
+              "target": "after_days",
+              "conversion": "LONG"
+            },
+            {
+              "source": "eventActualFinishDate",
+              "target": "event_actual_finished_at",
+              "conversion": "DATETIME"
+            },
+            {
+              "source": "marketingFeedback",
+              "target": "marketing_feedback",
+              "conversion": "STRING"
+            },
+            {
+              "source": "createBy",
+              "target": "creator",
+              "conversion": "STRING"
+            },
+            {
+              "source": "createTime",
+              "target": "create_time",
+              "conversion": "DATETIME"
+            },
+            {
+              "source": "updateBy",
+              "target": "updater",
+              "conversion": "STRING"
+            },
+            {
+              "source": "updateTime",
+              "target": "update_time",
+              "conversion": "DATETIME"
+            },
+            {
+              "source": "effectiveFrom",
+              "target": "effective_from",
+              "conversion": "DATETIME"
+            },
+            {
+              "source": "effectiveTo",
+              "target": "effective_to",
+              "conversion": "DATETIME"
+            },
+            {
+              "source": "dataSource",
+              "target": "data_source",
+              "conversion": "STRING"
+            }
+          ],
+          "lookups": []
+        }
+      ],
+      "primaryTarget": "cache"
+    }
+  ]
+}

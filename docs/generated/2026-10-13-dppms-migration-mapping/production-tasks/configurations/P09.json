@@ -1,5 +1,14 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P09",
+  "catalogueTaskKey": "P08",
+  "catalogueTaskName": "基础字典类型与字典项",
+  "standaloneTask": false,
+  "isPrimaryComponent": false,
+  "catalogueDependencies": [
+    "P04"
+  ],
+  "baselineTask": {
     "key": "P09",
     "name": "基础字典项",
     "businessOwners": [

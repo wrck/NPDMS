@@ -1,0 +1,194 @@
+{
+  "catalogueTaskKey": "P11",
+  "name": "P11 CRM正式产品目录",
+  "enabled": false,
+  "definition": {
+    "adapter": "TABLE_MAPPING",
+    "autoPaging": false,
+    "chunkSize": 500,
+    "clearBeforeLoad": false,
+    "connectionId": "2110439133532688385",
+    "cron": "0 0 2 * * ?",
+    "evidencePolicy": "FULL",
+    "fetchSize": 2000,
+    "fullCron": "0 0 2 ? * SUN",
+    "loadingMode": "UPSERT",
+    "maxBytes": 67108864,
+    "maxRows": 10000,
+    "mergedIntoTaskId": null,
+    "missingPolicy": "RETAIN",
+    "mode": "ONCE",
+    "overlapSeconds": 60,
+    "queryTimeoutSeconds": 0,
+    "readStrategy": "STREAMING_CURSOR",
+    "resetMappingsBeforeLoad": false,
+    "restartPolicy": "CHECKPOINT_KEY",
+    "retryCount": 0,
+    "retryIntervalSeconds": 60,
+    "sourceSystem": "CRM",
+    "sources": [
+      {
+        "columns": [
+          "itemCode",
+          "itemModel",
+          "itemDesc",
+          "remark",
+          "statecode",
+          "updateTime"
+        ],
+        "evidenceAdapter": null,
+        "evidenceObject": null,
+        "filters": [],
+        "groupKey": null,
+        "issueField": null,
+        "mappings": [],
+        "object": "PRODUCT",
+        "parameters": {},
+        "primaryTarget": "product",
+        "queryRef": null,
+        "readMode": "SQL",
+        "rowProjection": null,
+        "sourceKey": "itemCode",
+        "sourceKeyColumns": null,
+        "sourceObject": "DPtech_v_product_info_single",
+        "sql": "SELECT itemCode,itemModel,itemDesc,remark,statecode,updateTime FROM (SELECT itemCode,itemModel,itemDesc,remark,statecode,updateTime,ROW_NUMBER() OVER (PARTITION BY itemCode ORDER BY updateTime DESC,createTime DESC,itemModel DESC) AS row_rank FROM DPtech_v_product_info_single) ranked WHERE row_rank=1",
+        "syncPrimaryKey": false,
+        "table": "DPtech_v_product_info_single",
+        "targets": [
+          {
+            "name": "product",
+            "table": "ast_product_official_info",
+            "keys": [
+              "product_code"
+            ],
+            "mode": "UPSERT",
+            "nullPolicy": "IGNORE",
+            "updateColumns": [
+              "product_model",
+              "product_name",
+              "product_desc",
+              "technical_spec",
+              "source_version",
+              "source_updated_at",
+              "synced_at",
+              "sync_status",
+              "status"
+            ],
+            "whenField": null,
+            "newerBy": "source_updated_at",
+            "tieBreaker": null,
+            "mappings": [
+              {
+                "constant": null,
+                "conversion": "TRIM",
+                "defaultValue": null,
+                "source": "itemCode",
+                "target": "product_code",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "TRIM",
+                "defaultValue": null,
+                "source": "itemModel",
+                "target": "product_model",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "TRIM",
+                "defaultValue": null,
+                "source": "itemDesc",
+                "target": "product_name",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "TRIM",
+                "defaultValue": null,
+                "source": "itemDesc",
+                "target": "product_desc",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "TRIM",
+                "defaultValue": null,
+                "source": "remark",
+                "target": "technical_spec",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DIRECT",
+                "defaultValue": null,
+                "source": "$SOURCE_SYSTEM",
+                "target": "source_system",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "$SOURCE_KEY",
+                "target": "source_key",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "STRING",
+                "defaultValue": null,
+                "source": "updateTime",
+                "target": "source_version",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "updateTime",
+                "target": "source_updated_at",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "DATETIME",
+                "defaultValue": null,
+                "source": "updateTime",
+                "target": "synced_at",
+                "values": null
+              },
+              {
+                "constant": "SUCCESS",
+                "conversion": "CONSTANT",
+                "defaultValue": null,
+                "source": null,
+                "target": "sync_status",
+                "values": null
+              },
+              {
+                "constant": null,
+                "conversion": "ENUM",
+                "defaultValue": null,
+                "source": "statecode",
+                "target": "status",
+                "values": {
+                  "0": "ACTIVE",
+                  "1": "INACTIVE"
+                }
+              }
+            ],
+            "lookups": []
+          }
+        ],
+        "updatedAt": "updateTime"
+      }
+    ],
+    "taskKey": "crm-product"
+  },
+  "authorization": "CONFIGURATION_ONLY_NO_PREVIEW_OR_MIGRATION",
+  "runtimeTaskId": "2110439245117952002",
+  "runtimeVersion": 0,
+  "database": "npdms_reverify_20261014",
+  "savedAt": "2026-10-15T02:35:00.788303"
+}

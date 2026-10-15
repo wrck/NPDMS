@@ -187,6 +187,54 @@ class DppmsOrderSyncAdapterTest {
         assertEquals("ISSUE",adapter.apply(batch).getFirst().action());
         verifyNoInteractions(authority);
     }
+    @Test void sourceParentConflictExplainsPreviewIssueButDoesNotAuthorizeApply() {
+        for(Object flag:List.of(1,true)) {
+            var fields=new LinkedHashMap<>(row("LINE","8").fields());fields.put("migrationParentConflict",flag);
+            var input=batch(new Row("LINE","8",fields,null));
+            var preview=adapter.preview(input).getFirst();assertEquals("ISSUE",preview.action());
+            assertEquals("PARENT_ORDER_SOURCE_CONFLICT: 来源父订单存在同业务键不同内容，须先处理父订单冲突",preview.message());
+            var applied=adapter.apply(input).getFirst();assertEquals("ISSUE",applied.action());
+            assertTrue(applied.message().contains("PARENT_ORDER_MISSING"));
+        }
+        verifyNoInteractions(authority,fieldCarry,lineFieldCarry);
+    }
+    @Test void sourceParentConflictCannotChangeAnExistingParentsValidLinePreview() {
+        when(mapper.selectOrders(any())).thenReturn(List.of(order()));
+        var plain=adapter.preview(batch(row("LINE","8"))).getFirst();
+        var fields=new LinkedHashMap<>(row("LINE","8").fields());fields.put("migrationParentConflict",1);
+        var flagged=adapter.preview(batch(new Row("LINE","8",fields,null))).getFirst();
+        assertEquals("CREATED",plain.action());assertEquals(plain.action(),flagged.action());
+        assertEquals(plain.targetId(),flagged.targetId());assertEquals(plain.message(),flagged.message());
+        assertEquals(plain.before(),flagged.before());
+        var flaggedBusiness=new LinkedHashMap<>(flagged.after());flaggedBusiness.remove("migrationParentConflict");
+        assertEquals(plain.after(),flaggedBusiness);
+        verifyNoInteractions(authority,fieldCarry,lineFieldCarry);
+    }
+    @Test void sourceParentFlagsCannotReviveADeletedFormalParent() {
+        var deleted=order();deleted.setDeleted(true);when(mapper.selectOrders(any())).thenReturn(List.of(deleted));
+        var fields=new LinkedHashMap<>(row("LINE","8").fields());fields.put("migrationParentExists",1);fields.put("migrationParentConflict",true);
+        var input=batch(new Row("LINE","8",fields,null));
+        assertNotEquals("CREATED",adapter.preview(input).getFirst().action());
+        assertNotEquals("CREATED",adapter.apply(input).getFirst().action());
+        verifyNoInteractions(authority,fieldCarry,lineFieldCarry);
+    }
+    @Test void refreshedSourceIdentityUsesTheExistingBusinessTargetRatherThanRecreatingIt() {
+        when(mapper.selectOrders(any())).thenReturn(List.of(order()));
+        var stored=new SalesOrderLineDO();stored.setId(102L);stored.setSourceSystem("ERP");stored.setSourceKey(ORDER_KEY+"|10");
+        stored.setSourceVersion("older");stored.setSourceUpdatedAt(LocalDateTime.of(2026,9,13,10,0));
+        when(mapper.selectLines(any())).thenReturn(List.of(stored));
+        when(authority.ingestBatch(any())).thenAnswer(inv->{
+            var command=inv.getArgument(0,CommerceAuthorityBatchCommand.class);
+            assertEquals(ORDER_KEY+"|10",command.orderLines().getFirst().sourceKey());
+            return new CommerceAuthorityBatchResult(command.eventId(),command.batchId(),CommerceAuthorityBatchResult.Decision.ACCEPTED);
+        });
+        for(String sourceKey:List.of("business-hash:11","business-hash:99")) {
+            var original=row("LINE",sourceKey);
+            var change=adapter.apply(batch(original)).getFirst();
+            assertEquals(sourceKey,change.sourceKey());assertEquals(102L,change.targetId());assertEquals("UPDATED",change.action());
+        }
+        verify(authority,times(2)).ingestBatch(any());
+    }
 
     @Test void opaqueOwnerRevisionUsesSourceTimeAndPreservesPredecessor() {
         var stored=order();stored.setSourceVersion("migration-revision-1");

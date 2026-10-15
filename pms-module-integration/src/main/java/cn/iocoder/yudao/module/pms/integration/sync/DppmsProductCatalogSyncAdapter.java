@@ -25,8 +25,7 @@ public class DppmsProductCatalogSyncAdapter implements DataSyncAdapter {
     @Override public void refreshCaches() {}
     @Override public Descriptor descriptor() {
         var columns = new ArrayList<>(DppmsProductCatalogSyncTemplate.ORIGINAL_COLUMNS);
-        columns.add(DppmsProductCatalogSyncTemplate.DEFINITION);
-        return new Descriptor("DPPMS_PRODUCT_CATALOG", "DPPMS产品目录及正式名称型号属性",
+        return new Descriptor("DPPMS_PRODUCT_CATALOG", "DPPMS缺失产品补齐与编码关联",
                 List.of(new ObjectDescriptor("fb_items", "原产品目录", columns.stream().map(column ->
                         new Field(column,column,"STRING",false)).toList(), "AST", "ProductOfficial", "ast_product_official_info", false)),
                 List.of("RETAIN"), List.of("UPSERT"), false, true);
@@ -58,14 +57,11 @@ public class DppmsProductCatalogSyncAdapter implements DataSyncAdapter {
         Map<String,Binding> bindings = new HashMap<>();
         for (var binding : batch.bindings()) if (bindings.put(binding.object()+":"+binding.sourceKey(),binding) != null)
             throw new IllegalArgumentException("产品来源绑定重复");
-        Long definition = null; var entries = new ArrayList<Entry>();
+        var entries = new ArrayList<Entry>();
         for (var row : batch.rows()) {
             if (!"fb_items".equals(row.object()) || !row.fields().keySet().containsAll(DppmsProductCatalogSyncTemplate.ORIGINAL_COLUMNS)
                     || !Objects.equals(row.sourceKey(),text(row,"item")) || row.fields().containsKey("_sourcePrimaryKey"))
                 throw new IllegalArgumentException("原产品字段或产品编码提取键缺失/不同");
-            long selected = SyncFieldMapper.primaryKey(text(row,DppmsProductCatalogSyncTemplate.DEFINITION));
-            if (definition != null && definition != selected) throw new IllegalArgumentException("同批产品扩展定义不一致");
-            definition = selected;
             var binding = bindings.get(row.object()+":"+row.sourceKey());
             if (binding != null && (!Objects.equals(binding.targetId(),row.targetId()) || !binding.lastFields().containsKey("product")))
                 throw new IllegalArgumentException("产品绑定目标或正式属性证据缺失");
@@ -73,10 +69,10 @@ public class DppmsProductCatalogSyncAdapter implements DataSyncAdapter {
             entries.add(new Entry(row.sourceKey(),new Label(text(row,"item"),text(row,"describe_"),text(row,"itemname")),row.targetId(),last));
         }
         if (entries.isEmpty()) return List.of();
-        var request = new Request(tenant,actor,definition,"integration-run:"+run.getId(),entries);
+        var request = new Request(tenant,actor,"integration-run:"+run.getId(),entries);
         return (apply ? products.apply(request) : products.preview(request)).stream().map(result ->
                 new Change("fb_items",result.sourceKey(),result.targetId(),result.action(),fields(result.before()),fields(result.after()),
-                        "租户+产品编码关联正式目录；原名称/型号保存在正式实体扩展；技术ID按裁决不迁入，已有CRM字段保持原值")).toList();
+                        "租户+产品编码关联正式目录并补齐缺失产品；已有CRM名称及其他正式字段保持原值，原技术ID仅用于来源追溯")).toList();
     }
     private static Map<String,Object> fields(Snapshot snapshot) { return snapshot == null ? Map.of() : Map.of("product",snapshot); }
     private static String text(Row row,String name) { return Objects.toString(row.fields().get(name),null); }

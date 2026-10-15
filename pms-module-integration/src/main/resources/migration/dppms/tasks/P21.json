@@ -1,0 +1,207 @@
+{
+  "adapter": "TABLE_MAPPING",
+  "taskKey": "project-display-cache",
+  "sourceSystem": "DPPMS",
+  "connectionId": null,
+  "mode": "ONCE",
+  "loadingMode": "FULL_CACHE_REPLACE",
+  "clearBeforeLoad": true,
+  "resetMappingsBeforeLoad": false,
+  "missingPolicy": "RETAIN",
+  "cron": "0 0 2 * * ?",
+  "fullCron": "0 0 2 ? * SUN",
+  "overlapSeconds": 0,
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "maxRows": 10000,
+  "maxBytes": 67108864,
+  "readStrategy": "SNAPSHOT",
+  "fetchSize": 2000,
+  "chunkSize": 500,
+  "restartPolicy": "RESTART_ALL",
+  "evidencePolicy": "FULL",
+  "sources": [
+    {
+      "object": "LEASE",
+      "sourceObject": "pm_project_product_lease_line_from_crm",
+      "readMode": "TABLE",
+      "table": "pm_project_product_lease_line_from_crm",
+      "sourceKey": "cacheRowOrdinal",
+      "columns": [
+        "projectCode",
+        "orderExecNumber",
+        "productFirstName",
+        "productName",
+        "productSubCode",
+        "productSubModel",
+        "productSubName",
+        "num",
+        "memo",
+        "leaseDuration",
+        "dataSource"
+      ],
+      "filters": [],
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "proj_project_lease_product",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "mappings": [
+            {
+              "source": "projectCode",
+              "target": "project_code",
+              "conversion": "STRING"
+            },
+            {
+              "source": "orderExecNumber",
+              "target": "execution_no",
+              "conversion": "STRING"
+            },
+            {
+              "source": "productFirstName",
+              "target": "product_category",
+              "conversion": "STRING"
+            },
+            {
+              "source": "productName",
+              "target": "product_type",
+              "conversion": "STRING"
+            },
+            {
+              "source": "productSubCode",
+              "target": "product_code",
+              "conversion": "STRING"
+            },
+            {
+              "source": "productSubModel",
+              "target": "product_model",
+              "conversion": "STRING"
+            },
+            {
+              "source": "productSubName",
+              "target": "product_name",
+              "conversion": "STRING"
+            },
+            {
+              "source": "num",
+              "target": "quantity",
+              "conversion": "DECIMAL"
+            },
+            {
+              "source": "memo",
+              "target": "memo",
+              "conversion": "STRING"
+            },
+            {
+              "source": "leaseDuration",
+              "target": "lease_duration",
+              "conversion": "DECIMAL"
+            },
+            {
+              "source": "dataSource",
+              "target": "data_source",
+              "conversion": "STRING"
+            }
+          ],
+          "lookups": []
+        }
+      ],
+      "primaryTarget": "cache"
+    },
+    {
+      "object": "CONFIG",
+      "sourceObject": "pm_project_product_config_level_info_from_crm",
+      "readMode": "TABLE",
+      "table": "pm_project_product_config_level_info_from_crm",
+      "sourceKey": "cacheRowOrdinal",
+      "columns": [
+        "projectCode",
+        "orderExecNumber",
+        "itemGroup",
+        "itemCode",
+        "parentCode",
+        "quantity",
+        "bomPaths",
+        "itemModel",
+        "itemDesc",
+        "level",
+        "dataSource"
+      ],
+      "filters": [],
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "proj_project_product_configuration",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "mappings": [
+            {
+              "source": "projectCode",
+              "target": "project_code",
+              "conversion": "STRING"
+            },
+            {
+              "source": "orderExecNumber",
+              "target": "execution_no",
+              "conversion": "STRING"
+            },
+            {
+              "source": "itemGroup",
+              "target": "item_group",
+              "conversion": "LONG"
+            },
+            {
+              "source": "itemCode",
+              "target": "product_code",
+              "conversion": "STRING"
+            },
+            {
+              "source": "parentCode",
+              "target": "parent_code",
+              "conversion": "STRING"
+            },
+            {
+              "source": "quantity",
+              "target": "quantity",
+              "conversion": "DECIMAL"
+            },
+            {
+              "source": "bomPaths",
+              "target": "bom_path",
+              "conversion": "STRING"
+            },
+            {
+              "source": "itemModel",
+              "target": "product_model",
+              "conversion": "STRING"
+            },
+            {
+              "source": "itemDesc",
+              "target": "product_description",
+              "conversion": "STRING"
+            },
+            {
+              "source": "level",
+              "target": "level",
+              "conversion": "LONG"
+            },
+            {
+              "source": "dataSource",
+              "target": "data_source",
+              "conversion": "STRING"
+            }
+          ],
+          "lookups": []
+        }
+      ],
+      "primaryTarget": "cache"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsLocalContractSourceMapper">
+  <select id="selectPage" resultType="cn.iocoder.yudao.module.pms.commerce.api.migration.DppmsLocalContractSourceApi$Contract">
+    SELECT MIN(x.company_code) AS company_code, MIN(x.contract_no) AS contract_no,
+      MIN(NULLIF(x.customer_code,'')) AS customer_code, MIN(NULLIF(x.customer_name,'')) AS customer_name,
+      CASE WHEN MAX(x.customer_code_invalid)=1 THEN 'ERP_CUSTOMER_CODE_FORMAT_INVALID'
+        WHEN COUNT(DISTINCT CAST(NULLIF(x.customer_code,'') AS BINARY))&gt;1
+          OR COUNT(DISTINCT CAST(NULLIF(x.customer_name,'') AS BINARY))&gt;1 THEN 'CONTRACT_CUSTOMER_CONFLICT'
+        ELSE NULL END AS migration_issue
+    FROM (
+      SELECT o.company_code,o.contract_no,o.customer_name,
+        CASE WHEN o.customer_code IS NULL OR o.customer_code='' THEN o.customer_code
+          WHEN o.customer_code REGEXP '^[A-Za-z]'
+            AND CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))&lt;=5
+          THEN CONCAT(LEFT(o.customer_code,1),LPAD(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)),5,'0'))
+          ELSE NULL END AS customer_code,
+        CASE WHEN o.customer_code IS NOT NULL AND o.customer_code&lt;&gt;''
+          AND (NOT(o.customer_code REGEXP '^[A-Za-z]')
+            OR CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))&gt;5)
+          THEN 1 ELSE 0 END AS customer_code_invalid
+      FROM com_sales_order o
+      WHERE o.tenant_id=#{query.tenantId} AND o.deleted=0
+        AND o.source_system IN ('SAP','D365','SMS')
+        AND o.company_code IS NOT NULL AND o.company_code&lt;&gt;''
+        AND o.contract_no IS NOT NULL AND o.contract_no&lt;&gt;''
+      <if test="query.contractNumbers != null and !query.contractNumbers.isEmpty()">
+        AND o.contract_no IN <foreach collection="query.contractNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+      </if>
+      <if test="query.afterCompany != null">
+        AND (CAST(o.company_code AS BINARY)&gt;CAST(#{query.afterCompany} AS BINARY)
+          OR CAST(o.company_code AS BINARY)=CAST(#{query.afterCompany} AS BINARY)
+            AND CAST(o.contract_no AS BINARY)&gt;CAST(#{query.afterContract} AS BINARY))
+      </if>
+    ) x
+    GROUP BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY)
+    ORDER BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY) LIMIT 500
+  </select>
+</mapper>

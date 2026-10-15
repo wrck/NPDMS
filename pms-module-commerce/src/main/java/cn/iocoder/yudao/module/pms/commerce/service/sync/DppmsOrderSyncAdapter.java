@@ -47,6 +47,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         head.add(new Field("originalSourceFields", "完整16原字段", "JSON", false));
         List<Field> line = new ArrayList<>(common);
         line.add(field("migrationParentExists", "来源父订单预检通过", false));
+        line.add(field("migrationParentConflict", "来源父订单业务内容冲突", false));
         line.add(field("lineNo", "行号", true));
         for (String name : List.of("productCode", "productDesc", "orderQuantity", "openQuantity", "bundleCode",
                 "warrantyMonth", "profitCenter", "realExecutionNo", "unitCode", "customInfo")) line.add(field(name, name, false));
@@ -89,7 +90,8 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         if (plan.hasLineRows())
             mapper.selectLines(plan.query()).forEach(r -> ids.put("LINE:" + r.getSourceKey(), r.getId()));
         return plan.changes().stream().map(c -> {
-            if ("ISSUE".equals(c.action())) return c;
+            if ("ISSUE".equals(c.action()) || "MERGED".equals(c.action())
+                    && !c.after().containsKey("_targetSourceKey")) return c;
             Long id = ids.get(c.object() + ":" + c.after().get("_targetSourceKey"));
             if (id == null) throw new IllegalStateException("商务接收成功后未找到目标记录");
             return new Change(c.object(), c.sourceKey(), id, c.action(), c.before(), c.after(), c.message());
@@ -199,7 +201,11 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
                     boolean sourceParent=preview && Set.of("1","true").contains(Objects.toString(text(row,"migrationParentExists"),""));
                     if (!incomingOrders.containsKey(parentKey) && (parent == null || Boolean.TRUE.equals(parent.getDeleted()))
                             && !(sourceParent && parent==null)) {
-                        changes.add(issue(row, "PARENT_ORDER_MISSING: 未找到同ERP来源、公司、类型和订单号的父订单")); continue;
+                        boolean sourceConflict=preview && parent==null && Set.of("1","true")
+                                .contains(Objects.toString(text(row,"migrationParentConflict"),""));
+                        changes.add(issue(row, sourceConflict
+                                ? "PARENT_ORDER_SOURCE_CONFLICT: 来源父订单存在同业务键不同内容，须先处理父订单冲突"
+                                : "PARENT_ORDER_MISSING: 未找到同ERP来源、公司、类型和订单号的父订单")); continue;
                     }
                     String lineNo = required(row, "lineNo");
                     targetKey = parentKey + "|" + lineNo;
@@ -249,7 +255,7 @@ public class DppmsOrderSyncAdapter implements DataSyncAdapter {
         // Conflicting rows must not leave an earlier candidate for the same business key writable.
         if (changes.stream().anyMatch(c -> "ISSUE".equals(c.action()) && c.message().startsWith("同一批次")))
             throw new IllegalArgumentException("来源预检未隔离同业务键冲突，整批停止");
-        return new Plan(query, changes, List.copyOf(incomingOrders.values()), List.copyOf(incomingLines.values()),
+        return new Plan(query, List.copyOf(changes), List.copyOf(incomingOrders.values()), List.copyOf(incomingLines.values()),
                 hasOrderRows,hasLineRows);
     }
 

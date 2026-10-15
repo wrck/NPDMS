@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.PublishedProjectScopeMapper">
+  <sql id="projectColumns">source_connection_id, source_project_key, project_id, project_type, original_project_code, project_code</sql>
+  <insert id="insertMember">
+    INSERT INTO int_sync_project_scope_member
+    (tenant_id, run_id, source_connection_id, source_project_key, project_id, project_type, original_project_code, project_code)
+    VALUES (#{query.tenantId}, #{query.runId}, #{query.project.sourceConnectionId}, #{query.project.sourceProjectKey},
+      #{query.project.projectId}, #{query.project.projectType}, #{query.project.originalProjectCode}, #{query.project.projectCode})
+  </insert>
+  <select id="selectMember" resultType="cn.iocoder.yudao.module.pms.integration.api.sync.DppmsProjectBindingApi$ProjectBinding">
+    SELECT <include refid="projectColumns"/> FROM int_sync_project_scope_member
+    WHERE tenant_id=#{query.tenantId} AND run_id=#{query.runId} AND source_project_key=#{query.project.sourceProjectKey}
+  </select>
+  <insert id="insertPublication">
+    INSERT INTO int_sync_project_scope_publication(tenant_id, source_connection_id, task_id, run_id, published_at)
+    VALUES (#{query.tenantId}, #{query.connectionId}, #{query.taskId}, #{query.runId}, CURRENT_TIMESTAMP(3))
+  </insert>
+  <select id="selectLatestRun" resultType="java.lang.Long">
+    SELECT run_id FROM int_sync_project_scope_publication
+    WHERE tenant_id=#{query.tenantId} AND source_connection_id=#{query.connectionId}
+    ORDER BY published_at DESC, run_id DESC LIMIT 1
+  </select>
+  <select id="selectMembers" resultType="cn.iocoder.yudao.module.pms.integration.api.sync.DppmsProjectBindingApi$ProjectBinding">
+    SELECT <include refid="projectColumns"/> FROM int_sync_project_scope_member
+    WHERE tenant_id=#{query.tenantId} AND source_connection_id=#{query.connectionId} AND run_id=#{query.runId}
+    <choose>
+      <when test="query.sourceProjectKeys != null and !query.sourceProjectKeys.isEmpty()">
+        AND source_project_key IN <foreach collection="query.sourceProjectKeys" item="key" open="(" close=")" separator=",">#{key}</foreach>
+      </when>
+      <otherwise>AND 1=0</otherwise>
+    </choose>
+    ORDER BY source_project_key
+  </select>
+  <select id="selectSourcePage" resultType="cn.iocoder.yudao.module.pms.integration.api.sync.DppmsProjectBindingApi$ProjectBinding">
+    SELECT <include refid="projectColumns"/> FROM int_sync_project_scope_member
+    WHERE tenant_id=#{query.tenantId} AND source_connection_id=#{query.connectionId} AND run_id=#{query.runId}
+      AND source_project_key &gt; #{query.afterKey}
+    ORDER BY source_project_key LIMIT 500
+  </select>
+</mapper>

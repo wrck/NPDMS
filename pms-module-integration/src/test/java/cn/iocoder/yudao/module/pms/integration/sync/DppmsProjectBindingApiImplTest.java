@@ -22,10 +22,10 @@ class DppmsProjectBindingApiImplTest {
                 "project",Map.of("id",id,"tenantId",1,"projectType","10","projectCode",code))));
     }
     @Test void exactReferenceRetainsOriginalAndAssignedCodesAndDeduplicatesConsistentBindings() {
-        when(mapper.selectIdentitySources(argThat(q->"DPPMS_PROJECT_MASTER".equals(q.adapter())))).thenReturn(List.of(binding(100L,"P-1"),binding(100L,"P-1")));
+        when(mapper.selectIdentitySources(argThat(q->"DPPMS_PROJECT_MASTER".equals(q.adapter()) && "pm_project_header".equals(q.sourceObject())))).thenReturn(List.of(binding(100L,"P-1"),binding(100L,"P-1")));
         assertEquals(new ProjectBinding(18L,"12",100L,"10","P-0","P-1"),api.resolve(new Query(1L,18L,"12")));
         verify(mapper).selectIdentitySources(argThat(query->query.tenantId()==1 && query.connectionId()==18
-                && "DPPMS_PROJECT_MASTER".equals(query.adapter()) && query.sourceKeys().equals(List.of("12"))));
+                && "DPPMS_PROJECT_MASTER".equals(query.adapter()) && "pm_project_header".equals(query.sourceObject()) && query.sourceKeys().equals(List.of("12"))));
     }
     @Test void emptyScopeIsEmptyAndInvalidTenantOrConnectionCannotQuery() {
         assertEquals(List.of(),api.resolve(new BatchQuery(1L,18L,List.of())));

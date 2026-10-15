@@ -65,7 +65,7 @@ class DppmsProjectRealProductSyncAdapterTest {
     }
     @Test void emptyPilotRetainsWholeTemplateSqlAndDoesNotInventProductsOrProjectCalls() {
         assertDoesNotThrow(()->new SyncDefinitionValidator(List.of(adapter)).validate(create(18L)));
-        var source=create(18L).sources().getFirst();assertEquals("",source.parameters().get("projectIds"));assertEquals("10",source.parameters().get("projectTypes"));
+        var source=create(18L).sources().getFirst();assertEquals("",source.parameters().get("projectIds"));assertEquals("10,afss,afxx",source.parameters().get("projectTypes"));
         assertEquals("SQL",source.readMode());assertTrue(source.sql().contains("l.*"));assertTrue(source.sql().contains("upstream_dataSource"));
         assertTrue(adapter.apply(new Batch("integration:1:12",List.of(),List.of(),true,"RETAIN",false,"UPSERT",false)).isEmpty());
         verifyNoInteractions(products,projects,bindings);

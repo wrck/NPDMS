@@ -10,6 +10,7 @@ SELECT r.*, g.migrationVersion,
            'customerName',r.customerName,'projectName',r.projectName,'orderComment',r.orderComment,'orderType',r.orderType,
            'compCode',r.compCode,'salesType',r.salesType,'source',r.source,'customInfo',r.customInfo,'syncTime',r.syncTime) AS originalSourceFields
 FROM pm_order_data_from_erp r
+JOIN (/* @include valid-contracts */) scope ON scope.contractNo=r.contractNo
 JOIN (SELECT source,compCode,orderType,orderNumber,MAX(syncTime) AS migrationVersion,
              COUNT(DISTINCT JSON_ARRAY(orderCreateTime,customerRequireTime,customerCode,customerName,projectName,
                  orderComment,salesType,customInfo,contractNo,orderExecNumber)) AS payloadVariants

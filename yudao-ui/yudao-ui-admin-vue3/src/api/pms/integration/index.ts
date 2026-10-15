@@ -157,19 +157,10 @@ export const getDppmsUserTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-users', params: { connectionId } })
 export const getDppmsDepartmentTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-departments', params: { connectionId } })
-export const configureDppmsProductDefinition = (existingRevisionId?: Id) =>
-  request.post<Id>({
-    url: '/pms/product-catalog-properties/dppms-definition',
-    data: { existingRevisionId }
-  })
-export const getDppmsProductTemplate = (
-  connectionId: Id,
-  definitionRevisionId: Id,
-  productCodes: string[]
-) =>
+export const getDppmsProductTemplate = (params: { connectionId: Id; productCodes: string[] }) =>
   request.post<Definition>({
     url: base + '/templates/dppms-products',
-    data: { connectionId, definitionRevisionId, productCodes }
+    data: params
   })
 export const getDppmsUserRoleTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-user-roles', params: { connectionId } })
@@ -285,6 +276,7 @@ export interface GenericTargetStep {
   whenField?: string | null
   newerBy?: string | null
   tieBreaker?: string | null
+  sameVersionColumns?: string[] | null
   mappings: Mapping[]
   lookups: {
     table: string

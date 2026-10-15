@@ -9,21 +9,16 @@ import cn.iocoder.yudao.module.pms.asset.dal.dataobject.shipment.DeviceShipmentD
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.product.AssetProductOfficialMapper;
 import cn.iocoder.yudao.module.pms.asset.dal.mysql.product.query.ProductCatalogCodesQuery;
 import lombok.RequiredArgsConstructor;
-import cn.iocoder.yudao.module.pms.asset.service.product.OfficialProductCatalogLabels;
-import cn.iocoder.yudao.module.pms.platform.api.entity.*;
-import cn.iocoder.yudao.module.pms.asset.api.migration.ProductCatalogMigrationApi.Label;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class DeviceShipmentProductQueryService {
     private final AssetProductOfficialMapper products;
-    private final EntityExtensionApi extensions;
 
     /** Input rows must already be constrained by the device scope and shipment paging query. */
     public PageResult<DeviceShipmentRespVO> withDirectoryLabels(Long tenantId, PageResult<DeviceShipmentDO> page) {
@@ -42,12 +37,6 @@ public class DeviceShipmentProductQueryService {
                     || directory.putIfAbsent(product.getProductCode(), product) != null)
                 throw new IllegalStateException("产品目录租户或唯一编码不一致");
         }
-        var labels = new HashMap<String,List<Label>>();
-        for (var product : directory.values()) {
-            var values = extensions.read(EntityDataRef.current(new EntityRef(tenantId,"AST","ProductOfficial",product.getId())),
-                    new EntityActor(tenantId,0L,EntityActor.SYSTEM_OBSERVER));
-            labels.put(product.getProductCode(), OfficialProductCatalogLabels.decode(values.fields(),product.getProductCode()));
-        }
         return new PageResult<>(page.getList().stream().map(row -> {
             var response = BeanUtils.toBean(row, DeviceShipmentRespVO.class);
             var primary = directory.get(directoryCode(row.getProductCode()));
@@ -55,12 +44,10 @@ public class DeviceShipmentProductQueryService {
             if (primary != null) {
                 response.setProductName(primary.getProductName());
                 response.setProductModel(primary.getProductModel());
-                response.setDppmsCatalogLabels(labels.get(primary.getProductCode()));
             }
             if (secondary != null) {
                 response.setSecondaryProductName(secondary.getProductName());
                 response.setSecondaryProductModel(secondary.getProductModel());
-                response.setSecondaryDppmsCatalogLabels(labels.get(secondary.getProductCode()));
             }
             return response;
         }).toList(), page.getTotal());

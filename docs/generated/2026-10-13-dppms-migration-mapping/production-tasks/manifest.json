@@ -1,58 +1,112 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "capturedAt": "2026-10-14T20:26:32",
-  "artifactKind": "READ_ONLY_PRODUCTION_MIGRATION_REVIEW_NOT_EXECUTABLE",
+  "artifactKind": "MIGRATION_REVIEW_AND_SAVED_DISABLED_CONFIGURATIONS",
   "catalogue": "docs\\superpowers\\plans\\2026-10-14-dppms-production-migration.json",
-  "taskCount": 37,
-  "adapterCounts": {
-    "CURRENT_SPECIALIZED_ADAPTER": 23,
-    "CURRENT_GENERIC_TABLE_MAPPING": 6,
-    "NO_FULL_TASK_ENTRY": 8
-  },
-  "metadataOnly": true,
+  "metadataOnly": false,
   "businessWrites": 0,
   "sourceTaskDefinitionCount": 45,
-  "sqlCount": 51,
+  "sqlCount": 52,
   "sourceSchemaTables": 71,
   "targetSchemaTables": 43,
   "sourceSchemaColumns": 1107,
   "targetSchemaColumns": 1105,
   "ownerSqlMapperFiles": 43,
   "fieldsListed": 861,
+  "taskCount": 27,
+  "sourceComponentCount": 37,
+  "consolidatedAt": "2026-10-15T02:35:37.753906",
+  "runtimeConsolidationImplemented": true,
+  "sourceComponentAdapterCounts": {
+    "CURRENT_SPECIALIZED_ADAPTER": 23,
+    "CURRENT_GENERIC_TABLE_MAPPING": 6,
+    "NO_FULL_TASK_ENTRY": 8
+  },
+  "mergedAliases": [
+    {
+      "oldKey": "P02",
+      "taskKey": "P01",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P03",
+      "taskKey": "P01",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P09",
+      "taskKey": "P08",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P17",
+      "taskKey": "P16",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P26",
+      "taskKey": "P15",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P27",
+      "taskKey": "P15",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P28",
+      "taskKey": "P15",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P29",
+      "taskKey": "P15",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P32",
+      "taskKey": "P31",
+      "standaloneTask": false
+    },
+    {
+      "oldKey": "P36",
+      "taskKey": "P35",
+      "standaloneTask": false
+    }
+  ],
   "tasks": [
     {
       "key": "P01",
-      "name": "公司与基础部门",
+      "name": "公司、部门与主管关联",
       "targetTables": [
         "system_company",
         "system_dept"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "EHR_ORGANIZATION",
+      "dependencies": [],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P01",
+        "P02",
+        "P03"
+      ],
+      "adapterState": "CONFIGURATION_SAVED_EXECUTION_PENDING",
       "details": "tasks/P01.md",
-      "configuration": "configurations/P01.json"
-    },
-    {
-      "key": "P02",
-      "name": "已批准的FND补充部门",
-      "targetTables": [
-        "system_dept"
+      "componentConfigurations": [
+        "configurations/P01.json",
+        "configurations/P02.json",
+        "configurations/P03.json"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_DEPARTMENTS",
-      "details": "tasks/P02.md",
-      "configuration": "configurations/P02.json"
-    },
-    {
-      "key": "P03",
-      "name": "八个EHR补充部门及主管补关联",
-      "targetTables": [
-        "system_dept"
-      ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
-      "details": "tasks/P03.md",
-      "configuration": "configurations/P03.json"
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439242576203777",
+      "runtimeVersion": 1,
+      "runtimeConfiguration": "runtime-configurations/P01.json",
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110493084286287874",
+      "previewConfigVersion": 1,
+      "previewSummary": {
+        "CREATED": 180
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P04",
@@ -60,10 +114,31 @@
       "targetTables": [
         "system_users"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_USERS",
+      "dependencies": [
+        "P01"
+      ],
+      "dependencyConditions": {
+        "P01": "部门身份就绪"
+      },
+      "componentKeys": [
+        "P04"
+      ],
+      "adapterState": "ADAPT_FIRST_IMPORT",
       "details": "tasks/P04.md",
-      "configuration": "configurations/P04.json"
+      "componentConfigurations": [
+        "configurations/P04.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439242966274050",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P04.json",
+      "previewStatus": "FAILED",
+      "previewRunId": "2110451979821789185",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "FAILED": 1566
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P05",
@@ -71,10 +146,29 @@
       "targetTables": [
         "system_role"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_ROLES",
+      "dependencies": [
+        "P04"
+      ],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P05"
+      ],
+      "adapterState": "ADAPT_FIRST_IMPORT",
       "details": "tasks/P05.md",
-      "configuration": "configurations/P05.json"
+      "componentConfigurations": [
+        "configurations/P05.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439243297624066",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P05.json",
+      "previewStatus": "FAILED",
+      "previewRunId": "2110442606106021889",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "FAILED": 31
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P06",
@@ -82,10 +176,30 @@
       "targetTables": [
         "system_user_role"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_USER_ROLES",
+      "dependencies": [
+        "P04",
+        "P05"
+      ],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P06"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P06.md",
-      "configuration": "configurations/P06.json"
+      "componentConfigurations": [
+        "configurations/P06.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439243515727873",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P06.json",
+      "previewStatus": "FAILED",
+      "previewRunId": "2110442655988879361",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "FAILED": 0
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P07",
@@ -93,32 +207,67 @@
       "targetTables": [
         "system_user_company_department_scope"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_USER_SCOPES",
+      "dependencies": [
+        "P01",
+        "P04",
+        "P05",
+        "P06"
+      ],
+      "dependencyConditions": {
+        "P01": "部门身份就绪"
+      },
+      "componentKeys": [
+        "P07"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P07.md",
-      "configuration": "configurations/P07.json"
+      "componentConfigurations": [
+        "configurations/P07.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439243805134849",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P07.json",
+      "previewStatus": "FAILED",
+      "previewRunId": "2110442705154510850",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "FAILED": 0
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P08",
-      "name": "基础字典类型",
+      "name": "基础字典类型与字典项",
       "targetTables": [
-        "system_dict_type"
-      ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_DICTIONARY_TYPES",
-      "details": "tasks/P08.md",
-      "configuration": "configurations/P08.json"
-    },
-    {
-      "key": "P09",
-      "name": "基础字典项",
-      "targetTables": [
+        "system_dict_type",
         "system_dict_data"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_DICTIONARY_DATA",
-      "details": "tasks/P09.md",
-      "configuration": "configurations/P09.json"
+      "dependencies": [
+        "P04"
+      ],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P08",
+        "P09"
+      ],
+      "adapterState": "CONFIGURATION_SAVED_EXECUTION_PENDING",
+      "details": "tasks/P08.md",
+      "componentConfigurations": [
+        "configurations/P08.json",
+        "configurations/P09.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439244555915266",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P08.json",
+      "previewStatus": "FAILED",
+      "previewRunId": "2110442756761227265",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "FAILED": 612
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P10",
@@ -126,10 +275,28 @@
       "targetTables": [
         "cus_customer_master"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "CRM_CUSTOMER",
+      "dependencies": [],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P10"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P10.md",
-      "configuration": "configurations/P10.json"
+      "componentConfigurations": [
+        "configurations/P10.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439244857905153",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P10.json",
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110442809483628546",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "ISSUE": 83,
+        "CREATED": 59518
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P11",
@@ -137,10 +304,27 @@
       "targetTables": [
         "ast_product_official_info"
       ],
-      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
-      "currentAdapter": "TABLE_MAPPING:crm-product",
+      "dependencies": [],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P11"
+      ],
+      "adapterState": "OWNER_ENTRY_REQUIRED",
       "details": "tasks/P11.md",
-      "configuration": "configurations/P11.json"
+      "componentConfigurations": [
+        "configurations/P11.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439245117952002",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P11.json",
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110443092087443458",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "CREATED": 8441
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P12",
@@ -148,10 +332,29 @@
       "targetTables": [
         "ast_product_official_info"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PRODUCT_CATALOG",
+      "dependencies": [
+        "P11"
+      ],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P12"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P12.md",
-      "configuration": "configurations/P12.json"
+      "componentConfigurations": [
+        "configurations/P12.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439245344444418",
+      "runtimeVersion": 1,
+      "runtimeConfiguration": "runtime-configurations/P12.json",
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110481910438141954",
+      "previewConfigVersion": 1,
+      "previewSummary": {
+        "INSERT": 34976
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P13",
@@ -159,10 +362,38 @@
       "targetTables": [
         "com_crm_execution_order"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_CRM_EXECUTION_ORDER",
+      "dependencies": [
+        "P01",
+        "P10"
+      ],
+      "dependencyConditions": {
+        "P01": "部门身份就绪"
+      },
+      "componentKeys": [
+        "P13"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P13.md",
-      "configuration": "configurations/P13.json"
+      "componentConfigurations": [
+        "configurations/P13.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439245579325441",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P13.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110443193249861634",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "ISSUE": 99895
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P14",
@@ -171,44 +402,138 @@
         "com_sales_order",
         "com_sales_order_line"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_ERP_ORDER",
+      "dependencies": [
+        "P01",
+        "P10",
+        "P12",
+        "P13"
+      ],
+      "dependencyConditions": {
+        "P01": "部门身份就绪"
+      },
+      "componentKeys": [
+        "P14"
+      ],
+      "adapterState": "ADAPT_FIRST_IMPORT",
       "details": "tasks/P14.md",
-      "configuration": "configurations/P14.json"
+      "componentConfigurations": [
+        "configurations/P14.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110306872558583810",
+      "runtimeVersion": 5,
+      "runtimeConfiguration": "runtime-configurations/P14.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110507977953607682",
+      "previewConfigVersion": 5,
+      "previewSummary": {
+        "ISSUE": 2138,
+        "CREATED": 465052
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P15",
-      "name": "正式合同主档",
+      "name": "正式合同、发货合同引用与发货事实",
       "targetTables": [
-        "com_contract"
+        "com_contract",
+        "com_shipment_contract_reference",
+        "com_shipment_package",
+        "ast_device_shipment",
+        "ast_device_relationship"
       ],
-      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
-      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "dependencies": [
+        "P01",
+        "P10",
+        "P12",
+        "P14"
+      ],
+      "dependencyConditions": {
+        "P01": "部门身份就绪"
+      },
+      "componentKeys": [
+        "P15",
+        "P26",
+        "P27",
+        "P28",
+        "P29"
+      ],
+      "adapterState": "CONSOLIDATED_ENTRY_PENDING",
       "details": "tasks/P15.md",
-      "configuration": "configurations/P15.json"
+      "componentConfigurations": [
+        "configurations/P15.json",
+        "configurations/P26.json",
+        "configurations/P27.json",
+        "configurations/P28.json",
+        "configurations/P29.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439255301722114",
+      "runtimeVersion": 6,
+      "runtimeConfiguration": "runtime-configurations/P15.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110493133556776962",
+      "previewConfigVersion": 6,
+      "previewSummary": {
+        "ISSUE": 814,
+        "CREATED": 3847355
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P16",
-      "name": "规范项目主档与基础最终客户资料",
+      "name": "有效项目主档、来源身份与基础最终客户资料",
       "targetTables": [
         "proj_project",
-        "proj_project_party"
-      ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PROJECT_MASTER",
-      "details": "tasks/P16.md",
-      "configuration": "configurations/P16.json"
-    },
-    {
-      "key": "P17",
-      "name": "全部原项目身份桥接",
-      "targetTables": [
+        "proj_project_party",
         "int_sync_binding"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PROJECT_IDENTITY",
-      "details": "tasks/P17.md",
-      "configuration": "configurations/P17.json"
+      "dependencies": [
+        "P01",
+        "P04",
+        "P08",
+        "P10"
+      ],
+      "dependencyConditions": {
+        "P01": "部门身份就绪"
+      },
+      "componentKeys": [
+        "P16",
+        "P17"
+      ],
+      "adapterState": "CONFIGURATION_SAVED_EXECUTION_PENDING",
+      "details": "tasks/P16.md",
+      "componentConfigurations": [
+        "configurations/P16.json",
+        "configurations/P17.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110306158427996161",
+      "runtimeVersion": 1,
+      "runtimeConfiguration": "runtime-configurations/P16.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "FAILED",
+      "previewRunId": "2110445161997438978",
+      "previewConfigVersion": 1,
+      "previewSummary": {},
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P18",
@@ -216,10 +541,42 @@
       "targetTables": [
         "com_project_contract_relation"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "dependencies": [
+        "P04",
+        "P13",
+        "P14",
+        "P15",
+        "P16"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪",
+        "P15": "合同主档身份就绪"
+      },
+      "componentKeys": [
+        "P18"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P18.md",
-      "configuration": "configurations/P18.json"
+      "componentConfigurations": [
+        "configurations/P18.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110307139123380226",
+      "runtimeVersion": 3,
+      "runtimeConfiguration": "runtime-configurations/P18.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110457506849107969",
+      "previewConfigVersion": 3,
+      "previewSummary": {
+        "ISSUE": 82676
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P19",
@@ -228,10 +585,39 @@
         "proj_project_party",
         "plt_entity_extension_value"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PROJECT_FACTS",
+      "dependencies": [
+        "P04",
+        "P08",
+        "P16"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P19"
+      ],
+      "adapterState": "ADAPT_FIRST_IMPORT",
       "details": "tasks/P19.md",
-      "configuration": "configurations/P19.json"
+      "componentConfigurations": [
+        "configurations/P19.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110306421847064577",
+      "runtimeVersion": 1,
+      "runtimeConfiguration": "runtime-configurations/P19.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110445525291274241",
+      "previewConfigVersion": 1,
+      "previewSummary": {
+        "ISSUE": 265547
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P20",
@@ -239,10 +625,38 @@
       "targetTables": [
         "proj_project_real_product"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PROJECT_REAL_PRODUCT",
+      "dependencies": [
+        "P04",
+        "P16"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P20"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P20.md",
-      "configuration": "configurations/P20.json"
+      "componentConfigurations": [
+        "configurations/P20.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439264646631425",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P20.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110447956364398593",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "ISSUE": 7818
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P21",
@@ -251,10 +665,38 @@
         "proj_project_lease_product",
         "proj_project_product_configuration"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "dependencies": [
+        "P04",
+        "P16"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P21"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P21.md",
-      "configuration": "configurations/P21.json"
+      "componentConfigurations": [
+        "configurations/P21.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439264919261186",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P21.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110448007073533954",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "ISSUE": 1294
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P22",
@@ -263,10 +705,42 @@
         "com_delivery_scope",
         "com_delivery_scope_detail"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "dependencies": [
+        "P01",
+        "P12",
+        "P14",
+        "P16",
+        "P18"
+      ],
+      "dependencyConditions": {
+        "P01": "部门身份就绪",
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P22"
+      ],
+      "adapterState": "ADAPT_FIRST_IMPORT",
       "details": "tasks/P22.md",
-      "configuration": "configurations/P22.json"
+      "componentConfigurations": [
+        "configurations/P22.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439265175113729",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P22.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110448100925280258",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "ISSUE": 343858
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P23",
@@ -274,10 +748,33 @@
       "targetTables": [
         "com_contract_collection_plan"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "dependencies": [
+        "P04"
+      ],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P23"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P23.md",
-      "configuration": "configurations/P23.json"
+      "componentConfigurations": [
+        "configurations/P23.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439265489686530",
+      "runtimeVersion": 1,
+      "runtimeConfiguration": "runtime-configurations/P23.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "FAILED",
+      "previewRunId": "2110453056197636097",
+      "previewConfigVersion": 1,
+      "previewSummary": {},
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P24",
@@ -285,10 +782,35 @@
       "targetTables": [
         "com_contract_receivable"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_CONTRACT_RECEIVABLE",
+      "dependencies": [
+        "P04"
+      ],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P24"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P24.md",
-      "configuration": "configurations/P24.json"
+      "componentConfigurations": [
+        "configurations/P24.json"
+      ],
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439265737150465",
+      "runtimeVersion": 1,
+      "runtimeConfiguration": "runtime-configurations/P24.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110453111663112194",
+      "previewConfigVersion": 1,
+      "previewSummary": {
+        "CREATED": 79182
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P25",
@@ -296,55 +818,33 @@
       "targetTables": [
         "ast_device_warranty_renewal_record"
       ],
-      "adapterState": "CURRENT_SPECIALIZED_ADAPTER",
-      "currentAdapter": "DPPMS_WARRANTY_RENEWAL",
+      "dependencies": [],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P25"
+      ],
+      "adapterState": "REUSE_AND_REVALIDATE",
       "details": "tasks/P25.md",
-      "configuration": "configurations/P25.json"
-    },
-    {
-      "key": "P26",
-      "name": "发货合同引用与保修年数",
-      "targetTables": [
-        "com_shipment_contract_reference",
-        "com_contract"
+      "componentConfigurations": [
+        "configurations/P25.json"
       ],
-      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
-      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
-      "details": "tasks/P26.md",
-      "configuration": "configurations/P26.json"
-    },
-    {
-      "key": "P27",
-      "name": "装箱单与物流",
-      "targetTables": [
-        "com_shipment_package"
-      ],
-      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
-      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
-      "details": "tasks/P27.md",
-      "configuration": "configurations/P27.json"
-    },
-    {
-      "key": "P28",
-      "name": "设备发货事实",
-      "targetTables": [
-        "ast_device_shipment"
-      ],
-      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
-      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
-      "details": "tasks/P28.md",
-      "configuration": "configurations/P28.json"
-    },
-    {
-      "key": "P29",
-      "name": "主SN与附加SN关系",
-      "targetTables": [
-        "ast_device_relationship"
-      ],
-      "adapterState": "CURRENT_GENERIC_TABLE_MAPPING",
-      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
-      "details": "tasks/P29.md",
-      "configuration": "configurations/P29.json"
+      "configurationState": "SAVED_DISABLED_PREVIEW_EXECUTED",
+      "runtimeTaskId": "2110439265988808706",
+      "runtimeVersion": 0,
+      "runtimeConfiguration": "runtime-configurations/P25.json",
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "PREVIEW_READY",
+      "previewRunId": "2110454395728310274",
+      "previewConfigVersion": 0,
+      "previewSummary": {
+        "CREATED": 453443
+      },
+      "previewReport": "preview-repair-20261015.json"
     },
     {
       "key": "P30",
@@ -353,32 +853,68 @@
         "ast_device",
         "ast_device_project_relationship"
       ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
-      "currentAdapter": null,
+      "dependencies": [
+        "P12",
+        "P14",
+        "P16",
+        "P18",
+        "P15"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P30"
+      ],
+      "adapterState": "TASK_ENTRY_MISSING",
       "details": "tasks/P30.md",
-      "configuration": "configurations/P30.json"
+      "componentConfigurations": [
+        "configurations/P30.json"
+      ],
+      "configurationState": "EXISTING_COLLECTOR_OWNER_ONLY_NO_FULL_INT_ENTRY",
+      "runtimeTaskId": null,
+      "runtimeVersion": null,
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "NOT_PREVIEWED"
     },
     {
       "key": "P31",
-      "name": "项目成员历史与获准授权",
+      "name": "项目成员历史、历史联系人与获准授权",
       "targetTables": [
         "proj_project_member_assignment"
       ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
-      "currentAdapter": null,
+      "dependencies": [
+        "P04",
+        "P16"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P31",
+        "P32"
+      ],
+      "adapterState": "EXISTING_COMBINED_COLLECTOR_FULL_ENTRY_PENDING",
       "details": "tasks/P31.md",
-      "configuration": "configurations/P31.json"
-    },
-    {
-      "key": "P32",
-      "name": "历史最终客户联系人作为项目成员",
-      "targetTables": [
-        "proj_project_member_assignment"
+      "componentConfigurations": [
+        "configurations/P31.json",
+        "configurations/P32.json"
       ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
-      "currentAdapter": null,
-      "details": "tasks/P32.md",
-      "configuration": "configurations/P32.json"
+      "configurationState": "EXISTING_COLLECTOR_OWNER_ONLY_NO_FULL_INT_ENTRY",
+      "runtimeTaskId": null,
+      "runtimeVersion": null,
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "NOT_PREVIEWED"
     },
     {
       "key": "P33",
@@ -389,10 +925,32 @@
         "ast_address",
         "ast_device"
       ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
-      "currentAdapter": null,
+      "dependencies": [
+        "P04",
+        "P16",
+        "P30"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P33"
+      ],
+      "adapterState": "TASK_ENTRY_MISSING",
       "details": "tasks/P33.md",
-      "configuration": "configurations/P33.json"
+      "componentConfigurations": [
+        "configurations/P33.json"
+      ],
+      "configurationState": "EXISTING_COLLECTOR_OWNER_ONLY_NO_FULL_INT_ENTRY",
+      "runtimeTaskId": null,
+      "runtimeVersion": null,
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "NOT_PREVIEWED"
     },
     {
       "key": "P34",
@@ -400,33 +958,67 @@
       "targetTables": [
         "ast_device_factory_version_record"
       ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
-      "currentAdapter": null,
+      "dependencies": [
+        "P16",
+        "P15"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P34"
+      ],
+      "adapterState": "TASK_ENTRY_MISSING",
       "details": "tasks/P34.md",
-      "configuration": "configurations/P34.json"
+      "componentConfigurations": [
+        "configurations/P34.json"
+      ],
+      "configurationState": "EXISTING_COLLECTOR_OWNER_ONLY_NO_FULL_INT_ENTRY",
+      "runtimeTaskId": null,
+      "runtimeVersion": null,
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "NOT_PREVIEWED"
     },
     {
       "key": "P35",
-      "name": "项目软件变更批次",
+      "name": "软件变更批次与设备版本历史",
       "targetTables": [
-        "ast_device_software_change_batch"
-      ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
-      "currentAdapter": null,
-      "details": "tasks/P35.md",
-      "configuration": "configurations/P35.json"
-    },
-    {
-      "key": "P36",
-      "name": "设备软件版本历史",
-      "targetTables": [
+        "ast_device_software_change_batch",
         "ast_device_software_version_record",
         "plt_entity_extension_value"
       ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
-      "currentAdapter": null,
-      "details": "tasks/P36.md",
-      "configuration": "configurations/P36.json"
+      "dependencies": [
+        "P04",
+        "P16"
+      ],
+      "dependencyConditions": {
+        "P16": "有效规范主档及入选旧身份绑定就绪"
+      },
+      "componentKeys": [
+        "P35",
+        "P36"
+      ],
+      "adapterState": "EXISTING_COMBINED_COLLECTOR_FULL_ENTRY_PENDING",
+      "details": "tasks/P35.md",
+      "componentConfigurations": [
+        "configurations/P35.json",
+        "configurations/P36.json"
+      ],
+      "configurationState": "EXISTING_COLLECTOR_OWNER_ONLY_NO_FULL_INT_ENTRY",
+      "runtimeTaskId": null,
+      "runtimeVersion": null,
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "NOT_PREVIEWED"
     },
     {
       "key": "P37",
@@ -434,10 +1026,400 @@
       "targetTables": [
         "ast_device_license_record"
       ],
-      "adapterState": "NO_FULL_TASK_ENTRY",
+      "dependencies": [],
+      "dependencyConditions": {},
+      "componentKeys": [
+        "P37"
+      ],
+      "adapterState": "TASK_ENTRY_MISSING",
+      "details": "tasks/P37.md",
+      "componentConfigurations": [
+        "configurations/P37.json"
+      ],
+      "configurationState": "EXISTING_COLLECTOR_OWNER_ONLY_NO_FULL_INT_ENTRY",
+      "runtimeTaskId": null,
+      "runtimeVersion": null,
+      "projectScope": {
+        "ruleDocument": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+        "appliesTo": "项目主档、身份及项目归属数据；其他商务/设备任务中按项目限定的来源部分",
+        "requiresCreatedProjectForSourceFilter": false,
+        "runtimeScopeImplemented": true
+      },
+      "previewStatus": "NOT_PREVIEWED"
+    }
+  ],
+  "taskPreparationCounts": {
+    "CONSOLIDATED_ENTRY_PENDING": 6,
+    "CURRENT_SPECIALIZED_ADAPTER": 16,
+    "CURRENT_GENERIC_TABLE_MAPPING": 4,
+    "NO_FULL_TASK_ENTRY": 4
+  },
+  "sourceComponents": [
+    {
+      "componentKey": "P01",
+      "catalogueTaskKey": "P01",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "EHR_ORGANIZATION",
+      "details": "tasks/P01.md",
+      "configuration": "configurations/P01.json"
+    },
+    {
+      "componentKey": "P02",
+      "catalogueTaskKey": "P01",
+      "standaloneTask": false,
+      "isPrimaryComponent": false,
+      "currentAdapter": "DPPMS_DEPARTMENTS",
+      "details": "tasks/P02.md",
+      "configuration": "configurations/P02.json"
+    },
+    {
+      "componentKey": "P03",
+      "catalogueTaskKey": "P01",
+      "standaloneTask": false,
+      "isPrimaryComponent": false,
+      "currentAdapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+      "details": "tasks/P03.md",
+      "configuration": "configurations/P03.json"
+    },
+    {
+      "componentKey": "P04",
+      "catalogueTaskKey": "P04",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_USERS",
+      "details": "tasks/P04.md",
+      "configuration": "configurations/P04.json"
+    },
+    {
+      "componentKey": "P05",
+      "catalogueTaskKey": "P05",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_ROLES",
+      "details": "tasks/P05.md",
+      "configuration": "configurations/P05.json"
+    },
+    {
+      "componentKey": "P06",
+      "catalogueTaskKey": "P06",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_USER_ROLES",
+      "details": "tasks/P06.md",
+      "configuration": "configurations/P06.json"
+    },
+    {
+      "componentKey": "P07",
+      "catalogueTaskKey": "P07",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_USER_SCOPES",
+      "details": "tasks/P07.md",
+      "configuration": "configurations/P07.json"
+    },
+    {
+      "componentKey": "P08",
+      "catalogueTaskKey": "P08",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_DICTIONARY_TYPES",
+      "details": "tasks/P08.md",
+      "configuration": "configurations/P08.json"
+    },
+    {
+      "componentKey": "P09",
+      "catalogueTaskKey": "P08",
+      "standaloneTask": false,
+      "isPrimaryComponent": false,
+      "currentAdapter": "DPPMS_DICTIONARY_DATA",
+      "details": "tasks/P09.md",
+      "configuration": "configurations/P09.json"
+    },
+    {
+      "componentKey": "P10",
+      "catalogueTaskKey": "P10",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "CRM_CUSTOMER",
+      "details": "tasks/P10.md",
+      "configuration": "configurations/P10.json"
+    },
+    {
+      "componentKey": "P11",
+      "catalogueTaskKey": "P11",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "TABLE_MAPPING:crm-product",
+      "details": "tasks/P11.md",
+      "configuration": "configurations/P11.json"
+    },
+    {
+      "componentKey": "P12",
+      "catalogueTaskKey": "P12",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_PRODUCT_CATALOG",
+      "details": "tasks/P12.md",
+      "configuration": "configurations/P12.json"
+    },
+    {
+      "componentKey": "P13",
+      "catalogueTaskKey": "P13",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_CRM_EXECUTION_ORDER",
+      "details": "tasks/P13.md",
+      "configuration": "configurations/P13.json"
+    },
+    {
+      "componentKey": "P14",
+      "catalogueTaskKey": "P14",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_ERP_ORDER",
+      "details": "tasks/P14.md",
+      "configuration": "configurations/P14.json"
+    },
+    {
+      "componentKey": "P15",
+      "catalogueTaskKey": "P15",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P15.md",
+      "configuration": "configurations/P15.json"
+    },
+    {
+      "componentKey": "P16",
+      "catalogueTaskKey": "P16",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_PROJECT_MASTER",
+      "details": "tasks/P16.md",
+      "configuration": "configurations/P16.json"
+    },
+    {
+      "componentKey": "P17",
+      "catalogueTaskKey": "P16",
+      "standaloneTask": false,
+      "isPrimaryComponent": false,
+      "currentAdapter": "DPPMS_PROJECT_IDENTITY",
+      "details": "tasks/P17.md",
+      "configuration": "configurations/P17.json"
+    },
+    {
+      "componentKey": "P18",
+      "catalogueTaskKey": "P18",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "details": "tasks/P18.md",
+      "configuration": "configurations/P18.json"
+    },
+    {
+      "componentKey": "P19",
+      "catalogueTaskKey": "P19",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_PROJECT_FACTS",
+      "details": "tasks/P19.md",
+      "configuration": "configurations/P19.json"
+    },
+    {
+      "componentKey": "P20",
+      "catalogueTaskKey": "P20",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_PROJECT_REAL_PRODUCT",
+      "details": "tasks/P20.md",
+      "configuration": "configurations/P20.json"
+    },
+    {
+      "componentKey": "P21",
+      "catalogueTaskKey": "P21",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "details": "tasks/P21.md",
+      "configuration": "configurations/P21.json"
+    },
+    {
+      "componentKey": "P22",
+      "catalogueTaskKey": "P22",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "details": "tasks/P22.md",
+      "configuration": "configurations/P22.json"
+    },
+    {
+      "componentKey": "P23",
+      "catalogueTaskKey": "P23",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "details": "tasks/P23.md",
+      "configuration": "configurations/P23.json"
+    },
+    {
+      "componentKey": "P24",
+      "catalogueTaskKey": "P24",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_CONTRACT_RECEIVABLE",
+      "details": "tasks/P24.md",
+      "configuration": "configurations/P24.json"
+    },
+    {
+      "componentKey": "P25",
+      "catalogueTaskKey": "P25",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "DPPMS_WARRANTY_RENEWAL",
+      "details": "tasks/P25.md",
+      "configuration": "configurations/P25.json"
+    },
+    {
+      "componentKey": "P26",
+      "catalogueTaskKey": "P15",
+      "standaloneTask": false,
+      "isPrimaryComponent": false,
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P26.md",
+      "configuration": "configurations/P26.json"
+    },
+    {
+      "componentKey": "P27",
+      "catalogueTaskKey": "P15",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P27.md",
+      "configuration": "configurations/P27.json"
+    },
+    {
+      "componentKey": "P28",
+      "catalogueTaskKey": "P15",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P28.md",
+      "configuration": "configurations/P28.json"
+    },
+    {
+      "componentKey": "P29",
+      "catalogueTaskKey": "P15",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": "TABLE_MAPPING:delivery-full-sync",
+      "details": "tasks/P29.md",
+      "configuration": "configurations/P29.json"
+    },
+    {
+      "componentKey": "P30",
+      "catalogueTaskKey": "P30",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": null,
+      "details": "tasks/P30.md",
+      "configuration": "configurations/P30.json"
+    },
+    {
+      "componentKey": "P31",
+      "catalogueTaskKey": "P31",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": null,
+      "details": "tasks/P31.md",
+      "configuration": "configurations/P31.json"
+    },
+    {
+      "componentKey": "P32",
+      "catalogueTaskKey": "P31",
+      "standaloneTask": false,
+      "isPrimaryComponent": false,
+      "currentAdapter": null,
+      "details": "tasks/P32.md",
+      "configuration": "configurations/P32.json"
+    },
+    {
+      "componentKey": "P33",
+      "catalogueTaskKey": "P33",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": null,
+      "details": "tasks/P33.md",
+      "configuration": "configurations/P33.json"
+    },
+    {
+      "componentKey": "P34",
+      "catalogueTaskKey": "P34",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": null,
+      "details": "tasks/P34.md",
+      "configuration": "configurations/P34.json"
+    },
+    {
+      "componentKey": "P35",
+      "catalogueTaskKey": "P35",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
+      "currentAdapter": null,
+      "details": "tasks/P35.md",
+      "configuration": "configurations/P35.json"
+    },
+    {
+      "componentKey": "P36",
+      "catalogueTaskKey": "P35",
+      "standaloneTask": false,
+      "isPrimaryComponent": false,
+      "currentAdapter": null,
+      "details": "tasks/P36.md",
+      "configuration": "configurations/P36.json"
+    },
+    {
+      "componentKey": "P37",
+      "catalogueTaskKey": "P37",
+      "standaloneTask": false,
+      "isPrimaryComponent": true,
       "currentAdapter": null,
       "details": "tasks/P37.md",
       "configuration": "configurations/P37.json"
     }
-  ]
+  ],
+  "projectScope": {
+    "reviewedOn": "2026-10-15",
+    "documentation": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/project-scope.md",
+    "readOnlyReviewSql": "docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/sql/P16-valid-project-scope.sql",
+    "canonicalSelection": "先对全部pm_project按二进制projectType、projectCode分组取MAX(projectId)，再筛选有效性；不得先过滤后取最大值或回退旧版本。",
+    "canonicalPredicate": "disabled = 0 AND effectiveTo IS NULL",
+    "sourceIdentityPredicate": "旧ID自身disabled = 0 AND effectiveTo IS NULL，且所属规范主档已入选。",
+    "lifecycleStateFilter": null,
+    "projectIdsMeaning": "空字符串仅表示在有效规范项目内不再按ID缩小；有效集合为空时读取零行，不得退化为全部历史。",
+    "downstreamRule": "项目主档、来源绑定、项目归属明细和各任务按项目筛选的来源共用此集合；范围外旧项目及其项目归属数据不迁入，不因同码或补依赖自动回挂。独立共享基础资料及既定可空正式引用规则保持。",
+    "snapshotReview": {
+      "sourceFile": "master-current-source.json.gz",
+      "fileSavedAt": "2026-10-14T17:50:45.763078",
+      "oldCanonicalRows": 80170,
+      "eligibleCanonicalRows": 79429,
+      "excludedCanonicalRows": 741,
+      "eligibleOriginalIdentityRows": null,
+      "plannedProductionCreates": null,
+      "liveDatabaseRead": false,
+      "note": "对已有规范项目快照的本地分类，不是新预览、实时数量或新增授权；旧原ID及各明细有效数量未重算。"
+    },
+    "runtimeScopeImplemented": true,
+    "implementation": "shared valid-projects SQL; P16 one grouped query; project detail collector validates scope before child reads"
+  },
+  "scopeReviewedAt": "2026-10-15T01:01:09",
+  "frozenSourceSqlCount": 51,
+  "derivedScopeReviewSqlCount": 1,
+  "configurationDatabase": "npdms_reverify_20261014",
+  "savedCurrentConfigurationCount": 21,
+  "previewCalls": 32,
+  "migrationCalls": 0,
+  "previewAutoPagingChildRuns": 50,
+  "previewReport": "preview-repair-20261015.json"
 }

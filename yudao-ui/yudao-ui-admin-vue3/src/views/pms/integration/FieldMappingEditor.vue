@@ -148,7 +148,8 @@ const conversions = computed(() => [
   ...(props.generic
     ? [
         { value: 'DATE', label: '日期' },
-        { value: 'JSON', label: 'JSON 载荷' }
+        { value: 'JSON', label: 'JSON 载荷' },
+        { value: 'JSON_TEXT', label: '解析 JSON 文本' }
       ]
     : [{ value: 'REFERENCE', label: '来源关系引用' }])
 ])

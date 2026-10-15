@@ -30,19 +30,24 @@ public class DppmsProjectIdentitySyncAdapter implements DataSyncAdapter {
                     new Field("migrationRestoration","获准恢复的原身份绑定","OBJECT",false))).toList(),
                     "PROJ","Project","proj_project",false)),List.of("RETAIN"),List.of("UPSERT"),false,true);}
     @Override @Transactional(isolation=Isolation.REPEATABLE_READ,readOnly=true)
-    public List<Change> preview(Batch batch){return execute(batch,false);}
+    public List<Change> preview(Batch batch){return execute(batch,false,null);}
     @Override @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
-    public List<Change> apply(Batch batch){return execute(batch,true);}
-    private List<Change> execute(Batch batch,boolean apply){
+    public List<Change> apply(Batch batch){return execute(batch,true,null);}
+    record Consolidated(Batch batch, boolean apply, List<Change> masters) {}
+    List<Change> consolidated(Consolidated input) {
+        return execute(input.batch(), input.apply(), Objects.requireNonNull(input.masters()));
+    }
+    private List<Change> execute(Batch batch,boolean apply,List<Change> masters){
         long tenant=TenantContextHolder.getRequiredTenantId();
         if(batch==null || batch.clearBeforeLoad() || batch.adoptExisting() || !"UPSERT".equals(batch.loadingMode())
-                || !"RETAIN".equals(batch.missingPolicy()) || batch.rows().size()>500)fail("身份任务禁止清空、接管或重绑");
+                || !"RETAIN".equals(batch.missingPolicy()) || masters==null && batch.rows().size()>500)fail("身份任务禁止清空、接管或重绑");
         String[] owner=batch.owner()==null?new String[0]:batch.owner().split(":");
         if(owner.length!=3 || !"integration".equals(owner[0]) || !Long.toString(tenant).equals(owner[1]))fail("运行所有权无效");
         var task=tasks.required(SyncFieldMapper.primaryKey(owner[2]));
         var definition=JsonUtils.parseObject(task.getDefinition(),SyncDefinition.class);
         var run=task.getActiveRunId()==null?null:runs.selectScoped(new SyncQueries.Id(tenant,task.getActiveRunId()));
-        if(!Objects.equals(task.getTenantId(),tenant) || !ADAPTER.equals(task.getAdapter()) || !"DPPMS".equals(task.getSourceSystem())
+        String expectedAdapter=masters==null?ADAPTER:DppmsProjectMasterSyncTemplate.ADAPTER;
+        if(!Objects.equals(task.getTenantId(),tenant) || !expectedAdapter.equals(task.getAdapter()) || !"DPPMS".equals(task.getSourceSystem())
                 || definition==null || !"ONCE".equals(definition.mode()) || definition.resetMappingsBeforeLoad()
                 || run==null || !Objects.equals(run.getTenantId(),tenant) || !Objects.equals(run.getTaskId(),task.getId())
                 || !Objects.equals(run.getConfigVersion(),task.getVersion()) || !Objects.equals(run.getPreview(),!apply)
@@ -65,7 +70,14 @@ public class DppmsProjectIdentitySyncAdapter implements DataSyncAdapter {
             canonicalKeys.add(identity.get("canonicalProjectId"));
         }
         var canonical=new LinkedHashMap<String,Map<String,Object>>();
-        if(!canonicalKeys.isEmpty())for(var binding:bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",task.getConnectionId(),
+        if(masters!=null) {
+            for(var master:masters) {
+                if(!DppmsProjectMasterSyncTemplate.OBJECT.equals(master.object()) || !canonicalKeys.contains(master.sourceKey()))
+                    fail("合并身份只能引用本块规范主档");
+                if(Set.of("CREATED","UPDATED","UNCHANGED").contains(master.action()))
+                    if(canonical.put(master.sourceKey(),master.after())!=null)fail("本块规范主档重复");
+            }
+        } else if(!canonicalKeys.isEmpty())for(var binding:bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",task.getConnectionId(),
                 DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectMasterSyncTemplate.OBJECT,List.copyOf(canonicalKeys)))){
             DppmsProjectBindingApiImpl.masterBinding(binding,tenant,task.getConnectionId());
             var saved=JsonUtils.parseMap(binding.getFieldsJson());var prior=canonical.putIfAbsent(binding.getSourceKey(),saved);
@@ -84,6 +96,12 @@ public class DppmsProjectIdentitySyncAdapter implements DataSyncAdapter {
             var original=(Map<?,?>)saved.get("originalFields");var project=(Map<?,?>)saved.get("project");
             if(!Objects.equals(identity.get("projectType"),text(original.get("projectType")))
                     || !Objects.equals(identity.get("projectCode"),text(original.get("projectCode"))))fail("原项目类型或编码与规范主档不一致");
+            if(masters!=null && !apply && text(project.get("id"))==null) {
+                if(row.targetId()!=null || previous.containsKey(row.sourceKey()))fail("已绑定原身份不能重新创建规范主档");
+                changes.add(new Change(OBJECT,row.sourceKey(),null,"UNCHANGED",Map.of(),
+                        Map.of("originalIdentity",identity),"同一事务创建规范项目后保存原ID映射"));
+                continue;
+            }
             Long targetId=SyncFieldMapper.primaryKey(text(project.get("id")));
             var target=new ProjectMasterMigrationApi.IdentityTarget(targetId,text(project.get("projectType")),text(project.get("projectCode")));
             var priorTarget=targets.putIfAbsent(targetId,target);

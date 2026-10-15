@@ -82,6 +82,20 @@ class SyncRunMaintenanceTest {
         verify(batchLauncher).recover(1L,10L);
     }
 
+    @Test void consolidatedHistoricalTaskCannotEnqueuePreviewOrMigration() {
+        var task=new SyncTaskDO().setId(20L).setVersion(7);
+        when(taskService.locked(20L)).thenReturn(task);
+        when(taskService.definition(task)).thenReturn(SyncDefinition.builder().mergedIntoTaskId(19L).build());
+        for(boolean preview:List.of(true,false))
+            assertThrows(IllegalArgumentException.class,()->service.start(new SyncRunService.Start(
+                    20L,7,"merged_task_attempt",preview,true,false,null,false)));
+        verify(runs,never()).insert(any(SyncRunDO.class));verifyNoInteractions(batchLauncher,tasks);
+        var receipt=new SyncRunDO().setId(18L).setStatus("SUCCESS");
+        when(runs.selectRequest(any())).thenReturn(receipt);
+        assertEquals(18L,service.start(new SyncRunService.Start(20L,7,"old_request",false,true,false,null,false)));
+        verifyNoInteractions(batchLauncher,tasks);
+    }
+
     @Test
     void interruptedPageRunNeverClearsRootOwner() {
         String config=config();

@@ -91,9 +91,12 @@ public class ProjectAssociatedDataService {
         return new ImportResult(List.copyOf(result),Map.copyOf(baselines),realBaselines,leaseBaselines,configurationBaselines);
     }
     public PageResult<Row> page(Long projectId,String kind,int pageNo,int pageSize,ProjectAccessActor actor) {
-        validate(actor);access.getProject(projectId,actor);
+        validate(actor);var project=access.getProject(projectId,actor);
         if (pageNo<1||pageSize<1||pageSize>100) throw new IllegalArgumentException("DPPMS_NATIVE_PAGE_INVALID");
         var query=new AssociatedPageQuery(actor.tenantId(),projectId,Math.multiplyExact(pageNo-1,pageSize),pageSize);
+        String sourceCode=project.getProjectCode()==null?null:project.getProjectCode().split("-",2)[0];
+        var cacheQuery=new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery(
+                actor.tenantId(),sourceCode,query.offset(),query.limit());
         return switch(kind) {
             case "project" -> {
                 var root=projects.selectById(projectId);
@@ -134,8 +137,8 @@ public class ProjectAssociatedDataService {
                 yield new PageResult<>(page.list().stream().map(r->new Row(r.targetId(),r.sourceKey(),r.fields())).toList(),page.total());
             }
             case "real-products" -> new PageResult<>(real.selectProjectPage(query).stream().map(r->row(r,r.getId(),String.valueOf(r.getId()))).toList(),real.countProject(query));
-            case "lease-products" -> new PageResult<>(lease.selectProjectPage(query).stream().map(r->row(r,r.getId(),String.valueOf(r.getId()))).toList(),lease.countProject(query));
-            case "configured-products" -> configurationPage(query);
+            case "lease-products" -> new PageResult<>(lease.selectProjectPage(cacheQuery).stream().map(r->row(r,r.getId(),String.valueOf(r.getId()))).toList(),lease.countProject(cacheQuery));
+            case "configured-products" -> configurationPage(cacheQuery);
             case "plans","shipment-packages","orders","order-lines","executions" -> {
                 var page=commerce.page(new DppmsCommerceDetailImportApi.Query(actor.tenantId(),actor.actorId(),projectId,kind,pageNo,pageSize));
                 yield new PageResult<>(page.list().stream().map(r->new Row(r.id(),r.sourceKey(),r.values())).toList(),page.total());
@@ -143,12 +146,12 @@ public class ProjectAssociatedDataService {
             default -> throw new IllegalArgumentException("DPPMS_NATIVE_KIND_INVALID");
         };
     }
-    private PageResult<Row> configurationPage(AssociatedPageQuery query) {
+    private PageResult<Row> configurationPage(cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectDisplayCachePageQuery query) {
         var records=configurations.selectProjectPage(query);
         var paths=records.stream().filter(r->r.getLevel()!=null && r.getLevel()>1 && r.getBomPath()!=null)
                 .map(r->configurationPath(r,parentBomPath(r.getBomPath(),r.getLevel()))).distinct().toList();
         var parents=paths.isEmpty()?Set.<cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectConfigurationPathQuery.PathIdentity>of()
-                :configurations.selectPathNodes(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectConfigurationPathQuery(query.tenantId(),query.projectId(),paths))
+                :configurations.selectPathNodes(new cn.iocoder.yudao.module.pms.project.dal.mysql.associated.query.ProjectConfigurationPathQuery(query.tenantId(),query.sourceProjectCode(),paths))
                     .stream().map(r->configurationPath(r,r.getBomPath())).collect(java.util.stream.Collectors.toSet());
         var page=records.stream().map(r->{
             var record=row(r,r.getId(),String.valueOf(r.getId()));var fields=new LinkedHashMap<>(record.values());

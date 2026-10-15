@@ -1,5 +1,12 @@
 {
-  "task": {
+  "artifactKind": "SOURCE_COMPONENT_REVIEW_NOT_EXECUTABLE_CONFIG",
+  "componentKey": "P03",
+  "catalogueTaskKey": "P01",
+  "catalogueTaskName": "公司、部门与主管关联",
+  "standaloneTask": false,
+  "isPrimaryComponent": false,
+  "catalogueDependencies": [],
+  "baselineTask": {
     "key": "P03",
     "name": "八个EHR补充部门及主管补关联",
     "businessOwners": [

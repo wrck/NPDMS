@@ -101,6 +101,12 @@ class SourceCursor:
         if 'information_schema.COLUMNS' in sql:
             self.result = self.connection.metadata
             return
+        if ') valid_project WHERE projectId=' in sql:
+            self.result = [row for row in self.connection.valid_scope if str(row['projectId']) == str(params[-1])]
+            return
+        if ') valid_candidate ' in sql:
+            self.result = self.connection.data.get(source_table('project'), [])
+            return
         source_name = sql.split(' FROM `', 1)[1].split('`', 1)[0]
         self.result = self.connection.data.get(source_name, [])
 
@@ -113,6 +119,8 @@ class SourceConnection:
         self.metadata = copy.deepcopy(schema_rows() if metadata is None else metadata)
         self.data = {source_table(code): rows for code, rows in (data or {}).items()}
         self.queries = []
+        self.valid_scope = [dict(projectId=row['projectId'], canonicalProjectId=row['projectId'])
+                            for row in self.data.get(source_table('project'), [])]
 
     def cursor(self):
         return SourceCursor(self)
@@ -201,6 +209,11 @@ class RealProductUpstreamTest(unittest.TestCase):
 
 
 class FullSourceContractTest(unittest.TestCase):
+    def test_invalid_project_stops_before_any_child_or_sensitive_detail_read(self):
+        connection = self.source();connection.valid_scope = []
+        with self.assertRaisesRegex(ValueError, 'SOURCE_PROJECT_NOT_EFFECTIVE'):
+            self.collect(connection)
+        self.assertEqual(2, len(connection.queries))
     def selection(self):
         return dict(sourceProjectKey='101', sourceContractNo='SYNTHETIC', sourceOrderIds=[1],
                     sourceExecutionIds=[2], sourceShipmentIds=[3])
