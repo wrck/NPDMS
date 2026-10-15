@@ -8,7 +8,7 @@ import java.util.List;
 @Mapper public interface CollectionTemplateMapper extends BaseMapperX<CollectionTemplateDO> {
     default List<CollectionTemplateDO> list(CollectionTemplateQuery q) {
         return selectList(new LambdaQueryWrapperX<CollectionTemplateDO>().eq(CollectionTemplateDO::getTenantId,q.tenantId())
-            .eqIfPresent(CollectionTemplateDO::getPurpose,q.purpose()).eqIfPresent(CollectionTemplateDO::getProtocol,q.protocol())
+            .eqIfPresent(CollectionTemplateDO::getPurpose,q.purpose())
             .eq(q.publishedOnly(),CollectionTemplateDO::getStatus,"PUBLISHED").orderByDesc(CollectionTemplateDO::getId));
     }
     CollectionTemplateDO lockById(@Param("tenantId") Long tenantId,@Param("id") Long id);

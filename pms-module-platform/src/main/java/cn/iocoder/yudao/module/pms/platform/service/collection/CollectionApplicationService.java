@@ -110,7 +110,7 @@ public class CollectionApplicationService implements CollectionApplicationApi {
         CollectionTemplateDO template=null;
         String commands;
         if(r.getTemplateId()!=null) {
-            template=templates.forExecution(actor,r.getTemplateId(),entry,r.getProtocol(),selected.productModel());
+            template=templates.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(actor).templateId(r.getTemplateId()).entry(entry).deviceModel(selected.productModel()).build());
             commands=template.getCommandText();
         }else{
             if(!source.manualAllowed())throw new CollectionOperationException("此入口必须使用发布模板");

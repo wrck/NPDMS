@@ -76,9 +76,25 @@ class CollectionApplicationServiceTest {
                 .actorId(7L)
                 .build(), changed));
     }
+    @Test void sameTemplateUsesTheSelectedConnectionProtocolForEachExecution(){
+        var template=new CollectionTemplateDO();template.setId(50L);template.setName("Published");
+        template.setRevision(2);template.setCommandText("show run");template.setProtocol("SSH");
+        var query=CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(50L).entry("configuration").deviceModel("model-a").build();
+        when(templates.forExecution(query)).thenReturn(template);
+        for(var protocol:List.of("SSH","TELNET")) {
+            var command=request();command.setRequestKey(UUID.randomUUID().toString());
+            command.setTemplateId(50L);command.setProtocol(protocol);command.setPort("SSH".equals(protocol)?22:23);
+            assertEquals("show run",service.submit(CollectionApplicationApi.SourceQuery.builder().entry("configuration").objectId(11L).actorId(7L).build(),command).commandText());
+        }
+        var batches=ArgumentCaptor.forClass(CollectionBatchCreateCommand.class);
+        verify(tasks,times(2)).createBatch(batches.capture());
+        assertEquals(List.of("SSH","TELNET"),batches.getAllValues().stream().map(batch->batch.tasks().getFirst().protocol()).toList());
+        assertTrue(batches.getAllValues().stream().allMatch(batch->"50".equals(batch.tasks().getFirst().templateId())));
+        verify(templates,times(2)).forExecution(query);
+    }
     @Test void savedConnectionUsesPublishedServerCommandsAndNoTemporarySecret(){
         var t=new CollectionTemplateDO();t.setId(50L);t.setName("Published");t.setRevision(2);t.setCommandText("show run");
-        when(templates.forExecution(7L,50L,"configuration","SSH","model-a")).thenReturn(t);
+        when(templates.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(50L).entry("configuration").deviceModel("model-a").build())).thenReturn(t);
         var credential=new DeviceCredentialDO();credential.setId(60L);
         when(connections.resolve(7L,60L,21L,31L,"SSH",50L)).thenReturn(new CollectionConnectionService.Resolved(credential,70L,new DeviceOpsResourceApi.Connection("dac-ref","stored.example",5555,"SSH","saved-user",4)));
         var r=request();r.setTemplateId(50L);r.setCredentialId(60L);r.setPassword(null);r.setCommands("untrusted client command");

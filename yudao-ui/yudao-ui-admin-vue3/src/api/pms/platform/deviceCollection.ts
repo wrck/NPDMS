@@ -63,7 +63,6 @@ export interface Template {
   name: string
   purpose: string
   ownerContext?: string
-  protocol: string
   deviceModel?: string
   revision: number
   commands: string
@@ -171,7 +170,7 @@ export const businessLogs = (entry: Entry, id: Id, pageNo: number) =>
     params: { pageNo, pageSize: 10 }
   })
 export const templates = (
-  params: { purpose?: string; protocol?: string; publishedOnly?: boolean } = {}
+  params: { purpose?: string; publishedOnly?: boolean } = {}
 ) => request.get<Template[]>({ url: `${root}/templates`, params })
 export const saveTemplate = (data: Template) =>
   request.post<Template>({ url: `${root}/templates`, data })
@@ -211,5 +210,11 @@ export const purposes: Record<string, string> = {
   'joint-test': '业务联调',
   center: '独立采集',
   cutover: '割接（调用契约）',
+  'cutover-checklist': '割接：调研及风险考察',
+  'cutover-pre-check': '割接：割接前检查',
+  'cutover-execution': '割接：割接实施',
+  'cutover-test': '割接：割接测试',
+  'cutover-rollback': '割接：回退',
+  'cutover-post-collection': '割接：割接后采集',
   inspection: '巡检（调用契约）'
 }

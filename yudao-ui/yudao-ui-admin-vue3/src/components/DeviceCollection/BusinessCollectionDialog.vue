@@ -493,7 +493,6 @@ const loadChoices = async () => {
   const list = checkPermi(['pms:collection-template:use'])
     ? await Api.templates({
         purpose: props.entry === 'center' ? undefined : props.entry,
-        protocol: form.protocol,
         publishedOnly: true
       })
     : []
@@ -522,7 +521,7 @@ const loadConnections = async () => {
 watch(
   () => form.protocol,
   () => {
-    void loadChoices().catch(() => {})
+    void loadConnections().catch(() => {})
   }
 )
 watch(

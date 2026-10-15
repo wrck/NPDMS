@@ -11,7 +11,6 @@
     <el-table-column label="用途" min-width="140"
       ><template #default="{ row }">{{ Api.purposes[row.purpose] }}</template></el-table-column
     >
-    <el-table-column prop="protocol" label="协议" width="90" />
     <el-table-column label="适用型号" min-width="120"
       ><template #default="{ row }">{{ row.deviceModel || '不限型号' }}</template></el-table-column
     >
@@ -101,12 +100,6 @@
             :label="label"
             :value="value" /></el-select
       ></el-form-item>
-      <el-form-item label="连接协议" prop="protocol"
-        ><el-radio-group v-model="form.protocol"
-          ><el-radio value="SSH">SSH</el-radio
-          ><el-radio value="TELNET">Telnet</el-radio></el-radio-group
-        ></el-form-item
-      >
       <el-form-item label="适用型号"
         ><el-input
           v-model="form.deviceModel"
@@ -142,13 +135,12 @@ const empty = (): Api.Template => ({
   code: '',
   name: '',
   purpose: 'configuration',
-  protocol: 'SSH',
   revision: 1,
   commands: ''
 })
 const form = ref<Api.Template>(empty())
 const rules = Object.fromEntries(
-  ['code', 'name', 'revision', 'purpose', 'protocol', 'commands'].map((key) => [
+  ['code', 'name', 'revision', 'purpose', 'commands'].map((key) => [
     key,
     [{ required: true, message: '请填写此项', trigger: 'blur' }]
   ])

@@ -23,22 +23,39 @@ class CollectionTemplateServiceTest {
         when(mapper.lockById(1L,3L)).thenReturn(row);when(mapper.updateById(any(CollectionTemplateDO.class))).thenReturn(1);
     }
     @AfterEach void clear(){TenantContextHolder.clear();}
+    @Test void cutoverStageDraftsHaveNoProtocolAndRetainExactPurposeAndCutOwner(){
+        for(var purpose:java.util.List.of("cutover-checklist","cutover-pre-check","cutover-execution","cutover-test","cutover-rollback","cutover-post-collection")) {
+            var saved=service.save(7L,new CollectionTemplateService.Draft(null,null,"cut-template","采集草稿",purpose,"model-a",1,"test-command"));
+            assertEquals(purpose,saved.purpose());assertEquals("CUT",saved.ownerContext());assertEquals("DRAFT",saved.status());
+        }
+        verify(mapper,times(6)).insert(argThat((CollectionTemplateDO value)->value.getProtocol()==null));
+        assertThrows(IllegalStateException.class,()->service.save(7L,new CollectionTemplateService.Draft(null,null,"cut-template","采集草稿","cutover-unknown",null,1,"test-command")));
+    }
+    @Test void cutoverChecklistExecutionCannotUseAnotherStageOrUnpublishedTemplate(){
+        row.setPurpose("cutover-checklist");
+        assertThrows(IllegalStateException.class,()->service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("cutover-checklist").deviceModel(null).build()));
+        row.setStatus("PUBLISHED");
+        assertSame(row,service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("cutover-checklist").deviceModel(null).build()));
+        assertThrows(IllegalStateException.class,()->service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("cutover-pre-check").deviceModel(null).build()));
+    }
     @Test void uncertainPublishFreezesBeforeIoAndRetryRegistersSameImmutableContent(){
         doThrow(new IllegalStateException("lost response")).doNothing().when(provider).registerScript(anyString(),anyString(),anyString(),anyString());
         assertThrows(IllegalStateException.class,()->service.publish(7L,3L,0L));
         assertTrue(row.getPublicationStarted());assertEquals("DRAFT",row.getStatus());
         var ordered=inOrder(tx,provider);ordered.verify(tx).commit(any());ordered.verify(provider).registerScript("plt-3","1","show run",row.getContentHash());
-        assertThrows(IllegalStateException.class,()->service.save(7L,new CollectionTemplateService.Draft(3L,0L,"template","new","joint-test","SSH",null,1,"show tech")));
+        assertThrows(IllegalStateException.class,()->service.save(7L,new CollectionTemplateService.Draft(3L,0L,"template","new","joint-test",null,1,"show tech")));
         assertEquals("PUBLISHED",service.publish(7L,3L,0L).status());
         verify(provider,times(2)).registerScript("plt-3","1","show run",row.getContentHash());
     }
-    @Test void purposeProtocolAndModelAreEnforcedAndRetirementPreservesCommands(){
+    @Test void purposeAndModelAreEnforcedAndRetirementPreservesCommands(){
         row.setStatus("PUBLISHED");row.setDeviceModel("model-a");
-        assertThrows(IllegalStateException.class,()->service.forExecution(7L,3L,"configuration","SSH","model-a"));
-        assertThrows(IllegalStateException.class,()->service.forExecution(7L,3L,"joint-test","TELNET","model-a"));
-        assertThrows(IllegalStateException.class,()->service.forExecution(7L,3L,"joint-test","SSH","model-b"));
-        assertSame(row,service.forExecution(7L,3L,"joint-test","SSH","model-a"));
+        assertThrows(IllegalStateException.class,()->service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("configuration").deviceModel("model-a").build()));
+        assertThrows(IllegalStateException.class,()->service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("joint-test").deviceModel("model-b").build()));
+        assertSame(row,service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("joint-test").deviceModel("model-a").build()));
+        assertEquals("SSH",row.getProtocol()); // Historical template metadata is preserved, not an execution constraint.
+        row.setProtocol(null);
+        assertSame(row,service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("joint-test").deviceModel("model-a").build()));
         service.retire(7L,3L,0L);assertEquals("show run",row.getCommandText());
-        assertThrows(IllegalStateException.class,()->service.forExecution(7L,3L,"joint-test","SSH","model-a"));
+        assertThrows(IllegalStateException.class,()->service.forExecution(CollectionTemplateService.ExecutionQuery.builder().actorId(7L).templateId(3L).entry("joint-test").deviceModel("model-a").build()));
     }
 }

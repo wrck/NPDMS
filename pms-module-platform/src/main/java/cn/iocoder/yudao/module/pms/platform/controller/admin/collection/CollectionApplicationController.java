@@ -55,7 +55,7 @@ public class CollectionApplicationController {
             .objectId(objectId)
             .actorId(actor())
             .build(), id));}
-    @GetMapping("/templates") public CommonResult<List<CollectionTemplateService.View>> templates(@RequestParam(required=false) String purpose,@RequestParam(required=false) String protocol,@RequestParam(defaultValue="false") boolean publishedOnly){return success(templates.list(actor(),purpose,protocol,publishedOnly));}
+    @GetMapping("/templates") public CommonResult<List<CollectionTemplateService.View>> templates(@RequestParam(required=false) String purpose,@RequestParam(defaultValue="false") boolean publishedOnly){return success(templates.list(new CollectionTemplateService.ListQuery(actor(),purpose,publishedOnly)));}
     @PostMapping("/templates") public CommonResult<CollectionTemplateService.View> saveTemplate(@RequestBody CollectionTemplateService.Draft request){return success(templates.save(actor(),request));}
     @PostMapping("/templates/{id}/publish") public CommonResult<CollectionTemplateService.View> publish(@PathVariable Long id,@RequestParam Long version){return success(templates.publish(actor(),id,version));}
     @PostMapping("/templates/{id}/retire") public CommonResult<CollectionTemplateService.View> retire(@PathVariable Long id,@RequestParam Long version){return success(templates.retire(actor(),id,version));}
