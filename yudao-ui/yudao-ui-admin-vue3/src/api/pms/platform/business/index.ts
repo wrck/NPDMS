@@ -50,6 +50,7 @@ export const createProjectBusinessApi = (prefix: string) => {
   }
   return {
     base,
+    initialization: (data: BusinessPageInitialRequest) => request.post<BusinessPageInitialData>({ url: `${base}/initialization`, data, silentError: true }),
     model: (configurationName?:string) => request.get<ModelDetailVO>({ url: `${base}/model`, params:configurationName==null?undefined:{configurationName},silentError: true }),
     fieldDefaults: () => request.get<ModelDetailVO>({url:`${base}/field-configuration/defaults`,silentError:true}),
     fieldConfiguration: () => request.get<BusinessFieldConfiguration>({url:`${base}/field-configuration`,silentError:true}),
@@ -71,16 +72,16 @@ export const createProjectBusinessApi = (prefix: string) => {
     compareRevisions:(id:BusinessId,left:BusinessId,right:BusinessId)=>request.get<Array<{fieldCode:string;before:RevisionFieldValue;after:RevisionFieldValue}>>({url:`${entity(id)}/revisions/compare`,params:{left:identity(left),right:identity(right)},silentError:true}),
     formOptions:(projectId:BusinessId)=>request.get<Array<{name:string;layout:NonNullable<BusinessEntityFormData['layout']>}>>({url:`${base}/form-options`,params:{projectId:identity(projectId)},silentError:true}),
     formDefaults:(projectId:BusinessId)=>request.get<BusinessEntityFormData>({url:`${base}/form-defaults`,params:{projectId:identity(projectId)},silentError:true}),
-    form: (id: BusinessId) => request.get<BusinessEntityFormData>({url:`${entity(id)}/form`,silentError:true}),
+    form: (id: BusinessId) => request.get<ProjectBusinessRecordFormData>({url:`${entity(id)}/form`,silentError:true}),
     create: (values: Record<string, unknown>, key: string) =>
       request.post<BusinessOperationReceipt>({ url: base, data: { values, idempotencyKey: key }, silentError: true }),
     update: (id: BusinessId, values: Record<string, unknown>, version: number, key: string) =>
       request.put<BusinessOperationReceipt>({ url: entity(id), data: { values, version, idempotencyKey: key }, silentError: true }),
     remove: (id: BusinessId, version: number, key: string) =>
       request.delete<BusinessOperationReceipt>({ url: entity(id), params: { version }, headers: { 'Idempotency-Key': key }, silentError: true }),
-    action: (operation: string, id: BusinessId, version: number, key: string, values: Record<string, unknown> = {}) => {
+    action: <T = BusinessOperationReceipt>(operation: string, id: BusinessId, version: number, key: string, values: Record<string, unknown> = {}) => {
       if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(operation) || ['create','save','delete'].includes(operation)) throw new Error('业务操作路径不合法')
-      return request.post<BusinessOperationReceipt>({url:`${entity(id)}/${operation}`,data:{...values,version,idempotencyKey:key},silentError:true})
+      return request.post<T>({url:`${entity(id)}/${operation}`,data:{...values,version,idempotencyKey:key},silentError:true})
     },
     receipt: (operation: string, key: string) =>
       request.get<BusinessOperationReceipt | null>({ url: `${base}/receipts/${encodeURIComponent(key)}`, params: { operation }, silentError: true }),

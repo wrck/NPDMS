@@ -12,6 +12,7 @@
       :rules="rules[field.code]"
       :style="appearance?.columns ? {gridColumn:`span ${appearance.fields?.[field.code]?.span || 1}`} : undefined"
     >
+      <slot :name="`field-${field.code}`" :value="form[field.code]" :form="form" :update="(value:unknown)=>form[field.code]=value" :disabled="disabled">
       <Editor v-if="appearance?.fields?.[field.code]?.control === 'editor'" v-model="form[field.code] as string" height="200px" :readonly="disabled" />
       <el-input v-else-if="appearance?.fields?.[field.code]?.control === 'textarea'" v-model="form[field.code] as string" type="textarea" />
       <el-checkbox v-else-if="appearance?.fields?.[field.code]?.control === 'checkbox'" v-model="form[field.code] as boolean">需要转包</el-checkbox>
@@ -58,6 +59,7 @@
         placeholder="JSON 数组"
       />
       <el-input v-else v-model="form[field.code] as string" />
+      </slot>
     </el-form-item>
     <slot name="extra"></slot>
   </el-form>
@@ -70,6 +72,7 @@ import type { BusinessFormAppearance } from './businessFormAppearance'
 const Editor = defineAsyncComponent(() => import('@/components/Editor/src/Editor.vue').then(module=>module.default))
 import DeclaredBusinessFormLayout from './DeclaredBusinessFormLayout.vue'
 import type { BusinessEntityFormData, FieldVO } from '@/api/pms/platform/businessmodel'
+import { formatDate } from '@/utils/formatTime'
 
 defineOptions({ name: 'BusinessEntityForm' })
 const props = defineProps<{
@@ -93,12 +96,17 @@ const baseFields = computed(() => {
 })
 const form = reactive<Record<string, unknown>>({})
 const rules = reactive<Record<string, Array<{ required: boolean; message: string; trigger: string }>>>({})
+const initialValue = (field: FieldVO) => {
+  const value = props.initialValues?.[field.code]
+  return typeof value === 'number' && (field.type === 'DATE' || field.type === 'DATETIME')
+    ? formatDate(value, field.type === 'DATE' ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm:ss') : value
+}
 
 const syncForm = () => {
   Object.keys(form).forEach((key) => delete form[key])
   Object.keys(rules).forEach((key) => delete rules[key])
   for (const field of baseFields.value) {
-    const initial = props.initialValues?.[field.code]
+    const initial = initialValue(field)
     if (field.type === 'TEXT_LIST') form[field.code] = Array.isArray(initial) ? [...initial] : []
     else if (field.type === 'OBJECT_LIST')
       form[field.code] = initial == null ? '' : JSON.stringify(initial, null, 2)
@@ -122,7 +130,7 @@ const buildInput = async (): Promise<Record<string, unknown>> => {
       : (raw === '' || raw === undefined ? null : raw)
     if (props.initialValues) {
       // Omit unchanged/unreadable values, but preserve an explicit clearing of a loaded value.
-      const initial = props.initialValues[field.code] ?? (field.type === 'TEXT_LIST' ? [] : null)
+      const initial = initialValue(field) ?? (field.type === 'TEXT_LIST' ? [] : null)
       if (JSON.stringify(value) === JSON.stringify(initial) || props.appearance?.fields?.[field.code]?.control==='select' && value!=null && initial!=null && String(value)===String(initial)) continue
       input[field.code] = value
     } else if (value !== null) {

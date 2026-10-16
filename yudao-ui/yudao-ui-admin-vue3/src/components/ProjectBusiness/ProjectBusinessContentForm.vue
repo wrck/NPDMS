@@ -1,5 +1,7 @@
 <template>
-  <BusinessEntityForm ref="body" :writable-fields="bodyFields" :appearance="appearance" :fields="fields" :presentation="presentation" :initial-values="initialValues" :disabled="disabled" lossless-numbers />
+  <BusinessEntityForm ref="body" :writable-fields="bodyFields" :appearance="appearance" :fields="fields" :presentation="presentation" :initial-values="initialValues" :disabled="disabled" lossless-numbers>
+    <template v-for="(_,name) in $slots" #[name]="slot"><slot :name="name" v-bind="slot" /></template>
+  </BusinessEntityForm>
   <BusinessEntityForm v-if="extraFields.length" ref="extra" :writable-fields="extraFields" :initial-values="presentation?.extensions.fields" :disabled="disabled" lossless-numbers />
   <ProjectBusinessDetails ref="details" :fields="fields || writableFields" :initial-values="initialValues" :disabled="disabled" />
 </template>

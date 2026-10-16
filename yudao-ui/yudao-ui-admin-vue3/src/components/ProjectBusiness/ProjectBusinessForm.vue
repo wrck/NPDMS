@@ -15,6 +15,7 @@
 </template>
 <script setup lang="ts">
 import {computed,ref,shallowRef,watch,onBeforeUnmount,type Component} from 'vue'
+import {isEqual} from 'lodash-es'
 import type {BusinessEntityData,BusinessEntityFormData,FieldVO} from '@/api/pms/platform/businessmodel'
 import type {BusinessId,ProjectBusinessApi} from '@/api/pms/platform/business'
 import type {BusinessFormAppearance} from '@/components/BusinessEntity/businessFormAppearance'
@@ -25,13 +26,15 @@ const props=defineProps<{api:ProjectBusinessApi;current?:BusinessEntityData;scop
 const emit=defineEmits<{action:[kind:string,sn?:string]}>()
 const content=ref<{buildInput?:()=>Promise<Input>;readValues?:()=>Promise<{fields:Input;extensions:Input;business?:Input}>;isBusy?:()=>boolean}>(),loading=ref(false),error=ref('')
 const selected=shallowRef<Layout>(),options=shallowRef<Array<{name:string;layout:Layout}>>([]),retained=ref<Input>({})
+const defaultPresentation=shallowRef<BusinessEntityFormData>()
+const basePresentation=computed(()=>props.presentation??(!props.current?defaultPresentation.value:undefined))
 const visitedLayouts=shallowRef<Layout[]>([])
 let generation=0
 const bindingChanged=computed(()=>!!selected.value && String(selected.value.binding.formRevisionId)!==String(props.presentation?.layout?.binding.formRevisionId))
-const baselineExtra=computed(()=>props.presentation?.extensions.fields||{})
+const baselineExtra=computed(()=>basePresentation.value?.extensions.fields||{})
 const visibleValues=computed(()=>({...props.initialValues,...Object.fromEntries(Object.entries(retained.value).filter(([key])=>!key.startsWith('$')))}))
 const definitions=computed(()=>{
-  const fixed=new Set((props.fields||props.writableFields).map(field=>field.code)),result=new Map((props.presentation?.definitions||[]).map(field=>[field.code,field]))
+  const fixed=new Set((props.fields||props.writableFields).map(field=>field.code)),result=new Map((basePresentation.value?.definitions||[]).map(field=>[field.code,field]))
   for(const layout of [...visitedLayouts.value,...(selected.value?[selected.value]:[])])for(const field of layout.fields||[]){
     const code=layout.binding.fieldBindings[field.fieldKey]
     if(!code||field.controlledFile||fixed.has(code)||result.has(code))continue
@@ -41,8 +44,8 @@ const definitions=computed(()=>{
   return [...result.values()]
 })
 const visiblePresentation=computed<BusinessEntityFormData>(()=>({
-  ...props.presentation,layout:selected.value,
-  extensions:{definitionRevisionId:props.presentation?.extensions.definitionRevisionId,version:props.presentation?.extensions.version??0,fields:{...baselineExtra.value,...retained.value.$extensions?.values}},
+  ...basePresentation.value,layout:selected.value,
+  extensions:{definitionRevisionId:basePresentation.value?.extensions.definitionRevisionId,version:basePresentation.value?.extensions.version??0,fields:{...baselineExtra.value,...retained.value.$extensions?.values}},
   definitions:definitions.value
 }))
 const load=async()=>{
@@ -53,7 +56,7 @@ const load=async()=>{
   if(project==null||props.readonly || props.disabled && props.readonly===undefined){loading.value=false;return}
   loading.value=true
   try{
-    if(!selected.value){const defaults=await props.api.formDefaults(project);if(active!==generation)return;selected.value=defaults.layout}
+    if(!selected.value){const defaults=await props.api.formDefaults(project);if(active!==generation)return;defaultPresentation.value=defaults;selected.value=defaults.layout}
     const choices=await props.api.formOptions(project)
     if(active===generation){
       options.value=choices
@@ -67,19 +70,19 @@ const load=async()=>{
   finally{if(active===generation)loading.value=false}
 }
 watch(()=>[props.api.base,props.current?.ref.entityId,props.current?.concurrencyBasis,props.presentation,props.scopeProjectId,props.readonly],()=>{
-  selected.value=props.presentation?.layout;retained.value={};visitedLayouts.value=[];options.value=[];load()
+  defaultPresentation.value=undefined;selected.value=props.presentation?.layout;retained.value={};visitedLayouts.value=[];options.value=[];load()
 },{immediate:true})
 onBeforeUnmount(()=>{generation++})
 const merge=(left:Input,right:Input):Input=>({...left,...right,
   ...(left.$extensions||right.$extensions?{$extensions:{...left.$extensions,...right.$extensions,values:{...left.$extensions?.values,...right.$extensions?.values}}}:{}),
   ...(left.$business||right.$business?{$business:{...left.$business,...right.$business}}:{})})
-const changes=(values:Input,baseline:Input)=>Object.fromEntries(Object.entries(values).filter(([key,value])=>JSON.stringify(value??null)!==JSON.stringify(baseline[key]??null)))
+const changes=(values:Input,baseline:Input)=>Object.fromEntries(Object.entries(values).filter(([key,value])=>!isEqual(value??null,baseline[key]??null)))
 const readInput=async():Promise<Input>=>{
   if(!content.value)throw new Error('表单尚未就绪')
   if(!content.value.readValues)return await content.value.buildInput!()
   const value=await content.value.readValues(),input=changes(value.fields,visibleValues.value)
   const extra=changes(value.extensions,visiblePresentation.value.extensions.fields)
-  if(Object.keys(extra).length)input.$extensions={expectedVersion:props.presentation?.extensions.version??0,values:extra}
+  if(Object.keys(extra).length)input.$extensions={expectedVersion:basePresentation.value?.extensions.version??0,values:extra}
   if(value.business&&Object.keys(value.business).length)input.$business=value.business
   return input
 }
@@ -101,7 +104,7 @@ const buildInput=async()=>{
   if(props.disabled)return {}
   if(loading.value||error.value)throw new Error(error.value||'字段配置尚未就绪')
   const result=merge(retained.value,await readInput())
-  for(const code of Object.keys(result).filter(code=>!code.startsWith('$')))if(JSON.stringify(result[code]??null)===JSON.stringify(props.initialValues?.[code]??null))delete result[code]
+  for(const code of Object.keys(result).filter(code=>!code.startsWith('$')))if(isEqual(result[code]??null,props.initialValues?.[code]??null))delete result[code]
   const knownDefinitions=new Set((props.presentation?.definitions||[]).map(field=>field.code))
   const needsDefinitions=Object.keys(result.$extensions?.values||{}).some(code=>!knownDefinitions.has(code))
   if(selected.value && (bindingChanged.value || needsDefinitions)){

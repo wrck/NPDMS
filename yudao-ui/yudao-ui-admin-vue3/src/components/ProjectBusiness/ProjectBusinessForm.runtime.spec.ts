@@ -14,6 +14,48 @@ const current = { ref: { entityId: '11' }, concurrencyBasis: 1 }
 const presentation = { layout: layout('1'), extensions: { version: 0, fields: {} }, definitions: [] }
 beforeEach(() => { vi.resetAllMocks(); mocks.build.mockResolvedValue({}) })
 
+it('passes server default project qualification to a new specialized form',async()=>{
+  const client=api()
+  client.formDefaults.mockResolvedValue({extensions:{version:0,fields:{}},definitions:[],context:{project:{customerId:'2102228462045130754',projectVersion:5}}} as any)
+  const contactForm=defineComponent({props:['presentation'],setup(props,{expose}){
+    expose({buildInput:async()=>{
+      const project=props.presentation?.context?.project
+      if(!project?.customerId)throw new Error('项目尚未关联客户')
+      return {name:'验收联系人',$business:{expectedProjectVersion:project.projectVersion}}
+    }})
+    return()=>h('input')
+  }})
+  const mounted=mount(Form,{api:client,scopeProjectId:20,formComponent:contactForm,writableFields:[]})
+  try{await flush();expect(await (mounted.vm as any).buildInput()).toEqual({name:'验收联系人',$business:{expectedProjectVersion:5}})}
+  finally{mounted.app.unmount()}
+})
+
+it('allows a saved detail form to complete when the server returns object keys in a different order', async () => {
+  const stored = [{ deviceName: '验收设备', serialNumber: 'IT-001', options: { enabled: false, count: 0 } }]
+  const displayed = [{ serialNumber: 'IT-001', options: { count: 0, enabled: false }, deviceName: '验收设备' }]
+  const readValues = vi.fn().mockResolvedValue({ fields: { businessDeviceDetails: displayed }, extensions: { devices: displayed } })
+  const detailForm = defineComponent({ setup(_, { expose }) { expose({ readValues }); return () => h('input') } })
+  const mounted = mount(Form, { api: api(), current, scopeProjectId: 20, formComponent: detailForm,
+    presentation: { ...presentation, extensions: { version: 1, fields: { devices: stored } } },
+    writableFields: [], initialValues: { businessDeviceDetails: stored } })
+  try {
+    await flush()
+    expect(await (mounted.vm as any).buildInput()).toEqual({})
+    const changed = [{ ...displayed[0], options: { count: 1, enabled: false } }]
+    readValues.mockResolvedValue({ fields: { businessDeviceDetails: changed }, extensions: { devices: changed } })
+    expect(await (mounted.vm as any).buildInput()).toMatchObject({ businessDeviceDetails: changed, $extensions: { expectedVersion: 1, values: { devices: changed } } })
+  } finally { mounted.app.unmount() }
+})
+
+it('retains actual detail row reordering as an unsaved change', async () => {
+  const stored = [{ sn: 'IT-001' }, { sn: 'IT-002' }], reordered = [...stored].reverse()
+  const mounted = mount(Form, { api: api(), current, scopeProjectId: 20, presentation, writableFields: [], initialValues: { details: stored } })
+  try {
+    await flush(); mocks.build.mockResolvedValue({ details: reordered })
+    expect(await (mounted.vm as any).buildInput()).toEqual({ details: reordered })
+  } finally { mounted.app.unmount() }
+})
+
 it('saves a configuration-only change and retains false, zero and arrays across selections', async () => {
   const mounted = mount(Form, { api: api(), current, scopeProjectId: 20, presentation, writableFields: [], initialValues: {} })
   try {
@@ -45,12 +87,13 @@ it('rejects saving after a configuration load failure and allows an explicit ret
 it('ignores a late configuration response after the entity scope changes', async () => {
   let completeOld:(value:unknown)=>void=()=>undefined
   const client=api(), scope=ref(20)
-  client.formDefaults.mockImplementationOnce(()=>new Promise(resolve=>{completeOld=resolve})).mockResolvedValue({layout:layout('new')})
+  client.formDefaults.mockImplementationOnce(()=>new Promise(resolve=>{completeOld=resolve})).mockResolvedValue({layout:layout('new'),extensions:{version:0,fields:{}},definitions:[],context:{projectId:21}} as any)
   const mounted=mount(defineComponent({setup:()=>()=>h(Form,{api:client as any,scopeProjectId:scope.value,writableFields:[]})}))
   try{
-    await flush();scope.value=21;await flush();completeOld({layout:layout('old')});await flush()
+    await flush();scope.value=21;await flush();completeOld({layout:layout('old'),extensions:{version:0,fields:{}},definitions:[],context:{projectId:20}});await flush()
     const child=(mounted.vm as any).$.subTree.component.setupState
     expect(child.selected.binding.formRevisionId).toBe('new')
+    expect(child.visiblePresentation.context.projectId).toBe(21)
     expect(client.formOptions).toHaveBeenCalledTimes(1);expect(client.formOptions).toHaveBeenCalledWith(21)
   }finally{mounted.app.unmount()}
 })
