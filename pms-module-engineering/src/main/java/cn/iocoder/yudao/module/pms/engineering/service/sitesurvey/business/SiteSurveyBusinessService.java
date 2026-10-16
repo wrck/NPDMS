@@ -12,6 +12,8 @@ import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessOper
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.BusinessOperationReceipt;
 import cn.iocoder.yudao.module.pms.platform.support.business.DefaultProjectBusinessService;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.operation.ProjectOwnerOperationScope;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.ProjectBusinessExecutionApi;
+import cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectBusinessExecutionSelection;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -28,6 +30,7 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
     private final SiteSurveyEntityFormService forms;
     private final SiteSurveyEntityWriteAccess access;
     private final EngineeringRuleReevaluationEvents rules;
+    private final ProjectBusinessExecutionApi executions;
     @org.springframework.beans.factory.annotation.Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.engineering.service.location.EngineeringLocationFactService> locations;
     @org.springframework.beans.factory.annotation.Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi> deadlines;
 
@@ -158,6 +161,32 @@ public class SiteSurveyBusinessService extends DefaultProjectBusinessService<Sit
             if(port==null)throw new BusinessContractException("CAPABILITY_UNAVAILABLE","项目期限服务未装配");
             port.updateFromSurvey(new cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateCommand(actor().tenantId(),actor().userId(),row.getProjectId(),projectVersion,endDate));
             row.setRequiredEndDate(endDate);
+        });
+    }
+    /** Default-view callbacks retain source authorization and the selected execution's frozen identity. */
+    @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void associateOutsourceRequest(Long surveyId,Long projectId,Long outsourceId,ProjectBusinessExecutionSelection execution){
+        changeOutsourceAssociation(surveyId,projectId,outsourceId,execution,false);
+    }
+    @org.springframework.transaction.annotation.Transactional(propagation=org.springframework.transaction.annotation.Propagation.MANDATORY)
+    public void releaseDeletedOutsourceRequest(Long surveyId,Long projectId,Long outsourceId,ProjectBusinessExecutionSelection execution){
+        changeOutsourceAssociation(surveyId,projectId,outsourceId,execution,true);
+    }
+    private void changeOutsourceAssociation(Long surveyId,Long projectId,Long outsourceId,ProjectBusinessExecutionSelection execution,boolean release){
+        var caller=actor();defaults.permissions().requireWritable(definition(),caller,"operation:save");
+        if(surveyId==null || outsourceId==null)throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
+        var observed=current(surveyId,caller);
+        if(!Objects.equals(projectId,observed.getProjectId()))throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
+        defaults.projects().requireWritable(projectId,caller,true);
+        if(execution!=null)executions.lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(projectId,ownerModule(),entityType(),execution));
+        inBusinessOperation("save",observed,null,()->{
+            var row=lock(surveyId,caller);requireVersion(row,observed.getVersion());
+            if(release && !Objects.equals(row.getOutsourceRequestId(),outsourceId))return null;
+            requireState(row,0);
+            if(!release && (!Boolean.TRUE.equals(row.getOutsourceRequired()) || row.getOutsourceRequestId()!=null))throw exception(SITE_SURVEY_OUTSOURCE_INVALID);
+            row.setOutsourceRequestId(release?null:outsourceId);
+            persistUpdate(row,caller,row.getVersion(),release?Set.of("outsourceRequestId"):Set.of());
+            changed(row);return null;
         });
     }
     private void changed(SiteSurveyEntityDO row){rules.changed(row.getProjectId(),"SiteSurvey",row.getId(),actor().userId(),"site-survey:"+row.getId()+":"+row.getVersion());}
