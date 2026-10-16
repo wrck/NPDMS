@@ -852,12 +852,12 @@
       "readStrategy": "STREAMING_CURSOR", "fetchSize": 2000, "chunkSize": 500, "restartPolicy": "CHECKPOINT_KEY", "queryTimeoutSeconds": 0,
       "sources": [{
         "object": "PRODUCT", "sourceObject": "DPtech_v_product_info_single", "readMode": "SQL", "table": "DPtech_v_product_info_single",
-        "sql": "SELECT itemCode,itemModel,itemDesc,remark,statecode,updateTime FROM (SELECT itemCode,itemModel,itemDesc,remark,statecode,updateTime,ROW_NUMBER() OVER (PARTITION BY itemCode ORDER BY updateTime DESC,createTime DESC,itemModel DESC) AS row_rank FROM DPtech_v_product_info_single) ranked WHERE row_rank=1", "parameters": {},
-        "columns": ["itemCode","itemModel","itemDesc","remark","statecode","updateTime"], "filters": [],
+        "sql": "SELECT itemCode,productCode,productSubCode,itemModel,itemDesc,remark,listPrice,status,BU,productLine,orgId,createTime,updateTime,statecode,statuscode,productStage,endOfSaleDate,endOfSupportDate,endOfLifeDate,lastRenewalDate FROM (SELECT itemCode,productCode,productSubCode,itemModel,itemDesc,remark,listPrice,status,BU,productLine,orgId,createTime,updateTime,statecode,statuscode,productStage,endOfSaleDate,endOfSupportDate,endOfLifeDate,lastRenewalDate,ROW_NUMBER() OVER (PARTITION BY itemCode ORDER BY updateTime DESC,createTime DESC,itemModel DESC) AS row_rank FROM DPtech_v_product_info_single) ranked WHERE row_rank=1", "parameters": {},
+        "columns": ["itemCode","productCode","productSubCode","itemModel","itemDesc","remark","listPrice","status","BU","productLine","orgId","createTime","updateTime","statecode","statuscode","productStage","endOfSaleDate","endOfSupportDate","endOfLifeDate","lastRenewalDate"], "filters": [],
         "sourceKey": "itemCode", "updatedAt": "updateTime", "mappings": [], "issueField": null, "primaryTarget": "product",
         "targets": [{
-          "name": "product", "table": "ast_product_official_info", "keys": ["source_system","source_key"], "mode": "UPSERT", "nullPolicy": "IGNORE",
-          "updateColumns": ["product_model","product_name","product_desc","technical_spec","source_version","source_updated_at","synced_at","sync_status","status"],
+          "name": "product", "table": "ast_product_official_info", "keys": ["product_code"], "mode": "UPSERT", "nullPolicy": "IGNORE",
+          "updateColumns": ["product_model","product_name","product_desc","technical_spec","source_version","source_updated_at","synced_at","sync_status","status","product_category","product_type","list_price","crm_status","business_unit","product_line","org_id","source_created_at","crm_state_code","crm_status_code","product_stage","end_of_sale_date","end_of_support_date","end_of_life_date","last_renewal_date"],
           "whenField": null, "newerBy": "source_updated_at",
           "mappings": [
             {"target":"product_code","source":"itemCode","conversion":"TRIM"},
@@ -871,7 +871,22 @@
             {"target":"source_updated_at","source":"updateTime","conversion":"DATETIME"},
             {"target":"synced_at","source":"updateTime","conversion":"DATETIME"},
             {"target":"sync_status","source":null,"conversion":"CONSTANT","constant":"SUCCESS"},
-            {"target":"status","source":"statecode","conversion":"ENUM","values":{"0":"ACTIVE","1":"INACTIVE"}}
+            {"target":"status","source":"statecode","conversion":"ENUM","values":{"0":"ACTIVE","1":"INACTIVE"}},
+            {"target":"product_category","source":"productCode","conversion":"STRING"},
+            {"target":"product_type","source":"productSubCode","conversion":"STRING"},
+            {"target":"list_price","source":"listPrice","conversion":"DECIMAL"},
+            {"target":"crm_status","source":"status","conversion":"LONG"},
+            {"target":"business_unit","source":"BU","conversion":"STRING"},
+            {"target":"product_line","source":"productLine","conversion":"STRING"},
+            {"target":"org_id","source":"orgId","conversion":"LONG"},
+            {"target":"source_created_at","source":"createTime","conversion":"DATETIME"},
+            {"target":"crm_state_code","source":"statecode","conversion":"LONG"},
+            {"target":"crm_status_code","source":"statuscode","conversion":"LONG"},
+            {"target":"product_stage","source":"productStage","conversion":"LONG"},
+            {"target":"end_of_sale_date","source":"endOfSaleDate","conversion":"DATETIME"},
+            {"target":"end_of_support_date","source":"endOfSupportDate","conversion":"DATETIME"},
+            {"target":"end_of_life_date","source":"endOfLifeDate","conversion":"DATETIME"},
+            {"target":"last_renewal_date","source":"lastRenewalDate","conversion":"DATETIME"}
           ], "lookups": []
         }]
       }]
@@ -886,11 +901,11 @@
       "overlapSeconds": 60, "retryCount": 1, "retryIntervalSeconds": 60, "maxRows": 10000, "maxBytes": 67108864,
       "readStrategy": "STREAMING_CURSOR", "fetchSize": 2000, "chunkSize": 500, "restartPolicy": "CHECKPOINT_KEY", "queryTimeoutSeconds": 0,
       "sources": [{
-        "object": "CUSTOMER", "sourceObject": "Account", "readMode": "SQL", "table": "Account", "sql": "SELECT AccountId,AccountNumber,Name,Telephone1,EMailAddress1,Address1_Composite,new_mkt_unit_id,new_mkt_unit_idName,new_industry_level1_id,new_industry_level1_idName,new_industry_level2_id,new_industry_level2_idName,new_industry_level3_id,new_industry_level3_idName,new_industry_level4_id,new_industry_level4_idName,StateCode,ModifiedOn,CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY AccountNumber)>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migrationIssue FROM Account", "parameters": {},
-        "columns": ["AccountId","AccountNumber","Name","Telephone1","EMailAddress1","Address1_Composite","new_mkt_unit_id","new_mkt_unit_idName","new_industry_level1_id","new_industry_level1_idName","new_industry_level2_id","new_industry_level2_idName","new_industry_level3_id","new_industry_level3_idName","new_industry_level4_id","new_industry_level4_idName","StateCode","ModifiedOn"],
+        "object": "CUSTOMER", "sourceObject": "DPtech_v_account", "readMode": "SQL", "table": "DPtech_v_account", "sql": "SELECT AccountId,AccountNumber,erpCustomerCode,Name,Telephone1,EMailAddress1,Address1_Composite,new_mkt_unit_id,new_mkt_unit_idName,new_industry_level1_id,new_industry_level1_idName,new_industry_level2_id,new_industry_level2_idName,new_industry_level3_id,new_industry_level3_idName,new_industry_level4_id,new_industry_level4_idName,StateCode,ModifiedOn,CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY AccountNumber)>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migrationIssue FROM DPtech_v_account", "parameters": {},
+        "columns": ["AccountId","AccountNumber","erpCustomerCode","Name","Telephone1","EMailAddress1","Address1_Composite","new_mkt_unit_id","new_mkt_unit_idName","new_industry_level1_id","new_industry_level1_idName","new_industry_level2_id","new_industry_level2_idName","new_industry_level3_id","new_industry_level3_idName","new_industry_level4_id","new_industry_level4_idName","StateCode","ModifiedOn"],
         "filters": [], "sourceKey": "AccountId", "updatedAt": "ModifiedOn", "issueField": null,
         "mappings": [
-          {"target":"customerCode","source":"AccountNumber","conversion":"TRIM"}, {"target":"customerName","source":"Name","conversion":"TRIM"},
+          {"target":"customerCode","source":"AccountNumber","conversion":"TRIM"}, {"target":"erpCustomerCode","source":"erpCustomerCode","conversion":"TRIM"}, {"target":"customerName","source":"Name","conversion":"TRIM"},
           {"target":"contactPhone","source":"Telephone1","conversion":"TRIM"}, {"target":"contactEmail","source":"EMailAddress1","conversion":"TRIM"},
           {"target":"address","source":"Address1_Composite","conversion":"TRIM"},
           {"target":"departmentCode","source":"new_mkt_unit_id","conversion":"STRING"}, {"target":"departmentName","source":"new_mkt_unit_idName","conversion":"TRIM"},

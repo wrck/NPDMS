@@ -56,7 +56,7 @@ public class CustomerMasterDataApiImpl implements CustomerMasterDataApi {
     }
 
     private static void copy(CustomerMasterDO d,CustomerMasterDataCommand c) {
-        d.setCode(c.customerCode());d.setName(c.customerName());d.setShortName(c.shortName());
+        d.setCode(c.customerCode());d.setErpCustomerCode(c.erpCustomerCode());d.setName(c.customerName());d.setShortName(c.shortName());
         d.setContactPhone(c.contactPhone());d.setContactEmail(c.contactEmail());d.setAddress(c.address());
         d.setDepartmentCode(c.departmentCode());d.setDepartmentName(c.departmentName());
         d.setMarketCode(c.marketCode());d.setMarketName(c.marketName());d.setSystemCode(c.systemCode());d.setSystemName(c.systemName());
@@ -66,6 +66,7 @@ public class CustomerMasterDataApiImpl implements CustomerMasterDataApi {
     private static boolean same(CustomerMasterDO d,CustomerMasterDataCommand c) {
         var copy=new CustomerMasterDO();copy(copy,c);
         return Objects.equals(d.getCode(),copy.getCode())&&Objects.equals(d.getName(),copy.getName())
+                &&Objects.equals(d.getErpCustomerCode(),copy.getErpCustomerCode())
                 &&Objects.equals(d.getShortName(),copy.getShortName())
                 &&Objects.equals(d.getContactPhone(),copy.getContactPhone())&&Objects.equals(d.getContactEmail(),copy.getContactEmail())
                 &&Objects.equals(d.getAddress(),copy.getAddress())&&Objects.equals(d.getDepartmentCode(),copy.getDepartmentCode())

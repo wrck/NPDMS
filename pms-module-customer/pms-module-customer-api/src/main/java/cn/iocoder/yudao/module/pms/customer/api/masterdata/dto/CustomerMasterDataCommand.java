@@ -4,6 +4,7 @@ public record CustomerMasterDataCommand(
         Long tenantId,
         Long customerId,
         String customerCode,
+        String erpCustomerCode,
         String customerName,
         String shortName,
         String contactPhone,

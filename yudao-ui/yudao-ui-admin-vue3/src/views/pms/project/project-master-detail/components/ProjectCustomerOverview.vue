@@ -9,7 +9,7 @@
         <div v-if="customerLoading" class="customer-skeleton" role="status" aria-label="正在加载客户信息">
           <el-skeleton :rows="5" animated />
         </div>
-        <template v-else-if="project.customerCode">
+        <template v-else-if="customer">
           <div class="customer-dossier">
             <aside class="customer-identity">
               <div class="customer-monogram" aria-hidden="true">{{ customerInitial }}</div>
@@ -31,7 +31,7 @@
                 type="primary"
                 plain
                 v-hasPermi="['pms:customer:update']"
-                @click="customerFormRef?.open(customer)"
+                @click="openCustomerForm"
               >
                 <Icon icon="ep:edit" />维护客户信息
               </el-button>
@@ -70,7 +70,7 @@
             </div>
           </div>
         </template>
-        <el-empty v-else description="当前项目尚未关联客户" />
+        <el-empty v-else-if="!customerError" description="当前项目尚未关联客户" />
       </section>
     </ContentWrap>
 
@@ -90,7 +90,7 @@
 import { computed, ref, watch } from 'vue'
 import * as CustomerApi from '@/api/pms/customer'
 import * as ServiceLevelApi from '@/api/pms/customer/service-level'
-import type { CustomerDetailRespVO } from '@/api/pms/customer'
+import type { CustomerRespVO } from '@/api/pms/customer'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
 import CustomerFormDrawer from '@/views/pms/customer/components/CustomerFormDrawer.vue'
@@ -98,7 +98,7 @@ import { checkPermi } from '@/utils/permission'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const emit = defineEmits<{ changed: [] }>()
-const customer = ref<CustomerDetailRespVO>()
+const customer = ref<CustomerRespVO>()
 const serviceLevel = ref('')
 const customerFormRef = ref<InstanceType<typeof CustomerFormDrawer>>()
 const customerError = ref('')
@@ -129,19 +129,23 @@ const customerSource = computed(
     '-'
 )
 
+const openCustomerForm = async () => {
+  if (customer.value) customerFormRef.value?.open(await CustomerApi.getCustomer(customer.value.id))
+}
+
 const load = async () => {
   const sequence = ++loadSequence
   customer.value = undefined
   serviceLevel.value = ''
   customerError.value = ''
-  customerLoading.value = !!props.project.customerCode
+  customerLoading.value = !!props.project.id
 
-  if (props.project.customerCode) {
+  if (props.project.id) {
     try {
-      const result = await CustomerApi.getCustomerByCode(props.project.customerCode)
+      const result = await CustomerApi.getProjectCustomerOverview(props.project.id)
       if (sequence === loadSequence) {
-        customer.value = result
-        if (checkPermi(['pms:service-level:query'])) try {
+        customer.value = result ?? undefined
+        if (result && checkPermi(['pms:service-level:query'])) try {
           const levels = await ServiceLevelApi.getServiceLevelPage({
             pageNo: 1,
             pageSize: 10,

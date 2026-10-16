@@ -24,7 +24,7 @@
         </if>
     </sql>
     <select id="selectProjectDevices" resultType="cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO">
-        SELECT id, sn, product_code, product_model
+        SELECT id, sn, product_code, product_model, conp_version
         <include refid="projectShippedDeviceScope"/>
         ORDER BY sn, id
         LIMIT #{query.offset}, #{query.pageSize}

@@ -45,7 +45,7 @@ public class ProjectDeviceShipmentApiImpl implements ProjectDeviceShipmentApi {
                 .keyword(query.keyword() == null ? "" : query.keyword().trim())
                 .pageNo(query.pageNo()).pageSize(query.pageSize()).build();
         return new DevicePage(shipments.selectProjectDevices(selection).stream().map(device -> new Device(
-                device.getId(), device.getSn(), device.getProductCode(), device.getProductModel())).toList(),
+                device.getId(), device.getSn(), device.getProductCode(), device.getProductModel(), device.getConpVersion())).toList(),
                 shipments.countProjectDevices(selection));
     }
 }

@@ -196,6 +196,9 @@
       <el-tab-pane v-if="customer" label="变更历史" name="history"
         ><CustomerHistoryPanel :history="customer.history"
       /></el-tab-pane>
+      <el-tab-pane v-if="customer" label="巡检归档" name="inspection-history">
+        <CustomerInspectionHistoryPanel :customer-id="customer.id" :active="visible && activeTab === 'inspection-history'" />
+      </el-tab-pane>
     </el-tabs>
     <template #footer>
       <div class="drawer-footer">
@@ -236,6 +239,7 @@ import CustomerServiceLevelPanel from './CustomerServiceLevelPanel.vue'
 import CustomerLocationPanel from './CustomerLocationPanel.vue'
 import CustomerRelationSummaryPanel from './CustomerRelationSummaryPanel.vue'
 import CustomerHistoryPanel from './CustomerHistoryPanel.vue'
+import CustomerInspectionHistoryPanel from './CustomerInspectionHistoryPanel.vue'
 const readonly = computed(
   () => !checkPermi([customer.value ? 'pms:customer:update' : 'pms:customer:create'])
 )

@@ -6,7 +6,7 @@ import * as CustomerApi from '@/api/pms/customer'
 import { mount, passthrough, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
 vi.mock('@/api/pms/customer/contacts', () => ({ getMasterPage: vi.fn(), getProjectContext: vi.fn(), getProjectPage: vi.fn() }))
-vi.mock('@/api/pms/customer', () => ({ __v_isRef: false, getCustomer: vi.fn(), getCustomerPage: vi.fn() }))
+vi.mock('@/api/pms/customer', () => ({ __v_isRef: false, getCustomer: vi.fn(), getProjectCustomerOverview: vi.fn(), getCustomerPage: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => false }))
 vi.mock('@/utils/dict', () => ({
   getIntDictOptions: () => [],
@@ -43,6 +43,7 @@ describe('contact customer identity and title display', () => {
     vi.mocked(ContactsApi.getMasterPage).mockResolvedValue(page as any)
     vi.mocked(ContactsApi.getProjectPage).mockResolvedValue(page as any)
     vi.mocked(ContactsApi.getProjectContext).mockResolvedValue({ project: { projectId: 7, customerId: 1001, canManage: false }, customerName: '验收客户' } as any)
+    vi.mocked(CustomerApi.getProjectCustomerOverview).mockResolvedValue({ id: 1001, code: 'CUST-001', name: '验收客户' } as any)
     vi.mocked(CustomerApi.getCustomer).mockResolvedValue({ id: 1001, code: 'CUST-001', name: '验收客户' })
   })
 
@@ -73,6 +74,40 @@ describe('contact customer identity and title display', () => {
       await flush()
       expect(textOf(mounted.root)).toContain('职务TEST_TITLE历史职务')
       expect(textOf(mounted.root)).not.toContain('客户联系人角色')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('resolves project customer codes through project scope without requiring global customer access', async () => {
+    vi.mocked(CustomerApi.getCustomer).mockRejectedValue(new Error('global scope unavailable'))
+    const mounted = mount(Contacts, { projectId: 7 }, components)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('客户编号CUST-001CUST-001')
+      expect(textOf(mounted.root)).not.toContain('部分客户编号未获取')
+      expect(CustomerApi.getProjectCustomerOverview).toHaveBeenCalledExactlyOnceWith(7)
+      expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('preserves contact rows and reports failure when project customer lookup fails', async () => {
+    vi.mocked(CustomerApi.getProjectCustomerOverview).mockRejectedValue(new Error('project scope unavailable'))
+    const mounted = mount(Contacts, { projectId: 7 }, components)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('联系人甲')
+      expect(textOf(mounted.root)).toContain('部分客户编号未获取')
+      expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('does not request hidden customer columns in the project overview', async () => {
+    const mounted = mount(Contacts, { projectId: 7, showCustomerFilter: false }, components)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('联系人甲')
+      expect(CustomerApi.getCustomer).not.toHaveBeenCalled()
+      expect(CustomerApi.getProjectCustomerOverview).not.toHaveBeenCalled()
+      expect(textOf(mounted.root)).not.toContain('部分客户编号未获取')
     } finally { mounted.app.unmount() }
   })
 

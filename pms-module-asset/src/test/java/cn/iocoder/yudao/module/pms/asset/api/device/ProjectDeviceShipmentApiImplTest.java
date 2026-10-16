@@ -61,12 +61,13 @@ class ProjectDeviceShipmentApiImplTest {
         when(scopes.resolveCurrent(any())).thenReturn(new cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult(10L, 3L, Set.of(10L), Set.of()));
         var row = new cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO();
         row.setId(11L); row.setSn("SN-11"); row.setProductCode("CODE"); row.setProductModel("MODEL");
+        row.setConpVersion("R-123");
         when(mapper.selectProjectDevices(any())).thenReturn(List.of(row));
         when(mapper.countProjectDevices(any())).thenReturn(21L);
         var page = api.pageDevices(ProjectDeviceShipmentApi.DeviceQuery.builder()
                 .tenantId(1L).actorId(7L).projectId(10L).keyword(" MODEL ").pageNo(2).pageSize(20).build());
         assertEquals(21L, page.total());
-        assertEquals(List.of(new ProjectDeviceShipmentApi.Device(11L, "SN-11", "CODE", "MODEL")), page.list());
+        assertEquals(List.of(new ProjectDeviceShipmentApi.Device(11L, "SN-11", "CODE", "MODEL", "R-123")), page.list());
         verify(mapper).selectProjectDevices(argThat(query -> query.getTenantId() == 1L && query.getProjectId() == 10L
                 && query.getOffset() == 20L && query.getKeyword().equals("MODEL")));
         assertThrows(IllegalArgumentException.class, () -> api.pageDevices(ProjectDeviceShipmentApi.DeviceQuery.builder()

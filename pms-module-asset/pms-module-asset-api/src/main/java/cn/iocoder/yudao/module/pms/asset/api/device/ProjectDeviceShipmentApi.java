@@ -16,7 +16,12 @@ public interface ProjectDeviceShipmentApi {
 
     @lombok.Builder
     record DeviceQuery(Long tenantId, Long actorId, Long projectId, String keyword, int pageNo, int pageSize) {}
-    record Device(Long deviceId, String serialNumber, String productCode, String productModel) {}
+    record Device(Long deviceId, String serialNumber, String productCode, String productModel,
+                  String currentSoftwareVersion) {
+        public Device(Long deviceId, String serialNumber, String productCode, String productModel) {
+            this(deviceId, serialNumber, productCode, productModel, null);
+        }
+    }
     record DevicePage(java.util.List<Device> list, long total) {
         public DevicePage { list = java.util.List.copyOf(list); }
     }

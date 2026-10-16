@@ -91,7 +91,7 @@
       <el-table-column prop="projectId" label="当前项目" min-width="100" />
       <el-table-column prop="customerId" label="当前客户" min-width="100" />
       <el-table-column prop="warrantyStatus" label="维保状态" min-width="100" />
-      <el-table-column prop="conpVersion" label="当前CONP" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="conpVersion" label="当前软件版本" min-width="180" show-overflow-tooltip />
       <el-table-column prop="syncStatus" label="来源状态" min-width="120" />
       <el-table-column label="操作" width="240" fixed="right">
         <template #default="{ row }">

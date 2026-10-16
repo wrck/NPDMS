@@ -368,12 +368,14 @@
     "immutable": false,
     "columns": [
       "product_code", "product_model", "product_name", "product_desc", "technical_spec",
+        "product_category", "product_type", "list_price", "crm_status", "business_unit", "product_line", "org_id", "source_created_at", "crm_state_code", "crm_status_code", "product_stage", "end_of_sale_date", "end_of_support_date", "end_of_life_date", "last_renewal_date",
       "source_system", "source_key", "source_version", "source_updated_at", "synced_at", "sync_status", "status"
     ],
     "updateColumns": [
-      "product_model", "product_name", "product_desc", "technical_spec", "source_version", "source_updated_at", "synced_at", "sync_status", "status"
+      "product_model", "product_name", "product_desc", "technical_spec",
+        "product_category", "product_type", "list_price", "crm_status", "business_unit", "product_line", "org_id", "source_created_at", "crm_state_code", "crm_status_code", "product_stage", "end_of_sale_date", "end_of_support_date", "end_of_life_date", "last_renewal_date", "source_version", "source_updated_at", "synced_at", "sync_status", "status"
     ],
-    "keys": [["source_system", "source_key"]],
+    "keys": [["source_system", "source_key"], ["product_code"]],
     "insertDefaults": {},
     "ownerColumn": "source_system",
     "tenantColumn": "tenant_id",
