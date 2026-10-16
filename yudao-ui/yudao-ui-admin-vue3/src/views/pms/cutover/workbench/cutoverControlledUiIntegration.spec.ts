@@ -1,8 +1,7 @@
-import { defineComponent, h, nextTick } from 'vue'
-import { describe, expect, it, vi } from 'vitest'
+import { defineComponent, h, nextTick, reactive } from 'vue'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import CutoverTaskWorkbench from './index.vue'
 import CutoverTaskDetail from '../task-detail/index.vue'
-import CutoverTaskCreateRoute from '../task-create/route.vue'
 import {
   button,
   findByTestId,
@@ -71,7 +70,11 @@ const fileApi = vi.hoisted(() => ({
   createAccessTicket: vi.fn()
 }))
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }))
-vi.mock('vue-router', () => ({ useRouter: () => router, useRoute: () => ({ query: {} }) }))
+const route = reactive({ path: '/pms/cutover/workbench', query: {} as Record<string, string> })
+vi.mock('vue-router', () => ({ useRouter: () => router, useRoute: () => route,
+  onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn() }))
+const selectionApi = vi.hoisted(() => ({ searchProjectOptions: vi.fn(), getProjectContext: vi.fn(), getProjectDevicePage: vi.fn() }))
+vi.mock('@/api/pms/project/selection', () => selectionApi)
 vi.mock('@/api/pms/asset/device', () => ({ getDevice: vi.fn(async (deviceId) => ({ summary: { id: deviceId, productCode: 'ROUTER-01', productModel: 'Router' } })) }))
 vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({ default: defineComponent({ setup: () => () => null }) }))
 vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue', () => ({ default: defineComponent({ setup: () => () => null }) }))
@@ -105,6 +108,10 @@ const workbenchTableColumn = defineComponent({
 
 
 const controls = {
+  ElForm: defineComponent({ setup(_, { slots, expose }) {
+    expose({ validate: async () => true })
+    return () => h('section', slots.default?.())
+  } }),
   Dialog: dialog,
   ElSteps: passthrough,
   ElStep: passthrough,
@@ -124,6 +131,8 @@ const controls = {
   ElTableColumn: workbenchTableColumn,
   ElDialog: dialog
 }
+
+afterEach(() => vi.unstubAllGlobals())
 
 describe('CUT P1-P6 controlled UI integration', () => {
   it('requires explicit configuration selection and a reason before creating a revision', async () => {
@@ -160,20 +169,26 @@ describe('CUT P1-P6 controlled UI integration', () => {
     await flush()
     await click(mounted.root, 'create-cutover-task')
     await flush()
-    expect(router.push).toHaveBeenLastCalledWith('/pms/cutover/tasks/create')
-    mounted.app.unmount()
-    const creation = mount(CutoverTaskCreateRoute, {}, controls)
+    expect(router.push).toHaveBeenLastCalledWith({ path: '/pms/cutover/workbench', query: { create: '1' } })
+    route.query = { create: '1' }
+    const creation = mounted
     await flush()
     await update('create-serials', ' sn-001 ', creation.root)
     await click(creation.root, 'resolve-create-serials')
     await flush()
-    await update('create-task-name', '核心网割接', creation.root)
-    await update('create-background', '设备替换', creation.root)
-    await update('create-cutover-type', 'CORE_REPLACEMENT', creation.root)
-    await update('create-scheduled-time', '2026-09-03T10:00:00', creation.root)
+    for (const id of ['create-task-name', 'create-background', 'create-cutover-type', 'create-scheduled-time']) {
+      expect(findByTestId(creation.root, id)).toBeUndefined()
+    }
     await click(creation.root, 'submit-create-detail')
     await flush()
-    expect(router.replace).toHaveBeenLastCalledWith('/pms/cutover/tasks/101')
+    expect(api.createCutoverTask).toHaveBeenCalledTimes(1)
+    expect(api.createCutoverTask.mock.calls[0][0]).toMatchObject({
+      data: { projectId: '9007199254741001', serialNumbers: ['SN-001'] }, idempotencyKey: expect.any(String)
+    })
+    for (const field of ['taskName', 'background', 'cutoverType', 'scheduledTime']) {
+      expect(api.createCutoverTask.mock.calls[0][0].data).not.toHaveProperty(field)
+    }
+    expect(router.push).toHaveBeenLastCalledWith('/pms/cutover/tasks/101')
     creation.app.unmount()
     const detail = mount(CutoverTaskDetail, { taskId: '101' }, controls)
     await flush()
@@ -228,12 +243,18 @@ describe('CUT P1-P6 controlled UI integration', () => {
 })
 
 function configureControlledApi() {
+  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  route.query = {}
   trace.length = 0
   runtime.stage = 'P1'
   runtime.approvalNode = 1
   runtime.closureStatus = 'DRAFT'
   Object.values(api).forEach((mock) => mock.mockReset())
   router.push.mockClear()
+  router.replace.mockClear()
+  selectionApi.searchProjectOptions.mockResolvedValue([])
+  selectionApi.getProjectContext.mockResolvedValue({ project: createContext().candidates[0].project, customerServiceLevel: 'GOLD' })
+  selectionApi.getProjectDevicePage.mockResolvedValue({ list: [], total: 0 })
   api.getCutoverChecklistRevisions.mockResolvedValue([])
   api.getCutoverChecklistMatchingOptions.mockResolvedValue({ matchingInput: { cutoverType: 'CORE_REPLACEMENT', networkMode: null, deviceTypeCodes: ['ROUTER'] }, deviceTypes: [{ value: 'ROUTER', label: '路由器' }] })
   api.getCutoverExternalState.mockResolvedValue(null)
