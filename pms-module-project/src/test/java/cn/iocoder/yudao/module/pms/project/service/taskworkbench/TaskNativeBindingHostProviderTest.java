@@ -111,10 +111,16 @@ class TaskNativeBindingHostProviderTest {
         assertEquals("BINDING_CONTRACT_INVALID", result.recoverableError());
         assertTrue(result.allowedActions().isEmpty());
     }
-    @Test void approvalClosureDoesNotOfferManualSubmissionButOrdinaryPageKeepsIt() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void approvalClosureDoesNotOfferManualSubmissionButOrdinaryPageKeepsIt(boolean splitRule) {
         allowProjectScope();task.setStatus("IN_PROGRESS");
         contract.setWorkBindingTypeCode("PAGE");contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
         contract.setCompletionRuleSnapshot("{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}");
+        if (splitRule) {
+            contract.setCompletionRuleTypeCode("NORMAL_CLOSURE_APPROVED");
+            contract.setCompletionRuleSnapshot("{}");
+        }
         var assignment=new ProjectTaskAssignmentDO();assignment.setProjectTaskId(11L);assignment.setAssigneeUserId(9L);assignment.setVersion(1L);
         when(assignmentMapper.selectCurrent(any())).thenReturn(List.of(assignment));when(memberMapper.selectActiveByUser(any())).thenReturn(List.of());
         var submit=new TaskStateTransitionDO();submit.setFromStatusCode("IN_PROGRESS");submit.setActionCode("SUBMIT");submit.setAllowedRoleCode("CURRENT_EFFECTIVE_ASSIGNEE");

@@ -182,6 +182,10 @@ public class NormalClosureCheckService implements cn.iocoder.yudao.module.pms.pr
                     taskSource.put("projectEndUsers", fact);
                 }
             }
+            // 闭环审批事务才会完成该任务；就绪检查不能要求它提前产生完成轮次证据。
+            // 仅使用已校验的唯一闭环任务投影，其他任务仍复核原完成证据。
+            if (pending != null && pending.includes(task)
+                    && Objects.equals(pending.contractId(), contract.getId())) continue;
             var proof = resultEvidence.revalidate(project, task, contract, resultRounds);
             if (!"NO_RESULT_SUBSCRIPTION".equals(proof.reason())) {
                 checks.add(new Check("TASK_RESULT_EVIDENCE", proof.ready(), proof.ready() ? null : proof.reason(), task.getId()));

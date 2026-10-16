@@ -655,8 +655,10 @@ class ProjectTaskLifecycleServiceTest {
         } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
     }
 
-    @Test @SuppressWarnings("unchecked")
-    void normalClosureApprovalUsesTheFrozenTransitionsAndRecordsApprovalInTheSameRound() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    @SuppressWarnings("unchecked")
+    void normalClosureApprovalUsesTheFrozenTransitionsAndRecordsApprovalInTheSameRound(boolean splitRule) {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
         var login=new cn.iocoder.yudao.framework.security.core.LoginUser();login.setId(1L);login.setTenantId(0L);
         cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(login,new org.springframework.mock.web.MockHttpServletRequest());
@@ -667,6 +669,10 @@ class ProjectTaskLifecycleServiceTest {
             var contract=contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L));
             contract.setWorkBindingTypeCode("PAGE");contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
             contract.setCompletionRuleSnapshot("{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}");
+            if (splitRule) {
+                contract.setCompletionRuleTypeCode("NORMAL_CLOSURE_APPROVED");
+                contract.setCompletionRuleSnapshot("{}");
+            }
             var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(0L,100L,1L,1L,3L,"closure",101L,102L,1L,task.getStageCode(),5L,"digest","bpm-1",1L);
             var evidence=new java.util.LinkedHashMap<String,Object>();evidence.put("executionId",61L);evidence.put("normalClosureApproval",approval);
             when(businessEvaluator.evaluateApprovedClosure(any())).thenReturn(planned(true,java.util.List.of(),evidence));

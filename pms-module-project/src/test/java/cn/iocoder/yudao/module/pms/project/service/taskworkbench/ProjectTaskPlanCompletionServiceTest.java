@@ -120,11 +120,17 @@ class ProjectTaskPlanCompletionServiceTest {
         assertFalse(service.evaluateAutomatically(project,task,binding).matched());
         assertNull(round.getSubmittedAt()); verifyNoInteractions(business);
     }
-    @Test void closureApprovalIsTheOnlyCompletionSourceAndCannotBypassStageOrExitRules() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
+    void closureApprovalIsTheOnlyCompletionSourceAndCannotBypassStageOrExitRules(boolean splitRule) {
         binding.setWorkBindingTypeCode("PAGE");
         binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
         String condition="{\"predicate\":\"NORMAL_CLOSURE_APPROVED\",\"parameters\":{}}";
         binding.setCompletionRuleSnapshot(condition); rule("done",condition); round.setSubmittedAt(null);
+        if (splitRule) {
+            binding.setCompletionRuleTypeCode("NORMAL_CLOSURE_APPROVED");
+            binding.setCompletionRuleSnapshot("{}");
+        }
         var login=new cn.iocoder.yudao.framework.security.core.LoginUser();login.setId(1L);login.setTenantId(7L);
         cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.setLoginUser(login,new org.springframework.mock.web.MockHttpServletRequest());
         var approval=new cn.iocoder.yudao.module.pms.project.api.closure.ProjectClosureExitApi.ClosureExitCommand(

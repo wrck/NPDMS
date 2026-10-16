@@ -17,8 +17,7 @@ public record NormalClosureTaskProjection(Long taskId, String taskCode, Long con
     public static NormalClosureTaskProjection resolve(Query query) {
         var matches = query.tasks().stream().filter(task -> {
             var contract = query.contracts().get(task.getId());
-            return contract != null && NormalClosureTaskCondition.matches(contract.getWorkBindingTypeCode(),
-                    contract.getBindingParameterSnapshot(), contract.getCompletionRuleSnapshot());
+            return NormalClosureTaskCondition.matches(contract);
         }).toList();
         if (matches.isEmpty()) return null;
         if (matches.size() != 1) throw invalid();

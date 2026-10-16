@@ -104,8 +104,7 @@ public class ProjectTaskPlanCompletionService {
                 || !Objects.equals(approval.tenantId(), request.project().getTenantId())
                 || !Objects.equals(approval.expectedReviewerUserId(),
                         cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId())
-                || !NormalClosureTaskCondition.matches(request.binding().getWorkBindingTypeCode(),
-                        request.binding().getBindingParameterSnapshot(), request.binding().getCompletionRuleSnapshot()))
+                || !NormalClosureTaskCondition.matches(request.binding()))
             throw new IllegalArgumentException("NORMAL_CLOSURE_APPROVAL_CONTEXT_INVALID");
         return evaluateInternal(new EvaluationRequest(request.project(), request.task(), request.binding(), request.project().getTenantId(),
                 () -> null, approval));

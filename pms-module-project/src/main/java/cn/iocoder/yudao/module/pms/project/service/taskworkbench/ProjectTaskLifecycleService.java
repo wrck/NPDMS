@@ -293,8 +293,7 @@ public class ProjectTaskLifecycleService {
                 || !Objects.equals(task.getStageCode(), project.getCurrentStage())) throw exception(PROJECT_TASK_COMMAND_INVALID);
         var contract = requireCurrentContract(task, tenant);
         if (!Objects.equals(contract.getId(), request.task().contractId())
-                || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.matches(
-                        contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot(), contract.getCompletionRuleSnapshot()))
+                || !cn.iocoder.yudao.module.pms.project.domain.rule.NormalClosureTaskCondition.matches(contract))
             throw exception(PROJECT_TASK_VERSION_CONFLICT);
         var now = LocalDateTime.now();
         var evaluated = planCompletion.evaluateApprovedClosure(new ProjectTaskPlanCompletionService.ApprovedClosureTask(

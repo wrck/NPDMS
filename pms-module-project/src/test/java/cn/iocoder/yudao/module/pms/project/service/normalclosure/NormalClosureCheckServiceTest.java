@@ -81,6 +81,47 @@ class NormalClosureCheckServiceTest {
     }
 
     @Test
+    void pendingClosureTaskDoesNotRequireItsOwnCompletionEvidence() {
+        project.setCurrentStage("S6");
+        task.setStageCode("S6"); task.setCode("PROJECT_CLOSURE"); task.setStatus("IN_PROGRESS");
+        contract.setSourceNodeKey("closure-task"); contract.setWorkBindingTypeCode("PAGE");
+        contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/project/normal-closure\"}");
+        contract.setCompletionRuleTypeCode("NORMAL_CLOSURE_APPROVED"); contract.setCompletionRuleSnapshot("{}");
+        var graph = graphs.resolveForClosure(project);
+        when(graphs.resolveForClosure(eq(project), any(NormalClosureTaskProjection.class))).thenReturn(graph);
+        var evaluation = checks.evaluateLocked(project, 15L, 103L, "pending-closure");
+        org.junit.jupiter.api.Assertions.assertTrue(evaluation.passed(), evaluation.evidence());
+        org.junit.jupiter.api.Assertions.assertEquals(21L, evaluation.pendingClosureTask().taskId());
+        org.junit.jupiter.api.Assertions.assertEquals("IN_PROGRESS", task.getStatus());
+        org.mockito.Mockito.verify(resultEvidence, org.mockito.Mockito.never()).revalidate(any(), any(), any(), any());
+        var other = new ProjectTaskInstanceDO();
+        other.setId(22L); other.setTenantId(7L); other.setProjectId(9L); other.setStatus("DONE");
+        var otherContract = new ProjectTaskExecutionContractDO();
+        otherContract.setId(32L); otherContract.setTenantId(7L); otherContract.setProjectTaskId(22L);
+        otherContract.setContractVersion(1); otherContract.setWorkBindingTypeCode("TASK_NATIVE");
+        when(closureProjects.selectTasksForUpdate(any())).thenReturn(List.of(task, other));
+        when(contracts.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(7L, 22L)))
+                .thenReturn(otherContract);
+        when(resultEvidence.revalidate(eq(project), eq(other), eq(otherContract), any()))
+                .thenReturn(new ProjectResultEvidenceGuard.Proof(false, "TASK_RESULT_EXECUTION_UNAVAILABLE", List.of()));
+        var invalidOther = checks.evaluateLocked(project, 15L, 103L, "pending-with-invalid-other");
+        org.junit.jupiter.api.Assertions.assertFalse(invalidOther.passed());
+        org.junit.jupiter.api.Assertions.assertTrue(invalidOther.checks().stream().anyMatch(check ->
+                "TASK_RESULT_EVIDENCE".equals(check.code()) && !check.passed() && Long.valueOf(22L).equals(check.subjectId())));
+    }
+
+    @Test
+    void completedTaskStillRejectsInvalidResultEvidence() {
+        when(resultEvidence.revalidate(eq(project), eq(task), eq(contract), any()))
+                .thenReturn(new ProjectResultEvidenceGuard.Proof(false, "TASK_RESULT_EXECUTION_UNAVAILABLE", List.of()));
+        var evaluation = checks.evaluateLocked(project, 15L, 103L, "invalid-result");
+        org.junit.jupiter.api.Assertions.assertFalse(evaluation.passed());
+        org.junit.jupiter.api.Assertions.assertTrue(evaluation.checks().stream().anyMatch(check ->
+                "TASK_RESULT_EVIDENCE".equals(check.code()) && !check.passed()
+                        && "TASK_RESULT_EXECUTION_UNAVAILABLE".equals(check.reason())));
+    }
+
+    @Test
     void replacingEffectivePlanInvalidatesEvidenceEvenWhenPolicyIsIdentical() {
         var plan = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO();
         plan.setId(51L); plan.setTenantId(7L); plan.setProjectId(9L); plan.setStatus("EFFECTIVE"); plan.setRevisionNo(2);
