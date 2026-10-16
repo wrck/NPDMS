@@ -10,20 +10,21 @@
       <el-table-column label="环节" min-width="120"><template #default="{ row }">{{ stageLabels[row.collectionStage] }}</template></el-table-column>
       <el-table-column label="结果" min-width="150"><template #default="{ row }">{{ evidenceLabels[row.evidenceType] || row.evidenceType }}</template></el-table-column>
       <el-table-column label="日志与附件" min-width="230"><template #default="{ row }">
-        <PmsFileVersionReferenceList v-if="row.manualFile" owner-context="CUT" object-type="CUTOVER_CLOSURE" :object-id="String(closureId)"
+        <PmsFileVersionReferenceList
+          v-if="row.manualFile" owner-context="CUT" object-type="CUTOVER_CLOSURE" :object-id="String(closureId)"
           purpose-code="MANUAL_COLLECTION_RESULT" :reference-key="row.manualFile.referenceKey" :artifact-id="row.manualFile.artifactId" :version-no="row.manualFile.versionNo" />
         <el-button v-else link type="primary" @click="viewEvidence(row)">查看日志</el-button>
       </template></el-table-column>
     </el-table>
 
-    <el-dialog v-model="collectionVisible" title="选择采集对象与环节" width="min(560px, 94vw)">
+    <el-dialog v-model="collectionVisible" title="选择采集对象与环节" width="min(560px, 94vw)" append-to-body>
       <el-select v-model="collectionDeviceId" placeholder="选择割接设备"><el-option v-for="device in devices" :key="String(device.deviceId)" :label="device.serialNumber" :value="String(device.deviceId)" /></el-select>
       <el-select v-model="collectionStage"><el-option v-for="stage in stages" :key="stage" :label="stageLabels[stage]" :value="stage" /></el-select>
       <template #footer><el-button type="primary" :disabled="!collectionDeviceId" @click="openCollection">进入平台采集窗口</el-button></template>
     </el-dialog>
     <BusinessCollectionDialog ref="collectionDialog" :entry="collectionEntry" :device-id="collectionDeviceId" @closed="emit('refresh')" @observed="observeExecutions" />
 
-    <el-dialog v-model="manualVisible" title="补录失败采集结果" width="min(560px, 94vw)">
+    <el-dialog v-model="manualVisible" title="补录失败采集结果" width="min(560px, 94vw)" append-to-body>
       <el-select v-model="manual.originalFailedCollectionTaskId" data-testid="manual-failed-task">
         <el-option v-for="row in failedEvidence" :key="row.collectionTaskId" :label="`${deviceName(row.deviceId)} · ${stageLabels[row.collectionStage]}`" :value="row.collectionTaskId" />
       </el-select>
@@ -38,7 +39,8 @@
         category-code="CUTOVER_CLOSURE"
         @completed="completeManualUpload"
       />
-      <PmsFileVersionReferenceList v-if="manual.file" owner-context="CUT" object-type="CUTOVER_CLOSURE" :object-id="String(closureId)"
+      <PmsFileVersionReferenceList
+        v-if="manual.file" owner-context="CUT" object-type="CUTOVER_CLOSURE" :object-id="String(closureId)"
         purpose-code="MANUAL_COLLECTION_RESULT" :reference-key="manual.file.referenceKey" :artifact-id="manual.file.artifactId" :version-no="manual.file.versionNo" />
       <small v-else>未选择人工结果文件</small>
       <template #footer><el-button data-testid="link-manual-result" type="primary" :disabled="!manual.file || !selectedFailure" @click="submitManual">关联人工结果</el-button></template>

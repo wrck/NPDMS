@@ -337,15 +337,15 @@
         />
       </el-tab-pane>
     </el-tabs>
-    <el-dialog v-model="schemaVisible" :title="`${schemaItem?.itemName || '采集项'} · 字段与选项`" width="min(960px, 96vw)" destroy-on-close>
+    <el-dialog v-model="schemaVisible" :title="`${schemaItem?.itemName || '采集项'} · 字段与选项`" width="min(960px, 96vw)" destroy-on-close append-to-body>
       <CutoverSchemaEditor v-if="schemaItem" v-model="schemaItem.interfaceSchema" :disabled="readonly" />
       <template #footer><el-button @click="schemaVisible = false">完成</el-button></template>
     </el-dialog>
-    <el-dialog v-model="externalVisible" :title="`${externalItem?.itemName || '采集项'} · 外部数据来源`" width="min(940px, 96vw)" destroy-on-close>
+    <el-dialog v-model="externalVisible" :title="`${externalItem?.itemName || '采集项'} · 外部数据来源`" width="min(940px, 96vw)" destroy-on-close append-to-body>
       <CutoverExternalSourceEditor v-if="externalItem" :model-value="externalItem.externalSourceConfig || {}" :catalog="externalCatalog" :disabled="readonly" @update:model-value="externalItem.externalSourceConfig = $event" />
       <template #footer><el-button @click="externalVisible = false">完成</el-button></template>
     </el-dialog>
-    <el-dialog v-model="conditionVisible" title="绑定规则 · 匹配条件" width="min(900px, 96vw)" destroy-on-close>
+    <el-dialog v-model="conditionVisible" title="绑定规则 · 匹配条件" width="min(900px, 96vw)" destroy-on-close append-to-body>
       <CutoverBindingConditionsEditor v-if="conditionRule" v-model="conditionRule.dimensionConditions" :dimensions="model.dimensions" :dictionary="model.dictionarySnapshot" :disabled="readonly" />
       <template #footer><el-button @click="conditionVisible = false">完成</el-button></template>
     </el-dialog>

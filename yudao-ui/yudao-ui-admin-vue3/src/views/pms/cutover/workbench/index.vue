@@ -59,7 +59,7 @@
         </section>
       </template>
 
-    <el-dialog v-model="todoVisible" title="我的审批待办" width="min(920px, 94vw)">
+    <el-dialog v-model="todoVisible" title="我的审批待办" width="min(920px, 94vw)" append-to-body>
       <el-table v-loading="approvalQueueLoading" :data="approvalTodos" row-key="approvalInstanceId">
         <el-table-column prop="taskCode" label="任务编号" min-width="150" />
         <el-table-column prop="taskName" label="任务名称" min-width="190" show-overflow-tooltip />
@@ -90,7 +90,7 @@
       />
     </el-dialog>
 
-    <el-dialog v-model="reassignmentQueueVisible" title="审批改派队列" width="min(1040px, 94vw)">
+    <el-dialog v-model="reassignmentQueueVisible" title="审批改派队列" width="min(1040px, 94vw)" append-to-body>
       <el-table v-loading="approvalQueueLoading" :data="reassignmentCandidates" row-key="nodeId">
         <el-table-column prop="taskCode" label="任务编号" min-width="150" />
         <el-table-column prop="taskName" label="任务名称" min-width="190" show-overflow-tooltip />

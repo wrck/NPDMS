@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type {
   CutoverChecklistView,
@@ -131,6 +131,42 @@ describe('F-CUT-003 mounted checklist field', () => {
     mounted.app.unmount()
   })
 
+  it('does not reuse the previous revision material when a checklist item is replaced', async () => {
+    fileApi.getArtifact.mockResolvedValue({ artifactId: '9007199254740993', artifactVersion: 2,
+      reference: { scopeVersion: 17, referenceVersion: 3 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
+    const selected = ref({ ...item, workModeCode: 'MANUAL' as const })
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverChecklistField,
+      { item: selected.value, directValue: '', readonly: false, allowSave: true }) }), {}, controls)
+    try {
+      await (findByTestId(mounted.root, 'manual-uploader')!.props!.onClick as Function)()
+      for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!['artifact-id']).toBe('9007199254740993')
+      selected.value = { ...selected.value, itemId: '9007199254740996' }
+      await nextTick()
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!['artifact-id']).toBeUndefined()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('ignores a completed upload fact read after the checklist revision has changed', async () => {
+    let resolve!: (value: unknown) => void
+    fileApi.getArtifact.mockImplementation(() => new Promise(done => { resolve = done }))
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5 }] })
+    const manual = vi.fn()
+    const selected = ref({ ...item, workModeCode: 'MANUAL' as const })
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverChecklistField,
+      { item: selected.value, directValue: '', readonly: false, allowSave: true, onManual: manual }) }), {}, controls)
+    try {
+      await (findByTestId(mounted.root, 'manual-uploader')!.props!.onClick as Function)()
+      selected.value = { ...selected.value, itemId: '9007199254740996' }
+      await nextTick()
+      resolve({ artifactId: '9007199254740993', artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
+      for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
+      expect(manual).not.toHaveBeenCalled()
+      expect(findByTestId(mounted.root, 'manual-uploader')!.props!['artifact-id']).toBeUndefined()
+    } finally { mounted.app.unmount() }
+  })
+
   it('requests controlled collection with stable WireLong device and template identities', async () => {
     const collection: unknown[][] = []
     const mounted = mount(CutoverChecklistField, {
@@ -214,6 +250,19 @@ describe('F-CUT-003 mounted checklist field', () => {
       expect(refreshedInput?.props?.['model-value']).toBe('已核查')
     })
     mounted.app.unmount()
+  })
+
+  it('retains custom survey and risk entry points when the configuration matches no items', async () => {
+    const empty = checklistView(null)
+    empty.items = []
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockResolvedValue(empty)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    try {
+      await flush()
+      expect(textOf(mounted.root)).toContain('增加自定义调研项')
+      expect(textOf(mounted.root)).toContain('增加自定义考察项')
+    } finally { mounted.app.unmount() }
   })
 
   it('adds a task-level custom item through the mounted P3 workbench', async () => {

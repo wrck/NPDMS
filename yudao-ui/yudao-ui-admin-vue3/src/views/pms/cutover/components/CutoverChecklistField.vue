@@ -47,13 +47,17 @@
       @update:model-value="emit('externalFeedback', item.stableItemKey, $event)" @load="emit('externalLoad', item.stableItemKey)" @save="emit('externalSave', item.stableItemKey)" />
     <CutoverSchemaInput v-if="item.workModeCode === 'DIRECT' || collectionReady" :schema="schema" :model-value="structuredValue" :disabled="readonly || !allowSave" :background-layout="embedded" @update:model-value="updateStructured" />
     <p v-if="item.currentResult?.factDescription" class="fact-description">{{ item.currentResult.factDescription }}</p>
-    <PmsFileVersionReferenceList v-if="manualFile" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(item.itemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile.referenceKey" :artifact-id="manualFile.artifactId" :version-no="manualFile.versionNo" />
+    <PmsFileVersionReferenceList v-if="manualFile" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(item.itemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile.referenceKey" :artifact-id="manualFile.artifactId" :version-no="manualFile.versionNo" @loaded="currentManualArtifact = $event" />
 
-    <details v-if="!readonly && allowSave && canUseManual" class="manual-area">
+    <details v-if="!readonly && (allowSave || externalBusy) && canUseManual" class="manual-area" open>
       <summary>{{ item.workModeCode === 'MANUAL' ? '上传本项材料' : '改用人工核验证据' }}</summary>
       <el-input v-model="factDescription" placeholder="材料说明（选填）" />
       <PmsFileUploader
         data-testid="manual-uploader"
+        auto-submit
+        :artifact-id="currentManualArtifact?.artifactId ?? manualFile?.artifactId"
+        :expected-reference-version="currentManualArtifact?.reference.referenceVersion ?? manualFile?.fileFactVersion?.referenceVersion"
+        :disabled="!allowSave"
         owner-context="CUT"
         object-type="CUTOVER_CHECKLIST_ITEM"
         :object-id="String(item.itemId)"
@@ -148,9 +152,13 @@ const schema = computed(() => { try { return JSON.parse(props.item.interfaceSche
 const structuredValue = computed(() => { if (!props.directValue) return null; try { return JSON.parse(props.directValue) } catch { return props.directValue } })
 const updateStructured = (value: unknown) => emit('direct', props.item.stableItemKey, JSON.stringify(value ?? null))
 const collectionReady = computed(() => props.item.currentResult?.resultSourceCode === 'COLLECTION' && !!props.item.currentResult.collectionResultReferenceId && !props.item.currentResult.loadFailureCode)
+const currentManualArtifact = ref<FileApi.FileArtifactVO>()
 const manualFile = computed(() => {
   if (props.item.currentResult?.resultSourceCode !== 'MANUAL') return null
   try { const snapshot = JSON.parse(props.item.currentResult.answerSnapshot); return snapshot.file || snapshot } catch { return null }
+})
+watch(() => [props.item.itemId, manualFile.value?.artifactId, manualFile.value?.referenceKey], () => {
+  currentManualArtifact.value = undefined
 })
 
 const storedCollection = computed(() => {
@@ -201,13 +209,18 @@ const fileKey = (referenceKey: string) => ({
   referenceKey
 })
 const completeUpload = async (selection: FileSelection) => {
+  const selectedItemId = String(props.item.itemId)
+  const selectedStableItemKey = props.item.stableItemKey
+  const selectedFileKey = fileKey(selection.referenceKey)
   const [artifact, versions] = await Promise.all([
-    FileApi.getArtifact(selection.artifactId, fileKey(selection.referenceKey)),
-    FileApi.getVersions(selection.artifactId, { ...fileKey(selection.referenceKey), pageSize: 20 })
+    FileApi.getArtifact(selection.artifactId, selectedFileKey),
+    FileApi.getVersions(selection.artifactId, { ...selectedFileKey, pageSize: 20 })
   ])
+  if (String(props.item.itemId) !== selectedItemId) return
   const version = versions.items.find((entry) => entry.versionNo === selection.versionNo)
   if (!version) throw new Error('PLT 未返回刚完成的文件版本')
-  emit('manual', props.item.stableItemKey, {
+  currentManualArtifact.value = artifact
+  emit('manual', selectedStableItemKey, {
     artifactId: selection.artifactId,
     versionNo: selection.versionNo,
     referenceKey: selection.referenceKey,

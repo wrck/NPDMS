@@ -1,7 +1,7 @@
 <template>
   <div v-if="schema.columns?.length" class="table-field">
     <div class="table-scroll">
-      <el-table :data="rows" border :max-height="480" empty-text="暂无记录，请添加一行">
+      <el-table :data="rows" border scrollbar-always-on :max-height="480" empty-text="暂无记录，请添加一行">
         <el-table-column v-for="column in schema.columns" :key="column.code" :label="column.label || column.name || column.code" min-width="180">
           <template #header>{{ column.label || column.name || column.code }}<span v-if="column.required" class="required"> *</span></template>
           <template #default="{ row, $index }">
@@ -9,10 +9,10 @@
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column v-if="!disabled" label="操作" width="76" fixed="right"><template #default="{ $index }"><el-button link type="danger" @click="removeRow($index)">删除</el-button></template></el-table-column>
+        <el-table-column label="操作" width="76" fixed="right"><template #default="{ $index }"><el-button :disabled="disabled" link type="danger" @click="removeRow($index)">删除</el-button></template></el-table-column>
       </el-table>
     </div>
-    <el-button v-if="!disabled" class="mt-8px" @click="emit('update:modelValue', [...rows, {}])"><Icon icon="ep:plus" />添加一行</el-button>
+    <el-button :disabled="disabled" class="mt-8px" @click="emit('update:modelValue', [...rows, {}])"><Icon icon="ep:plus" />添加一行</el-button>
   </div>
   <div v-else-if="backgroundLayout && schema.fields?.length" class="background-groups">
     <div v-for="group in backgroundGroups" :key="group[0].code" class="background-group" :class="{ 'background-group--description': group[0].code === 'backgroundDescription' }" role="group" :aria-label="group[0].label || group[0].name || group[0].code">

@@ -79,7 +79,7 @@
         <div v-else class="cut-card__body cut-card__body--table">
           <el-table :data="group.items" :span-method="checklistCellSpan" :empty-text="search ? '本区暂无匹配的采集项' : '当前条件未匹配此类采集项'" row-key="stableItemKey">
             <el-table-column type="index" label="序号" width="58" />
-            <el-table-column label="采集项及核查说明" min-width="285">
+            <el-table-column label="采集项及核查说明" min-width="1">
               <template #default="{ row }">
                 <div v-if="isTableItem(row)" class="stacked-table-item">
                   <div class="stacked-table-item__heading"><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></div>
@@ -94,7 +94,7 @@
                 <template v-else><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></template>
               </template>
             </el-table-column>
-            <el-table-column label="检查结果／反馈内容" min-width="560">
+            <el-table-column label="检查结果／反馈内容" min-width="2">
               <template #default="{ row }">
                 <CutoverChecklistField
                   :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
@@ -116,7 +116,7 @@
       </footer>
     </template>
     <el-empty v-else-if="!loading" description="选择设备类型并生成调研及风险考察清单" />
-    <el-dialog v-model="customVisible" :title="customItem.itemTypeCode === 'RISK' ? '新增自定义风险考察项' : '新增自定义调研项'" width="min(520px, 94vw)">
+    <el-dialog v-model="customVisible" :title="customItem.itemTypeCode === 'RISK' ? '新增自定义风险考察项' : '新增自定义调研项'" width="min(520px, 94vw)" append-to-body>
       <el-form label-position="top">
         <el-form-item label="采集项名称" required><el-input v-model="customItem.itemName" data-testid="custom-item-name" maxlength="200" /></el-form-item>
         <el-form-item label="核查说明"><el-input v-model="customItem.itemDescription" type="textarea" :rows="3" /></el-form-item>
@@ -224,7 +224,7 @@ const itemSections = computed(() => [
     : ['RISK_CURRENT_VERSION_BULLETIN', 'RISK_TARGET_VERSION_BULLETIN'].includes(item.stableItemKey) ? 'TECHNICAL_BULLETIN'
     : item.itemTypeCode
   return section === group.code && (!search.value || item.itemName.includes(search.value) || item.itemDescription?.includes(search.value))
-}) })).filter(group => group.items.length || ['BUSINESS_SURVEY', 'RISK', 'DUAL_MACHINE_CHECK'].includes(group.code)))
+}) })).filter(group => group.items.length || (!readonly.value && canSave.value && ['BUSINESS_SURVEY', 'RISK'].includes(group.code))))
 const gapMessage = computed(() => {
   if (!checklist.value?.configGapSnapshot || checklist.value.configGapSnapshot === '[]') return ''
   return '当前冻结配置存在缺口，可补充任务级自定义项后提交。'
@@ -598,7 +598,7 @@ onBeforeUnmount(() => { loadSequence++ })
 <style scoped>
 .checklist-panel { min-width: 0; }
 .background-form { display: grid; gap: 16px; }
-.stacked-table-item { display: grid; gap: 12px; min-width: 0; padding: 8px 0; }
+.stacked-table-item { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; padding: 8px 0; }
 .stacked-table-item__heading { color: var(--el-text-color-regular); }
 .checklist-heading { flex-wrap: wrap; gap: 12px; }
 .checklist-version-info, .checklist-revisions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
