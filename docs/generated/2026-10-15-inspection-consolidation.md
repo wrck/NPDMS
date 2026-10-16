@@ -243,6 +243,24 @@ MAIN已全文及截图复核`cut-reuse/product-adaptation-final-summary.json`及
 
 后续用户要求继续处理服务等级500时，只读核对发现并行会话已于20:44:12应用V479（installed_rank425、checksum1710823682、success1），原SQL与历史checksum一致；当前24306/npdms_domain_test的erp_customer_code已存在，为nullable varchar(50)，最新V480/rank426。证据为`.run/build/inspection-retirement-inventory/crm-service-level-schema-recheck.json`。该迁移不是本会话执行，本轮没有迁移、源码修改或重启。真实浏览器打开、刷新、第2页、标准筛选第1页、清空筛选及退出首页再重开均HTTP200/code0，总数24→标准8→24；原页1/页2各10条且ID无交集。首页10条客户名称齐全，原500恢复复验通过。证据为`.run/build/inspection-browser-acceptance/cut-reuse/crm-service-level-recheck-summary.json`；本轮0业务写、0迁移、0服务操作。部分历史行customerId1/2/3无名称，只读证据`.run/build/inspection-retirement-inventory/crm-service-level-missing-customers-readonly.json`确认cus_customer_master确实无这3个ID，不臆造客户或映射。旧GENERAL/IMPORTANT/STRATEGIC等级标签空白仅记录观察，未扩大本次500处理范围；不能据此宣称24条姓名均齐全或整个CRM验收通过。
 
+## 2026-10-16 多设备日志上传增量
+
+用户批准复用既有日志拆分和解析能力，并保留单设备上传与巡检闭环。本次新增任务级 `POST /api/v1/pms/inspection-tasks/{taskId}/offline-log-batches`，沿用执行权限、任务版本、当前离线尝试与平台幂等事务。前端在离线执行区提供“单设备日志/多设备日志（按SN识别）”切换；单设备50 MiB和命令提示保留，多设备20 MiB，均支持log/txt/zip。多设备经INT公开`DeviceOpsLogSplitApi`调用既有DAC拆分与脱敏，所有设备日志预校验后逐设备登记SRV执行记录；使用现有解析分片、冻结规则判定及报告归档链，不调用配置导入、AST日志归档或设备事实投影。ZIP中同设备日志合并，任务外或不唯一的SN、拆分拒绝和任一规范化失败不会部分登记；原单设备失败历史亦保留。
+
+工作树定向66项后端检查通过（执行34、在线授权18、采集回调8、PM-10保护6），其中新增5项批量场景覆盖独立执行及重复上传、越界设备、末设备失败、离线/当前尝试及授权、拆分拒绝/不可用。首轮60项有2项Mockito替身重设错误，修正后66项全通过，原日志保留；不是生产校验放宽。前端3项运行测试及相关4文件ESLint通过，真实页面切换可见。证据位于`.run/build/inspection-multi-log/`。完整标准构建3分20秒成功，冻结清单`b3bf6db2-0e27-4756-84cc-003a870d741b`，22项保护及ValidateOnly通过。用户随后告知已部署`53ebaf1a-7273-4f27-a156-5dbcfecde17f`；只读确认其02:37构建晚于本次02:33，两包源码标识相同，21个巡检执行相关类逐项一致，实际PID45936/59191/local,dac运行包匹配53eb；本会话没有再次部署或重启，证据为`runtime-comparison.json`。
+
+真实浏览器验收：旧模拟项目992203060201的手工设备在并行收紧为已发货候选后不可用于新建任务，未为验收补写发货或修改设备事实。改用现有项目992203060198中已具备模拟类型映射的已发货设备02010078T231000338/329，新建Task15、尝试9，只选现有已发布合成延迟R2。越界SN批量上传真实HTTP400/业务1013007000，执行仍0；正常多设备LOG及两成员ZIP均拆成独立SRV执行。重复ZIP上传未新增记录。首份合成字段与原规则不符形成两条ABNORMAL；下一份将纯数字SN和阈值放在同一命令中，被既有多数值规则判为两条UNJUDGED；这些原件及结果保留，未降低正则、阈值或歧义校验。将设备身份与检测输出按真实命令块分开后，两设备均PASS/10ms；单设备入口再补传同格式日志亦PASS。最终7条执行20～26均COMPLETE、7条判定历史保留，当前两条均PASS；报告7/V1的PDF/DOCX/XML精确PLT版本均AVAILABLE，完成执行、标注及负责人申请归档通过，刷新状态保留为CLOSED/v29。当前admin为owner但manager=false，无经理归档按钮；未更改授权，尚未归档、CUS历史未新增，不宣称服务经理最终归档验收通过。原Task2/3/4仍ARCHIVED/v28、v33、v16。最终只读`final-readonly.json`与真实页面`browser-closure-final.txt`记录边界。
+
+验收前后9张配置及资产关联表逐行指纹一致（`preservation-before.json`、`preservation-after.json`）：该项目配置仍7条、设备40条、资产日志导入27/文件35/解析任务22/解析事实37条，测试设备网络版本2条、设备版本及装配关系各0条。本次未产生配置记录、AST日志或设备事实写入。旧模拟项目的准备期基线另保留为`preservation-legacy-project-before.json`；本轮未改动旧模拟任务或其他并行任务，未执行Git提交或推送。
+
+### 巡检记录27解析处理中修复
+
+用户反馈记录27持续处理中。只读排查发现，冻结日志包含一个无命令名称的前导文本块；DAC规范化时将其识别为legacy块，但SRV原有七字段冻结格式未携带该标识，提交解析时被永久拒绝。刷新路径将输入拒绝和暂时不可用统一处理，导致记录持续RUNNING，原requestId在DAC中不存在。使用可信证书执行无持久化的规范化复现：原输入HTTP400，仅为匿名块恢复legacy标识后HTTP200、7个块，未放宽命名命令校验。
+
+已通过正式解析接口以原requestId恢复解析，并由真实浏览器的原“刷新解析”操作回收结果；记录27现为COMPLETE/v25，完成时间2026-10-16 03:07:53.498，原分片14为SUCCEEDED、parserRelease1.3.2。原文件、执行ID及requestId保持不变，无重采集、重上传、直接数据库改写或服务重启。证据位于`.run/build/inspection-record-27/`的`stateless-probe.json`、`recovery-response.json`、`recovered-readonly.json`及`browser-result.txt`。
+
+防复发源码仅在提交解析时补回匿名块的legacy标识，不改写不可变冻结文件；永久输入拒绝转为明确失败结果，暂时不可用仍保留原重试身份。新增匿名前导块及永久拒绝两项回归，执行36、在线授权18、采集回调8、PM-10保护6共68项通过。标准完整构建3分06秒成功，22项保护及ValidateOnly通过，冻结清单为`a396059d-c103-4541-bf2b-adfbee252016`，日志为`freeze-build.log`及`validate-only.log`。防复发代码尚未部署，等待本次59191重启的明确批准；不能以当前记录恢复宣称新代码已部署。本轮没有服务重启、Git提交或推送。
+
 ## 旧维保与空父目录后续清理续记
 
 用户后续明确授权清理旧父目录、残留页面及旧维保30行，保留新业务；这扩展了前述“旧维保不在删除范围”的历史边界。pms_srv_maintenance_retired的tenant1共30行已提交删除、当前0行，3个原保护触发器定义一致。此前ACL私有备份回读一致，隔离恢复、注入失败回滚、正常清理及3个保护恢复均通过。源码检查无旧维保页/API实现，旧巡检页面此前已退出；本轮未删新页面、未改业务代码或重启。

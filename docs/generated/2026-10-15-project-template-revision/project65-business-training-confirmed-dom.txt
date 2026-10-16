@@ -1,0 +1,53 @@
+- main:
+  - region "感谢您的确认":
+    - text: 现场培训 · 客户确认
+    - heading "感谢您的确认" [level=1]
+    - paragraph: 感谢您参与本次现场培训。欢迎核对培训内容、填写评价并反馈意见，手写签字确认后将归档至项目交付件。
+    - heading "项目65隔离实验室业务验收培训" [level=2]
+    - paragraph: PJT2026000065-PX-001
+    - term: 培训类型
+    - definition: 产品运维类
+    - term: 培训时间
+    - definition: 2026-10-16
+    - term: 培训工程师
+    - definition: 管理员
+    - paragraph: 合成实验室：方案架构、样例设备运维、流程使用、授权和数据保护、故障处理、归档资料；不涉及真实客户培训或生产操作。
+    - alert:
+      - generic: 已确认 · 手签 · 2026-10-16 04:16:11
+    - generic: "*培训工程师技术水平及表达能力"
+    - radiogroup "*培训工程师技术水平及表达能力":
+      - radio "很好" [disabled]
+      - generic: 很好
+      - radio "良好" [checked] [disabled]
+      - generic: 良好
+      - radio "一般" [disabled]
+      - generic: 一般
+      - radio "差" [disabled]
+      - generic: 差
+    - generic: "*培训内容及讲解效果"
+    - radiogroup "*培训内容及讲解效果":
+      - radio "很好" [disabled]
+      - generic: 很好
+      - radio "良好" [checked] [disabled]
+      - generic: 良好
+      - radio "一般" [disabled]
+      - generic: 一般
+      - radio "差" [disabled]
+      - generic: 差
+    - generic: "*培训满意度"
+    - radiogroup "*培训满意度":
+      - radio "非常满意" [disabled]
+      - generic: 非常满意
+      - radio "较满意" [checked] [disabled]
+      - generic: 较满意
+      - radio "一般" [disabled]
+      - generic: 一般
+      - radio "差" [disabled]
+      - generic: 差
+    - generic: 综合意见
+    - textbox "综合意见" [disabled]:
+      - /placeholder: ""
+      - text: 项目65隔离浏览器验收模拟评价与样例签字，非真实客户意见或法律签署。
+    - group "*客户手写签字":
+      - generic: "*客户手写签字"
+      - img "signature"
