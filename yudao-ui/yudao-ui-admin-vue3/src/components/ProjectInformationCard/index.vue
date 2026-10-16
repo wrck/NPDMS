@@ -2,7 +2,7 @@
   <section v-loading="loading" class="project-information-card" aria-label="项目信息">
     <header><h2><Icon icon="ep:location" />项目信息</h2><small>{{ hint }}</small></header>
     <div class="project-information-body">
-      <slot />
+      <slot></slot>
       <div class="project-information-grid">
         <div v-for="field in fields" :key="field.label" class="project-information-field">
           <label>{{ field.label }}</label><span>{{ field.value || '—' }}</span>

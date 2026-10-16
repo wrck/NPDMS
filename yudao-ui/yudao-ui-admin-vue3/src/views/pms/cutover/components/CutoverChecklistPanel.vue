@@ -3,7 +3,8 @@
     <el-alert title="按任务的割接类型、组网模式、设备类型及等级匹配清单。同页填写调研、风险和双机检查结果，提交后带入割接方案。" type="info" :closable="false" show-icon />
     <el-alert v-if="gapMessage" :title="gapMessage" type="warning" :closable="false" show-icon />
     <el-alert v-if="historicalRevisionId" :title="`历史清单只读。${selectedRevision?.invalidatedReason ? `修订原因：${selectedRevision.invalidatedReason}` : ''}`" type="info" :closable="false" />
-    <el-alert v-else-if="revisions.some(row => row.status === 'INVALIDATED') && checklist?.status === 'DRAFT'"
+    <el-alert
+      v-else-if="revisions.some(row => row.status === 'INVALIDATED') && checklist?.status === 'DRAFT'"
       title="历史填报和可复用材料已带入。设备采集、技术公告需按本次实施信息重新核验，原始结果可在历史清单查看。" type="info" :closable="false" />
     <section class="cut-card">
       <header class="cut-card__header checklist-heading">
@@ -14,7 +15,8 @@
             <label for="checklist-revision">清单版本</label>
             <el-select id="checklist-revision" :model-value="selectedRevisionId" :disabled="loading || saving || submitting || rematching || externalBusy" @change="selectRevision">
               <el-option label="当前版本" value="CURRENT" />
-              <el-option v-for="revision in revisions.filter(row => row.status === 'INVALIDATED')" :key="String(revision.checklistId)"
+              <el-option
+                v-for="revision in revisions.filter(row => row.status === 'INVALIDATED')" :key="String(revision.checklistId)"
                 :value="String(revision.checklistId)" :label="`第 ${revision.checklistVersion} 版 · 历史只读`" />
             </el-select>
           </div>
@@ -65,7 +67,8 @@
       <section v-for="group in itemSections" :key="group.code" class="cut-card">
         <header class="cut-card__header"><h3><Icon :icon="group.icon" />{{ group.label }}</h3><small>{{ group.items.length }} 项</small></header>
         <div v-if="group.code === 'BACKGROUND'" class="cut-card__body background-form" aria-label="割接背景表单">
-          <CutoverChecklistField v-for="row in group.items" :key="row.stableItemKey" :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" embedded
+          <CutoverChecklistField
+            v-for="row in group.items" :key="row.stableItemKey" :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" embedded
             :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
             :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
             :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
@@ -80,7 +83,8 @@
               <template #default="{ row }">
                 <div v-if="isTableItem(row)" class="stacked-table-item">
                   <div class="stacked-table-item__heading"><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></div>
-                  <CutoverChecklistField :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
+                  <CutoverChecklistField
+                    :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
                     :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
                     :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
                     :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
@@ -92,7 +96,8 @@
             </el-table-column>
             <el-table-column label="检查结果／反馈内容" min-width="560">
               <template #default="{ row }">
-                <CutoverChecklistField :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
+                <CutoverChecklistField
+                  :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
                   :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
                   :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
                   :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"

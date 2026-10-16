@@ -103,7 +103,8 @@
     <Dialog v-model="visible" :title="form.id ? '编辑联系人' : '新增联系人'" width="min(620px, 95vw)" :before-close="beforeClose">
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="saving || !canEdit">
         <el-form-item label="客户" prop="customerId">
-          <PmsEntitySelect v-model="form.customerId" :api="CustomerApi.getCustomerPage" :label-field="['code', 'name']"
+          <PmsEntitySelect
+            v-model="form.customerId" :api="CustomerApi.getCustomerPage" :label-field="['code', 'name']"
             value-field="id" query-field="name" placeholder="请选择客户" :disabled="!!projectId || !!form.id" />
         </el-form-item>
         <el-form-item v-if="projectId && !form.id" label="来源">

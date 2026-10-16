@@ -15,7 +15,7 @@ vi.mock('@/utils/formatTime', () => ({ dateFormatter: () => '' }))
 vi.mock('@/components/ProjectDeviceSelect/index.vue', () => ({ default: {} }))
 vi.mock('./LogParsingDialog.vue', () => ({ default: {} }))
 
-const dialog = defineComponent({ props: ['modelValue'], setup(props, { slots }) { return () => props.modelValue ? h('section', [slots.default?.(), slots.footer?.()]) : null } })
+const dialog = defineComponent({ props: { modelValue: Boolean }, setup(props, { slots }) { return () => props.modelValue ? h('section', [slots.default?.(), slots.footer?.()]) : null } })
 const form = defineComponent({ setup(_, { slots, expose }) { expose({ validate: async () => true, validateField: async () => true }); return () => h('form', slots.default?.()) } })
 const controls = Object.fromEntries(['ElAlert', 'ElFormItem', 'ElRadioGroup', 'ElRadio', 'ElSelect', 'ElOption', 'ElRow', 'ElCol', 'ElInput', 'ElInputNumber', 'ElButton', 'ElTable', 'ElTableColumn', 'ElDatePicker', 'ElTag', 'Pagination'].map(key => [key, passthrough]))
 const flush = async () => { for (let i = 0; i < 12; i++) await nextTick() }

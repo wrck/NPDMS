@@ -9,22 +9,27 @@
     <el-alert v-if="unknownResult" :title="createdTaskId ? '任务已创建，问卷尚未确认保存。请重试保存问卷，或打开已创建任务继续办理。' : '创建结果尚待确认。请使用下方按钮重试确认，避免重复创建。'" type="warning" :closable="false" show-icon />
     <el-alert v-if="optionsError" :title="optionsError" type="error" :closable="false" show-icon><el-button link @click="loadOptions">重试加载</el-button></el-alert>
     <el-form ref="formRef" :model="validationModel" :rules="rules" label-position="top" :disabled="locked" @submit.prevent>
-    <ProjectInformationCard :project="projectContext?.project" :customer-service-level="projectContext?.customerServiceLevel"
+    <ProjectInformationCard
+      :project="projectContext?.project" :customer-service-level="projectContext?.customerServiceLevel"
       :loading="projectLoading" :error="projectOptionsError || projectError" hint="选择项目或在下方输入设备序列号后自动回填">
           <el-form-item label="项目名称" prop="projectId" required>
-            <el-select :model-value="projectId" :disabled="locked || !!props.projectId" filterable remote clearable
+            <el-select
+              :model-value="selectedProjectId" :disabled="locked || !!props.projectId" filterable remote clearable
               :remote-method="searchProjects" :loading="projectOptionsLoading" placeholder="输入项目名称或编号查找"
               data-testid="create-project-select" class="w-full" @update:model-value="changeProject">
-              <el-option v-for="option in projectOptions" :key="String(option.id)" :value="String(option.id)"
+              <el-option
+                v-for="option in projectOptions" :key="String(option.id)" :value="String(option.id)"
                 :label="`${option.name}（${option.code}）`" />
             </el-select>
           </el-form-item>
     </ProjectInformationCard>
     <el-form-item prop="deviceIds" class="create-device-field">
-    <ProjectDeviceSelection v-model="selectedDevices" :project-id="projectId" :disabled="locked"
+    <ProjectDeviceSelection
+      v-model="selectedDevices" :project-id="selectedProjectId" :disabled="locked"
       :project-loading="projectLoading" :project-error="projectError" empty-text="请添加本次割接设备">
       <template #serial-query>
-        <el-input v-model="serialText" :disabled="locked || resolving" placeholder="输入设备序列号；多个序列号可用逗号分隔"
+        <el-input
+          v-model="serialText" :disabled="locked || resolving" placeholder="输入设备序列号；多个序列号可用逗号分隔"
           aria-label="设备序列号" data-testid="create-serials" @keyup.enter="resolveSerials" />
         <el-button :disabled="locked || !serialText.trim()" :loading="resolving" data-testid="resolve-create-serials" @click="resolveSerials">查询并添加</el-button>
       </template>
@@ -32,7 +37,8 @@
     </ProjectDeviceSelection>
     </el-form-item>
     </el-form>
-    <CutoverAssessmentPanel :model="assessmentModel" :customer-service-level="projectContext?.customerServiceLevel"
+    <CutoverAssessmentPanel
+      :model="assessmentModel" :customer-service-level="projectContext?.customerServiceLevel"
       :editable="!locked && props.createAllowed" :submittable="false" :saving="submitting" :submitting="false" hide-actions />
     <footer class="cut-actions cut-actions--sticky">
       <el-button :disabled="submitting || unknownResult" @click="requestClose">返回任务列表</el-button>
@@ -44,7 +50,8 @@
     <el-dialog v-model="candidateVisible" title="选择本次割接项目" width="min(640px, 94vw)" append-to-body align-center>
       <el-alert title="输入的序列号涉及多个项目。请选择本次项目，仅添加该项目下列出的设备。" type="warning" :closable="false" />
       <el-radio-group v-model="candidateProjectId" class="candidate-list" data-testid="create-project-candidates">
-        <el-radio v-for="candidate in pendingResolution?.context.candidates || []" :key="String(candidate.project.projectId)"
+        <el-radio
+          v-for="candidate in pendingResolution?.context.candidates || []" :key="String(candidate.project.projectId)"
           :value="String(candidate.project.projectId)"><span>{{ candidate.project.projectName }}（{{ candidate.project.projectCode }}）</span>
           <small>{{ candidate.devices.map(device => device.serialNumber).join('、') }}</small></el-radio>
       </el-radio-group>
@@ -74,9 +81,9 @@ const props = withDefaults(defineProps<{ projectId?: WireLong; operationObjectTy
 const emit = defineEmits<{ close: []; created: [taskId: WireLong] }>()
 const message = useMessage()
 const operationClient = useOperationClient()
-const projectId = ref('')
+const selectedProjectId = ref('')
 const { options: projectOptions, loading: projectOptionsLoading, error: projectOptionsError, search: searchProjects } =
-  useProjectOptions(() => projectId.value)
+  useProjectOptions(() => selectedProjectId.value)
 const { context: projectContext, loading: projectLoading, error: projectError, load: loadProjectInformation } = useProjectInformation()
 const selectedDevices = ref<CreationDevice[]>([])
 const serialText = ref('')
@@ -98,13 +105,13 @@ let pendingAssessment: Parameters<typeof CutoverApi.saveCutoverAssessment>[0] | 
 const formRef = ref<FormInstance>()
 
 const creationCompleted = ref(false)
-const validationModel = computed(() => ({ projectId: projectId.value, deviceIds: selectedDevices.value.map(device => String(device.deviceId)) }))
+const validationModel = computed(() => ({ projectId: selectedProjectId.value, deviceIds: selectedDevices.value.map(device => String(device.deviceId)) }))
 const rules: FormRules = {
   projectId: [{ required: true, message: '请选择项目', trigger: 'change' }],
   deviceIds: [{ type: 'array', required: true, min: 1, message: '请选择至少一台割接设备', trigger: 'change' }],
 
 }
-const createDirty = computed(() => Boolean((!props.projectId && projectId.value) || selectedDevices.value.length || serialText.value.trim()
+const createDirty = computed(() => Boolean((!props.projectId && selectedProjectId.value) || selectedDevices.value.length || serialText.value.trim()
   || assessmentDirty.value))
 let approvedLeave = false
 const mayLeaveCreate = async () => {
@@ -137,12 +144,12 @@ let projectSequence = 0
 const changeProject = async (value: WireLong | null | undefined) => {
   const next = value ? String(value) : ''
   if (locked.value || props.projectId && next !== String(props.projectId)) return false
-  if (next === projectId.value && projectContext.value && !projectError.value) return true
-  if (selectedDevices.value.length && next !== projectId.value) {
+  if (next === selectedProjectId.value && projectContext.value && !projectError.value) return true
+  if (selectedDevices.value.length && next !== selectedProjectId.value) {
     try { await message.confirm('切换项目会移除当前已选设备，请确认后重新选择。') } catch { return false }
   }
   ++projectSequence
-  projectId.value = next
+  selectedProjectId.value = next
   selectedDevices.value = []
   const context = await loadProjectInformation(next)
   if (!context) return !next
@@ -162,7 +169,7 @@ const candidateProjectId = ref('')
 const applyResolution = async (result: ResolvedCreationDevices, targetProject: string) => {
   const candidate = result.context.candidates.find(value => String(value.project.projectId) === targetProject)
   if (!candidate) return
-  if (projectId.value !== targetProject && !await changeProject(targetProject)) return
+  if (selectedProjectId.value !== targetProject && !await changeProject(targetProject)) return
   if (!projectContext.value && !await changeProject(targetProject)) return
   const ids = new Set(candidate.devices.map(device => String(device.deviceId)))
   addDevices(result.devices.filter(device => ids.has(String(device.deviceId))))
@@ -170,7 +177,7 @@ const applyResolution = async (result: ResolvedCreationDevices, targetProject: s
 }
 const resolveSerials = async () => {
   if (locked.value || resolving.value || !serialText.value.trim()) return
-  const startProject = projectId.value
+  const startProject = selectedProjectId.value
   const sequence = projectSequence
   resolving.value = true
   try {
@@ -209,7 +216,7 @@ const submit = async () => {
       if (!props.createAllowed) return
       const serials = selectedDevices.value.map(device => device.serialNumber)
       const result = await CutoverApi.resolveCreationDevices(serials)
-      const candidate = result.context.candidates.find(value => String(value.project.projectId) === projectId.value)
+      const candidate = result.context.candidates.find(value => String(value.project.projectId) === selectedProjectId.value)
       if (!candidate || result.context.candidates.length !== 1 || candidate.devices.length !== selectedDevices.value.length) {
         message.warning('设备归属已变化，请重新选择本项目设备。')
         return

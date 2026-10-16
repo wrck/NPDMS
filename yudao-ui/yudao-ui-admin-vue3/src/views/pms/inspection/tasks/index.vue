@@ -162,7 +162,8 @@
         :disabled="submitting || !!pendingCreate"
         @submit.prevent="submitCreate"
       >
-        <ProjectInformationCard :project="projectInformation" :customer-service-level="projectCustomerServiceLevel" :loading="projectInformationLoading"
+        <ProjectInformationCard
+          :project="projectInformation" :customer-service-level="projectCustomerServiceLevel" :loading="projectInformationLoading"
           :error="createProjectsError || projectInformationError" hint="从授权项目中选择">
               <el-form-item label="项目名称" prop="projectId">
                 <el-select
@@ -190,7 +191,8 @@
               </el-form-item>
         </ProjectInformationCard>
         <el-form-item prop="deviceIds" class="device-selection-field" style="display: block">
-          <ProjectDeviceSelection :model-value="devices" :project-id="form.projectId"
+          <ProjectDeviceSelection
+            :model-value="devices" :project-id="form.projectId"
             :disabled="submitting || !!pendingCreate" :project-loading="projectInformationLoading"
             :project-error="projectInformationError" empty-text="请添加本次巡检设备"
             @update:model-value="updateDevices" @busy="devicesLoading = $event" />

@@ -16,16 +16,16 @@ vi.mock('./ContactFields.vue', () => ({ default: { render: () => null } }))
 vi.mock('./ContactHistoryDialog.vue', () => ({ default: { render: () => null } }))
 
 const table = defineComponent({
-  props: ['data'], setup(props, { slots }) {
+  props: { data: { type: Array, required: true } }, setup(props, { slots }) {
     provide('test-contact-rows', computed(() => props.data))
     return () => h('table', slots.default?.())
   }
 })
 const column = defineComponent({
-  props: ['prop', 'label'], setup(props, { slots }) {
+  props: { prop: String, label: String }, setup(props, { slots }) {
     const rows = inject<any>('test-contact-rows')
     return () => h('section', { 'data-label': props.label }, [props.label, ...rows.value.map((row: any) =>
-      h('span', slots.default ? slots.default({ row }) : row[props.prop]))])
+      h('span', slots.default ? slots.default({ row }) : row[props.prop!]))])
   }
 })
 const components = { ElTable: table, ElTableColumn: column, ElInput: passthrough, ElSelect: passthrough, ElOption: passthrough, ElRadio: passthrough, ElRadioGroup: passthrough, PmsEntitySelect: passthrough, DictTag: passthrough }

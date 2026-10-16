@@ -13,7 +13,8 @@
             <el-tag v-if="detail?.projectCategory" size="small" effect="plain">
               {{ getDictLabel(DICT_TYPE.PMS_PROJECT_CATEGORY, detail.projectCategory) }}
             </el-tag>
-            <ProjectCurrentPlanTag v-if="detail?.id && checkPermi(['pms:project-plan:manage'])"
+            <ProjectCurrentPlanTag
+              v-if="detail?.id && checkPermi(['pms:project-plan:manage'])"
               :project-id="detail.id" :refresh-token="detail.version" />
           </div>
           <div class="project-meta-row">
@@ -67,13 +68,15 @@
       <details ref="mobileTaskNavigation">
         <summary>选择任务<span v-if="stageSelection"> · {{ stageSelection.stageCode }}</span></summary>
         <div class="mobile-stage-options" aria-label="选择任务所属阶段">
-          <el-button v-for="stage in sortedStages" :key="stage.stageCode"
+          <el-button
+            v-for="stage in sortedStages" :key="stage.stageCode"
             :type="expandedStage === stage.stageCode ? 'primary' : 'default'"
             :aria-pressed="expandedStage === stage.stageCode" @click="selectStage(stage.stageCode)">
             {{ stage.stageCode }} {{ stage.name }}
           </el-button>
         </div>
-        <ProjectTaskTree v-if="expandedStage" :project-id="detail.id" :stage-code="expandedStage"
+        <ProjectTaskTree
+          v-if="expandedStage" :project-id="detail.id" :stage-code="expandedStage"
           :refresh-token="stageTreeToken" compact @select="onMobileTaskSelect" @version="treeVersion = $event" />
         <p v-else>请先选择阶段，再选择任务。</p>
       </details>

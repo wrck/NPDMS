@@ -20,7 +20,8 @@
       </el-alert>
       <template v-else-if="overview">
         <div class="revision-options" data-testid="requirement-version-table" aria-label="选择需求分析版本">
-          <button v-for="item in currentVersions" :key="String(item.revision.ref.revisionId)"
+          <button
+            v-for="item in currentVersions" :key="String(item.revision.ref.revisionId)"
             class="revision-option" :class="{ 'is-selected': item.revision.ref.revisionId === selectedRevisionId }"
             :aria-pressed="item.revision.ref.revisionId === selectedRevisionId"
             @click="selectVersion(item.revision.ref.revisionId)">

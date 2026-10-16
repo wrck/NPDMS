@@ -1,7 +1,8 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, type PropType } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 import { findByTestId, mount, passthrough, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import Panel from './CutoverPlanPanel.vue'
+import type { StandardCutoverPlanContent } from '@/api/pms/cutover'
 
 const api = vi.hoisted(() => ({ getCutoverPlan: vi.fn(), saveCutoverPlanDraft: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
@@ -9,11 +10,11 @@ vi.mock('@/api/pms/platform/file/version-reference', () => ({}))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
 vi.mock('@/components/PmsFileArtifact', () => ({ PmsFileUploader: defineComponent({ render: () => null }) }))
 vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue', () => ({ default: defineComponent({
-  props: ['artifactId', 'versionNo'],
+  props: { artifactId: [String, Number], versionNo: Number },
   setup(props) { return () => h('span', { 'data-testid': 'generated-file-reference' }, `${props.artifactId} V${props.versionNo}`) }
 }) }))
 vi.mock('./CutoverPlanEditor.vue', () => ({ default: defineComponent({
-  props: ['modelValue'], emits: ['update:modelValue'],
+  props: { modelValue: { type: Object as PropType<StandardCutoverPlanContent>, required: true } }, emits: ['update:modelValue'],
   setup(props, { emit }) { return () => h('section', [
     h('button', { 'data-testid': 'edit-partial-contact', onClick: () => emit('update:modelValue', {
       ...props.modelValue, supportArrangements: props.modelValue.supportArrangements.map((row: { roleCode: string }, index: number) =>

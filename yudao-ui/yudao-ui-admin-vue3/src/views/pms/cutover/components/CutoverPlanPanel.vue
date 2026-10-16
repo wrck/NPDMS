@@ -22,7 +22,8 @@
       />
       <el-form v-if="draftContent" label-position="top">
         <el-form-item label="计划割接时间" required>
-          <el-date-picker data-testid="plan-scheduled-time" :model-value="draftContent.scheduledTime"
+          <el-date-picker
+            data-testid="plan-scheduled-time" :model-value="draftContent.scheduledTime"
             :disabled="props.readonly || writing || !plan.allowedActions.includes('SAVE_DRAFT')"
             type="datetime" value-format="x" placeholder="请选择计划割接时间" @update:model-value="updateScheduledTime" />
         </el-form-item>
@@ -76,12 +77,14 @@
           :loading="writing"
           @click="revise"
         >创建修订版</el-button>
-        <el-button v-if="!props.readonly && plan.allowedActions.includes('WITHDRAW_APPROVAL')" data-testid="withdraw-plan"
+        <el-button
+          v-if="!props.readonly && plan.allowedActions.includes('WITHDRAW_APPROVAL')" data-testid="withdraw-plan"
           v-hasPermi="['pms:cutover-task:save-plan']" type="warning" :loading="writing" @click="withdraw">撤回审批并修订方案</el-button>
         <el-button v-if="canCreate" data-testid="replace-invalidated-plan" :disabled="writing" @click="creatingReplacement = true">重新编制方案</el-button>
       </footer>
       <el-descriptions v-if="downloaded" :column="1" border class="download-result">
-        <el-descriptions-item label="初稿文件"><PmsFileVersionReferenceList owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
+        <el-descriptions-item label="初稿文件"><PmsFileVersionReferenceList
+owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
           purpose-code="FULL_PLAN" :reference-key="downloaded.fileArtifactFact.referenceKey" :artifact-id="downloaded.fileArtifactFact.artifactId" :version-no="downloaded.fileArtifactFact.versionNo" /></el-descriptions-item>
         <el-descriptions-item label="生成时间">{{ formatWireDateTime(downloaded.downloadedAt) }}</el-descriptions-item>
       </el-descriptions>
@@ -110,13 +113,14 @@
             :object-id="String(taskId)"
             purpose-code="FULL_PLAN"
             :reference-key="createFileFact?.referenceKey || `cutover-plan-${taskId}`"
-            :artifact-id="createFileFact?.artifactId as number | undefined"
+            :artifact-id="(createFileFact?.artifactId as number | undefined)"
             :expected-reference-version="createFileFact?.fileFactVersion.referenceVersion"
             category-code="CUTOVER_PLAN"
             @completed="completeCreateUpload"
           />
           <p class="cut-help">支持Word、PDF，单文件不超过50MB。</p>
-          <PmsFileVersionReferenceList v-if="createFileFact" owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
+          <PmsFileVersionReferenceList
+            v-if="createFileFact" owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
             purpose-code="FULL_PLAN" :reference-key="createFileFact.referenceKey" :artifact-id="createFileFact.artifactId" :version-no="createFileFact.versionNo" />
           <el-checkbox v-model="ownershipConfirmed" data-testid="create-plan-ownership">确认本人有权使用并提交该完整方案文件</el-checkbox>
         </div>

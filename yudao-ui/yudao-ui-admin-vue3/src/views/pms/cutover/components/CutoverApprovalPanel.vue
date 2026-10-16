@@ -53,7 +53,8 @@
       </section>
       <section v-if="currentNode && hasDecisionAction" class="cut-card">
         <header class="cut-card__header"><h3><Icon icon="ep:finished" />割接评审</h3><small>当前节点：{{ nodeLabels[currentNode.nodeCode] }}<template v-if="currentNode.candidateRoleCode"> · {{ roleLabels[currentNode.candidateRoleCode] }}角色审批</template></small></header>
-        <div class="cut-card__body"><CutoverApprovalDecisionForm :key="String(view.approvalInstanceId) + ':' + currentNode.nodeNo"
+        <div class="cut-card__body"><CutoverApprovalDecisionForm
+:key="String(view.approvalInstanceId) + ':' + currentNode.nodeNo"
           :identity="String(view.approvalInstanceId) + ':' + currentNode.nodeNo" :node-code="currentNode.nodeCode"
           :allowed-actions="props.readonly ? [] : view.allowedActions" :busy="writing" @decide="decide" /></div>
       </section>

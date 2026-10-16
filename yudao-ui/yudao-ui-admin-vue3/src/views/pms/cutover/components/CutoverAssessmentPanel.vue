@@ -14,7 +14,8 @@
         </div>
         <div class="question-row">
           <div><label>④ 备件是否申请</label><p>是否已申请备件保障</p></div>
-          <el-radio-group :model-value="model.answers.sparePartApplied ?? undefined" aria-label="备件是否申请"
+          <el-radio-group
+            :model-value="model.answers.sparePartApplied ?? undefined" aria-label="备件是否申请"
             @update:model-value="model.answers.sparePartApplied = $event as boolean">
             <el-radio :value="true">是</el-radio><el-radio :value="false">否</el-radio>
           </el-radio-group>
@@ -28,7 +29,8 @@
             <label>割接等级结果（A/B/C/D）<span class="cut-required"> *</span></label>
             <p v-if="model.manualGrade" class="cut-help">{{ gradeDestination(model.manualGrade) }}</p>
           </div>
-          <el-radio-group :model-value="model.manualGrade ?? undefined" aria-label="割接等级结果"
+          <el-radio-group
+            :model-value="model.manualGrade ?? undefined" aria-label="割接等级结果"
             @update:model-value="model.manualGrade = $event as ManualGrade">
             <el-radio v-for="grade in ['A', 'B', 'C', 'D']" :key="grade" :value="grade">{{ grade }}</el-radio>
           </el-radio-group>

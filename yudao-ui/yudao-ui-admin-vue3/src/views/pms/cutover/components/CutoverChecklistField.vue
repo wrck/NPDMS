@@ -41,7 +41,8 @@
         <Pagination v-model:page="executionsPage" :limit="10" :total="executionsTotal" @pagination="loadExecutions" />
       </el-dialog>
     </div>
-    <CutoverExternalBulletinField v-if="item.workModeCode === 'EXTERNAL'" :state="externalState || null" :model-value="externalFeedback || []"
+    <CutoverExternalBulletinField
+      v-if="item.workModeCode === 'EXTERNAL'" :state="externalState || null" :model-value="externalFeedback || []"
       :readonly="readonly || !allowSave" :busy="externalBusy" :version-dirty="versionDirty" :device-names="externalDeviceNames"
       @update:model-value="emit('externalFeedback', item.stableItemKey, $event)" @load="emit('externalLoad', item.stableItemKey)" @save="emit('externalSave', item.stableItemKey)" />
     <CutoverSchemaInput v-if="item.workModeCode === 'DIRECT' || collectionReady" :schema="schema" :model-value="structuredValue" :disabled="readonly || !allowSave" :background-layout="embedded" @update:model-value="updateStructured" />
@@ -88,11 +89,11 @@ const props = withDefaults(defineProps<{
   item: CutoverChecklistItem
   directValue: string
   readonly: boolean
-  allowSave: boolean
-  allowCollection: boolean
+  allowSave?: boolean
+  allowCollection?: boolean
   tableRow?: boolean
   embedded?: boolean
-  devices: DeviceScopeEntry[]
+  devices?: DeviceScopeEntry[]
   externalState?: CutoverExternalItemState | null
   externalFeedback?: CutoverExternalFeedback[]
   externalBusy?: boolean
