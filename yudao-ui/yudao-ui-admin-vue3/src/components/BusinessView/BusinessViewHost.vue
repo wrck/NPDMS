@@ -26,7 +26,8 @@
     <el-alert v-if="loadError || resolved.error" :title="loadError || resolved.error" type="error" :closable="false" show-icon>
       <template #default><el-button link type="primary" @click="retry">重新装载</el-button></template>
     </el-alert>
-    <component :is="resolved.component" v-else-if="operation.mode.value !== 'CHECKING'" :key="`${activeKey}:${retryNo}`" ref="contentRef" v-bind="resolved.props"
+    <component :is="resolved.component" v-else-if="operation.mode.value !== 'CHECKING' || resolved.preloadWhileChecking" :key="`${activeKey}:${retryNo}`" ref="contentRef"
+      v-bind="resolved.preloadWhileChecking ? { ...resolved.props, deferContent: operation.mode.value === 'CHECKING' } : resolved.props"
       @changed="ownerChanged" @dirty-change="setDirty" />
     <!-- 执行能力检查中不裸露空白框架：单次加载占位，避免框架→默认页→最终内容多次跳变 -->
     <div v-else v-loading="true" class="business-view-loading" />
@@ -38,6 +39,7 @@ import { onBeforeRouteLeave } from 'vue-router'
 import { resolveBusinessView, type BusinessViewTarget } from './registry'
 import { editingTargetKey, operationClientKey, useOperationHost } from './operationHost'
 import { useBusinessActionBar } from './businessActionBar'
+import { nativeBusinessKind } from '@/components/ProjectBusiness/native/nativeBusinessKinds'
 
 defineOptions({ name: 'BusinessViewHost' })
 const props = defineProps<BusinessViewTarget>()
@@ -45,14 +47,15 @@ const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean]; 'switc
 const message = useMessage()
 const { barTarget } = useBusinessActionBar()
 const capture = (): BusinessViewTarget => ({ registration: { ...props.registration }, resolvedContext: { ...props.resolvedContext },
-  allowedActions: [...(props.allowedActions || [])], readonly: props.readonly, capabilityPrefetch: props.capabilityPrefetch })
+  allowedActions: [...(props.allowedActions || [])], readonly: props.readonly, capabilityPrefetch: props.capabilityPrefetch, initialization: props.initialization })
 const active = shallowRef(capture())
-const operation = useOperationHost(active, () => emit('changed'))
+const activeKey = ref(editingTargetKey(active.value))
+const operation = useOperationHost(active, () => emit('changed'), () => activeKey.value)
 provide(operationClientKey, operation.client)
-const activeKey = computed(() => editingTargetKey(active.value))
 const resolved = computed(() => resolveBusinessView({ ...active.value, presentation: operation.routingPresentation.value, resolvedContext: operation.decorated.value,
   allowedActions: operation.allowedActions.value, readonly: active.value.readonly || operation.requiresReopen.value || operation.presentationReadonly.value }))
-const contentRef = ref<{ requestLeave?: () => Promise<boolean>; discardChanges?: () => boolean; isDirty?: () => boolean }>()
+const contentRef = ref<{ requestLeave?: () => Promise<boolean>; discardChanges?: () => boolean; isDirty?: () => boolean;
+  canAdoptAssociatedObject?: (id: string | number) => boolean }>()
 const dirty = ref(false)
 const loadError = ref('')
 const retryNo = ref(0)
@@ -84,16 +87,25 @@ const requestLeave = (): Promise<boolean> => {
   return leaving
 }
 let switchSequence = 0
+const canAdoptAssociation = (next: BusinessViewTarget) => {
+  const before = active.value.resolvedContext, after = next.resolvedContext
+  const component = next.registration.componentKey
+  if (before.businessObjectId != null || after.businessObjectId == null
+      || !component.startsWith('DIRECT_BUSINESS_') || !nativeBusinessKind(component.slice('DIRECT_BUSINESS_'.length))) return false
+  const withoutAssociation = { ...next, resolvedContext: { ...after, businessObjectId: before.businessObjectId } }
+  return editingTargetKey(withoutAssociation) === editingTargetKey(active.value)
+    && contentRef.value?.canAdoptAssociatedObject?.(after.businessObjectId) === true
+}
 watch(() => [editingTargetKey(props), props.registration, props.resolvedContext, props.allowedActions, props.readonly], async () => {
   const sequence = ++switchSequence, next = capture()
-  if (editingTargetKey(next) !== activeKey.value) {
+  if (editingTargetKey(next) !== editingTargetKey(active.value) && !canAdoptAssociation(next)) {
     if (!(await requestLeave())) { if (sequence === switchSequence) emit('switch-blocked'); return }
     if (sequence !== switchSequence || editingTargetKey(next) !== editingTargetKey(props)) return
     if (contentRef.value?.discardChanges?.() === false) {
       message.warning('当前视图尚未保存且无法安全关闭，请先处理当前修改。')
       emit('switch-blocked'); return
     }
-    loadError.value = ''; setDirty(false)
+    loadError.value = ''; setDirty(false); activeKey.value = editingTargetKey(next)
   } else if (loadError.value) {
     // 同目标上下文重载：已崩溃的装载没有可保存缓冲，直接重建以恢复业务视图显示。
     loadError.value = ''; retryNo.value++

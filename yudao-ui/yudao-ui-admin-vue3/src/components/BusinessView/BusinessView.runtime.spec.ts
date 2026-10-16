@@ -196,6 +196,20 @@ beforeEach(() => {
 })
 
 describe('PM-03 BusinessView runtime', () => {
+  it.each([{ readonly: true, status: 'PUBLISHED' }, { readonly: false, status: 'DISABLED' }])(
+    'preserves authorized QUERY for completed direct native views (%j)', setting => {
+      const data = target('PAGE')
+      Object.assign(data.registration, { componentKey: 'DIRECT_BUSINESS_ACC_ACCEPTANCE_ACTIVITY',
+        entityType: 'acceptanceActivity', ownerContext: 'ACC', status: setting.status })
+      data.resolvedContext = { project: { id: 201 } as any, businessObjectId: '2109563804521000962' }
+      data.readonly = setting.readonly
+      data.allowedActions = ['QUERY', 'save', 'report-publish']
+      expect(resolveBusinessView(data).props).toMatchObject({ readonly: true,
+        entityId: '2109563804521000962', allowedActions: ['QUERY'], initialProject: data.resolvedContext.project })
+      data.allowedActions = ['save']
+      expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+    })
+
   const stageExecution = {
     projectId: 11, projectVersion: 1, stageId: '2099999999999999997', stageVersion: 1,
     executionContractId: '2099999999999999996', contractVersion: 1,

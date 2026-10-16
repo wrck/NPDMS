@@ -28,6 +28,7 @@ export interface BusinessViewResolvedContext {
   bindingParameters?: Record<string, unknown>
 }
 export interface BusinessViewTarget {
+  initialization?: import('@/api/pms/platform/business').BusinessPageOpening
   registration: BusinessViewRegistrationVO
   resolvedContext: BusinessViewResolvedContext
   allowedActions: string[]
@@ -202,13 +203,15 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
         && positiveId(target.resolvedContext.stageExecution.stageId)
         && String(target.resolvedContext.stageExecution.projectId)===String(target.resolvedContext.project?.id)))){
     const readonly=target.readonly===true || registration.status==='DISABLED'
-    return {component:directComponent,props:{ownerModule:registration.ownerContext,entityType:registration.entityType,
+    return {component:directComponent,preloadWhileChecking:true,props:{ownerModule:registration.ownerContext,entityType:registration.entityType,
       stableCode:registration.componentKey.slice('DIRECT_BUSINESS_'.length),projectId:target.resolvedContext.project!.id,
-      entityId:target.resolvedContext.businessObjectId,readonly,allowedActions:readonly?[]:[...target.allowedActions],
+      initialProject:{...target.resolvedContext.project!,id:legacyOwnerId(target.resolvedContext.project!.id!)},
+      entityId:target.resolvedContext.businessObjectId,readonly,
+      allowedActions:readonly?target.allowedActions.filter(action=>action==='QUERY'):[...target.allowedActions],
       execution:target.resolvedContext.taskExecution || target.resolvedContext.stageExecution ? {
         ...(target.resolvedContext.taskExecution?{task:target.resolvedContext.taskExecution}:{}),
         ...(target.resolvedContext.stageExecution?{stage:target.resolvedContext.stageExecution}:{})}:undefined,
-      stageCode:target.resolvedContext.stageCode,bindingParameters:target.resolvedContext.bindingParameters}}
+      stageCode:target.resolvedContext.stageCode,bindingParameters:target.resolvedContext.bindingParameters,initialization:target.initialization}}
   }
   if (!adapter && registration.componentKey.startsWith('DECLARED_BUSINESS_') && registration.componentVersion === '1'
       && registration.viewSource === 'PAGE' && registration.dynamicFormRevisionId == null && !target.presentation

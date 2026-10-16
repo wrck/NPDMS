@@ -40,15 +40,13 @@ const remainingRouter: AppRouteRecordRaw[] = [
   },
   {
     path: '/pms/business/requirement-analyses', name: 'PmsInheritedRequirementAnalyses',
-    component: () => import('@/views/pms/business/requirement-analysis/index.vue'),
-    props: route => ({scopeProjectId: route.query.projectId}),
+    redirect: route => ({ name: 'PmsDefaultBusinessRecords', params: { stableCode: 'SOL_REQUIREMENT_ANALYSIS_REVISION' }, query: route.query }),
     meta: { hidden: true, canTo: true, title: '需求分析' }
   },
   {
     path: '/pms/business/site-surveys',
     name: 'PmsInheritedSiteSurveys',
-    component: () => import('@/views/pms/business/site-survey/index.vue'),
-    props: route => ({scopeProjectId: route.query.projectId}),
+    redirect: route => ({ name: 'PmsDefaultBusinessRecords', params: { stableCode: 'SOL_SITE_SURVEY' }, query: route.query }),
     meta: { hidden: true, canTo: true, title: '现场工勘' }
   },
   {

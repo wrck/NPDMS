@@ -8,19 +8,21 @@
     <el-alert v-if="error" :title="error" type="error" :closable="false"><el-button @click="loadView">重新读取</el-button></el-alert>
     <el-empty v-if="!projectId" description="选择项目后可独立办理业务" />
   </ContentWrap>
-  <ProjectBusinessPage v-if="view && projectId" :api-base="view.apiBase" :scope-project-id="projectId" />
+  <component v-if="view && projectId" :is="projectBusinessPage(view.stableCode)" :key="`${view.stableCode}-${projectId}-${entityId || ''}`" :stable-code="view.stableCode" :api-base="view.apiBase" :scope-project-id="projectId" :initial-entity-id="entityId" v-bind="nativeBusinessKind(view.stableCode) ? { showConfiguration: true } : {}" />
 </template>
 <script setup lang="ts">
 import {computed,ref,watch} from 'vue'
 import {useRoute,useRouter} from 'vue-router'
 import {ContentWrap} from '@/components/ContentWrap'
-import ProjectBusinessPage from '@/components/ProjectBusiness/ProjectBusinessPage.vue'
+import {projectBusinessPage} from '@/components/ProjectBusiness/projectBusinessPages'
+import {nativeBusinessKind} from '@/components/ProjectBusiness/native/nativeBusinessKinds'
 import {getDirectBusinessView,type DirectBusinessView} from '@/api/pms/platform/business'
 import {getProjectPage,type ProjectMasterVO} from '@/api/pms/project/projects'
 
 const route=useRoute(),router=useRouter(),view=ref<DirectBusinessView>(),error=ref('')
 const projects=ref<ProjectMasterVO[]>([]),loadingProjects=ref(false)
 const projectId=computed(()=>typeof route.query.projectId==='string' && /^[1-9][0-9]*$/.test(route.query.projectId)?route.query.projectId:undefined)
+const entityId=computed(()=>typeof route.query.entityId==='string' && /^[1-9][0-9]*$/.test(route.query.entityId)?route.query.entityId:undefined)
 let generation=0,searchGeneration=0
 const loadView=async()=>{const active=++generation;error.value='';view.value=undefined;try{const result=await getDirectBusinessView(String(route.params.stableCode));if(active===generation)view.value=result}catch(failure){if(active===generation)error.value=failure instanceof Error?failure.message:'业务入口读取失败'}}
 const searchProjects=async(projectName='')=>{const active=++searchGeneration;loadingProjects.value=true;try{const result=await getProjectPage({pageNo:1,pageSize:50,projectName});if(active===searchGeneration)projects.value=result.list}catch{if(active===searchGeneration)error.value='项目列表读取失败，请重试'}finally{if(active===searchGeneration)loadingProjects.value=false}}

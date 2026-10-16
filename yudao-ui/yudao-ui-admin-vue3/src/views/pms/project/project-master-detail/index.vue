@@ -202,11 +202,14 @@
         </ContentWrap>
 
         <!-- ============ 项目概览：客户信息（与 pms-inheritance/project-detail 同一组件） ============ -->
+        <NativeBusinessHost v-if="detail?.id && activeTab === 'customer'" :key="`contact-${detail.id}`"
+          :ref="value => setNativeBusinessRef('customer', value)" stable-code="CUS_PROJECT_CONTACT"
+          :api-base="nativeBusinessApiBase('contact')" :scope-project-id="detail.id" @changed="handleContactsChanged">
         <ProjectCustomerOverview
-          v-if="detail?.id && activeTab === 'customer'"
           :project="detail"
           @changed="handleContactsChanged"
         />
+        </NativeBusinessHost>
 
         <!-- ============ 项目概览：设备清单（与 pms-inheritance/project-detail 同一配置驱动表格） ============ -->
         <div v-if="detail?.id && visitedTabs.has('equipment')" v-show="activeTab === 'equipment'" class="min-w-0" data-testid="project-pane-equipment">
@@ -238,7 +241,18 @@
             class="min-w-0"
             :data-testid="`project-pane-${embedKey}`"
           >
+            <NativeBusinessHost
+              v-if="nativeFlowKinds[embedKey]" :key="`${embedKey}-${detail.id}`"
+              :ref="value => setNativeBusinessRef(embedKey, value)"
+              :stable-code="nativeBusinessKinds[nativeFlowKinds[embedKey]][0]"
+              :api-base="nativeBusinessApiBase(nativeFlowKinds[embedKey])"
+              :scope-project-id="detail.id"
+              @changed="handleFlowChanged"
+            >
+              <component :is="comp" :key="`embed-${embedKey}-${detail.id}`" :project-id="detail.id" />
+            </NativeBusinessHost>
             <component
+              v-else
               :is="comp"
               :key="`embed-${embedKey}-${detail.id}`"
               :project-id="detail.id"
@@ -423,24 +437,34 @@
         </div>
 
         <div v-if="detail?.id && visitedTabs.has('preparation')" v-show="activeTab === 'preparation'" class="min-w-0" data-testid="project-pane-preparation">
+          <NativeBusinessHost :key="`preparation-${detail.id}`" :ref="value => setNativeBusinessRef('preparation', value)" stable-code="SOL_SITE_SURVEY"
+            :api-base="nativeBusinessApiBase('survey')" :scope-project-id="detail.id" @changed="loadDetail">
           <ProjectSiteSurveyPanel
+            ref="surveyRef"
             :key="detail.id"
             :project-id="detail.id"
             @saved="loadDetail"
           />
+          </NativeBusinessHost>
         </div>
 
         <!-- 施工计划整合工作台（3.1 项目工期 + 3.2 阶段施工计划 + 3.4 工期倒排计算视图 + 冻结历史） -->
         <div v-if="detail?.id && visitedTabs.has('schedule')" v-show="activeTab === 'schedule'" class="min-w-0" data-testid="project-pane-schedule">
-          <ProjectSchedulePanel ref="scheduleRef" :project="detail" @open-task="onTaskSelect" @changed="handleScheduleChanged" />
+          <NativeBusinessHost :key="`schedule-${detail.id}`" :ref="value => setNativeBusinessRef('schedule', value)"
+            stable-code="SOL_STAGE_PLAN_BATCH" :api-base="nativeBusinessApiBase('stagePlan')" :scope-project-id="detail.id" @changed="handleScheduleChanged">
+            <ProjectSchedulePanel ref="scheduleRef" :project="detail" @open-task="onTaskSelect" @changed="handleScheduleChanged" />
+          </NativeBusinessHost>
         </div>
 
         <div v-if="detail?.id && visitedTabs.has('requirement-analysis')" v-show="activeTab === 'requirement-analysis'" class="min-w-0" data-testid="project-pane-requirement-analysis">
+          <NativeBusinessHost :key="`requirement-analysis-${detail.id}`" :ref="value => setNativeBusinessRef('requirement-analysis', value)" stable-code="SOL_REQUIREMENT_ANALYSIS_REVISION"
+            :api-base="nativeBusinessApiBase('requirement')" :scope-project-id="detail.id">
           <ProjectRequirementAnalysisPanel
             ref="requirementRef"
             :open-briefing="() => switchTab('briefing')"
             :project="detail"
           />
+          </NativeBusinessHost>
         </div>
 
         <div v-if="detail?.id && visitedTabs.has('satisfaction')" v-show="activeTab === 'satisfaction'" class="min-w-0" data-testid="project-pane-satisfaction">
@@ -452,12 +476,15 @@
         </div>
 
         <div v-if="detail?.id && visitedTabs.has('acceptance-reports')" v-show="activeTab === 'acceptance-reports'" class="min-w-0" data-testid="project-pane-acceptance-reports">
+          <NativeBusinessHost :key="`acceptance-${detail.id}`" :ref="value => setNativeBusinessRef('acceptance-reports', value)"
+            stable-code="ACC_ACCEPTANCE_ACTIVITY" :api-base="nativeBusinessApiBase('acceptance')" :scope-project-id="detail.id">
           <AcceptanceReportWorkbench
             :key="`acceptance-${detail.id}`"
             ref="acceptanceReportRef"
             :project-id="detail.id"
             :project-name="detail.projectName"
           />
+          </NativeBusinessHost>
         </div>
 
         <div v-if="detail?.id && visitedTabs.has('split')" v-show="activeTab === 'split'" class="min-w-0" data-testid="project-pane-split">
@@ -514,7 +541,10 @@
 
         <!-- 现场培训（6.1/ACC-01）：内嵌完整工作台（新建/编辑/生成培训记录表/外发/作废） -->
         <div v-if="detail?.id && visitedTabs.has('training')" v-show="activeTab === 'training'" class="min-w-0" data-testid="project-pane-training">
-          <TrainingWorkbench :key="`training-${detail.id}`" :project-id="detail.id" />
+          <NativeBusinessHost :key="`training-${detail.id}`" :ref="value => setNativeBusinessRef('training', value)" stable-code="IMP_TRAINING"
+            :api-base="nativeBusinessApiBase('training')" :scope-project-id="detail.id" @changed="handleFlowChanged">
+            <TrainingWorkbench :key="`training-${detail.id}`" :project-id="detail.id" />
+          </NativeBusinessHost>
         </div>
 
 
@@ -529,6 +559,8 @@
 <script setup lang="ts">
 import ProjectBaseInfo from './components/ProjectBaseInfo.vue'
 import BusinessFlowNav from './components/BusinessFlowNav.vue'
+import NativeBusinessHost from '@/components/ProjectBusiness/native/NativeBusinessHost.vue'
+import { nativeBusinessKinds, nativeBusinessApiBase, type NativeBusinessKind } from '@/components/ProjectBusiness/native/nativeBusinessKinds'
 import { computed, onMounted, provide, ref, type Component } from 'vue'
 import ProjectApprovalDrawer from './components/ProjectApprovalDrawer.vue'
 import { projectApprovalDetailKey } from './components/projectApprovalDetail'
@@ -608,6 +640,7 @@ const treeRefreshKey = ref(0)
 const historyRefreshKey = ref(0)
 const satisfactionRef = ref<InstanceType<typeof SatisfactionWorkbench>>()
 const scheduleRef = ref<InstanceType<typeof ProjectSchedulePanel>>()
+const surveyRef = ref<InstanceType<typeof ProjectSiteSurveyPanel>>()
 const acceptanceReportRef = ref<InstanceType<typeof AcceptanceReportWorkbench>>()
 
 // 旧链接 tab=stage-gates 收敛到阶段状态页签；业务中心页签 key 取自 businessModules 分组定义
@@ -627,6 +660,15 @@ const flowEmbedComponents: Record<string, Component> = {
   'joint-test': JointTestWorkbench,
   cutover: CutoverTaskWorkbench,
   'completion-certificate': CompletionCertificateWorkbench
+}
+const nativeFlowKinds: Record<string, NativeBusinessKind> = {
+  arrival: 'arrival', installation: 'installation', configuration: 'configuration', 'joint-test': 'jointTest',
+  solution: 'solution', 'material-exch': 'exchange'
+}
+const nativeBusinessRefs = new Map<string, { requestLeave: () => Promise<boolean> }>()
+const setNativeBusinessRef = (key: string, value: unknown) => {
+  if (value) nativeBusinessRefs.set(key, value as { requestLeave: () => Promise<boolean> })
+  else nativeBusinessRefs.delete(key)
 }
 const requestedTab = (
     {
@@ -721,6 +763,8 @@ const openConfigLogForDeviceId = (deviceId: number, serialNumber: string) => {
 
 const requirementRef = ref<InstanceType<typeof ProjectRequirementAnalysisPanel>>()
 const switchTab = async (key: string) => {
+  if (key !== activeTab.value && activeTab.value === 'preparation' && await surveyRef.value?.requestLeave() === false) return
+  if (key !== activeTab.value && await nativeBusinessRefs.get(activeTab.value)?.requestLeave() === false) return
   if (key !== activeTab.value && activeTab.value === 'requirement-analysis' && (await requirementRef.value?.requestLeave()) === false) return
   if (key !== activeTab.value && activeTab.value === 'schedule' && (await scheduleRef.value?.requestLeave()) === false) return
   if (key !== activeTab.value && satisfactionRef.value?.requestLeave() === false) return

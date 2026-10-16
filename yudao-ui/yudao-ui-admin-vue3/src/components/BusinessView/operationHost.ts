@@ -17,7 +17,8 @@ export function editingTargetKey(target: BusinessViewTarget): string {
     view.viewSource, view.dynamicFormRevisionId, context.project?.id, context.instanceId, context.businessObjectId, context.taskId, context.stageExecution?.stageId,
     context.bindingParameters])
 }
-export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed: () => void) {
+export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed: () => void,
+  bufferKey: () => string = () => editingTargetKey(active.value)) {
   const observation = shallowRef<OperationCapabilities>()
   const client = shallowRef<OperationClient>()
   const routingExecution = shallowRef<Selection>()
@@ -180,10 +181,10 @@ export function useOperationHost(active: ShallowRef<BusinessViewTarget>, changed
   let previousTarget = ''
   watch(() => {
     const target = query()
-    return JSON.stringify([editingTargetKey(active.value), target, active.value.resolvedContext.taskExecution, active.value.resolvedContext.stageExecution])
+    return JSON.stringify([bufferKey(), target, active.value.resolvedContext.taskExecution, active.value.resolvedContext.stageExecution])
   }, () => {
     // BusinessViewHost changes this only after its original dirty/pending-command leave guard succeeds.
-    const identity = editingTargetKey(active.value)
+    const identity = bufferKey()
     if (identity !== previousTarget) {
       client.value?.invalidate(); client.value = undefined
       routingExecution.value = undefined; uncertain.value = false

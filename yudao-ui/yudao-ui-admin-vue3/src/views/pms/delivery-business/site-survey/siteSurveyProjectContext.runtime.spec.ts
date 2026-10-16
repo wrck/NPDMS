@@ -4,6 +4,7 @@ import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-fo
 import SurveyPage from './index.vue'
 import BusinessViewHost from '@/components/BusinessView/BusinessViewHost.vue'
 import PublicEntityHost from '@/components/BusinessEntity/BusinessEntityHost.vue'
+import NativeBusinessHost from '@/components/ProjectBusiness/native/NativeBusinessHost.vue'
 import request from '@/config/axios'
 import { resolveStandaloneBusinessEntityView } from '@/components/BusinessView/registry'
 import { OperationRejected, OperationClient, routeSelection, selectionClient } from '@/components/BusinessView/operationClient'
@@ -88,6 +89,18 @@ beforeEach(() => {
 afterEach(() => { apps.splice(0).forEach(app => app.unmount()); vi.unstubAllGlobals() })
 
 describe('SOL site-survey shared project and standalone context', () => {
+  it('loads the original survey list when the direct task grants QUERY without adding write actions', async () => {
+    const mounted = mount(NativeBusinessHost, {
+      stableCode: 'SOL_SITE_SURVEY', apiBase: '/api/v1/pms/site-survey-business',
+      scopeProjectId: '2099999999999999999', allowedActions: ['QUERY']
+    }, options)
+    apps.push(mounted.app)
+    await flush()
+    expect(api.getSiteSurveyPage).toHaveBeenCalledWith(expect.objectContaining({ projectId: '2099999999999999999' }))
+    expect(api.saveSiteSurveyReceipt).not.toHaveBeenCalled()
+    expect(api.siteSurveyActionReceipt).not.toHaveBeenCalled()
+  })
+
   it('freezes the opened task execution and preserves unsaved content when a new round arrives', async () => {
     const execution = { projectId: 7, taskId: 4, executionId: '2099999999999999999', executionVersion: 1, roundNo: 1, writable: true }
     const { state, input } = render({ projectId: 7, taskId: 4, taskExecution: execution, allowedActions: ['QUERY', 'UPDATE'] })
