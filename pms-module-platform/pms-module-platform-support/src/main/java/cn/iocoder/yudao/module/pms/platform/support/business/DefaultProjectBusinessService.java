@@ -461,7 +461,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
                 validateConfiguredForm(entity,"save-form");
             }
             afterCreate(copy(entity));afterSave(null,copy(entity),"create");
-            return saved(entity, "create", ReceiptOutcome.SAVED);
+            return persistedReceipt(entity, "create");
             });
         });
     }
@@ -496,7 +496,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
                 storeFormWrite(formTarget(locked),version,form);
             }
             persistBusinessChange(before,proposed,"save");
-            return saved(proposed, "save", ReceiptOutcome.SAVED);
+            return persistedReceipt(proposed, "save");
             });
         });
     }
@@ -957,6 +957,15 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected final EntityRef identity(E entity) { return new EntityRef(entity.getTenantId(), definition().ownerModule(), definition().entityType(), entity.getId()); }
     private BusinessOperationReceipt saved(E entity, String operation, ReceiptOutcome outcome) {
         return new BusinessOperationReceipt(outcome, identity(entity), entity.getVersion(), List.of(), null, null, operation, operationVersion(operation));
+    }
+    /** A native post-save action can advance the same row (for example, signing an arrival).
+     * Journal the final stored basis so a successful save never returns a stale concurrency token. */
+    private BusinessOperationReceipt persistedReceipt(E proposed, String operation) {
+        E actual = current(proposed.getId(), actor());
+        if (!Objects.equals(proposed.getProjectId(), actual.getProjectId()) || actual.getVersion() == null
+                || actual.getVersion() < proposed.getVersion())
+            throw invalid("BUSINESS_RESULT_INVALID", "Post-save result changed its scope or concurrency basis");
+        return saved(actual, operation, ReceiptOutcome.SAVED);
     }
     private int operationVersion(String code) {
         return definition().operations().stream().filter(operation -> operation.code().equals(code)).findFirst()

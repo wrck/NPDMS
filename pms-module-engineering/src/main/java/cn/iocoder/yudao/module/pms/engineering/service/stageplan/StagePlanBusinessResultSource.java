@@ -40,6 +40,22 @@ public class StagePlanBusinessResultSource implements BusinessResultChangeSource
         var plan = plans.selectByProjectId(query.tenantId(), query.projectId());
         if (lock && plan != null) plan = plans.selectForUpdate(new ConstructionPlanLockQuery(query.tenantId(), plan.getId()));
         var row = batches.byId(new StagePlanCompletionQuery(query.tenantId(), query.projectId(), id, lock));
+        var current = row != null && Integer.valueOf(2).equals(row.getStatus())
+                ? batches.current(new StagePlanCompletionQuery(query.tenantId(), query.projectId(), null, lock)) : null;
+        return inspectRead(query, row, current, plan);
+    }
+
+    /** Owner-internal projection of rows already read and authorized by the default page query. */
+    public Observation inspectRead(Query query,
+            cn.iocoder.yudao.module.pms.engineering.dal.dataobject.stageplan.StagePlanBatchDO row,
+            cn.iocoder.yudao.module.pms.engineering.dal.dataobject.stageplan.StagePlanBatchDO current,
+            cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO plan) {
+        scope(query.tenantId(), query.projectId(), query.type());
+        Long id = BusinessResultSource.nativeId(query.objectId() == null ? query.resultId() : query.objectId());
+        if (query.resultId() != null && !Objects.equals(id, BusinessResultSource.nativeId(query.resultId())))
+            throw new IllegalArgumentException("RESULT_IDENTITY_MISMATCH");
+        if (current != null && (!Objects.equals(current.getTenantId(), query.tenantId())
+                || !Objects.equals(current.getProjectId(), query.projectId()))) throw new IllegalArgumentException("RESULT_OWNER_SCOPE_MISMATCH");
         if (row == null) return Observation.absent(Status.NOT_FORMED, "CONSTRUCTION_PLAN_NOT_APPROVED");
         if (!Objects.equals(row.getTenantId(), query.tenantId()) || !Objects.equals(row.getProjectId(), query.projectId())
                 || !Objects.equals(row.getId(), id)) throw new IllegalArgumentException("RESULT_OWNER_SCOPE_MISMATCH");
@@ -47,7 +63,6 @@ public class StagePlanBusinessResultSource implements BusinessResultChangeSource
         if (row.getEffectiveAt() == null || row.getBpmProcessInstanceId() == null || row.getBpmProcessInstanceId().isBlank()
                 || row.getVersion() == null || row.getVersion() < 0 || row.getDurationRevisionId() == null)
             return Observation.absent(Status.UNAVAILABLE, "CONSTRUCTION_PLAN_RESULT_INCONSISTENT");
-        var current = batches.current(new StagePlanCompletionQuery(query.tenantId(), query.projectId(), null, lock));
         boolean valid = current != null && Objects.equals(current.getId(), id) && plan != null
                 && Objects.equals(plan.getTenantId(), query.tenantId()) && Objects.equals(plan.getProjectId(), query.projectId())
                 && Objects.equals(plan.getCurrentDurationRevisionId(), row.getDurationRevisionId());

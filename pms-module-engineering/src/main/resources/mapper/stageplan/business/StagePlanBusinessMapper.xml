@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.engineering.dal.mysql.stageplan.business.StagePlanBusinessMapper">
+  <update id="updateDetail">
+    UPDATE sol_stage_plan_item SET plan_start=#{query.planStart}, plan_end=#{query.planEnd}, remark=#{query.remark},
+      updater=#{query.updater}, update_time=CURRENT_TIMESTAMP
+    WHERE tenant_id=#{query.tenantId} AND batch_id=#{query.batchId} AND id=#{query.itemId} AND deleted=0
+  </update>
+</mapper>
