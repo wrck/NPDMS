@@ -55,9 +55,9 @@ it('sends valid UTF-8 as UTF-8 under the original filename and project', async (
     await flush()
     await m.state.uploadFile({ file: new File(['SN: SN001\n中文日志\n'], '设备.log') })
     const args = vi.mocked(Api.upload).mock.calls[0]
-    expect(args.slice(0, 2)).toEqual([1002, 'operation'])
-    expect(args[2].name).toBe('设备.log')
-    expect(await args[2].text()).toBe('SN: SN001\n中文日志\n')
+    expect(args[0]).toMatchObject({ projectId: 1002, operationId: 'operation' })
+    expect(args[0].file.name).toBe('设备.log')
+    expect(await args[0].file.text()).toBe('SN: SN001\n中文日志\n')
   } finally { m.app.unmount() }
 })
 
@@ -66,7 +66,7 @@ it('automatically decodes GB18030/GBK and sends UTF-8 without losing Chinese or 
   try {
     await flush()
     await m.state.uploadFile({ file: new File([new Uint8Array([0xba, 0xba, 0x80])], '多设备show tech.txt') })
-    const file = vi.mocked(Api.upload).mock.calls[0][2]
+    const file = vi.mocked(Api.upload).mock.calls[0][0].file
     expect(file.name).toBe('多设备show tech.txt')
     expect(new TextDecoder('utf-8', { fatal: true }).decode(await file.arrayBuffer())).toBe('汉€')
   } finally { m.app.unmount() }
@@ -94,7 +94,7 @@ it('converts BOM-marked UTF-16 in either byte order and UTF-8 BOM to UTF-8 witho
     ]
     for (const bytes of inputs) {
       await m.state.uploadFile({ file: new File([bytes], '设备.txt') })
-      const uploaded = vi.mocked(Api.upload).mock.calls.at(-1)![2]
+      const uploaded = vi.mocked(Api.upload).mock.calls.at(-1)![0].file
       expect(new Uint8Array(await uploaded.arrayBuffer())).toEqual(new Uint8Array([0xe6, 0xb1, 0x89]))
     }
     expect(Api.upload).toHaveBeenCalledTimes(3)
@@ -147,4 +147,16 @@ it('preserves server-side association rejection and blocks readonly uploads', as
     await readonly.state.uploadFile({ file: new File(['SN: SN001'], '设备.txt') })
     expect(Api.upload).not.toHaveBeenCalled()
   } finally { readonly.app.unmount() }
+})
+
+it('retains the exact task origin through text conversion and upload', async () => {
+  const m = mount(Panel, { projectId: '2110018733130579976', originTaskId: '2110018733130579999' },
+    { ElTable: passthrough, ElTableColumn: tableColumn, ElUpload: uploadStub })
+  try {
+    await flush()
+    await (m.vm as any).$.setupState.uploadFile({ file: new File(['SN: SN001'], 'task.log') })
+    expect(vi.mocked(Api.upload).mock.calls[0][0]).toMatchObject({
+      projectId: '2110018733130579976', originTaskId: '2110018733130579999'
+    })
+  } finally { m.app.unmount() }
 })

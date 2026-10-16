@@ -62,11 +62,11 @@ class ProjectBusinessResultCollectionServiceTest {
     @Test
     void formationChangesMapToThreePartSourceCodesAndCollectEachTargetedRow() {
         var change = change(true);
-        when(rules.documentTargets(9L, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED"))
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED")))
                 .thenReturn(Set.of("D1"));
         when(platform.listByProject(9L)).thenReturn(List.of(requirement("D1"), requirement("D2")));
         service.onBusinessResultChange(change);
-        verify(rules).documentTargets(9L, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED");
+        verify(rules).documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED"));
         verify(submissions).collectBusinessResult(requirement("D1"),
                 "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED", change);
         // 未命中冻结目标（D2）的行不归集。
@@ -80,7 +80,7 @@ class ProjectBusinessResultCollectionServiceTest {
         TenantContextHolder.setTenantId(8L);
         assertThrows(IllegalArgumentException.class, () -> service.onBusinessResultChange(change(true)));
         TenantContextHolder.setTenantId(7L);
-        when(rules.documentTargets(9L, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED"))
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "SOL.REQUIREMENT_ANALYSIS.REQUIREMENT_ANALYSIS_COMPLETED")))
                 .thenReturn(Set.of());
         service.onBusinessResultChange(change(true));
         verify(submissions, never()).collectBusinessResult(any(), any(), any());

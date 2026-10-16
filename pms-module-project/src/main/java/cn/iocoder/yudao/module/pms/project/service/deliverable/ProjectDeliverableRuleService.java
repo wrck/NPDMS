@@ -35,7 +35,9 @@ public class ProjectDeliverableRuleService implements ProjectDeliverableRuleApi 
         return context(require(projects.selectById(projectId)), code);
     }
 
-    @Override public Set<String> documentTargets(Long projectId, String sourceCode) {
+    @Override public Set<String> documentTargets(DocumentTargetsQuery query) {
+        Long projectId = query.projectId();
+        String sourceCode = query.sourceCode();
         var project = require(projects.selectById(projectId));
         if (!"ACTIVE".equals(project.getLifecycleStatus()) || project.getActivePlanVersionId() == null) return Set.of();
         var plan = plans.selectById(project.getActivePlanVersionId());
@@ -44,8 +46,25 @@ public class ProjectDeliverableRuleService implements ProjectDeliverableRuleApi 
             throw new IllegalStateException("DELIVERABLE_FROZEN_PLAN_UNAVAILABLE");
         Set<String> codes = new HashSet<>();
         var snapshot = TemplateExecutionSnapshotReader.read(plan.getExecutionSnapshot());
+        cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectTaskInstanceDO origin = null;
+        if (query.originTaskId() != null) {
+            var matches = graph.selectTasks(new ProjectRuntimeGraphQuery(project.getTenantId(), projectId)).stream()
+                    .filter(task -> Objects.equals(task.getId(), query.originTaskId())).toList();
+            if (matches.size() != 1) throw new IllegalArgumentException("DOCUMENT_ORIGIN_TASK_UNAVAILABLE");
+            origin = matches.getFirst();
+            var originTask = origin;
+            boolean valid = snapshot.getTasks().stream().anyMatch(task -> Objects.equals(task.getCode(), originTask.getCode())
+                    && Objects.equals(task.getStageCode(), originTask.getStageCode()) && task.getBinding() != null
+                    && "PAGE".equals(task.getBinding().getType()) && task.getBinding().getParameters() != null
+                    && Set.of("/pms/engineering/execution/imp-configuration", "/pms/engineering/execution/imp-joint-test")
+                        .contains(task.getBinding().getParameters().path("routePath").asText()));
+            if (!"AST.DEVICE_CONFIGURATION_LOG".equals(sourceCode) || !valid)
+                throw new IllegalArgumentException("DOCUMENT_ORIGIN_TASK_BINDING_MISMATCH");
+        }
         for (var definition : snapshot.getDeliverables()) {
             if (definition.getConfiguration() == null) continue;
+            if (origin != null && (!Objects.equals(origin.getCode(), definition.getTaskCode())
+                    || !Objects.equals(origin.getStageCode(), definition.getStageCode()))) continue;
             if ("PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED".equals(sourceCode)
                     && definition.getConfiguration().path("allowedSources").isArray()
                     && java.util.stream.StreamSupport.stream(definition.getConfiguration().path("allowedSources").spliterator(), false)
@@ -71,7 +90,8 @@ public class ProjectDeliverableRuleService implements ProjectDeliverableRuleApi 
                     && snapshot.getTasks().stream().anyMatch(task -> Objects.equals(task.getCode(), definition.getTaskCode())
                         && Objects.equals(task.getStageCode(), definition.getStageCode()) && task.getBinding() != null
                         && "PAGE".equals(task.getBinding().getType()) && task.getBinding().getParameters() != null
-                        && "/pms/engineering/execution/imp-configuration".equals(task.getBinding().getParameters().path("routePath").asText())
+                        && ("/pms/engineering/execution/imp-configuration".equals(task.getBinding().getParameters().path("routePath").asText())
+                            || query.originTaskId() != null && "/pms/engineering/execution/imp-joint-test".equals(task.getBinding().getParameters().path("routePath").asText()))
                         && referencesDeliverable(task.getCompletionRule(), definition.getCode()))) codes.add(definition.getCode());
             for (var source : definition.getConfiguration().path("automaticSources")) {
                 if (sourceCode.equals(source.asText())) codes.add(definition.getCode());

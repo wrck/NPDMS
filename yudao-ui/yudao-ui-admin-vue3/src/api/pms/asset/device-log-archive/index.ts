@@ -55,10 +55,10 @@ export interface ParseResult {
 }
 export const parseResult = (id: Identifier) =>
   request.get<ParseResult>({ url: `${base}/${id}/parse-result` })
-export const upload = (projectId: Identifier, operationId: string, file: File) => {
+export const upload = ({ projectId, operationId, file, originTaskId }: { projectId: Identifier; operationId: string; file: File; originTaskId?: Identifier }) => {
   return request.post<ImportResult>({
     url: `${base}/imports`,
-    params: { projectId, operationId, fileName: file.name },
+    params: { projectId, operationId, fileName: file.name, originTaskId },
     data: file,
     headersType: 'application/octet-stream',
     timeout: 60000

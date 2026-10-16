@@ -60,8 +60,8 @@ public class ProjectDeliverableRequirementResolver implements DeliveryRequiremen
             var scope = document == null ? null : documentSources.resolve(
                     TenantContextHolder.getRequiredTenantId(), document);
             if (scope == null || !Objects.equals(scope.projectId(), projectId)
-                    || !(ProjectDocumentSourceRegistry.matches(configuration, scope.sourceCode())
-                        || rules.documentTargets(projectId, scope.sourceCode()).contains(requirementCode))) {
+                    || !(scope.originTaskId() == null && ProjectDocumentSourceRegistry.matches(configuration, scope.sourceCode())
+                        || rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(projectId, scope.sourceCode(), scope.originTaskId())).contains(requirementCode))) {
                 return new Resolution(false, "DELIVERABLE_DOCUMENT_SCOPE_CHANGED", "{}");
             }
         }

@@ -74,7 +74,7 @@
       v-loading="loading"
       :data="filteredRows"
       row-key="deviceId"
-      :empty-text="appliedFilters.serialNumber || appliedFilters.deviceName || appliedFilters.sourceType ? '暂无符合查询条件的设备日志' : '当前项目没有已关联的设备'"
+      :empty-text="appliedFilters.serialNumber || appliedFilters.deviceName || appliedFilters.sourceType ? '暂无符合查询条件的设备日志' : '当前项目暂无已归档的设备日志'"
     >
       <el-table-column prop="serialNumber" label="设备序列号" min-width="180" />
       <el-table-column prop="deviceName" label="设备名称" min-width="160" />
@@ -189,7 +189,7 @@ import { checkPermi } from '@/utils/permission'
 import { decodeLogText } from '@/components/DeviceCollection/decodeLogText'
 import LogParseResult from '@/components/DeviceCollection/LogParseResult.vue'
 defineOptions({ name: 'DeviceLogArchive' })
-const props = defineProps<{ projectId?: Api.Identifier; readonly?: boolean }>()
+const props = defineProps<{ projectId?: Api.Identifier; originTaskId?: Api.Identifier; readonly?: boolean }>()
 const route = useRoute()
 const initial = route.query.projectId
 const projectId = ref<Api.Identifier | undefined>(
@@ -348,7 +348,7 @@ const uploadFile = async (options: UploadRequestOptions) => {
       ElMessage.error(uploadError.value)
       return
     }
-    result.value = await Api.upload(projectId.value, generateUUID(), file)
+    result.value = await Api.upload({ projectId: projectId.value, operationId: generateUUID(), file, originTaskId: props.originTaskId })
     if (result.value.outcome === 'ARCHIVED') {
       ElMessage.success('设备日志已归档')
       await load()

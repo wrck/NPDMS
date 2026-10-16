@@ -33,6 +33,7 @@ class DeviceLogArchiveServiceTest {
     final DeviceOpsLogSplitApi dac = mock(DeviceOpsLogSplitApi.class);
     final DeviceLogFileApi storage = mock(DeviceLogFileApi.class);
     final FileEvidenceApi evidence = mock(FileEvidenceApi.class);
+    final cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi rules = mock(cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.class);
     DeviceLogArchiveService service;
     final List<DeviceLogFileDO> insertedFiles = new ArrayList<>();
     final String operation = UUID.randomUUID().toString();
@@ -41,7 +42,7 @@ class DeviceLogArchiveServiceTest {
         var user = new LoginUser(); user.setId(7L); user.setTenantId(1L);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user, null));
         service = new DeviceLogArchiveService(imports, files, versions, deviceQueries, devices, permissions,
-                provider(scopes), provider(dac), provider(storage), provider(evidence), provider(mock(NativeGeneratedFileApi.class)), provider(null));
+                provider(scopes), provider(dac), provider(storage), provider(evidence), provider(mock(NativeGeneratedFileApi.class)), provider(null), provider(rules));
         when(permissions.hasAnyPermissions(anyLong(), any(String[].class))).thenReturn(true);
         var scope = new ProjectScopeResult(10L, 1L, Set.of(10L), Set.of());
         when(scopes.lockAndRevalidate(any())).thenReturn(scope); when(scopes.resolveCurrent(any())).thenReturn(scope);
@@ -153,7 +154,44 @@ class DeviceLogArchiveServiceTest {
         when(files.projectFiles(any())).thenReturn(List.of());
         assertTrue(service.latest(10L).isEmpty());
     }
-    private DeviceLogArchiveService.ImportView upload(String content) { return service.upload(10L,operation,"big.log",content.getBytes(StandardCharsets.UTF_8)); }
+    @Test void taskOriginIsPersistedBeforeFileEventsAndResolvedOnlyForDeviceFiles() {
+        when(rules.documentTargets(any())).thenReturn(Set.of("D"));
+        when(storage.store(any())).thenAnswer(inv -> {
+            assertEquals(13L, insertedFiles.getLast().getOriginTaskId());
+            return new NativeGeneratedFileApi.RegisteredFile(300L,400L,500L,1,"safe-sha","log.txt");
+        });
+        assertEquals("ARCHIVED", service.upload(new DeviceLogArchiveService.Upload(
+                10L, operation, "task.log", "content".getBytes(StandardCharsets.UTF_8), 13L)).outcome());
+        var batch = org.mockito.ArgumentCaptor.forClass(DeviceLogImportDO.class);
+        verify(imports).insert(batch.capture()); assertEquals(13L, batch.getValue().getOriginTaskId());
+        var sources = new DeviceLogDocumentSources(files);
+        for (var row : insertedFiles) {
+            when(files.selectById(row.getId())).thenReturn(row);
+            var doc = new FileEvidenceApi.Document(400L,"AST",DeviceLogFilePolicyProvider.OBJECT,row.getId().toString(),
+                    DeviceLogFilePolicyProvider.PURPOSE,"device-log",500L,1,"safe-sha","log.txt",true);
+            var scope = sources.resolve(1L,doc);
+            if (row.getDeviceId() == null) assertNull(scope.originTaskId());
+            else assertEquals(13L, scope.originTaskId());
+        }
+    }
+
+    @Test void invalidTaskOriginIsRejectedBeforeDacAndFileWrites() {
+        when(rules.documentTargets(any())).thenReturn(Set.of());
+        assertThrows(RuntimeException.class, () -> service.upload(new DeviceLogArchiveService.Upload(
+                10L, operation, "task.log", "content".getBytes(StandardCharsets.UTF_8), 999L)));
+        verifyNoInteractions(dac, storage);
+        verify(imports, never()).insert(any(DeviceLogImportDO.class));
+    }
+    @Test void sameOperationCannotChangeTaskOrigin() {
+        var existing = new DeviceLogImportDO(); existing.setOriginTaskId(12L);
+        when(imports.findImport(any())).thenReturn(existing);
+        when(rules.documentTargets(any())).thenReturn(Set.of("D"));
+        assertThrows(RuntimeException.class, () -> service.upload(new DeviceLogArchiveService.Upload(
+                10L, operation, "task.log", "content".getBytes(StandardCharsets.UTF_8), 13L)));
+        verifyNoInteractions(dac, storage);
+    }
+
+    private DeviceLogArchiveService.ImportView upload(String content) { return service.upload(new DeviceLogArchiveService.Upload(10L,operation,"big.log",content.getBytes(StandardCharsets.UTF_8))); }
     private DeviceOpsLogSplitApi.Result split(String... serials) { return new DeviceOpsLogSplitApi.Result("safe source",0,
             Arrays.stream(serials).map(sn -> new DeviceOpsLogSplitApi.DeviceLog(sn,"SN: "+sn+"\nfull output\n")).toList()); }
     private DeviceDO device(long id,String sn) { var d=new DeviceDO();d.setId(id);d.setTenantId(1L);d.setProjectId(10L);d.setSn(sn);return d; }

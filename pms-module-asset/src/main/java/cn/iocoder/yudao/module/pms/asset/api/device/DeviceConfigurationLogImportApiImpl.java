@@ -17,7 +17,7 @@ public class DeviceConfigurationLogImportApiImpl implements DeviceConfigurationL
     public Result importLog(Command command) {
         if (command == null) throw new IllegalArgumentException("日志导入请求不能为空");
         requireActor(command.tenantId(), command.actorId());
-        var result = archives.upload(command.projectId(), command.operationId(), command.fileName(), command.content());
+        var result = archives.upload(new DeviceLogArchiveService.Upload(command.projectId(), command.operationId(), command.fileName(), command.content()));
         return new Result(result.id(), result.outcome(), result.rejectionReason(), result.files().stream()
                 .filter(file -> file.deviceId() != null)
                 .map(file -> new File(file.id(), file.deviceId(), file.serialNumber(), file.available())).toList());

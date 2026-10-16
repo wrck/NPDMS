@@ -90,7 +90,7 @@ class DeviceLogArchiveMySqlTest {
     @Test void concurrentIngressAllocatesDistinctVersionsAndKeepsBothHistories() throws Exception {
         var start=new CountDownLatch(1);
         try(var pool=Executors.newFixedThreadPool(2)) {
-            Callable<DeviceLogArchiveService.ImportView> upload=()->{login();try {start.await();return service.upload(PROJECT,UUID.randomUUID().toString(),"input.log","content".getBytes(StandardCharsets.UTF_8));}
+            Callable<DeviceLogArchiveService.ImportView> upload=()->{login();try {start.await();return service.upload(new DeviceLogArchiveService.Upload(PROJECT,UUID.randomUUID().toString(),"input.log","content".getBytes(StandardCharsets.UTF_8)));}
                 finally {TenantContextHolder.clear();SecurityContextHolder.clearContext();}};
             var first=pool.submit(upload);var second=pool.submit(upload);start.countDown();
             assertEquals("ARCHIVED",first.get(30,TimeUnit.SECONDS).outcome());assertEquals("ARCHIVED",second.get(30,TimeUnit.SECONDS).outcome());
@@ -99,14 +99,14 @@ class DeviceLogArchiveMySqlTest {
         assertEquals(2L,service.latest(PROJECT).getFirst().latest().deviceVersion());
     }
     @Test void storageFailureRollsBackBatchAndNeverAdvancesLatest() {
-        service.upload(PROJECT,UUID.randomUUID().toString(),"first.log","first".getBytes(StandardCharsets.UTF_8));
+        service.upload(new DeviceLogArchiveService.Upload(PROJECT,UUID.randomUUID().toString(),"first.log","first".getBytes(StandardCharsets.UTF_8)));
         long count=jdbc.queryForObject("SELECT COUNT(*) FROM ast_device_log_file WHERE tenant_id=1 AND project_id=?",Long.class,PROJECT);
         var attempted=new java.util.concurrent.atomic.AtomicInteger();
         when(storage.store(any())).thenAnswer(inv -> {
             if (attempted.incrementAndGet()>1) throw new IllegalStateException("storage unavailable");
             return new NativeGeneratedFileApi.RegisteredFile(999L,999L,999L,1,"digest","source.txt");
         });
-        assertThrows(RuntimeException.class,()->service.upload(PROJECT,UUID.randomUUID().toString(),"second.log","second".getBytes(StandardCharsets.UTF_8)));
+        assertThrows(RuntimeException.class,()->service.upload(new DeviceLogArchiveService.Upload(PROJECT,UUID.randomUUID().toString(),"second.log","second".getBytes(StandardCharsets.UTF_8))));
         assertEquals(count,jdbc.queryForObject("SELECT COUNT(*) FROM ast_device_log_file WHERE tenant_id=1 AND project_id=?",Long.class,PROJECT));
         assertEquals(1L,service.latest(PROJECT).getFirst().latest().deviceVersion());
         assertEquals(1L,jdbc.queryForObject("SELECT current_version FROM ast_device_log_version WHERE tenant_id=1 AND device_id=?",Long.class,deviceId));
@@ -116,7 +116,7 @@ class DeviceLogArchiveMySqlTest {
         String operation=UUID.randomUUID().toString();
         var start=new CountDownLatch(1);
         try(var pool=Executors.newFixedThreadPool(2)) {
-            Callable<DeviceLogArchiveService.ImportView> upload=()->{login();try {start.await();return service.upload(PROJECT,operation,"input.log","same".getBytes(StandardCharsets.UTF_8));}
+            Callable<DeviceLogArchiveService.ImportView> upload=()->{login();try {start.await();return service.upload(new DeviceLogArchiveService.Upload(PROJECT,operation,"input.log","same".getBytes(StandardCharsets.UTF_8)));}
                 finally {TenantContextHolder.clear();SecurityContextHolder.clearContext();}};
             var first=pool.submit(upload);var second=pool.submit(upload);start.countDown();
             var a=first.get(30,TimeUnit.SECONDS);var b=second.get(30,TimeUnit.SECONDS);
@@ -135,9 +135,9 @@ class DeviceLogArchiveMySqlTest {
         });
         var start=new CountDownLatch(1);
         try(var pool=Executors.newFixedThreadPool(2)) {
-            Callable<DeviceLogArchiveService.ImportView> first=()->{login();try {start.await();return service.upload(PROJECT,UUID.randomUUID().toString(),"first.log",serial.getBytes(StandardCharsets.UTF_8));}
+            Callable<DeviceLogArchiveService.ImportView> first=()->{login();try {start.await();return service.upload(new DeviceLogArchiveService.Upload(PROJECT,UUID.randomUUID().toString(),"first.log",serial.getBytes(StandardCharsets.UTF_8)));}
                 finally {TenantContextHolder.clear();SecurityContextHolder.clearContext();}};
-            Callable<DeviceLogArchiveService.ImportView> second=()->{login();try {start.await();return service.upload(PROJECT+1,UUID.randomUUID().toString(),"second.log",secondSerial.getBytes(StandardCharsets.UTF_8));}
+            Callable<DeviceLogArchiveService.ImportView> second=()->{login();try {start.await();return service.upload(new DeviceLogArchiveService.Upload(PROJECT+1,UUID.randomUUID().toString(),"second.log",secondSerial.getBytes(StandardCharsets.UTF_8)));}
                 finally {TenantContextHolder.clear();SecurityContextHolder.clearContext();}};
             var a=pool.submit(first);var b=pool.submit(second);start.countDown();
             assertEquals("ARCHIVED",a.get(30,TimeUnit.SECONDS).outcome());assertEquals("ARCHIVED",b.get(30,TimeUnit.SECONDS).outcome());
@@ -164,7 +164,8 @@ class DeviceLogArchiveMySqlTest {
                 PermissionApi permissions,ObjectProvider<ProjectScopeApi> scopes,ObjectProvider<DeviceOpsLogSplitApi> dac,ObjectProvider<DeviceLogFileApi> storage,
                 ObjectProvider<FileEvidenceApi> evidence,ObjectProvider<NativeGeneratedFileApi> downloads) {
             return new DeviceLogArchiveService(imports,files,versions,queries,devices,permissions,scopes,dac,storage,evidence,downloads,
-                    new org.springframework.beans.factory.support.StaticListableBeanFactory().getBeanProvider(cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceArchivedLogParsingService.class));
+                    new org.springframework.beans.factory.support.StaticListableBeanFactory().getBeanProvider(cn.iocoder.yudao.module.pms.asset.service.configurationlog.DeviceArchivedLogParsingService.class),
+                    new org.springframework.beans.factory.support.StaticListableBeanFactory().getBeanProvider(cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.class));
         }
     }
 }

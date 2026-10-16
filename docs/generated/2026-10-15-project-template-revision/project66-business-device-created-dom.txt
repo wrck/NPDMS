@@ -1,0 +1,243 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付":
+    - generic: 项目交付
+  - menuitem "客户与资产" [expanded]:
+    - generic: 客户与资产
+    - menu:
+      - menuitem "客户工作台":
+        - generic: 客户工作台
+      - menuitem "客户联系人":
+        - generic: 客户联系人
+      - menuitem "设备管理":
+        - generic: 设备管理
+      - menuitem "合同订单工作台":
+        - generic: 合同订单工作台
+      - menuitem "交付范围工作台":
+        - generic: 交付范围工作台
+      - menuitem "验收报告":
+        - generic: 验收报告
+      - menuitem "地址管理":
+        - generic: 地址管理
+      - menuitem "满意度管理":
+        - generic: 满意度管理
+      - menuitem "站点管理":
+        - generic: 站点管理
+      - menuitem "服务办事处映射":
+        - generic: 服务办事处映射
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑":
+  - link "客户与资产":
+    - text: 客户与资产
+  - text: /
+  - link "设备管理":
+    - text: 设备管理
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button "管理员":
+  - generic: 管理员
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button "项目列表":
+  - text: 项目列表
+- button "项目详情 (2)":
+  - text: 项目详情 (2)
+- button "工期倒排":
+  - text: 工期倒排
+- button "设备管理":
+  - text: 设备管理
+- button:
+- generic: 设备SN
+- textbox "设备SN": DIRECT66-BROWSER-20261016-01
+- generic: 设备名称
+- textbox "设备名称"
+- generic: 状态
+- combobox "状态"
+- generic: 请选择
+- generic: 产品编码
+- textbox "产品编码"
+- generic: 项目ID
+- button "减少数值":
+- button "增加数值":
+- spinbutton "项目ID"
+- generic: 客户ID
+- button "减少数值":
+- button "增加数值":
+- spinbutton "客户ID"
+- button "查询":
+  - text: 查询
+- button "重置":
+  - text: 重置
+- button "新增设备":
+  - text: 新增设备
+- table:
+  - rowgroup:
+    - row "设备SN 设备名称 状态 产品编码 产品型号 最新发货 装箱单号 合同号 位置快照 地点状态 保修截止 所属公司 所属部门 归属来源 当前项目 当前客户 维保状态 当前软件版本 来源状态 操作":
+      - columnheader "设备SN":
+        - generic: 设备SN
+      - columnheader "设备名称":
+        - generic: 设备名称
+      - columnheader "状态":
+        - generic: 状态
+      - columnheader "产品编码":
+        - generic: 产品编码
+      - columnheader "产品型号":
+        - generic: 产品型号
+      - columnheader "最新发货":
+        - generic: 最新发货
+      - columnheader "装箱单号":
+        - generic: 装箱单号
+      - columnheader "合同号":
+        - generic: 合同号
+      - columnheader "位置快照":
+        - generic: 位置快照
+      - columnheader "地点状态":
+        - generic: 地点状态
+      - columnheader "保修截止":
+        - generic: 保修截止
+      - columnheader "所属公司":
+        - generic: 所属公司
+      - columnheader "所属部门":
+        - generic: 所属部门
+      - columnheader "归属来源":
+        - generic: 归属来源
+      - columnheader "当前项目":
+        - generic: 当前项目
+      - columnheader "当前客户":
+        - generic: 当前客户
+      - columnheader "维保状态":
+        - generic: 维保状态
+      - columnheader "当前软件版本":
+        - generic: 当前软件版本
+      - columnheader "来源状态":
+        - generic: 来源状态
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - row "DIRECT66-BROWSER-20261016-01 项目66全浏览器隔离验收合成设备（非实物） 在库 SYNTHETIC-BROWSER-LAB-66 - UNRESOLVED 迪普科技示例公司 杭州服务办事处 项目 2110018733130579976 970000000000002099 PENDING_RECONCILIATION 详情 状态变更 删除":
+      - cell "DIRECT66-BROWSER-20261016-01":
+        - generic: DIRECT66-BROWSER-20261016-01
+      - cell "项目66全浏览器隔离验收合成设备（非实物）":
+        - generic: 项目66全浏览器隔离验收合成设备（非实物）
+      - cell "在库":
+        - generic: 在库
+      - cell
+      - cell "SYNTHETIC-BROWSER-LAB-66":
+        - generic: SYNTHETIC-BROWSER-LAB-66
+      - cell
+      - cell
+      - cell
+      - cell "-":
+        - generic: "-"
+      - cell "UNRESOLVED":
+        - generic: UNRESOLVED
+      - cell
+      - cell "迪普科技示例公司":
+        - generic: 迪普科技示例公司
+      - cell "杭州服务办事处":
+        - generic: 杭州服务办事处
+      - cell "项目":
+        - generic: 项目
+      - cell "2110018733130579976":
+        - generic: "2110018733130579976"
+      - cell "970000000000002099":
+        - generic: "970000000000002099"
+      - cell
+      - cell
+      - cell "PENDING_RECONCILIATION":
+        - generic: PENDING_RECONCILIATION
+      - cell "详情 状态变更 删除":
+        - button "详情":
+          - generic: 详情
+        - button "状态变更":
+          - generic: 状态变更
+        - button "删除":
+          - generic: 删除
+- combobox
+- generic: 10条/页
+- generic: 共 1 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+- button "下一页" [disabled]:
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- dialog "设备详情":
+  - heading "设备详情" [level=2]
+  - button "关闭此对话框":
+  - generic: 项目66全浏览器隔离验收合成设备（非实物）
+  - generic: DIRECT66-BROWSER-20261016-01
+  - generic: 维护
+  - button "状态变更":
+    - generic: 状态变更
+  - button "项目历史":
+    - generic: 项目历史
+  - button "客户关系":
+    - generic: 客户关系
+  - button "装配树":
+    - generic: 装配树
+  - button "调整项目":
+    - generic: 调整项目
+  - button "调整客户":
+    - generic: 调整客户
+  - tablist:
+    - tab "设备信息" [selected]
+    - tab "归属摘要"
+    - tab "位置与变更轨迹"
+    - tab "出厂信息"
+    - tab "官网信息"
+    - tab "在网版本"
+    - tab "技术公告"
+    - tab "维保信息"
+    - tab "配置Log"
+  - tabpanel "设备信息":
+    - generic: 基础信息
+    - generic: "*序列号"
+    - textbox "*序列号" [disabled]: DIRECT66-BROWSER-20261016-01
+    - generic: "*设备名称"
+    - textbox "*设备名称": 项目66全浏览器隔离验收合成设备（非实物）
+    - generic: 设备型号
+    - textbox "设备型号": SYNTHETIC-BROWSER-LAB-66
+    - generic: 所属客户
+    - combobox "所属客户"
+    - generic: FAST001_CUSTOMER_EMPTY - FAST001客户设备空摘要验收
+    - generic: 所属项目
+    - combobox "所属项目"
+    - generic: 工程直签全浏览器16任务验收20261016
+    - alert:
+      - paragraph: 设备当前位置由安装完成动作生效，此处仅维护设备档案。
+    - generic: 保修信息
+    - generic: 保修开始日期
+    - combobox "保修开始日期"
+    - generic: 保修结束日期
+    - combobox "保修结束日期"
+    - generic: 补充信息
+    - generic: 备注
+    - textbox "备注": 仅项目PJT2026000066浏览器验收使用，无真实硬件，不连接网络或执行命令。
+  - generic: 保存仅更新设备档案，业务操作按独立权限执行
+  - button "取消":
+    - generic: 取消
+  - button "保存设备信息":
+    - generic: 保存设备信息
+- generic: Copyright ©2026 项目实施交付管理平台

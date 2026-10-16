@@ -8,6 +8,7 @@ public class DeviceLogFileDO extends TenantBaseDO {
     @TableId(type = com.baomidou.mybatisplus.annotation.IdType.ASSIGN_ID) private Long id;
     private Long importId;
     private Long projectId;
+    private Long originTaskId;
     private Long deviceId;
     private String serialNumber;
     private Long deviceVersion;

@@ -1,0 +1,11 @@
+- main:
+  - article "感谢您的反馈":
+    - img "DPtech 迪普科技"
+    - generic: 已提交
+    - heading "感谢您的反馈" [level=1]
+    - paragraph: 工程直签全浏览器16任务验收20261016
+    - paragraph: 请核对完工内容并评价本次服务，最后一次签字确认两份表单。
+    - paragraph: 链接有效至 2026-10-23 05:04:48。提交后内容不可修改。
+    - paragraph: 两份表单已统一提交
+    - paragraph: 感谢您的评价，本次服务满意度已达标。
+    - paragraph: 满意度评价 100 分

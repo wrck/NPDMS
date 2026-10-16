@@ -60,6 +60,12 @@ public class InstallationTaskBusinessObjectProvider implements TaskBusinessObjec
                 InstallationBusinessResultSource.TYPE, objectId, objectId)));
     }
 
+    @Override @Transactional
+    public BusinessObjectInspection inspectContextAndObjects(Context context, List<String> objectIds) {
+        // This aggregate method is the external read entry; self-calls to inspect do not open a transaction.
+        return TaskBusinessObjectProvider.super.inspectContextAndObjects(context, objectIds);
+    }
+
     @Override @Transactional(propagation = Propagation.MANDATORY)
     public BusinessObjectFact lockAndRevalidate(Context context, String objectId, String expectedVersion) {
         var value = inspect(context, objectId);

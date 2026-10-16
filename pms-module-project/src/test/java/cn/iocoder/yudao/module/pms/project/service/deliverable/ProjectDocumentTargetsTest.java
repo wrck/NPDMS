@@ -29,12 +29,12 @@ class ProjectDocumentTargetsTest {
             when(projects.selectById(9L)).thenReturn(project);
             when(plans.selectById(20L)).thenReturn(plan);
             var service = new ProjectDeliverableRuleService(projects, plans, null, null, null, null);
-            assertEquals(Set.of("D1"), service.documentTargets(9L, "SOL.REQUIREMENT_DOCUMENT"));
-            assertTrue(service.documentTargets(9L, "ACC.SATISFACTION_DOCUMENT").isEmpty());
+            assertEquals(Set.of("D1"), service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "SOL.REQUIREMENT_DOCUMENT")));
+            assertTrue(service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "ACC.SATISFACTION_DOCUMENT")).isEmpty());
             plan.setTenantId(8L);
-            assertThrows(IllegalStateException.class, () -> service.documentTargets(9L, "SOL.REQUIREMENT_DOCUMENT"));
+            assertThrows(IllegalStateException.class, () -> service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "SOL.REQUIREMENT_DOCUMENT")));
             project.setLifecycleStatus("NORMAL_CLOSED");
-            assertTrue(service.documentTargets(9L, "SOL.REQUIREMENT_DOCUMENT").isEmpty());
+            assertTrue(service.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "SOL.REQUIREMENT_DOCUMENT")).isEmpty());
         } finally { TenantContextHolder.clear(); }
     }
 }

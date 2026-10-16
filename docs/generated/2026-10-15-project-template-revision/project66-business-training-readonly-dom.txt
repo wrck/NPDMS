@@ -1,0 +1,484 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务":
+        - generic: 巡检服务
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总（6.4）":
+        - generic: 交付件汇总（6.4）
+      - menuitem "现场培训（6.1）":
+        - generic: 现场培训（6.1）
+      - menuitem "阶段施工计划（3.1）":
+        - generic: 阶段施工计划（3.1）
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button "管理员":
+  - generic: 管理员
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button "项目模板管理":
+  - text: 项目模板管理
+- button:
+- generic: 项目闭环
+- heading "工程直签全浏览器16任务验收20261016" [level=2]
+- generic: 工程类
+- generic: "模板 #993009900016 v3"
+- text: 编码
+- generic: PJT2026000066
+- text: FAST001客户设备空摘要验收
+- text: 直签 / 原厂直服
+- text: 2026-10-16 04:43:04
+- generic: 进度 94%
+- generic: 任务 15/16
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项":
+    - generic: S0
+    - generic: 项目立项
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划":
+    - generic: S2
+    - generic: 施工计划
+  - button "S3 实施方案":
+    - generic: S3
+    - generic: 实施方案
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "S6 项目闭环":
+    - generic: S6
+    - generic: 项目闭环
+  - button "推进说明与图例":
+- generic: 项目概览
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- generic: 阶段和任务
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项 100%":
+  - generic: S0 项目立项
+  - generic: 100%
+- button "S1 工前准备 100%":
+  - generic: S1 工前准备
+  - generic: 100%
+- button "S2 施工计划 100%":
+  - generic: S2 施工计划
+  - generic: 100%
+- button "S3 实施方案 100%":
+  - generic: S3 实施方案
+  - generic: 100%
+- button "S4 实施部署 100%":
+  - generic: S4 实施部署
+  - generic: 100%
+- tree:
+  - treeitem "到货签收DEPLOY_ARRIVAL 完成 100%":
+    - generic: 到货签收DEPLOY_ARRIVAL
+    - generic: 完成
+    - generic: 100%
+  - treeitem "硬件实施DEPLOY_HARDWARE 完成 100%" [expanded]:
+    - generic: 硬件实施DEPLOY_HARDWARE
+    - generic: 完成
+    - generic: 100%
+  - treeitem "配置调试DEPLOY_CONFIG 完成 100%":
+    - generic: 配置调试DEPLOY_CONFIG
+    - generic: 完成
+    - generic: 100%
+  - treeitem "业务联调DEPLOY_JOINT 完成 100%":
+    - generic: 业务联调DEPLOY_JOINT
+    - generic: 完成
+    - generic: 100%
+  - treeitem "割接上线DEPLOY_CUTOVER 完成 100%":
+    - generic: 割接上线DEPLOY_CUTOVER
+    - generic: 完成
+    - generic: 100%
+- button "S5 验收交维 100%":
+  - generic: S5 验收交维
+  - generic: 100%
+- button "S6 项目闭环 0%":
+  - generic: S6 项目闭环
+  - generic: 0%
+- generic: 全流程业务
+- generic: 工前准备
+- button "工勘分工 2.2":
+  - generic: 工勘分工
+  - generic: "2.2"
+- button "需求分析 2.3":
+  - generic: 需求分析
+  - generic: "2.3"
+- button "物料换货 2.2.1":
+  - generic: 物料换货
+  - generic: 2.2.1
+- button "工程交底 2.4":
+  - generic: 工程交底
+  - generic: "2.4"
+- generic: 制定施工计划
+- button "施工计划 3.1-3.4":
+  - generic: 施工计划
+  - generic: 3.1-3.4
+- generic: 实施方案
+- button "实施方案 4.1":
+  - generic: 实施方案
+  - generic: "4.1"
+- generic: 实施部署
+- button "到货签收 5.1":
+  - generic: 到货签收
+  - generic: "5.1"
+- button "硬件安装 5.2":
+  - generic: 硬件安装
+  - generic: "5.2"
+- button "配置调试 5.3":
+  - generic: 配置调试
+  - generic: "5.3"
+- button "业务联调 5.4":
+  - generic: 业务联调
+  - generic: "5.4"
+- button "割接上线 5.5":
+  - generic: 割接上线
+  - generic: "5.5"
+- generic: 验收交维
+- button "现场培训 6.1":
+  - generic: 现场培训
+  - generic: "6.1"
+- button "满意度调查 6.2":
+  - generic: 满意度调查
+  - generic: "6.2"
+- button "初验&终验 6.3":
+  - generic: 初验&终验
+  - generic: "6.3"
+- button "交付件汇总 6.5":
+  - generic: 交付件汇总
+  - generic: "6.5"
+- button "交付件检查 6.6":
+  - generic: 交付件检查
+  - generic: "6.6"
+- button "归档文档 6.7":
+  - generic: 归档文档
+  - generic: "6.7"
+- button "闭环记录 6.8":
+  - generic: 闭环记录
+  - generic: "6.8"
+- button "项目闭环 6.9":
+  - generic: 项目闭环
+  - generic: "6.9"
+- generic: 项目拆分
+- button "拆分方案":
+  - generic: 拆分方案
+- generic: 进度汇总
+- button "进度汇总":
+  - generic: 进度汇总
+- generic: 异常治理
+- button "异常治理":
+  - generic: 异常治理
+- generic: 项目权限
+- button "项目授权":
+  - generic: 项目授权
+- generic: 服务经理
+- button "责任分布":
+  - generic: 责任分布
+- text: "* *"
+- heading "现场培训" [level=2]
+- paragraph: 记录培训内容，邀请客户评价并签字确认。
+- generic: 名称
+- textbox "名称"
+- generic: 状态
+- combobox "状态"
+- generic: 请选择
+- button "打印模板配置":
+  - generic: 打印模板配置
+- button "查询":
+  - text: 查询
+- button "新建培训记录":
+  - text: 新建培训记录
+- table:
+  - rowgroup:
+    - row "培训名称 培训类型 培训时间 培训工程师 客户联系人 状态 客户确认 操作":
+      - columnheader "培训名称":
+        - generic: 培训名称
+      - columnheader "培训类型":
+        - generic: 培训类型
+      - columnheader "培训时间":
+        - generic: 培训时间
+      - columnheader "培训工程师":
+        - generic: 培训工程师
+      - columnheader "客户联系人":
+        - generic: 客户联系人
+      - columnheader "状态":
+        - generic: 状态
+      - columnheader "客户确认":
+        - generic: 客户确认
+      - columnheader "操作":
+        - generic: 操作
+- table:
+  - rowgroup:
+    - row "项目66合成隔离培训20261016 产品运维类 2026-10-16 管理员 客户已确认 手签 · 已签字确认 查看 下载 PDF":
+      - cell "项目66合成隔离培训20261016":
+        - generic: 项目66合成隔离培训20261016
+      - cell "产品运维类":
+        - generic: 产品运维类
+      - cell "2026-10-16":
+        - generic: 2026-10-16
+      - cell "管理员":
+        - generic: 管理员
+      - cell
+      - cell "客户已确认":
+        - generic: 客户已确认
+      - cell "手签 · 已签字确认":
+        - generic: 手签 · 已签字确认
+      - cell "查看 下载 PDF":
+        - button "查看":
+          - generic: 查看
+        - button "下载 PDF":
+          - generic: 下载 PDF
+- combobox
+- generic: 10条/页
+- generic: 共 1 条
+- button "上一页" [disabled]:
+- list:
+  - listitem "第 1 页": "1"
+- button "下一页" [disabled]:
+- generic: 前往
+- spinbutton "页": "1"
+- generic: 页
+- dialog "培训记录":
+  - heading "培训记录" [level=2]
+  - button "关闭此对话框":
+  - heading "项目66合成隔离培训20261016" [level=2]
+  - generic: 客户已确认
+  - heading "基本信息" [level=3]
+  - term: 培训类型
+  - definition: 产品运维类
+  - term: 培训时间
+  - definition: 2026-10-16
+  - term: 培训工程师
+  - definition: 管理员
+  - term: 客户联系人
+  - definition: —
+  - term: 联系电话
+  - definition: —
+  - heading "培训内容" [level=3]
+  - paragraph: 项目66合成隔离培训：业务材料上传、审批、历史核验；非真实客户培训或签署。
+  - heading "客户评价与确认" [level=3]
+  - term: 培训技能
+  - definition: 很好
+  - term: 培训效果
+  - definition: 很好
+  - term: 满意程度
+  - definition: 非常满意
+  - term: 客户确认人
+  - definition: 手签
+  - term: 确认时间
+  - definition: 2026-10-16 05:03:18
+  - text: 改进意见
+  - paragraph: 项目66合成本地模拟评价及签名，非真实客户意见或签署。
+  - heading "客户手写签字" [level=3]
+  - img "客户手写签字"
+  - link "保存签字图片":
+    - /url: data:image/png;base64,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
+    - generic: 保存签字图片
+  - heading "备注" [level=3]
+  - paragraph: 本地模拟客户确认，合成非真实签署，无短信外发
+  - generic: 交付件（统一交付能力）
+  - button "刷新":
+    - generic: 刷新
+  - generic: 材料类型
+  - combobox "材料类型"
+  - generic: 选择类型
+  - generic: 材料标题
+  - textbox "材料标题":
+    - /placeholder: 可选
+  - heading "交付材料" [level=4]
+  - table:
+    - rowgroup:
+      - row "选择所有行 类型 标题 文件或业务成果 版本 来源 状态 文件访问 操作":
+        - columnheader "选择所有行":
+          - generic "选择所有行":
+            - checkbox "选择所有行"
+        - columnheader "类型":
+          - generic: 类型
+        - columnheader "标题":
+          - generic: 标题
+        - columnheader "文件或业务成果":
+          - generic: 文件或业务成果
+        - columnheader "版本":
+          - generic: 版本
+        - columnheader "来源":
+          - generic: 来源
+        - columnheader "状态":
+          - generic: 状态
+        - columnheader "文件访问":
+          - generic: 文件访问
+        - columnheader "操作":
+          - generic: 操作
+  - table:
+    - rowgroup:
+      - row "选择当前行 TRAINING_RECORD 项目66合成隔离培训20261016（现场培训记录） training · 35 — ASSOCIATED 有效 撤回":
+        - cell "选择当前行":
+          - generic "选择当前行":
+            - checkbox "选择当前行"
+        - cell "TRAINING_RECORD":
+          - generic: TRAINING_RECORD
+        - cell "项目66合成隔离培训20261016（现场培训记录）":
+          - generic: 项目66合成隔离培训20261016（现场培训记录）
+        - cell "training · 35":
+          - generic: training · 35
+        - cell "—":
+          - generic: —
+        - cell "ASSOCIATED":
+          - generic: ASSOCIATED
+        - cell "有效":
+          - generic: 有效
+        - cell
+        - cell "撤回":
+          - button "撤回":
+            - generic: 撤回
+      - row "选择当前行 TRAINING_RECORD PJT2026000066-PX-001.html PJT2026000066-PX-001.html 文件 v1 GENERATED 有效 PJT2026000066-PX-001.html 已绑定 V1 TRAINING_RECORD 版本历史 下载 撤回":
+        - cell "选择当前行":
+          - generic "选择当前行":
+            - checkbox "选择当前行"
+        - cell "TRAINING_RECORD":
+          - generic: TRAINING_RECORD
+        - cell "PJT2026000066-PX-001.html":
+          - generic: PJT2026000066-PX-001.html
+        - cell "PJT2026000066-PX-001.html":
+          - generic: PJT2026000066-PX-001.html
+        - cell "文件 v1":
+          - generic: 文件 v1
+        - cell "GENERATED":
+          - generic: GENERATED
+        - cell "有效":
+          - generic: 有效
+        - cell "PJT2026000066-PX-001.html 已绑定 V1 TRAINING_RECORD 版本历史 下载":
+          - generic "PJT2026000066-PX-001.html"
+          - generic: 已绑定
+          - generic: V1
+          - generic: TRAINING_RECORD
+          - button "版本历史":
+            - generic: 版本历史
+          - button "下载":
+            - generic: 下载
+        - cell "撤回":
+          - button "撤回":
+            - generic: 撤回
+      - row "选择当前行 TRAINING_RECORD PJT2026000066-PX-001.html PJT2026000066-PX-001.html 文件 v1 GENERATED 有效 PJT2026000066-PX-001.html 已绑定 V1 TRAINING_RECORD 版本历史 下载 撤回":
+        - cell "选择当前行":
+          - generic "选择当前行":
+            - checkbox "选择当前行"
+        - cell "TRAINING_RECORD":
+          - generic: TRAINING_RECORD
+        - cell "PJT2026000066-PX-001.html":
+          - generic: PJT2026000066-PX-001.html
+        - cell "PJT2026000066-PX-001.html":
+          - generic: PJT2026000066-PX-001.html
+        - cell "文件 v1":
+          - generic: 文件 v1
+        - cell "GENERATED":
+          - generic: GENERATED
+        - cell "有效":
+          - generic: 有效
+        - cell "PJT2026000066-PX-001.html 已绑定 V1 TRAINING_RECORD 版本历史 下载":
+          - generic "PJT2026000066-PX-001.html"
+          - generic: 已绑定
+          - generic: V1
+          - generic: TRAINING_RECORD
+          - button "版本历史":
+            - generic: 版本历史
+          - button "下载":
+            - generic: 下载
+        - cell "撤回":
+          - button "撤回":
+            - generic: 撤回
+  - heading "交付要求" [level=4]
+  - table:
+    - rowgroup:
+      - row "类型 性质 计数口径 数量 状态 当前提交 操作":
+        - columnheader "类型":
+          - generic: 类型
+        - columnheader "性质":
+          - generic: 性质
+        - columnheader "计数口径":
+          - generic: 计数口径
+        - columnheader "数量":
+          - generic: 数量
+        - columnheader "状态":
+          - generic: 状态
+        - columnheader "当前提交":
+          - generic: 当前提交
+        - columnheader "操作":
+          - generic: 操作
+  - table:
+    - rowgroup
+  - generic: 暂无数据
+  - button "关闭":
+    - generic: 关闭
+  - button "下载 PDF":
+    - text: 下载 PDF
+- generic: Copyright ©2026 项目实施交付管理平台

@@ -26,6 +26,6 @@ public class DeviceLogDocumentSources implements FileDocumentSourceProvider {
         var row = files.selectById(id);
         if (row == null || !tenant.equals(row.getTenantId())) return null;
         String source = row.getDeviceId() == null ? "AST.DEVICE_CONFIGURATION_LOG_SOURCE" : SOURCE;
-        return new Scope(row.getProjectId(), source, "AST", "device-log-file", row.getId(), row.getDeviceVersion());
+        return new Scope(row.getProjectId(), source, "AST", "device-log-file", row.getId(), row.getDeviceVersion(), row.getDeviceId() == null ? null : row.getOriginTaskId());
     }
 }

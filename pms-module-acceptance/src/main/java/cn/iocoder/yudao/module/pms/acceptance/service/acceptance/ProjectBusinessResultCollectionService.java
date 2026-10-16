@@ -27,7 +27,7 @@ public class ProjectBusinessResultCollectionService {
         var type = change.channel().type();
         var projectId = change.channel().projectId();
         var sourceCode = type.ownerContext() + "." + type.entityType() + "." + type.resultType();
-        var codes = new HashSet<>(rules.documentTargets(projectId, sourceCode));
+        var codes = new HashSet<>(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(projectId, sourceCode)));
         for (var view : platform.listByProject(projectId))
             if (codes.contains(view.deliverableCode()))
                 submissions.collectBusinessResult(view, sourceCode, change);

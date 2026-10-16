@@ -26,17 +26,17 @@ class DeviceConfigurationLogImportApiImplTest {
         return new DeviceLogArchiveService.FileView(100L,31L,"SN-1",1L,"MANUAL_UPLOAD","log.txt",50L,60L,null,available);
     }
     @Test void delegatesToExistingArchiveAndReturnsOnlyFileReferences() {
-        when(archive.upload(any(),any(),any(),any())).thenReturn(new DeviceLogArchiveService.ImportView(50L,"ARCHIVED",null,1,0,List.of(file(true))));
+        when(archive.upload(any())).thenReturn(new DeviceLogArchiveService.ImportView(50L,"ARCHIVED",null,1,0,List.of(file(true))));
         var result = api.importLog(command(1L,7L));
         assertEquals(100L,result.files().getFirst().fileId()); assertEquals("SN-1",result.files().getFirst().serialNumber());
-        verify(archive).upload(eq(21L),eq("request"),eq("log.txt"),any());
+        verify(archive).upload(argThat(command -> command.projectId().equals(21L) && command.operationId().equals("request") && command.fileName().equals("log.txt")));
     }
     @Test void wrongTenantDoesNotReachArchive() {
         assertThrows(IllegalArgumentException.class,()->api.importLog(command(2L,7L))); verifyNoInteractions(archive);
     }
     @Test void sourceArchiveIsPreservedButDoesNotCreateADeviceConfiguration() {
         var source = new DeviceLogArchiveService.FileView(99L,null,null,null,"MANUAL_UPLOAD","log.source.txt",50L,59L,null,true);
-        when(archive.upload(any(),any(),any(),any())).thenReturn(new DeviceLogArchiveService.ImportView(50L,"ARCHIVED",null,1,0,List.of(source,file(true))));
+        when(archive.upload(any())).thenReturn(new DeviceLogArchiveService.ImportView(50L,"ARCHIVED",null,1,0,List.of(source,file(true))));
         var result=api.importLog(command(1L,7L));
         assertEquals(1,result.files().size());
         assertEquals(31L,result.files().getFirst().deviceId());

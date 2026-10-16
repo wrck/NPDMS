@@ -30,7 +30,7 @@ public class ProjectDocumentCollectionService {
         if (file == null) return;
         var scope = owners.resolve(event.tenantId(), file);
         if (scope == null || scope.projectId() == null) return;
-        var codes = new HashSet<>(rules.documentTargets(scope.projectId(), scope.sourceCode()));
+        var codes = new HashSet<>(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(scope.projectId(), scope.sourceCode(), scope.originTaskId())));
         for (var view : platform.listByProject(scope.projectId()))
             if (codes.contains(view.deliverableCode()))
                 submissions.collectDocument(view, scope, file, event.eventId());

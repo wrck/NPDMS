@@ -1,0 +1,709 @@
+- link:
+  - /url: /
+- menubar:
+  - menuitem:
+  - menuitem:
+  - menuitem:
+  - menuitem:
+  - menuitem:
+  - menuitem:
+  - menuitem:
+  - menuitem:
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button:
+- generic: 项目闭环
+- heading "工程直签全浏览器16任务验收20261016" [level=2]
+- generic: 工程类
+- generic: "模板 #993009900016 v3"
+- text: 编码
+- generic: PJT2026000066
+- text: FAST001客户设备空摘要验收
+- text: 直签 / 原厂直服
+- text: 2026-10-16 04:43:04
+- generic: 进度 94%
+- generic: 任务 15/16
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项":
+    - generic: S0
+    - generic: 项目立项
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划":
+    - generic: S2
+    - generic: 施工计划
+  - button "S3 实施方案":
+    - generic: S3
+    - generic: 实施方案
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "S6 项目闭环":
+    - generic: S6
+    - generic: 项目闭环
+  - button "推进说明与图例":
+- generic "选择任务 · S6"
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项 100%":
+  - generic: S0 项目立项
+  - generic: 100%
+- button "S1 工前准备 100%":
+  - generic: S1 工前准备
+  - generic: 100%
+- button "S2 施工计划 100%":
+  - generic: S2 施工计划
+  - generic: 100%
+- button "S3 实施方案 100%":
+  - generic: S3 实施方案
+  - generic: 100%
+- button "S4 实施部署 100%":
+  - generic: S4 实施部署
+  - generic: 100%
+- button "S5 验收交维 100%":
+  - generic: S5 验收交维
+  - generic: 100%
+- button "S6 项目闭环 0%":
+  - generic: S6 项目闭环
+  - generic: 0%
+- button "工勘分工 2.2":
+  - generic: 工勘分工
+  - generic: "2.2"
+- button "需求分析 2.3":
+  - generic: 需求分析
+  - generic: "2.3"
+- button "物料换货 2.2.1":
+  - generic: 物料换货
+  - generic: 2.2.1
+- button "工程交底 2.4":
+  - generic: 工程交底
+  - generic: "2.4"
+- button "施工计划 3.1-3.4":
+  - generic: 施工计划
+  - generic: 3.1-3.4
+- button "实施方案 4.1":
+  - generic: 实施方案
+  - generic: "4.1"
+- button "到货签收 5.1":
+  - generic: 到货签收
+  - generic: "5.1"
+- button "硬件安装 5.2":
+  - generic: 硬件安装
+  - generic: "5.2"
+- button "配置调试 5.3":
+  - generic: 配置调试
+  - generic: "5.3"
+- button "业务联调 5.4":
+  - generic: 业务联调
+  - generic: "5.4"
+- button "割接上线 5.5":
+  - generic: 割接上线
+  - generic: "5.5"
+- button "现场培训 6.1":
+  - generic: 现场培训
+  - generic: "6.1"
+- button "满意度调查 6.2":
+  - generic: 满意度调查
+  - generic: "6.2"
+- button "初验&终验 6.3":
+  - generic: 初验&终验
+  - generic: "6.3"
+- button "交付件汇总 6.5":
+  - generic: 交付件汇总
+  - generic: "6.5"
+- button "交付件检查 6.6":
+  - generic: 交付件检查
+  - generic: "6.6"
+- button "归档文档 6.7":
+  - generic: 归档文档
+  - generic: "6.7"
+- button "闭环记录 6.8":
+  - generic: 闭环记录
+  - generic: "6.8"
+- button "项目闭环 6.9":
+  - generic: 项目闭环
+  - generic: "6.9"
+- button "拆分方案":
+  - generic: 拆分方案
+- button "进度汇总":
+  - generic: 进度汇总
+- button "异常治理":
+  - generic: 异常治理
+- button "项目授权":
+  - generic: 项目授权
+- button "责任分布":
+  - generic: 责任分布
+- generic: 项目闭环
+- generic: 进行中
+- generic: 进度 0%
+- generic: 计划 2026-10-30 ~ 2026-10-30
+- generic: 实际 2026-10-16 05:06:13 ~ —
+- generic: 任务业务办理
+- paragraph: 本任务在正常闭环审批通过后完成。请在下方校验条件并提交审批。
+- generic "项目正常闭环":
+  - heading "项目正常闭环" [level=3]
+  - paragraph: 按项目冻结条件校验，经过真实审批后收口；不会补造阶段或验收结果。
+  - button "刷新":
+    - generic: 刷新
+  - table:
+    - rowgroup:
+      - row "当前真实阶段 S6 项目状态 进行中":
+        - cell "当前真实阶段"
+        - cell "S6"
+        - cell "项目状态"
+        - cell "进行中"
+  - list:
+    - generic: 满足
+    - generic: 已冻结本项目闭环规则
+    - generic: 满足
+    - generic: 项目处于进行中
+    - generic: 满足
+    - generic: 已到达模板最后实际阶段
+    - generic: 满足
+    - generic: 当前阶段完成条件已满足
+    - generic: 满足
+    - generic: 实际任务均已完成
+    - generic: 满足
+    - generic: 提交时将重新核验业务结果
+  - strong: 最近闭环申请：审批中
+  - paragraph: 提交时间：2026-10-16 12:26:18
+  - button "查看审批流程与待办":
+    - generic: 查看审批流程与待办
+  - paragraph: 审批必须在原工作流中由实际候选人办理，此处不提供直接批准按钮。
+- button "刷新工作区":
+  - generic: 刷新工作区
+- region "任务状态操作":
+  - button "关闭任务":
+    - generic: 关闭任务
+  - region "任务资料与进度":
+    - button "编辑任务资料":
+      - generic: 编辑任务资料
+- complementary "完成条件与阶段历史":
+  - region "完成条件":
+    - generic: 完成条件
+    - button "刷新门禁结果":
+      - generic: 刷新门禁结果
+    - paragraph: 第 1 轮 · 当前规则结果；刷新不会推进阶段或发起审批。
+    - status: 当前阶段未配置门禁。
+    - generic: 交付件
+    - generic: 当前任务交付件
+    - paragraph: 当前任务未绑定交付件；任务完成按状态机与冻结规则判定。
+  - text: 阶段历史
+  - button "执行历史与规则结果":
+    - generic: 执行历史与规则结果
+  - generic: 2026-10-16 05:06:13
+  - text: 进入 S6 项目闭环
+  - generic: 进行中
+  - generic: 2026-10-16 05:01:08
+  - text: 进入 S5 验收交维
+  - generic: 已完成
+  - generic: 2026-10-16 04:55:57
+  - text: 进入 S4 实施部署
+  - generic: 已完成
+  - generic: 2026-10-16 04:54:41
+  - text: 进入 S3 实施方案
+  - generic: 已完成
+  - generic: 2026-10-16 04:53:18
+  - text: 进入 S2 施工计划
+  - generic: 已完成
+  - generic: 2026-10-16 04:49:56
+  - text: 进入 S1 工前准备
+  - generic: 已完成
+  - generic: 2026-10-16 04:43:04
+  - text: 进入 S0 项目立项
+  - generic: 已完成
+- generic: Copyright ©2026 项目实施交付管理平台
+- dialog "审批记录":
+  - banner:
+    - heading "审批记录" [level=2]
+    - button "关闭此对话框":
+  - generic: 编号：bb56d06c-c919-11f1-b644-00ff0b78abd7
+  - separator
+  - generic: 项目正常闭环双人工审核
+  - generic: 审批通过
+  - generic: 管
+  - text: 管理员
+  - generic: 2026-10-16 12:26:17 提交
+  - tablist:
+    - tab "审批详情" [selected]
+    - tab "流程图"
+    - tab "流转记录"
+    - tab "流程评论"
+  - tabpanel "审批详情":
+    - generic "正常闭环申请详情":
+      - alert:
+        - generic: 本页只读。审批请使用 BPM 页面原有操作；流程待办不自动授予项目查看权限。
+      - heading "正常闭环申请" [level=3]
+      - table:
+        - rowgroup:
+          - row "申请 ID 2110950434686451714":
+            - cell "申请 ID"
+            - cell "2110950434686451714"
+          - row "项目 ID 2110018733130579976":
+            - cell "项目 ID"
+            - cell "2110018733130579976"
+          - row "真实闭环来源阶段 S6":
+            - cell "真实闭环来源阶段"
+            - cell "S6"
+          - row "闭环类型 NORMAL":
+            - cell "闭环类型"
+            - cell "NORMAL"
+          - row "申请状态 已批准":
+            - cell "申请状态"
+            - cell "已批准"
+          - row "申请人 ID 1":
+            - cell "申请人 ID"
+            - cell "1"
+          - row "服务经理候选人 ID 1":
+            - cell "服务经理候选人 ID"
+            - cell "1"
+          - row "材料审核候选人 ID 1":
+            - cell "材料审核候选人 ID"
+            - cell "1"
+          - row "提交时间 1792124778049":
+            - cell "提交时间"
+            - cell "1792124778049"
+          - row "决定时间 1792124821426":
+            - cell "决定时间"
+            - cell "1792124821426"
+          - row "实际流程实例 ID bb56d06c-c919-11f1-b644-00ff0b78abd7":
+            - cell "实际流程实例 ID"
+            - cell "bb56d06c-c919-11f1-b644-00ff0b78abd7"
+          - row "实际流程定义 ID e29b5e67-c5c8-11f1-91a6-00ff0b78abd7":
+            - cell "实际流程定义 ID"
+            - cell "e29b5e67-c5c8-11f1-91a6-00ff0b78abd7"
+          - row "流程定义 Key PMS_MINIMAL_NORMAL_CLOSURE":
+            - cell "流程定义 Key"
+            - cell "PMS_MINIMAL_NORMAL_CLOSURE"
+          - row "业务 Key PROJECT_NORMAL_CLOSURE:2110950434686451714":
+            - cell "业务 Key"
+            - cell "PROJECT_NORMAL_CLOSURE:2110950434686451714"
+      - heading "申请冻结的条件校验" [level=3]
+      - table:
+        - rowgroup:
+          - row "快照 ID 2110950368378699777":
+            - cell "快照 ID"
+            - cell "2110950368378699777"
+          - row "校验结果 通过":
+            - cell "校验结果"
+            - cell "通过"
+          - row "校验人 ID 1":
+            - cell "校验人 ID"
+            - cell "1"
+          - row "校验时间 1792124762040":
+            - cell "校验时间"
+            - cell "1792124762040"
+      - table:
+        - rowgroup:
+          - row "条件 结果 原因 来源对象 ID":
+            - columnheader "条件":
+              - generic: 条件
+            - columnheader "结果":
+              - generic: 结果
+            - columnheader "原因":
+              - generic: 原因
+            - columnheader "来源对象 ID":
+              - generic: 来源对象 ID
+      - table:
+        - rowgroup:
+          - row "PROJECT_ACTIVE 满足 2110018733130579976":
+            - cell "PROJECT_ACTIVE":
+              - generic: PROJECT_ACTIVE
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110018733130579976":
+              - generic: "2110018733130579976"
+          - row "DESCENDANTS_CLOSED 满足 2110018733130579976":
+            - cell "DESCENDANTS_CLOSED":
+              - generic: DESCENDANTS_CLOSED
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110018733130579976":
+              - generic: "2110018733130579976"
+          - row "TERMINAL_STAGE 满足 2110834802344955905":
+            - cell "TERMINAL_STAGE":
+              - generic: TERMINAL_STAGE
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110834802344955905":
+              - generic: "2110834802344955905"
+          - row "STAGE_COMPLETION 满足 2110834802344955905":
+            - cell "STAGE_COMPLETION":
+              - generic: STAGE_COMPLETION
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110834802344955905":
+              - generic: "2110834802344955905"
+          - row "ALL_TASKS_DONE 满足 2110018733130579976":
+            - cell "ALL_TASKS_DONE":
+              - generic: ALL_TASKS_DONE
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110018733130579976":
+              - generic: "2110018733130579976"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177409":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177409":
+              - generic: "2110833858316177409"
+          - row "TASK_BUSINESS_FACTS 满足 2110833858316177409":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177409":
+              - generic: "2110833858316177409"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177410":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177410":
+              - generic: "2110833858316177410"
+          - row "TASK_BUSINESS_FACTS 满足 2110833858316177410":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177410":
+              - generic: "2110833858316177410"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177412":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177412":
+              - generic: "2110833858316177412"
+          - row "TASK_NATIVE_CONTRACT 满足 2110833858316177412":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177412":
+              - generic: "2110833858316177412"
+          - row "TASK_END_USER_FACTS 满足 2110833858316177412":
+            - cell "TASK_END_USER_FACTS":
+              - generic: TASK_END_USER_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177412":
+              - generic: "2110833858316177412"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177413":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177413":
+              - generic: "2110833858316177413"
+          - row "TASK_BUSINESS_FACTS 满足 2110833858316177413":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177413":
+              - generic: "2110833858316177413"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177414":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177414":
+              - generic: "2110833858316177414"
+          - row "TASK_BUSINESS_FACTS 满足 2110833858316177414":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177414":
+              - generic: "2110833858316177414"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177416":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177416":
+              - generic: "2110833858316177416"
+          - row "TASK_NATIVE_CONTRACT 满足 2110833858316177416":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177416":
+              - generic: "2110833858316177416"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177417":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177417":
+              - generic: "2110833858316177417"
+          - row "TASK_BUSINESS_FACTS 满足 2110833858316177417":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177417":
+              - generic: "2110833858316177417"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177418":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177418":
+              - generic: "2110833858316177418"
+          - row "TASK_NATIVE_CONTRACT 满足 2110833858316177418":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177418":
+              - generic: "2110833858316177418"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177419":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177419":
+              - generic: "2110833858316177419"
+          - row "TASK_NATIVE_CONTRACT 满足 2110833858316177419":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177419":
+              - generic: "2110833858316177419"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177420":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177420":
+              - generic: "2110833858316177420"
+          - row "TASK_BUSINESS_FACTS 满足 2110833858316177420":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177420":
+              - generic: "2110833858316177420"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177422":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177422":
+              - generic: "2110833858316177422"
+          - row "TASK_NATIVE_CONTRACT 满足 2110833858316177422":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177422":
+              - generic: "2110833858316177422"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177423":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177423":
+              - generic: "2110833858316177423"
+          - row "TASK_NATIVE_CONTRACT 满足 2110833858316177423":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177423":
+              - generic: "2110833858316177423"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177424":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177424":
+              - generic: "2110833858316177424"
+          - row "TASK_BUSINESS_FACTS 满足 2110833858316177424":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177424":
+              - generic: "2110833858316177424"
+          - row "TASK_CONTRACT_CURRENT 满足 2110833858316177425":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177425":
+              - generic: "2110833858316177425"
+          - row "TASK_NATIVE_CONTRACT 满足 2110833858316177425":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110833858316177425":
+              - generic: "2110833858316177425"
+          - row "TASK_CONTRACT_CURRENT 满足 2110834802235904002":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110834802235904002":
+              - generic: "2110834802235904002"
+          - row "TASK_BUSINESS_FACTS 满足 2110834802235904002":
+            - cell "TASK_BUSINESS_FACTS":
+              - generic: TASK_BUSINESS_FACTS
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110834802235904002":
+              - generic: "2110834802235904002"
+          - row "TASK_CONTRACT_CURRENT 满足 2110834802235904003":
+            - cell "TASK_CONTRACT_CURRENT":
+              - generic: TASK_CONTRACT_CURRENT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110834802235904003":
+              - generic: "2110834802235904003"
+          - row "TASK_NATIVE_CONTRACT 满足 2110834802235904003":
+            - cell "TASK_NATIVE_CONTRACT":
+              - generic: TASK_NATIVE_CONTRACT
+            - cell "满足":
+              - generic: 满足
+            - cell
+            - cell "2110834802235904003":
+              - generic: "2110834802235904003"
+      - heading "实际流程与候选人冻结证据" [level=3]
+      - generic: "{\"nodes\": [{\"candidateUserId\": 1, \"taskDefinitionKey\": \"serviceManagerReview\"}, {\"candidateUserId\": 1, \"taskDefinitionKey\": \"materialReview\"}], \"instanceId\": \"bb56d06c-c919-11f1-b644-00ff0b78abd7\", \"actualDefinitionId\": \"e29b5e67-c5c8-11f1-91a6-00ff0b78abd7\"}"
+      - heading "历史审核记录" [level=3]
+      - table:
+        - rowgroup:
+          - row "实际节点 Key 任务 ID 实际处理人 ID 处理结果 审核意见 处理时间":
+            - columnheader "实际节点 Key":
+              - generic: 实际节点 Key
+            - columnheader "任务 ID":
+              - generic: 任务 ID
+            - columnheader "实际处理人 ID":
+              - generic: 实际处理人 ID
+            - columnheader "处理结果":
+              - generic: 处理结果
+            - columnheader "审核意见":
+              - generic: 审核意见
+            - columnheader "处理时间":
+              - generic: 处理时间
+      - table:
+        - rowgroup:
+          - row "serviceManagerReview bb5bb17c-c919-11f1-b644-00ff0b78abd7 1 APPROVE 项目66合成隔离验收：服务经理复核S0至S5业务成果和最新实施方案批准版本，闭环条件通过，同意进入材料审核；不代表真实客户交付。 1792124802451":
+            - cell "serviceManagerReview":
+              - generic: serviceManagerReview
+            - cell "bb5bb17c-c919-11f1-b644-00ff0b78abd7":
+              - generic: bb5bb17c-c919-11f1-b644-00ff0b78abd7
+            - cell "1":
+              - generic: "1"
+            - cell "APPROVE":
+              - generic: APPROVE
+            - cell "项目66合成隔离验收：服务经理复核S0至S5业务成果和最新实施方案批准版本，闭环条件通过，同意进入材料审核；不代表真实客户交付。":
+              - generic: 项目66合成隔离验收：服务经理复核S0至S5业务成果和最新实施方案批准版本，闭环条件通过，同意进入材料审核；不代表真实客户交付。
+            - cell "1792124802451":
+              - generic: "1792124802451"
+          - row "materialReview c9f0e8a5-c919-11f1-b644-00ff0b78abd7 1 APPROVE 项目66合成隔离验收：材料审核确认正式交付件、配置与联调日志分别归集、实施方案实际脚本文件及批准版本可追溯，同意正常闭环。全部材料为隔离测试样例，不代表真实客户验收。 1792124821300":
+            - cell "materialReview":
+              - generic: materialReview
+            - cell "c9f0e8a5-c919-11f1-b644-00ff0b78abd7":
+              - generic: c9f0e8a5-c919-11f1-b644-00ff0b78abd7
+            - cell "1":
+              - generic: "1"
+            - cell "APPROVE":
+              - generic: APPROVE
+            - cell "项目66合成隔离验收：材料审核确认正式交付件、配置与联调日志分别归集、实施方案实际脚本文件及批准版本可追溯，同意正常闭环。全部材料为隔离测试样例，不代表真实客户验收。":
+              - generic: 项目66合成隔离验收：材料审核确认正式交付件、配置与联调日志分别归集、实施方案实际脚本文件及批准版本可追溯，同意正常闭环。全部材料为隔离测试样例，不代表真实客户验收。
+            - cell "1792124821300":
+              - generic: "1792124821300"
+    - list:
+      - generic: 发起人
+      - generic: 2026-10-16 12:26:17
+      - generic: 管
+      - text: 管理员
+      - generic: 当前主责服务经理审核
+      - generic: 2026-10-16 12:26:42
+      - generic: 管
+      - text: 管理员
+      - generic: 审批意见：项目66合成隔离验收：服务经理复核S0至S5业务成果和最新实施方案批准版本，闭环条件通过，同意进入材料审核；不代表真实客户交付。
+      - generic: 工程材料审核
+      - generic: 2026-10-16 12:27:01
+      - generic: 管
+      - text: 管理员
+      - generic: 审批意见：项目66合成隔离验收：材料审核确认正式交付件、配置与联调日志分别归集、实施方案实际脚本文件及批准版本可追溯，同意正常闭环。全部材料为隔离测试样例，不代表真实客户验收。
+      - generic: 结束
+      - generic: 2026-10-16 12:27:01

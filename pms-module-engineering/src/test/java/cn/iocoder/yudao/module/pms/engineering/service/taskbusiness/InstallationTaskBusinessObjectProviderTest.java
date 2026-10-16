@@ -42,6 +42,35 @@ class InstallationTaskBusinessObjectProviderTest {
         when(devices.lockProjectInstallationDevices(any())).thenReturn(List.of(new ProjectDeviceInstallationFact(7L,"A",null)));
     }
     @AfterEach void clear(){TenantContextHolder.clear();SecurityContextHolder.clearContext();}
+    @Test void linkedInstallationReadStartsOwnerTransactionThroughTheActualAggregateEntry() {
+        var transactions = new org.springframework.transaction.support.AbstractPlatformTransactionManager() {
+            @Override protected Object doGetTransaction() { return new Object(); }
+            @Override protected boolean isExistingTransaction(Object transaction) {
+                return org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive();
+            }
+            @Override protected void doBegin(Object transaction, org.springframework.transaction.TransactionDefinition definition) { }
+            @Override protected void doCommit(org.springframework.transaction.support.DefaultTransactionStatus status) { }
+            @Override protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus status) { }
+        };
+        var advice = new org.springframework.transaction.interceptor.TransactionInterceptor(
+                transactions, new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource());
+        var resultProxy = new org.springframework.aop.framework.ProxyFactory(new InstallationBusinessResultSource(records, devices));
+        resultProxy.setProxyTargetClass(true);
+        resultProxy.addAdvice(advice);
+        var owner = new InstallationTaskBusinessObjectProvider((InstallationBusinessResultSource) resultProxy.getProxy(),
+                scopes, permissions, mock(ProjectNodeExecutionApi.class));
+        var ownerProxy = new org.springframework.aop.framework.ProxyFactory(owner);
+        ownerProxy.setProxyTargetClass(true);
+        ownerProxy.addAdvice(advice);
+        var proxy = (InstallationTaskBusinessObjectProvider) ownerProxy.getProxy();
+        assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+        var inspection = proxy.inspectContextAndObjects(context, List.of("31"));
+        assertEquals(Set.of("QUERY"), inspection.allowedActions());
+        assertTrue(inspection.objects().getFirst().completionFacts().get("PROJECT_INSTALLATION_COMPLETED"));
+        assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+        when(permissions.hasAnyPermissions(3L, "pms:imp-installation:query")).thenReturn(false);
+        assertThrows(SecurityException.class, () -> proxy.inspectContextAndObjects(context, List.of("31")));
+    }
     @Test void currentDeviceScopeAndEffectiveOwnerRecordsDetermineAggregateCompletion() {
         assertTrue(provider.inspect(context,"31").completionFacts().get("PROJECT_INSTALLATION_COMPLETED"));
         String version = provider.inspect(context,"31").factVersion();

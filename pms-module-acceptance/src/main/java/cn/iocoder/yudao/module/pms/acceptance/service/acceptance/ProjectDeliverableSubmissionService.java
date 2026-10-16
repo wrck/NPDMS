@@ -227,10 +227,10 @@ public class ProjectDeliverableSubmissionService {
                                 FileEvidenceApi.Document file, String eventId) {
         var context = rules.read(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus())
-                || !matchesBusinessSource(context, observed.deliverableCode(), scope.sourceCode())) return;
+                || !matchesDocumentSource(context, observed.deliverableCode(), scope)) return;
         context = rules.lock(observed.projectId(), observed.deliverableCode());
         if (!"ACTIVE".equals(context.lifecycleStatus()) || !Objects.equals(scope.projectId(), context.projectId())
-                || !matchesBusinessSource(context, observed.deliverableCode(), scope.sourceCode())) return;
+                || !matchesDocumentSource(context, observed.deliverableCode(), scope)) return;
         var view = require(platform.lockById(observed.id()), observed.projectId());
         String key = "file-event:" + eventId;
         if (platform.findSubmissionByRequestKey(observed.id(), key).isPresent()) return;
@@ -308,9 +308,16 @@ public class ProjectDeliverableSubmissionService {
         notifyOutcome(view, before, outcome, key);
     }
 
+    private boolean matchesDocumentSource(ProjectDeliverableRuleApi.Context context, String code,
+                                          FileDocumentSourceProvider.Scope scope) {
+        if (scope.originTaskId() == null) return matchesBusinessSource(context, code, scope.sourceCode());
+        return rules.documentTargets(new ProjectDeliverableRuleApi.DocumentTargetsQuery(
+                context.projectId(), scope.sourceCode(), scope.originTaskId())).contains(code);
+    }
+
     private boolean matchesBusinessSource(ProjectDeliverableRuleApi.Context context, String code, String sourceCode) {
         return ProjectDocumentSourceRegistry.matches(context.configuration(), sourceCode)
-                || rules.documentTargets(context.projectId(), sourceCode).contains(code);
+                || rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(context.projectId(), sourceCode)).contains(code);
     }
 
     // ———— 内部 ————

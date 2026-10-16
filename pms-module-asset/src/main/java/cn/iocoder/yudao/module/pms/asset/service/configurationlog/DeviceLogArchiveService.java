@@ -12,6 +12,7 @@ import cn.iocoder.yudao.module.pms.integration.api.deviceops.DeviceOpsLogSplitAp
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
 import cn.iocoder.yudao.module.pms.platform.api.file.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
 import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import lombok.RequiredArgsConstructor;
@@ -39,11 +40,21 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
     private final ObjectProvider<NativeGeneratedFileApi> downloads;
     private final ObjectProvider<DeviceArchivedLogParsingService> parsing;
 
+    private final ObjectProvider<ProjectDeliverableRuleApi> deliverableRules;
+
+    public record Upload(Long projectId, String operationId, String fileName, byte[] bytes, Long originTaskId) {
+        public Upload(Long projectId, String operationId, String fileName, byte[] bytes) {
+            this(projectId, operationId, fileName, bytes, null);
+        }
+    }
+    private record Archive(Long tenant, Long actor, Long projectId, String sourceKey, String sourceType,
+                           String fileName, byte[] bytes, String format, DeviceLogFileApi.Origin origin, Long originTaskId) { }
+
     @Transactional(rollbackFor=Exception.class)
-    public ImportView upload(Long projectId, String operationId, String fileName, byte[] bytes) {
-        UUID.fromString(operationId);
-        return archive(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), projectId,
-                "manual:"+operationId, "MANUAL_UPLOAD", fileName, bytes, "TERMINAL_TEXT", null);
+    public ImportView upload(Upload command) {
+        UUID.fromString(command.operationId());
+        return archive(new Archive(TenantContextHolder.getRequiredTenantId(), SecurityFrameworkUtils.getLoginUserId(), command.projectId(),
+                "manual:"+command.operationId(), "MANUAL_UPLOAD", command.fileName(), command.bytes(), "TERMINAL_TEXT", null, command.originTaskId()));
     }
 
     @Override @Transactional(rollbackFor=Exception.class)
@@ -55,14 +66,25 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
         var origin = new DeviceLogFileApi.Origin(command.tenantId(), command.actorId(), command.projectId(), command.deviceId(),
                 command.platformTaskId(), command.resultVersion(), command.fileVersionId());
         byte[] bytes = fileStorage.getObject().readCollection(origin);
-        archive(command.tenantId(), command.actorId(), command.projectId(),
+        archive(new Archive(command.tenantId(), command.actorId(), command.projectId(),
                 "collection:"+command.platformTaskId()+":"+command.resultVersion(), "COLLECTION_CALLBACK",
-                "collection-"+command.resultVersion()+".txt", bytes, "DAC_CALLBACK", origin);
+                "collection-"+command.resultVersion()+".txt", bytes, "DAC_CALLBACK", origin, null));
     }
 
-    private ImportView archive(Long tenant, Long actor, Long projectId, String sourceKey, String sourceType,
-                               String fileName, byte[] bytes, String format, DeviceLogFileApi.Origin origin) {
+    private ImportView archive(Archive command) {
+        Long tenant = command.tenant(), actor = command.actor(), projectId = command.projectId();
+        String sourceKey = command.sourceKey(), sourceType = command.sourceType(), fileName = command.fileName(), format = command.format();
+        byte[] bytes = command.bytes();
+        var origin = command.origin();
         authorize(tenant, actor, projectId, true, origin != null);
+        if (command.originTaskId() != null) {
+            var rules = deliverableRules.getObject();
+            var query = new ProjectDeliverableRuleApi.DocumentTargetsQuery(projectId, DeviceLogDocumentSources.SOURCE, command.originTaskId());
+            var targets = rules.documentTargets(query);
+            if (targets.isEmpty()) throw problem("当前任务没有可接收设备日志的交付件");
+            rules.lock(projectId, targets.stream().sorted().findFirst().orElseThrow());
+            if (!targets.equals(rules.documentTargets(query))) throw problem("任务交付件配置已变化，请重新进入任务");
+        }
         if (fileName == null || fileName.isBlank() || fileName.length()>150 || fileName.contains("/") || fileName.contains("\\")
                 || fileName.chars().anyMatch(c -> c < 32) || bytes == null || bytes.length == 0 || bytes.length > 20*1024*1024)
             throw problem("日志名称或文件大小无效");
@@ -73,7 +95,8 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
         String digest = org.apache.commons.codec.digest.DigestUtils.sha256Hex(bytes);
         var existing = imports.findImport(new DeviceLogImportLockQuery(tenant, sourceKey));
         if (existing != null) {
-            if (!Objects.equals(existing.getProjectId(), projectId) || !sourceType.equals(existing.getSourceType())
+            if (!Objects.equals(existing.getOriginTaskId(), command.originTaskId())
+                    || !Objects.equals(existing.getProjectId(), projectId) || !sourceType.equals(existing.getSourceType())
                     || !digest.equals(existing.getInputSha256()) || !Objects.equals(existing.getActorId(), actor)
                     || !fileName.equals(existing.getSourceFileName())) throw problem("同一导入请求不能替换原文件或归属");
             return view(existing);
@@ -82,6 +105,7 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
         if (splitApi == null) throw problem("DAC 日志拆分服务尚未启用");
         DeviceOpsLogSplitApi.Result split;
         var batch = new DeviceLogImportDO(); batch.setTenantId(tenant); batch.setProjectId(projectId); batch.setActorId(actor);
+        batch.setOriginTaskId(command.originTaskId());
         batch.setSourceKey(sourceKey); batch.setSourceType(sourceType); batch.setSourceFileName(fileName); batch.setInputSha256(digest);
         batch.setCreator(actor.toString()); batch.setUpdater(actor.toString()); batch.setDeviceCount(0); batch.setRedactedValueCount(0);
         try { split = splitApi.split(new DeviceOpsLogSplitApi.Command(tenant, projectId, format, text)); }
@@ -126,6 +150,7 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
 
     private void store(DeviceLogImportDO batch, DeviceDO device, Long version, String fileName, String text, DeviceLogFileApi.Origin origin) {
         var row = new DeviceLogFileDO(); row.setTenantId(batch.getTenantId()); row.setProjectId(batch.getProjectId()); row.setImportId(batch.getId());
+        row.setOriginTaskId(batch.getOriginTaskId());
         row.setDeviceId(device==null ? null : device.getId()); row.setSerialNumber(device==null ? null : device.getSn()); row.setDeviceVersion(version);
         row.setSourceType(batch.getSourceType()); row.setFileName(fileName); row.setCreator(batch.getActorId().toString()); row.setUpdater(batch.getActorId().toString());
         if (files.insert(row)!=1) throw problem("设备日志记录保存失败");
@@ -153,7 +178,8 @@ public class DeviceLogArchiveService implements DeviceConfigurationLogArchiveApi
             // A concurrent request may have committed after the initial snapshot. Read its immutable result now.
             var existing = imports.lockImport(new DeviceLogImportLockQuery(batch.getTenantId(), batch.getSourceKey()));
             if (existing == null) throw collision;
-            if (!Objects.equals(existing.getProjectId(), batch.getProjectId())
+            if (!Objects.equals(existing.getOriginTaskId(), batch.getOriginTaskId())
+                    || !Objects.equals(existing.getProjectId(), batch.getProjectId())
                     || !Objects.equals(existing.getSourceType(), batch.getSourceType())
                     || !Objects.equals(existing.getInputSha256(), batch.getInputSha256())
                     || !Objects.equals(existing.getActorId(), batch.getActorId())

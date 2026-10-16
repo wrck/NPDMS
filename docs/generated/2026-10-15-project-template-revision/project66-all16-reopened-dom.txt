@@ -1,0 +1,270 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "系统管理":
+    - generic: 系统管理
+  - menuitem "基础设施":
+    - generic: 基础设施
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理" [expanded]:
+        - generic: 项目管理
+        - menu:
+          - menuitem "项目列表":
+            - generic: 项目列表
+          - menuitem "计划进度":
+            - generic: 计划进度
+          - menuitem "项目风险":
+            - generic: 项目风险
+          - menuitem "组合与治理":
+            - generic: 组合与治理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务":
+        - generic: 巡检服务
+      - menuitem "项目模板管理":
+        - generic: 项目模板管理
+      - menuitem "交付件汇总（6.4）":
+        - generic: 交付件汇总（6.4）
+      - menuitem "现场培训（6.1）":
+        - generic: 现场培训（6.1）
+      - menuitem "阶段施工计划（3.1）":
+        - generic: 阶段施工计划（3.1）
+      - menuitem "施工计划建议规则":
+        - generic: 施工计划建议规则
+      - menuitem "设备连接与采集":
+        - generic: 设备连接与采集
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+  - menuitem "项目交付（新功能暂停）":
+    - generic: 项目交付（新功能暂停）
+  - menuitem "数据集成":
+    - generic: 数据集成
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- superscript
+- button
+- button "首页":
+  - text: 首页
+- button "项目详情":
+  - text: 项目详情
+- button:
+- generic: 正常闭环
+- heading "工程直签全浏览器16任务验收20261016" [level=2]
+- generic: 工程类
+- generic: "模板 #993009900016 v3"
+- text: 编码
+- generic: PJT2026000066
+- text: FAST001客户设备空摘要验收
+- text: 直签 / 原厂直服
+- text: 2026-10-16 04:43:04
+- generic: 进度 100%
+- generic: 任务 16/16
+- generic: 风险 0
+- button "返回列表":
+  - text: 返回列表
+- tablist "项目阶段推进轨":
+  - button "S0 项目立项":
+    - generic: S0
+    - generic: 项目立项
+  - button "S1 工前准备":
+    - generic: S1
+    - generic: 工前准备
+  - button "S2 施工计划":
+    - generic: S2
+    - generic: 施工计划
+  - button "S3 实施方案":
+    - generic: S3
+    - generic: 实施方案
+  - button "S4 实施部署":
+    - generic: S4
+    - generic: 实施部署
+  - button "S5 验收交维":
+    - generic: S5
+    - generic: 验收交维
+  - button "S6 项目闭环":
+    - generic: S6
+    - generic: 项目闭环
+  - button "推进说明与图例":
+- generic "选择任务 · S0"
+- button "基本信息":
+  - generic: 基本信息
+- button "客户信息":
+  - generic: 客户信息
+- button "项目树":
+  - generic: 项目树
+- button "项目成员":
+  - generic: 项目成员
+- button "设备清单":
+  - generic: 设备清单
+- button "序列号详情":
+  - generic: 序列号详情
+- button "配置Log":
+  - generic: 配置Log
+- button "实施范围 待确认":
+  - generic: 实施范围
+  - generic: 待确认
+- button "阶段状态":
+  - generic: 阶段状态
+- button "S0 项目立项 100%":
+  - generic: S0 项目立项
+  - generic: 100%
+- button "S1 工前准备 100%":
+  - generic: S1 工前准备
+  - generic: 100%
+- button "S2 施工计划 100%":
+  - generic: S2 施工计划
+  - generic: 100%
+- button "S3 实施方案 100%":
+  - generic: S3 实施方案
+  - generic: 100%
+- button "S4 实施部署 100%":
+  - generic: S4 实施部署
+  - generic: 100%
+- button "S5 验收交维 100%":
+  - generic: S5 验收交维
+  - generic: 100%
+- button "S6 项目闭环 100%":
+  - generic: S6 项目闭环
+  - generic: 100%
+- button "工勘分工 2.2":
+  - generic: 工勘分工
+  - generic: "2.2"
+- button "需求分析 2.3":
+  - generic: 需求分析
+  - generic: "2.3"
+- button "物料换货 2.2.1":
+  - generic: 物料换货
+  - generic: 2.2.1
+- button "工程交底 2.4":
+  - generic: 工程交底
+  - generic: "2.4"
+- button "施工计划 3.1-3.4":
+  - generic: 施工计划
+  - generic: 3.1-3.4
+- button "实施方案 4.1":
+  - generic: 实施方案
+  - generic: "4.1"
+- button "到货签收 5.1":
+  - generic: 到货签收
+  - generic: "5.1"
+- button "硬件安装 5.2":
+  - generic: 硬件安装
+  - generic: "5.2"
+- button "配置调试 5.3":
+  - generic: 配置调试
+  - generic: "5.3"
+- button "业务联调 5.4":
+  - generic: 业务联调
+  - generic: "5.4"
+- button "割接上线 5.5":
+  - generic: 割接上线
+  - generic: "5.5"
+- button "现场培训 6.1":
+  - generic: 现场培训
+  - generic: "6.1"
+- button "满意度调查 6.2":
+  - generic: 满意度调查
+  - generic: "6.2"
+- button "初验&终验 6.3":
+  - generic: 初验&终验
+  - generic: "6.3"
+- button "交付件汇总 6.5":
+  - generic: 交付件汇总
+  - generic: "6.5"
+- button "交付件检查 6.6":
+  - generic: 交付件检查
+  - generic: "6.6"
+- button "归档文档 6.7":
+  - generic: 归档文档
+  - generic: "6.7"
+- button "闭环记录 6.8":
+  - generic: 闭环记录
+  - generic: "6.8"
+- button "项目闭环 6.9":
+  - generic: 项目闭环
+  - generic: "6.9"
+- button "拆分方案":
+  - generic: 拆分方案
+- button "进度汇总":
+  - generic: 进度汇总
+- button "异常治理":
+  - generic: 异常治理
+- button "项目授权":
+  - generic: 项目授权
+- button "责任分布":
+  - generic: 责任分布
+- text: 基本信息
+- region "项目基础信息":
+  - term: 合同号
+  - definition: —
+  - term: 销售代表
+  - definition: —
+  - term: 办事处
+  - definition: 杭州服务办事处
+  - term: 所属公司
+  - definition: 迪普科技示例公司
+  - term: 市场部
+  - definition: —
+  - term: 订单创建时间
+  - definition: —
+  - term: 项目开始时间
+  - definition: —
+  - term: 项目类别
+  - definition: 直签
+  - term: 重大项目级别
+  - definition: —
+  - term: 服务经理
+  - definition: 管理员
+  - term: 项目类型
+  - definition: 工程类
+  - term: 主责项目经理
+  - definition: 管理员
+  - term: 其他项目经理
+  - definition: —
+  - term: 实施方式
+  - definition: 原厂直服
+  - term: 下单/施工代理商
+  - definition: —
+  - term: 服务提供商
+  - definition: —
+  - term: 最终客户单位
+  - definition: —
+  - term: 客户项目名称
+  - definition: —
+  - term: 不予跟踪原因
+  - definition: —
+- heading "合同与执行单" [level=3]
+- paragraph: 尚未关联商务资料；关联后展示合同、订单及执行单信息。
+- heading "补充信息" [level=3]
+- term: 客户单位
+- definition: FAST001客户设备空摘要验收
+- term: 用户服务等级
+- definition: —
+- term: 业务层级
+- definition: —
+- term: 项目结束日期（工勘要求）
+- definition: 2026-10-30
+- term: 实施地点
+- definition: 全浏览器隔离验收实验室20261016，无真实客户现场
+- term: 创建原因
+- definition: 用户批准重新建立独立项目，全部16任务通过真实浏览器办理，使用全新合成验收资料和独立实验室样机，不复用65业务记录，不涉及真实客户交付，五份源模板保持未发布。
+- term: 创建时间
+- definition: 2026-10-16 04:43:04
+- term: 创建来源
+- definition: 手工创建
+- generic: Copyright ©2026 项目实施交付管理平台

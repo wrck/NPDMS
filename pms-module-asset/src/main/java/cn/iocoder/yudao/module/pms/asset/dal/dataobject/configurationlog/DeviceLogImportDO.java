@@ -7,6 +7,7 @@ import lombok.*;
 public class DeviceLogImportDO extends TenantBaseDO {
     @TableId(type = com.baomidou.mybatisplus.annotation.IdType.ASSIGN_ID) private Long id;
     private Long projectId;
+    private Long originTaskId;
     private String sourceKey;
     private String sourceType;
     private String sourceFileName;

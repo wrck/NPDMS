@@ -320,6 +320,7 @@
   <ProjectDeviceLogArchiveDialog
     v-model="projectLogsVisible"
     :project-id="query.projectId"
+    :origin-task-id="props.originTaskId"
     :readonly="props.readonly"
   />
 </template>
@@ -342,6 +343,7 @@ import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngJointTestWithDeviceLogs' })
 const props = defineProps<{
+  originTaskId?: string | number
   projectId?: number
   /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean
 }>()

@@ -221,7 +221,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           <p v-else-if="workbench.trustedTargetRef === '/customer-asset/customer-contact'" class="page-embed-hint">联系人保存后将同步任务状态与进度；完成条件以当前任务规则为准。</p>
           <p v-else-if="workbench.trustedTargetRef === '/pms/project-management/project-master-detail'" class="page-embed-hint">维护最终用户外部人员后，将按当前任务规则同步完成状态。</p>
           <p v-else class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
-          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :readonly="taskPending"
+          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :origin-task-id="workbench.task.taskId" :readonly="taskPending"
             @changed="handleEmbeddedBusinessChanged" @updated="handleEmbeddedBusinessChanged" />
         </template>
         <el-alert

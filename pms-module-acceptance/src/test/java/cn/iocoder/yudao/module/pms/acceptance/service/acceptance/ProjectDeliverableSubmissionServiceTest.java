@@ -358,7 +358,7 @@ class ProjectDeliverableSubmissionServiceTest {
         var config = JsonUtils.parseTree(CONFIG); config = JsonUtils.parseTree(config.toString().replace("SOL.REQUIREMENT_DOCUMENT", "UNRELATED"));
         var frozen = new ProjectDeliverableRuleApi.Context(9L,15L,"ACTIVE",11L,"S1","T1",config);
         when(rules.read(9L,"D1")).thenReturn(frozen);when(rules.lock(9L,"D1")).thenReturn(frozen);
-        when(rules.documentTargets(9L,"SOL.REQUIREMENT_DOCUMENT")).thenReturn(java.util.Set.of("D1"));
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"SOL.REQUIREMENT_DOCUMENT"))).thenReturn(java.util.Set.of("D1"));
         service.collectDocument(view,scope(9L),collectedDocument(71L,true),"bound-page-document");
         verify(platform).submitTemplateFrozen(any());
         when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(submission(1001L,PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT,"{}",null,List.of(9003L))));
@@ -366,7 +366,21 @@ class ProjectDeliverableSubmissionServiceTest {
         when(fileEvidence.inspectDocument(7L,71L)).thenReturn(collectedDocument(71L,true));
         when(documentSources.resolve(7L,collectedDocument(71L,true))).thenReturn(scope(9L));
         assertTrue(resolver.evaluate(31L,9L,"D1",1).satisfied());
-        when(rules.documentTargets(9L,"SOL.REQUIREMENT_DOCUMENT")).thenReturn(java.util.Set.of());
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L,"SOL.REQUIREMENT_DOCUMENT"))).thenReturn(java.util.Set.of());
+        assertFalse(resolver.evaluate(31L,9L,"D1",1).satisfied());
+    }
+
+    @Test
+    void explicitAutomaticSourceCannotOverrideTaskOrigin() {
+        var scope = new FileDocumentSourceProvider.Scope(9L, "SOL.REQUIREMENT_DOCUMENT", "SOL", "document", 1L, 1L, 102L);
+        var query = new ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, scope.sourceCode(), 102L);
+        when(rules.documentTargets(query)).thenReturn(java.util.Set.of("OTHER_TASK_DELIVERABLE"));
+        service.collectDocument(view, scope, collectedDocument(71L,true), "wrong-task");
+        verify(platform, never()).submitTemplateFrozen(any());
+        when(platform.findCurrentSubmission(31L)).thenReturn(Optional.of(submission(1001L,PlatformDeliveryRequirementApi.SOURCE_BUSINESS_DOCUMENT,"{}",null,List.of(9003L))));
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(9003L,71L,"SOL.REQUIREMENT_DOCUMENT","ACTIVE")));
+        when(fileEvidence.inspectDocument(7L,71L)).thenReturn(collectedDocument(71L,true));
+        when(documentSources.resolve(7L,collectedDocument(71L,true))).thenReturn(scope);
         assertFalse(resolver.evaluate(31L,9L,"D1",1).satisfied());
     }
 
@@ -453,7 +467,7 @@ class ProjectDeliverableSubmissionServiceTest {
         ((tools.jackson.databind.node.ObjectNode) context.configuration()).remove("automaticSources");
         when(rules.read(9L, "D1")).thenReturn(context);
         when(rules.lock(9L, "D1")).thenReturn(context);
-        when(rules.documentTargets(9L, "PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED")).thenReturn(java.util.Set.of("D1"));
+        when(rules.documentTargets(new cn.iocoder.yudao.module.pms.project.api.deliverable.ProjectDeliverableRuleApi.DocumentTargetsQuery(9L, "PLN.STAGE_PLAN.CONSTRUCTION_PLAN_APPROVED"))).thenReturn(java.util.Set.of("D1"));
         var original = resultChange(UUID.randomUUID(), BusinessResultSource.Validity.CURRENT);
         var type = new BusinessResultSource.Type("PLN", "STAGE_PLAN", "CONSTRUCTION_PLAN_APPROVED");
         var result = new BusinessResultSource.Result(7L, 9L, type, "30", "30", null, "2",
