@@ -113,7 +113,7 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
             var categories = new java.util.HashSet<>(authorized.allowedCategoryCodes());
             categories.retainAll(catalog.allowedCategoryCodes());
             var media = new java.util.HashSet<>(authorized.allowedMediaTypes().stream()
-                    .map(DeliveryFilePolicyProvider::mediaType).toList());
+                    .map(DeliveryCatalogService::mediaType).toList());
             media.retainAll(catalog.allowedMediaTypes());
             if (categories.isEmpty() || media.isEmpty()) throw DeliveryOwnerAccess.denied();
             return new FileBusinessObjectPolicyFact(true, authorized.scopeVersion(), authorized.referenceMutability(),
@@ -139,26 +139,9 @@ public class DeliveryFilePolicyProvider implements FileBusinessObjectPolicyProvi
         boolean write = FileActionCodes.UPLOAD.equals(query.requiredAction()) || FileActionCodes.REFERENCE.equals(query.requiredAction());
         DeliveryTypeDO type = write ? (lock ? catalogService.lockEnabledType(query.purposeCode()) : catalogService.requireEnabledType(query.purposeCode())) : catalogService.requireType(query.purposeCode());
         return new FileBusinessObjectPolicyFact(true, scope, "IMMUTABLE", "MULTIPLE",
-                Set.of(type.getCategory()), catalogService.allowedMedia(type).stream().map(DeliveryFilePolicyProvider::mediaType)
+                Set.of(type.getCategory()), catalogService.allowedMedia(type).stream().map(DeliveryCatalogService::mediaType)
                         .collect(java.util.stream.Collectors.toUnmodifiableSet()),
                 type.getMaxSizeBytes(), "INTERNAL");
-    }
-
-    private static String mediaType(String value) {
-        return switch(value.trim().toLowerCase(java.util.Locale.ROOT)) {
-            case "pdf" -> "application/pdf";
-            case "html", "htm" -> "text/html";
-            case "jpeg", "jpg" -> "image/jpeg";
-            case "png" -> "image/png";
-            case "doc" -> "application/msword";
-            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-            case "xls" -> "application/vnd.ms-excel";
-            case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-            case "ppt" -> "application/vnd.ms-powerpoint";
-            case "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-            case "txt" -> "text/plain";
-            default -> value.trim().toLowerCase(java.util.Locale.ROOT);
-        };
     }
 
     /** 材料文件锚 objectId = "{ownerModule}:{entityType}:{entityId}"（fileObjectId 约定）。 */

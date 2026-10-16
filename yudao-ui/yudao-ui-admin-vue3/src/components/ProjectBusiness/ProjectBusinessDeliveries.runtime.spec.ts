@@ -18,7 +18,7 @@ it('opens a separate readonly upload history without losing the original upload 
   const originalKey=api.upload.mock.calls[0][2]
   await click(mounted.root,'上传记录')
   expect(api.deliveryHistory).toHaveBeenLastCalledWith('11','ATTACHMENT',1)
-  expect(api.completion).toHaveBeenLastCalledWith({...scope,deliverableType:'ATTACHMENT'})
+  expect(api.completion).not.toHaveBeenCalled()
   const history=all(mounted.root).find(node=>node.type==='dialog')!
   expect(textOf(history)).toContain('旧附件')
   expect(textOf(history)).toContain('已移除')
@@ -30,6 +30,19 @@ it('opens a separate readonly upload history without losing the original upload 
   await click(mounted.root,'关闭上传记录');await click(mounted.root,'重试上传')
   expect(api.upload.mock.calls[1][2]).toBe(originalKey)
  }finally{mounted.app.unmount()}
+})
+it('reads readonly attachment history without requesting upload context or completion',async()=>{
+ const api={base:'/test',deliveryContext:vi.fn(),completion:vi.fn(),deliveries:vi.fn(async()=>({list:[{id:'1',title:'历史附件',fileName:'history.txt'}],total:1}))}
+ const view=mount(Deliveries,{api,entityId:'11',readonly:true},components)
+ try{await flush();expect(textOf(view.root)).toContain('历史附件');expect(api.deliveryContext).not.toHaveBeenCalled();expect(api.completion).not.toHaveBeenCalled()}
+ finally{view.app.unmount()}
+})
+it('starts writable attachment list independently of slow upload context',async()=>{
+ let finish!:(value:unknown)=>void
+ const api={base:'/test',deliveryContext:vi.fn(()=>new Promise(resolve=>{finish=resolve})),completion:vi.fn(async()=>({completed:false})),deliveries:vi.fn(async()=>({list:[{id:'1',title:'已存在附件',fileName:'existing.txt'}],total:1}))}
+ const view=mount(Deliveries,{api,entityId:'11'},components)
+ try{await flush();expect(api.deliveries).toHaveBeenCalled();expect(textOf(view.root)).toContain('已存在附件');expect(api.completion).not.toHaveBeenCalled()}
+ finally{finish?.({projectId:99,businessType:'NOTE',businessEntityKey:'11'});await flush();view.app.unmount()}
 })
 it('closes history and discards a late response when the business entity changes',async()=>{
  let resolveOld:(value:unknown)=>void=()=>undefined

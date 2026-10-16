@@ -10,6 +10,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.delivery.DeliveryMate
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.DeliveryMaterialMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.*;
 import cn.iocoder.yudao.module.pms.platform.service.delivery.DeclaredBusinessDeliveryBridge;
+import cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryCatalogService;
 import cn.iocoder.yudao.module.pms.platform.service.file.FileUploadApplicationService;
 import cn.iocoder.yudao.module.pms.platform.service.file.command.*;
 import cn.iocoder.yudao.module.pms.platform.support.service.BusinessCallerContext;
@@ -36,6 +37,7 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
     private final FileUploadApplicationService uploads;
     private final FileEvidenceApi files;
     private final DeliveryMaterialMapper materials;
+    private final DeliveryCatalogService deliveryCatalog;
     @org.springframework.beans.factory.annotation.Autowired
     private cn.iocoder.yudao.module.pms.platform.api.outbox.PlatformBusinessEventApi businessEvents;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
@@ -112,9 +114,11 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         var model=authorize(scope,true,true);var caller=callers.require();
         if(file==null || file.isEmpty() || file.getOriginalFilename()==null || file.getOriginalFilename().length()>255 || key==null || !key.matches("[A-Za-z0-9_.:-]{1,100}")) throw invalid("上传请求不合法");
         String slot=digest(scope.projectId()+"/"+scope.businessType()+"/"+scope.businessEntityKey()+"/"+scope.deliverableType()+"/"+caller.userId()+"/"+key);
+        var type=deliveryCatalog.findType(scope.deliverableType());
+        String category=type==null?"DOCUMENT":type.getCategory();
         var initialized=uploads.initialize(new FileUploadInitializeCommand(caller.tenantId(),caller.userId(),"default-init:"+slot,
                 "CREATE_ARTIFACT",null,null,"PLT",FILE_OBJECT_TYPE,objectId(model,scope.businessEntityKey(),scope.projectId()),scope.deliverableType(),
-                slot,file.getOriginalFilename(),"DOCUMENT",file.getSize(),file.getContentType(),null));
+                slot,file.getOriginalFilename(),category,file.getSize(),file.getContentType(),null));
         var completed=uploads.complete(new FileUploadCompleteCommand(caller.tenantId(),caller.userId(),"default-complete:"+slot,
                 initialized.artifactId(),initialized.sessionId(),file,null));
         var document=files.inspectDocument(caller.tenantId(),completed.referenceId());
@@ -196,8 +200,14 @@ public class DefaultBusinessDeliveryService implements DefaultBusinessDeliveryAp
         var actor=new cn.iocoder.yudao.module.pms.platform.api.entity.EntityActor(caller.tenantId(),caller.userId(),"DELIVERY_COLLECTION");
         var readableTypes=new java.util.HashSet<String>();
         var allModels=new java.util.LinkedHashMap<String,BusinessModelDescriptor>();
-        catalog.all().forEach(model->allModels.put(model.stableCode(),model));
-        var direct=direct();if(direct!=null)direct.definitions().forEach(model->allModels.put(model.stableCode(),model));
+        var direct=direct();
+        if(businessType!=null) {
+            // A single-owner page does not need to resolve every unrelated business model and its configuration.
+            var selected=model(businessType);allModels.put(selected.stableCode(),selected);
+        } else {
+            catalog.all().forEach(model->allModels.put(model.stableCode(),model));
+            if(direct!=null)direct.definitions().forEach(model->allModels.put(model.stableCode(),model));
+        }
         for(var model:allModels.values()) {
             boolean inherited=direct!=null && direct.byCode(model.stableCode()).isPresent();
             if(!inherited && !entities.supports(model.ownerModule(),model.entityType())) continue;

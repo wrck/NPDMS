@@ -100,6 +100,7 @@ class DefaultBusinessDeliveryMySqlTest {
         var contributors=runtime.context.getBeanProvider(BusinessModelContributor.class);
         var catalog=new BusinessModelRegistry(contributors);var persistence=new BusinessEntityPersistenceRegistry(contributors);
         context.getBeanFactory().registerSingleton("catalog",catalog);
+        context.registerBean(DeliveryCatalogService.class,()->mock(DeliveryCatalogService.class));
         context.getBeanFactory().registerSingleton("guard",runtime.guard);
         context.getBeanFactory().registerSingleton("persistence",persistence);
         context.getBeanFactory().registerSingleton("bridge",new DeclaredBusinessDeliveryBridge(persistence,runtime.dispatcher,runtime.access,runtime.projectApi,projects));

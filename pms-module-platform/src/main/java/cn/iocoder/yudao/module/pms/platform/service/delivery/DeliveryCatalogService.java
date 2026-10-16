@@ -88,6 +88,27 @@ public class DeliveryCatalogService {
                 "DELIVERY_TYPE_NOT_FOUND", "交付类型不存在: " + typeCode));
     }
 
+    public DeliveryTypeDO findType(String typeCode) {
+        return typeMapper.selectByCode(typeCode).orElse(null);
+    }
+
+    public static String mediaType(String value) {
+        return switch(value.trim().toLowerCase(java.util.Locale.ROOT)) {
+            case "pdf" -> "application/pdf";
+            case "html", "htm" -> "text/html";
+            case "jpeg", "jpg" -> "image/jpeg";
+            case "png" -> "image/png";
+            case "doc" -> "application/msword";
+            case "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "xls" -> "application/vnd.ms-excel";
+            case "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "ppt" -> "application/vnd.ms-powerpoint";
+            case "pptx" -> "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            case "txt" -> "text/plain";
+            default -> value.trim().toLowerCase(java.util.Locale.ROOT);
+        };
+    }
+
     @Transactional(propagation = org.springframework.transaction.annotation.Propagation.MANDATORY)
     public DeliveryTypeDO lockEnabledType(String typeCode) {
         var row = typeMapper.selectCodeForUpdate(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryTypeCodeLockQuery(

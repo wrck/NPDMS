@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractEx
 import cn.iocoder.yudao.module.pms.platform.api.file.*;
 import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.platform.service.delivery.DeclaredBusinessDeliveryBridge;
+import cn.iocoder.yudao.module.pms.platform.service.delivery.DeliveryCatalogService;
 import cn.iocoder.yudao.module.pms.platform.support.service.BusinessCallerContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import java.util.Set;
 public class DefaultBusinessDeliveryFilePolicy implements FileBusinessObjectPolicyProvider {
     private final DeclaredBusinessDeliveryBridge entities;
     private final BusinessCallerContext callers;
+    private final DeliveryCatalogService deliveryCatalog;
     @org.springframework.beans.factory.annotation.Autowired(required=false)
     private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.service.business.DirectBusinessOwners> directOwners;
     private static final Set<String> MEDIA=Set.of("text/plain","text/csv","application/pdf","image/png","image/jpeg",
@@ -47,12 +49,22 @@ public class DefaultBusinessDeliveryFilePolicy implements FileBusinessObjectPoli
                     Set.of(FileActionCodes.UPLOAD,FileActionCodes.REFERENCE).contains(query.requiredAction()),lock,expectedScope);
             if(!DefaultBusinessDeliveryService.entityId(owner[0]).equals(access.projectId()))
                 throw new BusinessContractException("ACCESS_DENIED","文件业务实体已不属于原项目");
-            return new FileBusinessObjectPolicyFact(true,access.scopeVersion(),"IMMUTABLE","MULTIPLE",Set.of("DOCUMENT"),MEDIA,52_428_800L,"INTERNAL");
+            return contentPolicy(query,lock,access.scopeVersion());
         }
         Long scope=entities.requireDefault(query.tenantId(),query.actorUserId(),owner[1],owner[2],
                 DefaultBusinessDeliveryService.entityId(owner[3]),Set.of(FileActionCodes.UPLOAD,FileActionCodes.REFERENCE).contains(query.requiredAction()),lock,expectedScope);
         if(!DefaultBusinessDeliveryService.entityId(owner[0]).equals(entities.projectId(query.tenantId(),owner[1],owner[2],DefaultBusinessDeliveryService.entityId(owner[3]))))
             throw new BusinessContractException("ACCESS_DENIED","文件业务实体已不属于原项目");
-        return new FileBusinessObjectPolicyFact(true,scope,"IMMUTABLE","MULTIPLE",Set.of("DOCUMENT"),MEDIA,52_428_800L,"INTERNAL");
+        return contentPolicy(query,lock,scope);
+    }
+    private FileBusinessObjectPolicyFact contentPolicy(FileBusinessObjectPolicyQuery query,boolean lock,Long scope) {
+        var type=deliveryCatalog.findType(query.purposeCode());
+        if(type==null) return new FileBusinessObjectPolicyFact(true,scope,"IMMUTABLE","MULTIPLE",Set.of("DOCUMENT"),MEDIA,52_428_800L,"INTERNAL");
+        if(Set.of(FileActionCodes.UPLOAD,FileActionCodes.REFERENCE).contains(query.requiredAction())) {
+            type=lock?deliveryCatalog.lockEnabledType(query.purposeCode()):deliveryCatalog.requireEnabledType(query.purposeCode());
+        }
+        return new FileBusinessObjectPolicyFact(true,scope,"IMMUTABLE","MULTIPLE",Set.of(type.getCategory()),
+                deliveryCatalog.allowedMedia(type).stream().map(DeliveryCatalogService::mediaType).collect(java.util.stream.Collectors.toUnmodifiableSet()),
+                type.getMaxSizeBytes(),"INTERNAL");
     }
 }

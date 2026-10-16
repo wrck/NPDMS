@@ -1,15 +1,15 @@
 <template>
   <section class="project-business-deliveries" :class="{embedded}" aria-label="附件">
     <header class="attachment-toolbar">
-      <div class="attachment-heading"><h3 v-if="!embedded">附件</h3><span v-else>{{total}} 个文件</span><span v-if="completed && !embedded" class="attachment-count">{{total}} 个文件</span></div>
+      <div class="attachment-heading"><h3 v-if="!embedded">附件</h3><span v-else>{{total}} 个文件</span><span v-if="loaded && !embedded" class="attachment-count">{{total}} 个文件</span></div>
       <div class="attachment-actions">
         <el-button link :disabled="mutating" @click="historyPanel?.open()">上传记录</el-button>
         <el-button link :disabled="mutating || fetching" @click="refresh">刷新</el-button>
-        <el-button v-if="!readonly" type="primary" :loading="mutating && !!pending" :disabled="mutating || fetching || !scope" @click="fileInput?.click()"><Icon icon="ep:upload" class="mr-1" />上传文件</el-button>
+        <el-button v-if="!readonly" type="primary" :loading="mutating && !!pending" :disabled="mutating || fetching || !loaded || !scope" @click="fileInput?.click()"><Icon icon="ep:upload" class="mr-1" />上传文件</el-button>
       </div>
     </header>
     <input v-if="!readonly" ref="fileInput" class="file-input" type="file" tabindex="-1" aria-label="选择附件" :disabled="mutating || !scope" @change="selectFile" />
-    <el-alert v-if="error" :title="error" type="error" show-icon :closable="false" />
+    <el-alert v-if="error || contextError" :title="error || contextError" type="error" show-icon :closable="false" />
     <div v-if="pending" class="pending-upload" role="status" aria-live="polite">
       <Icon icon="ep:document" /><span class="pending-name">{{pending.file.name}}</span><span>{{mutating ? '正在上传…' : '上传结果未确认'}}</span>
       <el-button v-if="!readonly && !mutating" link type="primary" @click="upload">重试上传</el-button>
@@ -49,24 +49,27 @@ const emit=defineEmits<{changed:[];'busy-change':[boolean]}>()
 const historyPanel=ref<InstanceType<typeof ProjectBusinessDeliveryHistory>>(),editingId=ref<string>()
 const message = useMessage(), type = computed(()=>props.deliverableType)
 const scope = ref<DeliveryScope>(), rows = ref<DeliveryRecord[]>([]), titles = ref<Record<string,string>>({})
-const completed = ref(false), error = ref(''), fetching = ref(false), mutating = ref(false), page = ref(1), total = ref(0)
+const loaded = ref(false), error = ref(''), contextError = ref(''), fetching = ref(false), mutating = ref(false), page = ref(1), total = ref(0)
 const fileInput = ref<HTMLInputElement>(), pending = ref<{ file:File;scope:DeliveryScope;key:string }>()
 let generation = 0
 const failureMessage = (failure:any) => failure?.response?.data?.msg || failure?.message || '交付件操作失败'
 const refresh = async () => {
   const active=++generation, client=props.api, id=props.entityId, deliverableType=type.value,currentPage=page.value
-  fetching.value=true; error.value=''; scope.value=undefined; completed.value=false
-  try {
-    if(!/^[A-Za-z0-9_.:-]{1,64}$/.test(deliverableType))throw new Error('交付件类型不合法')
-    const context=await client.deliveryContext(id)
-    if(String(context.businessEntityKey)!==String(id) || !context.businessType || !/^[1-9][0-9]*$/.test(String(context.projectId)))throw new Error('交付件归属不匹配')
-    const target={...context,deliverableType}
-    const [list,result]=await Promise.all([client.deliveries(id,deliverableType,currentPage),client.completion(target)])
+  fetching.value=true; error.value=''; contextError.value=''; scope.value=undefined; loaded.value=false
+  if(!/^[A-Za-z0-9_.:-]{1,64}$/.test(deliverableType)){error.value='交付件类型不合法';fetching.value=false;return}
+  // Listing is authorized by the entity endpoint. Upload context is independent and must not delay reading.
+  const listRequest=client.deliveries(id,deliverableType,currentPage).then(list=>{
     if(active!==generation)return
-    scope.value=target;rows.value=list.list;total.value=list.total;completed.value=result.completed
+    rows.value=list.list;total.value=list.total;loaded.value=true
     titles.value=Object.fromEntries(list.list.map(row=>[row.id,row.title]))
-  } catch(failure) {if(active===generation){rows.value=[];error.value=failureMessage(failure)}}
-  finally {if(active===generation)fetching.value=false}
+  }).catch(failure=>{if(active===generation){rows.value=[];error.value=failureMessage(failure)}})
+    .finally(()=>{if(active===generation)fetching.value=false})
+  const contextRequest=props.readonly?Promise.resolve():client.deliveryContext(id).then(context=>{
+    if(active!==generation)return
+    if(String(context.businessEntityKey)!==String(id) || !context.businessType || !/^[1-9][0-9]*$/.test(String(context.projectId)))throw new Error('交付件归属不匹配')
+    scope.value={...context,deliverableType}
+  }).catch(failure=>{if(active===generation)contextError.value=failureMessage(failure)})
+  await Promise.all([listRequest,contextRequest])
 }
 const selectFile = (event:Event) => {
   const file=(event.target as HTMLInputElement).files?.[0]
@@ -99,7 +102,7 @@ const remove = async (row:DeliveryRecord) => {
   }catch(failure){if(active===generation)error.value=failureMessage(failure)}finally{mutating.value=false}
 }
 const download=async(row:DeliveryRecord)=>{const active=generation,client=props.api,id=props.entityId;try{const ticket=await client.downloadDelivery(id,row);if(active===generation)window.open(ticket.shortLivedUrl,'_blank','noopener')}catch(failure){if(active===generation)error.value=failureMessage(failure)}}
-watch(()=>[props.api.base,props.entityId,type.value],()=>{pending.value=undefined;editingId.value=undefined;page.value=1;rows.value=[];refresh()},{immediate:true})
+watch(()=>[props.api.base,props.entityId,type.value,props.readonly],()=>{pending.value=undefined;editingId.value=undefined;page.value=1;rows.value=[];refresh()},{immediate:true})
 watch(mutating,value=>emit('busy-change',value))
 onBeforeUnmount(()=>++generation)
 defineExpose({isBusy:()=>mutating.value,refresh})
