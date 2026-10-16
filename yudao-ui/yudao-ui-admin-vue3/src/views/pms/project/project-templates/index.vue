@@ -26,7 +26,7 @@
     <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="110px">
       <el-form-item label="模板编码" prop="code"><el-input v-model="createForm.code" placeholder="创建后不可修改" /></el-form-item>
       <el-form-item label="模板名称" prop="name"><el-input v-model="createForm.name" /></el-form-item>
-      <el-form-item label="匹配优先级"><el-input-number v-model="createForm.matchPriority" :min="1" /><span class="ml-8px">数值小者先命中</span></el-form-item>
+      <el-form-item label="匹配优先级"><el-input-number v-model="createForm.matchPriority" /><span class="ml-8px">数值小者先命中</span></el-form-item>
       <el-form-item label="描述"><el-input v-model="createForm.description" type="textarea" /></el-form-item>
     </el-form>
     <el-alert v-if="failure" :title="failure" type="error" :closable="false" />
@@ -47,7 +47,7 @@
             <el-form-item label="模板编码"><el-input :model-value="detail.code" disabled /></el-form-item>
             <el-form-item label="状态"><el-tag :type="statusTagType(detail.status)">{{ statusLabel(detail.status) }}</el-tag></el-form-item>
             <el-form-item label="模板名称"><el-input v-model="identityForm.name" /></el-form-item>
-            <el-form-item label="匹配优先级"><el-input-number v-model="identityForm.matchPriority" :min="1" /></el-form-item>
+            <el-form-item label="匹配优先级"><el-input-number v-model="identityForm.matchPriority" /></el-form-item>
             <el-form-item label="描述"><el-input v-model="identityForm.description" type="textarea" /></el-form-item>
             <el-form-item><el-button type="primary" :loading="saving" @click="saveIdentity" v-hasPermi="['pms:project-template:update']">保存基本信息</el-button><el-button :disabled="detail.status !== 'ACTIVE' || saving" @click="disable(detail)" v-hasPermi="['pms:project-template:disable']">停用模板</el-button><el-button type="danger" plain :disabled="saving" @click="remove(detail)" v-hasPermi="['pms:project-template:delete']">删除草稿模板</el-button></el-form-item>
           </el-form>
