@@ -15,6 +15,7 @@ import ProjectDurationPanel from '@/views/pms/project/project-master-detail/comp
 import ProjectSchedulePanel from '@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue'
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
 import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
+import InstallationWorkbench from '@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'
 import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
 import ProjectCutoverCoverage from '@/views/pms/cutover/project-coverage/index.vue'
 import CutoverBusinessEntry from '@/views/pms/cutover/components/CutoverBusinessEntry.vue'
@@ -71,10 +72,10 @@ const adapters: readonly Adapter[] = [
   },
   {
     ...businessPageRoutes.IMP_PROJECT_INSTALLATION,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(InstallationWorkbench),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '硬件实施', tab: 'installation' }
+        ? { projectId: resolvedContext.project.id }
         : undefined
   },
   {
@@ -87,11 +88,11 @@ const adapters: readonly Adapter[] = [
   },
   {
     ...businessPageRoutes.CUT_CUTOVER_APPROVAL,
-    component: markRaw(CutoverBusinessEntry),
+    component: markRaw(ProjectCutoverTasks),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
         && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
-        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, mode: 'APPROVAL' }
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId, operationObjectType: 'CUTOVER_APPROVAL' }
         : undefined
   },
   {

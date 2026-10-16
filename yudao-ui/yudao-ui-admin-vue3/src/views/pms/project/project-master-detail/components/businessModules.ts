@@ -36,8 +36,7 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
     items: [
       { key: 'preparation', label: '工勘分工', icon: 'ep:compass', code: '2.2', permission: ['pms:sol-site-survey:query'] },
       { key: 'requirement-analysis', label: '需求分析', icon: 'ep:edit-pen', code: '2.3', permission: ['pms:requirement-analysis:query', 'pms:requirement-analysis:manage'] },
-      { key: 'material-exch', label: '物料换货', icon: 'ep:sort', code: '2.2.1' },
-      { key: 'briefing', label: '工程交底', icon: 'ep:notebook-2', code: '2.4' }
+      { key: 'material-exch', label: '物料换货', icon: 'ep:sort', code: '2.2.1' }
     ]
   },
   {
@@ -75,7 +74,6 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
       { key: 'acceptance-reports', label: '初验&终验', icon: 'ep:document-checked', code: '6.3', permission: ['pms:acceptance:report:query'] },
       { key: 'deliverable-summary', label: '交付件汇总', icon: 'ep:folder-opened', code: '6.5' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked', code: '6.6' },
-      { key: 'archive-document', label: '归档文档', icon: 'ep:archive', code: '6.7' },
       { key: 'project-closure', label: '闭环记录', icon: 'ep:lock', code: '6.8' },
       { key: 'closure', label: '项目闭环', icon: 'ep:circle-close', code: '6.9' }
     ]

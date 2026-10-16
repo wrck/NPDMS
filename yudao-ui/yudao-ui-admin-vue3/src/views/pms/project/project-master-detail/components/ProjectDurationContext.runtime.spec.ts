@@ -82,7 +82,7 @@ const flush = async () => {
   }
 }
 const apps: { unmount: () => void }[] = []
-const render = (component: Component, readonly = false, id: number | undefined = 1) => {
+const render = (component: Component, readonly = false, id: number | string | undefined = 1) => {
   const props = reactive({ project: { id, version: 7, projectName: '主线工期验收项目', projectEndDate: undefined as string | undefined, projectManagerAssigned: true }, readonly })
   const child = ref<any>()
   const wrapper = defineComponent({ setup: () => () => h(component, { ...props, ref: child }) })
@@ -205,6 +205,19 @@ it('explains missing project-manager assignment and prevents initial entry witho
 })
 
 describe('PRE-01 existing duration components in project views', () => {
+  it('preserves a Snowflake project ID for querying and initial duration entry', async () => {
+    const id = '2110018733130579975'
+    api.getByProjectId.mockResolvedValue(null)
+    const panel = render(Panel, false, id)
+    const drawer = render(Drawer, false, id)
+    await flush()
+    expect(api.getByProjectId).toHaveBeenCalledWith(id)
+    expect(panel.state().canWrite).toBe(true)
+    drawer.child.value.openInitial()
+    expect(drawer.state().visible).toBe(true)
+    expect(drawer.state().canWrite).toBe(true)
+  })
+
   it('keeps the existing project prop and default writable behavior', async () => {
     const view = render(Panel)
     await flush()
@@ -213,7 +226,7 @@ describe('PRE-01 existing duration components in project views', () => {
     expect(view.state().canWrite).toBe(true)
   })
 
-  it.each([0, -1, NaN, Number.MAX_SAFE_INTEGER + 1])(
+  it.each([0, -1, NaN, Number.MAX_SAFE_INTEGER + 1, '', '0', '1e3', '9223372036854775808'])(
     'rejects invalid project %s without offering initial creation',
     async (id) => {
       const view = render(Panel, false, id)
@@ -310,15 +323,15 @@ describe('PRE-01 existing duration components in project views', () => {
     expect(cancel).not.toHaveBeenCalled()
   })
 
-  it('reuses the original initial-duration API and date payload', async () => {
-    const view = render(Drawer)
+  it.each([1, '2110018733130579975'])('preserves project %s in the initial-duration write payload', async (id) => {
+    const view = render(Drawer, false, id)
     view.child.value.openInitial()
     view.state().formRef = { validate: async () => true }
     Object.assign(view.state().form, { startDate: '2026-09-01', endDate: '2026-09-10' })
     await view.state().save()
     expect(api.createInitial).toHaveBeenCalledWith(
       {
-        projectId: 1,
+        projectId: id,
         expectedProjectVersion: 7,
         calculationBasis: 'DATE_RANGE',
         startDate: '2026-09-01',

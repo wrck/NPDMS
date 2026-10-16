@@ -38,7 +38,7 @@
       <el-skeleton v-else-if="detailLoading" :rows="8" animated />
       <template v-else-if="detail">
         <div class="analysis-heading">
-          <div><h3>项目需求分析</h3><p>记录客户目标、网络现状和实施要求，作为实施方案与工程交底的输入。</p></div>
+          <div><h3>项目需求分析</h3><p>记录客户目标、网络现状和实施要求，作为实施方案的输入。</p></div>
           <el-tag :type="detail.revision.state === 'DRAFT' ? 'warning' : 'success'">{{ relationLabel }} · V{{ detail.revision.revisionNo }}</el-tag>
         </div>
         <EntityForm
@@ -47,7 +47,6 @@
           :detail="detail" :allowed-actions="detailActions" :reload="reloadSelectedDetail" :execution="loadedExecution"
           @dirty-change="formDirty = $event" @saved="emit('changed')" @receipt="operationReceipt = $event"
         />
-        <RequirementBriefingSection v-if="project.id" :project-id="project.id" :manage="openBriefing" />
         <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
           <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
         </Teleport>
@@ -71,7 +70,6 @@ import type { EntityId, Revision, View, Workspace } from '@/api/pms/engineering/
 import { useMessage } from '@/hooks/web/useMessage'
 import { onBeforeRouteLeave } from 'vue-router'
 import EntityForm from './EntityForm.vue'
-import RequirementBriefingSection from './RequirementBriefingSection.vue'
 import RevisionDrawer from './RevisionDrawer.vue'
 import CompareDrawer from './CompareDrawer.vue'
 import { stableCommandIntent } from '@/views/pms/platform/dynamic-form/components/dynamicFormRuntime'
@@ -79,7 +77,7 @@ import { takeTaskViewPrefetch, requirementWorkspaceKey } from '@/views/pms/proje
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
-const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean; openBriefing?: () => unknown }>()
+const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean }>()
 const { barTarget } = useBusinessActionBar()
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
   props.taskExecution || props.stageExecution ? {

@@ -13,9 +13,8 @@
             <el-tag v-if="detail?.projectCategory" size="small" effect="plain">
               {{ getDictLabel(DICT_TYPE.PMS_PROJECT_CATEGORY, detail.projectCategory) }}
             </el-tag>
-            <el-tag v-if="detail?.lifecycleTemplateId && checkRole(['admin'])" size="small" type="info" effect="plain">
-              模板 #{{ detail.lifecycleTemplateId }} v{{ detail.lifecycleTemplateRevisionNo }}
-            </el-tag>
+            <ProjectCurrentPlanTag v-if="detail?.id && checkPermi(['pms:project-plan:manage'])"
+              :project-id="detail.id" :refresh-token="detail.version" />
           </div>
           <div class="project-meta-row">
             <span class="meta-item">
@@ -217,6 +216,11 @@
             <span class="panel-title"><Icon icon="ep:document" /> 基本信息</span>
           </div>
           <ProjectBaseInfo v-if="detail?.id" :project="detail" />
+          <details v-if="detail?.lifecycleTemplateId && checkRole(['admin'])" class="template-source-history">
+            <summary>历史信息</summary>
+            <p>原始模板来源：#{{ detail.lifecycleTemplateId }} · 模板 v{{ detail.lifecycleTemplateRevisionNo }}</p>
+            <p>此处保留项目最初绑定的模板来源；当前实际执行配置以顶部的生效计划为准。</p>
+          </details>
         </ContentWrap>
 
         <!-- ============ 项目概览：客户信息（与 pms-inheritance/project-detail 同一组件） ============ -->
@@ -264,18 +268,6 @@
             />
           </div>
         </template>
-
-        <!-- ============ 项目概览：实施范围（设计稿【待确认】占位结构） ============ -->
-        <ContentWrap v-show="activeTab === 'scope'">
-          <div class="panel-header">
-            <span class="panel-title"><Icon icon="ep:location" /> 实施范围</span>
-            <el-tag type="warning" size="small">待确认</el-tag>
-          </div>
-          <el-empty description="实施范围数据结构与确认流程未在已读规格中定义" :image-size="80" />
-          <p class="pending-hint">
-            【待确认】实施范围的数据结构与确认流程以对应 Feature Spec 为准，本区为占位结构。
-          </p>
-        </ContentWrap>
 
         <ProjectAttributePanel
           v-if="detail?.id && activeTab === 'attributes'"
@@ -456,7 +448,6 @@
         <div v-if="detail?.id && visitedTabs.has('requirement-analysis')" v-show="activeTab === 'requirement-analysis'" class="min-w-0" data-testid="project-pane-requirement-analysis">
           <ProjectRequirementAnalysisPanel
             ref="requirementRef"
-            :open-briefing="() => switchTab('briefing')"
             :project="detail"
           />
         </div>
@@ -547,6 +538,7 @@
 
 <script setup lang="ts">
 import ProjectBaseInfo from './components/ProjectBaseInfo.vue'
+import ProjectCurrentPlanTag from './components/ProjectCurrentPlanTag.vue'
 import BusinessFlowNav from './components/BusinessFlowNav.vue'
 import { computed, onMounted, provide, ref, type Component } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
@@ -672,7 +664,6 @@ const requestedTab = (
     'sn-result',
     'config-log',
     'members',
-    'scope',
     'schedule',
     'preparation',
     'requirement-analysis',
@@ -695,8 +686,7 @@ const overviewSteps: { key: string; label: string; icon: string; pending?: boole
   { key: 'members', label: '项目成员', icon: 'ep:user-filled' },
   { key: 'equipment', label: '设备清单', icon: 'ep:cpu', permission: ['pms:device:query'] },
   { key: 'sn-result', label: '序列号详情', icon: 'ep:cpu', permission: ['pms:device:query'] },
-  { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' },
-  { key: 'scope', label: '实施范围', icon: 'ep:location', pending: true }
+  { key: 'config-log', label: '配置Log', icon: 'ep:document-copy' }
   // 属性判定/匹配历史/生命周期实例三项按需求方 2026-09-30 要求从概览导航隐藏；对应内容面板保留，深链回退基本信息
 ]
 
@@ -949,6 +939,12 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.template-source-history {
+  margin-top: 20px;
+  color: var(--el-text-color-secondary);
+
+  summary { cursor: pointer; font-weight: 600; }
+}
 .parent-project-link, .parent-project-link:hover {
   color: var(--el-color-primary);
   text-decoration: none;

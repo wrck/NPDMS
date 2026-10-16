@@ -12,6 +12,9 @@ import {
 } from './schedulePresentation'
 
 describe('施工计划展示与安排检查', () => {
+  it('保留晚于建议日期的安排风险提示', () => {
+    expect(stageItemIssue({ planStart: '2026-10-16', planEnd: '2026-10-20', suggestedEnd: '2026-07-16' } as any)).toBe('晚于建议最迟完成时间')
+  })
   it('区分短工期和临近截止，不把未来短工期说成即将到期', () => {
     expect(shortPlan({ baselineStart: '2027-06-01', baselineEnd: '2027-06-30', items: [] })).toBe(
       true

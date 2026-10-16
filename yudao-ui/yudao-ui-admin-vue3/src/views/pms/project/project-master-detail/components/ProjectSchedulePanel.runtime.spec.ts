@@ -262,6 +262,38 @@ it('submits the first plan without a reason and keeps reason entry out of the da
   } finally { app.app.unmount() }
 })
 
+it('allows a plan later than the suggested date to enter approval', async () => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.items[0].suggestedEnd = '2026-07-16'
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    vi.mocked(PlanApi.submitStagePlanBatch).mockResolvedValue(draft() as any)
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, 9, undefined)
+  } finally { app.app.unmount() }
+})
+
+it.each(['baseline', 'acceptance', 'sequence'] as const)('still blocks %s violations when a suggestion is exceeded', async (constraint) => {
+  const app = render()
+  try {
+    await flush()
+    app.state.batch.items[0].suggestedEnd = '2026-07-16'
+    if (constraint === 'baseline') app.state.batch.baselineEnd = '2026-10-25'
+    if (constraint === 'acceptance') app.state.batch.inputSnapshot = JSON.stringify({ stages: [{ stageId: 10, acceptanceTime: '2026-10-25' }] })
+    if (constraint === 'sequence') {
+      app.state.batch.items.push({ phaseId: 9, phaseName: '准备', planStart: '2026-10-01', planEnd: '2026-10-02' })
+      app.state.batch.inputSnapshot = JSON.stringify({ serialEdges: [{ fromStageId: 9, toStageId: 10 }] })
+    }
+    app.state.saved = JSON.stringify(app.state.batch)
+    app.state.approverId = 9
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).not.toHaveBeenCalled()
+    expect(feedback.warning).toHaveBeenCalledWith(expect.stringContaining({ baseline: '超出工期', acceptance: '不得晚于计划验收', sequence: '不得早于前一阶段' }[constraint]!))
+  } finally { app.app.unmount() }
+})
+
 it('collects a fresh adjustment reason in the submission dialog without making dates dirty', async () => {
   const app = render()
   try {

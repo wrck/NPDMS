@@ -99,10 +99,11 @@ public class DeliveryTemplateFrozenService implements PlatformDeliveryRequiremen
                                      TemplateFrozenDefinition definition) {
         validateDefinition(definition);
         DeliveryRequirementDO row = lockTemplateRequirement(requirementId);
-        if (expectedVersion != null && !expectedVersion.equals(row.getVersion())) {
+        if (expectedVersion != null && !Long.valueOf(expectedVersion.longValue()).equals(row.getVersion())) {
             throw new BusinessContractException("DELIVERY_REQUIREMENT_VERSION_CONFLICT",
                     "交付件定义已被并发修改，请刷新后重试: " + requirementId);
         }
+        row.setTypeCode(definition.deliverableCode());
         row.setName(definition.name());
         row.setStageCode(definition.stageCode());
         row.setTaskCode(definition.taskCode());

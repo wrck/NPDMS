@@ -163,6 +163,7 @@ import { useUserStore } from '@/store/modules/user'
 import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
   ConstructionPlanChangeVO,
@@ -175,7 +176,7 @@ import { initialDurationHint } from './durationEntry'
 
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
-const validProject = computed(() => Number.isSafeInteger(props.project.id) && props.project.id! > 0)
+const validProject = computed(() => isBusinessViewId(props.project.id))
 const canWrite = computed(() => validProject.value && !props.readonly)
 const initialEntryHint = computed(() => initialDurationHint(props.project))
 const drawerDirty = ref(false)

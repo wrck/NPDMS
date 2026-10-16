@@ -224,12 +224,15 @@ service.interceptors.response.use(
     console.log('err' + error) // for debug
     let { message } = error
     const { t } = useI18n()
-    if (message === 'Network Error') {
+    const serverMessage = (error.response?.data as { msg?: unknown } | undefined)?.msg
+    if (typeof serverMessage === 'string' && serverMessage.trim()) {
+      message = serverMessage.trim()
+    } else if (message === 'Network Error') {
       message = t('sys.api.errorMessage')
     } else if (message.includes('timeout')) {
       message = t('sys.api.apiTimeoutMessage')
     } else if (message.includes('Request failed with status code')) {
-      message = t('sys.api.apiRequestFailed') + message.substr(message.length - 3)
+      message = t('sys.api.apiRequestFailed')
     }
     // silentError：调用方自行按契约结果呈现（如办理页的并发冲突提示），不再弹全局错误。
     if (!(error as any)?.config?.silentError) {

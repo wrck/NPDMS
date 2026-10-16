@@ -259,7 +259,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { shortPlan, deadlineHint, taskPlanIssue, stageItemIssue, fitTaskPlanIntoStage, compareSchedules } from './schedulePresentation'
+import { shortPlan, deadlineHint, taskPlanIssue, stageItemBlockingIssue, fitTaskPlanIntoStage, compareSchedules } from './schedulePresentation'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -615,14 +615,14 @@ const save = async () => {
   )
 }
 // 保存不做校验，避免填写中的计划日期丢失；完整性检查集中在提交审核时进行。
-// 提交预检与安排检查列同一套规则，文案与后端提交校验一致，提交前即提示不等审批退回；
+// 提交预检保留安排检查列的正式约束；建议日期仅提示风险，调整后的计划交由审批。
 // 阶段次序按模板冻结路径准入约束判定（串行边允许当天衔接，并行分支允许重叠）。
 const submit = async () => {
   const value = batch.value
   if (!value || !approverId.value || dirty.value) return
   if (value.adjustmentReasonRequired && !adjustmentReason.value.trim()) return message.warning('请填写调整理由')
   for (const item of value.items) {
-    const issue = stageItemIssue(item, value)
+    const issue = stageItemBlockingIssue(item, value)
     if (issue) return message.warning(`${item.phaseName || '阶段'} ${issue}`)
   }
   if (taskIssues.value.length)

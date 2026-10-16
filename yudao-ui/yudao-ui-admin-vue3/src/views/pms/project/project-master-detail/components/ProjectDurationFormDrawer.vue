@@ -148,6 +148,7 @@ import { PmsFileReferenceList, PmsFileUploader } from '@/components/PmsFileArtif
 import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
+import { isBusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import type {
   ConstructionPlanChangeVO,
@@ -163,7 +164,7 @@ import {
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ saved: []; 'dirty-change': [value: boolean] }>()
 const canWrite = computed(
-  () => !props.readonly && Number.isSafeInteger(props.project.id) && props.project.id! > 0
+  () => !props.readonly && isBusinessViewId(props.project.id)
 )
 let contextVersion = 0
 const message = useMessage()

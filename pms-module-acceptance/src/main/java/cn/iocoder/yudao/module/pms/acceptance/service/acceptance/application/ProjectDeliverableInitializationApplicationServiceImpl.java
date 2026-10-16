@@ -1,6 +1,7 @@
 package cn.iocoder.yudao.module.pms.acceptance.service.acceptance.application;
 
 import cn.iocoder.yudao.module.pms.acceptance.api.deliverable.ProjectDeliverableInitializationApplicationService;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
 import cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -79,6 +80,19 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         }
         var ordered = command.changes().stream().sorted(java.util.Comparator.comparing(
                 DeliverablePlanChange::id, java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder()))).toList();
+        // 在暂存编码或退役前校验调用方版本；锁持续到计划应用事务结束。
+        for (var change : ordered) {
+            if (change.id() == null) continue;
+            var current = platform.lockById(change.id()).orElseThrow(() ->
+                    new BusinessContractException("DELIVERY_REQUIREMENT_NOT_FOUND", "交付要求不存在: " + change.id()));
+            if (!command.projectId().equals(current.projectId())) {
+                throw new BusinessContractException("DELIVERY_REQUIREMENT_PROJECT_MISMATCH", "交付要求不属于当前项目");
+            }
+            if (current.version() == null || change.expectedVersion().longValue() != current.version().longValue()) {
+                throw new BusinessContractException("DELIVERY_REQUIREMENT_VERSION_CONFLICT",
+                        "交付件定义已被并发修改，请刷新后重试: " + change.id());
+            }
+        }
         var updates = new ArrayList<DeliverablePlanChange>();
         var renamed = new ArrayList<Long>();
         var added = new ArrayList<DeliverablePlanChange>();
@@ -97,8 +111,11 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
         if (!renamed.isEmpty()) platform.stageTemplateFrozenCodes(renamed);
         for (var change : updates) {
             var d = change.definition();
+            // 暂存本身会推进乐观版本，沿用同一事务锁下的最新版本执行最终更新。
+            var staged = platform.lockById(change.id()).orElseThrow(() ->
+                    new BusinessContractException("DELIVERY_REQUIREMENT_NOT_FOUND", "交付要求不存在: " + change.id()));
             platform.updateTemplateFrozen(change.id(),
-                    change.expectedVersion() == null ? null : change.expectedVersion().intValue(),
+                    staged.version(),
                     new PlatformDeliveryRequirementApi.TemplateFrozenDefinition(d.deliverableCode(), d.name(),
                             d.stageCode(), d.taskCode(), d.required(), 0, d.sourceDefinitionId(), null));
         }

@@ -67,14 +67,14 @@ interface CategoryGroup {
 const groups: CategoryGroup[] = [
   {
     category: 'RECEIPT',
-    label: '到货签收单（5.1）',
+    label: '到货签收单',
     emptyText: '暂无签收单归档；签收单自动归档在途（EXE-01 切片承接中），当前可经"交付件归集"以签收单类型登记。'
   },
-  { category: 'SCHEME', label: '实施方案（4.1）', emptyText: '暂无已批准实施方案；方案审批通过后自动归档至此。' },
-  { category: 'PRELIMINARY', label: '初验报告（6.3）', emptyText: '暂无初验报告归档；初验报告生效后由验收侧自动同步。' },
-  { category: 'FINAL', label: '终验报告（6.3）', emptyText: '暂无终验报告归档；终验报告生效后由验收侧自动同步。' },
-  { category: 'TRAINING', label: '现场培训记录（6.1）', emptyText: '暂无现场培训记录归档；在"现场培训（6.1）"页面完成客户签字确认后自动归档。' },
-  { category: 'SATISFACTION', label: '满意度调查报告（6.2）', emptyText: '暂无满意度报告归档；满意度结果生效后由验收侧自动同步。' },
+  { category: 'SCHEME', label: '实施方案', emptyText: '暂无已批准实施方案；方案审批通过后自动归档至此。' },
+  { category: 'PRELIMINARY', label: '初验报告', emptyText: '暂无初验报告归档；初验报告生效后由验收侧自动同步。' },
+  { category: 'FINAL', label: '终验报告', emptyText: '暂无终验报告归档；终验报告生效后由验收侧自动同步。' },
+  { category: 'TRAINING', label: '现场培训记录', emptyText: '暂无现场培训记录归档；在"现场培训"页面完成客户签字确认后自动归档。' },
+  { category: 'SATISFACTION', label: '满意度调查报告', emptyText: '暂无满意度报告归档；满意度结果生效后由验收侧自动同步。' },
   { category: 'OTHER', label: '其他工程归集', emptyText: '暂无其他归集记录；可经"交付件归集"页面登记。' }
 ]
 

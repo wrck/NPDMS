@@ -49,13 +49,13 @@
       <el-form-item label="1.1 项目背景" label-width="140px">
         <div class="editor-block">
           <Editor v-model="form.background" height="180px" :readonly="readOnly" />
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBackground" @click="form.background = reqBackground">从 2.3 需求分析引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBackground" @click="form.background = reqBackground">从需求分析引用</el-button>
         </div>
       </el-form-item>
       <el-form-item label="1.2 项目目标" label-width="140px">
         <div class="editor-block">
           <Editor v-model="form.target" height="180px" :readonly="readOnly" />
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqObjective" @click="form.target = reqObjective">从 2.3 需求分析引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqObjective" @click="form.target = reqObjective">从需求分析引用</el-button>
         </div>
       </el-form-item>
 
@@ -92,7 +92,7 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.inventory.push(emptyInventoryRow())">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !scopeRows.length" @click="tables.inventory = scopeProductRows()">从 1.1 产品信息清单引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !scopeRows.length" @click="tables.inventory = scopeProductRows()">从产品信息清单引用</el-button>
         </div>
       </el-form-item>
 
@@ -135,7 +135,7 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'no'" label-width="140px">
-        <div class="ref-body standalone">直接调用 2.3 需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
+        <div class="ref-body standalone">直接调用需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
         <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="['ppt', 'pptx', 'vsd', 'vsdx', 'png']" />
@@ -256,7 +256,7 @@
             </el-table-column>
           </el-table>
           <el-button class="mt-4px" size="small" :disabled="readOnly" @click="tables.business.push(emptyBusinessRow())">添加行</el-button>
-          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBusinessRows.length" @click="tables.business = reqBusinessRows.map((r) => ({ ...r }))">从 2.3 需求分析引用</el-button>
+          <el-button class="mt-4px" size="small" type="primary" plain :disabled="readOnly || !reqBusinessRows.length" @click="tables.business = reqBusinessRows.map((r) => ({ ...r }))">从需求分析引用</el-button>
         </div>
       </el-form-item>
     </section>
@@ -812,7 +812,7 @@ const buildSolutionHtml = () => {
     htmlField('2.2 现网资源确认', topology.resourceConfirmation)
   ].join('')
   const chapter3 = [
-    htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化${topology.toBeUrl ? `，已上传：${escapeHtml(topology.toBeUrl)}` : '（未上传新拓扑）'}</p>` : '<p>与需求分析无变化，调用 2.3 需求分析网络拓扑</p>'),
+    htmlField('3.1 建设后拓扑图', topology.toBeChanged === 'yes' ? `<p>与需求分析有变化${topology.toBeUrl ? `，已上传：${escapeHtml(topology.toBeUrl)}` : '（未上传新拓扑）'}</p>` : '<p>与需求分析无变化，调用需求分析网络拓扑</p>'),
     htmlField('3.2 部署位置规划', htmlTable(tables.deploy, [['productCode', '产品编码'], ['deviceName', '设备名称'], ['quantity', '数量（订单数量）'], ['location', '安装位置（机房/机柜/U数）'], ['remark', '备注']])),
     htmlField('3.3 设备接口互联规划', htmlTable(tables.interface, [['localDevice', '本端设备'], ['localPort', '本端接口'], ['peerPort', '对端接口'], ['portType', '接口类型'], ['cableModel', '线缆/光模块型号'], ['remark', '备注']])),
     htmlField('3.4 设备IP地址与vlan规划', htmlTable(tables.ip, [['deviceName', '设备名称'], ['port', '接口'], ['ip', 'IP地址'], ['mask', '掩码'], ['vrrp', 'VRRP地址'], ['gateway', '网关'], ['remark', '备注']])),

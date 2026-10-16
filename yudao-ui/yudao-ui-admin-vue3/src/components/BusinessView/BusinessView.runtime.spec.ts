@@ -6,6 +6,8 @@ import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requi
 import { businessViewTargetKey, resolveStandaloneBusinessEntityView, resolveBusinessView, type BusinessViewTarget } from './registry'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
+import InstallationWorkbench from '@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'
+import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
 import * as FormApi from '@/api/pms/platform/dynamic-form'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
@@ -198,6 +200,23 @@ beforeEach(() => {
 })
 
 describe('PM-03 BusinessView runtime', () => {
+  it.each([
+    ['IMP_PROJECT_INSTALLATION', 'IMP', 'INSTALLATION', InstallationWorkbench],
+    ['CUT_CUTOVER_APPROVAL', 'CUT', 'CUTOVER_APPROVAL', ProjectCutoverTasks]
+  ])('embeds %s in the task workspace without adding write actions', (componentKey, ownerContext, entityType, component) => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey, ownerContext, entityType, supportedActions: ['QUERY'] })
+    data.resolvedContext.project = { id: '2110018733130579974' }
+    data.allowedActions = ['QUERY']
+    expect(resolveBusinessView(data).component).toBe(component)
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: '2110018733130579974', allowedActions: ['QUERY'] })
+    expect(resolveBusinessView(data).props).not.toHaveProperty('tab')
+    data.readonly = true
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+    data.registration.ownerContext = 'OTHER'
+    expect(resolveBusinessView(data).error).toBeTruthy()
+  })
+
   it('embeds the existing training workspace with the exact project and readonly boundary', () => {
     const data = target('PAGE')
     Object.assign(data.registration, { componentKey: 'IMP_TRAINING_CONFIRMATION', ownerContext: 'IMP', entityType: 'TRAINING', supportedActions: ['QUERY'] })
@@ -220,12 +239,10 @@ describe('PM-03 BusinessView runtime', () => {
     expect(resolveBusinessView(data).error).toBeTruthy()
     Object.assign(data.registration, { componentKey: 'CUT_CUTOVER_APPROVAL', entityType: 'CUTOVER_APPROVAL', supportedActions: ['QUERY'] })
     data.allowedActions = ['QUERY']
-    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, mode: 'APPROVAL' })
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, operationObjectType: 'CUTOVER_APPROVAL', allowedActions: ['QUERY'] })
   })
   it.each([
     ['IMP_ARRIVAL_RECEIPT', 'IMP', 'ARRIVAL', 'arrival'],
-    ['IMP_PROJECT_INSTALLATION', 'IMP', 'INSTALLATION', 'installation'],
-    ['CUT_CUTOVER_APPROVAL', 'CUT', 'CUTOVER_APPROVAL', 'cutover']
   ])('resolves %s to its existing Owner workspace and rejects a different Owner', (componentKey, ownerContext, entityType, tab) => {
     const data = target('PAGE')
     Object.assign(data.registration, { componentKey, ownerContext, entityType, supportedActions: ['QUERY'] })
