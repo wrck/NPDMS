@@ -47,7 +47,7 @@ it('rejects a changed project and preserves inputs on application failure for re
   try {
     await m.state.save()
     expect(api.createMaterialExchange).not.toHaveBeenCalled()
-    m.saveSurvey.mockResolvedValue({ id: 1, projectId: 10, name: '工勘' })
+    m.saveSurvey.mockResolvedValue({ id: '1', projectId: 10, name: '工勘' })
     api.createMaterialExchange.mockRejectedValueOnce(new Error('换货保存失败'))
     await m.state.save()
     expect(m.state.error).toBe('换货保存失败')

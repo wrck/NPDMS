@@ -53,21 +53,21 @@
       </h4>
       <el-form label-width="120px" class="mb-8px">
         <el-form-item v-for="field in writableFields" :key="field.code" :label="field.name">
-          <el-switch v-if="field.type === 'BOOLEAN'" v-model="editForm[field.code]" />
-          <el-input-number v-else-if="field.type === 'NUMBER'" v-model="editForm[field.code]" />
+          <el-switch v-if="field.type === 'BOOLEAN'" v-model="(editForm[field.code] as boolean)" />
+          <el-input-number v-else-if="field.type === 'NUMBER'" v-model="(editForm[field.code] as number | null | undefined)" />
           <el-date-picker
             v-else-if="field.type === 'DATE'"
-            v-model="editForm[field.code]"
+            v-model="(editForm[field.code] as string)"
             type="date"
             value-format="YYYY-MM-DD"
           />
           <el-date-picker
             v-else-if="field.type === 'DATETIME'"
-            v-model="editForm[field.code]"
+            v-model="(editForm[field.code] as string)"
             type="datetime"
             value-format="YYYY-MM-DD'T'HH:mm:ss"
           />
-          <el-input v-else v-model="editForm[field.code]" />
+          <el-input v-else v-model="(editForm[field.code] as string)" />
         </el-form-item>
         <el-form-item v-if="selected.state === 'DRAFT'">
           <el-button type="primary" :loading="saving" @click="saveDraft">保存修订</el-button>

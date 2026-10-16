@@ -139,7 +139,7 @@
       />
       <SchedulePlanningTable
         :items="batch.items"
-        :tasks="batch.tasks"
+        :tasks="batch.tasks || []"
         :plan="batch"
         :editable="editable"
         :navigation-disabled="dirty || acting"

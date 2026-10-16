@@ -34,7 +34,7 @@
           object-type="CONSTRUCTION_PLAN_CHANGE"
           :object-id="String(change.changeId)"
           purpose-code="CUSTOMER_DELAY_EVIDENCE"
-          :reference-key="change.customerEvidenceReferenceKey"
+          :reference-key="change.customerEvidenceReferenceKey!"
           :artifact-id="change.customerEvidenceFileId"
           :version-no="change.customerEvidenceFileVersion"
           :editable="false"

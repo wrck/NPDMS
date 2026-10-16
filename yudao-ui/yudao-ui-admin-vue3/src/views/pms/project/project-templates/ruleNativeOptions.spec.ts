@@ -40,7 +40,7 @@ it('allows automatic contacts only at the contact page completion slot', () => {
   node.workBinding = { type: 'PAGE', parameters: { routePath: '/customer-asset/customer-contact' } }; document.tasks.push(node)
   expect(nativeOptions(document, 'ready')).toContain('PROJECT_CONTACT_EXISTS')
   node.exitRuleKey = 'ready'; expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_CONTACT_EXISTS')
-  node.exitRuleKey = undefined; node.workBinding.parameters.routePath = '/other'
+  node.exitRuleKey = undefined; node.workBinding.parameters = { routePath: '/other' }
   expect(nativeOptions(document, 'ready')).not.toContain('PROJECT_CONTACT_EXISTS')
 })
 

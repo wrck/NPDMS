@@ -9,7 +9,7 @@
           <tr><th>合同号</th><td>{{ certificate.contractNo || '—' }}</td><th>工程服务类型</th><td>{{ certificate.serviceType || '—' }}</td></tr>
           <tr><th>迪普工程师</th><td>{{ certificate.engineerName || '—' }}</td><th>联系方式</th><td>{{ certificate.engineerContact || '—' }}</td></tr>
           <tr v-for="(item, index) in serviceItems" :key="item.label" class="service-row"><th v-if="index === 0" :rowspan="serviceItems.length" class="service-heading">工程服务内容</th><td colspan="2">{{ item.label }}</td><td>{{ item.value || '—' }}</td></tr>
-          <tr v-for="(device, index) in certificate.devices" :key="index" class="device-row completion-devices"><th v-if="index === 0" :rowspan="certificate.devices.length" scope="rowgroup" class="devices-heading">设备名称和数量</th><td colspan="2">{{ device.deviceType || '—' }}</td><td>{{ device.quantity }}</td></tr>
+          <tr v-for="(device, index) in certificate.devices" :key="index" class="device-row completion-devices"><th v-if="index === 0" :rowspan="certificate.devices!.length" scope="rowgroup" class="devices-heading">设备名称和数量</th><td colspan="2">{{ device.deviceType || '—' }}</td><td>{{ device.quantity }}</td></tr>
           <tr v-if="!certificate.devices?.length" class="device-row completion-devices"><th class="devices-heading">设备名称和数量</th><td colspan="3" class="empty-devices">未填写设备明细</td></tr>
           <tr><th>完工时间</th><td colspan="3">{{ certificate.completionDate || '—' }}</td></tr>
         </tbody>

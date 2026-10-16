@@ -11,7 +11,7 @@ const render = () => {
 }
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', locationSnapshot: undefined }], total: 1 })
+  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'NOT_AVAILABLE', locationSnapshot: undefined }], total: 1 })
   vi.mocked(DeviceApi.getDevice).mockResolvedValue({ networkVersion: { syncStatus: 'NOT_AVAILABLE' } } as any)
   vi.mocked(DeviceApi.getWarrantyRecords).mockResolvedValue({ records: { list: [], total: 0 } })
 })
@@ -31,24 +31,24 @@ it('applies combined server filters from page one and clears them on reset', asy
   } finally { m.app.unmount() }
 })
 it('uses the projected complete address and refreshes it when returning to the serial tab', async () => {
-  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', locationSnapshot: JSON.stringify({ fallbackLocation: '当前手工地址' }) }], total: 1 })
+  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'NOT_AVAILABLE', locationSnapshot: JSON.stringify({ fallbackLocation: '当前手工地址' }) }], total: 1 })
   const m = render()
   try {
     await flush()
     expect(m.state.rows[0].location).toBe('当前手工地址')
-    vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', locationSnapshot: JSON.stringify({ fallbackLocation: '地址 / 站点 / 机房 / 机柜', site: { id: 21 } }) }], total: 1 })
+    vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'NOT_AVAILABLE', locationSnapshot: JSON.stringify({ fallbackLocation: '地址 / 站点 / 机房 / 机柜', site: { id: 21 } }) }], total: 1 })
     const props = (m.vm as any).$.props
     props.active = false; await flush(); props.active = true; await flush()
     expect(m.state.rows[0].location).toBe('地址 / 站点 / 机房 / 机柜')
   } finally { m.app.unmount() }
 })
 it('keeps readable legacy snapshot fallback without showing JSON', async () => {
-  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', locationSnapshot: JSON.stringify({ fallbackLocation: '地址 / 站点' }) }], total: 1 })
+  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'NOT_AVAILABLE', locationSnapshot: JSON.stringify({ fallbackLocation: '地址 / 站点' }) }], total: 1 })
   const m = render()
   try { await flush(); expect(m.state.rows[0].location).toBe('地址 / 站点') } finally { m.app.unmount() }
 })
 it('keeps the total while loading another page so pagination does not reset to page one', async () => {
-  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11' }], total: 21 })
+  vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: [{ deviceId: 11, sn: 'SN11', syncStatus: 'NOT_AVAILABLE' }], total: 21 })
   const m = render()
   try {
     await flush()
@@ -70,7 +70,7 @@ it('keeps the total while loading another page so pagination does not reset to p
 
 
 it('loads 40 devices and all columns through one page request', async () => {
-  const rows = Array.from({ length: 40 }, (_, i) => ({ deviceId: i + 1, sn: `SN${i + 1}`, locationSnapshot: JSON.stringify({ fallbackLocation: '完整安装地址' }), bootVersion: 'BOOT', cpldVersion: 'CPLD', warrantyMonths: 12, extendedCount: 3 }))
+  const rows = Array.from({ length: 40 }, (_, i) => ({ deviceId: i + 1, sn: `SN${i + 1}`, syncStatus: 'NOT_AVAILABLE' as const, locationSnapshot: JSON.stringify({ fallbackLocation: '完整安装地址' }), bootVersion: 'BOOT', cpldVersion: 'CPLD', warrantyMonths: 12, extendedCount: 3 }))
   vi.mocked(DeviceApi.getDevicePage).mockResolvedValue({ list: rows, total: 40 })
   const m = render()
   try {

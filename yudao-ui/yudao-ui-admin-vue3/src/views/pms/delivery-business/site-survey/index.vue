@@ -346,7 +346,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import dayjs from 'dayjs'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
@@ -407,7 +407,6 @@ const ownerId = (id: number | string) => id as number
 const message = useMessage()
 const userStore = useUserStore()
 const route = useRoute()
-const router = useRouter()
 const loading = ref(false)
 const saving = ref(false)
 const detailReadonly = ref(false)
