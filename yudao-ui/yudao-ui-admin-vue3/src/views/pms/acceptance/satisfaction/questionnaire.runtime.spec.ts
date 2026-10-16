@@ -110,7 +110,11 @@ const render = async () => {
   mounted.push(app)
   await Promise.resolve()
   await nextTick()
-  return child.value.$.setupState
+  const page = child.value.$.setupState
+  // The custom renderer has no layout; preserve the browser scrolling contract on its refs.
+  Object.assign(page.publicPage, { scrollTop: 0, scrollTo: vi.fn(), getBoundingClientRect: () => ({ top: 0 }) })
+  Object.assign(page.surveySection, { getBoundingClientRect: () => ({ top: 100 }) })
+  return page
 }
 describe('public questionnaire handwritten signature submission', () => {
   it('retries the exact signed payload without another upload after a submission failure', async () => {
@@ -163,6 +167,7 @@ describe('public questionnaire handwritten signature submission', () => {
     page.questionFormApi.validate = mocks.validate
     await page.submit()
     expect(mocks.validate).toHaveBeenCalledOnce()
+    expect(page.publicPage.scrollTo).toHaveBeenCalledWith({ top: 80 })
     expect(mocks.initialize).not.toHaveBeenCalled()
     expect(mocks.submit).not.toHaveBeenCalled()
   })
@@ -194,15 +199,16 @@ describe('public questionnaire handwritten signature submission', () => {
     })
     expect(command.files[0]).toMatchObject({ role: 'SIGNATURE', artifactId: 30, versionNo: 1 })
   })
-  it('retains the existing signature-file upload path', async () => {
+  it('does not accept an uploaded attachment in place of a handwritten signature', async () => {
     const page = await render()
     page.customerContactRef = '客户'
     page.answers.quality = 'excellent'
-    page.signatureMode = 'upload'
     const file = new File(['signed'], 'existing.pdf', { type: 'application/pdf' })
-    page.signatureFile = file
+    page.onAttachmentChange({ raw: file })
     await page.submit()
-    expect(mocks.complete.mock.calls[0][4]).toBe(file)
-    expect(mocks.submit).toHaveBeenCalledOnce()
+    expect(page.attachmentFiles).toEqual([file])
+    expect(mocks.initialize).not.toHaveBeenCalled()
+    expect(mocks.complete).not.toHaveBeenCalled()
+    expect(mocks.submit).not.toHaveBeenCalled()
   })
 })

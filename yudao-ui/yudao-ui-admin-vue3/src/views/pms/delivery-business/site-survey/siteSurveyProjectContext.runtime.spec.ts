@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
@@ -32,6 +33,8 @@ vi.mock('vue-router', () => ({ onBeforeRouteLeave: navigation.leave, onBeforeRou
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue', () => ({ default: { render: () => null } }))
 vi.mock('./SiteSurveyDynamicForm.vue', () => ({ default: { render: () => null } }))
+vi.mock('./SurveyApplicationDialog.vue', () => ({ default: { render: () => null } }))
+vi.mock('./SurveyMaterialExchangeDialog.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { render: () => null } }))
 
 // Keep the real registry and Host, while unrelated business pages have no module side effects.
@@ -245,7 +248,7 @@ describe('SOL site-survey shared project and standalone context', () => {
     state.form.extensionValues = { note: 'retained' }
     input.allowedActions = ['QUERY']
     await flush()
-    expect(state.readonly).toBe(true)
+    expect(state.formReadonly).toBe(true)
     state.updateDynamicForm({ name: 'bad' })
     expect(state.form.name).toBe('local')
     expect(exposed.isDirty()).toBe(true)
@@ -337,7 +340,7 @@ describe('SOL site-survey receipt recovery and exact reopen', () => {
     expect(exposed.isDirty()).toBe(true)
     expect(await exposed.requestLeave()).toBe(false)
     expect(exposed.discardChanges()).toBe(false)
-    expect(state.readonly).toBe(true)
+    expect(state.formReadonly).toBe(true)
     state.form.name = 'later mutation';state.form.businessValues.powerTypes.push('DC')
     expect(await state.save()).toBe(false)
     await state.handleAction(record(),'confirm')
@@ -371,7 +374,7 @@ describe('SOL site-survey receipt recovery and exact reopen', () => {
     expect(state.receiptResult.id).toBe('12');expect(state.pendingIntent).toBeUndefined()
     expect(state.form.id).toBe('12');expect(state.form.version).toBe(1)
     expect(state.receiptReadError).toContain('操作已完成')
-    expect(state.readonly).toBe(true)
+    expect(state.formReadonly).toBe(true)
     expect(await state.save()).toBe(false)
     expect(await state.reopenFromReceipt()).toBe(true)
     expect(api.saveSiteSurveyReceipt).toHaveBeenCalledTimes(1)
@@ -391,14 +394,14 @@ describe('SOL site-survey receipt recovery and exact reopen', () => {
     const { state } = render({projectId:7});await state.openForm()
     Object.assign(state.form,{location:'onsite',formRevisionId:undefined});state.formRef={validate:vi.fn()}
     api.saveSiteSurveyReceipt.mockRejectedValueOnce(new OperationRejected(400,'invalid input'))
-    expect(await state.save()).toBe(false);expect(state.pendingIntent).toBeUndefined();expect(state.readonly).toBe(false)
+    expect(await state.save()).toBe(false);expect(state.pendingIntent).toBeUndefined();expect(state.formReadonly).toBe(false)
     api.saveSiteSurveyReceipt.mockRejectedValueOnce(new Error('lost'))
     expect(await state.save()).toBe(false)
     expect(api.saveSiteSurveyReceipt.mock.calls.length, JSON.stringify(message.warning.mock.calls)).toBe(2)
     expect(state.pendingIntent, JSON.stringify(message.warning.mock.calls)).toBeDefined()
     api.saveSiteSurveyReceipt.mockRejectedValueOnce(new OperationRejected(403,'permission revoked'))
     expect(await state.recoverOperation()).toBe(false)
-    expect(state.pendingIntent).toBeDefined();expect(state.readonly).toBe(true)
+    expect(state.pendingIntent).toBeDefined();expect(state.formReadonly).toBe(true)
     expect(api.saveSiteSurveyReceipt.mock.calls[1][1]).toBe(api.saveSiteSurveyReceipt.mock.calls[2][1])
     expect(api.saveSiteSurveyReceipt.mock.calls[0][1]).not.toBe(api.saveSiteSurveyReceipt.mock.calls[1][1])
   })
@@ -449,7 +452,7 @@ describe('SOL site-survey receipt recovery and exact reopen', () => {
 
 vi.mock('@/components/PmsEntitySelect/index.vue', async () => {
   const { defineComponent, h } = await import('vue')
-  return { default: defineComponent({ props: ['modelValue','disabled'], emits: ['update:modelValue'], setup: (props, { emit }) => () =>
+  return { default: defineComponent({ props: { modelValue: [String, Number], disabled: Boolean }, emits: ['update:modelValue'], setup: (props, { emit }) => () =>
     h('div', [h('button', { disabled: props.disabled, onClick: () => emit('update:modelValue', 7) }, 'public-project-seven'),
       h('button', { disabled: props.disabled, onClick: () => emit('update:modelValue', 8) }, 'public-project-eight')]) }) }
 })
@@ -504,7 +507,7 @@ describe('public standalone Host with the actual SiteSurvey professional page',(
     projects.getProject.mockRejectedValueOnce(new Error('destination unavailable'))
     expect(await state.selectProfessionalProject(8)).toBe(false)
     expect(state.professionalRef).toBe(original);expect(page.form.name).toBe('目的项目加载失败时保留')
-    expect(page.readonly).toBe(false);expect(state.professionalSwitching).toBe(false)
+    expect(page.formReadonly).toBe(false);expect(state.professionalSwitching).toBe(false)
     projects.getProject.mockResolvedValueOnce({id:9,projectName:'wrong'})
     expect(await state.selectProfessionalProject(8)).toBe(false)
     expect(state.professionalRef).toBe(original);expect(state.professionalProjectId).toBe(7)

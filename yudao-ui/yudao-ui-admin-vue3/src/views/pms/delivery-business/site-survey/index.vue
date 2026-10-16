@@ -107,8 +107,8 @@
 
   <Dialog
     v-model="formVisible"
-    :title="readonly ? '工勘详情' : form.id ? '编辑工勘' : '新增工勘'"
-    :aria-label="readonly ? '工勘详情' : form.id ? '编辑工勘' : '新增工勘'"
+    :title="formReadonly ? '工勘详情' : form.id ? '编辑工勘' : '新增工勘'"
+    :aria-label="formReadonly ? '工勘详情' : form.id ? '编辑工勘' : '新增工勘'"
     width="min(960px, 95vw)"
     :before-close="beforeClose"
   >
@@ -119,7 +119,7 @@
       <el-button v-if="receiptResult && !receiptResult.deleted" :loading="receiptReading" @click="reopenFromReceipt">重新打开工勘</el-button>
     </el-alert>
     <el-alert
-      v-if="readonly"
+      v-if="formReadonly"
       title="当前工勘记录只读，已确认、驳回和归档内容不会被编辑覆盖。"
       type="info"
       :closable="false"
@@ -129,7 +129,7 @@
       :model="form"
       :rules="rules"
       label-position="top"
-      :disabled="readonly || saving"
+      :disabled="formReadonly || saving"
     >
       <el-row :gutter="16">
         <el-col v-if="!projectLocked" :span="12">
@@ -182,13 +182,13 @@
               placeholder="填写现场地点说明，或使用下方结构化地点维护"
             />
             <PmsLocationSelector
-              v-if="!readonly"
+              v-if="!formReadonly"
               v-model="form.locationMaintenance"
               :project-id="form.projectId"
             />
           </el-form-item>
         </el-col>
-        <el-col :span="24" v-if="!readonly && !integratedOutsource">
+        <el-col :span="24" v-if="!formReadonly && !integratedOutsource">
           <el-form-item label="分工／转包">
             <el-checkbox v-model="form.outsourceRequired">需要转包</el-checkbox>
             <el-button
@@ -207,14 +207,14 @@
           :span="24"
           v-if="
             !integratedOutsource &&
-            (form.outsourceRequestId || (readonly && form.outsourceRequired))
+            (form.outsourceRequestId || (formReadonly && form.outsourceRequired))
           "
         >
           <el-form-item label="转包关联">
             <el-link
               v-if="form.outsourceRequestId"
-              :href="readonly ? undefined : outsourceDetailUrl(form.outsourceRequestId, openedExecution, stageCode)"
-              :disabled="readonly"
+              :href="formReadonly ? undefined : outsourceDetailUrl(form.outsourceRequestId, openedExecution, stageCode)"
+              :disabled="formReadonly"
               target="_blank"
               rel="noopener"
               type="primary"
@@ -225,7 +225,7 @@
             <p v-if="form.outsourceRequestId">取消勾选不会撤回或删除已有申请。</p>
           </el-form-item>
         </el-col>
-        <el-col :span="24" v-if="!readonly">
+        <el-col :span="24" v-if="!formReadonly">
           <el-form-item label="填写表单">
             <el-button v-if="!form.formRevisionId" @click="useStandardForm"
               >接入动态表单（保留已填写内容）</el-button
@@ -247,7 +247,7 @@
             v-if="formVisible"
             ref="dynamicFormRef"
             :model-value="form"
-            :readonly="readonly"
+            :readonly="formReadonly"
             :application-revision="applicationRevision"
             @update:model-value="updateDynamicForm"
             @action="performSurveyAction"
@@ -297,7 +297,7 @@
           </el-col>
           <el-col :span="24">
             <el-form-item label="工勘结论" prop="conclusion">
-              <Editor v-model="form.businessValues!.conclusion" height="200px" :readonly="readonly" />
+              <Editor v-model="form.businessValues!.conclusion" height="200px" :readonly="formReadonly" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -310,9 +310,9 @@
     </el-form>
     <template #footer>
       <el-button @click="beforeClose(() => (formVisible = false))">{{
-        readonly ? '关闭' : '取消'
+        formReadonly ? '关闭' : '取消'
       }}</el-button>
-      <el-button v-if="!readonly" type="primary" :loading="saving" @click="save">保存</el-button>
+      <el-button v-if="!formReadonly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
   <Dialog
@@ -325,7 +325,7 @@
       <el-table-column prop="templateName" label="表单名称" />
       <el-table-column label="操作"
         ><template #default="{ row }">
-          <el-button :disabled="readonly" @click="selectTemplate(row)">使用此表单</el-button>
+          <el-button :disabled="formReadonly" @click="selectTemplate(row)">使用此表单</el-button>
         </template></el-table-column
       >
     </el-table>
@@ -338,9 +338,11 @@
       @current-change="loadTemplates"
     />
   </Dialog>
-  <SurveyMaterialExchangeDialog v-model="exchangeVisible" :project-id="form.projectId"
+  <SurveyMaterialExchangeDialog
+    v-model="exchangeVisible" :project-id="form.projectId"
     :save-survey="saveExchangeSurvey" @created="applicationRevision++" />
-  <SurveyApplicationDialog v-model="applicationVisible" :kind="applicationKind" :get-survey="() => form"
+  <SurveyApplicationDialog
+    v-model="applicationVisible" :kind="applicationKind" :get-survey="() => form"
     :save-survey="saveApplicationSurvey" :get-execution="applicationExecution" @created="applicationCreated" />
 </template>
 
@@ -417,7 +419,7 @@ const receiptResult = shallowRef<SiteSurveyCommandResult>()
 const receiptReadError = ref('')
 const receiptReading = ref(false)
 const receiptReopenRequired = ref(false)
-const readonly = computed(() => !!pendingIntent.value || receiptReopenRequired.value || detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE'))
+const formReadonly = computed(() => !!pendingIntent.value || receiptReopenRequired.value || detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE'))
 const integratedOutsource = ref(false)
 const users = ref<UserApi.UserVO[]>([])
 const dynamicFormRef = ref<InstanceType<typeof SiteSurveyDynamicForm>>()
@@ -534,11 +536,11 @@ const loadHostProject = () => hostProject.value
   : ProjectApi.getProject(ownerId(props.projectId!)).then((row) => (hostProject.value = row))
 
 const useStandardForm = async () => {
-  if (readonly.value || !inProject(form)) return
+  if (formReadonly.value || !inProject(form)) return
   const context = contextSequence
   const sequence = formSequence
   const schema = await SiteSurveyApi.getDefaultFormSchema()
-  if (!current(context) || sequence !== formSequence || readonly.value) return
+  if (!current(context) || sequence !== formSequence || formReadonly.value) return
   const schemaFields = new Set(Object.values(schema.fieldBindings))
   const retainedExtras = Object.keys(form.extensionValues || {})
   if (retainedExtras.some((key) => !schemaFields.has(key))) {
@@ -552,29 +554,29 @@ const useStandardForm = async () => {
   form.fieldBindings = schema.fieldBindings
 }
 const loadTemplates = async () => {
-  if (readonly.value) return
+  if (formReadonly.value) return
   const context = contextSequence
   const result = await DynamicFormApi.getTemplateSelection({
     pageNo: templatePage.value,
     pageSize: 20
   })
-  if (!current(context) || readonly.value) return
+  if (!current(context) || formReadonly.value) return
   templates.value = result.list.filter((item) => item.categoryCode === 'SITE_SURVEY')
   templateTotal.value = result.total
 }
 const chooseTemplate = async () => {
-  if (readonly.value) return
+  if (formReadonly.value) return
   const context = contextSequence
   await loadTemplates()
-  if (current(context) && !readonly.value) templateVisible.value = true
+  if (current(context) && !formReadonly.value) templateVisible.value = true
 }
 const selectTemplate = async (template: DynamicFormApi.DynamicFormSelectionVO) => {
-  if (readonly.value) return
+  if (formReadonly.value) return
   const context = contextSequence
   const sequence = formSequence
   const revision = await DynamicFormApi.getRevision(template.currentPublishedRevisionId)
   const schema = await SiteSurveyApi.getFormSchema(revision.revisionId, revision.revisionVersion)
-  if (!current(context) || sequence !== formSequence || readonly.value) return
+  if (!current(context) || sequence !== formSequence || formReadonly.value) return
   form.formRevisionId = revision.revisionId
   form.extensionDefinitionRevisionId = undefined
   form.formRevisionVersion = revision.revisionVersion
@@ -613,7 +615,7 @@ const beforeClose = async (done: () => void) => {
   if ((await confirmLeave()) && discardChanges()) done()
 }
 const updateDynamicForm = (value: SiteSurveyVO) => {
-  if (!readonly.value && inProject(form)) Object.assign(form, value)
+  if (!formReadonly.value && inProject(form)) Object.assign(form, value)
 }
 defineExpose({ isDirty, discardChanges, confirmLeave, requestLeave: confirmLeave })
 
@@ -763,7 +765,7 @@ const executeIntent = async (intent: SurveyReceiptIntent, recovery = false) => {
 }
 const recoverOperation = () => pendingIntent.value ? executeIntent(pendingIntent.value, true) : Promise.resolve(false)
 const save = async () => {
-  if (readonly.value || saving.value || !inProject(form)) return false
+  if (formReadonly.value || saving.value || !inProject(form)) return false
   const context = contextSequence
   try {
     await formRef.value.validate()
@@ -772,7 +774,7 @@ const save = async () => {
     if (current(context)) message.warning('请检查工勘必填项和表单内容')
     return false
   }
-  if (!current(context) || readonly.value || saving.value || !inProject(form)) return false
+  if (!current(context) || formReadonly.value || saving.value || !inProject(form)) return false
   const payload = savePayload()
   if (!payload) return false
   return executeIntent(pinSurveySave(payload, newIdempotencyKey(), context))
@@ -780,7 +782,7 @@ const save = async () => {
 const applicationVisible = ref(false)
 const applicationKind = ref<'material' | 'procurement' | 'outsource'>('material')
 const startOutsource = () => {
-  if (readonly.value || saving.value || !inProject(form) || !form.outsourceRequired || form.outsourceRequestId) return
+  if (formReadonly.value || saving.value || !inProject(form) || !form.outsourceRequired || form.outsourceRequestId) return
   applicationKind.value = 'outsource'
   applicationVisible.value = true
 }
@@ -789,7 +791,7 @@ const saveApplicationSurvey = async () => {
   const allowed = kind === 'outsource' ? form.outsourceRequired && !form.outsourceRequestId
     : form.businessValues?.railTrayRequired === true || (kind === 'procurement' &&
       form.businessValues?.manufacturerInstallation === true && form.businessValues?.railTrayRequired === false)
-  if (readonly.value) throw new Error('当前工勘只读，无法新增申请')
+  if (formReadonly.value) throw new Error('当前工勘只读，无法新增申请')
   if (!allowed) throw new Error('工勘申请条件已变化，请重新检查工勘内容')
   if (!(await save())) throw new Error('工勘未保存成功，申请尚未创建')
   return { ...form }
@@ -808,7 +810,7 @@ const applicationCreated = async (kind: string) => {
   } catch { message.warning('申请已保存，请重新打开工勘查看关联记录') }
 }
 const performSurveyAction = async (kind: string) => {
-  if (readonly.value || saving.value) return
+  if (formReadonly.value || saving.value) return
   if (kind === 'outsource') {
     await startOutsource()
     return
@@ -826,7 +828,7 @@ const performSurveyAction = async (kind: string) => {
 const exchangeVisible = ref(false)
 const applicationRevision = ref(0)
 const saveExchangeSurvey = async () => {
-  if (readonly.value || form.businessValues?.materialMatches !== false || !(await save()))
+  if (formReadonly.value || form.businessValues?.materialMatches !== false || !(await save()))
     throw new Error('工勘未保存成功，换货申请尚未创建')
   return { id: form.id!, projectId: form.projectId, name: form.name }
 }
