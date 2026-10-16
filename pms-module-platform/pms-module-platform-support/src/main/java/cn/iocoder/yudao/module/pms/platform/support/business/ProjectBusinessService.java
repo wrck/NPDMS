@@ -52,4 +52,6 @@ public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> ext
     BusinessFormData form(Long id);
     BusinessOperationReceipt saveForm(Long id, Map<String,Object> values, Long version, String key);
     Long requireDeliveryAccess(Long id, boolean write, boolean lock);
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi approvalApi();
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Subject approvalSubject(Long id, boolean write, boolean lock);
 }

@@ -120,4 +120,25 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
                 null,service.readableValues(entity),entity.getVersion(),true,null);
     }
 
+    private cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef approvalIdentity(Long id) {
+        return service.approvalSubject(id,false,false).entity();
+    }
+    @GetMapping("/{id}/approvals/definitions") public CommonResult<java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalProcessApi.Definition>> approvalDefinitions(@PathVariable @Positive Long id) {
+        return success(service.approvalApi().definitions(approvalIdentity(id)));
+    }
+    @PostMapping("/{id}/approvals/preview") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalProcessApi.Preview> approvalPreview(@PathVariable @Positive Long id,@Valid @RequestBody cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.PreviewRequest request) {
+        return success(service.approvalApi().preview(approvalIdentity(id),request));
+    }
+    @GetMapping("/{id}/approvals") public CommonResult<java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Attempt>> approvals(@PathVariable @Positive Long id) {
+        return success(service.approvalApi().list(approvalIdentity(id)));
+    }
+    @GetMapping("/{id}/approvals/{attemptId}") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Detail> approval(@PathVariable @Positive Long id,@PathVariable @Positive Long attemptId) {
+        return success(service.approvalApi().detail(approvalIdentity(id),attemptId));
+    }
+    @PostMapping("/{id}/approvals") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Attempt> startApproval(@PathVariable @Positive Long id,@Valid @RequestBody cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Start request) {
+        return success(service.approvalApi().start(approvalIdentity(id),request));
+    }
+    @PostMapping("/{id}/approvals/{attemptId}/cancel") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Attempt> cancelApproval(@PathVariable @Positive Long id,@PathVariable @Positive Long attemptId,@Valid @RequestBody cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Cancel request) {
+        return success(service.approvalApi().cancel(approvalIdentity(id),attemptId,request));
+    }
 }

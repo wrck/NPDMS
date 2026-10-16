@@ -30,6 +30,11 @@ export interface BusinessPageInitialData {
   context: Record<string, unknown>
 }
 export interface BusinessPageOpening { view: DirectBusinessView; data: BusinessPageInitialData }
+export interface BusinessApprovalDefinition {id:string;key:string;name:string;version:number;formConf?:string;formFields:string[];available:boolean;unavailableReason?:string}
+export interface BusinessApprovalPreview {nodes:Array<{id:string;name:string;selectApprovers:boolean}>;fieldPermissions:Record<string,string>}
+export interface BusinessApprovalAttempt {id:BusinessId;definitionId:string;instanceId:string;status:'PENDING'|'APPROVED'|'REJECTED'|'WITHDRAWN';submittedVersion:number;currentContent:boolean;creator:string;submittedAt:string|number;decidedAt?:string|number;conclusion?:string;previousAttemptId?:BusinessId}
+export interface BusinessApprovalStart {definitionId:string;version:number;idempotencyKey:string;variables:Record<string,unknown>;selectedApprovers:Record<string,BusinessId[]>}
+export interface BusinessApprovalDetail {attempt:BusinessApprovalAttempt;process:{name:string;submittedValues:Record<string,unknown>;opinions:Array<{userId:string;action:string;comment:string;time:string|number}>}}
 
 /** One client factory for every inherited business Controller; no catalog/operation-dispatch URL. */
 export const createProjectBusinessApi = (prefix: string) => {
@@ -54,6 +59,12 @@ export const createProjectBusinessApi = (prefix: string) => {
     evaluate:(id:BusinessId,condition:BusinessCondition)=>request.post<BusinessConditionResult>({url:`${entity(id)}/evaluate`,data:condition,silentError:true}),
     businessCompletion:(id:BusinessId)=>request.get<BusinessConditionResult|null>({url:`${entity(id)}/completion`,silentError:true}),
     get: (id: BusinessId) => request.get<BusinessEntityData>({ url: entity(id), silentError: true }),
+    approvalDefinitions:(id:BusinessId)=>request.get<BusinessApprovalDefinition[]>({url:`${entity(id)}/approvals/definitions`,silentError:true}),
+    approvalPreview:(id:BusinessId,definitionId:string,variables:Record<string,unknown>)=>request.post<BusinessApprovalPreview>({url:`${entity(id)}/approvals/preview`,data:{definitionId,variables},silentError:true}),
+    approvals:(id:BusinessId)=>request.get<BusinessApprovalAttempt[]>({url:`${entity(id)}/approvals`,silentError:true}),
+    approval:(id:BusinessId,attemptId:BusinessId)=>request.get<BusinessApprovalDetail>({url:`${entity(id)}/approvals/${identity(attemptId)}`,silentError:true}),
+    startApproval:(id:BusinessId,body:BusinessApprovalStart)=>request.post<BusinessApprovalAttempt>({url:`${entity(id)}/approvals`,data:body,silentError:true}),
+    cancelApproval:(id:BusinessId,attemptId:BusinessId,reason:string)=>request.post<BusinessApprovalAttempt>({url:`${entity(id)}/approvals/${identity(attemptId)}/cancel`,data:{reason},silentError:true}),
     revisions:(id:BusinessId,beforeId?:BusinessId)=>request.get<DirectBusinessRevision[]>({url:`${entity(id)}/revisions`,params:{limit:100,...(beforeId===undefined?{}:{beforeId:identity(beforeId)})},silentError:true}),
     revisionValues:(id:BusinessId,revisionId:BusinessId)=>request.get<Record<string,RevisionFieldValue>>({url:`${entity(id)}/revisions/${identity(revisionId)}`,silentError:true}),
     revisionForm:(id:BusinessId,revisionId:BusinessId)=>request.get<BusinessEntityFormData>({url:`${entity(id)}/revisions/${identity(revisionId)}/form`,silentError:true}),

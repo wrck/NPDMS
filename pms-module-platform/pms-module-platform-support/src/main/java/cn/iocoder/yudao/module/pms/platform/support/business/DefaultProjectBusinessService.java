@@ -74,6 +74,7 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
                     ?inherited.forPageRead():defaults.permissions();
         }
     }
+    @Autowired private org.springframework.beans.factory.ObjectProvider<cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi> approvals;
 
     @PostConstruct
     @SuppressWarnings("unchecked")
@@ -798,6 +799,37 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected void validateBusiness(E entity) { }
     protected void validateBusiness(E entity,String operation) { validateBusiness(entity); }
     protected void validateDelivery(E entity, boolean write) { }
+    /** An Owner may redact sensitive body fields before they enter immutable approval history. */
+    protected Map<String,Object> approvalValues(E entity) { return readableValues(entity); }
+    protected void validateApproval(E entity,boolean write) { }
+
+    @Override public cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi approvalApi() {
+        return approvals.getObject();
+    }
+    @Override public cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Subject approvalSubject(Long id, boolean write, boolean lock) {
+        var actor=actor();authorizeModelRead(actor,"approval");
+        if(write)defaults.permissions().requireWritable(definition(),actor,"operation:save");
+        E row=current(id,actor);
+        if(write)defaults.projects().requireWritable(row.getProjectId(),actor,lock);
+        else defaults.projects().requireReadable(row.getProjectId(),actor);
+        if(lock){
+            E locked=lock(id,actor);
+            if(!Objects.equals(row.getProjectId(),locked.getProjectId()) || !Objects.equals(row.getVersion(),locked.getVersion()))
+                throw invalid("CONCURRENCY_CONFLICT","Business changed before approval");
+            row=locked;loadOwnedDetails(row);afterRead(row);
+        }
+        validateApproval(copy(row),write);
+        var values=new LinkedHashMap<String,Object>(approvalValues(row));
+        var presentation=form(id);
+        if(presentation.extensions()!=null){
+            values.put("$extensions",presentation.extensions().fields());
+            values.put("$extensionDefinitions",presentation.definitions());
+            values.put("$extensionDefinitionRevisionId",presentation.extensions().definitionRevisionId());
+        }
+        return new cn.iocoder.yudao.module.pms.platform.api.businessmodel.approval.DefaultBusinessApprovalApi.Subject(
+                identity(row),row.getProjectId(),row.getVersion(),Collections.unmodifiableMap(values));
+    }
+
     @Override public cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi deliveryApi() {
         return Objects.requireNonNull(defaults.deliveries().get(), "Shared delivery API is unavailable");
     }

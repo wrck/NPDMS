@@ -11,6 +11,19 @@ import java.util.Optional;
 @Mapper
 public interface ApprovalAttemptMapper extends BaseMapperX<ApprovalAttemptDO> {
 
+    ApprovalAttemptDO lockDefaultAttempt(cn.iocoder.yudao.module.pms.platform.dal.mysql.approval.query.DefaultApprovalQuery query);
+
+    default List<ApprovalAttemptDO> selectDefaultAttempts(cn.iocoder.yudao.module.pms.platform.dal.mysql.approval.query.DefaultApprovalQuery query) {
+        return selectList(new LambdaQueryWrapperX<ApprovalAttemptDO>()
+                .eq(ApprovalAttemptDO::getTenantId, query.tenantId())
+                .eq(ApprovalAttemptDO::getOwnerModule, query.ownerModule())
+                .eq(ApprovalAttemptDO::getEntityType, query.entityType())
+                .eq(ApprovalAttemptDO::getEntityId, query.entityId())
+                .eq(ApprovalAttemptDO::getPurpose, query.purpose())
+                .eq(ApprovalAttemptDO::getBackendId, query.backendId())
+                .orderByDesc(ApprovalAttemptDO::getId));
+    }
+
     /** 同主体同用途同尝试键唯一；批次内各主体行共用 attempt_id。 */
     default Optional<ApprovalAttemptDO> selectBySubjectAndAttempt(String ownerModule, String entityType,
                                                                   Long entityId, String purpose,
