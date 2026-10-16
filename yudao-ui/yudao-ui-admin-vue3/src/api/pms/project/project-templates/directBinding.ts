@@ -27,6 +27,7 @@ export type BindingSelection = {
   strategy: EntitySource
   requirementFormRevisionId?: BusinessViewId
   acceptanceType?: 'PRELIMINARY' | 'FINAL'
+  configurationName?: string
   completion?: { factCode: string; quantifier: 'ALL' | 'ANY' }
 } & (
   | { view: BusinessViewRegistrationVO }
@@ -62,8 +63,12 @@ export const containsNativeCompletion = (rule: Record<string, any> | undefined):
     (Array.isArray(rule.rules) &&
       rule.rules.some((item: Record<string, any>) => containsNativeCompletion(item))))
 
-export const bindingTarget = (view: Pick<BusinessViewComponentVO, 'entityType'>) =>
-  `PROJECT_${view.entityType}`
+export const defaultBusinessCode = (view: Pick<BusinessViewComponentVO, 'componentKey'>) =>
+  view.componentKey.startsWith('DIRECT_BUSINESS_') ? view.componentKey.slice('DIRECT_BUSINESS_'.length) : undefined
+export const isAcceptanceView = (view: Pick<BusinessViewComponentVO, 'ownerContext' | 'entityType' | 'componentKey'>) =>
+  view.ownerContext === 'ACC' && (view.entityType === 'ACCEPTANCE' || defaultBusinessCode(view) === 'ACC_ACCEPTANCE_ACTIVITY')
+export const bindingTarget = (view: Pick<BusinessViewComponentVO, 'entityType' | 'componentKey'>) =>
+  defaultBusinessCode(view) ?? `PROJECT_${view.entityType}`
 
 export const bindingContextMapping = (view: BusinessViewComponentVO): Record<string, string> => {
   const required = view.contextSchema.required
@@ -170,8 +175,10 @@ export const prepareTaskBinding = async (
       instanceResolutionStrategy: selection.strategy,
       contextMapping,
       businessViewRevisionId: view.id,
-      ...(view.ownerContext === 'ACC' && view.entityType === 'ACCEPTANCE' && selection.acceptanceType
+      ...(isAcceptanceView(view) && selection.acceptanceType
         ? { acceptanceType: selection.acceptanceType } : {}),
+      ...(defaultBusinessCode(view) && selection.configurationName != null
+        ? { configurationName: selection.configurationName } : {}),
       ...(requirementSource ?? {})
     },
     businessViewSnapshot: viewSnapshot(view)

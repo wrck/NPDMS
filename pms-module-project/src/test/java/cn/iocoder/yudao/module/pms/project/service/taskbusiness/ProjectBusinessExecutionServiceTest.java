@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.*;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
 import cn.iocoder.yudao.module.pms.project.api.workbinding.*;
@@ -34,9 +35,12 @@ class ProjectBusinessExecutionServiceTest {
     final ProjectScopeApi scopes = mock(ProjectScopeApi.class);
     final PermissionApi permissions = mock(PermissionApi.class);
     final BusinessViewQueryApi views = mock(BusinessViewQueryApi.class);
+    final ProjectBusinessRuntimeApi runtime = mock(ProjectBusinessRuntimeApi.class);
     final ProjectBusinessExecutionService service = new ProjectBusinessExecutionService(projects, plans, nodes, executions, access, scopes, permissions,
             new org.springframework.beans.factory.ObjectProvider<BusinessViewQueryApi>() {
                 @Override public BusinessViewQueryApi getObject() { return views; }
+            }, new org.springframework.beans.factory.ObjectProvider<ProjectBusinessRuntimeApi>() {
+                @Override public ProjectBusinessRuntimeApi getObject() { return runtime; }
             });
     final ProjectMasterDO project = new ProjectMasterDO();
     final ProjectPlanVersionDO plan = new ProjectPlanVersionDO();
@@ -106,6 +110,57 @@ class ProjectBusinessExecutionServiceTest {
         node.setNodeKind("STAGE"); node.setNodeKey("stage:survey");
         var d = new TemplateExecutionSnapshot.StageContract(); d.setNodeKey(node.getNodeKey()); d.setBinding(binding());
         snapshot.setStages(List.of(d)); snapshot.setTasks(List.of()); freeze();
+    }
+    void useDirectSurvey(String kind) {
+        if ("STAGE".equals(kind)) useStage();
+        var binding = "TASK".equals(kind) ? snapshot.getTasks().getFirst().getBinding()
+                : snapshot.getStages().getFirst().getBinding();
+        var registered = new BusinessViewRevision(40L,"siteSurvey","survey",1L,"SOL",BusinessViewComponentProvider.ViewSource.PAGE,
+                "DIRECT_BUSINESS_SOL_SITE_SURVEY","1",null,JsonUtils.parseTree("{}"),JsonUtils.parseTree("[]"),
+                "query","command","permission",null,null,1L,"PUBLISHED",Set.of());
+        binding.setTargetObjectType("siteSurvey"); binding.setTargetObjectKey("SOL_SITE_SURVEY");
+        binding.setComponentKey(registered.componentKey());
+        binding.setBusinessViewSnapshot(JsonUtils.parseTree(JsonUtils.toJsonString(registered))); freeze();
+        when(views.getRevision(any())).thenReturn(registered);
+        when(runtime.definitions()).thenReturn(List.of(new ProjectBusinessRuntimeApi.Definition(
+                new ProjectBusinessRuntimeApi.Type("SOL","siteSurvey"),"SOL_SITE_SURVEY","工勘",Map.of(),"SITE_SURVEY")));
+    }
+    @ParameterizedTest @ValueSource(strings={"TASK","STAGE"})
+    void nativePageCommandUsesTheRegisteredDefaultIdentityAndRevalidatesItsSelectedExecution(String kind) {
+        useDirectSurvey(kind);
+        var selected = "TASK".equals(kind) ? new ProjectBusinessExecutionSelection(task,null)
+                : new ProjectBusinessExecutionSelection(null,stage);
+        service.lockForWrite(request(selected));
+        if ("TASK".equals(kind)) verify(executions).lockAndRevalidate(task);
+        else verify(executions).beginStageHandling(stage,8L);
+        verify(views).getRevision(new BusinessViewQueryApi.Query(40L, BusinessViewQueryApi.Purpose.HISTORICAL_REFERENCE));
+    }
+    @Test void registeredNativeAliasCannotRefreshAStaleRoundOrSkipTaskAuthorization() {
+        useDirectSurvey("TASK");
+        var stale = new ProjectTaskExecutionContext(9L,1L,11L,0,12L,1,21L,31L,0,2,32L,1,true,null);
+        when(executions.lockAndRevalidate(stale)).thenThrow(new IllegalStateException("stale"));
+        assertThrows(IllegalStateException.class, () -> service.lockForWrite(request(new ProjectBusinessExecutionSelection(stale,null))));
+        verify(executions).lockAndRevalidate(stale); verify(executions,never()).inspect(any());
+        when(access.writable(any(),any(),any())).thenReturn(false);
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request(new ProjectBusinessExecutionSelection(task,null))));
+        verify(executions,never()).lockAndRevalidate(task);
+    }
+    @Test void nativeAliasMustBeUniquelyRegisteredForTheSameOwnerAndTarget() {
+        useDirectSurvey("TASK");
+        var selected = new ProjectBusinessExecutionSelection(task,null);
+        when(runtime.definitions()).thenReturn(List.of());
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request(selected)));
+        useDirectSurvey("TASK");
+        var other = new ProjectBusinessRuntimeApi.Definition(new ProjectBusinessRuntimeApi.Type("SOL","other"),
+                "SOL_OTHER","other",Map.of(),"SITE_SURVEY");
+        var valid = runtime.definitions().getFirst();
+        when(runtime.definitions()).thenReturn(List.of(other));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request(selected)));
+        when(runtime.definitions()).thenReturn(List.of(valid,other));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(request(selected)));
+        when(runtime.definitions()).thenReturn(List.of(valid));
+        assertThrows(ServiceException.class, () -> service.lockForWrite(new ProjectBusinessExecutionApi.WriteRequest(9L,"ACC","SITE_SURVEY",selected)));
+        verifyNoInteractions(executions,views);
     }
     @Test void standaloneUsesUniqueCurrentTaskAndOriginalTaskAuthorizationUnderProjectLock() {
         service.lockForWrite(request(null));

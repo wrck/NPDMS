@@ -37,14 +37,23 @@
         </el-form-item>
       </template>
 
-      <el-form-item v-if="selectedMetadata?.ownerContext === 'ACC' && selectedMetadata?.entityType === 'ACCEPTANCE'" label="关联验收类型">
+      <el-form-item v-if="selectedMetadata && isAcceptanceView(selectedMetadata)" label="关联验收类型">
         <el-select :model-value="modelValue?.acceptanceType ?? task.workBinding.parameters?.acceptanceType ?? ''"
-          :disabled="!modelValue || readonly || !canBind" @update:model-value="changeAcceptanceType">
+          :disabled="readonly || !canBind" @update:model-value="changeAcceptanceType">
           <el-option value="" label="全部验收类型" />
           <el-option value="PRELIMINARY" label="初验" />
           <el-option value="FINAL" label="终验" />
         </el-select>
         <p class="help">按项目和验收类型关联业务，初终验前置条件由模板规则配置。</p>
+      </el-form-item>
+
+      <el-form-item v-if="selectedMetadata && defaultBusinessCode(selectedMetadata)" label="业务展示配置">
+        <el-select :model-value="modelValue?.configurationName ?? task.workBinding.parameters?.configurationName ?? ''"
+          :disabled="readonly || !canBind || configurationsLoading" @update:model-value="changeConfiguration">
+          <el-option value="" label="基础配置" />
+          <el-option v-for="configuration in configurations" :key="configuration.key" :value="configuration.key" :label="configuration.name" />
+        </el-select>
+        <p class="help">所选命名配置随任务绑定保存，办理页面复用业务的字段、表单和可选能力配置。</p>
       </el-form-item>
 
       <el-form-item v-if="needsRequirementSource(selectedMetadata)" label="需求分析表单" required>
@@ -112,6 +121,8 @@ import * as TemplateApi from '@/api/pms/project/project-templates'
 import type { CompletionFactCatalogVO } from '@/api/pms/project/project-templates'
 import {
   bindingContextMapping,
+  defaultBusinessCode,
+  isAcceptanceView,
   containsNativeCompletion,
   type BindingSelection,
   type TaskBindingHost,
@@ -119,6 +130,7 @@ import {
 } from '@/api/pms/project/project-templates/directBinding'
 import { errorText } from './editorModel'
 import { needsRequirementSource, savedRequirementSource } from '@/api/pms/project/project-templates/requirementBinding'
+import { createProjectBusinessApi, getDirectBusinessView, type BusinessNamedConfiguration } from '@/api/pms/platform/business'
 
 const props = defineProps<{ task: TaskBindingHost; modelValue?: BindingSelection; readonly?: boolean;
   bindingPermission?: 'pms:project-template:update' | 'pms:project-plan:manage' }>()
@@ -135,6 +147,7 @@ const registerOpen = ref(false)
 const componentKey = ref('')
 const formId = ref<BusinessViewId>()
 const factCatalog = ref<CompletionFactCatalogVO[]>([])
+const configurations = ref<BusinessNamedConfiguration[]>([]), configurationsLoading = ref(false)
 
 const catalogKey = (row: BusinessViewComponentVO) => `${row.componentKey}@${row.componentVersion}`
 const componentLabel = (row: BusinessViewComponentVO) => row.displayName ?? catalogKey(row)
@@ -148,6 +161,28 @@ const selectedComponent = computed(() => components.value.find((row) => catalogK
 const selectedMetadata = computed(() => props.modelValue
   ? ('view' in props.modelValue ? props.modelValue.view : props.modelValue.component)
   : currentView.value)
+watch(() => selectedMetadata.value && defaultBusinessCode(selectedMetadata.value), async (code, _previous, onCleanup) => {
+  configurations.value = []; configurationsLoading.value = !!code
+  let cancelled = false
+  onCleanup(() => { cancelled = true })
+  if (!code) return
+  try {
+    const view = await getDirectBusinessView(code)
+    const configuration = await createProjectBusinessApi(view.apiBase).fieldConfiguration()
+    if (!cancelled) configurations.value = configuration.profiles || []
+  } catch (error) { if (!cancelled) failure.value = errorText(error) }
+  finally { if (!cancelled) configurationsLoading.value = false }
+})
+const currentSelection = (): BindingSelection | undefined => props.modelValue ?? (currentView.value ? {
+  view: currentView.value, strategy: source.value as EntitySource,
+  acceptanceType: props.task.workBinding.parameters?.acceptanceType as BindingSelection['acceptanceType'],
+  configurationName: props.task.workBinding.parameters?.configurationName as string | undefined,
+  requirementFormRevisionId: savedRequirementSource(props.task)
+} : undefined)
+const changeConfiguration = (configurationName: string) => {
+  const selection = currentSelection()
+  if (selection && !props.readonly && canBind.value) emit('update:modelValue', { ...selection, configurationName })
+}
 const requirementSourceId = computed(() => props.modelValue?.requirementFormRevisionId ?? savedRequirementSource(props.task))
 const chooseRequirementSource = (revisionId: BusinessViewId) => {
   if (props.readonly || !canBind.value) return
@@ -177,8 +212,9 @@ const chooseCompletion = (factCode: string) => {
   }
 }
 const changeAcceptanceType = (acceptanceType: '' | 'PRELIMINARY' | 'FINAL') => {
-  if (props.modelValue && !props.readonly && canBind.value)
-    emit('update:modelValue', { ...props.modelValue, acceptanceType: acceptanceType || undefined })
+  const selection = currentSelection()
+  if (selection && !props.readonly && canBind.value)
+    emit('update:modelValue', { ...selection, acceptanceType: acceptanceType || undefined })
 }
 const changeQuantifier = (quantifier: 'ALL' | 'ANY') => {
   if (props.modelValue?.completion && !props.readonly)
@@ -240,6 +276,7 @@ const chooseView = (id: BusinessViewId) => {
     bindingContextMapping(view)
     const acceptanceType = props.task.workBinding.parameters?.acceptanceType
     emit('update:modelValue', { view, strategy: 'REFERENCE_EXISTING', requirementFormRevisionId: savedRequirementSource(props.task),
+      configurationName: view.componentKey === props.task.workBinding.componentKey ? props.task.workBinding.parameters?.configurationName as string | undefined : undefined,
       acceptanceType: acceptanceType === 'PRELIMINARY' || acceptanceType === 'FINAL' ? acceptanceType : undefined })
     failure.value = ''
   } catch (error) { failure.value = errorText(error) }

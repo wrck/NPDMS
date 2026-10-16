@@ -6,6 +6,7 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewQueryApi;
 import cn.iocoder.yudao.module.pms.platform.api.businessview.BusinessViewRevision;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
 import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectProvider.Context;
@@ -47,6 +48,7 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
     private final PermissionApi permissions;
     // Owner view providers depend on this guard; resolve the query API only when handling a write.
     private final ObjectProvider<BusinessViewQueryApi> views;
+    private final ObjectProvider<ProjectBusinessRuntimeApi> runtime;
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
@@ -120,9 +122,17 @@ public class ProjectBusinessExecutionService implements ProjectBusinessExecution
     }
 
     private boolean matches(BindingContract binding, WriteRequest request) {
-        return binding != null && ("BUSINESS_COMPONENT".equals(binding.getType()) || "BUSINESS_OBJECT".equals(binding.getType()))
-                && Objects.equals(request.ownerContext(), binding.getTargetContextCode())
-                && Objects.equals(request.objectType(), binding.getTargetObjectType());
+        if (binding == null || !("BUSINESS_COMPONENT".equals(binding.getType()) || "BUSINESS_OBJECT".equals(binding.getType()))
+                || !Objects.equals(request.ownerContext(), binding.getTargetContextCode())) return false;
+        if (Objects.equals(request.objectType(), binding.getTargetObjectType())) return true;
+        // Native pages retain their Owner identity; default bindings use the registered entity identity.
+        // Resolve only a unique explicit registration, never a case-insensitive or guessed alias.
+        var api = runtime.getIfAvailable();
+        if (api == null) return false;
+        var aliases = api.definitions().stream().filter(definition ->
+                Objects.equals(request.ownerContext(), definition.type().ownerModule())
+                        && Objects.equals(request.objectType(), definition.nativeObjectType())).toList();
+        return aliases.size() == 1 && Objects.equals(aliases.getFirst().type().entityType(), binding.getTargetObjectType());
     }
 
     private boolean writable(Long projectId, ProjectNodeExecutionDO node) {

@@ -43,8 +43,19 @@ public class DefaultProjectBusinessRuntimeProviders {
         @Override public Map<String,String> completionFactLabels(){var labels=new HashMap<>(legacy==null?definition.factLabels():legacy.completionFactLabels());labels.put(ProjectBusinessRuntimeApi.DELIVERY_PREFIX+"ATTACHMENT","指定类型交付件已有有效上传");return Map.copyOf(labels);}
         @Override public boolean supportsStageCompletionFacts(){return legacy==null || legacy.supportsStageCompletionFacts();}
         private ProjectBusinessRuntimeApi.Query query(Long tenant,Long project,String id){return new ProjectBusinessRuntimeApi.Query(tenant,project,definition.type(),cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.nativeId(id));}
-        private ProjectBusinessRuntimeApi.UserContext user(TaskBusinessObjectProvider.Context context){return new ProjectBusinessRuntimeApi.UserContext(context.tenantId(),context.actorId(),context.projectId(),definition.type());}
+        private ProjectBusinessRuntimeApi.UserContext user(TaskBusinessObjectProvider.Context context){return new ProjectBusinessRuntimeApi.UserContext(context.tenantId(),context.actorId(),context.projectId(),definition.type(),context.bindingParameters());}
         @Override public Set<String> inspectContext(TaskBusinessObjectProvider.Context context){return legacy==null?api.actions(user(context)):legacy.inspectContext(context);}
+        @Override public BusinessObjectInspection inspectContextAndObjects(TaskBusinessObjectProvider.Context context,List<String> ids){
+            if(legacy!=null){
+                var inspected=legacy.inspectContextAndObjects(context,ids);
+                return new BusinessObjectInspection(inspected.allowedActions(),inspected.objects().stream().map(fact->enrich(context,fact,false)).toList());
+            }
+            var inspected=api.inspectContextAndObjects(user(context),ids.stream().map(cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource::nativeId).toList());
+            return new BusinessObjectInspection(inspected.allowedActions(),inspected.objects().stream().map(observation->{
+                String id=observation.entityId().toString();
+                return enrich(context,new BusinessObjectFact(id,definition.title()+" #"+id,observation.factVersion(),inspected.allowedActions(),observation.facts(),List.of()),false);
+            }).toList());
+        }
         private BusinessObjectFact enrich(TaskBusinessObjectProvider.Context context,BusinessObjectFact fact,boolean lock){
             var delivery=api.deliveryFacts(query(context.tenantId(),context.projectId(),fact.objectId()),lock);var values=new HashMap<>(fact.completionFacts());values.putAll(delivery.facts());
             return new BusinessObjectFact(fact.objectId(),fact.displayName(),factVersion(fact.factVersion(),delivery.factVersion()),fact.allowedActions(),values,fact.artifacts());
@@ -62,14 +73,15 @@ public class DefaultProjectBusinessRuntimeProviders {
         @Override public List<BusinessObjectFact> candidates(TaskBusinessObjectProvider.Context context){
             if(legacy!=null)return legacy.candidates(context).stream().map(fact->enrich(context,fact,false)).toList();
             inspectContext(context);var result=new ArrayList<BusinessObjectFact>();Long after=null;
-            do{var rows=api.candidates(new ProjectBusinessRuntimeApi.Candidates(context.tenantId(),context.projectId(),definition.type(),after,100));
+            do{var rows=api.candidates(new ProjectBusinessRuntimeApi.Candidates(context.tenantId(),context.projectId(),definition.type(),after,100,context.bindingParameters()));
                 for(var row:rows){try{result.add(inspect(context,row.entityId().toString()));}catch(cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException denied){/* Private rows stay private. */}if(result.size()==100)return List.copyOf(result);}
                 if(rows.size()<100)return List.copyOf(result);after=rows.getLast().entityId();
             }while(true);
         }
         @Override public List<AssociationCandidate> associationCandidates(AssociationContext context,String after,int limit){
             if(legacy!=null)return legacy.associationCandidates(context,after,limit);
-            return api.candidates(new ProjectBusinessRuntimeApi.Candidates(context.tenantId(),context.projectId(),definition.type(),cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.nativeId(after),limit)).stream()
+            if(!definition.businessType().equals(context.targetObjectKey()))throw new IllegalArgumentException("BUSINESS_RUNTIME_TARGET_INVALID");
+            return api.candidates(new ProjectBusinessRuntimeApi.Candidates(context.tenantId(),context.projectId(),definition.type(),cn.iocoder.yudao.module.pms.project.api.workbinding.result.BusinessResultSource.nativeId(after),limit,context.bindingParameters())).stream()
                     .map(row->new AssociationCandidate(row.entityId().toString(),row.factVersion())).toList();
         }
         private CompletionFact enrich(Long tenant,Long project,CompletionFact fact){
@@ -95,8 +107,7 @@ public class DefaultProjectBusinessRuntimeProviders {
     }
     private static void requireTransaction(){if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())throw new IllegalStateException("BUSINESS_RUNTIME_TRANSACTION_REQUIRED");}
     private static String factVersion(String business,String delivery){
-        try{return java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest((business+"\n"+delivery).getBytes(java.nio.charset.StandardCharsets.UTF_8)));}
-        catch(java.security.NoSuchAlgorithmException impossible){throw new IllegalStateException(impossible);}
+        return ProjectBusinessRuntimeApi.combinedFactVersion(business,delivery);
     }
     private static void requireTenant(Long tenant){if(!Objects.equals(tenant,TenantContextHolder.getRequiredTenantId()))throw new IllegalArgumentException("BUSINESS_RUNTIME_TENANT_INVALID");}
 }

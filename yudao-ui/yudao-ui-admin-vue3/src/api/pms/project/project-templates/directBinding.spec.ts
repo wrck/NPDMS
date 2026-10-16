@@ -59,6 +59,15 @@ beforeEach(() => {
 })
 
 describe('PM-03 Designer V2 direct binding', () => {
+  it('keeps the default business identity, selector and named configuration through template authoring', async () => {
+    const acceptance = { ...view, ownerContext: 'ACC', entityType: 'acceptanceActivity', componentKey: 'DIRECT_BUSINESS_ACC_ACCEPTANCE_ACTIVITY' }
+    vi.mocked(Views.getBusinessView).mockResolvedValue(acceptance)
+    const prepared = await prepareTaskBinding(task(), { view: acceptance, strategy: 'REFERENCE_EXISTING',
+      acceptanceType: 'FINAL', configurationName: 'final-report',
+      completion: { factCode: 'FINAL_ACCEPTANCE_PASSED', quantifier: 'ALL' } }, createBindingSaveSession())
+    expect(prepared.workBinding.targetObjectKey).toBe('ACC_ACCEPTANCE_ACTIVITY')
+    expect(prepared.workBinding.parameters).toMatchObject({ acceptanceType: 'FINAL', configurationName: 'final-report' })
+  })
   it('freezes the acceptance type independently of project instance and task identity', async () => {
     const acceptance = { ...view, ownerContext: 'ACC', entityType: 'ACCEPTANCE', componentKey: 'ACC_ACCEPTANCE_REPORT' }
     vi.mocked(Views.getBusinessView).mockResolvedValue(acceptance)
