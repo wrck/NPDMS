@@ -12,8 +12,25 @@ def source(root):
             digest.update(path.read_bytes())
     return digest.hexdigest()
 
+def running_backend_artifact(root):
+    pid_file=root/'.run/backend-domain-test.pid'
+    if not pid_file.exists():
+        return None
+    pid=pid_file.read_text().strip()
+    if not pid.isdigit():
+        raise ValueError('Invalid running PID')
+    command=f"$p=Get-CimInstance Win32_Process -Filter 'ProcessId={pid}'; if(!$p){{exit 0}}; $m=[regex]::Match($p.CommandLine,'-jar\\s+(?:\"([^\"]+)\"|(\\S+))'); if($m.Groups[1].Success){{$m.Groups[1].Value}}else{{$m.Groups[2].Value}}"
+    location=subprocess.check_output(['powershell.exe','-NoProfile','-Command',command],text=True).strip()
+    if not location:
+        return None
+    running=Path(location).resolve()
+    if not running.is_relative_to(root/'.run'):
+        raise ValueError('Unexpected runtime location')
+    return running
+
 def freeze(root, target, jar, revision):
     subprocess.run([sys.executable,str(root/'.run/dac-host/verify-deployed-repairs.py'),target,str(jar)],check=True)
+    running=running_backend_artifact(root) if target=='backend' else None
     data=jar.read_bytes()
     release=root/'.run/build/releases'/str(uuid.uuid4())
     release.mkdir(parents=True,exist_ok=False)
@@ -22,12 +39,7 @@ def freeze(root, target, jar, revision):
     artifact.chmod(0o444)
     manifest={'workspace':str(root),'target':target,'artifact':'application.jar','sha256':hashlib.sha256(data).hexdigest(),
               'source':revision,'jdk':'25.0.1+8','maven':'3.8.6','profiles':'local,dac' if target=='backend' else 'npdms'}
-    if target=='backend':
-        pid=(root/'.run/backend-domain-test.pid').read_text().strip()
-        if not pid.isdigit(): raise ValueError('Invalid running PID')
-        command=f"$p=Get-CimInstance Win32_Process -Filter 'ProcessId={pid}'; $m=[regex]::Match($p.CommandLine,'-jar\\s+(?:\"([^\"]+)\"|(\\S+))'); if($m.Groups[1].Success){{$m.Groups[1].Value}}else{{$m.Groups[2].Value}}"
-        running=Path(subprocess.check_output(['powershell.exe','-NoProfile','-Command',command],text=True).strip()).resolve()
-        if not running.is_relative_to(root/'.run'): raise ValueError('Unexpected runtime location')
+    if running is not None:
         manifest['runningArtifactSha256']=hashlib.sha256(running.read_bytes()).hexdigest()
     (release/'manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf8')
     print(release/'manifest.json')
