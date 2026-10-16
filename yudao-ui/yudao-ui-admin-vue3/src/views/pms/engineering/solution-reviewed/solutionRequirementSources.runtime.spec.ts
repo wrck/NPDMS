@@ -5,7 +5,8 @@ import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
 import * as RequirementApi from '@/api/pms/engineering/requirement-analysis/entity'
 import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: vi.fn() }))
+vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ workspace: vi.fn(), read: vi.fn() }))
+vi.mock('./saveSolutionScripts', () => ({ downloadSolutionScript: vi.fn() }))
 vi.mock('@/api/pms/project/unified-members', () => ({ getMemberPage: vi.fn(async () => ({ list: [], total: 0 })), logicalMemberRole: (role: string) => role }))
 vi.mock('@/api/pms/customer/contacts', () => ({ getProjectPage: vi.fn(async () => ({ list: [] })) }))
 vi.mock('@/api/pms/asset/device/archive', () => ({ getDeviceArchivePage: vi.fn(async () => ({ list: [] })) }))
@@ -22,7 +23,7 @@ vi.mock('./saveCustomerSolutionDocuments', () => ({ resolveCustomerSolutionDocum
 
 const flush = async () => { for (let i = 0; i < 8; i++) await nextTick() }
 const overview = (values: Record<string, unknown>, draft?: Record<string, unknown>) => ({
-  currentEffective: { values }, draft: draft ? { values: draft } : null
+  currentEffective: { values, revision: { ref: { revisionId: '7001' }, revisionNo: 1 } }, draft: draft ? { values: draft } : null
 }) as any
 const render = (projectId?: number, readOnly = false) => {
   const form = ref<any>({ projectId })
@@ -96,8 +97,8 @@ describe('solution requirement analysis references', () => {
       expect(mounted.state.reqBackground).toBe('')
       vi.mocked(RequirementApi.workspace).mockResolvedValueOnce({ currentEffective: null, draft: { values: { projectBackground: '草稿背景' } } } as any)
       await mounted.state.loadRequirement(); await flush()
-      expect(mounted.state.requirementError).toBe('')
-      expect(mounted.state.reqBackground).toBe('草稿背景')
+      expect(mounted.state.requirementError).toBe('PRE-04 尚未形成有效的已完成需求分析版本')
+      expect(mounted.state.reqBackground).toBe('')
     } finally { mounted.app.unmount() }
   })
 
@@ -129,7 +130,27 @@ describe('solution requirement analysis references', () => {
     try {
       await flush(); mounted.state.generateFromSources()
       expect(mounted.form.value.background).toBeUndefined()
-      expect(RequirementApi.workspace).not.toHaveBeenCalled()
+      expect(mounted.form.value.sectionData).toBeUndefined()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('reopens the pinned source and requires an explicit choice when effective input changes', async () => {
+    vi.mocked(RequirementApi.read).mockResolvedValue({ values: { projectBackground: '旧版输入' } } as any)
+    const mounted = render(1)
+    try {
+      await flush()
+      mounted.form.value = { id: 42, projectId: 1, sectionData: JSON.stringify({ requirementInput: { revisionId: '6001', revisionNo: 1 } }) }
+      await flush()
+      expect(RequirementApi.read).toHaveBeenCalledWith('6001')
+      expect(mounted.state.reqBackground).toBe('旧版输入')
+      expect(mounted.state.inputChanged).toBe(true)
+      mounted.state.differenceReason = '本次需求变动不涉及此实施范围'
+      mounted.state.keepRequirementInput()
+      expect(JSON.parse(mounted.form.value.sectionData).requirementInput).toMatchObject({ revisionId: '6001', acknowledgedRevisionId: '7001', differenceReason: '本次需求变动不涉及此实施范围' })
+      mounted.form.value.background = '人工修改内容'
+      mounted.state.refreshRequirementInput()
+      expect(JSON.parse(mounted.form.value.sectionData).requirementInput.revisionId).toBe('7001')
+      expect(mounted.form.value.background).toBe('人工修改内容')
     } finally { mounted.app.unmount() }
   })
 })

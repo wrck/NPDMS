@@ -41,6 +41,7 @@ class SolutionTieredReviewServiceTest {
     @Mock PlatformDeliveryMaterialApi deliveryMaterials;
     @Mock SolutionService original;
     @Mock SolutionReviewPolicyService policies;
+    @Mock SolutionSubmissionValidator submissionValidator;
     @InjectMocks SolutionTieredReviewService service;
     SolutionDO solution;
     SolutionReviewDO stored;
@@ -68,6 +69,14 @@ class SolutionTieredReviewServiceTest {
                 Map.of("serviceManagerReview",8L,"engineeringManagementReview",10L)));
     }
     @AfterEach void cleanup() { TenantContextHolder.clear(); SecurityContextHolder.clearContext(); }
+    @Test void incompleteSubmissionDoesNotChangeStatusOrStartApproval() {
+        doThrow(new IllegalArgumentException("实施方案缺少必填项")).when(submissionValidator).validateAndFreezeSources(solution);
+        assertThrows(IllegalArgumentException.class, () -> service.start(command(0)));
+        assertEquals(0, solution.getStatus());
+        verifyNoInteractions(bpm, policies);
+        verify(solutions, never()).updateById(any(SolutionDO.class));
+        verify(reviews, never()).insert(any(SolutionReviewDO.class));
+    }
     private void result(String status) {
         when(bpm.result(1L,"instance-1")).thenReturn(new SolutionReviewBpmApi.Result("instance-1","definition-1",
                 "SOL_REVIEW:1:42",status,List.of(new SolutionReviewBpmApi.Review("manager",8L,"APPROVE","初审",LocalDateTime.now().minusMinutes(1)),

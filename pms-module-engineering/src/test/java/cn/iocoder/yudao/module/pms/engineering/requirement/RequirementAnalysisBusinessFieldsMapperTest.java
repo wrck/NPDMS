@@ -77,6 +77,11 @@ class RequirementAnalysisBusinessFieldsMapperTest {
                 assertEquals(1, mapper.freeze(new RequirementFreezeUpdate(1L, 102L, 2, 7L, java.time.LocalDateTime.now())));
                 cleared.setVersion(3L);
                 assertEquals(0, mapper.saveDraft(cleared), "frozen content is immutable");
+                assertNull(mapper.lockEffective(new RequirementProjectQuery(1L, 20L)));
+                assertEquals(1, mapper.makeEffective(new RequirementActivationUpdate(1L, 102L, 3L, "test")));
+                assertEquals(102L, mapper.lockEffective(new RequirementProjectQuery(1L, 20L)).getId());
+                assertNull(mapper.lockEffective(new RequirementProjectQuery(2L, 20L)), "effective input cannot cross tenants");
+                assertNull(mapper.lockEffective(new RequirementProjectQuery(1L, 21L)), "effective input cannot cross projects");
             }
         } finally { database.shutdown(); }
     }

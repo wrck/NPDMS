@@ -24,6 +24,7 @@ vi.mock('@/api/pms/engineering/solution', () => ({
 }))
 vi.mock('@/api/pms/engineering/solution-review', () => ({ policy: policyMock }))
 vi.mock('./saveCustomerSolutionDocuments', () => ({ saveCustomerSolutionDocuments: vi.fn() }))
+vi.mock('./saveSolutionScripts', () => ({ saveSolutionScripts: vi.fn() }))
 vi.mock('./CustomerSolutionDocumentPicker.vue', () => ({ default: defineComponent({ setup: () => () => h('div') }) }))
 // 模板里 `import * as ProjectApi` 被编译为 unref 访问，mock 命名空间需放行 __v_isRef 探测
 vi.mock('@/api/pms/project/projects', () => ({ __v_isRef: false, getProjectPage: vi.fn(), getProjectMembers: vi.fn(), getProject }))

@@ -30,10 +30,19 @@
     </section>
 
     <template v-if="!customerDocUrl">
+    <el-alert v-if="!readOnly" title="提交前请填写项目背景、项目目标、网络拓扑、部署方案，并上传至少一份配置脚本文件。" type="info" :closable="false" class="mb-12px" />
     <el-alert v-if="requirementError" :title="requirementError" type="error" :closable="false" class="mb-12px">
       <el-button link type="primary" :disabled="readOnly || requirementLoading" @click="loadRequirement()">重新加载需求分析</el-button>
     </el-alert>
     <div v-else-if="requirementLoading" role="status" class="mb-12px">正在加载需求分析引用内容…</div>
+    <div v-if="requirementInput.revisionId" class="mb-12px">
+      需求来源：PRE-04 第 {{ requirementInput.revisionNo }} 版
+      <el-alert v-if="inputChanged" title="需求输入已变化，请确认处理方式后再提交" type="warning" :closable="false">
+        <el-button :disabled="readOnly" @click="refreshRequirementInput">刷新需求引用（保留人工修改）</el-button>
+        <el-input v-model="differenceReason" :disabled="readOnly" placeholder="保留原需求版本时，请说明差异及处理理由" aria-label="需求输入差异说明" />
+        <el-button :disabled="readOnly || !differenceReason.trim()" @click="keepRequirementInput">保留原版本并确认差异</el-button>
+      </el-alert>
+    </div>
     <!-- 第1章 项目概述 -->
     <section class="chapter">
       <div class="chapter-title">1. 项目概述</div>
@@ -182,6 +191,7 @@
     <!-- 第4章 配置脚本 -->
     <section class="chapter">
       <div class="chapter-title">4. 配置脚本</div>
+      <el-alert v-if="scriptUploadError" :title="scriptUploadError" type="error" :closable="false" />
       <el-form-item v-for="item in scriptItems" :key="item.key" :label="item.label" label-width="140px">
         <div class="script-editor">
           <el-input
@@ -190,18 +200,22 @@
             :rows="5"
             :disabled="readOnly"
             class="script-input"
+            readonly
             :placeholder="item.placeholder"
           />
           <el-upload
             :show-file-list="false"
             :disabled="readOnly"
-            accept=".txt,.cfg,.conf,.sh,.log"
+            accept=".txt"
+            :auto-upload="false"
             class="script-upload"
             @change="(uploadFile: any) => readScript(item.key, uploadFile)"
           >
             <el-button size="small" :disabled="readOnly">上传脚本</el-button>
           </el-upload>
-          <div class="form-tip">支持上传脚本文件，读取后自动展示在文本框中，可继续修改</div>
+          <div class="form-tip">上传 TXT 脚本，保存草稿后登记文件版本。预览不可编辑，修改请替换文件。</div>
+          <div v-if="scriptFileName(item.key)" class="form-tip">{{ scriptFileName(item.key) }}</div>
+          <el-link v-if="storedScript(item.key) && !pendingScripts.some(pending => pending.section === item.key)" type="primary" @click="downloadScript(item.key)">下载脚本文件</el-link>
         </div>
       </el-form-item>
     </section>
@@ -342,6 +356,7 @@ import SolutionEquipmentTable from '@/views/pms/engineering/solution/SolutionEqu
 import { equipmentRow, readSolutionEquipment } from '@/views/pms/engineering/solution/solutionEquipment'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import { downloadSolutionScript, type PendingScript, type ScriptSection, type ScriptReference } from './saveSolutionScripts'
 import { getMemberPage, logicalMemberRole, type MemberRecord } from '@/api/pms/project/unified-members'
 import * as ContactApi from '@/api/pms/customer/contacts'
 import * as StagePlanApi from '@/api/pms/engineering/stage-plan'
@@ -354,6 +369,7 @@ defineOptions({ name: 'SolutionChapterForm' })
 const props = defineProps<{ readOnly: boolean; saving?: boolean }>()
 const emit = defineEmits<{ save: []; submitReview: [] }>()
 const form = defineModel<SolutionVO>({ required: true })
+const pendingScripts = defineModel<PendingScript[]>('pendingScripts', { default: () => [] })
 const { barTarget } = useBusinessActionBar()
 
 // ---------- JSON 信封映射说明 ----------
@@ -555,7 +571,7 @@ watch(
   },
   { deep: true }
 )
-watch(scripts, () => { form.value.script = JSON.stringify(scripts) }, { deep: true })
+watch(scripts, () => { if (!props.readOnly) form.value.script = JSON.stringify({ ...parseObject(form.value.script), ...scripts }) }, { deep: true })
 watch(
   [meta, archiveModule, () => tables.business],
   () => {
@@ -631,25 +647,57 @@ onBeforeUnmount(() => {
 
 // 需求分析使用当前实体业务字段，独立加载并提供失败重试。
 let requirementRequest = 0
+const latestRequirement = ref<RequirementAnalysisApi.View | null>(null)
+const differenceReason = ref('')
+const requirementInput = computed(() => (parseObject(form.value.sectionData).requirementInput || {}) as Record<string, any>)
+const inputChanged = computed(() => !!latestRequirement.value && !!requirementInput.value.revisionId &&
+  String(requirementInput.value.revisionId) !== String(latestRequirement.value.revision.ref.revisionId))
+const writeRequirementInput = (input: Record<string, unknown>) => {
+  form.value.sectionData = JSON.stringify({ ...parseObject(form.value.sectionData), requirementInput: input })
+}
+const refreshRequirementInput = () => {
+  const source = latestRequirement.value
+  if (!source || props.readOnly) return
+  if (!form.value.background || form.value.background === reqValues.value.projectBackground)
+    form.value.background = String(source.values.projectBackground || '')
+  if (!form.value.target || form.value.target === reqValues.value.projectObjective)
+    form.value.target = String(source.values.projectObjective || '')
+  writeRequirementInput({ revisionId: source.revision.ref.revisionId, revisionNo: source.revision.revisionNo })
+  reqValues.value = source.values
+}
+const keepRequirementInput = () => {
+  if (!latestRequirement.value || props.readOnly || !differenceReason.value.trim()) return
+  writeRequirementInput({ ...requirementInput.value, acknowledgedRevisionId: latestRequirement.value.revision.ref.revisionId,
+    differenceReason: differenceReason.value.trim() })
+}
 const loadRequirement = async () => {
   const requestId = ++requirementRequest
   const projectId = form.value.projectId
   reqValues.value = {}
   requirementError.value = ''
   requirementLoading.value = false
-  if (props.readOnly || !projectId) return
+  if (!projectId) return
   requirementLoading.value = true
   try {
     const overview = await RequirementAnalysisApi.workspace(projectId)
     if (requestId !== requirementRequest) return
-    reqValues.value = (overview.currentEffective ?? overview.draft)?.values ?? {}
+    latestRequirement.value = overview.currentEffective
+    if (requirementInput.value.revisionId) {
+      const source = await RequirementAnalysisApi.read(requirementInput.value.revisionId)
+      if (requestId !== requirementRequest) return
+      reqValues.value = source.values
+    } else if (!props.readOnly && overview.currentEffective) {
+      refreshRequirementInput()
+    } else if (!props.readOnly) {
+      requirementError.value = 'PRE-04 尚未形成有效的已完成需求分析版本'
+    }
   } catch {
     if (requestId === requirementRequest) requirementError.value = '需求分析引用内容加载失败，请重新加载'
   } finally {
     if (requestId === requirementRequest) requirementLoading.value = false
   }
 }
-watch(() => [props.readOnly, form.value.projectId], () => { void loadRequirement() }, { immediate: true })
+watch(() => [props.readOnly, form.value.projectId, form.value.id], () => { void loadRequirement() }, { immediate: true })
 
 // 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
 let referencesProjectId = 0
@@ -703,12 +751,39 @@ const generateFromSources = () => {
 
 // ---------- 配置脚本上传（读取本地脚本文件展示在文本框中） ----------
 type ScriptKey = (typeof scriptItems)[number]['key']
+const scriptUploadError = ref('')
 const readScript = (key: ScriptKey, uploadFile: { raw?: File }) => {
   const raw = uploadFile?.raw
   if (!raw) return
+  scriptUploadError.value = ''
+  if (!/\.txt$/i.test(raw.name) || !raw.size) {
+    scriptUploadError.value = '请上传非空 TXT 脚本文件'
+    return
+  }
+  const targetForm = form.value
   const reader = new FileReader()
-  reader.onload = () => { scripts[key] = String(reader.result ?? '') }
+  reader.onload = () => {
+    if (form.value !== targetForm || props.readOnly) return
+    scripts[key] = String(reader.result ?? '')
+    pendingScripts.value = [...pendingScripts.value.filter(item => item.section !== key), { section: key, file: raw }]
+    const stored = parseObject(form.value.script)
+    form.value.script = JSON.stringify({ ...stored, references: ((stored.references || []) as ScriptReference[]).filter(item => item.section !== key) })
+  }
+  reader.onerror = () => { scriptUploadError.value = '脚本读取失败，请重新选择文件' }
   reader.readAsText(raw)
+}
+const scriptFileName = (section: ScriptSection) => {
+  const pending = pendingScripts.value.find(item => item.section === section)
+  if (pending) return `${pending.file.name}（待保存）`
+  const stored = ((parseObject(form.value.script).references || []) as ScriptReference[]).find(item => item.section === section)
+  return stored ? `${stored.name} · v${stored.versionNo} · 已保存` : ''
+}
+const storedScript = (section: ScriptSection) => ((parseObject(form.value.script).references || []) as ScriptReference[]).find(item => item.section === section)
+const downloadScript = async (section: ScriptSection) => {
+  const reference = storedScript(section)
+  if (!reference || !form.value.id) return
+  try { await downloadSolutionScript({ solutionId: form.value.id, reference }) }
+  catch (failure: any) { scriptUploadError.value = failure?.message || '脚本文件下载失败' }
 }
 
 // ---------- 下载方案（九章内容导出为 HTML 文件） ----------

@@ -61,6 +61,7 @@
         <el-form v-else ref="formRef" :model="form" label-width="100px" :disabled="readOnly">
           <SolutionChapterForm
             v-model="form"
+            v-model:pending-scripts="pendingScripts"
             :read-only="readOnly"
             :saving="saving"
             @save="save"
@@ -187,6 +188,7 @@
       <SolutionDocMetaForm v-model="form" v-model:pending-files="pendingCustomerFiles" :read-only="readOnly" />
       <SolutionChapterForm
         v-model="form"
+        v-model:pending-scripts="pendingScripts"
         :read-only="readOnly"
         :saving="saving"
         @save="save"
@@ -248,6 +250,7 @@ import CustomerSolutionDocumentPicker from './CustomerSolutionDocumentPicker.vue
 import { saveCustomerSolutionDocuments } from './saveCustomerSolutionDocuments'
 import type { DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
 import SolutionChapterForm from './SolutionReviewChapterForm.vue'
+import { saveSolutionScripts, type PendingScript, type ScriptReference } from './saveSolutionScripts'
 
 defineOptions({ name: 'PmsSolutionReviewed' })
 const tieredReview = ref()
@@ -373,6 +376,7 @@ const syncSelection = async () => {
 // 新增方案弹窗：客户方案在创建时一次性选定并随记录冻结；确定后进入自动命名的本地草稿，
 // 保存仍由保存草稿/提交审核承载。createChoice 两键写入 remark 信封（META_REMARK_KEYS 归属方案信息组件）
 const pendingCustomerFiles=ref<File[]>([])
+const pendingScripts = ref<PendingScript[]>([])
 const createCustomerFiles=ref<File[]>([])
 const customerAttempts:DeliveryUploadAttempt[]=[]
 let savedCustomerDraft: string | undefined
@@ -404,6 +408,7 @@ const confirmCreate = () => {
 }
 const openForm = async (row?: SolutionVO) => {
   pendingCustomerFiles.value=[]
+  pendingScripts.value=[]
   customerAttempts.splice(0)
   savedCustomerDraft=undefined
   const sequence = ++detailSequence
@@ -480,6 +485,17 @@ const persistDraftAndCustomerFiles=async()=>{
     form.value.remark=JSON.stringify({...parseEnvelope(form.value.remark),hasCustomerPlan:'yes',customerPlanUrl:attached.customerPlanUrl})
     pendingCustomerFiles.value=[];customerAttempts.splice(0);savedCustomerDraft=undefined
   }
+  if (pendingScripts.value.length) {
+    const references = await saveSolutionScripts({ solutionId: form.value.id!, pending: pendingScripts.value })
+    const script = parseEnvelope(form.value.script)
+    const retained = ((script.references || []) as ScriptReference[]).filter(item => !references.some(next => next.section === item.section))
+    form.value.script = JSON.stringify({ ...script, references: [...retained, ...references] })
+    await SolutionApi.updateSolution(form.value)
+    const current = await SolutionApi.getSolution(form.value.id!)
+    if (current.version !== form.value.version! + 1) throw new Error('方案版本已变化，请刷新后重试')
+    form.value.version = current.version
+    pendingScripts.value = []
+  }
 }
 const save = async () => {
   if (readOnly.value) return
@@ -491,8 +507,8 @@ const save = async () => {
     message.success('保存成功')
     if (!props.projectId) formVisible.value = false
     await load()
-  } catch {
-    // 保存失败保留表单内容与弹窗状态，便于修正后重试；提示已由拦截器弹出
+  } catch (failure: any) {
+    message.error(failure?.message || '方案保存失败，请修正后重试')
   } finally {
     saving.value = false
   }
@@ -508,8 +524,8 @@ const submitReview = async () => {
     await persistDraftAndCustomerFiles()
     await load()
     tieredReview.value?.open(form.value)
-  } catch {
-    // 同 save：保存/刷新失败不打开审批框，保留表单与工作区，提示已由拦截器弹出
+  } catch (failure: any) {
+    message.error(failure?.message || '方案保存失败，尚未发起审批')
   } finally {
     saving.value = false
   }

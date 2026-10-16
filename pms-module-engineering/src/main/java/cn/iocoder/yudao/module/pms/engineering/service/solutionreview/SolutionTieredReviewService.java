@@ -41,6 +41,7 @@ public class SolutionTieredReviewService {
     private final PlatformDeliveryMaterialApi deliveryMaterials;
     private final SolutionService original;
     private final SolutionReviewPolicyService policies;
+    private final SolutionSubmissionValidator submissionValidator;
 
     public record Start(@jakarta.validation.constraints.NotNull Long projectId,
                         @jakarta.validation.constraints.NotNull Long solutionId,
@@ -82,6 +83,7 @@ public class SolutionTieredReviewService {
         Long expectedVersion = command.expectedVersion() == null ? null : command.expectedVersion().longValue();
         if (!Objects.equals(solution.getVersion(), expectedVersion) || !Set.of(0, 1, 2).contains(solution.getStatus()))
             throw new IllegalArgumentException("只能提交当前未审批通过的方案版本");
+        submissionValidator.validateAndFreezeSources(solution);
         Integer previousLevel = solution.getReviewLevel();
         // 唯一提交入口：冻结本次审核判定（普通或重大），流程内网关按该级别分支，界面与提交动作不再区分级别
         policies.freeze(solution);

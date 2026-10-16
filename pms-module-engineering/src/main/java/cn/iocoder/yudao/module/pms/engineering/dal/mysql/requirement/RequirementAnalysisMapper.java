@@ -18,6 +18,7 @@ public interface RequirementAnalysisMapper extends BaseMapperX<cn.iocoder.yudao.
     RequirementAnalysisRevisionDO lockRevision(@Param("query") RequirementRevisionQuery query);
     RequirementAnalysisRevisionDO selectDraft(@Param("query") RequirementProjectQuery query);
     RequirementAnalysisRevisionDO selectEffective(@Param("query") RequirementProjectQuery query);
+    RequirementAnalysisRevisionDO lockEffective(@Param("query") RequirementProjectQuery query);
     RequirementAnalysisRevisionDO selectLatest(@Param("query") RequirementProjectQuery query);
     RequirementAnalysisRevisionDO selectLatestForEntity(@Param("query") RequirementEntityQuery query);
     int maxRevisionNo(@Param("query") RequirementEntityQuery query);
