@@ -9,7 +9,7 @@
       :on-change="selectFile"
       :on-exceed="onExceed"
       :on-remove="removeFile"
-      :show-file-list="true"
+      :show-file-list="!autoSubmit || uploadFailed"
       drag
     >
       <Icon icon="ep:upload-filled" class="upload-icon" />
@@ -20,20 +20,22 @@
         </div>
       </template>
     </el-upload>
+    <div class="upload-feedback" :class="{ 'upload-feedback--auto': autoSubmit }">
     <el-progress v-if="busy" :percentage="progress" class="upload-progress" />
     <div v-if="busy" class="upload-state" role="status" aria-live="polite">
       {{ stage === 'UPLOADING' ? '正在上传文件' : '上传完成，服务端正在执行适用校验' }}
     </div>
     <el-button
-      v-if="!hideSubmit"
+      v-if="!hideSubmit && (!autoSubmit || uploadFailed)"
       :disabled="!selectedFile || disabled"
       :loading="busy"
       type="primary"
       class="upload-submit"
       @click="submit"
     >
-      {{ uploadMode === 'ADD_VERSION' ? '上传新版本' : '上传并绑定' }}
+      {{ autoSubmit ? '重试上传' : uploadMode === 'ADD_VERSION' ? '上传新版本' : '上传并绑定' }}
     </el-button>
+    </div>
   </div>
 </template>
 
@@ -50,12 +52,13 @@ import { resolveFileUploadMode } from './useFileSlotState'
 const props = withDefaults(
   defineProps<
     FileBusinessKey & {
-      artifactId?: number
+      artifactId?: number | string
       expectedReferenceVersion?: number
       categoryCode: string
       accept?: string
       disabled?: boolean
       hideSubmit?: boolean
+      autoSubmit?: boolean
       ownerExecutionContext?: JsonObject
     }
   >(),
@@ -70,6 +73,7 @@ const uploadRef = ref<UploadInstance>()
 const selectedFile = ref<File>()
 const selectedExecutionContext = ref<JsonObject>()
 const busy = ref(false)
+const uploadFailed = ref(false)
 const progress = ref(0)
 const stage = ref<'UPLOADING' | 'VALIDATING'>('UPLOADING')
 const uploadMode = computed(() => resolveFileUploadMode(props.artifactId))
@@ -94,9 +98,12 @@ const selectFile = (file: UploadFile) => {
     selectedExecutionContext.value = props.ownerExecutionContext
       ? structuredClone(toRaw(props.ownerExecutionContext)) : undefined
   }
+  uploadFailed.value = false
   selectedFile.value = file.raw
+  if (props.autoSubmit && file.status === 'ready' && file.raw && !props.disabled && !busy.value) void submit().catch(() => { message.error('上传未完成，请点击重试上传') })
 }
 const removeFile = () => {
+  uploadFailed.value = false
   selectedFile.value = undefined
   selectedExecutionContext.value = undefined
   attempt.value = undefined
@@ -105,10 +112,12 @@ const onExceed = () => message.warning('每个材料槽位一次只能选择一�
 
 const submit = async () => {
   const file = selectedFile.value
-  if (!file) return
+  if (!file || props.disabled || busy.value) return
   if (file.size <= 0 || file.size > 50 * 1024 * 1024) {
+    uploadFailed.value = true
     return message.error('文件大小必须在 50MB 以内')
   }
+  uploadFailed.value = false
   busy.value = true
   progress.value = 0
   stage.value = 'UPLOADING'
@@ -149,6 +158,9 @@ const submit = async () => {
     selectedFile.value = undefined
     attempt.value = undefined
     uploadRef.value?.clearFiles()
+  } catch (error) {
+    uploadFailed.value = true
+    throw error
   } finally {
     busy.value = false
   }
@@ -159,6 +171,11 @@ defineExpose({ submit, isBusy: () => busy.value, hasPendingFile: () => !!selecte
 <style scoped lang="scss">
 .pms-file-uploader {
   width: 100%;
+}
+
+.upload-feedback--auto {
+  display: flow-root;
+  min-height: 76px;
 }
 
 .upload-icon {
@@ -179,6 +196,9 @@ defineExpose({ submit, isBusy: () => busy.value, hasPendingFile: () => !!selecte
 }
 
 @media (width <= 767px) {
+  .upload-feedback--auto {
+    min-height: 112px;
+  }
   .upload-submit {
     width: 100%;
   }

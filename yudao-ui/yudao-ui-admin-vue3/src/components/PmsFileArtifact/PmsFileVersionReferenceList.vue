@@ -1,8 +1,18 @@
 <template>
   <div class="reference-list" :aria-busy="loading">
-    <el-skeleton v-if="loading" :rows="2" animated />
+    <div v-if="loading && !artifact" class="reference-card reference-placeholder" role="status" aria-label="正在加载材料">
+      <div class="file-main">
+        <div class="file-name" aria-hidden="true">正在加载材料</div>
+        <div class="file-meta" aria-hidden="true"><el-tag size="small">加载中</el-tag><span>版本</span></div>
+      </div>
+      <div class="file-actions" aria-hidden="true">
+        <el-button link type="primary" disabled>版本历史</el-button>
+        <el-button link type="primary" disabled>预览</el-button>
+        <el-button link type="primary" disabled>下载</el-button>
+      </div>
+    </div>
     <el-empty v-else-if="!artifact" description="尚未绑定材料" :image-size="56" />
-    <div v-else class="reference-card">
+    <div v-else class="reference-card" :inert="loading">
       <div class="file-main">
         <div class="file-name" :title="artifact.name">{{ artifact.name }}</div>
         <div class="file-meta">
@@ -73,18 +83,29 @@ const businessKey = computed<FileBusinessKey>(() => ({
   referenceKey: props.referenceKey
 }))
 
+let loadGeneration = 0
+let loadedIdentity = ''
 const load = async () => {
-  artifact.value = undefined
+  const generation = ++loadGeneration
+  const identity = JSON.stringify([props.artifactId, businessKey.value])
+  if (identity !== loadedIdentity) artifact.value = undefined
   errorText.value = ''
-  if (!props.artifactId) return
+  if (!props.artifactId) {
+    loading.value = false
+    return
+  }
   loading.value = true
   try {
-    artifact.value = await FileApi.getArtifact(props.artifactId, businessKey.value)
+    const current = await FileApi.getArtifact(props.artifactId, businessKey.value)
+    if (generation !== loadGeneration) return
+    loadedIdentity = identity
+    artifact.value = current
     emit('loaded', artifact.value)
   } catch {
+    if (generation !== loadGeneration) return
     errorText.value = '文件事实已变化，请刷新业务页面后重试。'
   } finally {
-    loading.value = false
+    if (generation === loadGeneration) loading.value = false
   }
 }
 const openAccess = async (operation: FileAccessOperation) => {
@@ -151,6 +172,14 @@ defineExpose({ refresh: load })
   gap: 12px;
 }
 
+.reference-placeholder {
+  pointer-events: none;
+  background: var(--el-fill-color-light);
+}
+.reference-placeholder > * {
+  visibility: hidden;
+}
+
 .file-main {
   min-width: 0;
 }
@@ -185,8 +214,7 @@ defineExpose({ refresh: load })
   }
 
   .file-name {
-    overflow-wrap: anywhere;
-    white-space: normal;
+    white-space: nowrap;
   }
 
   .file-actions {

@@ -1,5 +1,5 @@
 <template>
-  <el-drawer v-model="visible" title="文件版本历史" :size="drawerSize" destroy-on-close>
+  <el-drawer v-model="visible" title="文件版本历史" :size="drawerSize" append-to-body destroy-on-close>
     <el-skeleton v-if="loading && !items.length" :rows="4" animated />
     <el-empty v-else-if="!items.length" description="暂无可见版本" />
     <template v-else>

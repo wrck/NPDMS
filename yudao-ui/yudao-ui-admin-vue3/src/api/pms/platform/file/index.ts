@@ -15,7 +15,7 @@ export interface FileBusinessKey {
 export interface FileUploadInitReqVO extends FileBusinessKey {
   ownerExecutionContext?: JsonObject
   modeCode: FileUploadMode
-  artifactId?: number
+  artifactId?: number | string
   expectedReferenceVersion?: number
   fileName: string
   categoryCode: string
