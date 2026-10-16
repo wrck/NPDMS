@@ -124,9 +124,9 @@ public class CutoverPlanSource implements CutoverPlanSourcePort {
         for (var value : configurationMetadata.sectionViews(configuration.getId())) {
             var types = value.getCutoverTypeCodes();
             var grades = value.getLevelCodes();
-            if ((!types.isEmpty() && !types.contains(task.getCutoverType())) || !grades.contains(grade)) continue;
+            if ((!"D".equals(grade) && !types.isEmpty() && !types.contains(task.getCutoverType())) || !grades.contains(grade)) continue;
             sections.add(new TemplateSectionSnapshot(value.getStableSectionKey(), value.getTitle(),
-                    value.getSortOrder(), types.isEmpty() ? List.of(task.getCutoverType()) : types, grades, Boolean.TRUE.equals(value.getRequired())));
+                    value.getSortOrder(), types.isEmpty() && task.getCutoverType() != null ? List.of(task.getCutoverType()) : types, grades, Boolean.TRUE.equals(value.getRequired())));
         }
         var rows = lock ? devices.selectActiveByTaskForUpdate(new CutoverTaskDeviceListQuery(tenant, taskId))
                 : frozenDevices.byTask(new CutoverTaskDeviceListQuery(tenant, taskId));

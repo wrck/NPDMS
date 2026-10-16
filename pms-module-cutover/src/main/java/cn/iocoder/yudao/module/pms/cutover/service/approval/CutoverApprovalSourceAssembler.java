@@ -142,6 +142,9 @@ public class CutoverApprovalSourceAssembler {
         requirePlanProject(plan, project);
         CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
         String serviceLevel = assessment.getServiceLevelCode();
+        JsonNode planContent = completePlanContent(command.tenantId(), plan);
+        Long scheduledTime = cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanScheduleTime.value(planContent);
+        require(scheduledTime != null, BUSINESS_INCOMPLETE, "请在方案页填写计划割接时间");
         ApprovalSourceSnapshot snapshot = new ApprovalSourceSnapshot(command.sourceSnapshotVersion(), task.getId(),
                 task.getVersion(), command.checklistId(), command.checklistVersion(),
                 new ProjectApprovalSnapshot(project.projectId(), project.projectVersion(), project.projectCode(),
@@ -149,7 +152,7 @@ public class CutoverApprovalSourceAssembler {
                         project.departmentId(), project.departmentCode(), project.departmentName(),
                         project.projectScopeVersion()),
                 new CollectionAnalysisSnapshot(task.getCutoverType(), task.getNetworkMode(),
-                        task.getScheduledTime().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()),
+                        scheduledTime),
                 risks, surveys,
                 new AssessmentApprovalSnapshot(assessment.getId(), assessment.getAssessmentVersion(),
                         assessment.getQuestionnaireTemplateVersion(), answers.businessImportanceLevel(),
@@ -157,7 +160,7 @@ public class CutoverApprovalSourceAssembler {
                         serviceLevel, assessment.getManualGrade(), assessment.getSubmittedBy(),
                         assessment.getSubmittedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()),
                 new PlanApprovalSnapshot(plan.getId(), plan.getRevisionNo(), plan.getVersion(),
-                        normalizedPlanSource(plan), completePlanContent(task.getTenantId(), plan)));
+                        normalizedPlanSource(plan), planContent));
         return new LockedSource(task, assessment, checklist, plan, codec.encode(snapshot));
     }
 
@@ -180,6 +183,7 @@ public class CutoverApprovalSourceAssembler {
         if ("FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
             ObjectNode content = JsonUtils.getObjectMapper().createObjectNode();
             content.put("editMode", plan.getEditModeCode());
+            CutoverPlanStorage.appendScheduledTime(content, plan);
             ObjectNode file = content.putObject("fileArtifactFact");
             putWireLong(file, "artifactId", plan.getFileArtifactId());
             file.put("versionNo", plan.getFileVersionNo());

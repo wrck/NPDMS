@@ -1,5 +1,9 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
+import cn.iocoder.yudao.module.pms.cutover.service.plan.result.DownloadCutoverPlanDraftResult;
+
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanGeneratedFileQuery;
+
 import jakarta.annotation.Resource;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
@@ -44,6 +48,8 @@ public class CutoverPlanQueryService {
     private static final CutoverP4ActionPolicy ACTION_POLICY = new CutoverP4ActionPolicy();
     @Resource
     private CutoverPlanStorage storage;
+    @Resource
+    private CutoverPlanGeneratedFiles generatedFiles;
 
     private final CutoverTaskMapper taskMapper;
     private final CutoverPlanRevisionMapper planMapper;
@@ -75,10 +81,15 @@ public class CutoverPlanQueryService {
         boolean editAllowed = inspectEditAllowed(actorId, task);
         CutoverApprovalFact approval = inspectApprovalFact(tenantId, plan);
         List<String> actions = allowedActions(context, task, plan, approval, editAllowed);
-        if (plan == null) return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), null, null, null, null, null, null, null, null, null, null, actions);
+        if (plan == null) return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), null, null, null, null, null, null, null, null, null, null, actions, null);
         JsonNode sourceSnapshot = parseSourceSnapshot(plan);
         JsonNode content = assemble(tenantId, plan);
-        return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), plan.getId(), plan.getRevisionNo(), plan.getVersion(), plan.getOriginCode(), plan.getStatusCode(), plan.getSourcePlanRevisionId(), plan.getRevisionReasonCode(), sourceSnapshot, content, approvalView(approval), actions);
+        return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), plan.getId(), plan.getRevisionNo(), plan.getVersion(), plan.getOriginCode(), plan.getStatusCode(), plan.getSourcePlanRevisionId(), plan.getRevisionReasonCode(), sourceSnapshot, content, approvalView(approval), actions, generatedDraft(plan));
+    }
+
+    private DownloadCutoverPlanDraftResult generatedDraft(CutoverPlanRevisionDO plan) {
+        return generatedFiles.find(new CutoverPlanGeneratedFileQuery(
+                plan.getTenantId(), plan.getId(), plan.getVersion()));
     }
 
     private CutoverPlanRevisionDO selectReadablePlan(Long tenantId, CutoverTaskDO task) {
@@ -107,6 +118,7 @@ public class CutoverPlanQueryService {
     private JsonNode assemble(Long tenantId, CutoverPlanRevisionDO plan) {
         if ("FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
             ObjectNode root = JsonUtils.getObjectMapper().createObjectNode(); root.put("editMode", plan.getEditModeCode());
+            CutoverPlanStorage.appendScheduledTime(root, plan);
             ObjectNode file = root.putObject("fileArtifactFact"); putWireLong(file, "artifactId", plan.getFileArtifactId());
             file.put("versionNo", plan.getFileVersionNo()); file.put("referenceKey", plan.getFileReferenceKey());
             file.set("fileFactVersion", JsonUtils.getObjectMapper().valueToTree(CutoverPlanStorage.fileVersion(plan)));
@@ -179,6 +191,7 @@ public class CutoverPlanQueryService {
             CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(
                     snapshot, snapshot.failedRiskFacts());
             CutoverPlanContentCodec.DecodedContent content = codec.decodeWritable(assemble(tenantId, plan), facts);
+            if (CutoverPlanScheduleTime.value(content.rootSnapshot()) == null) return false;
             codec.validateComplete(content, facts);
             return true;
         } catch (RuntimeException ignored) {

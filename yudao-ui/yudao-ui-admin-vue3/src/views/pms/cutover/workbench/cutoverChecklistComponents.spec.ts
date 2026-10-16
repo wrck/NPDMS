@@ -11,8 +11,10 @@ import {
   mount,
   passthrough
 } from '../cutoverTestHarness'
+import { textOf } from '../cutoverTestHarness'
 
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
+const acceptedTemplate = vi.hoisted(() => ({ value: '9007199254740992' }))
 const downloadFile = vi.hoisted(() => ({ excel: vi.fn() }))
 const checklistApi = vi.hoisted(() => ({
   getCutoverChecklistMatchingOptions: vi.fn(async () => ({ matchingInput: { cutoverType: 'CONFIGURATION_CHANGE', networkMode: null, deviceTypeCodes: ['ROUTER'] }, deviceTypes: [{ value: 'ROUTER', label: '路由器' }] })),
@@ -40,7 +42,7 @@ vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({
     setup(_, { emit, expose }) {
       expose({ open: vi.fn() })
       return () => h('button', { 'data-testid': 'accept-platform-execution', onClick: () => emit('accepted', {
-        id: '9007199254740994', task: { deviceId: '9007199254740991', templateId: '9007199254740992' }
+        id: '9007199254740994', task: { deviceId: '9007199254740991', templateId: acceptedTemplate.value }
       }) }, '确认平台采集执行')
     }
   })
@@ -87,7 +89,7 @@ const item = {
 }
 
 describe('F-CUT-003 mounted checklist field', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => { vi.clearAllMocks(); acceptedTemplate.value = '9007199254740992' })
   it('emits direct answer and freezes PLT public fact without converting Snowflake ids', async () => {
     fileApi.getArtifact.mockResolvedValue({
       allowedActions: ['READ'], artifactVersion: 2,
@@ -152,6 +154,35 @@ describe('F-CUT-003 mounted checklist field', () => {
     }, controls)
     await (findByTestId(mounted.root, 'accept-platform-execution')!.props?.onClick as () => void)()
     expect(onCollection).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('links a manual execution using its formal execution id and no invented template id', async () => {
+    acceptedTemplate.value = `manual-${item.itemId}`
+    const onCollection = vi.fn()
+    const mounted = mount(CutoverChecklistField, {
+      item: { ...item, workModeCode: 'COLLECTION' }, directValue: '', readonly: false,
+      allowCollection: true, onCollection
+    }, controls)
+    await (findByTestId(mounted.root, 'accept-platform-execution')!.props?.onClick as () => void)()
+    expect(onCollection).toHaveBeenCalledWith('risk-check', '9007199254740991', null, '9007199254740994')
+    mounted.app.unmount()
+  })
+
+  it('displays device-sourced model and current version without editable duplicate fields', async () => {
+    checklistApi.getCutoverChecklist.mockResolvedValue(checklistView(null))
+    checklistApi.getCutoverExternalState.mockResolvedValueOnce({ checklistId: '201', checklistFactVersion: 3,
+      devices: [{ deviceId: '9007199254740991', sn: 'SN-001', productModel: 'MODEL-DEVICE',
+        currentSoftwareVersion: 'R-DEVICE', targetSoftwareVersion: null }], items: [] } as any)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+    expect(textOf(mounted.root)).toContain('MODEL-DEVICE')
+    expect(textOf(mounted.root)).toContain('R-DEVICE')
+    const inputs: any[] = []
+    const collect = (node: any) => { if (node.props?.['aria-label']) inputs.push(node.props['aria-label']); for (const child of node.children || []) collect(child) }
+    collect(mounted.root)
+    expect(inputs).not.toContain('当前软件版本')
+    expect(inputs).not.toContain('设备型号')
     mounted.app.unmount()
   })
 

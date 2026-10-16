@@ -59,6 +59,20 @@ class CutoverCollectionResultReceiverTest {
         verifyNoInteractions(closure, checklist);
     }
 
+    @Test void callbackWithoutLoginPersistsRequiredAuditActor() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
+        when(logs.insert(any(CutoverCollectionLogDO.class))).thenAnswer(invocation -> {
+            CutoverCollectionLogDO row = invocation.getArgument(0);
+            new cn.iocoder.yudao.framework.mybatis.core.handler.DefaultDBFieldHandler().insertFill(
+                    org.apache.ibatis.reflection.SystemMetaObject.forObject(row));
+            assertEquals(result.actorId().toString(), row.getCreator());
+            assertEquals(result.actorId().toString(), row.getUpdater());
+            return 1;
+        });
+        receiver.receive(result);
+        verify(closure).receivePlatformResult(result);
+    }
+
     @Test void foreignTenantIsRejectedBeforeOwnerReads() {
         TenantContextHolder.setTenantId(2L);
         assertThrows(CollectionOperationException.class, () -> receiver.receive(result));

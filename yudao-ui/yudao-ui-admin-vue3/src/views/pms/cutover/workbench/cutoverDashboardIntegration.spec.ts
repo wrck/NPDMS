@@ -1,6 +1,12 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CutoverTaskWorkbench from './index.vue'
+const navigation = vi.hoisted(() => ({ route: undefined as any, push: vi.fn(), replace: vi.fn() }))
+vi.mock('vue-router', () => ({ useRoute: () => navigation.route, useRouter: () => navigation }))
+vi.mock('../task-create/index.vue', () => ({ default: defineComponent({
+  emits: ['created', 'close'],
+  setup: (_, { emit }) => () => h('button', { 'data-testid': 'finish-create', onClick: () => emit('created', '701') }, '保存成功')
+}) }))
 import {
   findByTestId,
   mount,
@@ -81,8 +87,28 @@ const controls = {
 describe('CUT dashboard production page integration', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    navigation.route = reactive({ path: '/pms/cutover/workbench', query: { category: 'todo' } as Record<string, string> })
+    navigation.push.mockResolvedValue(undefined); navigation.replace.mockResolvedValue(undefined)
     api.getCutoverDashboardKpis.mockReset().mockResolvedValue(kpis('0', '0', '0', '0', 1788310800000))
     api.getCutoverTaskPage.mockReset()
+  })
+
+  it('opens creation within the current list route and retains its query', async () => {
+    api.getCutoverTaskPage.mockResolvedValue({ list: [], total: 0 })
+    const view = mount(CutoverTaskWorkbench, {}, controls); await flush()
+    await (findByTestId(view.root, 'create-cutover-task')!.props!.onClick as Function)()
+    expect(navigation.push).toHaveBeenCalledWith({ path: '/pms/cutover/workbench', query: { category: 'todo', create: '1' } })
+    view.app.unmount()
+  })
+
+  it('removes creation from list history and opens the saved task detail', async () => {
+    navigation.route.query.create = '1'
+    const view = mount(CutoverTaskWorkbench, {}, controls); await flush()
+    await (findByTestId(view.root, 'finish-create')!.props!.onClick as Function)(); await flush()
+    expect(navigation.replace).toHaveBeenCalledWith({ path: '/pms/cutover/workbench', query: { category: 'todo' } })
+    expect(navigation.push).toHaveBeenCalledWith('/pms/cutover/tasks/701')
+    expect(navigation.replace.mock.invocationCallOrder[0]).toBeLessThan(navigation.push.mock.invocationCallOrder[0])
+    view.app.unmount()
   })
 
   it('loads both workbench lists and KPI facts, then refreshes them together', async () => {

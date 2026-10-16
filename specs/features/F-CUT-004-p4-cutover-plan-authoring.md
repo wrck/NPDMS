@@ -118,3 +118,13 @@
 ## 7. Feature Ready Gate
 
 最终：`BASELINE / READY / GO / NOT_STARTED`。API/Physical/Legacy Machine Contract已在`87b0b066`独立复审`PASS / GO`，Feature Ready最终关闭以状态基线`644816f2`取得独立`GO`。允许生成唯一当前Technical Plan并申请独立Plan Gate；本结论不授权DDL、运行实现、生产CUT-05 Provider、真实浏览器或Implementation Done。
+
+
+### 生成文件重新打开（2026-10-15局部修复）
+
+在线方案生成成功后，在同一事务追加 `cut_plan_generated_file`，按租户、方案修订及正文版本保存精确文件引用和生成时间。GET `PlanView.generatedDraft` 返回当前正文版本的记录，未生成则为 null；页面重开恢复文件区，下载仍由 PLT 实时授权和可用性校验。新正文保存推进版本后不再展示旧版本生成文件，旧记录和平台文件保留。生成不提交审批、不改变任务或正文版本；并发保存造成版本不符时整次生成引用写入失败回滚。完整上传方案的既有字段与数据库约束保持不变。
+
+
+### 2026-10-16 方案计划时间输入
+
+需求方确认所有方案模式共用单个“计划割接时间”输入框，保存为 `cut_plan_revision.scheduled_time`，wire 字段为 `content.scheduledTime`。草稿可暂存空值，生成及提交必须填写；在线标准方案原有明细计划保留，不以最早计划项推导该字段。审批及A/B提前时限读取当前方案的明确时间，不读取任务创建时间。历史正文及批准来源不回填，已提交修订的计划时间不可改写。D级不需要割接类型、组网模式或设备类型，仍保留方案时间、操作和回退及正式审批校验。

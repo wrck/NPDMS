@@ -78,6 +78,26 @@ class CutoverTaskIntakeSourceTest {
         verifyNoInteractions(application, readiness);
     }
 
+    @Test void aProjectOperationRetryWithoutAClientNameReturnsTheStoredTask() {
+        existing();
+        var command = new CutoverTaskIntakeCommand("PROJECT_EVENT", 3L, List.of("SN-1"), 2L, "CFG", null,
+                "背景", "TYPE", "DUAL", LocalDateTime.of(2026, 10, 20, 9, 0), "correlation", null, null, "EVENT-1");
+        var result = api.create(command);
+        assertTrue(result.replayed());
+        assertEquals(10L, result.taskId());
+        verifyNoInteractions(application, readiness, deviceScope);
+    }
+
+    @Test void automaticConfigurationReplayUsesOriginalApplicationDigestRatherThanMutableTaskFields() {
+        existing();
+        when(application.create(any())).thenReturn(new CutoverTaskCommandResult(10L, "CUT-10", "P6", "ARCHIVED", 20L, true));
+        var minimal = new CutoverTaskIntakeCommand("ITR", 3L, List.of(" sn-1 "), 2L, null, "任务", null, null, null,
+                null, "correlation", "ITR", "INC-10", null);
+        assertTrue(api.create(minimal).replayed());
+        verify(application).create(argThat(value -> value.configurationCode() == null && value.cutoverType() == null));
+        verifyNoInteractions(readiness, deviceScope);
+    }
+
     @Test void projectPermissionIsRequiredEvenForReplay() {
         when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(3L, 4L, Set.of(), Set.of()));
         assertThrows(SecurityException.class, () -> api.create(command("任务")));

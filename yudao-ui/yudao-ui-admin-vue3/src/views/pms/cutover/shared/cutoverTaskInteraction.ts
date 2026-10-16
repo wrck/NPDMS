@@ -38,26 +38,15 @@ export const formatWireDateTime = (value: WireDateTime | null) => {
 
 export const buildCreateRequest = (
   candidate: CreateContextCandidate,
-  form: {
-    configurationCode: string
-    taskName: string
-    background: string
-    cutoverType: string
-    networkMode: string | null
-    scheduledTime: string
-  }
+  form?: { configurationCode: string; background: string; cutoverType: string; networkMode: string | null; scheduledTime: string }
 ): CreateCutoverTaskRequest => {
   const project = candidate.project
   const customer = candidate.customerServiceLevel
   return {
     projectId: candidate.project.projectId,
-    configurationCode: form.configurationCode,
+    ...(form ? { configurationCode: form.configurationCode, background: form.background.trim(), cutoverType: form.cutoverType,
+      networkMode: form.networkMode, scheduledTime: toWireDateTime(form.scheduledTime) } : {}),
     serialNumbers: candidate.devices.map((device) => device.serialNumber),
-    taskName: form.taskName.trim(),
-    background: form.background.trim(),
-    cutoverType: form.cutoverType,
-    networkMode: form.networkMode,
-    scheduledTime: toWireDateTime(form.scheduledTime),
     expectedProjectContext: {
       projectId: project.projectId,
       projectVersion: project.projectVersion,

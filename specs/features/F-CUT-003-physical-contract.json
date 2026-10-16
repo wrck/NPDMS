@@ -138,7 +138,7 @@
       "POST /items/{stableItemKey}/external-queries",
       "PUT /items/{stableItemKey}/external-feedback"
     ],
-    "collection": "POST /items/{stableItemKey}/collection-requests binds an accepted formal PLT execution to the checklist item; provider success alone does not pass the item",
+    "collection": "POST /items/{stableItemKey}/collection-requests binds an accepted formal PLT execution to the checklist item; commandTemplateId is a positive id for published templates or null for manual commands verified against the exact manual-{checklistItemId} provider identity; provider success alone does not pass the item",
     "responses": "CutoverChecklistResponses and CutoverExternalChecklistResponses HTTP records; Yudao Long and epoch-millisecond wire rules; allowedActions are server projections",
     "errors": "CommonResult<CutoverErrorData{category,reasonCode,recoveryAction}>; HTTP 409 stale version/state -> REFRESH_AGGREGATE, 422 evidence -> REFRESH_OWNER_FACTS, conflicting intent -> START_NEW_INTENT, in-progress intent -> RETRY_SAME_KEY"
   }

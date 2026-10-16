@@ -42,6 +42,8 @@ public class CutoverPlanRevisionDO extends BaseBusinessEntity {
     private Boolean ownershipConfirmed;
     private String statusCode;
     private Integer currentMarker;
+    /** 方案页统一填写的计划割接时间。 */
+    private LocalDateTime scheduledTime;
     @TableField(value = "submit_user_id")
     private Long submittedBy;
     @TableField(value = "submit_time")

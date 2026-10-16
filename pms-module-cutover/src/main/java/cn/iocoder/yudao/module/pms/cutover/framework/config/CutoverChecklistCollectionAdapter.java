@@ -66,7 +66,8 @@ public class CutoverChecklistCollectionAdapter implements CutoverCollectionPort 
     private static void requireIdentity(CollectionApplicationApi.Execution execution, ExecutionIdentity expected) {
         if (!Objects.equals(execution.task().projectId(), String.valueOf(expected.projectId()))
                 || !Objects.equals(execution.task().deviceId(), String.valueOf(expected.deviceId()))
-                || !Objects.equals(execution.task().templateId(), String.valueOf(expected.commandTemplateId()))) {
+                || !Objects.equals(execution.task().templateId(), expected.commandTemplateId() == null
+                        ? "manual-" + expected.checklistItemId() : expected.commandTemplateId().toString())) {
             throw new CollectionOperationException("采集执行与本次项目、设备或模板不一致");
         }
     }

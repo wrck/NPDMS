@@ -14,6 +14,27 @@ class CutoverPlanContentCodecTest {
     private final CutoverPlanContentCodec codec = new CutoverPlanContentCodec();
 
     @Test
+    void singlePlanTimeSurvivesEveryContentModeAndRejectsInvalidValues() {
+        var standard = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(standardJson());
+        standard.put("scheduledTime", 1793498400000L);
+        var simple = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\",\"steps\":[]}");
+        simple.put("scheduledTime", "1793498400000");
+        var upload = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree("""
+                {"editMode":"FULL_FILE_UPLOAD","fileArtifactFact":{"artifactId":91,"versionNo":2,
+                "referenceKey":"CUT/PLAN/91","fileFactVersion":{"artifactVersion":3,"referenceVersion":4,"availabilityVersion":5},
+                "scopeVersion":6,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"ownershipConfirmed":true,
+                "scheduledTime":1793498400000}
+                """);
+        for (var body : List.of(standard, simple, upload)) {
+            var facts = source(body.path("editMode").asText().equals("ONLINE_TEMPLATE_STANDARD") ? "A" : "D");
+            var decoded = codec.decodeWritable(body, facts);
+            assertThat(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanScheduleTime.value(decoded.rootSnapshot())).isEqualTo(1793498400000L);
+            body.put("scheduledTime", 0);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> codec.decodeWritable(body, facts)).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Test
     void assemblesAbcStandardContentAndKeepsChildrenOutsideRootSnapshot() {
         for (String grade : List.of("A", "B", "C")) {
             var decoded = codec.decodeWritable(JsonUtils.parseTree(standardJson()), source(grade));

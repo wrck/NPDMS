@@ -20,6 +20,20 @@ class CutoverTaskRequestCodecTest {
     }
 
     @Test
+    void acceptsCreationWithoutAClientTaskName() {
+        var request = codec.create(JsonUtils.parseTree("""
+                {"projectId":100,"configurationCode":"CFG","serialNumbers":["SN-1"],
+                 "background":"背景","cutoverType":"TYPE","networkMode":null,"scheduledTime":null,
+                 "expectedProjectContext":{"projectId":100,"projectVersion":1,"projectCode":"P100",
+                   "projectName":"项目","customerId":null,"customerCode":null,"customerName":null,
+                   "departmentId":null,"departmentCode":null,"departmentName":null},
+                 "expectedProjectScopeVersion":1,
+                 "expectedDeviceScopeWatermark":[{"deviceId":1,"serialNumber":"SN-1","projectAssignmentVersion":1}]}
+                """));
+        assertThat(request.taskName()).isNull();
+    }
+
+    @Test
     void decodesExactListQueryWithLockedEnums() {
         var query = new LinkedMultiValueMap<String, String>();
         query.add("projectId", "31");

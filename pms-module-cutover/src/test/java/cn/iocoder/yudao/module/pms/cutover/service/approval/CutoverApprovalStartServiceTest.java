@@ -39,8 +39,9 @@ class CutoverApprovalStartServiceTest {
         CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(100L); task.setProjectId(10L);
         task.setCutoverType("VERSION_UPGRADE");
-        task.setScheduledTime(LocalDateTime.of(2026, 9, 5, 8, 0));
+        task.setScheduledTime(LocalDateTime.of(2026, 9, 1, 8, 0));
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
+        plan.setScheduledTime(LocalDateTime.of(2026, 9, 5, 8, 0));
         LocalDateTime planSubmittedAt = LocalDateTime.of(2026, 9, 3, 18, 0);
         when(assembler.lockAndAssemble(any())).thenReturn(
                 new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, CutoverApprovalControlledPorts.approvalSource("A")));
@@ -134,8 +135,9 @@ class CutoverApprovalStartServiceTest {
         CutoverApprovalNotificationMapper notifications = mock(CutoverApprovalNotificationMapper.class);
         CutoverTaskDO task = new CutoverTaskDO(); task.setId(100L); task.setProjectId(10L);
         task.setCutoverType("VERSION_UPGRADE");
-        task.setScheduledTime(LocalDateTime.of(2026, 9, 5, 8, 0));
+        task.setScheduledTime(LocalDateTime.of(2026, 9, 1, 8, 0));
         CutoverPlanRevisionDO plan = new CutoverPlanRevisionDO();
+        plan.setScheduledTime(LocalDateTime.of(2026, 9, 5, 8, 0));
         plan.setSubmittedAt(LocalDateTime.of(2026, 9, 3, 18, 0));
         when(assembler.lockAndAssemble(any())).thenReturn(
                 new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, CutoverApprovalControlledPorts.approvalSource("D")));

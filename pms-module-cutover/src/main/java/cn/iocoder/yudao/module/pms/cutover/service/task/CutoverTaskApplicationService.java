@@ -225,11 +225,20 @@ public class CutoverTaskApplicationService {
                 command.projectId(), deviceIds)).isEmpty(), ACTIVE_DEVICE_CONFLICT, "设备已有活动割接任务");
 
         LocalDateTime taskCreatedAt = LocalDateTime.now(clock);
-        CutoverConfigurationRevisionDO configuration = configurationMapper.selectEffectivePublished(
-                new CutoverEffectivePublishedConfigurationQuery(command.tenantId(),
-                        command.configurationCode(), taskCreatedAt));
+        CutoverConfigurationRevisionDO configuration;
+        if (command.configurationCode() == null) {
+            var choices = configurationMapper.selectEffectivePublishedList(
+                    new cn.iocoder.yudao.module.pms.cutover.dal.mysql.configuration.query.CutoverEffectiveConfigurationListQuery(command.tenantId(), taskCreatedAt));
+            require(choices.size() == 1, CONFIGURATION_CONFLICT,
+                    choices.isEmpty() ? "当前无有效已发布割接配置" : "存在多个有效已发布割接配置，请先明确配置后再创建任务");
+            configuration = choices.getFirst();
+        } else {
+            configuration = configurationMapper.selectEffectivePublished(
+                    new CutoverEffectivePublishedConfigurationQuery(command.tenantId(), command.configurationCode(), taskCreatedAt));
+        }
         require(configuration != null, CONFIGURATION_CONFLICT, "所选割接配置在任务创建时点无有效发布修订");
-        intakeConfiguration.validate(configuration, command.cutoverType(), command.networkMode());
+        if (command.cutoverType() != null) intakeConfiguration.validate(configuration, command.cutoverType(), command.networkMode());
+        else require(command.networkMode() == null, INVALID_REQUEST, "组网模式需与调研割接类型同时确定");
 
         Long taskId = nextId();
         CutoverTaskDO row = new CutoverTaskDO();
@@ -237,7 +246,10 @@ public class CutoverTaskApplicationService {
         row.setTenantId(command.tenantId());
         row.setProjectId(command.projectId());
         row.setTaskNo("CUT-" + taskId);
-        row.setTaskName(command.taskName());
+        boolean generatedName = "SELF_CREATED".equals(command.intakeSourceType())
+                || "PROJECT_EVENT".equals(command.intakeSourceType()) && command.taskName() == null;
+        if (generatedName) requireText(locked.project().projectName(), "项目名称", 255);
+        row.setTaskName(generatedName ? locked.project().projectName() + "-割接-" + row.getTaskNo() : command.taskName());
         row.setBackground(command.background());
         row.setCutoverType(command.cutoverType());
         row.setNetworkMode(command.networkMode());
@@ -469,10 +481,12 @@ public class CutoverTaskApplicationService {
                         && positive(command.projectId()), INVALID_REQUEST, "创建命令身份非法");
         requireText(command.idempotencyKey(), "Idempotency-Key", 128);
         requireText(command.correlationId(), "correlationId", 128);
-        requireText(command.taskName(), "taskName", 128);
-        requireText(command.configurationCode(), "configurationCode", 64);
-        requireText(command.background(), "background", 4000);
-        requireText(command.cutoverType(), "cutoverType", 32);
+        if (!"SELF_CREATED".equals(command.intakeSourceType())
+                && !("PROJECT_EVENT".equals(command.intakeSourceType()) && command.taskName() == null))
+            requireText(command.taskName(), "taskName", 128);
+        if (command.configurationCode() != null) requireText(command.configurationCode(), "configurationCode", 64);
+        if (command.background() != null) requireText(command.background(), "background", 4000);
+        if (command.cutoverType() != null) requireText(command.cutoverType(), "cutoverType", 32);
         require(Set.of("SELF_CREATED", "ITR", "PROJECT_EVENT").contains(command.intakeSourceType()),
                 INVALID_REQUEST, "intakeSourceType非法");
         boolean validUnion = switch (command.intakeSourceType()) {

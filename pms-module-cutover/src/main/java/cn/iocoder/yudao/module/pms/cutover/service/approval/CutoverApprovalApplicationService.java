@@ -427,11 +427,11 @@ public class CutoverApprovalApplicationService {
             CutoverApprovalStorage.applyLeadTime(instance, null);
             return;
         }
-        require(source.task() != null && source.plan() != null && source.task().getScheduledTime() != null,
+        require(source.task() != null && source.plan() != null && source.plan().getScheduledTime() != null,
                 OWNER_DATA_CORRUPTED, "提前时间来源事实缺失");
         try {
             CutoverLeadTimeCompliance compliance = LEAD_TIME_CALCULATOR.calculate(grade,
-                    source.task().getCutoverType(), source.task().getScheduledTime(), planSubmittedAt);
+                    source.task().getCutoverType(), source.plan().getScheduledTime(), planSubmittedAt);
             CutoverApprovalStorage.applyLeadTime(instance, compliance);
         } catch (IllegalArgumentException exception) {
             throw failure(OWNER_DATA_CORRUPTED, "提前时间来源事实损坏");

@@ -50,6 +50,7 @@ public final class CutoverPlanRequestCodec {
         if ("ONLINE_TEMPLATE_STANDARD".equals(mode) && body.has("rollbackDescription")) {
             contentKeys.add("rollbackDescription");
         }
+        if (body.has("scheduledTime")) contentKeys.add("scheduledTime");
         exact(body, contentKeys, "draftContent");
         if ("FULL_FILE_UPLOAD".equals(mode)) file(body.get("fileArtifactFact"));
         return body.deepCopy();

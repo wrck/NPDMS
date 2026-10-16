@@ -1,11 +1,7 @@
 <template>
   <main class="cutover-task-workbench">
-      <el-alert type="info" :closable="false" show-icon class="flow-intro">
-        <template #title>
-          <div><strong>标准流程：</strong>新增／待办割接任务 → 割接等级确认 → 调研及风险考察 → 割接方案 → 割接审批 → 割接跟踪及闭环。</div>
-          <div><strong>简易流程：</strong>D级割接跳过调研及风险考察，直接编制操作与回退方案。</div>
-        </template>
-      </el-alert>
+    <CutoverTaskCreate v-if="createVisible" @close="returnToList" @created="createdTask" />
+    <template v-else>
       <CutoverDashboardKpis :data="kpis" :loading="kpiLoading" :error="kpiError" :selected="selectedCategory" @select="selectKpi" />
       <div class="home-toolbar">
         <div><el-tag v-if="selectedCategory" closable @close="resetQuery">{{ categoryLabels[selectedCategory] }}</el-tag><span v-else class="cut-muted">割接工作台</span></div>
@@ -32,7 +28,7 @@
       <section v-if="selectedCategory" class="cut-card">
         <header class="cut-card__header"><h2><Icon icon="ep:document" />{{ categoryLabels[selectedCategory] }}割接任务</h2><small>共 {{ total }} 项</small></header>
         <CutoverTaskTable :rows="rows" :loading="loading" :error="listError" @open="openDetail" />
-        <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="loadPage" />
+        <Pagination class="workbench-pagination" v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="loadPage" />
       </section>
       <template v-else>
         <section class="cut-card" aria-labelledby="cutover-todo-list-title">
@@ -45,12 +41,12 @@
             <el-table-column label="任务生成时间" min-width="170"><template #default="{ row }">{{ formatWireDateTime(row.generatedAt) }}</template></el-table-column>
             <el-table-column label="操作" width="88" fixed="right"><template #default="{ row }"><el-button size="small" type="primary" @click="openDetail(row)">办理</el-button></template></el-table-column>
           </el-table>
-          <Pagination v-model:page="workbenchTodoQuery.pageNo" v-model:limit="workbenchTodoQuery.pageSize" :total="workbenchTodoTotal" @pagination="loadPage" />
+          <Pagination class="workbench-pagination" v-model:page="workbenchTodoQuery.pageNo" v-model:limit="workbenchTodoQuery.pageSize" :total="workbenchTodoTotal" @pagination="loadPage" />
         </section>
         <section class="cut-card" aria-labelledby="cutover-self-list-title">
           <header class="cut-card__header">
             <h2 id="cutover-self-list-title"><Icon icon="ep:edit-pen" />自建割接任务</h2>
-            <el-button data-testid="create-cutover-task" type="primary" v-hasPermi="['pms:cutover-task:create']" @click="router.push('/pms/cutover/tasks/create')"><Icon icon="ep:plus" />新增割接任务</el-button>
+            <el-button data-testid="create-cutover-task" type="primary" v-hasPermi="['pms:cutover-task:create']" @click="openCreate"><Icon icon="ep:plus" />新增割接任务</el-button>
           </header>
           <el-table v-loading="loading" :data="selfCreatedTasks" :empty-text="listError ? '自建列表未加载成功' : '暂无自建割接任务，可新增任务'" row-key="id" @row-dblclick="openDetail">
             <el-table-column label="项目名称" min-width="270"><template #default="{ row }"><button type="button" class="project-link" @click="openDetail(row)">{{ row.projectName }}</button><small v-if="row.taskName !== row.projectName" class="task-subtitle">{{ row.taskName }}</small></template></el-table-column>
@@ -59,7 +55,7 @@
             <el-table-column label="当前步骤" min-width="190"><template #default="{ row }"><el-tag size="small" :type="row.taskStatus === 'ARCHIVED' ? 'success' : 'warning'">{{ row.taskStatus === 'ARCHIVED' ? '已归档' : stageLabels[row.currentStage] || '历史记录' }}</el-tag></template></el-table-column>
             <el-table-column label="操作" width="88" fixed="right"><template #default="{ row }"><el-button size="small" @click="openDetail(row)">{{ row.taskStatus === 'ARCHIVED' ? '查看' : '继续' }}</el-button></template></el-table-column>
           </el-table>
-          <Pagination v-model:page="selfCreatedQuery.pageNo" v-model:limit="selfCreatedQuery.pageSize" :total="selfCreatedTotal" @pagination="loadPage" />
+          <Pagination class="workbench-pagination" v-model:page="selfCreatedQuery.pageNo" v-model:limit="selfCreatedQuery.pageSize" :total="selfCreatedTotal" @pagination="loadPage" />
         </section>
       </template>
 
@@ -127,6 +123,7 @@
     </el-dialog>
 
 
+    </template>
   </main>
 </template>
 
@@ -137,6 +134,7 @@ import { getProject, getProjectPage, type ProjectMasterVO } from '@/api/pms/proj
 import * as CutoverApi from '@/api/pms/cutover'
 import type { CutoverDashboardKpiData } from '@/api/pms/cutover'
 import CutoverDashboardKpis from '../components/CutoverDashboardKpis.vue'
+import CutoverTaskCreate from '../task-create/index.vue'
 import CutoverTaskTable from '../components/CutoverTaskTable.vue'
 import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
 import { sourceLabels, stageLabels, statusLabels } from '../shared/taskPresentation'
@@ -150,6 +148,17 @@ const selectedCategory = ref('')
 const categoryLabels: Record<string, string> = { todo: '待办', archived: '已归档', approving: '审批中', rejected: '驳回待修改' }
 const router = useRouter()
 const route = useRoute()
+const createVisible = computed(() => route.query.create === '1' && checkPermi(['pms:cutover-task:create']))
+const openCreate = () => router.push({ path: route.path, query: { ...route.query, create: '1' } })
+const listLocation = () => { const query = { ...route.query }; delete query.create; return { path: route.path, query } }
+const returnToList = async () => {
+  await router.push(listLocation())
+  if (!createVisible.value) await refreshListAndKpis()
+}
+const createdTask = async (taskId: CutoverApi.WireLong) => {
+  await router.replace(listLocation())
+  await router.push(`/pms/cutover/tasks/${taskId}`)
+}
 const kpiLoading = ref(false)
 const kpis = ref<CutoverDashboardKpiData | null>(null)
 const kpiError = ref<string | null>(null)
@@ -297,8 +306,8 @@ const openDetail = async (row: { id: CutoverApi.WireLong; approvalOnly?: boolean
     await router.push(`/pms/cutover/approvals/${approvalId}`)
   } else await router.push(`/pms/cutover/tasks/${row.id}`)
 }
-onMounted(refreshListAndKpis)
-onActivated(() => { if (!loading.value) void refreshListAndKpis() })
+onMounted(() => { if (!createVisible.value) void refreshListAndKpis() })
+onActivated(() => { if (!createVisible.value && !loading.value) void refreshListAndKpis() })
 onBeforeUnmount(() => { listSequence++; projectSequence++ })
 // 已发送的现行通知保留原链接；进入后定位到唯一详情路由。
 watch(() => [route.query.taskId, route.query.mode], () => {
@@ -316,6 +325,7 @@ const selectKpi = async (key: string) => {
 </script>
 
 <style scoped>
+.workbench-pagination { float: none; justify-content: flex-end; flex-wrap: wrap; margin: 0; padding: 16px 20px; box-sizing: border-box; }
 .home-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .home-toolbar__actions { display: flex; align-items: center; gap: 16px; }
 .home-toolbar__actions .el-button + .el-button { margin-left: 0; }

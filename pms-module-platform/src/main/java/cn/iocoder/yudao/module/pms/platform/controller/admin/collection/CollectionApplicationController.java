@@ -55,7 +55,9 @@ public class CollectionApplicationController {
             .objectId(objectId)
             .actorId(actor())
             .build(), id));}
-    @GetMapping("/templates") public CommonResult<List<CollectionTemplateService.View>> templates(@RequestParam(required=false) String purpose,@RequestParam(defaultValue="false") boolean publishedOnly){return success(templates.list(new CollectionTemplateService.ListQuery(actor(),purpose,publishedOnly)));}
+    @GetMapping("/templates") public CommonResult<List<CollectionTemplateService.View>> templates(@ModelAttribute TemplateListRequest request){return success(templates.list(CollectionTemplateService.ListQuery.builder()
+            .actorId(actor()).purpose(request.getPurpose()).publishedOnly(request.isPublishedOnly())
+            .projectId(request.getProjectId()).deviceId(request.getDeviceId()).build()));}
     @PostMapping("/templates") public CommonResult<CollectionTemplateService.View> saveTemplate(@RequestBody CollectionTemplateService.Draft request){return success(templates.save(actor(),request));}
     @PostMapping("/templates/{id}/publish") public CommonResult<CollectionTemplateService.View> publish(@PathVariable Long id,@RequestParam Long version){return success(templates.publish(actor(),id,version));}
     @PostMapping("/templates/{id}/retire") public CommonResult<CollectionTemplateService.View> retire(@PathVariable Long id,@RequestParam Long version){return success(templates.retire(actor(),id,version));}
@@ -69,4 +71,10 @@ public class CollectionApplicationController {
     @PostMapping("/connections/{id}/disable") public CommonResult<Boolean> disable(@PathVariable Long id){connections.disable(actor(),id);return success(true);}
     private Long actor(){Long id=SecurityFrameworkUtils.getLoginUserId();if(id==null)throw new org.springframework.security.access.AccessDeniedException("请先登录");return id;}
     public record Grant(Long userId,Long templateId,LocalDateTime expiresAt){}
+    @lombok.Data public static class TemplateListRequest {
+        private String purpose;
+        private boolean publishedOnly;
+        private Long projectId;
+        private Long deviceId;
+    }
 }

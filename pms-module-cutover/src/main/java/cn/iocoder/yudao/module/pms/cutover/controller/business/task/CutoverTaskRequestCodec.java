@@ -49,8 +49,8 @@ public final class CutoverTaskRequestCodec {
         require(body != null && body.isObject(), "create");
         Set<String> keys = new HashSet<>();
         body.properties().forEach(entry -> keys.add(entry.getKey()));
-        require(CREATE_KEYS.containsAll(keys) && keys.containsAll(Set.of("projectId", "configurationCode",
-                "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime",
+        require(CREATE_KEYS.containsAll(keys) && keys.containsAll(Set.of("projectId",
+                "serialNumbers",
                 "expectedProjectContext", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark")), "create keys");
         exact(body.get("expectedProjectContext"), PROJECT_KEYS, "expectedProjectContext");
         JsonNode devices = body.get("expectedDeviceScopeWatermark");

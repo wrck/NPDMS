@@ -15,14 +15,14 @@ public final class CutoverPlanResponses {
             Long planRevisionId, Integer revisionNo, Long planVersion,
             String originCode, String status, Long sourcePlanRevisionId,
             String revisionReason, JsonNode sourceSnapshot, JsonNode content,
-            ApprovalFactView approvalFact, List<String> allowedActions) {
+            ApprovalFactView approvalFact, List<String> allowedActions, Download generatedDraft) {
         public static View from(CutoverPlanView value) {
             if (value == null) return null;
             return new View(value.taskId(), value.taskStage(), value.taskVersion(),
                     value.planRevisionId(), value.revisionNo(), value.planVersion(),
                     value.originCode(), value.status(), value.sourcePlanRevisionId(),
                     value.revisionReason(), value.sourceSnapshot(), value.content(),
-                    ApprovalFactView.from(value.approvalFact()), value.allowedActions());
+                    ApprovalFactView.from(value.approvalFact()), value.allowedActions(), Download.from(value.generatedDraft()));
         }
     }
 

@@ -64,6 +64,28 @@ class CutoverPlanQueryServiceTest {
     }
 
     @Test
+    void reopensPersistedGeneratedFileAndClearsItAfterNewContentSave() {
+        Fixture fixture = fixture();
+        var file = cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFact.builder()
+                .artifactId(2110704555528138754L).versionNo(1).referenceKey("generated-test")
+                .scopeVersion(1L).sha256("a".repeat(64))
+                .fileFactVersion(new cn.iocoder.yudao.module.pms.cutover.service.plan.port.CutoverPlanFilePort.FileFactVersion(1, 1, 1)).build();
+        var generated = mock(CutoverPlanGeneratedFiles.class);
+        when(generated.find(any())).thenAnswer(call -> {
+            var query = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanGeneratedFileQuery) call.getArgument(0);
+            return query.planVersion().equals(1L) ? new cn.iocoder.yudao.module.pms.cutover.service.plan.result.DownloadCutoverPlanDraftResult(80L, 1L, file, 1792066155900L) : null;
+        });
+        var service = fixture.service(mock(CutoverApprovalFactApi.class));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "generatedFiles", generated);
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "reopen-test", true, true, true, true);
+        var reopened = service.detail(context, 50L);
+        assertThat(reopened.generatedDraft().fileArtifactFact()).isEqualTo(file);
+        assertThat(reopened.generatedDraft().planVersion()).isEqualTo(1L);
+        fixture.plan.setVersion(2L);
+        assertThat(service.detail(context, 50L).generatedDraft()).isNull();
+    }
+
+    @Test
     void projectsSubmitForCompleteDraftWhenApprovalContractIsAvailable() {
         Fixture fixture = fixture();
         fixture.plan.setEditModeCode("FULL_FILE_UPLOAD");
@@ -76,6 +98,7 @@ class CutoverPlanQueryServiceTest {
         fixture.plan.setFileScopeVersion(1L);
         fixture.plan.setFileSha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
         fixture.plan.setOwnershipConfirmed(true);
+        fixture.plan.setScheduledTime(java.time.LocalDateTime.of(2026, 11, 1, 10, 0));
 
         CutoverPlanView view = fixture.service(mock(CutoverApprovalFactApi.class)).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "query-test", true, true, true, true), 50L);
 
@@ -192,6 +215,7 @@ class CutoverPlanQueryServiceTest {
         when(storage.currentSupport(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(storage.sourceView(plan)).thenReturn(JsonUtils.parseTree(JsonUtils.toJsonString(source)));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "generatedFiles", mock(CutoverPlanGeneratedFiles.class));
     }
 
     private static CutoverTaskDO task() {

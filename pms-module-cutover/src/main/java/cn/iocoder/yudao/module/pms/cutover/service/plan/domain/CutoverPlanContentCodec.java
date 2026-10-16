@@ -63,6 +63,7 @@ public final class CutoverPlanContentCodec {
         String editMode = source.rootSnapshot().path("editMode").asText();
         ObjectNode body = JsonUtils.getObjectMapper().createObjectNode();
         body.put("editMode", editMode);
+        copyScheduledTime(source.rootSnapshot(), body);
         ArrayNode steps = body.putArray("steps");
         source.steps().forEach(step -> steps.add(stepNode(step)));
         if ("ONLINE_TEMPLATE_SIMPLE_D".equals(editMode)) {
@@ -155,12 +156,14 @@ public final class CutoverPlanContentCodec {
 
     private DecodedContent decodeOnline(JsonNode body, boolean standard, CutoverPlanSourcePort.SourceFacts sourceFacts) {
         Set<String> contentKeys = new HashSet<>(standard ? STANDARD : SIMPLE);
+        if (body.has("scheduledTime")) contentKeys.add("scheduledTime");
         if (standard && body.has("rollbackDescription")) contentKeys.add("rollbackDescription");
         exact(body, contentKeys, "content");
         List<PlanStep> steps = steps(body.get("steps"), standard ? CutoverPlanRules.STANDARD_SECTIONS : CutoverPlanRules.SIMPLE_SECTIONS);
         List<SupportArrangement> support = standard ? supportDraft(body.get("supportArrangements")) : List.of();
         ObjectNode root = JsonUtils.getObjectMapper().createObjectNode();
         root.put("editMode", standard ? "ONLINE_TEMPLATE_STANDARD" : "ONLINE_TEMPLATE_SIMPLE_D");
+        copyScheduledTime(body, root);
         if (standard) {
             root.set("overview", overviewDraft(body.get("overview"), sourceFacts.snapshot()));
             root.set("riskMitigations", riskMitigationsDraft(body.get("riskMitigations"), sourceFacts.failedRiskFacts()));
@@ -284,7 +287,9 @@ public final class CutoverPlanContentCodec {
     }
 
     private DecodedContent decodeUpload(JsonNode body) {
-        exact(body, UPLOAD, "content");
+        var keys = new HashSet<>(UPLOAD);
+        if (body.has("scheduledTime")) keys.add("scheduledTime");
+        exact(body, keys, "content");
         require(body.path("ownershipConfirmed").isBoolean() && body.path("ownershipConfirmed").asBoolean(), "ownershipConfirmed");
         JsonNode file = body.get("fileArtifactFact");
         exact(file, FILE, "fileArtifactFact");
@@ -299,7 +304,17 @@ public final class CutoverPlanContentCodec {
                 .scopeVersion(nonNegativeLong(file, "scopeVersion"))
                 .sha256(requiredPattern(file, "sha256", "[0-9a-f]{64}"))
                 .build();
-        return new DecodedContent(null, List.of(), List.of(), fact, true);
+        ObjectNode root = JsonUtils.getObjectMapper().createObjectNode();
+        root.put("editMode", "FULL_FILE_UPLOAD");
+        copyScheduledTime(body, root);
+        return new DecodedContent(root, List.of(), List.of(), fact, true);
+    }
+
+    private static void copyScheduledTime(JsonNode body, ObjectNode root) {
+        Long time = cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanScheduleTime.value(body);
+        if (body.has("scheduledTime")) {
+            if (time == null) root.putNull("scheduledTime"); else putWireLong(root, "scheduledTime", time);
+        }
     }
 
     public void validateComplete(DecodedContent content, CutoverPlanSourcePort.SourceFacts sourceFacts) {

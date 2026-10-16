@@ -3,6 +3,8 @@
     v-model="visible"
     :title="`${source?.title || '设备'} · 命令采集与日志`"
     width="min(1080px, 96vw)"
+    scroll
+    max-height="calc(90vh - 160px)"
     @closed="onClosed"
   >
     <el-alert
@@ -43,6 +45,8 @@
           filterable
           placeholder="请选择适用的已发布模板"
           class="!w-full"
+          :loading="choicesLoading"
+          :disabled="choicesLoading || !form.deviceId"
         >
           <el-option
             v-for="item in templates"
@@ -100,6 +104,9 @@
               autocomplete="new-password" /></el-form-item
         ></el-col>
       </el-row>
+      <el-form-item v-if="credentialMode === 'temporary' && checkPermi(['pms:device-credential:create'])">
+        <el-button :disabled="!form.deviceId || choicesLoading" @click="openConnectionSave">保存为连接</el-button>
+      </el-form-item>
       <el-form-item label="执行命令" prop="commands">
         <el-input
           v-if="commandMode === 'manual'"
@@ -329,6 +336,17 @@
     </div>
     <template #footer><el-button @click="visible = false">关闭</el-button></template>
   </Dialog>
+  <Dialog v-model="connectionSaveVisible" title="验证并保存设备连接" width="min(620px, 95vw)" @closed="clearConnectionSecret">
+    <el-alert title="连接密码由 DAC 加密保存，仅为本人建立当前项目、设备、协议及有效期内的使用授权。保存连接不会下发采集命令。" type="info" :closable="false" class="mb-16px" />
+    <el-alert v-if="connectionSaveFrozen" title="保存结果尚未确认，请重新输入密码继续原请求；连接目标和授权范围保持原值。" type="warning" :closable="false" class="mb-12px" />
+    <el-form ref="connectionSaveRef" :model="connectionSaveForm" :rules="connectionSaveRules" label-width="100px" :disabled="connectionSaving" autocomplete="off">
+      <el-form-item label="连接目标"><span>{{ connectionSaveForm.protocol }} {{ connectionSaveForm.host }}:{{ connectionSaveForm.port }} · {{ connectionSaveForm.username }}</span></el-form-item>
+      <el-form-item label="连接名称" prop="name"><el-input v-model="connectionSaveForm.name" maxlength="64" :disabled="connectionSaveFrozen" /></el-form-item>
+      <el-form-item label="密码" prop="secret"><el-input v-model="connectionSaveForm.secret" type="password" autocomplete="new-password" /></el-form-item>
+      <el-form-item label="授权到期" prop="expiresAt"><el-date-picker v-model="connectionSaveForm.expiresAt" type="datetime" value-format="x" class="!w-full" :disabled="connectionSaveFrozen" /></el-form-item>
+    </el-form>
+    <template #footer><el-button type="primary" :loading="connectionSaving" @click="saveCurrentConnection">验证并保存</el-button><el-button :disabled="connectionSaving" @click="connectionSaveVisible = false">关闭</el-button></template>
+  </Dialog>
   <LogParsingDialog ref="logParsing" />
   <Dialog v-model="logVisible" title="设备执行日志" width="min(1080px, 96vw)" @closed="clearLog">
     <el-alert
@@ -352,7 +370,7 @@ import { dateFormatter } from '@/utils/formatTime'
 import { generateUUID } from '@/utils'
 import * as Api from '@/api/pms/platform/deviceCollection'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
-const props = defineProps<{ entry: Api.Entry; deviceId?: Api.Id }>()
+const props = defineProps<{ entry: Api.Entry; deviceId?: Api.Id; readonly?: boolean }>()
 const logParsing = ref<InstanceType<typeof LogParsingDialog>>()
 const emit = defineEmits<{ closed: []; observed: [executions: Api.Execution[]]; accepted: [execution: Api.Execution, requestKey: string] }>()
 const message = useMessage()
@@ -363,6 +381,7 @@ const source = ref<Api.Source>()
 const objectId = ref<Api.Id>(0)
 const templates = ref<Api.Template[]>([])
 const connections = ref<Api.Connection[]>([])
+const choicesLoading = ref(false)
 const commandMode = ref('template')
 const credentialMode = ref('temporary')
 const formRef = ref()
@@ -378,6 +397,63 @@ const form = reactive({
   credentialId: undefined as Api.Id | undefined,
   retryOfId: undefined as Api.Id | undefined
 })
+const connectionSaveVisible = ref(false)
+const connectionSaving = ref(false)
+const connectionSaveFrozen = ref(false)
+const connectionSaveRef = ref()
+const connectionSaveForm = reactive<Api.SaveConnection>({
+  requestKey: '', name: '', projectId: 0, deviceId: 0,
+  protocol: 'SSH', host: '', port: 22, username: '', secret: '', expiresAt: ''
+})
+const connectionSaveRules = Object.fromEntries(['name', 'secret', 'expiresAt'].map(key =>
+  [key, [{ required: true, message: '请填写此项', trigger: 'change' }]]))
+const clearConnectionSecret = () => { connectionSaveForm.secret = '' }
+const openConnectionSave = async () => {
+  if (!source.value || !form.deviceId || !canDispatch.value || connectionSaving.value) return
+  if (!connectionSaveFrozen.value) {
+    await formRef.value.validateField(['host', 'port', 'username', 'protocol'])
+    Object.assign(connectionSaveForm, {
+      requestKey: generateUUID(), name: '', projectId: source.value.projectId, deviceId: form.deviceId,
+      protocol: form.protocol, host: form.host, port: form.port, username: form.username,
+      templateId: commandMode.value === 'template' ? form.templateId : undefined,
+      secret: form.password, expiresAt: ''
+    })
+  }
+  connectionSaveVisible.value = true
+}
+const saveCurrentConnection = async () => {
+  if (connectionSaving.value) return
+  await connectionSaveRef.value.validate()
+  connectionSaving.value = true
+  connectionSaveFrozen.value = true
+  try {
+    const saved = await Api.saveConnection({ ...connectionSaveForm })
+    connectionSaveFrozen.value = false
+    connectionSaveVisible.value = false
+    form.password = ''
+    message.success('连接已验证并加密保存，已建立本人使用授权')
+    await loadConnections().catch(() => {
+      message.warning('连接已保存，当前可用连接列表加载失败，请重试刷新')
+    })
+    if (connections.value.some(row => String(row.id) === String(saved.id))) {
+      credentialMode.value = 'saved'
+      await nextTick()
+      form.credentialId = saved.id
+    }
+  } catch {
+    // The request may contain a secret: handle the failure without exposing it to Vue's error logger.
+    message.warning('保存未完成，请查看提示并继续原请求')
+    if (checkPermi(['pms:device-credential:query'])) {
+      try {
+        const owned = await Api.connections(connectionSaveForm.projectId)
+        connectionSaveFrozen.value = owned.some(row => row.registrationKey === connectionSaveForm.requestKey)
+      } catch { /* Keep the original request frozen while its outcome is unknown. */ }
+    }
+  } finally {
+    clearConnectionSecret()
+    connectionSaving.value = false
+  }
+}
 const requestKey = ref('')
 const trackedRequestKey = ref('')
 const emittedExecutions = new Set<string>()
@@ -462,9 +538,9 @@ const stopRefresh = () => {
   clearTimeout(refreshTimer)
   refreshTimer = undefined
 }
-const canDispatch = computed(() => !!source.value?.canExecute)
+const canDispatch = computed(() => !props.readonly && !!source.value?.canExecute)
 const canOperate = computed(() =>
-  checkPermi([
+  !props.readonly && checkPermi([
     props.entry === 'center'
       ? 'pms:device-collection:execute'
       : props.entry === 'configuration'
@@ -490,16 +566,27 @@ let choiceGeneration = 0
 const loadChoices = async () => {
   const generation = ++choiceGeneration
   if (!source.value || !visible.value) return
-  const list = checkPermi(['pms:collection-template:use'])
-    ? await Api.templates({
-        purpose: props.entry === 'center' ? undefined : props.entry,
-        publishedOnly: true
-      })
-    : []
-  if (generation !== choiceGeneration) return
-  templates.value = list
-  if (!list.some((r) => r.id === form.templateId)) form.templateId = undefined
-  await loadConnections()
+  choicesLoading.value = true
+  templates.value = []
+  try {
+    const list = checkPermi(['pms:collection-template:use']) && form.deviceId
+      ? await Api.templates({
+          purpose: props.entry === 'center' ? undefined : props.entry,
+          publishedOnly: true,
+          projectId: source.value.projectId,
+          deviceId: form.deviceId
+        })
+      : []
+    if (generation !== choiceGeneration) return
+    templates.value = list
+    if (!list.some((r) => r.id === form.templateId)) form.templateId = undefined
+    await loadConnections()
+  } catch (error) {
+    if (generation === choiceGeneration) form.templateId = undefined
+    throw error
+  } finally {
+    if (generation === choiceGeneration) choicesLoading.value = false
+  }
 }
 let connectionGeneration = 0
 const loadConnections = async () => {
@@ -525,11 +612,12 @@ watch(
   }
 )
 watch(
-  () => [form.deviceId, form.templateId, commandMode.value],
+  () => [form.templateId, commandMode.value],
   () => {
     void loadConnections().catch(() => {})
   }
 )
+watch(() => form.deviceId, () => { void loadChoices().catch(() => {}) })
 watch(credentialMode, () => {
   // 切换认证方式只重置保存连接选择；本次密码在当前窗口内保留，避免重复输入。
   form.credentialId = undefined
@@ -537,6 +625,7 @@ watch(credentialMode, () => {
 const clearSecret = () => {
   form.password = ''
   form.commands = ''
+  clearConnectionSecret()
 }
 const onClosed = () => {
   clearSecret()
@@ -562,6 +651,7 @@ watch(
 )
 watch(visible, (value) => {
   if (!value) {
+    connectionSaveVisible.value = false
     choiceGeneration++
     connectionGeneration++
     clearSecret()

@@ -170,7 +170,7 @@ export const businessLogs = (entry: Entry, id: Id, pageNo: number) =>
     params: { pageNo, pageSize: 10 }
   })
 export const templates = (
-  params: { purpose?: string; publishedOnly?: boolean } = {}
+  params: { purpose?: string; publishedOnly?: boolean; projectId?: Id; deviceId?: Id } = {}
 ) => request.get<Template[]>({ url: `${root}/templates`, params })
 export const saveTemplate = (data: Template) =>
   request.post<Template>({ url: `${root}/templates`, data })

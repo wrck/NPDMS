@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.platform.dal.dataobject.collection.Collection
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.CollectionTemplateMapper;
 import cn.iocoder.yudao.module.pms.platform.dal.mysql.collection.query.CollectionTemplateQuery;
 import cn.iocoder.yudao.module.pms.integration.api.deviceops.DeviceOpsResourceApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -19,9 +20,17 @@ public class CollectionTemplateService {
     private final CollectionAuthorization auth;
     private final ObjectProvider<DeviceOpsResourceApi> resources;
     private final PlatformTransactionManager transactions;
+    private final ProjectDeviceSelectionApi devices;
     public List<View> list(ListQuery query) {
         auth.permission(query.actorId(),query.publishedOnly()?"pms:collection-template:use":"pms:collection-template:query");
-        return templates.list(new CollectionTemplateQuery(CollectionAuthorization.tenant(),query.purpose(),query.publishedOnly())).stream().map(this::view).toList();
+        if ((query.projectId()==null)!=(query.deviceId()==null)) throw new CollectionOperationException("项目和设备必须同时提供");
+        String model;
+        if(query.deviceId()!=null) {
+            auth.project(query.actorId(),query.projectId(),false,false);
+            model=devices.validateSelection(query.projectId(),List.of(query.deviceId())).getFirst().productModel();
+        } else model=null;
+        return templates.list(new CollectionTemplateQuery(CollectionAuthorization.tenant(),query.purpose(),query.publishedOnly())).stream()
+                .filter(row->query.deviceId()==null || matchesDeviceModel(row,model)).map(this::view).toList();
     }
     public View save(Long actor,Draft draft) {
         auth.permission(actor,draft.id()==null?"pms:collection-template:create":"pms:collection-template:update");
@@ -72,17 +81,19 @@ public class CollectionTemplateService {
     }
     public CollectionTemplateDO forExecution(ExecutionQuery query) {
         auth.permission(query.actorId(),"pms:collection-template:use");var row=locked(query.templateId());
-        if(!"PUBLISHED".equals(row.getStatus()) || (!"center".equals(query.entry())&&!query.entry().equals(row.getPurpose()))
-                || (!blank(row.getDeviceModel())&&!row.getDeviceModel().equals(query.deviceModel()))) throw new CollectionOperationException("模板未发布、已停用或不适用于当前设备及入口");
+        if(!"PUBLISHED".equals(row.getStatus())) throw new CollectionOperationException("模板未发布或已停用，请重新选择已发布模板");
+        if(!"center".equals(query.entry())&&!query.entry().equals(row.getPurpose())) throw new CollectionOperationException("模板不适用于当前采集入口，请重新选择");
+        if(!matchesDeviceModel(row,query.deviceModel())) throw new CollectionOperationException("模板不适用于当前设备型号，请重新选择");
         return row;
     }
+    private static boolean matchesDeviceModel(CollectionTemplateDO row,String model) {return blank(row.getDeviceModel()) || row.getDeviceModel().equals(model);}
     private CollectionTemplateDO locked(Long id) {var row=templates.lockById(CollectionAuthorization.tenant(),id);if(row==null)throw new CollectionOperationException("模板不存在");return row;}
     private View view(CollectionTemplateDO r){return new View(r.getId(),r.getTemplateCode(),r.getName(),r.getPurpose(),r.getOwnerContext(),r.getDeviceModel(),r.getRevision(),r.getCommandText(),r.getStatus(),r.getVersion(),Boolean.TRUE.equals(r.getPublicationStarted()));}
     private void validate(Draft d){if(d.code()==null||!d.code().matches("[A-Za-z0-9-]{1,64}")||blank(d.name())||d.name().length()>128||d.revision()==null||d.revision()<1||d.purpose()==null||!Set.of("configuration","joint-test","center","cutover","cutover-checklist","cutover-pre-check","cutover-execution","cutover-test","cutover-rollback","cutover-post-collection","inspection").contains(d.purpose())||(d.deviceModel()!=null&&d.deviceModel().length()>128))throw new CollectionOperationException("模板参数无效");normalize(d.commands());}
     public static String normalize(String commands){if(blank(commands)||commands.length()>65536||commands.indexOf('\0')>=0)throw new CollectionOperationException("请填写有效命令");return String.join("\n",commands.replace("\r\n","\n").replace('\r','\n').lines().filter(line->!line.isBlank()).toList());}
     public static String hash(String value){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));}catch(java.security.NoSuchAlgorithmException e){throw new IllegalStateException(e);}}
     private static boolean blank(String s){return s==null||s.isBlank();}
-    public record ListQuery(Long actorId,String purpose,boolean publishedOnly){}
+    @lombok.Builder public record ListQuery(Long actorId,String purpose,boolean publishedOnly,Long projectId,Long deviceId){}
     @lombok.Builder public record ExecutionQuery(Long actorId,Long templateId,String entry,String deviceModel){}
     public record Draft(Long id,Long version,String code,String name,String purpose,String deviceModel,Integer revision,String commands){}
     public record View(Long id,String code,String name,String purpose,String ownerContext,String deviceModel,Integer revision,String commands,String status,Long version,boolean publicationStarted){}

@@ -366,6 +366,27 @@ class DacDeviceOpsGatewayTest {
     }
 
     @Test
+    void cutoverChecklistUsesTheConfiguredWholeScriptBudgetForLongReadOnlyCommands() {
+        properties.setManualExecutionTimeoutSeconds(600);
+        server.expect(requestTo(BASE + "/api/v1/npdms/collections"))
+                .andExpect(jsonPath("$.commandTimeoutSeconds").value(600))
+                .andRespond(withSuccess("{\"collectionId\":\"dac-cutover\",\"existing\":false}", MediaType.APPLICATION_JSON));
+        char[] secret="temporary-secret".toCharArray();
+        assertTrue(gateway.dispatch(command(secret,"SSH","CUT","CUTOVER_CHECKLIST_ITEM")).accepted());
+        assertArrayEquals(new char[secret.length],secret);
+        server.verify();
+    }
+
+    @Test
+    void otherCutoverSourcesKeepTheirExistingBudgetAndInvalidChecklistBudgetIsRejected() {
+        properties.setCommandTimeoutSeconds(31);
+        assertThrows(IllegalArgumentException.class,()->gateway.dispatch(command("secret".toCharArray(),"SSH","CUT","CUTOVER_CLOSURE")));
+        properties.setManualExecutionTimeoutSeconds(0);
+        assertThrows(IllegalArgumentException.class,()->gateway.dispatch(command("secret".toCharArray(),"SSH","CUT","CUTOVER_CHECKLIST_ITEM")));
+        server.verify();
+    }
+
+    @Test
     void otherImplementationObjectsKeepTheOriginalTimeoutLimit() {
         properties.setCommandTimeoutSeconds(31);
         assertThrows(IllegalArgumentException.class,

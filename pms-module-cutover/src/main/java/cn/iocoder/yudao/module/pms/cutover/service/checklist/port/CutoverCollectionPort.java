@@ -34,7 +34,9 @@ public interface CutoverCollectionPort {
 
     interface ExecutionIdentity {
         Long projectId();
+        Long checklistItemId();
         Long deviceId();
+        /** Null for a manual command; the provider must verify the exact manual execution source. */
         Long commandTemplateId();
     }
 

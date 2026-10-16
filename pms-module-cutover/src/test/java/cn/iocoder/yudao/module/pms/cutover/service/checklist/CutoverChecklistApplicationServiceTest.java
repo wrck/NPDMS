@@ -54,6 +54,23 @@ import static org.mockito.Mockito.when;
 class CutoverChecklistApplicationServiceTest {
 
     @Test
+    void selectsAndRefreshesManualExecutionWithoutInventingTemplateIdentity() {
+        var fixture=fixture();var generated=generate(fixture);
+        var accepted=fixture.service.requestCollection(new RequestCollectionCommand(
+                1L,8L,1000L,2L,generated.checklistId(),generated.checklistFactVersion(),7L,
+                "SYS-COLLECT",400L,null,"manual-collect-1","corr-manual-1"),9000L);
+        assertEquals("ACCEPTED",accepted.technicalStatus());
+        var completed=fixture.service.requestCollection(new RequestCollectionCommand(
+                1L,8L,1000L,2L,generated.checklistId(),accepted.checklistVersion(),7L,
+                "SYS-COLLECT",400L,null,"manual-refresh-1","corr-manual-2"),9000L);
+        assertEquals("COMPLETED",completed.technicalStatus());
+        assertTrue(fixture.results.stream().filter(row->"COLLECTION".equals(row.getResultSourceCode()))
+                .allMatch(row->row.getCommandTemplateId()==null && row.getCollectionTaskId().equals(9000L)));
+        assertEquals("P3",fixture.task.get().getCurrentStage());
+        assertTrue(fixture.history.isEmpty());
+    }
+
+    @Test
     void completesP3WithDirectCustomAndControlledManualEvidence() {
         Fixture fixture = fixture();
 
@@ -566,6 +583,7 @@ class CutoverChecklistApplicationServiceTest {
         org.springframework.test.util.ReflectionTestUtils.setField(service, "resultStorage", resultStore);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "customResultStorage", customStore);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "checklistMetadata", metadata);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "externalBulletins", mock(CutoverExternalBulletinStore.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "commands",
                 cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.executor());
         when(metadata.dimensions(any())).thenReturn(Map.of("DEVICE_TYPE", List.of("ROUTER")));

@@ -70,6 +70,8 @@ public class CutoverPlanStorage {
     }
 
     public static void applyContent(CutoverPlanRevisionDO plan, JsonNode content) {
+        Long scheduled = CutoverPlanScheduleTime.value(content);
+        plan.setScheduledTime(scheduled == null ? null : LocalDateTime.ofInstant(Instant.ofEpochMilli(scheduled), ZoneId.systemDefault()));
         JsonNode overview = content == null ? null : content.get("overview");
         plan.setProjectDescription(text(overview, "projectDescription"));
         plan.setRollbackDescription(text(content, "rollbackDescription"));
@@ -166,10 +168,10 @@ public class CutoverPlanStorage {
     public CutoverPlanSourcePort.SourceSnapshot source(CutoverPlanRevisionDO plan) {
         requireTenant(plan.getTenantId());
         var sections = configuration.sectionViews(plan.getConfigurationRevisionId()).stream()
-                .filter(row -> (row.getCutoverTypeCodes().isEmpty() || row.getCutoverTypeCodes().contains(plan.getSourceCutoverTypeCode()))
+                .filter(row -> ("D".equals(plan.getGradeCode()) || row.getCutoverTypeCodes().isEmpty() || row.getCutoverTypeCodes().contains(plan.getSourceCutoverTypeCode()))
                         && row.getLevelCodes().contains(plan.getGradeCode()))
                 .map(row -> new CutoverPlanSourcePort.TemplateSectionSnapshot(row.getStableSectionKey(), row.getTitle(),
-                        row.getSortOrder(), row.getCutoverTypeCodes().isEmpty() ? List.of(plan.getSourceCutoverTypeCode()) : row.getCutoverTypeCodes(),
+                        row.getSortOrder(), row.getCutoverTypeCodes().isEmpty() && plan.getSourceCutoverTypeCode() != null ? List.of(plan.getSourceCutoverTypeCode()) : row.getCutoverTypeCodes(),
                         row.getLevelCodes(), Boolean.TRUE.equals(row.getRequired()))).toList();
         return new CutoverPlanSourcePort.SourceSnapshot(1, plan.getCutoverTaskId(), plan.getSourceTaskVersion(),
                 plan.getAssessmentId(), plan.getAssessmentVersion(), plan.getGradeCode(), plan.getChecklistId(), plan.getChecklistVersion(),
@@ -184,10 +186,15 @@ public class CutoverPlanStorage {
         return JsonUtils.getObjectMapper().valueToTree(source(plan));
     }
 
+    public static void appendScheduledTime(ObjectNode content, CutoverPlanRevisionDO plan) {
+        if (plan.getScheduledTime() != null) putWireLong(content, "scheduledTime", millis(plan.getScheduledTime()));
+    }
+
     public ObjectNode content(CutoverPlanRevisionDO plan) {
         requireTenant(plan.getTenantId());
         ObjectNode root = JsonUtils.getObjectMapper().createObjectNode();
         root.put("editMode", plan.getEditModeCode());
+        appendScheduledTime(root, plan);
         if (!"ONLINE_TEMPLATE_STANDARD".equals(plan.getEditModeCode())) return root;
         ObjectNode overview = root.putObject("overview");
         overview.put("projectDescription", plan.getProjectDescription());

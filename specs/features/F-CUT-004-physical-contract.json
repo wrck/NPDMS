@@ -45,7 +45,19 @@
   },
   "tables": [
     {
+      "name": "cut_plan_generated_file",
+      "strategy": "APPEND_ONLY_GENERATED_REFERENCE",
+      "owner": "CUT",
+      "identity": "id BIGINT primary key; tenant_id/task_id/plan_revision_id/plan_version bind exact saved online content",
+      "fileFact": "artifact_id/file_version_no/reference_key/artifact_fact_version/reference_fact_version/availability_fact_version/scope_version/sha256 are explicit columns referencing PLT",
+      "time": "generated_at BIGINT EpochMillis; creator BIGINT actor identity",
+      "query": "tenant_id + plan_revision_id + plan_version; latest generated_at,id first; new content version must never display a previous version reference",
+      "write": "insert in generation transaction only while matching current DRAFT and plan version; no lifecycle or content version advancement; original references retained",
+      "migration": "V480 restores only same-current-draft successful generation audit with exact tenant/object/file ownership; immutable audit/file/history left intact"
+    },
+    {
       "name": "cut_plan_revision",
+      "planScheduledTime": "scheduled_time DATETIME(3) NULL; all content modes; draft may be empty but generation/submit require explicit input; existing submitted/invalidated values immutable; no task-time or detail-plan inference",
       "strategy": "CURRENT_FORWARD_PLUS_NEW_PLATFORM",
       "columns": {
         "id": "BIGINT NOT NULL",

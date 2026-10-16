@@ -49,26 +49,46 @@
     </section>
     <template v-if="checklist">
       <section v-if="deviceVersions.length" class="cut-card">
-        <header class="cut-card__header"><h3>设备软件版本</h3><small>技术公告按每台设备的版本查询</small></header>
+        <header class="cut-card__header"><h3>设备软件版本</h3><small>型号和当前版本取自设备序列号清单，技术公告按每台设备的版本查询</small></header>
         <div class="cut-card__body">
           <el-table :data="deviceVersions" border>
             <el-table-column label="设备序列号" prop="sn" min-width="160" />
-            <el-table-column label="设备型号" min-width="180"><template #default="{ row }"><el-input v-model="row.productModel" :disabled="readonly || !canSave || externalBusy" aria-label="设备型号" /></template></el-table-column>
-            <el-table-column label="当前软件版本" min-width="180"><template #default="{ row }"><el-input v-model="row.currentSoftwareVersion" :disabled="readonly || !canSave || externalBusy" aria-label="当前软件版本" /></template></el-table-column>
+            <el-table-column label="设备型号" min-width="180"><template #default="{ row }">{{ row.productModel || '—' }}</template></el-table-column>
+            <el-table-column label="当前软件版本" min-width="180"><template #default="{ row }">{{ row.currentSoftwareVersion || '—' }}</template></el-table-column>
             <el-table-column v-if="matchingOptions?.matchingInput.cutoverType === 'VERSION_UPGRADE'" label="目标软件版本" min-width="180"><template #default="{ row }"><el-input v-model="row.targetSoftwareVersion" :disabled="readonly || !canSave || externalBusy" aria-label="目标软件版本" /></template></el-table-column>
           </el-table>
           <p v-if="deviceVersionsDirty" class="cut-help">版本尚未保存。保存后，旧查询结果会保留，但须按新版本重新加载并核查。</p>
-          <el-button v-if="!readonly && canSave" class="mt-12px" :disabled="!deviceVersionsDirty || saving || submitting" :loading="externalBusy" @click="saveVersions">保存设备版本</el-button>
+          <el-button v-if="!readonly && canSave && matchingOptions?.matchingInput.cutoverType === 'VERSION_UPGRADE'" class="mt-12px" :disabled="!deviceVersionsDirty || saving || submitting" :loading="externalBusy" @click="saveVersions">保存目标版本</el-button>
         </div>
       </section>
       <div class="checklist-search"><span class="cut-muted">按类型分区填写</span><el-input v-model="search" clearable placeholder="查找采集项" class="!w-240px"><template #prefix><Icon icon="ep:search" /></template></el-input></div>
       <section v-for="group in itemSections" :key="group.code" class="cut-card">
         <header class="cut-card__header"><h3><Icon :icon="group.icon" />{{ group.label }}</h3><small>{{ group.items.length }} 项</small></header>
-        <div class="cut-card__body cut-card__body--table">
-          <el-table :data="group.items" :empty-text="search ? '本区暂无匹配的采集项' : '当前条件未匹配此类采集项'" row-key="stableItemKey">
+        <div v-if="group.code === 'BACKGROUND'" class="cut-card__body background-form" aria-label="割接背景表单">
+          <CutoverChecklistField v-for="row in group.items" :key="row.stableItemKey" :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" embedded
+            :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
+            :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
+            :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
+            @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
+            @collection="requestCollection" @remove="removeCustom" @refresh="load" />
+          <el-empty v-if="!group.items.length" :description="search ? '本区暂无匹配的采集项' : '当前条件未匹配此类采集项'" />
+        </div>
+        <div v-else class="cut-card__body cut-card__body--table">
+          <el-table :data="group.items" :span-method="checklistCellSpan" :empty-text="search ? '本区暂无匹配的采集项' : '当前条件未匹配此类采集项'" row-key="stableItemKey">
             <el-table-column type="index" label="序号" width="58" />
             <el-table-column label="采集项及核查说明" min-width="285">
-              <template #default="{ row }"><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small class="cut-muted">{{ row.sourceCode === 'CUSTOM' ? '自定义项' : '配置匹配项' }}</small></template>
+              <template #default="{ row }">
+                <div v-if="isTableItem(row)" class="stacked-table-item">
+                  <div class="stacked-table-item__heading"><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></div>
+                  <CutoverChecklistField :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
+                    :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
+                    :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
+                    :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
+                    @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
+                    @collection="requestCollection" @remove="removeCustom" @refresh="load" />
+                </div>
+                <template v-else><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></template>
+              </template>
             </el-table-column>
             <el-table-column label="检查结果／反馈内容" min-width="560">
               <template #default="{ row }">
@@ -109,6 +129,7 @@ import type {
   ChecklistFileHandle,
   CutoverChecklistMatchingOptions,
   CutoverChecklistView,
+  CutoverChecklistItem,
   CutoverExternalState,
   CutoverExternalFeedback,
   CutoverChecklistDeviceVersion,
@@ -123,6 +144,12 @@ import {
   newIntentKey
 } from '../shared/cutoverTaskInteraction'
 import CutoverChecklistField from './CutoverChecklistField.vue'
+
+const isTableItem = (item: CutoverChecklistItem) => {
+  try { return !!JSON.parse(item.interfaceSchemaSnapshot || '{}').columns?.length } catch { return false }
+}
+const checklistCellSpan = ({ row, columnIndex }: { row: CutoverChecklistItem; columnIndex: number }) =>
+  isTableItem(row) && columnIndex > 0 ? (columnIndex === 1 ? [1, 2] : [0, 0]) : [1, 1]
 
 const props = defineProps<{
   detail: CutoverTaskDetail
@@ -499,7 +526,7 @@ const removeCustom = async (stableItemKey: string) => {
   message.success('已移出自定义项')
 
 }
-const requestCollection = async (stableItemKey: string, deviceId: string, commandTemplateId: string, executionId: string) => {
+const requestCollection = async (stableItemKey: string, deviceId: string, commandTemplateId: string | null, executionId: string) => {
   if (!checklist.value || !canRequestCollection.value || readonly.value) return
   if (!(await beforeWrite())) return
   const outcome = await writeDraft({ action: 'requestChecklistCollection', request: { taskId: props.detail.task.id, stableItemKey: stableItemKey, data: {
@@ -565,6 +592,9 @@ onBeforeUnmount(() => { loadSequence++ })
 
 <style scoped>
 .checklist-panel { min-width: 0; }
+.background-form { display: grid; gap: 16px; }
+.stacked-table-item { display: grid; gap: 12px; min-width: 0; padding: 8px 0; }
+.stacked-table-item__heading { color: var(--el-text-color-regular); }
 .checklist-heading { flex-wrap: wrap; gap: 12px; }
 .checklist-version-info, .checklist-revisions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .checklist-revisions label { font-size: 12px; color: var(--el-text-color-secondary); }

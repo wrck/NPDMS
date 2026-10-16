@@ -45,6 +45,18 @@ class CutoverPlanStorageTest {
     @AfterEach void clear() { TenantContextHolder.clear(); }
 
     @Test
+    void persistsAndProjectsPlanTimeWithoutChangingTaskOrScheduleDetails() {
+        var row = new CutoverPlanRevisionDO();
+        CutoverPlanStorage.applyContent(row, JsonUtils.parseTree("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\",\"scheduledTime\":1793498400000}"));
+        assertThat(row.getScheduledTime()).isEqualTo(java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(1793498400000L), java.time.ZoneId.systemDefault()));
+        var projected = JsonUtils.getObjectMapper().createObjectNode();
+        CutoverPlanStorage.appendScheduledTime(projected, row);
+        assertThat(projected.path("scheduledTime").asLong()).isEqualTo(1793498400000L);
+        CutoverPlanStorage.applyContent(row, JsonUtils.parseTree("{\"editMode\":\"ONLINE_TEMPLATE_SIMPLE_D\",\"scheduledTime\":null}"));
+        assertThat(row.getScheduledTime()).isNull();
+    }
+
+    @Test
     void historicalSourceUsesItsExactResultAfterCurrentSelectionChanges() {
         var plan = plan();
         plan.setSourceSnapshot("旧原件不能作为新业务读取的后备来源");

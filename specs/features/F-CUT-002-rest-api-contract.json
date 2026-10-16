@@ -154,7 +154,7 @@
       "candidates": "NON_EMPTY_ARRAY_OF_responseTypes.CreateContextCandidate_SORTED_BY_project.projectId_ASC_UNIQUE_projectId; each normalized input serial appears in exactly one candidate",
       "selectionRequired": "BOOLEAN_TRUE_IFF_candidates.size_GREATER_THAN_1",
       "configurationChoices": "NON_EMPTY_ARRAY_OF_responseTypes.ConfigurationChoice_SORTED_BY_configurationCode_ASC; only revisions applicable at the read instant are shown and the create command re-resolves by code at taskCreatedAt",
-      "configurationSelectionRequired": "BOOLEAN_TRUE; UI may preselect when one choice exists but create request still carries configurationCode explicitly"
+      "configurationSelectionRequired": "FALSE for a unique effective published configuration; omit configurationCode and let server resolve; zero or multiple choices stop new creation and prompt for resolution"
     },
     "CutoverTaskSummary": {
       "exactKeys": [
@@ -229,9 +229,9 @@
       "id": "POSITIVE_LONG",
       "taskNo": "NON_BLANK_STRING_MAX_64",
       "taskName": "NON_BLANK_STRING_MAX_128",
-      "background": "STRING_MAX_4000",
+      "background": "STRING_MAX_4000_OR_NULL",
       "taskOrigin": "NEW_PLATFORM",
-      "cutoverType": "F_CUT_001_CODE",
+      "cutoverType": "F_CUT_001_CODE_OR_NULL_BEFORE_SURVEY_OR_FOR_GRADE_D",
       "networkMode": "F_CUT_001_CODE_OR_JSON_NULL",
       "configurationRevisionId": "POSITIVE_LONG",
       "configurationCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
@@ -401,15 +401,16 @@
       "permission": "CREATE",
       "headers": ["Idempotency-Key"],
       "requestExactKeys": ["projectId", "configurationCode", "serialNumbers", "taskName", "background", "cutoverType", "networkMode", "scheduledTime", "expectedProjectContext", "expectedProjectScopeVersion", "expectedDeviceScopeWatermark", "expectedReadinessSnapshotId", "expectedReadinessSnapshotVersion", "expectedCustomerServiceLevelStatus", "expectedCustomerServiceLevelRevisionId", "expectedCustomerServiceLevelCode", "expectedCustomerServiceLevelFactVersion", "expectedCustomerServiceLevelEffectiveFrom", "expectedCustomerServiceLevelEffectiveTo"],
+      "optionalRequestKeys": ["configurationCode", "taskName", "background", "cutoverType", "networkMode", "scheduledTime"],
       "request": {
         "projectId": "POSITIVE_LONG",
-        "configurationCode": "NORMALIZED_NON_BLANK_F_CUT_001_CONFIGURATION_CODE_MAX_64_SELECTION_INTENT_ONLY",
+        "configurationCode": "OPTIONAL_NULL_OR_NORMALIZED_CODE; absent/null resolves only unique effective published configuration at taskCreatedAt",
         "serialNumbers": "NON_EMPTY_ARRAY_OF_commonTypes.serialNumber_MAX_500",
         "taskName": "NORMALIZED_NON_BLANK_STRING_MAX_128",
-        "background": "NORMALIZED_NON_BLANK_STRING_MAX_4000",
-        "cutoverType": "ENABLED_F_CUT_001_CUTOVER_TYPE_CODE",
+        "background": "OPTIONAL_NULL_OR_NON_BLANK_STRING_MAX_4000; new UI uses structured P3 background",
+        "cutoverType": "OPTIONAL_NULL; A/B/C choose at P3, D does not require it; supplied code remains configuration-validated",
         "networkMode": "ENABLED_F_CUT_001_NETWORK_MODE_CODE_OR_JSON_NULL",
-        "scheduledTime": "wireContract.dateTime",
+        "scheduledTime": "OPTIONAL_NULL_OR_wireContract.dateTime; new UI inputs time only on the P4 plan",
         "expectedProjectContext": "commonTypes.expectedProjectCutoverContext",
         "expectedProjectScopeVersion": "NON_NEGATIVE_LONG",
         "expectedDeviceScopeWatermark": "commonTypes.deviceScopeWatermark",

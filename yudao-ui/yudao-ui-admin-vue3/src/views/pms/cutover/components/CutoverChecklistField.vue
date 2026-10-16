@@ -1,12 +1,12 @@
 <template>
-  <article class="checklist-field" :class="{ required: item.required, 'is-table-row': tableRow }">
-    <header v-if="!tableRow">
+  <article class="checklist-field" :class="{ required: item.required, 'is-table-row': tableRow, 'is-embedded': embedded }">
+    <header v-if="!tableRow && !embedded">
       <div>
         <h4>{{ item.itemName }}<span v-if="item.required" aria-label="必填"> *</span></h4>
         <p v-if="item.itemDescription">{{ item.itemDescription }}</p>
       </div>
       <div class="field-tags">
-        <el-tag size="small" effect="plain">{{ sourceLabel }}</el-tag>
+        <el-tag v-if="item.sourceCode === 'CUSTOM'" size="small" effect="plain">自定义项</el-tag>
         <el-tag v-if="item.currentResult" size="small" type="success">
           {{ resultLabel }}
         </el-tag>
@@ -19,7 +19,7 @@
         >移出</el-button>
       </div>
     </header>
-    <div v-if="tableRow" class="result-toolbar"><small class="cut-muted">{{ sourceLabel }}<template v-if="item.currentResult">，{{ resultLabel }}</template></small><el-button v-if="!readonly && allowSave && item.sourceCode === 'CUSTOM' && !item.currentResult" data-testid="remove-custom-item" link type="danger" @click="emit('remove', item.stableItemKey)">删除自定义项</el-button></div>
+    <div v-if="tableRow && (item.sourceCode === 'CUSTOM' || item.currentResult)" class="result-toolbar"><small class="cut-muted"><template v-if="item.sourceCode === 'CUSTOM'">自定义项<template v-if="item.currentResult">，</template></template><template v-if="item.currentResult">{{ resultLabel }}</template></small><el-button v-if="!readonly && allowSave && item.sourceCode === 'CUSTOM' && !item.currentResult" data-testid="remove-custom-item" link type="danger" @click="emit('remove', item.stableItemKey)">删除自定义项</el-button></div>
 
     <div v-if="item.workModeCode === 'COLLECTION'" class="collection-area">
       <el-select v-model="selectedDeviceId" placeholder="选择任务设备" :disabled="readonly || !allowCollection">
@@ -44,7 +44,7 @@
     <CutoverExternalBulletinField v-if="item.workModeCode === 'EXTERNAL'" :state="externalState || null" :model-value="externalFeedback || []"
       :readonly="readonly || !allowSave" :busy="externalBusy" :version-dirty="versionDirty" :device-names="externalDeviceNames"
       @update:model-value="emit('externalFeedback', item.stableItemKey, $event)" @load="emit('externalLoad', item.stableItemKey)" @save="emit('externalSave', item.stableItemKey)" />
-    <CutoverSchemaInput v-if="item.workModeCode === 'DIRECT' || collectionReady" :schema="schema" :model-value="structuredValue" :disabled="readonly || !allowSave" @update:model-value="updateStructured" />
+    <CutoverSchemaInput v-if="item.workModeCode === 'DIRECT' || collectionReady" :schema="schema" :model-value="structuredValue" :disabled="readonly || !allowSave" :background-layout="embedded" @update:model-value="updateStructured" />
     <p v-if="item.currentResult?.factDescription" class="fact-description">{{ item.currentResult.factDescription }}</p>
     <PmsFileVersionReferenceList v-if="manualFile" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(item.itemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile.referenceKey" :artifact-id="manualFile.artifactId" :version-no="manualFile.versionNo" />
 
@@ -91,6 +91,7 @@ const props = withDefaults(defineProps<{
   allowSave: boolean
   allowCollection: boolean
   tableRow?: boolean
+  embedded?: boolean
   devices: DeviceScopeEntry[]
   externalState?: CutoverExternalItemState | null
   externalFeedback?: CutoverExternalFeedback[]
@@ -100,7 +101,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   direct: [stableItemKey: string, value: string]
   manual: [stableItemKey: string, file: ChecklistFileHandle, factDescription: string]
-  collection: [stableItemKey: string, deviceId: string, commandTemplateId: string, executionId: string]
+  collection: [stableItemKey: string, deviceId: string, commandTemplateId: string | null, executionId: string]
   refresh: []
   remove: [stableItemKey: string]
   externalLoad: [stableItemKey: string]
@@ -137,7 +138,8 @@ const loadExecutions = async () => {
 }
 const selectExecution = (execution: CollectionApi.Execution) => {
   if (props.readonly || !props.allowCollection) return
-  emit('collection', props.item.stableItemKey, execution.task.deviceId, execution.task.templateId, String(execution.id))
+  emit('collection', props.item.stableItemKey, execution.task.deviceId,
+    execution.task.templateId === `manual-${props.item.itemId}` ? null : execution.task.templateId, String(execution.id))
   executionsVisible.value = false
 }
 const acceptExecution = (execution: CollectionApi.Execution) => selectExecution(execution)
@@ -175,7 +177,6 @@ watch([() => props.item.currentResult?.answerSnapshot, () => props.devices], () 
   }
 }, { immediate: true, deep: true })
 
-const sourceLabel = computed(() => (props.item.sourceCode === 'CUSTOM' ? '自定义项' : '配置匹配'))
 const resultLabel = computed(() =>
   props.item.currentResult?.resultSourceCode === 'MANUAL'
     ? '人工证据'
@@ -220,7 +221,7 @@ const completeUpload = async (selection: FileSelection) => {
 </script>
 
 <style scoped>
-.checklist-field.is-table-row { margin: 0; padding: 0; border: 0; border-radius: 0; }
+.checklist-field.is-table-row, .checklist-field.is-embedded { margin: 0; padding: 0; border: 0; border-radius: 0; }
 .result-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .checklist-field { padding: 16px; border: 1px solid var(--el-border-color-lighter); border-radius: 8px; }
 .checklist-field + .checklist-field { margin-top: 12px; }

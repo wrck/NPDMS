@@ -1,5 +1,7 @@
 package cn.iocoder.yudao.module.pms.cutover.service.plan;
 
+import cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.query.CutoverPlanGeneratedFileQuery;
+
 import cn.iocoder.yudao.module.pms.cutover.service.task.command.CutoverTaskMutation;
 import cn.hutool.core.lang.Snowflake;
 import cn.hutool.core.util.IdUtil;
@@ -106,6 +108,8 @@ public class CutoverPlanApplicationService {
     private final CutoverPlanContactPolicy contacts;
     @jakarta.annotation.Resource
     private CutoverPlanStorage storage;
+    @jakarta.annotation.Resource
+    private CutoverPlanGeneratedFiles generatedFiles;
 
     public CutoverPlanApplicationService(CutoverTaskMapper taskMapper, CutoverPlanRevisionMapper planMapper,
                                          CutoverPlanStepMapper stepMapper,
@@ -376,9 +380,19 @@ public class CutoverPlanApplicationService {
         requireSameSource(sourceFacts, lockedSource);
         CutoverPlanContentCodec.DecodedContent content = storedContent(command.tenantId(), plan, sourceFacts);
         try {
+            if (CutoverPlanScheduleTime.value(content.rootSnapshot()) == null) throw new IllegalArgumentException("请填写计划割接时间");
             codec.validateComplete(content, sourceFacts);
         } catch (IllegalArgumentException ex) {
             throw failure(PLAN_SECTION_INCOMPLETE, "方案内容尚未完整");
+        }
+        var existing = generatedFiles.find(new CutoverPlanGeneratedFileQuery(
+                command.tenantId(), plan.getId(), plan.getVersion()));
+        if (existing != null) {
+            var available = fileCall(() -> filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
+                    .tenantId(command.tenantId()).actorId(command.actorId()).projectId(task.getProjectId())
+                    .handle(existing.fileArtifactFact().handle()).build()));
+            if (available == null) throw fileOwnerCorrupted("PLT未返回初稿文件事实");
+            return new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), available, existing.downloadedAt());
         }
         CutoverPlanFilePort.FileFact file = fileCall(() -> filePort.downloadDraft(CutoverPlanFilePort.DraftQuery.builder()
                 .tenantId(command.tenantId())
@@ -387,8 +401,12 @@ public class CutoverPlanApplicationService {
                 .planRevisionId(plan.getId())
                 .build()));
         if (file == null) throw fileOwnerCorrupted("PLT未返回初稿文件事实");
-        return new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), file,
+        var result = new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), file,
                 clock.instant().toEpochMilli());
+        if (!"FULL_FILE_UPLOAD".equals(plan.getEditModeCode())) {
+            generatedFiles.record(new CutoverPlanGeneratedFiles.Write(command.tenantId(), command.actorId(), command.taskId(), result));
+        }
+        return result;
     }
 
     private SubmitCutoverPlanResult submitNew(SubmitCutoverPlanCommand command) {
@@ -522,7 +540,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanContentCodec.DecodedContent decoded = file == null
                 ? codec.createInitialOnlineDraft(command.editMode(), lockedFacts) : null;
         if (decoded != null && "ONLINE_TEMPLATE_STANDARD".equals(command.editMode())) {
-            ((ObjectNode) decoded.rootSnapshot().path("overview")).put("projectDescription", task.getBackground());
+            ((ObjectNode) decoded.rootSnapshot().path("overview")).put("projectDescription", task.getBackground() == null ? "" : task.getBackground());
         }
         Integer maxRevision = planMapper.selectMaxRevisionNo(new CutoverPlanHistoryQuery(command.tenantId(), command.taskId()));
         CutoverPlanRevisionDO row = newPlan(command, task, lockedFacts, decoded, file,
@@ -1026,7 +1044,10 @@ public class CutoverPlanApplicationService {
                     .scopeVersion(plan.getFileScopeVersion())
                     .sha256(plan.getFileSha256())
                     .build();
-            return new CutoverPlanContentCodec.DecodedContent(null, List.of(), List.of(), file,
+            ObjectNode root = JsonUtils.getObjectMapper().createObjectNode();
+            root.put("editMode", "FULL_FILE_UPLOAD");
+            CutoverPlanStorage.appendScheduledTime(root, plan);
+            return new CutoverPlanContentCodec.DecodedContent(root, List.of(), List.of(), file,
                     Boolean.TRUE.equals(plan.getOwnershipConfirmed()));
         }
         try {
@@ -1057,6 +1078,7 @@ public class CutoverPlanApplicationService {
 
     private void requireComplete(CutoverPlanContentCodec.DecodedContent content,
                                  CutoverPlanSourcePort.SourceFacts sourceFacts) {
+        if (CutoverPlanScheduleTime.value(content.rootSnapshot()) == null) throw failure(PLAN_SECTION_INCOMPLETE, "请填写计划割接时间");
         if (content.fileFact() != null) {
             if (!content.ownershipConfirmed()) {
                 throw failure(FILE_FACT_STALE, "FILE_OWNERSHIP_NOT_CONFIRMED", "PLT",

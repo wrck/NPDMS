@@ -91,7 +91,7 @@ public class CutoverCollectionSources {
                         .deviceId(selected)
                         .deviceName(selectedRow == null ? "" : selectedRow.getSerialNumberSnapshot())
                         .version(owner.version())
-                        .manualAllowed(!CHECKLIST.equals(entry))
+                        .manualAllowed(true)
                         .canExecute(canExecute)
                         .completionMode("BUSINESS_CONSUMPTION")
                         .title(title)

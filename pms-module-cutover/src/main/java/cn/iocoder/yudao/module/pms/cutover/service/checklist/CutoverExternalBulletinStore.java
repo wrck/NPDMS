@@ -28,6 +28,8 @@ import static cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverCheck
 @Service
 @RequiredArgsConstructor
 public class CutoverExternalBulletinStore {
+    private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi deviceSource;
+    private final CutoverChecklistMapper checklists;
     private final CutoverChecklistDeviceContextMapper devices;
     private final CutoverChecklistItemDefinitionRevisionMapper definitions;
     private final CutoverChecklistExternalQueryMapper queries;
@@ -39,6 +41,7 @@ public class CutoverExternalBulletinStore {
     private final CutoverFieldDefinitionStore fields;
 
     public record ContextKey(Long tenantId, Long checklistId) { }
+    public record Freeze(CutoverChecklistDO checklist, Long actorId, LocalDateTime time) { }
     public record Read(CutoverChecklistItemDO item, CutoverChecklistItemResultDO result) { }
     public record ResultCreate(CutoverChecklistItemDO item, Long actorId, LocalDateTime time,
                                String reason, Long baseResultId, boolean selected) { }
@@ -51,8 +54,34 @@ public class CutoverExternalBulletinStore {
 
     public List<CutoverChecklistDeviceContextDO> contexts(ContextKey key) {
         requireTenant(key.tenantId());
-        return devices.selectListByParents(CutoverChecklistDeviceContextListQuery.builder()
+        var root = checklists.selectById(key.checklistId());
+        require(root != null && Objects.equals(root.getTenantId(), key.tenantId()), NOT_FOUND, "清单不存在");
+        var rows = devices.selectListByParents(CutoverChecklistDeviceContextListQuery.builder()
                 .tenantId(key.tenantId()).checklistIds(Set.of(key.checklistId())).build());
+        if (!"DRAFT".equals(root.getStatusCode())) return rows;
+        return rows.stream().map(row -> {
+            var source = deviceSource.getDevice(row.getDeviceId());
+            require(source != null && Objects.equals(source.tenantId(), key.tenantId())
+                    && Objects.equals(source.deviceId(), row.getDeviceId()), STATE_CONFLICT, "设备当前版本来源不可用，请刷新设备序列号清单");
+            var current = new CutoverChecklistDeviceContextDO();
+            org.springframework.beans.BeanUtils.copyProperties(row, current);
+            current.setProductModel(source.productModel());
+            current.setCurrentSoftwareVersion(source.conpVersion());
+            return current;
+        }).toList();
+    }
+
+    /** 只在正式提交事务中冻结设备来源；只读查看不会改写历史或草稿。 */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void freezeVersions(Freeze command) {
+        var checklist = command.checklist();
+        require("DRAFT".equals(checklist.getStatusCode()), STATE_CONFLICT, "只能冻结草稿设备版本");
+        for (var device : contexts(new ContextKey(checklist.getTenantId(), checklist.getId()))) {
+            require(mutations.updateDevice(new CutoverExternalDeviceUpdate(checklist.getTenantId(), checklist.getId(),
+                    device.getDeviceId(), device.getProductModel(), device.getCurrentSoftwareVersion(),
+                    device.getTargetSoftwareVersion(), command.actorId(), command.time())) == 1,
+                    VERSION_CONFLICT, "设备版本上下文已变化");
+        }
     }
 
     @Transactional(propagation = Propagation.MANDATORY)
@@ -67,8 +96,12 @@ public class CutoverExternalBulletinStore {
         require(submitted.equals(existing.stream().map(CutoverChecklistDeviceContextDO::getDeviceId).collect(Collectors.toSet())),
                 INVALID_REQUEST, "设备版本上下文必须对应本清单完整的冻结设备范围");
         for (var device : command.devices()) {
+            var source = existing.stream().filter(row -> Objects.equals(row.getDeviceId(), device.deviceId())).findFirst().orElseThrow();
+            require(Objects.equals(trim(device.productModel()), trim(source.getProductModel()))
+                    && Objects.equals(trim(device.currentSoftwareVersion()), trim(source.getCurrentSoftwareVersion())),
+                    VERSION_CONFLICT, "型号和当前软件版本取自设备序列号清单，请刷新后重试");
             require(mutations.updateDevice(new CutoverExternalDeviceUpdate(command.tenantId(), command.checklistId(),
-                    device.deviceId(), trim(device.productModel()), trim(device.currentSoftwareVersion()),
+                    device.deviceId(), source.getProductModel(), source.getCurrentSoftwareVersion(),
                     trim(device.targetSoftwareVersion()), command.actorId(), LocalDateTime.now())) == 1,
                     VERSION_CONFLICT, "设备版本上下文已变化");
         }

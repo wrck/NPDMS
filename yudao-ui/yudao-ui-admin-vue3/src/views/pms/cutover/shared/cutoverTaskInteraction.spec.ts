@@ -81,7 +81,6 @@ describe('cutover task positive interaction', () => {
   it('builds the complete expected-fact create request', () => {
     const request = buildCreateRequest(candidate, {
       configurationCode: 'CORE_STANDARD',
-      taskName: ' 核心网割接 ',
       background: ' 设备替换 ',
       cutoverType: 'CORE_REPLACEMENT',
       networkMode: 'DUAL_PLANE',
@@ -94,7 +93,7 @@ describe('cutover task positive interaction', () => {
     expect(request.serialNumbers).toEqual(['SN-001'])
     expect(request.expectedReadinessSnapshotId).toBe('31')
     expect(request.expectedCustomerServiceLevelCode).toBe('GOLD')
-    expect(request.taskName).toBe('核心网割接')
+    expect(request).not.toHaveProperty('taskName')
     expect(request.scheduledTime).toBe(new Date('2026-09-01T01:30:00').getTime())
   })
 
@@ -107,7 +106,6 @@ describe('cutover task positive interaction', () => {
     }
     const request = buildCreateRequest(selected, {
       configurationCode: 'CORE_STANDARD',
-      taskName: '核心网割接',
       background: '设备替换',
       cutoverType: 'CORE_REPLACEMENT',
       networkMode: null,
@@ -126,7 +124,6 @@ describe('cutover task positive interaction', () => {
     }
     const request = buildCreateRequest(selected, {
       configurationCode: 'CORE_STANDARD',
-      taskName: '核心网割接',
       background: '设备替换',
       cutoverType: 'CORE_REPLACEMENT',
       networkMode: null,

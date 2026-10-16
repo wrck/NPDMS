@@ -4,6 +4,7 @@ import { vi } from 'vitest'
 // business test still supplies its own server allowedActions and response facts.
 vi.mock('@/utils/permission', () => ({ checkPermi: vi.fn(() => true) }))
 vi.mock('vue-router', () => ({
+  onBeforeRouteLeave: vi.fn(), onBeforeRouteUpdate: vi.fn(),
   useRoute: () => ({ query: {} }),
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() })
 }))

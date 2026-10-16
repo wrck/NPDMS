@@ -55,7 +55,7 @@ export const removeCustomChecklistItem = (command: ChecklistItemWrite) =>
   request.delete({ url: `${baseUrl}/${command.taskId}/checklist/custom-items/${encodeURIComponent(command.stableItemKey)}`,
     data: command.data, headers: headers(command) })
 export const requestChecklistCollection = (command: ChecklistItemWrite<CutoverChecklistMutation & {
-  deviceId: WireLong; commandTemplateId: WireLong
+  deviceId: WireLong; commandTemplateId: WireLong | null
 }> & { executionId?: WireLong }) => request.post({
   url: `${itemUrl(command)}/collection-requests`, data: command.data,
   params: { executionId: command.executionId }, headers: headers(command)

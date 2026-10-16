@@ -30,6 +30,7 @@ public final class CutoverPlanDocumentRenderer {
                 new CutoverPlanContentCodec.StoredPlanContent(context.content(), steps));
         try (var document = new XWPFDocument(); var output = new ByteArrayOutputStream()) {
             paragraph(document, task.getTaskName() + "割接方案", true);
+            if (content.hasNonNull("scheduledTime")) paragraph(document, "计划割接时间：" + timestamp(content.path("scheduledTime").asLong()), false);
             paragraph(document, "方案版本：" + plan.getRevisionNo() + "　割接等级：" + plan.getGradeCode(), false);
             var overview = content.path("overview");
             if (!overview.isMissingNode()) {

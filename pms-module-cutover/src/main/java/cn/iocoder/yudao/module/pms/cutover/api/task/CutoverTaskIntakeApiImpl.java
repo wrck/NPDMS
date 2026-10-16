@@ -67,6 +67,8 @@ public class CutoverTaskIntakeApiImpl implements CutoverTaskIntakeApi {
                 .expectedProjectVersion(project.projectVersion()).build());
         var existing = sources.find(new CutoverIntakeSourceQuery(tenant, command.sourceType(), command.sourceSystem(),
                 command.sourceBusinessNo(), command.businessEventId()));
+        // 自动配置不属于调用方载荷；重放交给同一应用命令的原载荷摘要校验，不能与任务当前投影比较。
+        if (existing != null && command.configurationCode() == null) return createTask(command);
         if (existing != null) {
             var serials = taskDevices.byTask(new CutoverTaskDeviceListQuery(tenant, existing.getId())).stream()
                     .map(row -> DeviceScopeResolveQuery.comparisonKey(row.getSerialNumberSnapshot())).sorted().toList();
@@ -76,7 +78,8 @@ public class CutoverTaskIntakeApiImpl implements CutoverTaskIntakeApi {
                     || !Objects.equals(existing.getCutoverType(), command.cutoverType())
                     || !Objects.equals(existing.getNetworkMode(), command.networkMode())
                     || !Objects.equals(existing.getConfigurationCode(), command.configurationCode())
-                    || !Objects.equals(existing.getTaskName(), command.taskName())
+                    || (!("PROJECT_EVENT".equals(command.sourceType()) && command.taskName() == null)
+                        && !Objects.equals(existing.getTaskName(), command.taskName()))
                     || !Objects.equals(existing.getBackground(), command.background())
                     || !Objects.equals(existing.getScheduledTime(), command.scheduledTime()))
                 throw new CutoverTaskIntakeException(CutoverTaskIntakeException.Code.SOURCE_IDENTITY_CONFLICT, "来源身份已存在且内容不同");

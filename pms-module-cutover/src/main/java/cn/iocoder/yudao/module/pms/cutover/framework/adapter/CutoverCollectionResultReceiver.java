@@ -57,7 +57,9 @@ public class CutoverCollectionResultReceiver implements CollectionBusinessResult
         var row = new CutoverCollectionLogDO();
         row.setId(IdUtil.getSnowflakeNextId()); row.setTenantId(result.tenantId()); row.setTaskId(owner.task().getId());
         CutoverCollectionResultFacts.apply(new CutoverCollectionResultFacts.Write(row, result));
-        row.setCreator(result.actorId().toString()); row.setVersion(0L);
+        row.setCreator(result.actorId().toString());
+        row.setUpdater(result.actorId().toString());
+        row.setVersion(0L);
         if (logs.insert(row) != 1) throw new IllegalStateException("CUT_COLLECTION_RESULT_CREATE_FAILED");
         if (CutoverCollectionSources.CHECKLIST.equals(result.entry())) checklist.receivePlatformResult(result);
         else closure.receivePlatformResult(result);

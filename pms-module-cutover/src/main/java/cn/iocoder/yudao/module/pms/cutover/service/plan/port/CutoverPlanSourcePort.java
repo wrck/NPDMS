@@ -54,6 +54,7 @@ public interface CutoverPlanSourcePort {
                     .thenComparing(TemplateSectionSnapshot::stableSectionKey)).toList();
             require(new HashSet<>(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList()).size()
                     == templateSections.size(), "stableSectionKey");
+            if (!"D".equals(grade)) require(templateSections.stream().allMatch(section -> !section.cutoverTypeCodes().isEmpty()), "templateSection.cutoverTypeCodes");
             if ("D".equals(grade)) require(templateSections.size() == SIMPLE_SECTIONS.size()
                     && new HashSet<>(templateSections.stream().map(TemplateSectionSnapshot::stableSectionKey).toList())
                     .equals(new HashSet<>(SIMPLE_SECTIONS)), "D templateSections");
@@ -86,7 +87,7 @@ public interface CutoverPlanSourcePort {
             requireText(stableSectionKey, 64, "stableSectionKey");
             requireText(title, 128, "title");
             require(sortOrder != null && sortOrder >= 0 && required != null, "templateSection");
-            require(cutoverTypeCodes != null && !cutoverTypeCodes.isEmpty(), "cutoverTypeCodes");
+            require(cutoverTypeCodes != null && (!cutoverTypeCodes.isEmpty() || levelCodes != null && levelCodes.contains("D")), "cutoverTypeCodes");
             cutoverTypeCodes.forEach(v -> requireText(v, 64, "cutoverTypeCode"));
             require(new HashSet<>(cutoverTypeCodes).size() == cutoverTypeCodes.size(), "cutoverTypeCodes");
             cutoverTypeCodes = cutoverTypeCodes.stream().sorted().toList();

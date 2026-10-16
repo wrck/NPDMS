@@ -57,6 +57,7 @@ class CutoverApprovalSourceAssemblerTest {
         assessment.setHiddenRiskLevel("LOW"); assessment.setSparePartAppliedFlag(false);
         assessment.setServiceLevelCode("GOLD"); assessment.setSubmittedBy(8001L);
         assessment.setSubmittedAt(LocalDateTime.of(2026, 10, 15, 8, 0));
+        plan.setScheduledTime(LocalDateTime.of(2026, 11, 1, 10, 0));
         plan.setId(9001L); plan.setTenantId(1L); plan.setCutoverTaskId(1001L); plan.setRevisionNo(2);
         plan.setVersion(0L); plan.setStatusCode("DRAFT"); plan.setGradeCode("D");
         plan.setSourceProjectId(3001L); plan.setSourceProjectVersion(10L); plan.setSourceProjectScopeVersion(12L);
@@ -85,6 +86,20 @@ class CutoverApprovalSourceAssemblerTest {
                     "cutoverTypeCodes":["VERSION_UPGRADE"],"levelCodes":["D"],"required":true}],
                  "failedRiskFacts":[]}
                 """));
+    }
+
+    @Test
+    void gradeDUsesPlanTimeWithoutTaskTypeOrTaskTime() {
+        task.setCutoverType(null); task.setNetworkMode(null); task.setScheduledTime(null);
+        var source = codec.decode(service.lockAndAssemble(command("D")).sourceSnapshot());
+        assertNull(source.collectionAnalysis().cutoverType());
+        assertEquals(plan.getScheduledTime().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli(), source.collectionAnalysis().scheduledTime());
+    }
+
+    @Test
+    void rejectsMissingPlanTimeRatherThanFallingBackToTaskTime() {
+        plan.setScheduledTime(null);
+        assertThrows(CutoverApprovalApplicationException.class, () -> service.lockAndAssemble(command("D")));
     }
 
     @Test

@@ -43,8 +43,9 @@ import static org.mockito.Mockito.*;
 
 class CutoverPlanSubmissionTest {
 
-    @Test
-    void downloadsCompleteSimpleDraftWithoutAdvancingTaskOrPlan() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {1, 0})
+    void downloadsCompleteSimpleDraftWithoutAdvancingTaskOrPlan(int boundRows) {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
@@ -61,6 +62,11 @@ class CutoverPlanSubmissionTest {
         when(projectScope.inspect(8L, 70L, "ACTION_VIEW"))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
         when(planMapper.selectCurrent(any())).thenReturn(plan);
+        var generatedMapper = mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverPlanGeneratedFileMapper.class);
+        var persisted = new AtomicReference<cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanGeneratedFileDO>();
+        when(generatedMapper.insertIfCurrentDraft(any())).thenAnswer(call -> {
+            persisted.set(call.getArgument(0)); return boundRows;
+        });
         when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(facts);
         when(stepMapper.selectListByPlan(any())).thenReturn(List.of(
                 step("OPERATION", 1, "执行割接"), step("ROLLBACK", 1, "执行回退")));
@@ -87,6 +93,14 @@ class CutoverPlanSubmissionTest {
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.class));
 
         injectStorage(service, plan, facts.snapshot());
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "generatedFiles", new CutoverPlanGeneratedFiles(generatedMapper));
+        if (boundRows == 0) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
+                    new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-stale", "corr-download-stale")))
+                    .isInstanceOf(CutoverPlanApplicationException.class).hasMessageContaining("草稿版本已变化");
+            assertThat(platform.lastFacts.get()).isNull();
+            return;
+        }
         DownloadCutoverPlanDraftResult result = service.downloadDraft(
                 new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-1", "corr-download-1"));
 
@@ -96,6 +110,9 @@ class CutoverPlanSubmissionTest {
         assertThat(result.downloadedAt()).isEqualTo(Instant.parse("2026-09-01T01:00:00Z").toEpochMilli());
         assertThat(task.getVersion()).isEqualTo(4);
         assertThat(plan.getVersion()).isEqualTo(3);
+        assertThat(plan.getFileArtifactId()).isNull();
+        verify(generatedMapper).insertIfCurrentDraft(argThat(row -> row.getArtifactId().equals(generated.artifactId())
+                && row.getPlanVersion().equals(3L) && row.getGeneratedAt().equals(result.downloadedAt())));
         assertThat(platform.lastFacts.get().correlationId()).isEqualTo("corr-download-1");
         assertThat(platform.lastFacts.get().detailSnapshot()).contains("fileArtifactFact", "downloadedAt", "actorId");
         verify(sourcePort).lockAndRevalidate(1L, 8L, facts);
@@ -105,6 +122,17 @@ class CutoverPlanSubmissionTest {
                 .projectId(70L)
                 .planRevisionId(80L)
                 .build());
+        when(generatedMapper.selectLatest(any())).thenAnswer(ignored -> persisted.get());
+        when(filePort.inspect(any())).thenReturn(generated);
+        var repeated = service.downloadDraft(new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-2", "corr-download-2"));
+        assertThat(repeated).isEqualTo(result);
+        verify(filePort, times(1)).downloadDraft(any());
+        verify(generatedMapper, times(1)).insertIfCurrentDraft(any());
+        when(filePort.inspect(any())).thenReturn(null);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
+                new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-unavailable", "corr-download-unavailable")))
+                .isInstanceOf(CutoverPlanApplicationException.class);
+        verify(filePort, times(1)).downloadDraft(any());
     }
 
     @Test
@@ -252,7 +280,7 @@ class CutoverPlanSubmissionTest {
     private static void injectStorage(CutoverPlanApplicationService service, CutoverPlanRevisionDO plan,
                                       CutoverPlanSourcePort.SourceSnapshot source) {
         var storage = mock(CutoverPlanStorage.class);
-        var body = JsonUtils.getObjectMapper().createObjectNode(); body.put("editMode", "ONLINE_TEMPLATE_SIMPLE_D");
+        var body = JsonUtils.getObjectMapper().createObjectNode(); body.put("editMode", "ONLINE_TEMPLATE_SIMPLE_D"); body.put("scheduledTime", 1793498400000L);
         when(storage.source(plan)).thenReturn(source); when(storage.content(plan)).thenReturn(body);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
     }

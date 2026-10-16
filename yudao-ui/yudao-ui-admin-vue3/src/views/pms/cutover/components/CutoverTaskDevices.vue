@@ -7,6 +7,7 @@
         <el-table-column prop="serialNumber" label="序列号" min-width="220" />
         <el-table-column prop="productCode" label="产品编码" min-width="180" />
         <el-table-column prop="productModel" label="产品型号" min-width="180" />
+        <el-table-column prop="currentSoftwareVersion" label="当前软件版本" min-width="180" />
       </el-table>
       <p v-if="errorText" role="status" class="cut-help">{{ errorText }}</p>
     </div>
@@ -25,7 +26,8 @@ const rows = computed(() => props.detail.devices.map(device => ({
   deviceId: device.deviceId,
   serialNumber: device.serialNumber,
   productCode: products.value[String(device.deviceId)]?.productCode || '—',
-  productModel: products.value[String(device.deviceId)]?.productModel || '—'
+  productModel: products.value[String(device.deviceId)]?.productModel || '—',
+  currentSoftwareVersion: products.value[String(device.deviceId)]?.conpVersion || '—'
 })))
 let sequence = 0
 watch(() => props.detail.task.id, async () => {

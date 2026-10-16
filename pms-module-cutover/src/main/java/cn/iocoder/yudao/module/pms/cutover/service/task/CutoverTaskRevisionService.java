@@ -73,7 +73,7 @@ public class CutoverTaskRevisionService {
         return configurationPolicy.available(context.tenantId()).stream()
                 .filter(option -> Objects.equals(option.code(), task.getConfigurationCode()))
                 .filter(option -> !Objects.equals(option.revisionId(), task.getConfigurationRevisionId()))
-                .filter(option -> option.cutoverTypes().stream().anyMatch(value -> Objects.equals(value.value(), task.getCutoverType())))
+                .filter(option -> task.getCutoverType() == null || option.cutoverTypes().stream().anyMatch(value -> Objects.equals(value.value(), task.getCutoverType())))
                 .filter(option -> task.getNetworkMode() == null || option.networkModes().stream().anyMatch(value -> Objects.equals(value.value(), task.getNetworkMode())))
                 .toList();
     }
@@ -179,7 +179,7 @@ public class CutoverTaskRevisionService {
                         && !configuration.getEffectiveFrom().isAfter(now)
                         && (configuration.getEffectiveTo() == null || configuration.getEffectiveTo().isAfter(now)),
                 CONFIGURATION_CONFLICT, "只能选择同一配置当前生效的已发布版本");
-        configurationPolicy.validate(configuration, task.getCutoverType(), task.getNetworkMode());
+        if (task.getCutoverType() != null) configurationPolicy.validate(configuration, task.getCutoverType(), task.getNetworkMode());
         return configuration;
     }
 

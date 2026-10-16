@@ -401,6 +401,7 @@ export interface ProjectContactChoice extends CustomerContactReference { project
 export interface StandardCutoverPlanContent {
   rollbackDescription?: string
   editMode: 'ONLINE_TEMPLATE_STANDARD'
+  scheduledTime?: WireDateTime | null
   overview: {
     projectDescription: string
     scheduleTable: CutoverPlanScheduleRow[]
@@ -417,11 +418,13 @@ export interface StandardCutoverPlanContent {
 
 export interface SimpleCutoverPlanContent {
   editMode: 'ONLINE_TEMPLATE_SIMPLE_D'
+  scheduledTime?: WireDateTime | null
   steps: CutoverPlanStep[]
 }
 
 export interface UploadedCutoverPlanContent {
   editMode: 'FULL_FILE_UPLOAD'
+  scheduledTime?: WireDateTime | null
   fileArtifactFact: CutoverPlanFileFact
   ownershipConfirmed: true
 }
@@ -462,6 +465,7 @@ export interface CutoverPlanView {
     decisionAt: WireDateTime | null
     rejectionReason: string | null
   } | null
+  generatedDraft?: DownloadCutoverPlanDraftResult | null
   allowedActions: CutoverPlanAllowedAction[]
 }
 
@@ -559,9 +563,9 @@ export interface CutoverApprovalSourceSnapshot {
   checklistVersion: number | null
   project: ProjectContext
   collectionAnalysis: {
-    cutoverType: string
+    cutoverType: string | null
     networkMode: string | null
-    scheduledTime: WireDateTime
+    scheduledTime: WireDateTime | null
   }
   riskItems: CutoverApprovalChecklistResultSnapshot[]
   businessSurveyItems: CutoverApprovalChecklistResultSnapshot[]
@@ -721,13 +725,13 @@ export interface CutoverTaskPage {
 
 export interface CreateCutoverTaskRequest {
   projectId: WireLong
-  configurationCode: string
+  configurationCode?: string
   serialNumbers: string[]
-  taskName: string
-  background: string
-  cutoverType: string
-  networkMode: string | null
-  scheduledTime: WireDateTime
+  taskName?: string
+  background?: string
+  cutoverType?: string
+  networkMode?: string | null
+  scheduledTime?: WireDateTime
   expectedProjectContext: Omit<ProjectContext, 'projectScopeVersion'>
   expectedProjectScopeVersion: WireLong
   expectedDeviceScopeWatermark: DeviceScopeEntry[]

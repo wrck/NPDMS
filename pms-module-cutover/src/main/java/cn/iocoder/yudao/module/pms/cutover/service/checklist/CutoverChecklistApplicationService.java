@@ -456,7 +456,7 @@ public class CutoverChecklistApplicationService {
                                 "projectScopeVersion", command.expectedProjectScopeVersion(),
                                 "stableItemKey", command.stableItemKey(),
                                 "deviceId", command.deviceId(),
-                                "commandTemplateId", command.commandTemplateId(),
+                                "commandTemplateId", command.commandTemplateId() == null ? "MANUAL" : command.commandTemplateId(),
                                 "existingExecutionId", existingExecutionId == null ? 0L : existingExecutionId))),
                         CollectionRequestCommandResult.class, () -> requestCollectionOnce(command, existingExecutionId),
                         result -> successFacts("CUTOVER_CHECKLIST_COLLECTION_REQUEST", result, command));
@@ -703,6 +703,7 @@ public class CutoverChecklistApplicationService {
                 && Boolean.TRUE.equals(item.getRequiredFlag()) && !completed.contains(item.getId()));
         require(!missingRequired, STATE_CONFLICT, "必填清单项尚未完成");
         LocalDateTime now = LocalDateTime.now(clock);
+        externalBulletins.freezeVersions(new CutoverExternalBulletinStore.Freeze(checklist, command.actorId(), now));
         require(checklistMapper.submitIfMatch(new CutoverChecklistSubmitUpdate(command.tenantId(), checklist.getId(),
                 command.expectedChecklistVersion(), command.actorId(), now)) == 1,
                 VERSION_CONFLICT, "清单版本已变化");
@@ -1297,7 +1298,7 @@ public class CutoverChecklistApplicationService {
                     current.getDeviceId(), current.getCommandTemplateId(), current.getCollectionStatusCode(),
                     current.getCollectionResultReferenceId(), current.getCollectionResultVersion(), null, current.getCollectionFailureCode());
             require(snapshot != null && positive(snapshot.collectionTaskId()) && positive(snapshot.deviceId())
-                            && positive(snapshot.commandTemplateId()) && present(snapshot.technicalStatus()),
+                            && (snapshot.commandTemplateId() == null || positive(snapshot.commandTemplateId())) && present(snapshot.technicalStatus()),
                     COLLECTION_FACT_INVALID, "当前采集选择事实不完整");
             return snapshot;
         } catch (CutoverChecklistException exception) {
@@ -1377,7 +1378,7 @@ public class CutoverChecklistApplicationService {
                         && positive(command.taskId()) && positive(command.checklistId())
                         && nonNegative(command.expectedTaskVersion()) && nonNegative(command.expectedChecklistVersion())
                         && positive(command.expectedProjectScopeVersion()) && positive(command.deviceId())
-                        && positive(command.commandTemplateId()), INVALID_REQUEST, "采集请求命令非法");
+                        && (command.commandTemplateId() == null || positive(command.commandTemplateId())), INVALID_REQUEST, "采集请求命令非法");
         requireText(command.stableItemKey(), "stableItemKey", 96);
         requireText(command.idempotencyKey(), "Idempotency-Key", 128);
         requireText(command.correlationId(), "correlationId", 128);

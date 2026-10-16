@@ -60,16 +60,10 @@ export const submitCutoverAssessment = (command: {
 
 export const getCreationOptions = () => request.get<IntakeOption[]>({ url: '/api/v1/pms/cutover-tasks/creation-options' })
 
-export interface CreationProjectOption { id: WireLong; code: string; name: string; customerName?: string }
-export interface CreationProjectPresentation {
-  projectId: WireLong; projectCode: string; projectName: string; customerName?: string
-  projectManagerName?: string; serviceManagerNames?: string; salesNames?: string
-  departmentName?: string; industryName?: string; majorProjectLevel?: string
-}
-export interface CreationDevice {
-  deviceId: WireLong; serialNumber: string; productCode?: string; productModel?: string
-}
-export interface CreationProjectContext { project: CreationProjectPresentation; customerServiceLevel?: string }
+export type { ProjectOption as CreationProjectOption, ProjectPresentation as CreationProjectPresentation,
+  ProjectDevice as CreationDevice, ProjectContext as CreationProjectContext } from '@/api/pms/project/selection'
+import type { ProjectOption as CreationProjectOption, ProjectDevice as CreationDevice,
+  ProjectContext as CreationProjectContext } from '@/api/pms/project/selection'
 export interface ResolvedCreationDevices { context: CreateContextData; devices: CreationDevice[] }
 
 export const searchCreationProjects = (keyword = '') =>

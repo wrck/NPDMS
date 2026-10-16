@@ -36,7 +36,7 @@
       </el-form>
       <el-alert v-if="model.manualGrade === 'D'" title="D级使用简易流程，跳过调研及风险考察，进入割接方案。" type="warning" :closable="false" show-icon />
     </div>
-    <footer v-if="editable" class="cut-actions cut-actions--sticky">
+    <footer v-if="editable && !hideActions" class="cut-actions cut-actions--sticky">
       <el-button :loading="saving" :disabled="submitting" @click="$emit('save')"><Icon icon="ep:document-checked" />保存</el-button>
       <el-button v-if="submittable" type="primary" :loading="submitting" :disabled="saving" @click="$emit('submit')">下一步<Icon icon="ep:arrow-right" /></el-button>
     </footer>
@@ -53,6 +53,7 @@ defineProps<{
   submittable: boolean
   saving: boolean
   submitting: boolean
+  hideActions?: boolean
 }>()
 defineEmits<{ save: []; submit: [] }>()
 

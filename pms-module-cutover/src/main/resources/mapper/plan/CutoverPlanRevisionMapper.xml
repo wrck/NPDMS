@@ -16,6 +16,7 @@
         <result column="configuration_revision_id" property="configurationRevisionId"/>
         <result column="configuration_code" property="configurationCode"/>
         <result column="configuration_revision_no" property="configurationRevisionNo"/>
+        <result column="scheduled_time" property="scheduledTime"/>
         <result column="file_artifact_id" property="fileArtifactId"/>
         <result column="file_version_no" property="fileVersionNo"/>
         <result column="file_reference_key" property="fileReferenceKey"/>
@@ -62,7 +63,7 @@
         <result column="file_availability_fact_version" property="fileAvailabilityFactVersion"/>
     </resultMap>
     <sql id="columns">
-        &#96;id&#96;, &#96;tenant_id&#96;, &#96;task_id&#96;, &#96;revision_no&#96;, &#96;origin_code&#96;, &#96;edit_mode_code&#96;, &#96;grade_code&#96;, &#96;assessment_id&#96;, &#96;assessment_version&#96;, &#96;checklist_id&#96;, &#96;checklist_version&#96;, &#96;configuration_revision_id&#96;, &#96;configuration_code&#96;, &#96;configuration_revision_no&#96;, &#96;file_artifact_id&#96;, &#96;file_version_no&#96;, &#96;file_reference_key&#96;, &#96;file_scope_version&#96;, &#96;file_sha256&#96;, &#96;ownership_confirmed_flag&#96;, &#96;status_code&#96;, &#96;current_marker&#96;, &#96;submit_user_id&#96;, &#96;submit_time&#96;, &#96;approval_instance_id&#96;, &#96;approval_version&#96;, &#96;source_plan_revision_id&#96;, &#96;revision_reason_code&#96;, &#96;invalidate_user_id&#96;, &#96;invalidate_time&#96;, &#96;invalidation_reason_code&#96;, &#96;version&#96;, &#96;creator&#96;, &#96;create_time&#96;, &#96;updater&#96;, &#96;update_time&#96;, &#96;deleted&#96;, &#96;source_task_version&#96;, &#96;source_project_id&#96;, &#96;source_project_version&#96;, &#96;source_project_scope_version&#96;, &#96;source_cutover_type_code&#96;, &#96;project_description&#96;, &#96;rollback_description&#96;, &#96;customer_contact_id&#96;, &#96;customer_contact_version&#96;, &#96;file_artifact_fact_version&#96;, &#96;file_reference_fact_version&#96;, &#96;file_availability_fact_version&#96;
+        &#96;id&#96;, &#96;tenant_id&#96;, &#96;task_id&#96;, &#96;revision_no&#96;, &#96;origin_code&#96;, &#96;edit_mode_code&#96;, &#96;grade_code&#96;, &#96;assessment_id&#96;, &#96;assessment_version&#96;, &#96;checklist_id&#96;, &#96;checklist_version&#96;, &#96;configuration_revision_id&#96;, &#96;configuration_code&#96;, &#96;configuration_revision_no&#96;, &#96;scheduled_time&#96;, &#96;file_artifact_id&#96;, &#96;file_version_no&#96;, &#96;file_reference_key&#96;, &#96;file_scope_version&#96;, &#96;file_sha256&#96;, &#96;ownership_confirmed_flag&#96;, &#96;status_code&#96;, &#96;current_marker&#96;, &#96;submit_user_id&#96;, &#96;submit_time&#96;, &#96;approval_instance_id&#96;, &#96;approval_version&#96;, &#96;source_plan_revision_id&#96;, &#96;revision_reason_code&#96;, &#96;invalidate_user_id&#96;, &#96;invalidate_time&#96;, &#96;invalidation_reason_code&#96;, &#96;version&#96;, &#96;creator&#96;, &#96;create_time&#96;, &#96;updater&#96;, &#96;update_time&#96;, &#96;deleted&#96;, &#96;source_task_version&#96;, &#96;source_project_id&#96;, &#96;source_project_version&#96;, &#96;source_project_scope_version&#96;, &#96;source_cutover_type_code&#96;, &#96;project_description&#96;, &#96;rollback_description&#96;, &#96;customer_contact_id&#96;, &#96;customer_contact_version&#96;, &#96;file_artifact_fact_version&#96;, &#96;file_reference_fact_version&#96;, &#96;file_availability_fact_version&#96;
     </sql>
     <select id="selectCurrent" resultMap="plan">
         SELECT <include refid="columns"/> FROM cut_plan_revision
@@ -119,6 +120,7 @@
     <update id="replaceDraftIfMatch">
         UPDATE cut_plan_revision SET
         edit_mode_code = #{query.plan.editModeCode},
+        scheduled_time = #{query.plan.scheduledTime},
         project_description = #{query.plan.projectDescription},
         rollback_description = #{query.plan.rollbackDescription},
         customer_contact_id = #{query.plan.customerContactId},

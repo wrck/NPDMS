@@ -411,6 +411,7 @@ public class DacDeviceOpsGateway implements DeviceOpsGatewayApi {
         boolean manualConfiguration = ("IMP".equals(command.sourceContext())
                 && java.util.Set.of("Configuration", "JointTest").contains(command.sourceObjectType()))
                 || ("PLT".equals(command.sourceContext()) && "CollectionCenter".equals(command.sourceObjectType()))
+                || ("CUT".equals(command.sourceContext()) && "CUTOVER_CHECKLIST_ITEM".equals(command.sourceObjectType()))
                 || (command.executionOptions()!=null && "INSPECTION".equals(command.executionOptions().purpose()));
         long seconds = manualConfiguration ? properties.getManualExecutionTimeoutSeconds()
                 : properties.getCommandTimeoutSeconds();

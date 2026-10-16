@@ -213,8 +213,8 @@ public class CutoverApprovalStorage {
         if (TenantContextHolder.isIgnore() || !Objects.equals(TenantContextHolder.getTenantId(), root.getTenantId()))
             throw new IllegalArgumentException("审批来源租户不一致");
     }
-    private static LocalDateTime time(long millis, ZoneId zone) { return LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), zone); }
-    private static long millis(LocalDateTime time, ZoneId zone) { return time.atZone(zone).toInstant().toEpochMilli(); }
+    private static LocalDateTime time(Long millis, ZoneId zone) { return millis == null ? null : LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), zone); }
+    private static Long millis(LocalDateTime time, ZoneId zone) { return time == null ? null : time.atZone(zone).toInstant().toEpochMilli(); }
     private static void putWireLong(ObjectNode node, String field, long value) {
         if (value > -9_007_199_254_740_991L && value < 9_007_199_254_740_991L) node.put(field, value); else node.put(field, Long.toString(value));
     }

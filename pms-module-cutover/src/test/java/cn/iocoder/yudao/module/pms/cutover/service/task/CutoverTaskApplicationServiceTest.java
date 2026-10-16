@@ -51,6 +51,35 @@ import static org.mockito.Mockito.when;
 
 class CutoverTaskApplicationServiceTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, 1, 2})
+    void minimalGradeCreationRequiresExactlyOnePublishedConfiguration(int count) {
+        Fixture fixture = fixture();
+        var configuration = fixture.configurations().selectEffectivePublished(null);
+        when(fixture.configurations().selectEffectivePublishedList(any()))
+                .thenReturn(java.util.Collections.nCopies(count, configuration));
+        var source = createCommand("minimal-" + count);
+        var command = new CreateCutoverTaskCommand(source.tenantId(), source.actorId(), source.idempotencyKey(),
+                source.correlationId(), source.intakeSourceType(), source.projectId(), source.serialNumbers(),
+                null, source.taskName(), null, null, null, null, null, null, null, source.expectedContext());
+        if (count != 1) {
+            var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                    () -> fixture.service().create(command));
+            assertEquals(CutoverTaskApplicationException.Code.CONFIGURATION_CONFLICT, failure.code());
+            assertNull(fixture.task().get());
+            return;
+        }
+        var created = fixture.service().create(command);
+        assertNull(fixture.task().get().getCutoverType());
+        assertNull(fixture.task().get().getNetworkMode());
+        assertNull(fixture.task().get().getBackground());
+        assertNull(fixture.task().get().getScheduledTime());
+        assertEquals(configuration.getId(), fixture.task().get().getConfigurationRevisionId());
+        var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
+        var submitted = fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(), saved.assessmentRowVersion(), "minimal-d"));
+        assertEquals("P4", submitted.currentStage());
+    }
+
     @Test
     void completesSelfCreatedAssessmentAIntoP3WithControlledOwnerFacts() {
         Fixture fixture = fixture();
@@ -61,6 +90,7 @@ class CutoverTaskApplicationServiceTest {
         CutoverTaskCommandResult submitted = fixture.service().submitAssessment(submitCommand(
                 created.taskId(), saved.taskVersion(), saved.assessmentRowVersion(), "submit-a"));
 
+        assertEquals("核心网割接项目-割接-" + created.taskNo(), fixture.task().get().getTaskName());
         assertEquals("P2", created.currentStage());
         assertEquals("P3", submitted.currentStage());
         assertEquals("SURVEYING", submitted.taskStatus());
@@ -284,12 +314,12 @@ class CutoverTaskApplicationServiceTest {
                 Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverIntakeConfigurationPolicy.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "taskSnapshots", snapshots);
-        return new Fixture(service, task, assessment, deviceRows, history, platform, productType, deviceWrites);
+        return new Fixture(service, task, assessment, deviceRows, history, platform, productType, deviceWrites, configurationMapper);
     }
 
     private static CreateCutoverTaskCommand createCommand(String key) {
         return new CreateCutoverTaskCommand(1L, 8L, key, "corr-" + key, "SELF_CREATED", 100L,
-                List.of("SN-400"), "CUTOVER-V1", "核心网割接", "计划内设备割接", "配置变更", "普通双机",
+                List.of("SN-400"), "CUTOVER-V1", null, "计划内设备割接", "配置变更", "普通双机",
                 LocalDateTime.of(2026, 9, 1, 1, 0), null, null, null,
                 new CreateCutoverTaskCommand.ExpectedCreateContext(
                         CutoverProjectContextPort.ProjectContextFact.builder()
@@ -328,7 +358,8 @@ class CutoverTaskApplicationServiceTest {
                            AtomicReference<CutoverAssessmentDO> assessment,
                            List<CutoverTaskDeviceScopeDO> deviceRows,
                            List<CutoverTaskStageHistoryDO> history, DirectPlatform platform,
-                           CutoverDeviceProductTypePort productType, List<CutoverTaskSnapshotStore.DeviceWrite> deviceWrites) {
+                           CutoverDeviceProductTypePort productType, List<CutoverTaskSnapshotStore.DeviceWrite> deviceWrites,
+                           CutoverConfigurationRevisionMapper configurations) {
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {

@@ -119,6 +119,7 @@ class CutoverPlanApplicationMySqlTest {
 
     @AfterEach
     void tearDown() {
+        jdbc.update("DELETE FROM cut_plan_generated_file WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_step WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_cutover_support_arrangement WHERE tenant_id=?", tenantId);
         jdbc.update("DELETE FROM cut_plan_revision WHERE tenant_id=?", tenantId);
@@ -509,7 +510,7 @@ class CutoverPlanApplicationMySqlTest {
             DataSourceTransactionManagerAutoConfiguration.class, DruidDataSourceAutoConfigure.class,
             YudaoMybatisAutoConfiguration.class, MybatisPlusAutoConfiguration.class,
             MybatisPlusJoinAutoConfiguration.class, SpringUtil.class,
-            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class})
+            PlatformCommandExecutionApiImpl.class, PlatformTransactionalOutboxWriter.class, CutoverPlanGeneratedFiles.class})
     static class TestApplication {
         @Bean JdbcTemplate jdbcTemplate(DataSource dataSource) { return new JdbcTemplate(dataSource); }
         @Bean ControlledOwners controlledOwners() { return new ControlledOwners(); }

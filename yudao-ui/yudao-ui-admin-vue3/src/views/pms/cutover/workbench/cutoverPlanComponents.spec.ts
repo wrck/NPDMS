@@ -340,6 +340,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     })
 
     expect(collect(mounted.root, (node) => node.type === 'li')).toHaveLength(5)
+    expect(textOf(mounted.root)).not.toContain('割接准备')
     expect(textOf(mounted.root)).toContain('割接方案')
     mounted.app.unmount()
   })

@@ -20,6 +20,13 @@
         type="warning"
         :closable="false"
       />
+      <el-form v-if="draftContent" label-position="top">
+        <el-form-item label="计划割接时间" required>
+          <el-date-picker data-testid="plan-scheduled-time" :model-value="draftContent.scheduledTime"
+            :disabled="props.readonly || writing || !plan.allowedActions.includes('SAVE_DRAFT')"
+            type="datetime" value-format="x" placeholder="请选择计划割接时间" @update:model-value="updateScheduledTime" />
+        </el-form-item>
+      </el-form>
       <CutoverPlanEditor
         v-if="draftContent"
         v-model="draftContent"
@@ -199,8 +206,7 @@ const refresh = async () => {
   try {
     plan.value = await CutoverApi.getCutoverPlan(props.taskId)
     creatingReplacement.value = false
-    if (downloaded.value && (String(downloaded.value.planRevisionId) !== String(plan.value.planRevisionId)
-      || downloaded.value.planVersion !== plan.value.planVersion)) downloaded.value = null
+    downloaded.value = plan.value.generatedDraft ?? null
     const content = plan.value.content
     draftContent.value = content
       ? JSON.parse(JSON.stringify(content)) as WritableCutoverPlanContent
@@ -273,6 +279,10 @@ const save = async () => {
   return !!result
 }
 
+const updateScheduledTime = (value: string | number | null) => {
+  if (!draftContent.value) return
+  draftContent.value = { ...draftContent.value, scheduledTime: value == null || value === '' ? null : Number(value) }
+}
 const contentForSave = (content: WritableCutoverPlanContent): WritableCutoverPlanContent => {
   if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD') return content
   return {

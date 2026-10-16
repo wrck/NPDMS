@@ -21,6 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class CutoverExternalBulletinStoreTest {
+    private final cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi deviceSource = mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi.class);
+    private final CutoverChecklistMapper checklists = mock(CutoverChecklistMapper.class);
+    private final CutoverChecklistDO root = new CutoverChecklistDO();
     private final CutoverChecklistDeviceContextMapper devices = mock(CutoverChecklistDeviceContextMapper.class);
     private final CutoverChecklistItemDefinitionRevisionMapper definitions = mock(CutoverChecklistItemDefinitionRevisionMapper.class);
     private final CutoverChecklistExternalQueryMapper queries = mock(CutoverChecklistExternalQueryMapper.class);
@@ -30,7 +33,7 @@ class CutoverExternalBulletinStoreTest {
     private final CutoverChecklistItemResultMapper results = mock(CutoverChecklistItemResultMapper.class);
     private final CutoverExternalChecklistMapper mutations = mock(CutoverExternalChecklistMapper.class);
     private final CutoverFieldDefinitionStore fields = mock(CutoverFieldDefinitionStore.class);
-    private final CutoverExternalBulletinStore store = new CutoverExternalBulletinStore(devices, definitions, queries, references, bulletins, summaries, results, mutations, fields);
+    private final CutoverExternalBulletinStore store = new CutoverExternalBulletinStore(deviceSource, checklists, devices, definitions, queries, references, bulletins, summaries, results, mutations, fields);
     private final List<CutoverChecklistDeviceContextDO> context = new ArrayList<>();
     private final List<CutoverChecklistExternalQueryDO> queryRows = new ArrayList<>();
     private final List<CutoverChecklistResultQueryReferenceDO> refRows = new ArrayList<>();
@@ -43,6 +46,13 @@ class CutoverExternalBulletinStoreTest {
 
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
+        root.setId(20L); root.setTenantId(1L); root.setStatusCode("DRAFT");
+        when(checklists.selectById(20L)).thenReturn(root);
+        when(deviceSource.getDevice(anyLong())).thenAnswer(call -> {
+            Long id = call.getArgument(0);
+            var source = context.stream().filter(row -> row.getDeviceId().equals(id)).findFirst().orElseThrow();
+            return summary(id, source.getCurrentSoftwareVersion());
+        });
         item.setId(10L); item.setTenantId(1L); item.setChecklistId(20L); item.setItemDefinitionId(30L);
         item.setItemDefinitionVersion(2); item.setWorkModeCode("EXTERNAL"); item.setStableItemKey("RISK_CURRENT_VERSION_BULLETIN");
         definition.setId(30L); definition.setTenantId(1L); definition.setItemDefinitionVersion(2);
@@ -163,6 +173,49 @@ class CutoverExternalBulletinStoreTest {
                 List.of(new SaveChecklistDeviceVersionsCommand.Device(999L, null, "v1", "v2")),
                 cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
         verify(mutations, never()).updateDevice(any());
+    }
+
+    @Test void draftReadsCurrentDeviceVersionButSubmittedHistoryKeepsSnapshot() {
+        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "device-v3"));
+        var current = store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)).getFirst();
+        assertEquals("device-v3", current.getCurrentSoftwareVersion());
+        assertEquals("v1", context.getFirst().getCurrentSoftwareVersion());
+        root.setStatusCode("SUBMITTED");
+        assertEquals("v1", store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)).getFirst().getCurrentSoftwareVersion());
+    }
+
+    @Test void deviceVersionChangeInvalidatesPreviouslyLoadedBulletins() {
+        var result = loadBulletin();
+        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "new-version"));
+        assertThrows(CutoverChecklistException.class, () -> store.requireCurrent(read(result)));
+    }
+
+    @Test void missingDeviceSourceDoesNotFallBackToManuallyEnteredVersion() {
+        when(deviceSource.getDevice(40L)).thenReturn(null);
+        assertThrows(CutoverChecklistException.class, () -> store.contexts(new CutoverExternalBulletinStore.ContextKey(1L, 20L)));
+    }
+
+    @Test void cannotSaveAnInventedCurrentVersion() {
+        assertThrows(CutoverChecklistException.class, () -> store.saveVersions(new SaveChecklistDeviceVersionsCommand(
+                1L, 90L, 100L, 1L, 20L, 1L, 1L,
+                List.of(new SaveChecklistDeviceVersionsCommand.Device(40L, null, "invented", "v2")),
+                cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent())));
+        verify(mutations, never()).updateDevice(any());
+    }
+
+    @Test void submissionFreezesSourceAndKeepsTargetWithoutMutatingReadRows() {
+        when(deviceSource.getDevice(40L)).thenReturn(summary(40L, "device-v3"));
+        when(mutations.updateDevice(any())).thenReturn(1);
+        store.freezeVersions(new CutoverExternalBulletinStore.Freeze(root, 90L, time));
+        verify(mutations).updateDevice(argThat(command -> "device-v3".equals(command.currentSoftwareVersion())
+                && "v2".equals(command.targetSoftwareVersion()) && command.actorId().equals(90L)));
+        assertEquals("v1", context.getFirst().getCurrentSoftwareVersion());
+    }
+
+    private cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO summary(Long id, String version) {
+        return new cn.iocoder.yudao.module.pms.asset.api.device.dto.DeviceSummaryDTO(id, 1L, "SN-" + id,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                version, null, null, null);
     }
 
     private CutoverChecklistItemResultDO loadBulletin() {

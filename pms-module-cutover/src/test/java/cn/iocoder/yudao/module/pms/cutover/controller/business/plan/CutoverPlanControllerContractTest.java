@@ -34,7 +34,7 @@ class CutoverPlanControllerContractTest {
                 1L, 8L, "corr-1", true, true, true, true);
         CutoverPlanController controller = new TestController(application, query, context,
                 new CutoverPlanRequestCodec());
-        when(query.detail(any(), any())).thenReturn(new CutoverPlanView(50L, "P4", 4L, 60L, 1, 0L, "NEW_PLATFORM", "DRAFT", null, "INITIAL", null, null, null, List.of("SAVE_DRAFT")));
+        when(query.detail(any(), any())).thenReturn(new CutoverPlanView(50L, "P4", 4L, 60L, 1, 0L, "NEW_PLATFORM", "DRAFT", null, "INITIAL", null, null, null, List.of("SAVE_DRAFT"), null));
         mvc = standaloneSetup(controller).setControllerAdvice(controller).build();
     }
 

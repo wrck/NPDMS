@@ -84,7 +84,7 @@ public class CutoverTaskCreationQueryService {
                 if (summary.shipmentTime() == null)
                     throw new CutoverTaskApplicationException(INVALID_REQUEST, "设备尚无发货记录：" + device.serialNumber());
                 summaries.add(new ProjectDeviceShipmentApi.Device(device.deviceId(), device.serialNumber(),
-                        summary.productCode(), summary.productModel()));
+                        summary.productCode(), summary.productModel(), summary.conpVersion()));
             }
         }
         return new ResolvedDevices(resolved, List.copyOf(summaries));

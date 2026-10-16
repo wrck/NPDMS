@@ -19,10 +19,10 @@
         <header class="cut-card__header"><h3><Icon icon="ep:data-analysis" />采集信息分析</h3><small>引用调研及风险考察</small></header>
         <div class="cut-card__body">
           <div class="cut-form-grid">
-            <div class="cut-form-field"><label>割接类型</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.collectionAnalysis.cutoverType }}</span></div>
+            <div class="cut-form-field"><label>割接类型</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.collectionAnalysis.cutoverType || '不适用' }}</span></div>
             <div class="cut-form-field"><label>高可靠性组网模式</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.collectionAnalysis.networkMode || '未配置' }}</span></div>
             <div class="cut-form-field"><label>设备类型</label><span class="cut-form-value cut-form-value--plain">{{ deviceTypeSummary || '—' }}</span></div>
-            <div class="cut-form-field"><label>割接操作时间</label><span class="cut-form-value cut-form-value--plain">{{ formatWireDateTime(view.sourceSnapshot.collectionAnalysis.scheduledTime) }}</span></div>
+            <div class="cut-form-field"><label>割接操作时间</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.collectionAnalysis.scheduledTime == null ? '不适用' : formatWireDateTime(view.sourceSnapshot.collectionAnalysis.scheduledTime) }}</span></div>
           </div>
           <CutoverLeadTimeComplianceCard v-if="view.leadTimeCompliance" :compliance="view.leadTimeCompliance" />
           <p v-if="view.grade === 'D'" class="cut-help simple-flow-note">D级简易割接跳过调研及风险考察，本次审批直接引用简易方案。</p>
