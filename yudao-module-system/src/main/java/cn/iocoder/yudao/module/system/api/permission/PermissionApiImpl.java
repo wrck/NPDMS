@@ -1,11 +1,14 @@
 package cn.iocoder.yudao.module.system.api.permission;
 
 import cn.iocoder.yudao.framework.common.biz.system.permission.dto.DeptDataPermissionRespDTO;
+import cn.iocoder.yudao.framework.common.biz.system.permission.PermissionBatchQueryApi;
+import cn.iocoder.yudao.module.system.service.permission.PermissionBatchQueryService;
 import cn.iocoder.yudao.module.system.service.permission.PermissionService;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.Resource;
 import java.util.Collection;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -14,10 +17,18 @@ import java.util.Set;
  * @author NPMS
  */
 @Service
-public class PermissionApiImpl implements PermissionApi {
+public class PermissionApiImpl implements PermissionApi, PermissionBatchQueryApi {
 
     @Resource
     private PermissionService permissionService;
+
+    @Resource
+    private PermissionBatchQueryService permissionBatches;
+
+    @Override
+    public Map<String, Boolean> queryPermissions(Long userId, Set<String> permissionCodes) {
+        return permissionBatches.queryPermissions(userId, permissionCodes);
+    }
 
     @Override
     public Set<Long> getUserRoleIdListByRoleIds(Collection<Long> roleIds) {

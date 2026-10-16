@@ -93,7 +93,7 @@ public class PermissionServiceImpl implements PermissionService {
      * @param permission 权限标识
      * @return 是否拥有
      */
-    private boolean hasAnyPermission(List<RoleDO> roles, String permission) {
+    boolean hasAnyPermission(List<RoleDO> roles, String permission) {
         List<Long> menuIds = menuService.getMenuIdListByPermissionFromCache(permission);
         // 采用严格模式，如果权限找不到对应的 Menu 的话，也认为没有权限
         if (CollUtil.isEmpty(menuIds)) {
