@@ -25,6 +25,7 @@ import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -38,6 +39,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.UUID;
@@ -140,7 +142,7 @@ public class ProjectStageAdvanceController {
     /** 只读门禁重验与并发命令在 proj_project_stage 行锁上可能死锁；死锁时事务已回滚，按 MySQL
      * "try restarting transaction" 原参重读。写命令路径不适用（自动重试写操作超出本层职责）。 */
     private <T> T withDeadlockRetry(Supplier<T> action) {
-        DeadlockLoserDataAccessException last = null;
+        PessimisticLockingFailureException last = null;
         for (int attempt = 0; attempt < 3; attempt++) {
             if (attempt > 0) {
                 try {
@@ -152,11 +154,23 @@ public class ProjectStageAdvanceController {
             }
             try {
                 return action.get();
-            } catch (DeadlockLoserDataAccessException ex) {
+            } catch (PessimisticLockingFailureException ex) {
+                if (!isRolledBackDeadlock(ex)) throw ex;
                 last = ex;
             }
         }
         throw last;
+    }
+
+    private static boolean isRolledBackDeadlock(PessimisticLockingFailureException failure) {
+        if (failure instanceof DeadlockLoserDataAccessException) return true;
+        // Current Spring translates MySQL's transaction-rollback exception to CannotAcquireLockException.
+        // Retry only error 1213 / SQLSTATE 40001; a lock wait timeout is a different failure.
+        for (Throwable cause = failure.getCause(); cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sql && sql.getErrorCode() == 1213
+                    && "40001".equals(sql.getSQLState())) return true;
+        }
+        return false;
     }
 
     private Long parseIfMatch(String value) {

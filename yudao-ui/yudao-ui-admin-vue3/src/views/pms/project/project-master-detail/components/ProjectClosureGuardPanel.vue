@@ -15,7 +15,7 @@
       type="success"
       :closable="false"
       title="项目树维度检查通过，不代表完整闭环校验通过"
-      :description="`项目树版本 v${result.treeVersion}；仍需办理其余适用校验和闭环审批。`"
+      :description="`项目树版本 v${result.treeVersion}；本结果仅反映项目树维度，完整闭环以正式校验和审批结果为准。`"
       data-testid="closure-tree-passed"
     />
     <template v-else-if="result">

@@ -157,6 +157,122 @@ beforeEach(() => {
   projects.getProjectStageAdvanceReadiness.mockResolvedValue({ currentStage: 'S2', nextStage: null, advanceAllowed: false, gates: [] })
 })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+it('updates task deliverable status after summary refresh without replacing the Owner draft', async () => {
+  const row = {
+    task: { taskId: 10, name: '培训任务', version: 1 },
+    bindingType: 'BUSINESS_OBJECT',
+    deliverables: [{ id: 7, deliverableCode: 'D_TRAINING', name: '培训交付件', status: 'PENDING' }],
+  }
+  api.getTaskWorkbench.mockResolvedValue(row)
+  const view = render({ kind: 'task', stageCode: 'S5', taskId: 10 })
+  await flush()
+  const input = findNode(view.root, (node) => !!node.props?.['data-owner-draft'])!
+  ;(input.props!.onChange as Function)('未保存的培训备注')
+  await flush()
+  const count = ownerMounted.mock.calls.length
+  api.getTaskWorkbench.mockResolvedValue({ ...row, deliverables: [{ ...row.deliverables[0], status: 'ACCEPTED' }] })
+  await view.exposed().refreshSummary()
+  await flush()
+  expect(findNode(view.root, (node) => node.props?.value === 'ACCEPTED')).toBeDefined()
+  expect(ownerMounted).toHaveBeenCalledTimes(count)
+  expect(findNode(view.root, (node) => !!node.props?.['data-owner-draft'])?.props?.value).toBe('未保存的培训备注')
+})
+it('retains the old task workbench and reports a failed summary read', async () => {
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 10, name: '培训任务', version: 1 },
+    bindingType: 'BUSINESS_OBJECT',
+    deliverables: [{ id: 7, name: '培训交付件', status: 'PENDING' }],
+  })
+  const view = render({ kind: 'task', stageCode: 'S5', taskId: 10 })
+  await flush()
+  api.getTaskWorkbench.mockRejectedValueOnce(new Error('workbench unavailable'))
+  await view.exposed().refreshSummary()
+  await flush()
+  expect(textOf(view.root)).toContain('概要刷新失败')
+  expect(textOf(view.root)).toContain('培训交付件')
+})
+it('does not apply an old summary workbench response after selecting another task', async () => {
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 10, name: '旧培训任务', version: 1 },
+    bindingType: 'BUSINESS_OBJECT',
+  })
+  const selection = reactive({ kind: 'task', stageCode: 'S5', taskId: 10 })
+  const view = render(selection)
+  await flush()
+  let finish!: (value: unknown) => void
+  api.getTaskWorkbench.mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve
+    }),
+  )
+  const refreshing = view.exposed().refreshSummary()
+  await flush()
+  expect(api.getTaskWorkbench).toHaveBeenCalledTimes(2)
+  api.getTaskWorkbench.mockResolvedValue({
+    task: { taskId: 11, name: '新满意度任务', version: 1 },
+    bindingType: 'BUSINESS_OBJECT',
+  })
+  selection.taskId = 11
+  await flush()
+  finish?.({ task: { taskId: 10, name: '过期培训任务', version: 2 }, bindingType: 'BUSINESS_OBJECT' })
+  await refreshing
+  await flush()
+  expect(textOf(view.root)).toContain('新满意度任务')
+  expect(textOf(view.root)).not.toContain('过期培训任务')
+})
+it.each(['success', 'cancel', 'failure', 'switched'])('notifies project summaries only after a current successful approval refresh (%s)', async outcome => {
+  api.getTaskWorkbench.mockResolvedValue({task:{taskId:10,version:1},bindingType:'APPROVAL'})
+  const selected=reactive({kind:'task',stageCode:'S2',taskId:10})
+  const view=render(selected);await flush();expect(view.changed).not.toHaveBeenCalled()
+  leave.mockResolvedValue(outcome!=='cancel')
+  let finish!:(value:unknown)=>void
+  if(outcome==='failure')api.getTaskWorkbench.mockRejectedValueOnce(new Error('unavailable'))
+  if(outcome==='switched')api.getTaskWorkbench.mockReturnValueOnce(new Promise(resolve=>{finish=resolve}))
+  const button=findNode(view.root,node=>node.type==='button'&&textOf(node)==='刷新审批结果')!
+  const refreshing=(button.props!.onClick as Function)();await flush()
+  if(outcome==='switched'){selected.taskId=11;await flush();finish({task:{taskId:10,version:2},bindingType:'APPROVAL'})}
+  await refreshing;await flush()
+  expect(view.changed).toHaveBeenCalledTimes(outcome==='success'?1:0)
+})
+
+it.each([{ stageStatus: 'DONE', projectStatus: 'ACTIVE' }, { stageStatus: 'ACTIVE', projectStatus: 'CLOSED' }])(
+  'keeps terminal project history loaded without advance readiness (%j)', async ({ stageStatus, projectStatus }) => {
+    api.getProjectWorkspace.mockResolvedValue({ stageTaskNavigation: [{ stageCode: 'S2', stageName: '计划', stageStatus }] })
+    gates.getStageGateWorkbench.mockResolvedValue({ projectId: '9', stageCode: 'S2', gates: [] })
+    const view = render({ kind: 'stage', stageCode: 'S2' }, [{ stageCode: 'S2' }],
+      { stages: [{ stageCode: 'S2', status: stageStatus }] }, { id: 9, lifecycleStatus: projectStatus, currentStage: 'S2' })
+    await flush()
+    expect(api.getProjectWorkspace).toHaveBeenCalledWith(9)
+    expect(api.getProjectTasks).toHaveBeenCalled()
+    expect(gates.getStageGateWorkbench).toHaveBeenCalledWith(9, 'S2')
+    expect(textOf(view.root)).toContain('阶段绑定上下文')
+    expect(projects.getProjectStageAdvanceReadiness).not.toHaveBeenCalled()
+  }
+)
+
+it('uses authorized advance readiness for the active current stage', async () => {
+  api.getProjectWorkspace.mockResolvedValue({ stageTaskNavigation: [{ stageCode: 'S2', stageStatus: 'ACTIVE' }] })
+  projects.getProjectStageAdvanceReadiness.mockResolvedValue({ currentStage: 'S2', nextStage: 'S3', advanceAllowed: true, gates: [] })
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], { stages: [{ stageCode: 'S2', status: 'ACTIVE' }] },
+    { id: 9, lifecycleStatus: 'ACTIVE', currentStage: 'S2' })
+  await flush()
+  expect(projects.getProjectStageAdvanceReadiness).toHaveBeenCalledWith(9)
+  expect(textOf(view.root)).toContain('推进至 S3')
+})
+
+it('does not restore advance permission when the stage completes before readiness arrives', async () => {
+  let finish!: (value: unknown) => void
+  projects.getProjectStageAdvanceReadiness.mockReturnValueOnce(new Promise(resolve => { finish = resolve }))
+  const instances = reactive({ stages: [{ stageCode: 'S2', status: 'ACTIVE' }] })
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], instances, { id: 9, lifecycleStatus: 'ACTIVE', currentStage: 'S2' })
+  await flush()
+  expect(projects.getProjectStageAdvanceReadiness).toHaveBeenCalledWith(9)
+  instances.stages[0].status = 'DONE'
+  finish({ currentStage: 'S2', nextStage: 'S3', advanceAllowed: true, gates: [] })
+  await flush()
+  expect(textOf(view.root)).not.toContain('推进至 S3')
+})
+
 it('loads configured gates for the selected parallel stage and does not show an empty extra panel for other stages', async () => {
   gates.getStageGateWorkbench.mockResolvedValue({ projectId: '9', stageCode: 'S2', planVersionId: '51', executionId: '61', executionRound: 2, gates: [] })
   const selected = reactive({ kind: 'stage', stageCode: 'S2' })
@@ -320,7 +436,8 @@ it('keeps the stage advance button hidden while exit gates are unmet but still e
     gates: [{ gateId: '1', gateCode: 'G1', name: 'G1', status: 'OPEN', satisfied: true, references: [] },
       { gateId: '2', gateCode: 'G2', name: 'G2', status: 'OPEN', satisfied: false, references: [] }]
   })
-  const view = render({ kind: 'stage', stageCode: 'S2' }); await flush()
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], { stages: [{ stageCode: 'S2', status: 'ACTIVE' }] },
+    { id: 9, lifecycleStatus: 'ACTIVE', currentStage: 'S2' }); await flush()
   const text = textOf(view.root)
   expect(text).not.toContain('推进至 S3')
   expect(text).toContain('出口门禁 1/2 满足；全部通过后可推进。')
@@ -332,7 +449,8 @@ it('shows the stage advance button only when every exit gate is satisfied', asyn
   projects.getProjectStageAdvanceReadiness.mockResolvedValue({
     currentStage: 'S2', nextStage: 'S3', advanceAllowed: true, guidance: null, gates: []
   })
-  const view = render({ kind: 'stage', stageCode: 'S2' }); await flush()
+  const view = render({ kind: 'stage', stageCode: 'S2' }, [], { stages: [{ stageCode: 'S2', status: 'ACTIVE' }] },
+    { id: 9, lifecycleStatus: 'ACTIVE', currentStage: 'S2' }); await flush()
   expect(textOf(view.root)).toContain('推进至 S3')
 })
 

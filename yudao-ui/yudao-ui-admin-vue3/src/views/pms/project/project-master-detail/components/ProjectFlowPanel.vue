@@ -269,7 +269,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           <el-button
             v-if="businessBound && workbench?.task.version != null"
             :loading="businessRef?.loading" :disabled="!businessRef" @click="businessRef?.refresh()">刷新业务结果</el-button>
-          <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="reload">刷新审批结果</el-button>
+          <el-button v-else-if="workbench?.bindingType === 'APPROVAL'" :disabled="approvalRef?.isBusy()" @click="refreshApproval">刷新审批结果</el-button>
           <el-button v-else-if="workbench?.bindingType === 'RESULT_SUBSCRIPTION'" @click="reload">刷新任务状态</el-button>
           <el-button v-if="workbench?.bindingType === 'PAGE' && pageEmbed" @click="reload">刷新工作区</el-button>
           <el-button v-else-if="workbench?.bindingType === 'PAGE' && !taskPending" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
@@ -438,19 +438,27 @@ const message = useMessage()
 const readiness = ref<ProjectStageAdvanceReadinessVO>()
 const advancing = ref(false)
 const advanceError = ref('')
+const canLoadReadiness = computed(() => props.project.lifecycleStatus === 'ACTIVE'
+  && props.instances?.stages.some(stage => stage.stageCode === props.project.currentStage && stage.status === 'ACTIVE'))
+let readinessSequence = 0
 const loadReadiness = async () => {
+  const token = ++readinessSequence
   const projectId = props.projectId
+  readiness.value = undefined
+  // Completed nodes remain available for history and closure checks, but cannot be advanced again.
+  if (!canLoadReadiness.value) return
   // 只读评估在共享库锁冲突时会瞬时失败，短暂重试；仍失败才隐藏推进操作，不阻塞工作区
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (token !== readinessSequence || !canLoadReadiness.value) return
     try {
       const result = await getProjectStageAdvanceReadiness(projectId)
-      if (projectId === props.projectId) readiness.value = result
+      if (token === readinessSequence && projectId === props.projectId && canLoadReadiness.value) readiness.value = result
       return
     } catch {
       if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 400))
     }
   }
-  if (projectId === props.projectId) readiness.value = undefined
+  if (token === readinessSequence && projectId === props.projectId) readiness.value = undefined
 }
 // 原因码提示沿用阶段进展面板已登记的展示文案，不新增业务语义
 const guidanceLabel = (code?: string | null) => ({
@@ -627,11 +635,19 @@ const load = async () => {
       workspace.value = opening.workspace
       workbench.value = opening.workbench
     }
+    return current(token)
   } catch {
     if (current(token)) loadError.value = '内容加载失败，请重新加载。'
+    return false
   }
 }
 const reload = async () => { if (await requestLeave()) await load() }
+const refreshApproval = async () => {
+  const projectId = props.projectId, taskId = props.selection?.taskId, token = sequence
+  if (!await requestLeave() || !current(token) || props.projectId !== projectId || props.selection?.taskId !== taskId) return
+  if (await load() && props.projectId === projectId && props.selection?.kind === 'task' && props.selection.taskId === taskId)
+    emit('changed')
+}
 const handleBusinessChanged = async () => {
   if (props.selection?.taskId == null) return
   try { await loadTaskWorkbench(props.selection.taskId, sequence) }
@@ -650,7 +666,12 @@ const refreshSummary = async () => {
   const token = sequence
   if (props.selection?.kind === 'stage') void loadReadiness()
   try {
-    await loadWorkspace(token)
+    await Promise.all([
+      loadWorkspace(token),
+      props.selection?.kind === 'task' && props.selection.taskId != null
+        ? loadTaskWorkbench(props.selection.taskId, token)
+        : Promise.resolve()
+    ])
     if (current(token) && props.selection?.kind === 'stage') await tasks.reload()
   } catch {
     if (current(token)) loadError.value = '概要刷新失败，已加载内容保留，请重新加载。'
@@ -659,6 +680,9 @@ const refreshSummary = async () => {
 defineExpose({ requestLeave, reload, refreshSummary })
 
 watch(() => [props.projectId, props.selection?.kind, props.selection?.stageCode, props.selection?.taskId], load, { immediate: true })
+watch(() => [props.project.currentStage, canLoadReadiness.value], () => {
+  if (props.selection?.kind === 'stage') void loadReadiness()
+})
 onBeforeUnmount(() => {
   ++sequence
   tasks.reset()
