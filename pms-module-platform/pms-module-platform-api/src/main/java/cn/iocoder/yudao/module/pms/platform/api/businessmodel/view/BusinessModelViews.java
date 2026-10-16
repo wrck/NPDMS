@@ -1,5 +1,6 @@
 package cn.iocoder.yudao.module.pms.platform.api.businessmodel.view;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Features;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.*;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.*;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.OperationEntryKind;
@@ -95,7 +96,17 @@ public abstract class BusinessModelViews {
     public record ModelDetailVO(String ownerModule, String entityType, String stableCode,
                                 String title, String viewCode, List<FieldVO> fields,
                                 List<OperationVO> operations,
-                                List<CapabilityVO> capabilities) {
+                                List<CapabilityVO> capabilities, Features features, Long formRevisionId) {
+
+        public ModelDetailVO(String ownerModule,String entityType,String stableCode,String title,String viewCode,
+                             List<FieldVO> fields,List<OperationVO> operations,List<CapabilityVO> capabilities,Features features) {
+            this(ownerModule,entityType,stableCode,title,viewCode,fields,operations,capabilities,features,null);
+        }
+
+        public ModelDetailVO(String ownerModule,String entityType,String stableCode,String title,String viewCode,
+                             List<FieldVO> fields,List<OperationVO> operations,List<CapabilityVO> capabilities) {
+            this(ownerModule,entityType,stableCode,title,viewCode,fields,operations,capabilities,new Features(false,false));
+        }
 
         public static ModelDetailVO of(BusinessModelDescriptor descriptor, EntityActor actor,
                                 BusinessAccessGuard guard) {

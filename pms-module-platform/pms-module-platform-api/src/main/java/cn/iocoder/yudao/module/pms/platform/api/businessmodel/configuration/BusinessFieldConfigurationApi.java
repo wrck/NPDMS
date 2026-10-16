@@ -12,11 +12,15 @@ public interface BusinessFieldConfigurationApi {
             this(code,label,displayOrder,listVisible,searchable,sortable,null,null);
         }
     }
-    record Named(String key,String name,List<Field> fields,Long formRevisionId) {
+    /** Optional shared panels only; native domain requirements and authorizations remain authoritative. */
+    record Features(boolean attachments,boolean approvals) { }
+    record Named(String key,String name,List<Field> fields,Long formRevisionId,Features features) {
         public Named { fields=fields==null?List.of():List.copyOf(fields); }
+        public Named(String key,String name,List<Field> fields,Long formRevisionId){this(key,name,fields,formRevisionId,null);}
     }
-    record Configuration(long version,List<Field> fields,List<Named> profiles,String defaultProfile) {
-        public Configuration { fields=List.copyOf(fields);profiles=profiles==null?List.of():List.copyOf(profiles); }
+    record Configuration(long version,List<Field> fields,List<Named> profiles,String defaultProfile,Features features) {
+        public Configuration { fields=List.copyOf(fields);profiles=profiles==null?List.of():List.copyOf(profiles);features=features==null?new Features(false,false):features; }
+        public Configuration(long version,List<Field> fields,List<Named> profiles,String defaultProfile){this(version,fields,profiles,defaultProfile,null);}
         public Configuration(long version,List<Field> fields){this(version,fields,List.of(),null);}
     }
     Configuration read(Identity identity,EntityActor actor);

@@ -16,6 +16,37 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class BusinessListConfigurationTest {
+    @Test void configurationHttpBodyPassesFeatureFlagsToTheSharedService() {
+        @SuppressWarnings("unchecked") ProjectBusinessService<Note> service=mock(ProjectBusinessService.class);
+        var controller=new ProjectBusinessController<ProjectBusinessService<Note>,Note>() { };
+        controller.service=service;
+        var body=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject("""
+                {"version":3,"fields":[],"profiles":[],"features":{"attachments":true,"approvals":false}}
+                """,ProjectBusinessController.FieldConfigurationWrite.class);
+        controller.saveFieldConfiguration(body);
+        verify(service).saveFieldConfiguration(argThat(configuration->configuration.version()==3 && configuration.features().attachments() && !configuration.features().approvals()));
+        when(service.fieldConfiguration()).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(4,List.of(),List.of(),null,
+                new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Features(true,true)));
+        controller.saveFieldConfiguration(new ProjectBusinessController.FieldConfigurationWrite(4,List.of(),List.of(),null));
+        verify(service).saveFieldConfiguration(argThat(configuration->configuration.version()==4 && configuration.features().attachments() && configuration.features().approvals()));
+    }
+    @Test void optionalPanelsDefaultToOffAndNamedConfigurationsStayIndependent() {
+        var model=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews.ModelDetailVO("IT","note","NOTE","Note",null,List.of(),List.of(),List.of());
+        var empty=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of());
+        var defaultView=BusinessFieldConfigurations.apply(model,empty);
+        assertFalse(defaultView.features().attachments());assertFalse(defaultView.features().approvals());
+        var attachments=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Features(true,false);
+        var approvals=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Features(false,true);
+        var profile=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Named("approval","审批",List.of(),91L,approvals);
+        var inherited=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Named("inherited","继承",List.of(),null);
+        var settings=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(2,List.of(),List.of(profile,inherited),"approval",attachments);
+        assertEquals(approvals,BusinessFieldConfigurations.apply(model,settings).features());
+        assertEquals(91L,BusinessFieldConfigurations.apply(model,settings).formRevisionId());
+        assertNull(BusinessFieldConfigurations.apply(model,settings,"").formRevisionId());
+        assertEquals(attachments,BusinessFieldConfigurations.apply(model,settings,"").features());
+        assertEquals(attachments,BusinessFieldConfigurations.apply(model,settings,"inherited").features());
+        assertEquals(attachments,settings.features());
+    }
     public static class Parent extends BaseProjectBusinessEntity {
         @BusinessModelField(displayOrder=10) @TableField("display_title") String title;
         @BusinessModelField(readable=false) String secret;

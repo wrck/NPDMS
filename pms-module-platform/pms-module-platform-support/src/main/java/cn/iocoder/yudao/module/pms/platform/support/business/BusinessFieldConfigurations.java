@@ -36,7 +36,9 @@ public final class BusinessFieldConfigurations {
     }
     public static BusinessModelViews.ModelDetailVO apply(BusinessModelViews.ModelDetailVO model,BusinessFieldConfigurationApi.Configuration settings,String selected){
         String key=selected==null?settings.defaultProfile():selected;
-        var overrides=key==null || key.isBlank()?settings.fields():settings.profiles().stream().filter(profile->profile.key().equals(key)).findFirst().orElseThrow(()->invalid("Named configuration is unavailable")).fields();
+        var profile=key==null || key.isBlank()?null:settings.profiles().stream().filter(value->value.key().equals(key)).findFirst().orElseThrow(()->invalid("Named configuration is unavailable"));
+        var overrides=profile==null?settings.fields():profile.fields();
+        var features=profile==null || profile.features()==null?settings.features():profile.features();
         var configured=new HashMap<String,BusinessFieldConfigurationApi.Field>();overrides.forEach(field->configured.put(field.code(),field));
         var fields=model.fields().stream().map(field->{
             var setting=configured.get(field.code());if(setting==null)return field;
@@ -45,7 +47,8 @@ public final class BusinessFieldConfigurations {
                     field.searchable()&&!Boolean.FALSE.equals(setting.searchable()),field.sortable()&&!Boolean.FALSE.equals(setting.sortable()),field.children(),
                     field.readable()&&!Boolean.FALSE.equals(setting.formVisible()),field.readable()&&!Boolean.FALSE.equals(setting.tabVisible()));
         }).sorted(Comparator.comparingInt(BusinessModelViews.FieldVO::displayOrder)).toList();
-        return new BusinessModelViews.ModelDetailVO(model.ownerModule(),model.entityType(),model.stableCode(),model.title(),model.viewCode(),fields,model.operations(),model.capabilities());
+        return new BusinessModelViews.ModelDetailVO(model.ownerModule(),model.entityType(),model.stableCode(),model.title(),model.viewCode(),fields,model.operations(),model.capabilities(),features,
+                profile == null ? null : profile.formRevisionId());
     }
     private static BusinessContractException invalid(String message){return new BusinessContractException("FIELD_CONFIGURATION_INVALID",message);}
 }

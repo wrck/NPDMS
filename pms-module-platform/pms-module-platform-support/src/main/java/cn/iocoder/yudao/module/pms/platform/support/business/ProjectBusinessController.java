@@ -30,11 +30,19 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
     public record MaterialEdit(@NotNull @PositiveOrZero Long version, @NotBlank @Size(max=255) String title) { }
 
     public record FieldConfigurationWrite(@Min(0) long version,@NotNull java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field> fields,
-            java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Named> profiles,String defaultProfile) { }
+            java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Named> profiles,String defaultProfile,
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Features features) {
+        public FieldConfigurationWrite(long version,java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field> fields,
+                java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Named> profiles,String defaultProfile){this(version,fields,profiles,defaultProfile,null);}
+    }
     @GetMapping("/field-configuration/defaults") public CommonResult<BusinessModelViews.ModelDetailVO> fieldDefaults(){return success(service.configurationModel(false));}
     @GetMapping("/field-configuration") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration> fieldConfiguration(){return success(service.fieldConfiguration());}
     @PutMapping("/field-configuration") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration> saveFieldConfiguration(@Valid @RequestBody FieldConfigurationWrite request){
-        return success(request.profiles()==null?service.saveFieldConfiguration(request.version(),request.fields()):service.saveFieldConfiguration(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(request.version(),request.fields(),request.profiles(),request.defaultProfile())));
+        if(request.profiles()==null && request.features()==null)return success(service.saveFieldConfiguration(request.version(),request.fields()));
+        var previous=request.profiles()==null || request.features()==null?service.fieldConfiguration():null;
+        return success(service.saveFieldConfiguration(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(
+                request.version(),request.fields(),request.profiles()==null?previous.profiles():request.profiles(),
+                request.profiles()==null?previous.defaultProfile():request.defaultProfile(),request.features()==null?previous.features():request.features())));
     }
     @GetMapping("/model") public CommonResult<BusinessModelViews.ModelDetailVO> model(@RequestParam(required=false) String configurationName) { return success(service.model(configurationName)); }
     @PostMapping("/initialization") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.Page> initialize(

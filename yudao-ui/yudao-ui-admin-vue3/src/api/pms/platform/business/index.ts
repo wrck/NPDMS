@@ -1,5 +1,6 @@
 import request from '@/config/axios'
-import type { BusinessEntityData, BusinessEntityFormData, BusinessOperationReceipt, ModelDetailVO, FieldFilter } from '../businessmodel'
+import type { BusinessEntityData, BusinessEntityFormData, BusinessOperationReceipt, ModelDetailVO, FieldFilter, BusinessFeatures } from '../businessmodel'
+export type { BusinessFeatures } from '../businessmodel'
 import type { DeliveryRecord, DeliveryScope } from '../businessmodel/delivery'
 import { createAccessTicket, type FileBusinessKey } from '../file'
 
@@ -12,8 +13,8 @@ export interface DirectBusinessRevision {
 }
 export interface RevisionFieldValue {readable:boolean;value:unknown}
 export interface BusinessFieldSetting { code: string; label?: string; displayOrder?: number; listVisible?: boolean; searchable?: boolean; sortable?: boolean; formVisible?:boolean; tabVisible?:boolean }
-export interface BusinessNamedConfiguration {key:string;name:string;fields:BusinessFieldSetting[];formRevisionId?:BusinessId}
-export interface BusinessFieldConfiguration { version: number; fields: BusinessFieldSetting[]; profiles?:BusinessNamedConfiguration[];defaultProfile?:string }
+export interface BusinessNamedConfiguration {key:string;name:string;fields:BusinessFieldSetting[];formRevisionId?:BusinessId;features?:BusinessFeatures}
+export interface BusinessFieldConfiguration { version: number; fields: BusinessFieldSetting[]; profiles?:BusinessNamedConfiguration[];defaultProfile?:string;features?:BusinessFeatures }
 export interface BusinessSort { fieldCode: string; direction: 'ASC' | 'DESC' }
 export interface BusinessPage { list: BusinessEntityData[]; total: number }
 export interface ProjectBusinessRecordFormData extends BusinessEntityFormData { entity: BusinessEntityData }

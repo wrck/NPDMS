@@ -34,6 +34,21 @@ class BusinessFieldConfigurationServiceTest {
         when(mapper.selectConfiguration(any())).thenReturn(row);
         when(mapper.updateConfiguration(any())).thenReturn(1);
     }
+    @Test void oldSavedConfigurationDefaultsOffAndFeatureSettingsSurvivePersistenceAndReread() {
+        assertEquals(new Features(false,false),service.read(identity,actor).features());
+        var configured=new Configuration(3,List.of(),List.of(new Named("approval","审批",List.of(),null,new Features(false,true))),"approval",new Features(true,false));
+        var saved=service.save(identity,actor,configured);
+        var update=org.mockito.ArgumentCaptor.forClass(BusinessFieldConfigurationMapper.Save.class);
+        verify(mapper).updateConfiguration(update.capture());
+        var persisted=JsonUtils.parseObject(update.getValue().fieldsJson(),Configuration.class);
+        assertEquals(3L,update.getValue().expectedVersion());assertEquals(configured.features(),persisted.features());
+        assertEquals(configured.profiles(),persisted.profiles());row.setFieldsJson(update.getValue().fieldsJson());
+        row.setVersion(4L);
+        assertEquals(saved,service.read(identity,actor));
+        service.save(identity,actor,4,List.of());
+        verify(mapper).updateConfiguration(argThat(value->value.expectedVersion()==4
+                && JsonUtils.parseObject(value.fieldsJson(),Configuration.class).features().attachments()));
+    }
     @Test void configurationPermissionAndVersionConflictStillRejectChanges() {
         when(mapper.updateConfiguration(any())).thenReturn(0);
         assertThrows(BusinessContractException.class,()->service.save(identity,actor,new Configuration(3,List.of())));

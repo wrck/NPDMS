@@ -11,6 +11,26 @@ const column=defineComponent({setup:(_,{slots})=>{const rows=inject<()=>any[]>('
 const input=defineComponent({props:['modelValue'],emits:['update:modelValue'],setup:(props,{emit})=>()=>h('input',{value:props.modelValue,onChange:(value:unknown)=>emit('update:modelValue',value)})})
 const dialog=defineComponent({props:['modelValue'],setup:(props,{slots})=>()=>props.modelValue?h('dialog',[slots.default?.(),slots.footer?.()]):null})
 const checkbox=defineComponent({props:['modelValue','disabled'],emits:['update:modelValue'],setup:(props,{emit,slots})=>()=>h('check',{value:props.modelValue,disabled:props.disabled,onChange:(value:boolean)=>emit('update:modelValue',value)},slots.default?.())})
+it('keeps base and copied feature choices independent and preserves them after CAS rejection',async()=>{
+ const api={base:'/test',fieldDefaults:vi.fn(async()=>({fields:[]})),fieldConfiguration:vi.fn(async()=>({version:7,fields:[],profiles:[]})),saveFieldConfiguration:vi.fn().mockRejectedValueOnce(new Error('version conflict')).mockResolvedValue({version:8})}
+ const view=mount(Configuration,{api},{ElDialog:dialog,ElTable:table,ElTableColumn:column,ElInput:input,ElInputNumber:input,ElSelect:input,ElCheckbox:checkbox})
+ const click=async(label:string)=>{const node=all(view.root).find(item=>item.type==='button'&&textOf(item)===label);expect(node,`Missing button: ${label}`).toBeDefined();await(node!.props!.onClick as Function)();await flush()}
+ const feature=(label:string)=>{const node=all(view.root).find(item=>item.type==='check'&&textOf(item)===label);expect(node,`Missing feature: ${label}`).toBeDefined();return node!}
+ const change=async(node:TestNode,value:unknown)=>{(node.props!.onChange as Function)(value);await flush()}
+ try{
+  await click('字段配置')
+  expect(feature('启用通用附件').props?.value).toBe(false);expect(feature('启用独立业务审批').props?.value).toBe(false)
+  await change(feature('启用通用附件'),true);await click('复制为新配置')
+  expect(feature('启用通用附件').props?.value).toBe(true);expect(feature('启用独立业务审批').props?.value).toBe(false)
+  await change(feature('启用通用附件'),false);await change(feature('启用独立业务审批'),true)
+  await click('保存配置')
+  expect(api.saveFieldConfiguration).toHaveBeenCalledWith(expect.objectContaining({version:7,features:{attachments:true,approvals:false},profiles:[expect.objectContaining({features:{attachments:false,approvals:true}})]}))
+  expect(textOf(view.root)).toContain('version conflict');expect(feature('启用独立业务审批').props?.value).toBe(true)
+  const selected=all(view.root).find(node=>node.type==='input'&&node.props?.['aria-label']==='命名配置')!
+  await change(selected,'');expect(feature('启用通用附件').props?.value).toBe(true);expect(feature('启用独立业务审批').props?.value).toBe(false)
+  await click('保存配置');expect(api.saveFieldConfiguration.mock.calls[1][0]).toMatchObject({version:7,features:{attachments:true,approvals:false}})
+ }finally{view.app.unmount()}
+})
 it('saves the inherited configuration with CAS and keeps rejected edits for correction',async()=>{
  const api={base:'/test',fieldDefaults:vi.fn(async()=>({fields:[{code:'title',name:'Title',readable:true,writable:true,displayOrder:0,listVisible:true,searchable:true,sortable:true}]})),fieldConfiguration:vi.fn(async()=>({version:3,fields:[{code:'title',label:null,displayOrder:null,listVisible:null,searchable:null,sortable:null}]})),saveFieldConfiguration:vi.fn().mockRejectedValueOnce(new Error('version conflict')).mockResolvedValue({version:4,fields:[]})}
  const changed=vi.fn(),mounted=mount(Configuration,{api,onChanged:changed},{ElDialog:dialog,ElTable:table,ElTableColumn:column,ElInput:input,ElInputNumber:input,ElCheckbox:passthrough})
@@ -22,7 +42,7 @@ it('saves the inherited configuration with CAS and keeps rejected edits for corr
   confirm.mockRejectedValueOnce(new Error('cancel'));expect(await (mounted.vm as any).requestLeave()).toBe(false)
   confirm.mockResolvedValueOnce(undefined);expect(await (mounted.vm as any).requestLeave()).toBe(true)
   await click('保存配置')
-  expect(api.saveFieldConfiguration).toHaveBeenLastCalledWith({version:3,profiles:[],fields:[{code:'title',label:'Configured title',displayOrder:0,listVisible:true,searchable:true,sortable:true,formVisible:true,tabVisible:true}]})
+  expect(api.saveFieldConfiguration).toHaveBeenLastCalledWith({version:3,profiles:[],features:{attachments:false,approvals:false},fields:[{code:'title',label:'Configured title',displayOrder:0,listVisible:true,searchable:true,sortable:true,formVisible:true,tabVisible:true}]})
   expect(textOf(mounted.root)).toContain('version conflict');expect(changed).not.toHaveBeenCalled()
   expect(all(mounted.root).some(node=>node.props?.value==='Configured title')).toBe(true)
   await click('保存配置');expect(changed).toHaveBeenCalledTimes(1);expect(all(mounted.root).some(node=>node.type==='dialog')).toBe(false)

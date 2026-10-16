@@ -63,7 +63,11 @@ export interface ModelDetailVO {
   fields: FieldVO[]
   operations: OperationVO[]
   capabilities: CapabilityVO[]
+  features?: BusinessFeatures
+  formRevisionId?: string | number
 }
+
+export interface BusinessFeatures { attachments: boolean; approvals: boolean }
 
 export type FilterOperator = 'EQ' | 'NE' | 'GT' | 'GTE' | 'LT' | 'LTE' | 'LIKE' | 'IN'
 

@@ -30,12 +30,12 @@ public class BusinessFieldConfigurationService implements BusinessFieldConfigura
         if(row==null)return new Configuration(0,List.of());
         if(row.getFieldsJson().stripLeading().startsWith("["))return new Configuration(row.getVersion(),JsonUtils.parseArray(row.getFieldsJson(),Field.class));
         var saved=JsonUtils.parseObject(row.getFieldsJson(),Configuration.class);
-        return new Configuration(row.getVersion(),saved.fields(),saved.profiles(),saved.defaultProfile());
+        return new Configuration(row.getVersion(),saved.fields(),saved.profiles(),saved.defaultProfile(),saved.features());
     }
     @Override @Transactional(rollbackFor=Exception.class)
     public Configuration save(Identity identity,EntityActor actor,long expectedVersion,List<Field> fields){
         var existing=read(identity,actor);
-        return save(identity,actor,new Configuration(expectedVersion,fields,existing.profiles(),existing.defaultProfile()));
+        return save(identity,actor,new Configuration(expectedVersion,fields,existing.profiles(),existing.defaultProfile(),existing.features()));
     }
     @Override @Transactional(rollbackFor=Exception.class)
     public Configuration save(Identity identity,EntityActor actor,Configuration configuration){
@@ -43,7 +43,7 @@ public class BusinessFieldConfigurationService implements BusinessFieldConfigura
         long expectedVersion=configuration.version();var fields=configuration.fields();
         if(expectedVersion<0)throw denied("Invalid configuration version");
         var row=mapper.selectConfiguration(new BusinessFieldConfigurationMapper.Query(actor.tenantId(),identity.ownerModule(),identity.entityType()));
-        var saved=new Configuration(Math.incrementExact(expectedVersion),fields,configuration.profiles(),configuration.defaultProfile());
+        var saved=new Configuration(Math.incrementExact(expectedVersion),fields,configuration.profiles(),configuration.defaultProfile(),configuration.features());
         String json=JsonUtils.toJsonString(saved);var now=java.time.LocalDateTime.now();
         if(row==null){
             if(expectedVersion!=0)throw conflict();
