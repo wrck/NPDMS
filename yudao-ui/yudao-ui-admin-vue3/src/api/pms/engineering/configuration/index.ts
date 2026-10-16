@@ -37,7 +37,7 @@ export const completeConfiguration = (id: number) =>
 export const markAbnormalConfiguration = (id: number) =>
   request.put({ url: `${baseUrl}/mark-abnormal`, params: { id } })
 
-export const importConfigurationLog = (projectId: number, operationId: string, file: File) =>
+export const importConfigurationLog = (projectId: number | string, operationId: string, file: File) =>
   request.post<{ importId: number | string; configurationIds: (number | string)[] }>({
     url: '/api/v1/pms/configuration-log-imports',
     params: { projectId, operationId, fileName: file.name },

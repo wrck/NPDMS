@@ -20,6 +20,7 @@ export interface AcceptanceReportVersionVO {
   previousVersionId?: number; effectiveFrom?: number; effectiveTo?: number; uploaderUserId: number
   publisherUserId?: number; archiveStatus?: string; archiveFailureCode?: string; archiveRetryCount?: number
   attachments: ReportAttachmentVO[]
+  draftAttachmentCount?: number
 }
 export interface DraftContent {
   expectedReportVersionNo?: number; acceptanceTime?: number | string; conclusionCode?: string; conclusionText?: string; acceptorName?: string
