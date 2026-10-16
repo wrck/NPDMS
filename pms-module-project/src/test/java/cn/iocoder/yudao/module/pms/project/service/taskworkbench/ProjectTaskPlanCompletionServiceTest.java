@@ -63,6 +63,55 @@ class ProjectTaskPlanCompletionServiceTest {
         snapshot.setTasks(List.of(node)); rule("done","{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}");
         when(plans.selectEffective(any())).thenAnswer(call -> { plan.setExecutionSnapshot(JsonUtils.toJsonString(snapshot)); return plan; });
     }
+    @Test void jointDeliverableCanCompleteWithoutSubmissionButStillRequiresLiveFactStageExitAndGate() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
+        round.setSubmittedAt(null);
+        rule("done", "{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}");
+        var facts = spy((ProjectRuntimeRuleEvaluator) org.springframework.test.util.ReflectionTestUtils.getField(service, "facts"));
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "facts", facts);
+        for (var fact : List.of(RuleFact.known(false), RuleFact.unknown("FACT_UNAVAILABLE"), RuleFact.known(true))) {
+            doReturn(fact).when(facts).resolveFact(argThat(leaf -> "DELIVERABLE".equals(leaf.predicate())), any());
+            assertEquals(fact.equals(RuleFact.known(true)), service.evaluateAutomatically(project,task,binding).matched());
+        }
+        stage.setStatus("PENDING");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        stage.setStatus("ACTIVE");
+        snapshot.getTasks().getFirst().setExitRuleKey("exit");
+        rule("exit", "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":false}}");
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        snapshot.getTasks().getFirst().setExitRuleKey(null);
+        snapshot.getTasks().getFirst().setGateRef("joint-gate");
+        var waiting = new RuleEvaluation("joint-gate",RuleEvaluation.Outcome.NOT_MATCHED,"GATE_WAIT",List.of(),List.of(),List.of());
+        when(gateRules.evaluate(eq(9L),eq("joint-gate"),isNull(),anyString())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectGateRuleService.Result(waiting,null));
+        assertFalse(service.evaluateAutomatically(project,task,binding).matched());
+        assertNull(round.getSubmittedAt());
+        assertEquals("obsolete-binding-rule-must-not-be-read",binding.getCompletionRuleSnapshot());
+        verifyNoInteractions(business,executionApi);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {
+            "{\"predicate\":\"CONSTANT\",\"parameters\":{\"value\":true}}",
+            "{\"operator\":\"NOT\",\"rules\":[{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}]}",
+            "{\"operator\":\"ALL\",\"rules\":[{\"predicate\":\"TASK_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}},{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}]}"
+    })
+    void jointPageDoesNotWaiveSubmissionForOtherOrHistoricalRules(String expression) {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
+        round.setSubmittedAt(null); rule("done",expression);
+        assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED",service.evaluateAutomatically(project,task,binding).completion().reasonCode());
+    }
+
+    @Test void anotherPageCannotUseJointDeliverableSubmissionExemption() {
+        binding.setWorkBindingTypeCode("PAGE");
+        binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-configuration\"}");
+        round.setSubmittedAt(null);
+        rule("done", "{\"predicate\":\"DELIVERABLE\",\"parameters\":{\"refCode\":\"D_JOINT\"}}");
+        assertEquals("CURRENT_ROUND_SUBMISSION_REQUIRED",service.evaluateAutomatically(project,task,binding).completion().reasonCode());
+    }
+
     @Test void externalEndUserFactCompletesOnlyItsOwnPageAndKeepsStageAndExitGuards() {
         binding.setWorkBindingTypeCode("PAGE");
         binding.setBindingParameterSnapshot("{\"routePath\":\"/pms/project-management/project-master-detail\"}");

@@ -151,7 +151,11 @@ public class ProjectTaskPlanCompletionService {
         boolean endUserCompletion = ProjectEndUserCompletionCondition.memberPage(binding.getWorkBindingTypeCode(), binding.getBindingParameterSnapshot())
                 && ProjectEndUserCompletionCondition.automatic(completion);
         boolean closureCompletion = request.approval() != null && NormalClosureTaskCondition.approvedOnly(completion);
-        if (nativeWork && !contactCompletion && !endUserCompletion && !closureCompletion && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
+        boolean jointDeliverableCompletion = JointTestDeliverableCompletionCondition.jointTestPage(
+                binding.getWorkBindingTypeCode(), binding.getBindingParameterSnapshot())
+                && JointTestDeliverableCompletionCondition.automatic(completion);
+        if (nativeWork && !contactCompletion && !endUserCompletion && !closureCompletion && !jointDeliverableCompletion
+                && round.getSubmittedAt()==null) return unknown(reference,"CURRENT_ROUND_SUBMISSION_REQUIRED");
         List<TaskBusinessLinkFact> links = List.of();
         Map<String,Object> evidence = new LinkedHashMap<>();
         if (closureCompletion) evidence.put("normalClosureApproval", request.approval());

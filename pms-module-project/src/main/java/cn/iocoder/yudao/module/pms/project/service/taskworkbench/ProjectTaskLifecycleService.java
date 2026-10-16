@@ -342,6 +342,8 @@ public class ProjectTaskLifecycleService {
             return new AutomaticResult(false, false);
         var contract = requireCurrentContract(task, tenantId);
         boolean nativeWork = isNativeContract(contract);
+        boolean jointPage = cn.iocoder.yudao.module.pms.project.domain.rule.JointTestDeliverableCompletionCondition.jointTestPage(
+                contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot());
         if ((!isBusinessContract(contract) && !nativeWork && !"APPROVAL".equals(contract.getWorkBindingTypeCode())
                 && !"RESULT_SUBSCRIPTION".equals(contract.getWorkBindingTypeCode()))
                 || isAcceptanceContract(contract)) return new AutomaticResult(false, false);
@@ -349,8 +351,13 @@ public class ProjectTaskLifecycleService {
                 && !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectContactCompletionCondition.contactPage(
                         contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot())
                 && !cn.iocoder.yudao.module.pms.project.domain.rule.ProjectEndUserCompletionCondition.memberPage(
-                        contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot())) return new AutomaticResult(false, false);
+                        contract.getWorkBindingTypeCode(), contract.getBindingParameterSnapshot())
+                && !jointPage) return new AutomaticResult(false, false);
         var evaluated = planCompletion.evaluateAutomatically(project, task, contract);
+        // An unchanged manual rule is normal waiting, not a failed automatic command that needs Outbox retries.
+        if (jointPage && "IN_PROGRESS".equals(task.getStatus())
+                && "CURRENT_ROUND_SUBMISSION_REQUIRED".equals(evaluated.completion().reasonCode()))
+            return new AutomaticResult(false, false);
         var now = LocalDateTime.now();
         var decision = guardCompletion(evaluated, task, tenantId, now);
         if (!decision.satisfied()) return new AutomaticResult(false,

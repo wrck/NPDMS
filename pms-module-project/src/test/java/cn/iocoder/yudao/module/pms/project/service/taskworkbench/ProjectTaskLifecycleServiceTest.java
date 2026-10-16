@@ -598,14 +598,17 @@ class ProjectTaskLifecycleServiceTest {
     }
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "PENDING_ACCEPT,PAGE", "IN_PROGRESS,APPROVAL", "IN_PROGRESS,PAGE"})
+    @org.junit.jupiter.params.provider.CsvSource({"IN_PROGRESS,BUSINESS_OBJECT", "PENDING_ACCEPT,BUSINESS_OBJECT", "PENDING_ACCEPT,TASK_NATIVE", "PENDING_ACCEPT,PAGE", "IN_PROGRESS,APPROVAL", "IN_PROGRESS,PAGE", "IN_PROGRESS,JOINT_PAGE"})
     @SuppressWarnings("unchecked")
     void submittedOrBusinessResultCompletesThroughFrozenStateMachineOnceWithoutUserActions(String status, String bindingType) {
         cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
         try {
             var task = automaticTask(status);
             contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
-                    .setWorkBindingTypeCode(bindingType);
+                    .setWorkBindingTypeCode("JOINT_PAGE".equals(bindingType) ? "PAGE" : bindingType);
+            if ("JOINT_PAGE".equals(bindingType))
+                contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
+                        .setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
             if ("IN_PROGRESS".equals(status) && "PAGE".equals(bindingType))
                 contractMapper.selectCurrentByTaskIdForUpdate(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L))
                         .setBindingParameterSnapshot("{\"routePath\":\"/customer-asset/customer-contact\"}");
@@ -641,6 +644,31 @@ class ProjectTaskLifecycleServiceTest {
             task.setStatus("DONE");
             assertFalse(service.completeFromBusinessResult(100L, 11L, "duplicate-event").completed());
             verify(taskMapper, org.mockito.Mockito.times(1)).updateLifecycleIfMatch(any());
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"FACT_UNAVAILABLE", "CURRENT_ROUND_SUBMISSION_REQUIRED"})
+    void jointCompletionNeverWritesStateWhenCurrentPlanEvidenceIsUnavailable(String reason) {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(0L);
+        try {
+            var task = automaticTask("IN_PROGRESS");
+            var contract = contractMapper.selectCurrentByTaskIdForUpdate(
+                    new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.CurrentTaskExecutionContractLockQuery(0L,11L));
+            contract.setWorkBindingTypeCode("PAGE");
+            contract.setBindingParameterSnapshot("{\"routePath\":\"/pms/engineering/execution/imp-joint-test\"}");
+            var project = taskMapper.selectProjectForCommandForUpdate(
+                    new cn.iocoder.yudao.module.pms.project.dal.mysql.taskworkbench.query.ProjectTaskProjectLockQuery(0L,100L));
+            var unknown = new cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation("joint-plan",
+                    cn.iocoder.yudao.module.pms.project.domain.rule.RuleEvaluation.Outcome.UNKNOWN,reason,
+                    java.util.List.of(),java.util.List.of(),java.util.List.of());
+            when(businessEvaluator.evaluateAutomatically(project,task,contract)).thenReturn(new ProjectTaskPlanCompletionService.Result(
+                    unknown,unknown,java.util.Map.of("completion",unknown,"exit",unknown)));
+            var result = service.completeFromBusinessResult(100L,11L,"joint-fact-unavailable");
+            assertFalse(result.completed());
+            assertEquals("FACT_UNAVAILABLE".equals(reason),result.unknown());
+            verify(taskMapper,never()).updateLifecycleIfMatch(any());
+            org.mockito.Mockito.verifyNoInteractions(commandExecutionApi,stateMachineMapper);
         } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
     }
 
