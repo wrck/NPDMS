@@ -122,12 +122,11 @@ export const buildScheduleRows = (
 }
 
 /**
- * 阶段行安排检查：与后端提交校验（validateStageSequence + validateAcceptanceConstraints）
- * 同一套规则、同一文案口径——自身区间 → 工期基线窗口 → 串行边次序 → 计划验收时间，
- * 末位的「晚于建议最迟完成时间」为前端独有的提示性检查。
+ * 阶段提交校验：与后端 validateStageSequence + validateAcceptanceConstraints
+ * 保持一致，自身区间 → 工期基线窗口 → 串行边次序 → 计划验收时间。
  */
-export const stageItemIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) => {
-  const { planStart, planEnd, suggestedEnd } = item
+export const stageItemBlockingIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) => {
+  const { planStart, planEnd } = item
   if (!planStart && !planEnd) return '待安排日期'
   if (!planStart || !planEnd) return '请同时填写开始和结束日期'
   if (planEnd < planStart) return '计划结束时间早于计划开始时间'
@@ -150,9 +149,15 @@ export const stageItemIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) =
   )
   if (acceptance && planEnd > String(acceptance.acceptanceTime).slice(0, 10))
     return '计划结束不得晚于计划验收时间'
-  if (suggestedEnd && planEnd > suggestedEnd) return '晚于建议最迟完成时间'
   return ''
 }
+
+/** 建议日期只提示，不阻止符合工期、次序和验收约束的计划提交。 */
+export const stageItemIssue = (item: StagePlanItemVO, plan?: StagePlanBatchVO) =>
+  stageItemBlockingIssue(item, plan) ||
+  (item.suggestedEnd && item.planEnd && item.planEnd > item.suggestedEnd
+    ? '晚于建议最迟完成时间'
+    : '')
 
 const parseCalculationInput = (plan?: StagePlanBatchVO) => {
   try {

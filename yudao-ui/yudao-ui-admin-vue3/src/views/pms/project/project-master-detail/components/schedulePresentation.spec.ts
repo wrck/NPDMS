@@ -4,6 +4,7 @@ import {
   deadlineHint,
   taskPlanIssue,
   stageItemIssue,
+  stageItemBlockingIssue,
   fitTaskPlanIntoStage,
   buildScheduleRows,
   scheduleRange,
@@ -12,6 +13,13 @@ import {
 } from './schedulePresentation'
 
 describe('施工计划展示与安排检查', () => {
+  it('建议日期保留提示但不阻止符合基线的提交，越界仍阻止', () => {
+    const stage = { planStart: '2026-10-01', planEnd: '2026-10-10', suggestedEnd: '2026-06-08' }
+    const plan = { baselineStart: '2026-10-01', baselineEnd: '2026-10-31', items: [stage] }
+    expect(stageItemIssue(stage, plan)).toBe('晚于建议最迟完成时间')
+    expect(stageItemBlockingIssue(stage, plan)).toBe('')
+    expect(stageItemBlockingIssue({ ...stage, planEnd: '2026-11-01' }, plan)).toContain('超出工期基线窗口')
+  })
   it('区分短工期和临近截止，不把未来短工期说成即将到期', () => {
     expect(shortPlan({ baselineStart: '2027-06-01', baselineEnd: '2027-06-30', items: [] })).toBe(
       true

@@ -349,6 +349,21 @@ it('submits the first plan without a reason and keeps reason entry out of the da
   } finally { app.app.unmount() }
 })
 
+it('allows submission within the baseline when an advisory suggested date has passed', async () => {
+  vi.mocked(PlanApi.getStagePlanBatch).mockImplementation(async (id) => {
+    const value = id === 7 ? structuredClone(effective) : draft()
+    return { ...value, items: value.items.map((item) => ({ ...item, suggestedEnd: '2026-06-08' })) }
+  })
+  const app = render()
+  try {
+    await flush()
+    app.state.approverId = 9
+    vi.mocked(PlanApi.submitStagePlanBatch).mockResolvedValue(draft() as any)
+    await app.state.submit()
+    expect(PlanApi.submitStagePlanBatch).toHaveBeenCalledWith(8, 9, undefined)
+  } finally { app.app.unmount() }
+})
+
 it('collects a fresh adjustment reason in the submission dialog without making dates dirty', async () => {
   const app = render()
   try {
