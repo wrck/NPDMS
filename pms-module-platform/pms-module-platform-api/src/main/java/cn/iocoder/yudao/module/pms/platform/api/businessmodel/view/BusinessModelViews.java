@@ -99,14 +99,23 @@ public abstract class BusinessModelViews {
 
         public static ModelDetailVO of(BusinessModelDescriptor descriptor, EntityActor actor,
                                 BusinessAccessGuard guard) {
+            List<OperationVO> operations = descriptor.operations().stream()
+                    .map(operation -> executableOf(descriptor, operation, actor, guard))
+                    .toList();
+            return withOperations(descriptor, operations);
+        }
+
+        /** List validation needs field metadata, without evaluating write-button availability. */
+        public static ModelDetailVO forQuery(BusinessModelDescriptor descriptor) {
+            return withOperations(descriptor, List.of());
+        }
+
+        private static ModelDetailVO withOperations(BusinessModelDescriptor descriptor, List<OperationVO> operations) {
             List<FieldVO> fields = descriptor.fields().stream()
                     .filter(field -> field.readable() || field.writable())
                     .map(field -> new FieldVO(field.code(), field.name(), field.type().name(),
                             field.required(), field.readable(), field.writable(),field.displayOrder(),field.listVisible(),field.searchable(),field.sortable()))
                     .sorted(java.util.Comparator.comparingInt(FieldVO::displayOrder))
-                    .toList();
-            List<OperationVO> operations = descriptor.operations().stream()
-                    .map(operation -> executableOf(descriptor, operation, actor, guard))
                     .toList();
             List<CapabilityVO> capabilities = descriptor.capabilities().stream()
                     .map(capability -> new CapabilityVO(capability.type().name(), capability.configRef(),

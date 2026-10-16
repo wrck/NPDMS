@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBu
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.BusinessEventPort;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.*;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.*;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi;
 import cn.iocoder.yudao.module.pms.platform.api.entity.*;
 import cn.iocoder.yudao.module.pms.platform.support.entity.BaseProjectBusinessEntity;
 import cn.iocoder.yudao.module.pms.platform.support.service.*;
@@ -118,7 +119,7 @@ class DirectBusinessInheritanceTest {
         context.registerBean(NoteMapper.class,()->notes);context.registerBean(OtherMapper.class,()->others);context.registerBean(SpecialMapper.class,()->specials);
         context.register(NoteService.class,OtherService.class,SpecialService.class,NoteController.class,OtherController.class);context.refresh();
     }
-    @AfterEach void close() { if(context!=null)context.close(); }
+    @AfterEach void close() { if(context!=null)context.close();cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
     @Test void twoEmptyBusinessClassesInheritWithoutCatalogContributorOrDispatcher() {
         var first=context.getBean(NoteService.class);var second=context.getBean(OtherService.class);
         var a=first.create(first.input(Map.of("projectId",99,"title","First")),"first-create");
@@ -175,6 +176,178 @@ class DirectBusinessInheritanceTest {
         assertEquals("Other text",second.model().fields().stream().filter(field->field.code().equals("description")).findFirst().orElseThrow().name());
         assertEquals(0,NoteService.class.getDeclaredMethods().length);assertEquals(0,OtherService.class.getDeclaredMethods().length);
     }
+    @Test void modelBuildsOperationPermissionsOnceAndConfigurationReadDoesNotBuildThem(){
+        var service=context.getBean(NoteService.class);
+        service.model();
+        for(var operation:service.definition().operations())
+            verify(permissions).requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:"+operation.code());
+        clearInvocations(permissions);
+        service.fieldConfiguration();
+        verify(permissions).requireReadable(service.definition(),new EntityActor(7L,42L,null),"detail");
+        verify(permissions,never()).requireWritable(any(),any(),any());
+        doThrow(new BusinessContractException("ACCESS_DENIED","read denied")).when(permissions).requireReadable(any(),any(),any());
+        assertThrows(BusinessContractException.class,service::fieldConfiguration);
+        assertThrows(BusinessContractException.class,service::model);
+    }
+    @Test void inheritedModelChecksEachDisplayPolicyOnceButCommandsAndNextModelCheckAgain(){
+        var service=context.getBean(NoteService.class);var previous=service.defaults;
+        var common=mock(cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi.class);
+        when(common.hasAnyPermissions(eq(42L),anyString())).thenReturn(true);
+        var guard=new BusinessPermissions(common,previous.callers());
+        service.defaults=new BusinessDefaults(previous.callers(),guard,previous.projects(),previous.validator(),previous.transactions(),
+                previous.journal(),previous.audit(),previous.events(),previous.deletionGuards(),previous.deliveries());
+        assertTrue(service.model().operations().stream().allMatch(cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews.OperationVO::executable));
+        verify(common).hasAnyPermissions(42L,"it:direct-note:update");
+        clearInvocations(common);
+        when(common.hasAnyPermissions(42L,"it:direct-note:update")).thenReturn(false);
+        var next=service.model();
+        for(String code:List.of("save","save-form")){
+            var operation=next.operations().stream().filter(item->item.code().equals(code)).findFirst().orElseThrow();
+            assertFalse(operation.executable());assertEquals("Business permission denied",operation.reason());
+        }
+        verify(common).hasAnyPermissions(42L,"it:direct-note:update");
+        clearInvocations(common);
+        assertThrows(BusinessContractException.class,()->guard.requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:save"));
+        assertThrows(BusinessContractException.class,()->guard.requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:save"));
+        verify(common,times(2)).hasAnyPermissions(42L,"it:direct-note:update");
+        when(common.hasAnyPermissions(42L,"it:direct-note:update")).thenReturn(true);
+        clearInvocations(common);var display=guard.forOperationDisplay();
+        display.requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:save");
+        assertThrows(BusinessContractException.class,()->display.requireWritable(service.definition(),new EntityActor(7L,43L,null),"operation:save"));
+        assertThrows(BusinessContractException.class,()->display.requireWritable(service.definition(),new EntityActor(8L,42L,null),"operation:save"));
+        assertThrows(BusinessContractException.class,()->display.requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:missing"));
+        verify(common).hasAnyPermissions(42L,"it:direct-note:update");verifyNoMoreInteractions(common);
+    }
+    @Test void operationDisplayUsesOneBatchAndCommandsStillCheckCurrentIndividualPermissions(){
+        var service=context.getBean(NoteService.class);var previous=service.defaults;
+        var common=mock(cn.iocoder.yudao.framework.common.biz.system.permission.PermissionCommonApi.class,
+                withSettings().extraInterfaces(cn.iocoder.yudao.framework.common.biz.system.permission.PermissionBatchQueryApi.class));
+        var batches=(cn.iocoder.yudao.framework.common.biz.system.permission.PermissionBatchQueryApi)common;
+        when(common.hasAnyPermissions(eq(42L),anyString())).thenReturn(true);
+        when(batches.queryPermissions(eq(42L),anySet())).thenAnswer(call->{
+            Set<String> codes=call.getArgument(1);var result=new HashMap<String,Boolean>();
+            codes.forEach(code->result.put(code,!code.equals("it:direct-note:update")));return result;
+        });
+        var guard=new BusinessPermissions(common,previous.callers());
+        service.defaults=new BusinessDefaults(previous.callers(),guard,previous.projects(),previous.validator(),previous.transactions(),
+                previous.journal(),previous.audit(),previous.events(),previous.deletionGuards(),previous.deliveries());
+        var view=service.model();
+        assertFalse(view.operations().stream().filter(op->op.code().equals("save")).findFirst().orElseThrow().executable());
+        assertTrue(view.operations().stream().filter(op->op.code().equals("create")).findFirst().orElseThrow().executable());
+        verify(batches).queryPermissions(eq(42L),argThat(codes->codes.contains("it:direct-note:update")&&codes.contains("it:direct-note:create")));
+        verify(common,never()).hasAnyPermissions(42L,"it:direct-note:update");
+        when(batches.queryPermissions(eq(42L),anySet())).thenReturn(Map.of());
+        assertTrue(service.model().operations().stream().noneMatch(cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews.OperationVO::executable));
+        verify(batches,times(2)).queryPermissions(eq(42L),anySet());
+        clearInvocations(common);
+        when(common.hasAnyPermissions(42L,"it:direct-note:update")).thenReturn(false);
+        assertThrows(BusinessContractException.class,()->guard.requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:save"));
+        verify(common).hasAnyPermissions(42L,"it:direct-note:update");
+        verify(batches,never()).queryPermissions(any(),anySet());
+        var display=guard.forOperationDisplay();
+        assertThrows(BusinessContractException.class,()->display.requireWritable(service.definition(),new EntityActor(8L,42L,null),"operation:save"));
+        assertThrows(BusinessContractException.class,()->display.requireWritable(service.definition(),new EntityActor(7L,43L,null),"operation:save"));
+        verify(batches,never()).queryPermissions(any(),anySet());
+    }
+    private Note runtimeNote(long id,long project,String title){
+        var row=new Note();row.setId(id);row.setTenantId(7L);row.setProjectId(project);row.setVersion(0L);row.setTitle(title);
+        noteRows.put(id,row);return row;
+    }
+    @Test void pageChecksReadScopeWithoutCalculatingWriteButtonAvailability(){
+        var service=context.getBean(NoteService.class);var row=runtimeNote(11L,99L,"Visible");
+        var configurations=mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);
+        when(configurations.read(any(),any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of()));
+        context.getBeanFactory().registerSingleton("fieldConfigurations",configurations);
+        when(notes.selectBusinessPage(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(row),1L));
+        var query=new BusinessPageQuery();query.setProjectId(99L);
+        assertEquals(List.of(row),service.page(query).getList());
+        verify(permissions).requireReadable(service.definition(),new EntityActor(7L,42L,null),"list");
+        verify(permissions,atLeastOnce()).requireReadable(service.definition(),new EntityActor(7L,42L,null),"detail");
+        verify(permissions,never()).requireWritable(any(),any(),any());
+        verify(notes).selectBusinessPage(argThat(read->read.tenantId().equals(7L)&&read.projectIds().equals(Set.of(99L))));
+        verify(projects).requireReadable(99L,new EntityActor(7L,42L,null));
+        verifyNoInteractions(configurations);
+        clearInvocations(notes);
+        doThrow(new BusinessContractException("ACCESS_DENIED","read revoked")).when(permissions).requireReadable(any(),any(),any());
+        assertThrows(BusinessContractException.class,()->service.page(query));
+        verifyNoInteractions(notes);
+    }
+    @Test void pageKeepsNamedFieldRestrictionsAndEmptyScopeProtection(){
+        var service=context.getBean(NoteService.class);
+        var api=mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);
+        var restricted=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field("title","Title",0,true,false,false);
+        var profile=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Named("restricted","Restricted",List.of(restricted),null);
+        when(api.read(any(),any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(1,List.of(),List.of(profile),null));
+        context.getBeanFactory().registerSingleton("fieldConfigurations",api);
+        var query=new BusinessPageQuery();query.setConfigurationName("restricted");
+        query.setFilters(List.of(new BusinessFieldFilter("title",BusinessFieldFilter.Operator.EQ,List.of("hidden probe"))));
+        assertEquals("FILTER_FIELD_FORBIDDEN",assertThrows(BusinessContractException.class,()->service.page(query)).getErrorCode());
+        query.setFilters(null);query.setSorts(List.of(new BusinessPageQuery.Sort("title",BusinessPageQuery.Direction.ASC)));
+        assertEquals("SORT_FIELD_FORBIDDEN",assertThrows(BusinessContractException.class,()->service.page(query)).getErrorCode());
+        query.setSorts(null);query.setConfigurationName("missing");
+        assertEquals("FIELD_CONFIGURATION_INVALID",assertThrows(BusinessContractException.class,()->service.page(query)).getErrorCode());
+        query.setConfigurationName("restricted");when(projects.readableScopeIds(any())).thenReturn(Set.of());
+        assertEquals(0L,service.page(query).getTotal());
+        verifyNoInteractions(notes);
+    }
+    @Test void runtimeActionsDoNotReadFieldPresentationConfiguration(){
+        var service=context.getBean(NoteService.class);
+        var api=mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.class);
+        when(api.read(any(),any())).thenReturn(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of()));
+        context.getBeanFactory().registerSingleton("fieldConfigurations",api);
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        try{
+            var query=new ProjectBusinessRuntimeApi.UserContext(7L,42L,99L,new ProjectBusinessRuntimeApi.Type("IT","directNote"));
+            assertTrue(service.runtimeActions(query).contains("create"));
+            verifyNoInteractions(api);
+            doThrow(new BusinessContractException("ACCESS_DENIED","create revoked")).when(permissions).requireWritable(any(),any(),eq("operation:create"));
+            assertFalse(service.runtimeActions(query).contains("create"));
+        }finally{cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();}
+    }
+    @Test void runtimeBatchSharesActionInspectionButReadsPermissionsFreshOnTheNextCall(){
+        var service=context.getBean(NoteService.class);runtimeNote(11L,99L,"First");runtimeNote(12L,99L,"First");
+        var type=new ProjectBusinessRuntimeApi.Type("IT","directNote");
+        var query=new ProjectBusinessRuntimeApi.UserContext(7L,42L,99L,type,"{\"title\":\"First\"}");
+        doThrow(new BusinessContractException("ACCESS_DENIED","no save")).when(permissions).requireWritable(any(),any(),eq("operation:save"));
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        try{
+            var observed=service.runtimeInspectForUser(query,List.of(11L,12L));
+            assertEquals(List.of(11L,12L),observed.objects().stream().map(ProjectBusinessRuntimeApi.Observation::entityId).toList());
+            assertEquals(Map.of("BUSINESS_RECORD_SAVED",true),observed.objects().getFirst().facts());
+            assertTrue(observed.allowedActions().containsAll(Set.of("QUERY","create")));assertFalse(observed.allowedActions().contains("save"));
+            for(var operation:service.definition().operations())verify(permissions).requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:"+operation.code());
+            verify(permissions).requireReadable(service.definition(),new EntityActor(7L,42L,null),"detail");
+            verify(projects).requireReadable(99L,new EntityActor(7L,42L,null));
+            verify(notes).selectById(11L);verify(notes).selectById(12L);
+            doThrow(new BusinessContractException("ACCESS_DENIED","create revoked")).when(permissions).requireWritable(any(),any(),eq("operation:create"));
+            assertFalse(service.runtimeInspectForUser(query,List.of(11L)).allowedActions().contains("create"));
+            var empty=service.runtimeInspectForUser(query,List.of());assertTrue(empty.objects().isEmpty());assertTrue(empty.allowedActions().contains("QUERY"));
+            doThrow(new BusinessContractException("ACCESS_DENIED","project revoked")).when(projects).requireReadable(eq(99L),any());
+            clearInvocations(notes);
+            assertThrows(BusinessContractException.class,()->service.runtimeInspectForUser(query,List.of(11L)));
+            verifyNoInteractions(notes);
+        }finally{cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();}
+    }
+    @Test void runtimeBatchRejectsEveryForeignOrFilteredObjectAndUntrustedCaller(){
+        var service=context.getBean(NoteService.class);runtimeNote(11L,99L,"First");var second=runtimeNote(12L,100L,"First");
+        var type=new ProjectBusinessRuntimeApi.Type("IT","directNote");
+        var query=new ProjectBusinessRuntimeApi.UserContext(7L,42L,99L,type,"{\"title\":\"First\"}");
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        try{
+            assertEquals("BUSINESS_RUNTIME_SCOPE_INVALID",assertThrows(BusinessContractException.class,()->service.runtimeInspectForUser(query,List.of(11L,12L))).getErrorCode());
+            second.setProjectId(99L);second.setTenantId(8L);
+            assertEquals("ENTITY_NOT_FOUND",assertThrows(BusinessContractException.class,()->service.runtimeInspectForUser(query,List.of(11L,12L))).getErrorCode());
+            second.setTenantId(7L);second.setTitle("Other");
+            assertEquals("BUSINESS_RUNTIME_SCOPE_INVALID",assertThrows(BusinessContractException.class,()->service.runtimeInspectForUser(query,List.of(11L,12L))).getErrorCode());
+            assertThrows(BusinessContractException.class,()->service.runtimeInspectForUser(new ProjectBusinessRuntimeApi.UserContext(7L,43L,99L,type),List.of(11L)));
+            assertThrows(BusinessContractException.class,()->service.runtimeInspectForUser(new ProjectBusinessRuntimeApi.UserContext(8L,42L,99L,type),List.of(11L)));
+            doThrow(new BusinessContractException("ACCESS_DENIED","query revoked")).when(permissions).requireReadable(any(),any(),any());
+            clearInvocations(notes);
+            assertThrows(BusinessContractException.class,()->service.runtimeInspectForUser(query,List.of(11L)));
+            assertThrows(BusinessContractException.class,service::readableDefinition);
+            verifyNoInteractions(notes);
+        }finally{cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear();}
+    }
     @Test void emptyBusinessPublishesInheritedListConfiguration() throws Exception {
         var json=new com.fasterxml.jackson.databind.ObjectMapper().valueToTree(context.getBean(NoteService.class).model());
         var fields=json.get("fields");
@@ -182,6 +355,136 @@ class DirectBusinessInheritanceTest {
         assertTrue(title.path("listVisible").asBoolean(),"Default columns must be configured in the inherited model");
         assertTrue(title.path("searchable").asBoolean());
         assertTrue(title.path("sortable").asBoolean());
+    }
+    private record FormPorts(EntityExtensionApi extensions,EntityFormApi forms) {}
+    private void readablePageEvidence(NoteService service) {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(7L);
+        var evidence=mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessConditionEvidenceApi.class);
+        context.getBeanFactory().registerSingleton("pageEvidence",evidence);
+        when(evidence.deliveries(any(),any(),eq(false))).thenAnswer(call->{
+            service.requireEvidenceScope(call.getArgument(0),call.getArgument(1),false);
+            return new ProjectBusinessRuntimeApi.DeliveryFacts(Map.of(ProjectBusinessRuntimeApi.DELIVERY_COMPLETE,true),"empty-deliveries");
+        });
+    }
+    @Test void inheritedPageUsesOneAuthorizedEntityForListFormAndRuntimeFacts() {
+        var service=context.getBean(NoteService.class);var row=runtimeNote(11L,99L,"Unified");
+        row.setInternalSecret("not-exposed");readableFormPorts(service);readablePageEvidence(service);
+        when(notes.selectBusinessPage(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(row),1L));
+        var request=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.Request(99L,11L,null,null);
+        var value=service.initializePage(request,List.of(11L));
+        assertEquals("IT_DIRECT_NOTE",value.page().model().stableCode());
+        assertEquals(value.page().records().getList().getFirst(),value.page().forms().getFirst().entity());
+        assertEquals("Unified",value.page().forms().getFirst().entity().fieldValues().get("title"));
+        assertFalse(value.page().forms().getFirst().entity().fieldValues().containsKey("internalSecret"));
+        assertEquals(List.of(11L),value.inspection().objects().stream().map(ProjectBusinessRuntimeApi.Observation::entityId).toList());
+        verify(notes).selectBusinessPage(any());verify(notes,never()).selectById(any());
+        verify(projects).requireReadable(99L,new EntityActor(7L,42L,null));
+        verify(projects,never()).readableScopeIds(any());
+        verify(permissions).requireReadable(service.definition(),new EntityActor(7L,42L,null),"detail");
+        for(var operation:service.definition().operations())verify(permissions).requireWritable(service.definition(),new EntityActor(7L,42L,null),"operation:"+operation.code());
+        doThrow(new BusinessContractException("ACCESS_DENIED","project revoked")).when(projects).requireReadable(eq(99L),any());
+        clearInvocations(notes);
+        assertThrows(BusinessContractException.class,()->service.initializePage(request,List.of(11L)));
+        verifyNoInteractions(notes);
+    }
+    @Test void inheritedPageRejectsForeignAndFilteredLinkedEntitiesWithoutLeakingReadAccess() {
+        var service=context.getBean(NoteService.class);var row=runtimeNote(11L,100L,"Other");readableFormPorts(service);readablePageEvidence(service);
+        when(notes.selectBusinessPage(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(),0L));
+        var request=new cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.Request(99L,11L,null,"{\"title\":\"Required\"}");
+        assertThrows(BusinessContractException.class,()->service.initializePage(request,List.of(11L)));
+        row.setProjectId(99L);
+        assertThrows(BusinessContractException.class,()->service.initializePage(request,List.of(11L)));
+        row.setTitle("Required");
+        assertEquals(11L,service.initializePage(request,List.of(11L)).page().forms().getFirst().entity().ref().entityId());
+        doThrow(new BusinessContractException("ACCESS_DENIED","query revoked")).when(permissions).requireReadable(any(),any(),any());
+        clearInvocations(notes);
+        assertThrows(BusinessContractException.class,()->service.form(11L));
+        assertThrows(BusinessContractException.class,()->service.initializePage(request,List.of(11L)));
+        verifyNoInteractions(notes);
+    }
+    @Test void emptyControllerInheritsPageInitializationWithoutAnotherEndpointImplementation() throws Exception {
+        var service=context.getBean(NoteService.class);var row=runtimeNote(11L,99L,"Page");readableFormPorts(service);
+        when(notes.selectBusinessPage(any())).thenReturn(new cn.iocoder.yudao.framework.common.pojo.PageResult<>(List.of(row),1L));
+        var mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class)).build();
+        mvc.perform(post("/it/direct-notes/initialization").contentType("application/json").content("{\"projectId\":99,\"initialEntityId\":11}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.records.total").value(1))
+                .andExpect(jsonPath("$.data.forms[0].entity.fieldValues.title").value("Page"));
+        assertEquals(0,NoteService.class.getDeclaredMethods().length);
+        assertEquals(0,NoteController.class.getDeclaredMethods().length);
+    }
+    private FormPorts readableFormPorts(NoteService service) {
+        var extensions=mock(EntityExtensionApi.class);var forms=mock(EntityFormApi.class);
+        context.getBeanFactory().registerSingleton("formExtensions",extensions);
+        context.getBeanFactory().registerSingleton("formLayouts",forms);
+        when(extensions.read(any(),any())).thenAnswer(call->{
+            service.requireReadable(call.getArgument(0),call.getArgument(1));
+            return new EntityExtensionApi.Values(null,Map.of("extra","kept"),2);
+        });
+        when(forms.layout(any(),any())).thenAnswer(call->{
+            service.requireReadable(call.getArgument(0),call.getArgument(1));return null;
+        });
+        return new FormPorts(extensions,forms);
+    }
+    @Test void formReusesOnlyItsAuthorizedRecordAndChecksPermissionsAgainAfterReturning(){
+        var service=context.getBean(NoteService.class);runtimeNote(11L,99L,"Form");
+        readableFormPorts(service);
+        assertEquals(Map.of("extra","kept"),service.form(11L).extensions().fields());
+        verify(notes).selectById(11L);
+        verify(permissions).requireReadable(service.definition(),new EntityActor(7L,42L,null),"detail");
+        verify(projects).requireReadable(99L,new EntityActor(7L,42L,null));
+        doThrow(new BusinessContractException("ACCESS_DENIED","read revoked")).when(permissions).requireReadable(any(),any(),any());
+        clearInvocations(notes);
+        var target=EntityDataRef.current(new EntityRef(7L,"IT","directNote",11L));
+        assertThrows(BusinessContractException.class,()->service.requireReadable(target,new EntityActor(7L,42L,null)));
+        assertThrows(BusinessContractException.class,()->service.form(11L));
+        verifyNoInteractions(notes);
+    }
+    @Test void formReturnsTheSameReadableEntityAsDetailFromOneAuthorizedRead() throws Exception {
+        var service=context.getBean(NoteService.class);var row=runtimeNote(11L,99L,"Form");
+        row.setInternalSecret("not-exposed");row.setVersion(4L);readableFormPorts(service);
+        var mvc=MockMvcBuilders.standaloneSetup(context.getBean(NoteController.class)).build();
+        var detail=mvc.perform(get("/it/direct-notes/11")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        clearInvocations(notes,permissions,projects);
+        var form=mvc.perform(get("/it/direct-notes/11/form")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.entity.ref.entityId").value(11))
+                .andExpect(jsonPath("$.data.entity.concurrencyBasis").value(4))
+                .andExpect(jsonPath("$.data.entity.fieldValues.internalSecret").doesNotExist())
+                .andExpect(jsonPath("$.data.extensions.fields.extra").value("kept"))
+                .andReturn().getResponse().getContentAsString();
+        var json=new com.fasterxml.jackson.databind.ObjectMapper();
+        assertEquals(json.readTree(detail).get("data"),json.readTree(form).get("data").get("entity"));
+        verify(notes).selectById(11L);
+        verify(permissions).requireReadable(service.definition(),new EntityActor(7L,42L,null),"detail");
+        verify(projects).requireReadable(99L,new EntityActor(7L,42L,null));
+    }
+    @Test void formReadCannotAuthorizeAnotherObjectActorTenantOrThread(){
+        var service=context.getBean(NoteService.class);runtimeNote(11L,99L,"Form");runtimeNote(12L,100L,"Other project");
+        var ports=readableFormPorts(service);
+        doThrow(new BusinessContractException("ACCESS_DENIED","other project denied")).when(projects).requireReadable(eq(100L),any());
+        doAnswer(call->{
+            var target=call.getArgument(0,EntityDataRef.class);var actor=call.getArgument(1,EntityActor.class);
+            service.requireReadable(target,actor);
+            assertThrows(BusinessContractException.class,()->service.requireReadable(EntityDataRef.current(new EntityRef(7L,"IT","directNote",12L)),actor));
+            assertThrows(BusinessContractException.class,()->service.requireReadable(target,new EntityActor(7L,43L,null)));
+            assertThrows(BusinessContractException.class,()->service.requireReadable(EntityDataRef.current(new EntityRef(8L,"IT","directNote",11L)),actor));
+            // A concurrent request must perform its own authorization even for the same identity.
+            doThrow(new BusinessContractException("ACCESS_DENIED","read revoked")).when(permissions).requireReadable(any(),any(),any());
+            java.util.concurrent.CompletableFuture.runAsync(()->assertThrows(BusinessContractException.class,()->service.requireReadable(target,actor))).join();
+            return null;
+        }).when(ports.forms()).layout(any(),any());
+        assertEquals(2,service.form(11L).extensions().version());
+        verify(notes).selectById(11L);verify(notes).selectById(12L);
+    }
+    @Test void failedFormReadDoesNotLeaveAnAuthorizationForTheNextCall(){
+        var service=context.getBean(NoteService.class);runtimeNote(11L,99L,"Form");
+        var ports=readableFormPorts(service);
+        doThrow(new IllegalStateException("layout unavailable")).when(ports.forms()).layout(any(),any());
+        assertThrows(IllegalStateException.class,()->service.form(11L));
+        verify(notes).selectById(11L);
+        doThrow(new BusinessContractException("ACCESS_DENIED","read revoked")).when(permissions).requireReadable(any(),any(),any());
+        clearInvocations(notes);
+        assertThrows(BusinessContractException.class,()->service.requireReadable(EntityDataRef.current(new EntityRef(7L,"IT","directNote",11L)),new EntityActor(7L,42L,null)));
+        verifyNoInteractions(notes);
     }
     @Test void emptyBusinessInheritsPublicFieldProviderWithoutAdapter() {
         var service=context.getBean(NoteService.class);

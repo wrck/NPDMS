@@ -15,7 +15,7 @@ import java.util.*;
 
 /** Discovers deployed typed Controller routes, not client-supplied URLs or generic command adapters. */
 @Component @RequiredArgsConstructor
-public class DirectBusinessViews {
+public class DirectBusinessViews implements cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi {
     public static final String PREFIX="DIRECT_BUSINESS_";
     private final ObjectProvider<ProjectBusinessController<?,?>> controllers;
     private final BusinessViewAccess access;
@@ -34,8 +34,26 @@ public class DirectBusinessViews {
     }
     public View view(String code){
         var entry=entries().stream().filter(value->value.service().definition().stableCode().equals(code)).findFirst().orElseThrow(()->new IllegalArgumentException("DIRECT_BUSINESS_VIEW_UNAVAILABLE"));
-        var model=entry.service().model(); // Actual business query permission, not merely a registered view.
+        var model=entry.service().readableDefinition(); // Actual business query permission, not merely a registered view.
         return new View(model.ownerModule(),model.entityType(),model.stableCode(),entry.base());
+    }
+    @Override public Opened open(cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.UserContext caller,
+                                 List<Long> entityIds) {
+        if(caller==null || caller.type()==null || entityIds==null || caller.tenantId()==null || caller.tenantId()<0
+                || caller.userId()==null || caller.userId()<=0
+                || !Objects.equals(caller.tenantId(),cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getTenantId())
+                || !Objects.equals(caller.userId(),cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId()))
+            throw new IllegalArgumentException("BUSINESS_PAGE_CALLER_INVALID");
+        var matches=entries().stream().filter(row->row.service().definition().ownerModule().equals(caller.type().ownerModule())
+                && row.service().definition().entityType().equals(caller.type().entityType())).toList();
+        if(matches.size()!=1)throw new IllegalArgumentException("DIRECT_BUSINESS_VIEW_UNAVAILABLE");
+        var entry=matches.getFirst();var model=entry.service().definition();
+        var configuration=caller.bindingParameters()==null || caller.bindingParameters().isBlank()?null:
+                JsonUtils.parseTree(caller.bindingParameters()).path("configurationName").asText(null);
+        var read=entry.service().initializePage(new Request(caller.projectId(),entityIds.isEmpty()?null:entityIds.getFirst(),
+                configuration,caller.bindingParameters()),entityIds);
+        return new Opened(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.View(
+                model.ownerModule(),model.entityType(),model.stableCode(),entry.base()),read.page(),read.inspection());
     }
     public List<BusinessViewComponentProvider> providers(){
         return entries().stream().map(entry->{
@@ -47,7 +65,7 @@ public class DirectBusinessViews {
                 public Component component(){return component;}
                 public boolean canConfigure(Context context,ConfigurationAction action){return access.has(context,action.name().toLowerCase(Locale.ROOT));}
                 public Dependencies validateConfiguration(Context context,Long revision,ValidationMode mode){
-                    if(!access.context().equals(context) || revision!=null || mode==null || entries().stream().noneMatch(current->current.base().equals(entry.base()) && current.service()==entry.service()))throw new IllegalArgumentException("DIRECT_BUSINESS_VIEW_UNAVAILABLE");
+                    if(!access.context().equals(context) || revision!=null || mode==null || entries().stream().noneMatch(current->current.base().equals(entry.base()) && model.equals(current.service().definition())))throw new IllegalArgumentException("DIRECT_BUSINESS_VIEW_UNAVAILABLE");
                     return new Dependencies(false);
                 }
             };

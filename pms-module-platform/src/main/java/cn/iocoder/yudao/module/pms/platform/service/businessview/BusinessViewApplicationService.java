@@ -29,6 +29,7 @@ import static cn.iocoder.yudao.module.pms.platform.service.businessview.Business
 /** PM-03 / F-PLT-003: registration commands only; no domain entity command or completion fact. */
 @Service
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class BusinessViewApplicationService implements BusinessViewQueryApi {
     private final BusinessViewRevisionMapper mapper;
     private final BusinessViewComponentRegistry registry;
@@ -247,6 +248,7 @@ public class BusinessViewApplicationService implements BusinessViewQueryApi {
             if (Objects.equals(failure.getCode(), FORBIDDEN.getCode())) throw failure;
             return new Validation(false, List.of(new Issue("componentKey", "DEPENDENCY_UNAVAILABLE", "组件或精确表单修订不可用")));
         } catch (IllegalArgumentException failure) {
+            log.warn("Business view configuration invalid: component={}, reason={}", row.getComponentKey(), failure.getMessage());
             String message = failure.getMessage();
             String field = message != null && message.startsWith("dynamicFormRevisionId") ? "dynamicFormRevisionId" : "componentKey";
             return new Validation(false, List.of(new Issue(field, "CONFIGURATION_INVALID", "配置与当前受控目录或依赖不兼容")));

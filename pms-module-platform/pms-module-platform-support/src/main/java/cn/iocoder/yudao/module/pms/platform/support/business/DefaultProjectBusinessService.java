@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.platform.support.business;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessEntityData;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.event.*;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.*;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.fact.FactObservation;
@@ -10,6 +11,10 @@ import cn.iocoder.yudao.module.pms.platform.api.businessmodel.Completeness;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessModelDescriptor;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.operation.*;
 import cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessAccessGuard;
+import cn.iocoder.yudao.module.pms.platform.api.businessmodel.access.BusinessFieldFilter;
 import cn.iocoder.yudao.module.pms.platform.api.entity.*;
 import cn.iocoder.yudao.module.pms.platform.support.entity.BaseProjectBusinessEntity;
 import cn.iocoder.yudao.module.pms.platform.support.persistence.*;
@@ -45,6 +50,30 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     @Autowired private org.springframework.beans.factory.ObjectProvider<EntityExtensionApi> extensionPorts;
     @Autowired private org.springframework.beans.factory.ObjectProvider<BusinessConditionEvidenceApi> conditionEvidence;
     private BusinessCondition completionCondition;
+    private record FormReadAccess(EntityDataRef target,EntityActor actor) {}
+    private final ThreadLocal<FormReadAccess> formReadAccess=new ThreadLocal<>();
+    private final ThreadLocal<InitialPageRead> initialPageRead=new ThreadLocal<>();
+    /** Exists only while this service assembles one read; commands never use these decisions. */
+    private final class InitialPageRead {
+        final EntityActor actor;
+        final BusinessPageQueryApi.Request request;
+        final BusinessAccessGuard permissions;
+        final Set<String> readScenes=new HashSet<>();
+        final Set<Long> projects=new HashSet<>();
+        final Map<Long,E> rows=new LinkedHashMap<>();
+        final Map<String,BusinessModelViews.ModelDetailVO> models=new HashMap<>();
+        final Map<Long,BusinessFormData> forms=new HashMap<>();
+        BusinessModelViews.ModelDetailVO baseline;
+        BusinessFieldConfigurationApi.Configuration configuration;
+        List<E> pageRows=List.of();
+        boolean completeProjectRows;
+        List<BusinessPageQueryApi.Page> related=List.of();
+        InitialPageRead(EntityActor actor,BusinessPageQueryApi.Request request) {
+            this.actor=actor;this.request=request;
+            this.permissions=defaults.permissions() instanceof BusinessPermissions inherited
+                    ?inherited.forPageRead():defaults.permissions();
+        }
+    }
 
     @PostConstruct
     @SuppressWarnings("unchecked")
@@ -66,7 +95,10 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected Map<String,Boolean> runtimeFacts(E row){return Map.of("BUSINESS_RECORD_SAVED",true);}
     protected boolean runtimeHandlingCompleted(E row){return false;}
     protected java.time.LocalDateTime runtimeFormedAt(E row){return row.getUpdateTime()==null?row.getCreateTime():row.getUpdateTime();}
-    protected record RuntimeResult(Map<String,Boolean> facts,boolean completed,java.time.LocalDateTime formedAt) { }
+    protected record RuntimeResult(Map<String,Boolean> facts,boolean completed,java.time.LocalDateTime formedAt,String sourceVersion) {
+        public RuntimeResult { }
+        public RuntimeResult(Map<String,Boolean> facts,boolean completed,java.time.LocalDateTime formedAt){this(facts,completed,formedAt,null);}
+    }
     protected RuntimeResult runtimeResult(E row){return new RuntimeResult(runtimeFacts(row),runtimeHandlingCompleted(row),runtimeFormedAt(row));}
     @Override public ProjectBusinessRuntimeApi.Definition runtimeDefinition(){
         var labels=new LinkedHashMap<>(runtimeFactLabels());
@@ -85,11 +117,13 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         if(facts==null || !runtimeFactLabels().keySet().containsAll(facts.keySet()))throw invalid("BUSINESS_RUNTIME_FACT_INVALID","Undeclared runtime fact");
         String version=definition().stableCode()+":"+row.getId()+":"+row.getVersion();boolean completed=result.completed();
         if(completionCondition!=null){
-            loadOwnedDetails(row);var evaluated=evaluateRow(row,completionCondition,lock);
+            var read=initialRead();if(read==null || !read.rows.containsKey(row.getId()))loadOwnedDetails(row);
+            var evaluated=evaluateRow(row,completionCondition,lock);
             facts=new LinkedHashMap<>(facts);
             if(evaluated.verdict().satisfied()!=null)facts.put("BUSINESS_CONDITION_SATISFIED",evaluated.verdict().satisfied());
             completed=Boolean.TRUE.equals(evaluated.verdict().satisfied());version=evaluated.factVersion();
         }
+        if(result.sourceVersion()!=null)version += ":"+result.sourceVersion();
         return new ProjectBusinessRuntimeApi.Observation(row.getId(),version,facts,completed,result.formedAt());
     }
     @Override public ProjectBusinessRuntimeApi.Observation runtimeObservation(ProjectBusinessRuntimeApi.Query query,boolean lock){
@@ -105,7 +139,9 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     @Override public EntityDataRef requireEvidenceScope(EntityRef entity,Long projectId,boolean lock){
         requireRuntimeScope(entity.tenantId(),projectId,new ProjectBusinessRuntimeApi.Type(entity.ownerModule(),entity.entityType()));
         if(lock)BusinessEntitySaveSupport.requireTransaction();
-        E row=lock?binding.type.cast(DeclaredBusinessCurrentRows.lock(binding.mapping,new DeclaredCurrentRowQuery(entity.tenantId(),entity.entityId()))):mapper.selectById(entity.entityId());
+        var read=initialRead();
+        E row=lock?binding.type.cast(DeclaredBusinessCurrentRows.lock(binding.mapping,new DeclaredCurrentRowQuery(entity.tenantId(),entity.entityId())))
+                :read!=null && read.rows.containsKey(entity.entityId())?read.rows.get(entity.entityId()):mapper.selectById(entity.entityId());
         checkRow(row,entity.entityId(),new EntityActor(entity.tenantId(),0L,EntityActor.SYSTEM_OBSERVER));
         if(Boolean.TRUE.equals(row.getDeleted()) || !Objects.equals(projectId,row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Evidence business project differs");
         return formTarget(row);
@@ -152,39 +188,93 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     }
     @Override public List<ProjectBusinessRuntimeApi.Reference> runtimeCandidates(ProjectBusinessRuntimeApi.Candidates query){
         requireRuntimeScope(query.tenantId(),query.projectId(),query.type());
-        return selectRuntimeCandidates(new BusinessMapper.RuntimeCandidates(query.tenantId(),query.projectId(),query.afterId(),query.limit())).stream().map(row->{
-            if(Boolean.TRUE.equals(row.getDeleted()) || !query.tenantId().equals(row.getTenantId()) || !query.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Foreign runtime candidate");
-            return new ProjectBusinessRuntimeApi.Reference(row.getId(),runtimeObservation(row).factVersion());
-        }).toList();
+        if(query.limit()<1 || query.limit()>200 || query.afterId()!=null && query.afterId()<=0)throw invalid("BUSINESS_RUNTIME_QUERY_INVALID","Invalid candidate page");
+        var selectors=runtimeSelectors(query.bindingParameters());
+        var selected=new ArrayList<ProjectBusinessRuntimeApi.Reference>();Long after=query.afterId();
+        do {
+            var rows=selectRuntimeCandidates(new BusinessMapper.RuntimeCandidates(query.tenantId(),query.projectId(),after,query.limit()));
+            for(var row:rows){
+                if(Boolean.TRUE.equals(row.getDeleted()) || !query.tenantId().equals(row.getTenantId()) || !query.projectId().equals(row.getProjectId())
+                        || row.getId()==null || after!=null && row.getId()<=after)throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Foreign or unordered runtime candidate");
+                after=row.getId();var values=binding.readable(row);
+                if(selectors.entrySet().stream().allMatch(entry->Objects.equals(entry.getValue(),JsonUtils.parseTree(JsonUtils.toJsonString(values.get(entry.getKey()))))))
+                    selected.add(new ProjectBusinessRuntimeApi.Reference(row.getId(),runtimeObservation(row).factVersion()));
+                if(selected.size()==query.limit())return List.copyOf(selected);
+            }
+            // Apply the frozen field selectors before the externally visible page limit.
+            if(rows.size()<query.limit())return List.copyOf(selected);
+        }while(true);
+    }
+    private Map<String,tools.jackson.databind.JsonNode> runtimeSelectors(String parameters){
+        if(parameters==null || parameters.isBlank())return Map.of();
+        var input=JsonUtils.parseTree(parameters);
+        if(input==null || !input.isObject())throw invalid("BUSINESS_RUNTIME_PARAMETERS_INVALID","Frozen binding parameters must be an object");
+        var routing=Set.of("businessViewRevisionId","contextMapping","instanceResolutionStrategy","configurationName");
+        var fields=definition().fields().stream().filter(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessFieldDescriptor::readable)
+                .map(cn.iocoder.yudao.module.pms.platform.api.businessmodel.model.BusinessFieldDescriptor::code).collect(java.util.stream.Collectors.toSet());
+        var result=new LinkedHashMap<String,tools.jackson.databind.JsonNode>();
+        for(var entry:input.properties()){
+            if(routing.contains(entry.getKey()))continue;
+            if(!fields.contains(entry.getKey()) || !entry.getValue().isValueNode())throw invalid("BUSINESS_RUNTIME_PARAMETERS_INVALID","Binding selector must name a declared scalar business field");
+            result.put(entry.getKey(),entry.getValue());
+        }
+        return result;
     }
     protected List<E> selectRuntimeCandidates(BusinessMapper.RuntimeCandidates query){return mapper.selectRuntimeCandidates(query);}
     @Override public Set<String> runtimeActions(ProjectBusinessRuntimeApi.UserContext context){
         var caller=actor();requireRuntimeScope(context.tenantId(),context.projectId(),context.type());
         if(!Objects.equals(caller.tenantId(),context.tenantId()) || !Objects.equals(caller.userId(),context.userId()))throw invalid("ACCESS_DENIED","Runtime view actor differs");
-        defaults.projects().requireReadable(context.projectId(),caller);var model=model();var actions=new HashSet<String>();actions.add("QUERY");
+        defaults.projects().requireReadable(context.projectId(),caller);var model=configurationModel(false);var actions=new HashSet<String>();actions.add("QUERY");
         for(var operation:model.operations())if(operation.executable())actions.add(operation.code());
         return Set.copyOf(actions);
     }
     @Override public ProjectBusinessRuntimeApi.Observation runtimeForUser(ProjectBusinessRuntimeApi.UserContext context,Long id,boolean lock,String expectedVersion){
-        runtimeActions(context);var row=get(id);
+        runtimeActions(context);return runtimeAuthorizedObject(context,id,lock,expectedVersion);
+    }
+    @Override public ProjectBusinessRuntimeApi.UserInspection runtimeInspectForUser(ProjectBusinessRuntimeApi.UserContext context,List<Long> ids){
+        var actions=runtimeActions(context);
+        return new ProjectBusinessRuntimeApi.UserInspection(actions,ids.stream().map(id->runtimeAuthorizedObject(context,id,false,null)).toList());
+    }
+    private ProjectBusinessRuntimeApi.Observation runtimeAuthorizedObject(ProjectBusinessRuntimeApi.UserContext context,Long id,boolean lock,String expectedVersion){
+        // Both callers first authorize this user, model and project through runtimeActions.
+        // Read each object with its tenant and domain hooks, then bind it to that authorized project.
+        var row=current(id,actor());
         if(!context.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Runtime view project differs");
         if(lock){BusinessEntitySaveSupport.requireTransaction();row=lock(id,actor());if(!context.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Runtime view project changed");}
+        var values=binding.readable(row);
+        if(!runtimeSelectors(context.bindingParameters()).entrySet().stream().allMatch(entry ->
+                Objects.equals(entry.getValue(),JsonUtils.parseTree(JsonUtils.toJsonString(values.get(entry.getKey()))))))
+            throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Business record does not match the frozen binding");
         var observed=runtimeObservation(row,lock);
         if(lock && !Objects.equals(expectedVersion,observed.factVersion()))throw invalid("CONCURRENCY_CONFLICT","Runtime fact changed");
         return observed;
     }
     @Override public BusinessModelDescriptor definition() { return binding.mapping.descriptor(); }
+    @Override public BusinessModelDescriptor readableDefinition() { requireModelRead(actor(),"detail");return definition(); }
     @Override public BusinessModelViews.ModelDetailVO model() {
         return model(null);
     }
     @Override public BusinessModelViews.ModelDetailVO model(String profile) {
+        var read=initialRead();
+        if(read!=null && read.models.containsKey(profile))return read.models.get(profile);
         var baseline=configurationModel(false);
-        return BusinessFieldConfigurations.apply(baseline,fieldConfiguration(),profile);
+        var result=BusinessFieldConfigurations.apply(baseline,fieldConfiguration(),profile);
+        if(read!=null)read.models.put(profile,result);
+        return result;
     }
     @Override public BusinessModelViews.ModelDetailVO configurationModel(boolean write) {
-        var actor=actor();authorizeModelRead(actor,"detail");
+        var actor=actor();requireModelRead(actor,"detail");
         if(write)defaults.permissions().requireWritable(definition(),actor,"operation:configure-fields");
-        var view=modelView(BusinessModelViews.ModelDetailVO.of(definition(),actor,defaults.permissions()));
+        var read=write?null:initialRead();
+        if(read!=null && read.baseline!=null)return read.baseline;
+        var guard=read==null?defaults.permissions():read.permissions;
+        var result=configurationFields(BusinessModelViews.ModelDetailVO.of(definition(),actor,
+                guard instanceof BusinessPermissions inherited?inherited.forOperationDisplay():guard));
+        if(read!=null)read.baseline=result;
+        return result;
+    }
+    private BusinessModelViews.ModelDetailVO configurationFields(BusinessModelViews.ModelDetailVO baseline) {
+        var view=modelView(baseline);
         return new BusinessModelViews.ModelDetailVO(view.ownerModule(),view.entityType(),view.stableCode(),view.title(),view.viewCode(),view.fields().stream().map(field->{
             if(!ownedDetails.containsKey(field.code()))return field;
             var property=binding.fields.stream().filter(f->f.code().equals(field.code())).findFirst().orElseThrow().property();
@@ -195,8 +285,10 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         return new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Identity(definition().ownerModule(),definition().entityType());
     }
     @Override public cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration fieldConfiguration(){
-        configurationModel(false);var api=fieldConfigurations.getIfAvailable();
-        return api==null?new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of()):api.read(configurationIdentity(),actor());
+        readableDefinition();var api=fieldConfigurations.getIfAvailable();
+        var read=initialRead();if(read!=null && read.configuration!=null)return read.configuration;
+        var result=api==null?new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(0,List.of()):api.read(configurationIdentity(),actor());
+        if(read!=null)read.configuration=result;return result;
     }
     @Override public cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration saveFieldConfiguration(long version,List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Field> fields){
         BusinessFieldConfigurations.validate(configurationModel(true),fields);
@@ -212,21 +304,33 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         ownedDetails.forEach((code,details)->{if(values.containsKey(code))values.put(code,details.readable(entity));});return Collections.unmodifiableMap(values);
     }
     @Override public E get(Long id) {
-        var actor = actor(); authorizeModelRead(actor, "detail");
-        E row = current(id, actor); defaults.projects().requireReadable(row.getProjectId(), actor); return row;
+        var actor = actor(); requireModelRead(actor, "detail");
+        E row = current(id, actor); requireReadableProject(row.getProjectId(), actor); return row;
     }
     @Override public PageResult<E> page(BusinessPageQuery query) {
-        var actor = actor(); authorizeModelRead(actor, "list");
+        var actor = actor(); requireModelRead(actor, "list");
         if (query == null || query.getPageNo() < 1 || query.getPageSize() < 1 || query.getPageSize() > 200)
             throw invalid("QUERY_INVALID", "Invalid page bounds");
-        var configured=model(query.getConfigurationName());
-        if(query.getFilters()!=null)for(var filter:query.getFilters()){
-            if(filter==null || configured.fields().stream().noneMatch(field->field.code().equals(filter.fieldCode())&&field.searchable()))throw invalid("FILTER_FIELD_FORBIDDEN","Field is not configured for querying");
+        if(query.getConfigurationName()!=null || query.getFilters()!=null && !query.getFilters().isEmpty()
+                || query.getSorts()!=null && !query.getSorts().isEmpty()){
+            var settings=fieldConfiguration();
+            var configured=BusinessFieldConfigurations.apply(configurationFields(BusinessModelViews.ModelDetailVO.forQuery(definition())),settings,query.getConfigurationName());
+            if(query.getFilters()!=null)for(var filter:query.getFilters()){
+                if(filter==null || configured.fields().stream().noneMatch(field->field.code().equals(filter.fieldCode())&&field.searchable()))throw invalid("FILTER_FIELD_FORBIDDEN","Field is not configured for querying");
+            }
+            if(query.getSorts()!=null)for(var sort:query.getSorts()){
+                if(sort==null || configured.fields().stream().noneMatch(field->field.code().equals(sort.fieldCode())&&field.sortable()))throw invalid("SORT_FIELD_FORBIDDEN","Field is not configured for sorting");
+            }
+        }else{
+            // An unfiltered default page uses no configurable query fields. Keep the same
+            // detail-read permission as fieldConfiguration without reading its presentation data.
+            requireModelRead(actor,"detail");
         }
-        if(query.getSorts()!=null)for(var sort:query.getSorts()){
-            if(sort==null || configured.fields().stream().noneMatch(field->field.code().equals(sort.fieldCode())&&field.sortable()))throw invalid("SORT_FIELD_FORBIDDEN","Field is not configured for sorting");
-        }
-        var projects = defaults.projects().readableScopeIds(actor);
+        var read=initialRead();
+        Set<Long> projects;
+        if(read!=null && query.getProjectId()!=null){
+            requireReadableProject(query.getProjectId(),actor);projects=Set.of(query.getProjectId());
+        }else projects=defaults.projects().readableScopeIds(actor);
         if (projects == null || projects.isEmpty()) return new PageResult<>(List.of(), 0L);
         if(query.getProjectId()!=null){
             if(query.getProjectId()<=0)throw invalid("QUERY_INVALID","Invalid project identity");
@@ -239,12 +343,90 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         for (E row : result.getList()) {
             checkRow(row, row.getId(), actor);
             if (!projects.contains(row.getProjectId())) throw invalid("ENTITY_SCOPE_DENIED", "Business query returned a foreign project");
-            defaults.projects().requireReadable(row.getProjectId(), actor);loadOwnedDetails(row);afterRead(row);
+            requireReadableProject(row.getProjectId(), actor);loadOwnedDetails(row);afterRead(row);
+            if(read!=null)read.rows.put(row.getId(),row);
         }
         return result;
     }
     /** Override this method and call this business Mapper's XML query for complex selection. */
     protected PageResult<E> selectPage(BusinessReadQuery query) { return mapper.selectBusinessPage(query); }
+
+    @Override public BusinessPageQueryApi.Read initializePage(BusinessPageQueryApi.Request request,List<Long> observeEntityIds) {
+        if(request==null || request.projectId()==null || request.projectId()<=0
+                || request.initialEntityId()!=null && request.initialEntityId()<=0 || observeEntityIds==null
+                || observeEntityIds.stream().anyMatch(id->id==null || id<=0))
+            throw invalid("QUERY_INVALID","Invalid business page identity");
+        if(initialPageRead.get()!=null)throw invalid("BUSINESS_PAGE_RECURSIVE","A business cannot initialize itself recursively");
+        var caller=actor();var read=new InitialPageRead(caller,request);initialPageRead.set(read);
+        try {
+            requireModelRead(caller,"detail");requireReadableProject(request.projectId(),caller);
+            var model=model(request.configurationName());
+            var selectors=runtimeSelectors(request.bindingParameters());
+            var query=new BusinessPageQuery();query.setProjectId(request.projectId());
+            query.setConfigurationName(request.configurationName());query.setPageSize(initialPageSize());
+            query.setFilters(selectors.entrySet().stream().map(entry->new BusinessFieldFilter(entry.getKey(),
+                    BusinessFieldFilter.Operator.EQ,Collections.singletonList(JsonUtils.parseObject(entry.getValue().toString(),Object.class)))).toList());
+            var records=readInitialPage(query);read.pageRows=List.copyOf(records.getList());
+            read.completeProjectRows=selectors.isEmpty() && Objects.equals(records.getTotal(),(long)read.pageRows.size());
+            for(var row:read.pageRows)requirePageIdentity(row,request,selectors);
+            read.related=List.copyOf(initialRelatedPages(request));
+            var formIds=new LinkedHashSet<>(initialFormIds(read.pageRows,request.initialEntityId()));
+            if(request.initialEntityId()!=null)formIds.add(request.initialEntityId());
+            var required=new LinkedHashSet<>(observeEntityIds);required.addAll(formIds);
+            for(var id:required)requirePageIdentity(get(id),request,selectors);
+            var observations=observeEntityIds.stream().distinct().map(id->{
+                var row=read.rows.get(id);var observed=runtimeObservation(row);
+                var delivery=conditionEvidence.getObject().deliveries(identity(row),row.getProjectId(),false);
+                var facts=new LinkedHashMap<>(observed.facts());facts.putAll(delivery.facts());
+                return new ProjectBusinessRuntimeApi.Observation(id,ProjectBusinessRuntimeApi.combinedFactVersion(
+                        observed.factVersion(),delivery.factVersion()),facts,observed.handlingCompleted(),observed.formedAt());
+            }).toList();
+            var forms=formIds.stream().map(id->{
+                var value=form(id);return new BusinessPageQueryApi.Form(value.layout(),value.extensions(),
+                        value.definitions(),value.context(),value.entity());
+            }).toList();
+            var actions=new HashSet<String>();actions.add("QUERY");
+            model.operations().stream().filter(BusinessModelViews.OperationVO::executable).forEach(op->actions.add(op.code()));
+            var body=new BusinessPageQueryApi.Page(request,model,fieldConfiguration(),query.getPageSize(),
+                    new PageResult<>(read.pageRows.stream().map(this::entityData).toList(),records.getTotal()),
+                    forms,read.related,initialPageContext(request));
+            return new BusinessPageQueryApi.Read(body,new ProjectBusinessRuntimeApi.UserInspection(actions,observations));
+        } finally { initialPageRead.remove(); }
+    }
+    /** Ordinary pages load one bounded list; a domain workspace may assemble its existing version selector. */
+    protected int initialPageSize(){return 20;}
+    protected PageResult<E> readInitialPage(BusinessPageQuery query){return page(query);}
+    protected List<Long> initialFormIds(List<E> rows,Long selected){return selected==null?List.of():List.of(selected);}
+    protected List<BusinessPageQueryApi.Page> initialRelatedPages(BusinessPageQueryApi.Request request){return List.of();}
+    protected Map<String,Object> initialPageContext(BusinessPageQueryApi.Request request){return Map.of();}
+    protected final List<E> initialPageRows(){var read=initialRead();return read==null?List.of():read.pageRows;}
+    protected final boolean initialPageCoversProject(){var read=initialRead();return read!=null && read.completeProjectRows;}
+    protected final List<BusinessPageQueryApi.Page> initialRelatedPages(){var read=initialRead();return read==null?List.of():read.related;}
+    protected final boolean isInitializingPage(){return initialRead()!=null;}
+    private BusinessEntityData entityData(E row){return new BusinessEntityData(identity(row),null,readableValues(row),row.getVersion(),true,null);}
+    private void requirePageIdentity(E row,BusinessPageQueryApi.Request request,Map<String,tools.jackson.databind.JsonNode> selectors){
+        if(!request.projectId().equals(row.getProjectId()))throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Business page project differs");
+        var values=readableValues(row);
+        if(!selectors.entrySet().stream().allMatch(entry->Objects.equals(entry.getValue(),JsonUtils.parseTree(JsonUtils.toJsonString(values.get(entry.getKey()))))))
+            throw invalid("BUSINESS_RUNTIME_SCOPE_INVALID","Business record does not match the frozen binding");
+    }
+    private InitialPageRead initialRead(){
+        var read=initialPageRead.get();
+        if(read!=null && !read.actor.equals(actor()))throw invalid("ACCESS_DENIED","Business page caller changed");
+        return read;
+    }
+    private void requireModelRead(EntityActor caller,String scene){
+        var read=initialRead();
+        if(read!=null && read.readScenes.contains(scene))return;
+        authorizeModelRead(caller,scene);
+        if(read!=null)read.readScenes.add(scene);
+    }
+    private void requireReadableProject(Long projectId,EntityActor caller){
+        var read=initialRead();
+        if(read!=null && read.projects.contains(projectId))return;
+        defaults.projects().requireReadable(projectId,caller);
+        if(read!=null)read.projects.add(projectId);
+    }
 
     @Override public BusinessOperationReceipt create(E source, String key) {
         var values = inputValues(source, null);
@@ -347,7 +529,11 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         requireProviderCaller(target,caller);var row=get(target.entity().entityId());var result=new LinkedHashMap<String,EntityFieldValue>();
         readableValues(row).forEach((key,value)->result.put(key,EntityFieldValue.known(value)));return result;
     }
-    @Override public void requireReadable(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);get(target.entity().entityId());}
+    @Override public void requireReadable(EntityDataRef target,EntityActor caller){
+        requireProviderCaller(target,caller);
+        var authorized=formReadAccess.get();
+        if(authorized==null || !authorized.target().equals(target) || !authorized.actor().equals(caller))get(target.entity().entityId());
+    }
     @Override public Long concurrencyBasis(EntityDataRef target,EntityActor caller){requireProviderCaller(target,caller);return get(target.entity().entityId()).getVersion();}
     @Override public boolean usesValidatedExtensionPatch(){return true;}
     @Override public void lockForWrite(EntityDataRef target,EntityActor caller,Long expectedVersion){
@@ -449,9 +635,24 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
         if(!business.isEmpty())throw invalid("FIELD_NOT_OPEN","Business form commands are not declared");
     }
     @Override public BusinessFormData form(Long id){
-        var row=get(id);var target=formTarget(row);var caller=actor();var values=extensionPort().read(target,caller);var layout=formPort().layout(target,caller);
-        var definitionId=layout!=null && layout.binding().extensionDefinitionRevisionId()!=null?layout.binding().extensionDefinitionRevisionId():values.definitionRevisionId();
-        return new BusinessFormData(layout,values,definitionId==null?List.of():extensionPort().definition(definitionId,target.entity(),caller).fields(),formContext(copy(row)));
+        var read=initialRead();if(read!=null && read.forms.containsKey(id))return read.forms.get(id);
+        var row=get(id);var target=formTarget(row);var caller=actor();
+        EntityExtensionApi.Values values;EntityFormApi.Layout layout;List<EntityExtensionApi.Definition> fields;
+        var previous=formReadAccess.get();
+        // The capability ports re-enter this provider. Reuse only the current row just authorized
+        // above, on this thread and for this actor; alternate form targets still authorize normally.
+        formReadAccess.set(new FormReadAccess(EntityDataRef.current(identity(row)),caller));
+        try{
+            values=extensionPort().read(target,caller);layout=formPort().layout(target,caller);
+            var definitionId=layout!=null && layout.binding().extensionDefinitionRevisionId()!=null?layout.binding().extensionDefinitionRevisionId():values.definitionRevisionId();
+            fields=definitionId==null?List.of():extensionPort().definition(definitionId,target.entity(),caller).fields();
+        }finally{
+            if(previous==null)formReadAccess.remove();else formReadAccess.set(previous);
+        }
+        var model=definition();var entity=new BusinessEntityData(new EntityRef(row.getTenantId(),model.ownerModule(),model.entityType(),row.getId()),
+                null,readableValues(row),row.getVersion(),true,null);
+        var result=new BusinessFormData(layout,values,fields,formContext(copy(row)),entity);
+        if(read!=null)read.forms.put(id,result);return result;
     }
     protected record FormWrite(Map<String,Object> fixed,BusinessFormData.BindingPatch binding,BusinessEntitySaveSupport.ExtensionPatch extension,Map<String,Object> business){}
     protected final FormWrite formWrite(Map<String,Object> values){
@@ -569,7 +770,9 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected Long generatedId() { return null; }
     protected long initialVersion() { return 0L; }
     protected void afterRead(E entity) { }
-    protected void authorizeModelRead(EntityActor actor,String scene) { defaults.permissions().requireReadable(definition(),actor,scene); }
+    protected void authorizeModelRead(EntityActor actor,String scene) {
+        var read=initialRead();(read==null?defaults.permissions():read.permissions).requireReadable(definition(),actor,scene);
+    }
     protected BusinessModelViews.ModelDetailVO modelView(BusinessModelViews.ModelDetailVO view) { return view; }
     protected boolean publishDefaultEvent(String operation) { return true; }
     protected void authorizeReceipt(String operation,E entity) { }
@@ -595,7 +798,6 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     protected void validateBusiness(E entity) { }
     protected void validateBusiness(E entity,String operation) { validateBusiness(entity); }
     protected void validateDelivery(E entity, boolean write) { }
-
     @Override public cn.iocoder.yudao.module.pms.platform.api.businessmodel.delivery.DefaultBusinessDeliveryApi deliveryApi() {
         return Objects.requireNonNull(defaults.deliveries().get(), "Shared delivery API is unavailable");
     }
@@ -676,7 +878,12 @@ public abstract class DefaultProjectBusinessService<M extends BusinessMapper<E>,
     private OperationExecutionStore.OperationExecutionKey journalKey(EntityActor actor, String key) {
         return new OperationExecutionStore.OperationExecutionKey(actor.tenantId(), "crud:" + definition().ownerModule() + "/" + definition().entityType(), actor.userId(), key);
     }
-    protected final E current(Long id, EntityActor actor) { E row = mapper.selectById(id); checkRow(row,id,actor);loadOwnedDetails(row);afterRead(row);return row; }
+    protected final E current(Long id, EntityActor actor) {
+        var read=initialRead();
+        if(read!=null && read.actor.equals(actor) && read.rows.containsKey(id))return read.rows.get(id);
+        E row=mapper.selectById(id);checkRow(row,id,actor);loadOwnedDetails(row);afterRead(row);
+        if(read!=null && read.actor.equals(actor))read.rows.put(id,row);return row;
+    }
     protected final E lock(Long id, EntityActor actor) {
         E row = binding.type.cast(DeclaredBusinessCurrentRows.lock(binding.mapping, new DeclaredCurrentRowQuery(actor.tenantId(), id)));
         checkRow(row,id,actor);loadOwnedDetails(row);afterRead(row);return row;

@@ -15,6 +15,18 @@ import static org.mockito.Mockito.*;
 
 class DirectBusinessRuntimeServiceTest {
     static BusinessModelDescriptor model() {return new BusinessModelDescriptor("IT","note","IT_NOTE",1,BusinessModelKind.AGGREGATE_ROOT,"Note","it:note:query",List.of(),List.of(),List.of(),List.of(),null,new BusinessScopeBinding("project","projectId"));}
+    @Test void batchInspectionKeepsActorProjectAndFrozenSelectorsAtTheOwner(){
+        var owners=mock(DirectBusinessOwners.class);var owner=mock(ProjectBusinessService.class);
+        var type=new ProjectBusinessRuntimeApi.Type("IT","note");
+        when(owners.byIdentity("IT","note")).thenReturn(Optional.of(owner));
+        when(owner.runtimeDefinition()).thenReturn(new ProjectBusinessRuntimeApi.Definition(type,"IT_NOTE","Note",Map.of(),null));
+        var context=new ProjectBusinessRuntimeApi.UserContext(7L,42L,20L,type,"{\"kind\":\"FINAL\"}");
+        var inspection=new ProjectBusinessRuntimeApi.UserInspection(Set.of("QUERY"),List.of(new ProjectBusinessRuntimeApi.Observation(11L,"v1",Map.of(),false,null)));
+        when(owner.runtimeInspectForUser(context,List.of(11L))).thenReturn(inspection);
+        var service=new DirectBusinessRuntimeService(owners,mock(cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessConditionEvidenceApi.class));
+        assertSame(inspection,service.inspectContextAndObjects(context,List.of(11L)));
+        verify(owner).runtimeInspectForUser(context,List.of(11L));verify(owner,never()).runtimeActions(any());verify(owner,never()).runtimeForUser(any(),any(),anyBoolean(),any());
+    }
     @Test void deliveryRequiresExactIdentityAndAnAvailableFile() {
         var owners=mock(DirectBusinessOwners.class);var owner=mock(ProjectBusinessService.class);
         var materials=mock(DeliveryMaterialMapper.class);var files=mock(FileEvidenceApi.class);

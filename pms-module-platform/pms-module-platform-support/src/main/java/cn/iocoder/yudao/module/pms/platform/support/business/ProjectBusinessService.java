@@ -11,6 +11,8 @@ import java.util.Set;
 /** Inherited business API. No caller-supplied owner, model name, Mapper or operation dispatcher. */
 public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> extends BusinessDeliverables {
     BusinessModelDescriptor definition();
+    /** Query-authorized metadata without computing permissions for unrelated write operations. */
+    BusinessModelDescriptor readableDefinition();
     /** Internal identity guard for common evidence reads; never mapped as an HTTP endpoint. */
     cn.iocoder.yudao.module.pms.platform.api.entity.EntityDataRef requireEvidenceScope(cn.iocoder.yudao.module.pms.platform.api.entity.EntityRef entity,Long projectId,boolean lock);
     cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessConditionResult evaluate(Long id,
@@ -22,6 +24,8 @@ public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> ext
     java.util.List<cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Reference> runtimeCandidates(
             cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Candidates query);
     java.util.Set<String> runtimeActions(cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.UserContext context);
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.UserInspection runtimeInspectForUser(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.UserContext context,java.util.List<Long> ids);
     cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.Observation runtimeForUser(
             cn.iocoder.yudao.module.pms.platform.api.businessmodel.runtime.ProjectBusinessRuntimeApi.UserContext context,Long id,boolean lock,String expectedVersion);
     BusinessModelViews.ModelDetailVO configurationModel(boolean write);
@@ -30,6 +34,9 @@ public interface ProjectBusinessService<E extends BaseProjectBusinessEntity> ext
     cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration saveFieldConfiguration(cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration configuration);
     BusinessModelViews.ModelDetailVO model();
     BusinessModelViews.ModelDetailVO model(String profile);
+    cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.Read initializePage(
+            cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.Request request,
+            java.util.List<Long> observeEntityIds);
     E input(Map<String,Object> values);
     Map<String,Object> readableValues(E entity);
     E get(Long id);

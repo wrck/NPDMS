@@ -37,6 +37,10 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
         return success(request.profiles()==null?service.saveFieldConfiguration(request.version(),request.fields()):service.saveFieldConfiguration(new cn.iocoder.yudao.module.pms.platform.api.businessmodel.configuration.BusinessFieldConfigurationApi.Configuration(request.version(),request.fields(),request.profiles(),request.defaultProfile())));
     }
     @GetMapping("/model") public CommonResult<BusinessModelViews.ModelDetailVO> model(@RequestParam(required=false) String configurationName) { return success(service.model(configurationName)); }
+    @PostMapping("/initialization") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.Page> initialize(
+            @Valid @RequestBody cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessPageQueryApi.Request request) {
+        return success(service.initializePage(request, java.util.List.of()).page());
+    }
     @GetMapping("/{id}") public CommonResult<BusinessEntityData> get(@PathVariable @Positive Long id) { return success(view(service.get(id))); }
     @GetMapping("/{id}/completion") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessConditionResult> completion(@PathVariable @Positive Long id){return success(service.completion(id));}
     @PostMapping("/{id}/evaluate") public CommonResult<cn.iocoder.yudao.module.pms.platform.api.businessmodel.execution.BusinessConditionResult> evaluate(
@@ -107,4 +111,5 @@ public abstract class ProjectBusinessController<S extends ProjectBusinessService
         var model=service.definition();return new BusinessEntityData(new EntityRef(entity.getTenantId(),model.ownerModule(),model.entityType(),entity.getId()),
                 null,service.readableValues(entity),entity.getVersion(),true,null);
     }
+
 }

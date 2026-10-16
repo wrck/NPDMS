@@ -20,11 +20,12 @@ public class DirectBusinessRuntimeService implements ProjectBusinessRuntimeApi {
         return owners.byCode(matches.getFirst().businessType()).orElseThrow();
     }
     private Query canonical(Query query,ProjectBusinessService<?> service){return new Query(query.tenantId(),query.projectId(),service.runtimeDefinition().type(),query.entityId());}
-    private UserContext canonical(UserContext context,ProjectBusinessService<?> service){return new UserContext(context.tenantId(),context.userId(),context.projectId(),service.runtimeDefinition().type());}
+    private UserContext canonical(UserContext context,ProjectBusinessService<?> service){return new UserContext(context.tenantId(),context.userId(),context.projectId(),service.runtimeDefinition().type(),context.bindingParameters());}
     @Override public Observation inspect(Query query){var service=service(query.type());return service.runtimeObservation(canonical(query,service),false);}
     @Override public Observation lockAndInspect(Query query){BusinessEntitySaveSupport.requireTransaction();var service=service(query.type());return service.runtimeObservation(canonical(query,service),true);}
-    @Override public List<Reference> candidates(Candidates query){var service=service(query.type());return service.runtimeCandidates(new Candidates(query.tenantId(),query.projectId(),service.runtimeDefinition().type(),query.afterId(),query.limit()));}
+    @Override public List<Reference> candidates(Candidates query){var service=service(query.type());return service.runtimeCandidates(new Candidates(query.tenantId(),query.projectId(),service.runtimeDefinition().type(),query.afterId(),query.limit(),query.bindingParameters()));}
     @Override public Set<String> actions(UserContext context){var service=service(context.type());return service.runtimeActions(canonical(context,service));}
+    @Override public UserInspection inspectContextAndObjects(UserContext context,List<Long> ids){var service=service(context.type());return service.runtimeInspectForUser(canonical(context,service),ids);}
     @Override public Observation inspectForUser(UserContext context,Long id,boolean lock,String expectedVersion){var service=service(context.type());return service.runtimeForUser(canonical(context,service),id,lock,expectedVersion);}
     @Override public DeliveryFacts deliveryFacts(Query request,boolean lock){
         var owner=service(request.type());

@@ -18,15 +18,15 @@ public class BusinessFieldConfigurationService implements BusinessFieldConfigura
     private final DirectBusinessOwners owners;
     private final BusinessCallerContext callers;
     private final cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi audit;
-    private cn.iocoder.yudao.module.pms.platform.api.businessmodel.view.BusinessModelViews.ModelDetailVO authorize(Identity identity,EntityActor actor,boolean write){
+    private cn.iocoder.yudao.module.pms.platform.support.business.ProjectBusinessService<?> authorizedOwner(Identity identity,EntityActor actor){
         var caller=callers.require();
         if(actor==null || !Objects.equals(actor.tenantId(),caller.tenantId()) || !Objects.equals(actor.userId(),caller.userId()))throw denied("Trusted caller required");
         if(identity==null)throw denied("Business identity required");
-        return owners.byIdentity(identity.ownerModule(),identity.entityType()).orElseThrow(()->denied("Unknown inherited business")).configurationModel(write);
+        return owners.byIdentity(identity.ownerModule(),identity.entityType()).orElseThrow(()->denied("Unknown inherited business"));
     }
     @Override @Transactional(readOnly=true)
     public Configuration read(Identity identity,EntityActor actor){
-        authorize(identity,actor,false);var row=mapper.selectConfiguration(new BusinessFieldConfigurationMapper.Query(actor.tenantId(),identity.ownerModule(),identity.entityType()));
+        authorizedOwner(identity,actor).readableDefinition();var row=mapper.selectConfiguration(new BusinessFieldConfigurationMapper.Query(actor.tenantId(),identity.ownerModule(),identity.entityType()));
         if(row==null)return new Configuration(0,List.of());
         if(row.getFieldsJson().stripLeading().startsWith("["))return new Configuration(row.getVersion(),JsonUtils.parseArray(row.getFieldsJson(),Field.class));
         var saved=JsonUtils.parseObject(row.getFieldsJson(),Configuration.class);
@@ -39,7 +39,7 @@ public class BusinessFieldConfigurationService implements BusinessFieldConfigura
     }
     @Override @Transactional(rollbackFor=Exception.class)
     public Configuration save(Identity identity,EntityActor actor,Configuration configuration){
-        var model=authorize(identity,actor,true);BusinessFieldConfigurations.validate(model,configuration);
+        var model=authorizedOwner(identity,actor).configurationModel(true);BusinessFieldConfigurations.validate(model,configuration);
         long expectedVersion=configuration.version();var fields=configuration.fields();
         if(expectedVersion<0)throw denied("Invalid configuration version");
         var row=mapper.selectConfiguration(new BusinessFieldConfigurationMapper.Query(actor.tenantId(),identity.ownerModule(),identity.entityType()));
