@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.service.service.inspection;
 import cn.hutool.core.util.IdUtil;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.DeviceQueryApi;
 import cn.iocoder.yudao.module.pms.asset.api.producttype.inspection.InspectionAssetProductTypeApi;
 import cn.iocoder.yudao.module.pms.asset.api.producttype.dto.AuthorizedDeviceProductTypeQuery;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.*;
@@ -33,6 +34,7 @@ public class InspectionTaskService {
     private final InspectionExecutionMapper executions;
     private final InspectionAccessService access;
     private final ProjectDeviceSelectionApi deviceSelection;
+    private final DeviceQueryApi deviceFacts;
     private final InspectionAssetProductTypeApi productTypes;
     private final InspectionRuleQueryService ruleQueries;
 
@@ -56,7 +58,6 @@ public class InspectionTaskService {
     public InspectionViews.TaskSummary create(Create command) {
         var context = command.context();
         access.permission(context, "pms:inspection-task:create");
-        validateText(command.taskName(), 200, "任务名称");
         validateText(command.background(), 8000, "巡检背景");
         validateMode(command.mode());
         require(command.deviceIds() != null && !command.deviceIds().isEmpty() && command.deviceIds().size() <= 100
@@ -64,12 +65,21 @@ public class InspectionTaskService {
         var project = access.project(new InspectionAccessService.ProjectAccess(context, command.projectId(), true));
         require(project.customerId() != null && project.customerName() != null, "项目尚未关联客户资料");
         var selected = deviceSelection.validateSelection(command.projectId(), command.deviceIds());
-        require(selected.size() == command.deviceIds().size(), "设备与项目或关联合同不匹配");
+        require(selected.size() == command.deviceIds().size(), "设备与项目不匹配");
+        // validateSelection 已锁定设备；在同一事务中重验当前归属和发货事实。
+        for (var device : selected) {
+            var fact = deviceFacts.getDevice(device.equipmentId());
+            require(fact != null && Objects.equals(fact.tenantId(), context.tenantId())
+                    && Objects.equals(fact.projectId(), command.projectId()), "设备不属于当前项目，请重新选择设备");
+            require(fact.shipmentTime() != null, "设备尚无发货记录：" + device.sn());
+        }
         var types = productTypes.getAuthorizedDeviceProductType(new AuthorizedDeviceProductTypeQuery(
                 context.actorId(), command.deviceIds())).stream().collect(Collectors.toMap(t -> t.deviceId(), t -> t));
         var task = new InspectionTaskDO();
         task.setTenantId(context.tenantId()); task.setVersion(1L);
-        task.setTaskCode("INS-" + IdUtil.getSnowflakeNextId()); task.setTaskName(command.taskName().trim());
+        task.setTaskCode("INS-" + IdUtil.getSnowflakeNextId());
+        validateText(project.projectName(), 255, "项目名称");
+        task.setTaskName(project.projectName() + "-巡检-" + task.getTaskCode());
         task.setProjectId(project.projectId()); task.setProjectCode(project.projectCode()); task.setProjectName(project.projectName());
         task.setCustomerId(project.customerId()); task.setCustomerCode(project.customerCode()); task.setCustomerName(project.customerName());
         task.setOwnerUserId(context.actorId()); task.setBackground(command.background().trim());
@@ -95,7 +105,7 @@ public class InspectionTaskService {
         var task = access.task(new InspectionAccessService.TaskAccess(command.context(), command.taskId(),
                 "pms:inspection-task:prepare", true, false));
         requirePreparing(task);
-        validateText(command.taskName(), 200, "任务名称");
+        validateText(command.taskName(), 282, "任务名称");
         validateText(command.background(), 8000, "巡检背景");
         validateMode(command.mode());
         var choices = command.rules() == null ? List.<RuleChoice>of() : List.copyOf(command.rules());

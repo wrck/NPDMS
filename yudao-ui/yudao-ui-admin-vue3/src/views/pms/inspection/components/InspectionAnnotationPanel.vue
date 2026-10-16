@@ -1,12 +1,12 @@
 <template>
   <section class="annotation-panel" aria-labelledby="inspection-annotation-title">
-    <div class="section-heading">
-      <h2 id="inspection-annotation-title" class="inspection-section-title">检出问题确认</h2>
+    <header class="inspection-card__header">
+      <h2 id="inspection-annotation-title">检出问题确认</h2>
       <el-tag v-if="currentReport"
         >当前报告 R{{ currentReport.revisionNo ?? '—' }} ·
         {{ reportStatus(currentReport.statusCode) }}</el-tag
       >
-    </div>
+    </header>
     <el-alert
       v-if="!currentReport"
       title="尚无当前报告，请先完成报告生成或提交。"
@@ -47,12 +47,134 @@
         class="mb-16px"
       />
       <el-table
+        ref="resultsTableRef"
         :data="abnormalResults"
         :row-key="(row: ResultView) => String(row.id)"
+        :expand-row-keys="expandedResultIds"
+        @expand-change="(_row, rows) => (expandedResultIds = rows.map((row) => String(row.id)))"
         empty-text="当前报告暂无异常检出项"
       >
         <el-table-column type="expand" width="42"
           ><template #default="{ row }">
+            <div
+              v-if="selectedResult && String(row.id) === selectedResultId"
+              class="annotation-editor"
+            >
+              <p v-if="dirty" class="help-text" role="status"
+                >当前输入尚未保存，请先保存或关闭编辑再选择其他检出项。</p
+              >
+              <div class="section-heading"
+                ><h3 class="inspection-section-title"
+                  >标注 {{ selectedResult.ruleName || '当前检出问题' }}</h3
+                ><el-button link :disabled="disabled || validating" @click="resetEditor"
+                  >关闭编辑</el-button
+                ></div
+              >
+              <el-alert
+                v-if="previousAnnotation"
+                :title="`正在修订 R${previousAnnotation.revisionNo ?? '—'} 标注，须填写修改原因；原标注保留。`"
+                type="info"
+                :closable="false"
+                show-icon
+                class="mb-16px"
+              />
+              <el-form
+                ref="formRef"
+                :model="form"
+                :rules="rules"
+                label-position="top"
+                :disabled="readonly || validating"
+                @submit.prevent="submitAnnotation"
+              >
+                <el-form-item label="标注类型" prop="kind"
+                  ><el-radio-group v-model="form.kind"
+                    ><el-radio value="FALSE_POSITIVE">误报</el-radio
+                    ><el-radio value="IGNORE">不关注</el-radio
+                    ><el-radio value="TRACK">确认跟踪</el-radio></el-radio-group
+                  ></el-form-item
+                >
+                <el-form-item :label="reasonLabel" prop="reason"
+                  ><el-input
+                    v-model="form.reason"
+                    type="textarea"
+                    :rows="3"
+                    maxlength="2000"
+                    show-word-limit
+                    placeholder="填写本次标注的原因或依据"
+                /></el-form-item>
+                <template v-if="form.kind === 'TRACK'">
+                  <div class="form-grid">
+                    <el-form-item label="责任人" prop="responsibleUserId">
+                      <el-select
+                        v-model="form.responsibleUserId"
+                        filterable
+                        clearable
+                        :loading="usersLoading"
+                        placeholder="选择责任人"
+                        @visible-change="loadUsersOnOpen"
+                      >
+                        <el-option
+                          v-if="
+                            form.responsibleUserId &&
+                            !users.some((user) => String(user.id) === form.responsibleUserId)
+                          "
+                          :value="form.responsibleUserId"
+                          :label="userLabel(form.responsibleUserId)"
+                          disabled
+                        />
+                        <el-option
+                          v-for="user in users"
+                          :key="String(user.id)"
+                          :value="String(user.id)"
+                          :label="`${user.nickname || user.username}（${user.id}）`"
+                        />
+                      </el-select>
+                    </el-form-item>
+                    <el-form-item label="计划解决时间" prop="dueAt"
+                      ><el-date-picker
+                        v-model="form.dueAt"
+                        type="datetime"
+                        placeholder="选择计划解决时间"
+                    /></el-form-item>
+                  </div>
+                  <el-alert
+                    v-if="usersError"
+                    :title="usersError"
+                    type="error"
+                    :closable="false"
+                    class="mb-16px"
+                    ><template #default
+                      ><el-button
+                        link
+                        type="primary"
+                        :disabled="readonly || usersLoading"
+                        @click="loadUsers"
+                        >重新加载用户</el-button
+                      ></template
+                    ></el-alert
+                  >
+                  <p class="help-text"
+                    >用户列表仅供选择身份；责任人的处理权限和项目范围由服务端核验。已闭环待办的责任人和期限须保留。</p
+                  >
+                </template>
+                <el-form-item v-if="previousAnnotation" label="标注修改原因" prop="changeReason"
+                  ><el-input
+                    v-model="form.changeReason"
+                    type="textarea"
+                    :rows="2"
+                    maxlength="2000"
+                    show-word-limit
+                    placeholder="说明为何修订已有标注"
+                /></el-form-item>
+                <el-button
+                  type="primary"
+                  native-type="submit"
+                  :loading="validating"
+                  :disabled="readonly || !frozenResultsComplete"
+                  >保存标注</el-button
+                >
+              </el-form>
+            </div>
             <el-descriptions :column="smallScreen ? 1 : 2" class="annotation-source">
               <el-descriptions-item label="结果记录">{{ row.id }}</el-descriptions-item>
               <el-descriptions-item label="规则修订">{{
@@ -136,120 +258,6 @@
         >只标注当前报告冻结的异常检出项。误报和不关注仍保留报告与标注历史；确认跟踪会建立或更新问题待办。</p
       >
     </template>
-
-    <div v-if="selectedResult" class="annotation-editor">
-      <p v-if="dirty" class="help-text" role="status"
-        >当前输入尚未保存，请先保存或关闭编辑再选择其他检出项。</p
-      >
-      <div class="section-heading"
-        ><h3 class="inspection-section-title"
-          >标注 {{ selectedResult.ruleName || '当前检出问题' }}</h3
-        ><el-button link :disabled="disabled || validating" @click="resetEditor"
-          >关闭编辑</el-button
-        ></div
-      >
-      <el-alert
-        v-if="previousAnnotation"
-        :title="`正在修订 R${previousAnnotation.revisionNo ?? '—'} 标注，须填写修改原因；原标注保留。`"
-        type="info"
-        :closable="false"
-        show-icon
-        class="mb-16px"
-      />
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-        :disabled="readonly || validating"
-        @submit.prevent="submitAnnotation"
-      >
-        <el-form-item label="标注类型" prop="kind"
-          ><el-radio-group v-model="form.kind"
-            ><el-radio value="FALSE_POSITIVE">误报</el-radio
-            ><el-radio value="IGNORE">不关注</el-radio
-            ><el-radio value="TRACK">确认跟踪</el-radio></el-radio-group
-          ></el-form-item
-        >
-        <el-form-item :label="reasonLabel" prop="reason"
-          ><el-input
-            v-model="form.reason"
-            type="textarea"
-            :rows="3"
-            maxlength="2000"
-            show-word-limit
-            placeholder="填写本次标注的原因或依据"
-        /></el-form-item>
-        <template v-if="form.kind === 'TRACK'">
-          <div class="form-grid">
-            <el-form-item label="责任人" prop="responsibleUserId">
-              <el-select
-                v-model="form.responsibleUserId"
-                filterable
-                clearable
-                :loading="usersLoading"
-                placeholder="选择责任人"
-                @visible-change="loadUsersOnOpen"
-              >
-                <el-option
-                  v-if="
-                    form.responsibleUserId &&
-                    !users.some((user) => String(user.id) === form.responsibleUserId)
-                  "
-                  :value="form.responsibleUserId"
-                  :label="userLabel(form.responsibleUserId)"
-                  disabled
-                />
-                <el-option
-                  v-for="user in users"
-                  :key="String(user.id)"
-                  :value="String(user.id)"
-                  :label="`${user.nickname || user.username}（${user.id}）`"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="计划解决时间" prop="dueAt"
-              ><el-date-picker v-model="form.dueAt" type="datetime" placeholder="选择计划解决时间"
-            /></el-form-item>
-          </div>
-          <el-alert
-            v-if="usersError"
-            :title="usersError"
-            type="error"
-            :closable="false"
-            class="mb-16px"
-            ><template #default
-              ><el-button
-                link
-                type="primary"
-                :disabled="readonly || usersLoading"
-                @click="loadUsers"
-                >重新加载用户</el-button
-              ></template
-            ></el-alert
-          >
-          <p class="help-text"
-            >用户列表仅供选择身份；责任人的处理权限和项目范围由服务端核验。已闭环待办的责任人和期限须保留。</p
-          >
-        </template>
-        <el-form-item v-if="previousAnnotation" label="标注修改原因" prop="changeReason"
-          ><el-input
-            v-model="form.changeReason"
-            type="textarea"
-            :rows="2"
-            maxlength="2000"
-            show-word-limit
-            placeholder="说明为何修订已有标注"
-        /></el-form-item>
-        <el-button
-          type="primary"
-          native-type="submit"
-          :loading="validating"
-          :disabled="readonly || !frozenResultsComplete"
-          >保存标注</el-button
-        >
-      </el-form>
-    </div>
 
     <div v-if="currentReport && task.statusCode === 'ANNOTATION_PENDING'" class="complete-actions">
       <p class="help-text">完成当前报告的全部异常标注后，可确认完成标注。</p>
@@ -343,9 +351,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
-import type { FormInstance, FormRules, TagProps } from 'element-plus'
+import type { FormInstance, FormRules, TableInstance, TagProps } from 'element-plus'
 import type {
   TaskDetail,
   AnnotationInput,
@@ -440,6 +448,8 @@ const deviceLabel = (id: WireLong) => {
 const severities = computed(() => getStrDictOptions('pms_inspection_rule_severity'))
 const severityLabel = (code?: string) =>
   severities.value.find((item) => item.value === code)?.label || code || '未提供'
+const resultsTableRef = ref<TableInstance>()
+const expandedResultIds = ref<string[]>([])
 const selectedResultId = ref('')
 const selectedResult = computed(() =>
   abnormalResults.value.find((result) => String(result.id) === selectedResultId.value)
@@ -503,7 +513,11 @@ const resetEditor = () => {
 }
 const openEditor = (result: ResultView) => {
   if (readonly.value || !frozenResultsComplete.value) return
-  if (selectedResultId.value === String(result.id) || dirty.value) return
+  if (selectedResultId.value === String(result.id)) {
+    resultsTableRef.value?.toggleRowExpansion(result, true)
+    return
+  }
+  if (dirty.value) return
   const previous = latestAnnotation(result.id)
   selectedResultId.value = String(result.id)
   Object.assign(form, {
@@ -518,7 +532,10 @@ const openEditor = (result: ResultView) => {
     dueAt: previous?.dueAt ? new Date(previous.dueAt) : null
   })
   snapshot.value = JSON.stringify(form)
-  formRef.value?.clearValidate()
+  void nextTick(() => {
+    resultsTableRef.value?.toggleRowExpansion(result, true)
+    formRef.value?.clearValidate()
+  })
 }
 const submitAnnotation = async () => {
   if (
@@ -597,6 +614,12 @@ watch(
   resetEditor
 )
 watch(
+  () => `${props.task.id}:${props.task.currentReportId}`,
+  () => {
+    expandedResultIds.value = []
+  }
+)
+watch(
   () => String(props.task.id),
   () => {
     userSequence++
@@ -671,7 +694,7 @@ onBeforeUnmount(() => {
   margin-bottom: 16px;
 }
 .annotation-editor {
-  margin-top: 20px;
+  margin: 0 16px 16px;
   padding: 16px;
   background: #fafbfc;
   border: 1px solid #e8ecf1;

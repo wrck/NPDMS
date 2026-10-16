@@ -101,8 +101,27 @@
 
     <el-collapse v-if="canGenerate" v-model="writeSections" class="report-writing">
       <el-collapse-item name="write" title="生成或补充巡检报告" :disabled="currentBusy">
-        <section class="write-section" aria-label="生成基础报告">
-          <h3 class="inspection-section-title">生成基础报告</h3>
+        <div class="report-mode-titles" role="group" aria-label="报告提交方式">
+          <h3 class="inspection-section-title" :class="{ 'is-active': reportMode === 'GENERATE' }">
+            <button
+              type="button"
+              :aria-pressed="reportMode === 'GENERATE'"
+              :disabled="disabled || currentBusy"
+              @click="reportMode = 'GENERATE'"
+              >生成基础报告</button
+            >
+          </h3>
+          <h3 class="inspection-section-title" :class="{ 'is-active': reportMode === 'MANUAL' }">
+            <button
+              type="button"
+              :aria-pressed="reportMode === 'MANUAL'"
+              :disabled="disabled || currentBusy"
+              @click="reportMode = 'MANUAL'"
+              >提交人工报告</button
+            >
+          </h3>
+        </div>
+        <section v-show="reportMode === 'GENERATE'" class="write-section" aria-label="生成基础报告">
           <p class="help-text">按当前检测结果生成 PDF、DOCX 和 XML 文件，保存为新的报告版本。</p>
           <el-form label-position="top" :disabled="disabled || currentBusy">
             <el-form-item label="生成说明"
@@ -120,8 +139,7 @@
           </el-form>
         </section>
 
-        <section class="write-section" aria-label="提交人工报告">
-          <h3 class="inspection-section-title">提交人工报告</h3>
+        <section v-show="reportMode === 'MANUAL'" class="write-section" aria-label="提交人工报告">
           <p class="help-text"
             >至少提交一种报告格式和人工报告说明，每种格式保留一个文件。支持
             PDF、DOCX、DOC、XML，实际文件格式由服务端校验。</p
@@ -243,6 +261,7 @@ import type {
 const props = defineProps<{ task: TaskDetail; disabled: boolean }>()
 const reportSections = ref<Array<string | number>>([])
 const writeSections = ref<Array<string | number>>([])
+const reportMode = ref<'GENERATE' | 'MANUAL'>('GENERATE')
 type FormatCode = 'PDF' | 'DOCX' | 'DOC' | 'XML'
 const emit = defineEmits<{
   generate: [value: { explanation: string }]
@@ -590,13 +609,27 @@ onBeforeUnmount(() => {
   flex-wrap: wrap;
   gap: 8px;
 }
-.write-section {
-  margin-top: 0;
+.report-mode-titles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
   padding-top: 16px;
 }
-.write-section + .write-section {
-  margin-top: 16px;
-  border-top: 1px solid #f0f2f5;
+.report-mode-titles .inspection-section-title:not(.is-active) {
+  color: var(--el-text-color-secondary);
+  border-bottom-color: transparent;
+}
+.report-mode-titles button {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.report-mode-titles button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 .help-text {
   margin: 8px 0 12px;

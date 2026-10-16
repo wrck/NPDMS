@@ -27,6 +27,15 @@ public final class InspectionParserDocuments {
     public static byte[] encode(List<Block> blocks) {
         return JsonUtils.toJsonString(new Document("1.0.0", List.copyOf(blocks))).getBytes(StandardCharsets.UTF_8);
     }
+    /** DAC's existing anonymous-evidence marker is needed when re-submitting normalized text preambles. */
+    public static byte[] encodeForParsing(List<Block> blocks) {
+        var document = JsonUtils.parseTree(new String(encode(blocks), StandardCharsets.UTF_8));
+        for (var block : document.path("commandBlocks")) {
+            if (block.path("commandText").asText().isBlank())
+                ((tools.jackson.databind.node.ObjectNode) block).put("legacy", true);
+        }
+        return JsonUtils.toJsonString(document).getBytes(StandardCharsets.UTF_8);
+    }
     /** The bound platform callback envelope is not a DAC parser document. Keep its original file intact. */
     public static String collectionInput(byte[] content) {
         var source = JsonUtils.parseObjectQuietly(new String(content, StandardCharsets.UTF_8), CollectionDocument.class);

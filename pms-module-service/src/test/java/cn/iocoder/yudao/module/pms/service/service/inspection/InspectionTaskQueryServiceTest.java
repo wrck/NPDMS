@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.service.service.inspection;
 import cn.iocoder.yudao.framework.security.core.LoginUser;
 import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
-import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
 import cn.iocoder.yudao.module.pms.service.dal.dataobject.inspection.InspectionTaskDO;
@@ -67,12 +67,36 @@ class InspectionTaskQueryServiceTest {
     @Mock private InspectionTaskEventMapper events;
     @Mock private InspectionRuleFeedbackMapper ruleFeedback;
     @Mock private InspectionRuleQueryService rules;
-    @Mock private ProjectDeviceSelectionApi deviceSelection;
+    @Mock private ProjectDeviceShipmentApi shipments;
     @Mock private ProjectBusinessContextApi projectContexts;
     @Mock private AdminUserApi users;
     @Mock private FileArtifactApi files;
     @Mock private PermissionApi permissions;
     @InjectMocks private InspectionTaskQueryService service;
+
+    @Test
+    void deviceOptionsUseAuthorizedProjectShipments() {
+        when(shipments.pageDevices(any())).thenReturn(new ProjectDeviceShipmentApi.DevicePage(
+                List.of(new ProjectDeviceShipmentApi.Device(501L, "SHIPPED-501", "CODE", "MODEL")), 1));
+        var options = service.devices(new InspectionTaskQueryService.DeviceOptions(CONTEXT, 101L));
+        assertEquals(List.of(501L), options.stream().map(InspectionTaskQueryService.DeviceOption::id).toList());
+        assertEquals("SHIPPED-501", options.getFirst().serialNumber());
+        var order = inOrder(access, shipments);
+        order.verify(access).permission(CONTEXT, TASK_QUERY);
+        order.verify(access).project(new InspectionAccessService.ProjectAccess(CONTEXT, 101L, false));
+        order.verify(shipments).pageDevices(argThat(q -> q.tenantId().equals(TENANT_ID)
+                && q.actorId().equals(ACTOR_ID) && q.projectId().equals(101L)
+                && q.pageNo() == 1 && q.pageSize() == 100));
+    }
+
+    @Test
+    void forbiddenProjectNeverQueriesShipmentCandidates() {
+        doThrow(new InspectionException(InspectionException.Reason.FORBIDDEN, "无项目权限"))
+                .when(access).project(any());
+        assertThrows(InspectionException.class,
+                () -> service.devices(new InspectionTaskQueryService.DeviceOptions(CONTEXT, 101L)));
+        verifyNoInteractions(shipments);
+    }
 
     @BeforeEach
     void setIdentity() {

@@ -37,245 +37,230 @@
       :reached="reachedStepIndex"
       @select="selectStep"
     />
-    <ContentWrap v-if="task" :body-style="{}">
-      <div class="inspection-card__header">
-        <h2><Icon icon="ep:location" /> 项目信息</h2>
-        <span class="help-text"
-          >{{ task.projectCode || '项目资料' }} · {{ task.devices.length }} 台设备</span
-        >
-      </div>
-      <dl class="project-context">
-        <div
-          ><dt>项目名称</dt><dd>{{ task.projectName || '—' }}</dd></div
-        >
-        <div
-          ><dt>设备序列号</dt
-          ><dd class="serial-value">{{
-            task.devices
-              .map((device) => device.serialNumber)
-              .filter(Boolean)
-              .join('、') || '—'
-          }}</dd></div
-        >
-        <div
-          ><dt>产品型号</dt
-          ><dd>{{
-            [...new Set(task.devices.map((device) => device.productModel).filter(Boolean))].join(
-              '、'
-            ) || '—'
-          }}</dd></div
-        >
-        <div
-          ><dt>客户名称</dt><dd>{{ task.customerName || '—' }}</dd></div
-        >
-        <div
-          ><dt>巡检负责人</dt><dd>{{ task.ownerName || '未提供姓名' }}</dd></div
-        >
-        <div
-          ><dt>巡检方式</dt><dd>{{ task.mode === 'OFFLINE' ? '离线巡检' : '在线巡检' }}</dd></div
-        >
-        <div
-          ><dt>计划时间</dt
-          ><dd>{{ task.plannedAt ? formatDate(task.plannedAt) : '未设置' }}</dd></div
-        >
-        <div
-          ><dt>创建时间</dt><dd>{{ task.createTime ? formatDate(task.createTime) : '—' }}</dd></div
-        >
-      </dl>
-    </ContentWrap>
+    <ProjectInformationCard
+      v-if="task"
+      :project="projectInformation || task"
+      :customer-service-level="projectCustomerServiceLevel"
+      :loading="projectInformationLoading"
+      :error="projectInformationError"
+      hint="巡检任务关联项目"
+    >
+      <el-form label-position="top">
+        <el-form-item label="项目名称"
+          ><el-input :model-value="task.projectName" readonly
+        /></el-form-item>
+      </el-form>
+    </ProjectInformationCard>
     <p v-else-if="issue" class="help-text">当前显示你有权办理的问题及处理记录。</p>
 
     <template v-if="task">
-      <ContentWrap v-show="activeStep === 'prepare'" :body-style="{}">
-        <div class="inspection-card__header"
-          ><h2><Icon icon="ep:connection" /> 巡检准备信息</h2></div
+      <section v-show="activeStep === 'prepare'" class="detail-card">
+        <header class="inspection-card__header"
+          ><h2><Icon icon="ep:monitor" />设备序列号表</h2
+          ><span class="help-text">已选择 {{ task.devices.length }} 台设备</span></header
         >
-        <el-alert
-          v-if="task.currentAttemptId"
-          title="当前尝试的规则版本已冻结；修改准备资料只影响下一次明确新建的尝试。"
-          type="info"
-          :closable="false"
-          class="mb-16px"
-        />
-        <el-form
-          ref="preparationForm"
-          :model="preparation"
-          :rules="preparationRules"
-          label-position="top"
-          :disabled="!canPrepare"
-          @submit.prevent="savePreparation"
-        >
-          <div class="form-grid">
-            <el-form-item label="任务名称" prop="taskName"
-              ><el-input v-model="preparation.taskName" maxlength="200"
+        <div class="detail-card__body">
+          <el-table :data="task.devices" :row-key="(row) => String(row.deviceId)" class="mb-16px">
+            <el-table-column type="index" label="序号" width="65" />
+            <el-table-column prop="serialNumber" label="序列号" min-width="180" />
+            <el-table-column prop="deviceName" label="设备" min-width="160" />
+            <el-table-column prop="productModel" label="型号" min-width="130" />
+            <el-table-column prop="productTypeName" label="产品类型" min-width="140" />
+            <el-table-column label="已选检测项" width="120"
+              ><template #default="{ row }">{{
+                selectedRules[String(row.deviceId)]?.length || 0
+              }}</template></el-table-column
+            >
+          </el-table>
+        </div>
+      </section>
+      <section v-show="activeStep === 'prepare'" class="detail-card">
+        <div class="inspection-card__header">
+          <h2
+            ><Icon icon="ep:setting" />巡检准备信息
+            <el-tooltip
+              v-if="task.currentAttemptId"
+              content="本次执行使用已冻结的规则版本，修改准备资料将在重新开始巡检时生效。"
+            >
+              <Icon icon="ep:info-filled" />
+            </el-tooltip>
+          </h2>
+          <el-button link @click="attachmentsVisible = true">附件</el-button>
+        </div>
+        <div class="detail-card__body">
+          <el-form
+            ref="preparationForm"
+            :model="preparation"
+            :rules="preparationRules"
+            label-position="top"
+            :disabled="!canPrepare"
+            @submit.prevent="savePreparation"
+          >
+            <div class="form-grid">
+              <el-form-item label="计划时间"
+                ><el-date-picker
+                  v-model="preparation.plannedAt"
+                  type="datetime"
+                  placeholder="选择计划巡检时间"
+              /></el-form-item>
+            </div>
+            <el-form-item label="巡检背景" prop="background"
+              ><el-input
+                v-model="preparation.background"
+                type="textarea"
+                :rows="3"
+                placeholder="填写本次巡检的背景与目的"
+                maxlength="8000"
+                show-word-limit
             /></el-form-item>
-            <el-form-item label="计划时间"
-              ><el-date-picker
-                v-model="preparation.plannedAt"
-                type="datetime"
-                value-format="x"
-                placeholder="选择计划时间"
-                clearable
-            /></el-form-item>
+            <h3 class="inspection-section-title">巡检方式选择</h3>
+            <el-form-item>
+              <el-radio-group v-model="preparation.mode" class="mode-options">
+                <el-radio value="ONLINE"
+                  >在线巡检<span class="mode-description">通过设备连接采集巡检数据</span></el-radio
+                >
+                <el-radio value="OFFLINE"
+                  >离线巡检<span class="mode-description"
+                    >在平台外执行命令后上传日志</span
+                  ></el-radio
+                >
+              </el-radio-group>
+            </el-form-item>
+          </el-form>
+          <div class="section-heading"
+            ><h3 class="inspection-section-title">巡检规则选择</h3>
+            <el-select v-model="preparationDeviceId" class="device-select" @change="loadSelectable">
+              <el-option
+                v-for="device in task.devices"
+                :key="String(device.deviceId)"
+                :value="String(device.deviceId)"
+                :label="[device.serialNumber, device.deviceName].filter(Boolean).join(' · ')"
+              />
+            </el-select>
           </div>
-          <h3 class="inspection-section-title">巡检方式选择</h3>
-          <el-form-item>
-            <el-radio-group v-model="preparation.mode" class="mode-options">
-              <el-radio value="ONLINE"
-                ><Icon icon="ep:connection" /> 在线巡检 — 登录设备执行命令</el-radio
-              >
-              <el-radio value="OFFLINE"
-                ><Icon icon="ep:folder-opened" /> 离线巡检 — 上传日志并解析</el-radio
-              >
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item label="巡检背景" prop="background"
-            ><el-input
-              v-model="preparation.background"
+          <el-alert v-if="rulesError" :title="rulesError" type="error" :closable="false">
+            <template #default
+              ><el-button link @click="loadSelectable">重新加载规则</el-button></template
+            >
+          </el-alert>
+          <div v-if="unavailableSelections.length" class="unavailable-rules">
+            <p
+              >先前选择中有
+              {{ unavailableSelections.length }} 项已不在当前可选规则中，请核对其发布状态。</p
+            >
+            <el-tag
+              v-for="id in unavailableSelections"
+              :key="id"
+              :title="`原规则修订：${id}`"
+              :closable="canPrepare"
+              @close="removeSelection(id)"
+              >不可用检测项</el-tag
+            >
+          </div>
+          <el-checkbox-group
+            v-model="currentSelections"
+            :disabled="!canPrepare || rulesLoading || !!rulesError"
+            class="rule-options"
+            v-loading="rulesLoading"
+          >
+            <el-checkbox
+              v-for="rule in selectable"
+              :key="String(rule.revisionId)"
+              :value="String(rule.revisionId)"
+              border
+            >
+              <el-tooltip :content="`检测 ID：${rule.detectionId}；修订：R${rule.revisionNo}`">
+                <span>{{ rule.inspectionItem }}</span>
+              </el-tooltip>
+              <span class="help-text">{{ rule.categoryName }} · {{ rule.severityName }}</span>
+            </el-checkbox>
+          </el-checkbox-group>
+          <el-empty
+            v-if="!rulesLoading && !rulesError && !selectable.length"
+            description="该设备暂无适用的已发布规则"
+            :image-size="70"
+          >
+            <el-button :disabled="!canPrepare" @click="missingFeedbackVisible = true"
+              >反馈缺失检测项</el-button
+            >
+          </el-empty>
+          <div class="inspection-footer">
+            <el-button
+              v-hasPermi="['pms:inspection-task:prepare']"
+              :disabled="!canPrepare"
+              :loading="busy"
+              @click="savePreparation"
+              >保存准备资料</el-button
+            >
+            <el-button
+              v-hasPermi="['pms:inspection-task:execute']"
+              type="primary"
+              :disabled="!canStart"
+              @click="startAttempt"
+            >
+              {{
+                task.currentAttemptId
+                  ? '重新开始巡检'
+                  : `下一步 · ${preparation.mode === 'ONLINE' ? '在线' : '离线'}巡检执行`
+              }}
+            </el-button>
+          </div>
+        </div>
+      </section>
+      <el-dialog
+        v-model="missingFeedbackVisible"
+        title="规则缺失反馈"
+        width="min(720px, 92vw)"
+        :close-on-click-modal="false"
+      >
+        <el-form label-position="top" :disabled="writeDisabled">
+          <el-form-item label="缺失的检测内容与设备情况">
+            <el-input
+              v-model="missingDescription"
               type="textarea"
               :rows="3"
               maxlength="8000"
               show-word-limit
-          /></el-form-item>
+              placeholder="描述当前设备缺少的检测内容。"
+            />
+          </el-form-item>
+          <el-button
+            v-hasPermi="['pms:inspection-task:prepare']"
+            :disabled="writeDisabled || !missingDescription.trim()"
+            @click="reportMissing"
+          >
+            提交规则缺失反馈
+          </el-button>
         </el-form>
-        <h3 class="inspection-section-title">巡检设备</h3>
-        <el-table :data="task.devices" :row-key="(row) => String(row.deviceId)" class="mb-16px">
-          <el-table-column prop="serialNumber" label="序列号" min-width="180" />
-          <el-table-column prop="deviceName" label="设备" min-width="160" />
-          <el-table-column prop="productModel" label="型号" min-width="130" />
-          <el-table-column prop="productTypeName" label="产品类型" min-width="140" />
-          <el-table-column label="已选检测项" width="120"
+        <el-table :data="task.ruleFeedback || []" empty-text="暂无规则缺失反馈" class="mt-16px">
+          <el-table-column prop="deviceId" label="设备ID" width="170" />
+          <el-table-column prop="description" label="反馈内容" min-width="280" />
+          <el-table-column label="反馈人" min-width="140">
+            <template #default="{ row }">{{
+              personLabel({ name: row.reportedName, id: row.reportedBy })
+            }}</template>
+          </el-table-column>
+          <el-table-column label="反馈时间" width="180"
             ><template #default="{ row }">{{
-              selectedRules[String(row.deviceId)]?.length || 0
+              formatDate(row.reportedAt)
             }}</template></el-table-column
           >
         </el-table>
-        <div class="section-heading"
-          ><h3 class="inspection-section-title">巡检规则选择</h3>
-          <el-select v-model="preparationDeviceId" class="device-select" @change="loadSelectable">
-            <el-option
-              v-for="device in task.devices"
-              :key="String(device.deviceId)"
-              :value="String(device.deviceId)"
-              :label="[device.serialNumber, device.deviceName].filter(Boolean).join(' · ')"
-            />
-          </el-select>
-        </div>
-        <el-alert v-if="rulesError" :title="rulesError" type="error" :closable="false">
-          <template #default
-            ><el-button link @click="loadSelectable">重新加载规则</el-button></template
-          >
-        </el-alert>
-        <div v-if="unavailableSelections.length" class="unavailable-rules">
-          <p
-            >先前选择中有
-            {{ unavailableSelections.length }} 项已不在当前可选规则中，请核对其发布状态。</p
-          >
-          <el-tag
-            v-for="id in unavailableSelections"
-            :key="id"
-            :closable="canPrepare"
-            @close="removeSelection(id)"
-            >修订 {{ id }}</el-tag
-          >
-        </div>
-        <el-checkbox-group
-          v-model="currentSelections"
-          :disabled="!canPrepare || rulesLoading || !!rulesError"
-          class="rule-options"
-          v-loading="rulesLoading"
-        >
-          <el-checkbox
-            v-for="rule in selectable"
-            :key="String(rule.revisionId)"
-            :value="String(rule.revisionId)"
-            border
-          >
-            <span>{{ rule.inspectionItem }} · R{{ rule.revisionNo }}</span>
-            <span class="help-text"
-              >{{ rule.detectionId }} · {{ rule.categoryName }} · {{ rule.severityName }}</span
-            >
-          </el-checkbox>
-        </el-checkbox-group>
-        <el-empty
-          v-if="!rulesLoading && !rulesError && !selectable.length"
-          description="该设备暂无适用的已发布规则，可在下方提交规则缺失反馈"
-          :image-size="70"
+      </el-dialog>
+      <el-dialog
+        v-model="attachmentsVisible"
+        title="巡检附件"
+        width="min(900px, 94vw)"
+        :close-on-click-modal="false"
+      >
+        <InspectionAttachmentPanel
+          :key="taskId"
+          :task="task"
+          :disabled="attachmentDisabled"
+          @busy-changed="attachmentBusy = $event"
+          @draft-changed="drafts.attachment = $event"
         />
-        <div class="inspection-footer">
-          <el-button @click="router.push('/pms/inspection/tasks')">返回任务列表</el-button>
-          <el-button
-            v-hasPermi="['pms:inspection-task:prepare']"
-            :disabled="!canPrepare"
-            :loading="busy"
-            @click="savePreparation"
-            >保存准备资料</el-button
-          >
-          <el-button
-            v-hasPermi="['pms:inspection-task:execute']"
-            type="primary"
-            :disabled="!canStart"
-            @click="startAttempt"
-          >
-            {{
-              task.currentAttemptId
-                ? '重新开始巡检'
-                : `下一步 · ${preparation.mode === 'ONLINE' ? '在线' : '离线'}巡检执行`
-            }}
-          </el-button>
-        </div>
-        <p class="help-text"
-          >保存后可离开并继续办理。每台设备至少选择一个当前已发布且适配的规则后，才能开始执行。</p
-        >
-      </ContentWrap>
-      <ContentWrap v-show="activeStep === 'prepare'" :body-style="{}">
-        <el-collapse>
-          <el-collapse-item title="规则缺失反馈" name="feedback">
-            <el-form label-position="top" :disabled="writeDisabled">
-              <el-form-item label="缺失的检测内容与设备情况">
-                <el-input
-                  v-model="missingDescription"
-                  type="textarea"
-                  :rows="3"
-                  maxlength="8000"
-                  show-word-limit
-                  placeholder="反馈关联上方当前设备；不适用于执行任务的规则不会强行加入命令清单。"
-                />
-              </el-form-item>
-              <el-button
-                v-hasPermi="['pms:inspection-task:prepare']"
-                :disabled="writeDisabled || !missingDescription.trim()"
-                @click="reportMissing"
-              >
-                提交规则缺失反馈
-              </el-button>
-            </el-form>
-            <el-table :data="task.ruleFeedback || []" empty-text="暂无规则缺失反馈" class="mt-16px">
-              <el-table-column prop="deviceId" label="设备ID" width="170" />
-              <el-table-column prop="description" label="反馈内容" min-width="280" />
-              <el-table-column label="反馈人" min-width="140">
-                <template #default="{ row }">{{
-                  personLabel({ name: row.reportedName, id: row.reportedBy })
-                }}</template>
-              </el-table-column>
-              <el-table-column label="反馈时间" width="180"
-                ><template #default="{ row }">{{
-                  formatDate(row.reportedAt)
-                }}</template></el-table-column
-              >
-            </el-table>
-          </el-collapse-item>
-          <el-collapse-item title="巡检附件（可选）" name="attachments">
-            <InspectionAttachmentPanel
-              :key="taskId"
-              :task="task"
-              :disabled="attachmentDisabled"
-              @busy-changed="attachmentBusy = $event"
-              @draft-changed="drafts.attachment = $event"
-            />
-          </el-collapse-item>
-        </el-collapse>
-      </ContentWrap>
+      </el-dialog>
 
       <ContentWrap v-show="activeStep === 'execute'" :body-style="{}">
         <el-alert v-if="commandsError" :title="commandsError" type="error" :closable="false">
@@ -302,6 +287,7 @@
           :disabled="!canExecute || commandsLoading || !!commandsError"
           @device-change="selectExecutionDevice"
           @upload="uploadLog"
+          @upload-batch="uploadLogBatch"
           @refresh="refreshLog"
           @finish="finishExecution"
           @download-log="downloadLog"
@@ -362,8 +348,16 @@
               issueStatuses[row.statusCode] || row.statusCode
             }}</template></el-table-column
           >
-          <el-table-column label="操作" width="100"
+          <el-table-column label="操作" width="160"
             ><template #default="{ row }">
+              <el-button
+                v-if="canHandleIssue(row)"
+                link
+                type="primary"
+                v-hasPermi="['pms:service-issue:query', 'pms:service-issue:remediate']"
+                @click="openIssue(row.id)"
+                >处理</el-button
+              >
               <el-button
                 link
                 type="primary"
@@ -547,31 +541,40 @@
       </ContentWrap>
     </template>
 
-    <ContentWrap
-      v-if="routeIssueId && (!task || activeStep === 'issues')"
-      :body-style="{}"
-      v-loading="issueLoading"
+    <el-drawer
+      :model-value="!!selectedIssueId"
+      title="问题处理"
+      :size="smallScreen ? '100%' : 'min(960px, 92vw)'"
+      :before-close="closeIssue"
+      :append-to-body="false"
+      class="issue-drawer"
     >
-      <el-alert v-if="issueError" :title="issueError" type="error" :closable="false">
-        <template #default><el-button link @click="loadIssue">重新加载问题</el-button></template>
-      </el-alert>
-      <InspectionIssuePanel
-        v-if="issue"
-        :issue="issue"
-        :disabled="
-          busy ||
-          !!pending ||
-          onlineBusy ||
-          drafts.online ||
-          attachmentBusy ||
-          drafts.attachment ||
-          !issueFresh
-        "
-        @action="processIssue"
-        @download="downloadEvidence"
-        @draft-changed="drafts.issue = $event"
-      />
-    </ContentWrap>
+      <ContentWrap
+        v-if="selectedIssueId"
+        :body-style="{}"
+        v-loading="issueLoading"
+      >
+        <el-alert v-if="issueError" :title="issueError" type="error" :closable="false">
+          <template #default><el-button link @click="loadIssue">重新加载问题</el-button></template>
+        </el-alert>
+        <InspectionIssuePanel
+          v-if="issue"
+          :issue="issue"
+          :disabled="
+            busy ||
+            !!pending ||
+            onlineBusy ||
+            drafts.online ||
+            attachmentBusy ||
+            drafts.attachment ||
+            !issueFresh
+          "
+          @action="processIssue"
+          @download="downloadEvidence"
+          @draft-changed="drafts.issue = $event"
+        />
+      </ContentWrap>
+    </el-drawer>
   </main>
 </template>
 
@@ -583,6 +586,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { useMessage } from '@/hooks/web/useMessage'
 import { generateUUID } from '@/utils'
 import { checkPermi } from '@/utils/permission'
+import { useUserStore } from '@/store/modules/user'
 import { formatDate } from '@/utils/formatTime'
 import * as Api from '@/api/pms/inspection/tasks'
 import type {
@@ -592,6 +596,7 @@ import type {
   ExecutionView,
   FileReference,
   IssueDetail,
+  IssueView,
   PreparationInput,
   ReportFileView,
   ReportView,
@@ -609,6 +614,8 @@ import InspectionAnnotationPanel from '../components/InspectionAnnotationPanel.v
 import InspectionIssuePanel from '../components/InspectionIssuePanel.vue'
 import InspectionAttachmentPanel from '../components/InspectionAttachmentPanel.vue'
 import InspectionSteps from '../components/InspectionSteps.vue'
+import ProjectInformationCard from '@/components/ProjectInformationCard/index.vue'
+import { useProjectInformation } from '@/components/ProjectInformationCard/useProjectInformation'
 import '../shared/inspection.css'
 
 defineOptions({ name: 'PmsInspectionTaskDetail' })
@@ -616,12 +623,27 @@ const route = useRoute(),
   router = useRouter(),
   message = useMessage()
 const smallScreen = useMediaQuery('(max-width: 767px)')
+const userStore = useUserStore()
 const taskId = computed(() => String(route.params.taskId || ''))
 const routeIssueId = computed(() =>
   typeof route.query.issueId === 'string' ? route.query.issueId : ''
 )
+const selectedIssueId = ref('')
 const task = ref<TaskDetail>(),
   issue = ref<IssueDetail>()
+const {
+  project: projectInformation,
+  customerServiceLevel: projectCustomerServiceLevel,
+  loading: projectInformationLoading,
+  error: projectInformationError,
+  load: loadProjectInformation
+} = useProjectInformation()
+watch(
+  () => task.value?.projectId,
+  (projectId) => {
+    void loadProjectInformation(projectId)
+  }
+)
 const loading = ref(false),
   issueLoading = ref(false),
   busy = ref(false),
@@ -714,7 +736,7 @@ const preparation = reactive({
   taskName: '',
   background: '',
   mode: 'OFFLINE' as PreparationInput['mode'],
-  plannedAt: ''
+  plannedAt: undefined as Date | undefined
 })
 const selectedRules = ref<Record<string, string[]>>({})
 const preparationBaseline = ref('')
@@ -722,7 +744,7 @@ const preparationPayload = (): PreparationInput => ({
   taskName: preparation.taskName,
   background: preparation.background,
   mode: preparation.mode,
-  plannedAt: preparation.plannedAt ? Number(preparation.plannedAt) : undefined,
+  plannedAt: preparation.plannedAt?.getTime(),
   rules: Object.entries(selectedRules.value).flatMap(([deviceId, revisions]) =>
     revisions.map((ruleRevisionId) => ({ deviceId, ruleRevisionId }))
   )
@@ -732,6 +754,8 @@ const preparationDirty = computed(
 )
 const archiveDescription = ref('')
 const missingDescription = ref('')
+const missingFeedbackVisible = ref(false)
+const attachmentsVisible = ref(false)
 const assignment = reactive({ userId: '', reason: '' })
 const people = ref<Awaited<ReturnType<typeof getSimpleUserList>>>([])
 const terminal = computed(
@@ -806,7 +830,6 @@ const anyDirty = computed(
 )
 const preparationForm = ref<FormInstance>()
 const preparationRules: FormRules = {
-  taskName: [{ required: true, whitespace: true, message: '请填写任务名称', trigger: 'blur' }],
   background: [{ required: true, whitespace: true, message: '请填写巡检背景', trigger: 'blur' }]
 }
 
@@ -897,7 +920,7 @@ const resetPreparation = (value: TaskDetail) => {
     taskName: value.taskName,
     background: value.background,
     mode: value.mode,
-    plannedAt: value.plannedAt == null ? '' : String(value.plannedAt)
+    plannedAt: value.plannedAt == null ? undefined : new Date(value.plannedAt)
   })
   selectedRules.value = Object.fromEntries(
     value.devices.map((device) => [
@@ -917,7 +940,7 @@ const resetPreparation = (value: TaskDetail) => {
 }
 const loadIssue = async () => {
   const seq = ++issueSequence,
-    id = routeIssueId.value,
+    id = selectedIssueId.value,
     parent = taskId.value
   issueError.value = ''
   issueFresh.value = false
@@ -960,10 +983,10 @@ const load = async (selectStep = false) => {
       fresh.value = true
       resetPreparation(value)
       clearDrafts()
-      if (selectStep) activeStep.value = routeIssueId.value ? 'issues' : stateStep(value.statusCode)
+      if (selectStep) activeStep.value = selectedIssueId.value ? 'issues' : stateStep(value.statusCode)
       void loadSelectable()
       void loadCommands()
-    } else if (!routeIssueId.value) loadError.value = '没有巡检任务查询权限。'
+    } else if (!selectedIssueId.value) loadError.value = '没有巡检任务查询权限。'
   } catch {
     if (seq === loadSequence)
       loadError.value = '任务详情加载失败或无权访问。当前内容禁止提交，请刷新后继续。'
@@ -1085,6 +1108,15 @@ const uploadLog = (data: { deviceId: WireLong; file: File; commandHint?: string 
     label: '登记日志',
     section: 'execution',
     run: (c) => Api.uploadOfflineLog(c.id, payload, c.version, c.key)
+  })
+}
+const uploadLogBatch = (file: File) => {
+  if (!task.value?.currentAttemptId) return
+  const payload = { file, attemptId: task.value.currentAttemptId }
+  return runTask({
+    label: '登记多设备日志',
+    section: 'execution',
+    run: (c) => Api.uploadOfflineLogBatch(c.id, payload, c.version, c.key)
   })
 }
 const refreshLog = (executionId: WireLong) =>
@@ -1228,8 +1260,30 @@ const processIssue = (input: IssueAction) => {
     run: () => Api.issueAction(id, action, data, version, key)
   })
 }
-const openIssue = (id: WireLong) =>
-  router.replace({ query: { ...route.query, issueId: String(id) } })
+const openIssue = async (id: WireLong) => {
+  if (String(id) === selectedIssueId.value || !(await mayLeave())) return
+  selectedIssueId.value = String(id)
+  issue.value = undefined
+  drafts.issue = false
+  await loadIssue()
+}
+const canHandleIssue = (row: IssueView) =>
+  row.responsibleUserId != null &&
+  String(row.responsibleUserId) === String(userStore.getUser.id) &&
+  task.value?.statusCode !== 'ARCHIVED' &&
+  ['PENDING', 'PROCESSING'].includes(row.statusCode) &&
+  checkPermi(['pms:service-issue:query']) &&
+  checkPermi(['pms:service-issue:remediate'])
+const closeIssue = async () => {
+  if (!(await mayLeave())) return
+  selectedIssueId.value = ''
+  issueSequence++
+  issue.value = undefined
+  issueFresh.value = false
+  issueError.value = ''
+  issueLoading.value = false
+  drafts.issue = false
+}
 const download = async (input: {
   taskId: WireLong
   artifactId?: WireLong
@@ -1321,6 +1375,7 @@ window.addEventListener('beforeunload', beforeUnload)
 watch(
   () => [taskId.value, routeIssueId.value],
   () => {
+    selectedIssueId.value = routeIssueId.value
     loadSequence++
     issueSequence++
     commandSequence++
@@ -1349,6 +1404,44 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.detail-card {
+  margin-bottom: 16px;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 4%);
+}
+.detail-card > .inspection-card__header {
+  margin: 0;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f0f2f5;
+}
+.detail-card__body {
+  padding: 20px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+.form-grid :deep(.el-date-editor) {
+  width: 100%;
+}
+.mode-description {
+  margin-left: 10px;
+  font-size: 12px;
+  color: #888;
+}
+:deep(.el-form-item__label) {
+  font-size: 12px;
+  color: #888;
+}
+@media (max-width: 767px) {
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .inspection-detail {
   min-width: 0;
 }
@@ -1385,24 +1478,6 @@ h3 {
 }
 .actions :deep(.el-button + .el-button) {
   margin-left: 0;
-}
-.project-context {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin: 0;
-}
-.project-context dt {
-  margin-bottom: 4px;
-  color: var(--inspection-muted);
-  font-size: 12px;
-}
-.project-context dd {
-  min-height: 30px;
-  margin: 0;
-  padding: 6px 0;
-  overflow-wrap: anywhere;
-  line-height: 1.6;
 }
 .serial-value {
   font-family: Consolas, monospace;
@@ -1497,16 +1572,8 @@ h3 {
   .rule-options {
     grid-template-columns: 1fr;
   }
-  .project-context {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
   .device-select {
     width: 100%;
-  }
-}
-@media (max-width: 479px) {
-  .project-context {
-    grid-template-columns: 1fr;
   }
 }
 </style>

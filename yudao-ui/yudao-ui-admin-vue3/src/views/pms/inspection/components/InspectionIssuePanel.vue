@@ -1,12 +1,12 @@
 <template>
   <section class="issue-panel" aria-label="巡检问题处理">
-    <header class="section-heading">
-      <h2>问题处理</h2>
+    <header class="inspection-card__header">
+      <h2><Icon icon="ep:warning" /> 问题基本信息</h2>
       <el-tag :type="issue.statusCode === 'CLOSED' ? 'success' : 'warning'">{{
         statusLabel(issue.statusCode)
       }}</el-tag>
     </header>
-    <el-descriptions :column="smallScreen ? 1 : 2" class="mt-16px" border>
+    <el-descriptions :column="smallScreen ? 1 : 2" class="issue-summary" border>
       <el-descriptions-item label="所属任务"
         >{{ issue.taskCode }} · {{ issue.taskName }}</el-descriptions-item
       >
@@ -49,7 +49,7 @@
     />
 
     <section class="history-section" aria-label="处理历史">
-      <h3>处理历史与证据</h3>
+      <h3 class="inspection-section-title">处理历史与证据</h3>
       <el-empty v-if="!issue.remediations.length" description="尚无处理记录" :image-size="64" />
       <article v-for="record in history" :key="String(record.id)" class="history-record">
         <div class="section-heading">
@@ -83,7 +83,7 @@
     </section>
 
     <section v-if="canProcess" class="write-section" aria-label="追加问题处理记录">
-      <h3>追加处理记录</h3>
+      <h3 class="inspection-section-title">追加处理记录</h3>
       <el-form label-position="top" :disabled="disabled || currentBusy">
         <el-form-item label="处理内容" required
           ><el-input
@@ -175,7 +175,7 @@
     </section>
 
     <section v-if="canProcess" class="write-section" aria-label="申请问题闭环">
-      <h3>申请闭环</h3>
+      <h3 class="inspection-section-title">申请闭环</h3>
       <p class="help-text">申请前需有已保存的处理记录和有效处理证据，服务端会重新核对。</p>
       <el-form label-position="top" :disabled="disabled || currentBusy">
         <el-form-item label="闭环申请说明" required
@@ -197,7 +197,7 @@
     </section>
 
     <section v-if="canConfirm" class="write-section" aria-label="确认或退回问题闭环">
-      <h3>确认或退回闭环</h3>
+      <h3 class="inspection-section-title">确认或退回闭环</h3>
       <el-form label-position="top" :disabled="disabled || currentBusy">
         <el-form-item label="确认或退回说明" required
           ><el-input
@@ -229,7 +229,7 @@
       class="write-section"
       aria-label="原问题的上传结果"
     >
-      <h3>原问题的上传结果</h3>
+      <h3 class="inspection-section-title">原问题的上传结果</h3>
       <p class="help-text"
         >以下上传结果按原任务和问题保留，不会提交到当前问题；平台文件仍保留原业务引用。</p
       >
@@ -604,26 +604,61 @@ onBeforeUnmount(() => {
 .section-heading h4 {
   margin: 0;
 }
-.issue-panel h2 {
-  font-size: 18px;
+.inspection-card__header h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 15px;
 }
-.issue-panel h3 {
-  font-size: 16px;
+.issue-panel :deep(.el-table) {
+  font-size: 13px;
+  --el-table-border-color: #f0f2f5;
+  --el-table-header-bg-color: #fafbfc;
+  --el-table-row-hover-bg-color: #f8faff;
 }
-.issue-panel h4 {
+.issue-panel :deep(.el-table th.el-table__cell) {
+  color: #666;
+  font-size: 12px;
+  font-weight: 600;
+}
+.inspection-section-title {
+  display: inline-block;
+  padding-bottom: 6px;
+  margin: 0 0 12px;
+  color: var(--inspection-title, #1a2332);
   font-size: 14px;
+  font-weight: 600;
+  border-bottom: 2px solid var(--inspection-blue, #4a90e2);
+}
+.issue-summary {
+  margin-bottom: 16px;
+}
+.issue-summary :deep(.el-descriptions__label) {
+  width: 110px;
+  white-space: nowrap;
+}
+.issue-summary :deep(.el-descriptions__content) {
+  overflow-wrap: anywhere;
 }
 .history-section,
 .write-section {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid var(--el-border-color);
+  margin-top: 20px;
 }
 .history-record {
-  padding: 16px;
-  margin: 12px 0;
-  border: 1px solid var(--el-border-color);
-  border-radius: var(--el-border-radius-base);
+  padding: 12px 0 16px;
+  border-bottom: 1px solid #f0f2f5;
+}
+.history-record:last-child {
+  border-bottom: 0;
+}
+.history-record h4,
+.evidence-draft h4 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.write-section :deep(.el-form-item) {
+  margin-bottom: 14px;
 }
 .record-content {
   white-space: pre-wrap;
@@ -632,7 +667,7 @@ onBeforeUnmount(() => {
 }
 .help-text {
   margin: 8px 0 12px;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.6;
   color: var(--el-text-color-secondary);
 }
@@ -640,8 +675,10 @@ onBeforeUnmount(() => {
   margin-top: 16px;
 }
 @media (max-width: 768px) {
-  .history-record {
-    padding: 12px;
+  .section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
   }
 }
 </style>

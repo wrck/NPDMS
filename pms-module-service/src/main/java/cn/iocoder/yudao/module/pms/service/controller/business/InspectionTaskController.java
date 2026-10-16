@@ -26,10 +26,10 @@ public class InspectionTaskController {
     private final InspectionTaskQueryService queries;
     private final InspectionCommandExecutor executor;
 
-    public record Create(@NotBlank @Size(max = 200) String taskName, @NotNull Long projectId,
+    public record Create(String taskName, @NotNull Long projectId,
                          @NotEmpty @Size(max = 100) List<Long> deviceIds, @NotBlank @Size(max = 8000) String background,
                          LocalDateTime plannedAt, @NotBlank String mode) { }
-    public record Preparation(@NotBlank @Size(max = 200) String taskName, @NotBlank @Size(max = 8000) String background,
+    public record Preparation(@NotBlank @Size(max = 282) String taskName, @NotBlank @Size(max = 8000) String background,
                               LocalDateTime plannedAt, @NotBlank String mode, List<InspectionTaskService.RuleChoice> rules) { }
     public record Reason(@Size(max = 2000) String reason) { }
     public record Assignment(@NotNull Long ownerUserId, @NotBlank @Size(max = 2000) String reason) { }

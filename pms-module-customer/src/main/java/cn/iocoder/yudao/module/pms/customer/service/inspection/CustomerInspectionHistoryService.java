@@ -116,7 +116,7 @@ public class CustomerInspectionHistoryService implements CustomerInspectionHisto
                 || command.projectId() == null || command.projectId() <= 0 || command.taskId() == null || command.taskId() <= 0
                 || command.archivedTaskVersion() == null || command.archivedTaskVersion() <= 0 || command.reportId() == null || command.reportId() <= 0
                 || command.taskCode() == null || command.taskCode().isBlank() || command.taskCode().length() > 64
-                || command.taskName() == null || command.taskName().isBlank() || command.taskName().length() > 200
+                || command.taskName() == null || command.taskName().isBlank() || command.taskName().length() > 282
                 || command.references() == null || command.references().isEmpty()
                 || command.references().stream().anyMatch(r -> r == null || r.kind() == null || r.sourceId() == null || r.sourceId() <= 0)
                 || new HashSet<>(command.references()).size() != command.references().size()

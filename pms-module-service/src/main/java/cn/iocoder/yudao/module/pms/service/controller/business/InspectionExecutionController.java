@@ -24,6 +24,7 @@ public class InspectionExecutionController {
     public record Refresh(Long executionId) { }
     public record Abandon(Long executionId, String reason) { }
     private record UploadFingerprint(Long attemptId, Long deviceId, String fileName, String sha256, String commandHint) { }
+    private record BatchFingerprint(Long attemptId, String fileName, String sha256) { }
     private record Input(Long version, Object body) { }
     private record Write(InspectionRequestContext context, Long taskId, String action, Object input,
                          Supplier<InspectionViews.TaskSummary> execute) { }
@@ -48,6 +49,22 @@ public class InspectionExecutionController {
             return execute(new Write(context, taskId, "LOG_UPLOAD", fingerprint,
                     () -> service.upload(InspectionExecutionService.Upload.builder().context(context).taskId(taskId)
                             .attemptId(attemptId).deviceId(deviceId).fileName(file.getOriginalFilename()).content(content).commandHint(commandHint).build())));
+        } finally { java.util.Arrays.fill(content, (byte) 0); }
+    }
+
+    @PostMapping(value = "/offline-log-batches", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@ss.hasPermission('pms:inspection-task:execute')")
+    @ApiAccessLog(requestEnable = false, responseEnable = false)
+    public CommonResult<InspectionViews.TaskSummary> uploadBatch(@PathVariable Long taskId, @RequestHeader HttpHeaders headers,
+            @RequestParam Long attemptId, @RequestPart("file") MultipartFile file) throws IOException {
+        InspectionException.require(file != null && file.getSize() > 0 && file.getSize() <= 20 * 1024 * 1024,
+                "多设备日志不能为空且不得超过20MB");
+        var context = InspectionRequestContext.write(headers); byte[] content = file.getBytes();
+        var fingerprint = new BatchFingerprint(attemptId, file.getOriginalFilename(), DigestUtil.sha256Hex(content));
+        try {
+            return execute(new Write(context, taskId, "LOG_BATCH_UPLOAD", fingerprint,
+                    () -> service.uploadBatch(new InspectionExecutionService.BatchUpload(context, taskId, attemptId,
+                            file.getOriginalFilename(), content))));
         } finally { java.util.Arrays.fill(content, (byte) 0); }
     }
 

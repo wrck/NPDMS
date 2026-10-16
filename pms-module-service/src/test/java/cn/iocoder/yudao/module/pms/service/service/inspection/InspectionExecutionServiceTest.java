@@ -3,6 +3,7 @@ package cn.iocoder.yudao.module.pms.service.service.inspection;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.iocoder.yudao.framework.common.util.json.JsonUtils;
 import cn.iocoder.yudao.module.pms.integration.api.deviceops.DeviceLogParsingApi;
+import cn.iocoder.yudao.module.pms.integration.api.deviceops.DeviceOpsLogSplitApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.AuthenticatedFileContentApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.NativeGeneratedFileApi;
@@ -47,6 +48,7 @@ class InspectionExecutionServiceTest {
     private final InspectionDetectionResultMapper results = mock(InspectionDetectionResultMapper.class);
     private final InspectionRuleQueryService rules = mock(InspectionRuleQueryService.class);
     private final DeviceLogParsingApi parser = mock(DeviceLogParsingApi.class);
+    private final DeviceOpsLogSplitApi splitter = mock(DeviceOpsLogSplitApi.class);
     private final NativeGeneratedFileApi generatedFiles = mock(NativeGeneratedFileApi.class);
     private final FileEvidenceApi fileEvidence = mock(FileEvidenceApi.class);
     private final AuthenticatedFileContentApi fileContent = mock(AuthenticatedFileContentApi.class);
@@ -62,7 +64,7 @@ class InspectionExecutionServiceTest {
     @BeforeEach
     void setup() {
         service = new InspectionExecutionService(access, tasks, attempts, devices, snapshots, executions,
-                parts, results, rules, parser, generatedFiles, fileEvidence, fileContent);
+                parts, results, rules, parser, splitter, generatedFiles, fileEvidence, fileContent);
         task = new InspectionTaskDO();
         task.setId(10L); task.setTenantId(1L); task.setVersion(5L); task.setProjectId(100L);
         task.setCurrentAttemptId(20L); task.setStatusCode("EXECUTING");
@@ -342,6 +344,49 @@ class InspectionExecutionServiceTest {
     }
 
     @Test
+    void anonymousPreambleIsPreservedAndOnlyMarkedLegacyForParserSubmission() {
+        freeze(rule(201L, "OK", command("version", "show version", 1)));
+        var row = execution(50L, "OFFLINE");
+        var preamble = block(1, "", "unattributed terminal preamble");
+        var version = block(2, "show version", "OK");
+        var job = part(row, 1, 2);
+        register(new FrozenLog(row, List.of(preamble, version), List.of(job)));
+        byte[] frozen = documents.get(row.getArtifactId()).clone();
+        when(parser.submit(any())).thenAnswer(call -> {
+            DeviceLogParsingApi.Submission input = call.getArgument(0);
+            var encoded = JsonUtils.parseTree(input.inputText()).path("commandBlocks");
+            assertTrue(encoded.get(0).path("legacy").asBoolean());
+            assertEquals("", encoded.get(0).path("commandText").asText());
+            assertEquals(preamble.stdout(), encoded.get(0).path("stdout").asText());
+            assertFalse(encoded.get(1).has("legacy"));
+            return succeeded(job, List.of(unit(version, "10ms")));
+        });
+        refresh(row);
+        assertEquals("COMPLETE", row.getStatusCode());
+        assertEquals("PASS", appendedResults.getFirst().getOutcome());
+        assertArrayEquals(frozen, documents.get(row.getArtifactId()));
+        assertFalse(JsonUtils.parseTree(new String(frozen, StandardCharsets.UTF_8)).path("commandBlocks").get(0).has("legacy"));
+    }
+
+    @Test
+    void permanentParserRejectionEndsThePartWithoutPretendingItIsStillRunning() {
+        freeze(rule(201L, "OK", command("version", "show version", 1)));
+        var row = execution(50L, "OFFLINE");
+        var job = part(row, 1, 1);
+        register(new FrozenLog(row, List.of(block(1, "show version", "OK")), List.of(job)));
+        when(parser.submit(any())).thenThrow(new DeviceLogParsingApi.InvalidInputException("invalid input"));
+        refresh(row);
+        assertEquals("FAILED", job.getStatusCode());
+        assertEquals("PARSER_INPUT_INVALID", job.getFailureCode());
+        assertEquals("PARTIAL", row.getStatusCode());
+        assertEquals("PARSER_INPUT_INVALID", row.getFailureCode());
+        assertNotNull(row.getFailureMessage());
+        assertEquals("ERROR", appendedResults.getFirst().getOutcome());
+        refresh(row);
+        verify(parser, times(1)).submit(any());
+    }
+
+    @Test
     void invalidOfflineLogIsAFileErrorAndStoresNoOriginalOrExecution() {
         attempts.selectById(20L).setMode("OFFLINE");
         when(parser.normalize(any())).thenThrow(new DeviceLogParsingApi.InvalidInputException("日志格式无效"));
@@ -355,6 +400,99 @@ class InspectionExecutionServiceTest {
         verify(parts, never()).insert(any(InspectionParsePartDO.class));
         verify(results, never()).insert(any(InspectionDetectionResultDO.class));
         verify(tasks, never()).save(any());
+    }
+
+    private void prepareBatch() {
+        attempts.selectById(20L).setMode("OFFLINE");
+        var second = new InspectionTaskDeviceDO(); second.setDeviceId(31L); second.setSerialNumber("SECOND-SN");
+        var first = devices.selectForTask(new InspectionTaskRows(1L, 10L)).getFirst();
+        when(devices.selectForTask(any())).thenReturn(List.of(first, second));
+        when(splitter.split(any())).thenReturn(new DeviceOpsLogSplitApi.Result("safe source", 1, List.of(
+                new DeviceOpsLogSplitApi.DeviceLog("SELECTED-SN", "safe first"),
+                new DeviceOpsLogSplitApi.DeviceLog("SECOND-SN", "safe second"))));
+        when(parser.normalize(any())).thenAnswer(call -> {
+            DeviceLogParsingApi.LogInput input = call.getArgument(0);
+            return normalized(List.of(block(1, "show latency", input.inputText())),
+                    List.of(input.inputText().equals("safe first") ? "SELECTED-SN" : "SECOND-SN"));
+        });
+        when(executions.selectForTask(any())).thenAnswer(call -> List.copyOf(executionRows.values()));
+        when(executions.insert(any(InspectionExecutionDO.class))).thenAnswer(call -> {
+            InspectionExecutionDO row = call.getArgument(0); row.setId(50L + executionRows.size());
+            executionRows.put(row.getId(), row); return 1;
+        });
+    }
+
+    private InspectionExecutionService.BatchUpload batch() {
+        return new InspectionExecutionService.BatchUpload(context, 10L, 20L, "multi.log", bytes("raw secret log"));
+    }
+
+    @Test
+    void batchCreatesIndependentInspectionExecutionsAndReplaysWithoutNewFiles() {
+        prepareBatch();
+        service.uploadBatch(batch());
+        assertEquals(2, executionRows.size());
+        assertEquals(Set.of(30L, 31L), executionRows.values().stream().map(InspectionExecutionDO::getDeviceId).collect(java.util.stream.Collectors.toSet()));
+        for (var row : executionRows.values()) {
+            assertEquals("OFFLINE", row.getPurposeCode());
+            assertEquals("PENDING", row.getStatusCode());
+            assertEquals(1, jobRows.get(row.getId()).size());
+            assertFalse(new String(documents.get(row.getArtifactId()), StandardCharsets.UTF_8).contains("raw secret"));
+        }
+        service.uploadBatch(batch());
+        assertEquals(2, executionRows.size());
+        verify(generatedFiles, times(2)).create(any());
+        verifyNoInteractions(results);
+    }
+
+    @Test
+    void unknownBatchDeviceRejectsAllBeforeAnyExecutionOrFileIsWritten() {
+        prepareBatch();
+        when(splitter.split(any())).thenReturn(new DeviceOpsLogSplitApi.Result("safe", 0, List.of(
+                new DeviceOpsLogSplitApi.DeviceLog("SELECTED-SN", "safe first"),
+                new DeviceOpsLogSplitApi.DeviceLog("OUTSIDE-SN", "safe outsider"))));
+        assertThrows(InspectionException.class, () -> service.uploadBatch(batch()));
+        assertTrue(executionRows.isEmpty());
+        verifyNoInteractions(generatedFiles);
+        verify(tasks, never()).save(any());
+    }
+
+    @Test
+    void lastDeviceNormalizationFailureDoesNotPartiallyStoreBatch() {
+        prepareBatch();
+        doReturn(normalized(List.of(block(1, "show latency", "safe first")), List.of("SELECTED-SN")))
+                .doThrow(new DeviceLogParsingApi.InvalidInputException("invalid second")).when(parser).normalize(any());
+        var failure = assertThrows(InspectionException.class, () -> service.uploadBatch(batch()));
+        assertEquals(InspectionException.Reason.FILE_INVALID, failure.getReason());
+        assertTrue(executionRows.isEmpty());
+        verifyNoInteractions(generatedFiles);
+    }
+
+    @Test
+    void batchRequiresCurrentOfflineAttemptAndPreservesAuthorizationFailure() {
+        prepareBatch();
+        attempts.selectById(20L).setMode("ONLINE");
+        assertThrows(InspectionException.class, () -> service.uploadBatch(batch()));
+        verifyNoInteractions(splitter, generatedFiles);
+        attempts.selectById(20L).setMode("OFFLINE");
+        attempts.selectById(20L).setStatusCode("COMPLETED");
+        assertThrows(InspectionException.class, () -> service.uploadBatch(batch()));
+        when(access.task(any())).thenThrow(new InspectionException(InspectionException.Reason.FORBIDDEN, "denied"));
+        assertEquals(InspectionException.Reason.FORBIDDEN,
+                assertThrows(InspectionException.class, () -> service.uploadBatch(batch())).getReason());
+        verifyNoInteractions(splitter, generatedFiles);
+    }
+
+    @Test
+    void splitterRejectionAndOutageAreNotRecordedAsSuccessfulUploads() {
+        prepareBatch();
+        when(splitter.split(any())).thenThrow(new DeviceOpsLogSplitApi.Rejected("missing serial"));
+        assertEquals(InspectionException.Reason.FILE_INVALID,
+                assertThrows(InspectionException.class, () -> service.uploadBatch(batch())).getReason());
+        doThrow(new IllegalStateException("unavailable")).when(splitter).split(any());
+        assertEquals(InspectionException.Reason.DEPENDENCY_UNAVAILABLE,
+                assertThrows(InspectionException.class, () -> service.uploadBatch(batch())).getReason());
+        verifyNoInteractions(generatedFiles);
+        assertTrue(executionRows.isEmpty());
     }
 
     @Test

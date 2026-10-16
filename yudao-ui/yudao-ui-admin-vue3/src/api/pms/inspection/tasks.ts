@@ -240,7 +240,7 @@ export interface TaskDetail extends TaskSummary {
   owner: boolean
 }
 export interface CreateTaskInput {
-  taskName: string
+  taskName?: string
   projectId: WireLong
   deviceIds: WireLong[]
   background: string
@@ -388,6 +388,22 @@ export const uploadOfflineLog = (
   if (data.commandHint) form.append('commandHint', data.commandHint)
   return request.post<TaskSummary>({
     url: `${base}/${taskId}/offline-logs`,
+    data: form,
+    headers: { ...writeHeaders(key, version), 'Content-Type': 'multipart/form-data' },
+    timeout: 180000
+  })
+}
+export const uploadOfflineLogBatch = (
+  taskId: WireLong,
+  data: { attemptId: WireLong; file: File },
+  version: WireLong,
+  key: string
+) => {
+  const form = new FormData()
+  form.append('attemptId', String(data.attemptId))
+  form.append('file', data.file)
+  return request.post<TaskSummary>({
+    url: `${base}/${taskId}/offline-log-batches`,
     data: form,
     headers: { ...writeHeaders(key, version), 'Content-Type': 'multipart/form-data' },
     timeout: 180000

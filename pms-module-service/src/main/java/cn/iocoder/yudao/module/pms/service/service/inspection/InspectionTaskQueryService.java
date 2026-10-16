@@ -3,7 +3,7 @@ package cn.iocoder.yudao.module.pms.service.service.inspection;
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
-import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi;
+import cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceShipmentApi;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileActionCodes;
 import cn.iocoder.yudao.module.pms.platform.api.file.FileArtifactApi;
@@ -43,7 +43,7 @@ public class InspectionTaskQueryService {
     private final InspectionTaskEventMapper events;
     private final InspectionRuleFeedbackMapper ruleFeedback;
     private final InspectionRuleQueryService rules;
-    private final ProjectDeviceSelectionApi deviceSelection;
+    private final ProjectDeviceShipmentApi shipments;
     private final ProjectBusinessContextApi projectContexts;
     private final AdminUserApi users;
     private final FileArtifactApi files;
@@ -206,8 +206,10 @@ public class InspectionTaskQueryService {
         access.project(new InspectionAccessService.ProjectAccess(request.context(), request.projectId(), false));
         List<DeviceOption> options = new ArrayList<>();
         for (int pageNo = 1; ; pageNo++) {
-            var page = deviceSelection.pageSelection(new ProjectDeviceSelectionApi.SelectionQuery(request.projectId(), null, pageNo, 100));
-            options.addAll(page.list().stream().map(row -> new DeviceOption(row.equipmentId(), row.sn(), row.name(), row.productModel())).toList());
+            var page = shipments.pageDevices(ProjectDeviceShipmentApi.DeviceQuery.builder()
+                    .tenantId(request.context().tenantId()).actorId(request.context().actorId())
+                    .projectId(request.projectId()).pageNo(pageNo).pageSize(100).build());
+            options.addAll(page.list().stream().map(row -> new DeviceOption(row.deviceId(), row.serialNumber(), null, row.productModel())).toList());
             if (page.list().isEmpty() || options.size() >= page.total()) break;
         }
         return List.copyOf(options);

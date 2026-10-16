@@ -22,7 +22,16 @@
         show-icon
       />
       <el-form label-position="top" class="upload-form" @submit.prevent="submitUpload">
-        <el-form-item label="巡检设备">
+        <el-form-item label="日志上传方式">
+          <el-radio-group v-model="uploadMode" :disabled="disabled">
+            <el-radio-button value="single">单设备日志</el-radio-button>
+            <el-radio-button value="batch">多设备日志（按SN识别）</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <p v-if="uploadMode === 'batch'" class="help-text">
+          自动按SN拆分并匹配本次任务设备。任一设备不匹配时整批拒绝；请分别刷新各设备的解析结果。
+        </p>
+        <el-form-item :label="uploadMode === 'batch' ? '查看设备命令' : '巡检设备'">
           <el-select
             :model-value="String(selectedDeviceId || '')"
             :disabled="disabled"
@@ -41,19 +50,22 @@
           <el-form-item label="巡检日志">
             <div
               class="file-drop-zone"
-              :class="{ 'is-disabled': disabled || !selectedDeviceId }"
+              :class="{ 'is-disabled': !canSelectFile }"
               @dragover.prevent
               @drop.prevent="dropFiles"
             >
               <button
                 type="button"
                 class="file-picker"
-                :disabled="disabled || !selectedDeviceId"
+                :disabled="!canSelectFile"
                 @click="fileInput?.click()"
               >
                 <Icon icon="ep:document" :size="30" />
                 <span>点击或拖拽选择巡检日志文件</span>
-                <small>支持 .log / .txt / .zip，单文件不超过 50MB</small>
+                <small
+                  >支持 .log / .txt / .zip，单文件不超过
+                  {{ uploadMode === 'batch' ? 20 : 50 }}MB</small
+                >
               </button>
               <input
                 ref="fileInput"
@@ -62,7 +74,7 @@
                 accept=".log,.txt,.zip"
                 aria-label="选择离线巡检日志文件"
                 tabindex="-1"
-                :disabled="disabled || !selectedDeviceId"
+                :disabled="!canSelectFile"
                 @change="selectFile"
               />
             </div>
@@ -72,7 +84,7 @@
             </div>
             <p v-if="fileError" class="file-error" role="alert">{{ fileError }}</p>
           </el-form-item>
-          <el-form-item label="命令提示（可选）">
+          <el-form-item v-if="uploadMode === 'single'" label="命令提示（可选）">
             <el-select
               v-model="commandHint"
               clearable
@@ -90,10 +102,7 @@
             <p class="help-text">只包含单条命令输出的日志可选择对应提示；多命令日志可留空。</p>
           </el-form-item>
         </div>
-        <el-button
-          type="primary"
-          native-type="submit"
-          :disabled="disabled || !selectedFile || !selectedDeviceId"
+        <el-button type="primary" native-type="submit" :disabled="!canSelectFile || !selectedFile"
           >上传并解析</el-button
         >
         <div class="section-heading">
@@ -387,6 +396,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   deviceChange: [deviceId: WireLong]
   upload: [input: { deviceId: WireLong; file: File; commandHint?: string }]
+  uploadBatch: [file: File]
   refresh: [executionId: WireLong]
   finish: []
   downloadLog: [execution: ExecutionView]
@@ -396,6 +406,11 @@ const message = useMessage()
 const smallScreen = useMediaQuery('(max-width: 767px)')
 const fileInput = ref<HTMLInputElement>()
 const selectedFile = ref<File | null>(null)
+const uploadMode = ref<'single' | 'batch'>('single')
+const canSelectFile = computed(
+  () =>
+    !props.disabled && isOffline.value && (uploadMode.value === 'batch' || !!props.selectedDeviceId)
+)
 const commandHint = ref('')
 const fileError = ref('')
 const currentAttempt = computed(() =>
@@ -499,13 +514,15 @@ const changeDevice = (deviceId: WireLong) => {
   emit('deviceChange', deviceId)
 }
 const acceptFile = (file: File | undefined) => {
-  if (props.disabled || !isOffline.value || !props.selectedDeviceId) return
+  if (!canSelectFile.value) return
   selectedFile.value = null
   fileError.value = ''
   if (fileInput.value) fileInput.value.value = ''
   if (!file) return
   if (!/\.(log|txt|zip)$/i.test(file.name)) fileError.value = '仅支持 .log、.txt、.zip 文件。'
-  else if (file.size > 50 * 1024 * 1024) fileError.value = '单文件不能超过 50MB，请重新选择。'
+  else if (!file.size) fileError.value = '日志文件不能为空。'
+  else if (file.size > (uploadMode.value === 'batch' ? 20 : 50) * 1024 * 1024)
+    fileError.value = `单文件不能超过 ${uploadMode.value === 'batch' ? 20 : 50}MB，请重新选择。`
   if (fileError.value) {
     return
   }
@@ -513,7 +530,7 @@ const acceptFile = (file: File | undefined) => {
 }
 const selectFile = (event: Event) => {
   const files = (event.target as HTMLInputElement).files
-  if (props.disabled || !isOffline.value || !props.selectedDeviceId) return
+  if (!canSelectFile.value) return
   if (files && files.length > 1) {
     acceptFile(undefined)
     fileError.value = '一次只能选择一个日志文件。'
@@ -522,7 +539,7 @@ const selectFile = (event: Event) => {
   acceptFile(files?.[0])
 }
 const dropFiles = (event: DragEvent) => {
-  if (props.disabled || !isOffline.value || !props.selectedDeviceId) return
+  if (!canSelectFile.value) return
   const files = event.dataTransfer?.files
   if (!files || files.length !== 1) {
     acceptFile(undefined)
@@ -537,9 +554,13 @@ const submitUpload = () => {
     !isOffline.value ||
     !currentAttempt.value ||
     !selectedFile.value ||
-    !props.selectedDeviceId
+    !canSelectFile.value
   )
     return
+  if (uploadMode.value === 'batch') {
+    emit('uploadBatch', selectedFile.value)
+    return
+  }
   if (
     commandHint.value &&
     !props.commands.some((command) => command.content === commandHint.value)
@@ -577,6 +598,7 @@ const downloadCommands = () => {
   URL.revokeObjectURL(url)
 }
 watch(() => [String(props.task.id), String(props.task.version)], clearDraft)
+watch(uploadMode, clearDraft)
 watch(() => String(props.selectedDeviceId), clearDraft)
 watch(
   () => props.commands,

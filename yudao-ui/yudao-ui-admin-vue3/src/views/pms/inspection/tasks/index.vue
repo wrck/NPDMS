@@ -162,16 +162,12 @@
         :disabled="submitting || !!pendingCreate"
         @submit.prevent="submitCreate"
       >
-        <section class="inspection-card">
-          <header class="inspection-card__header"
-            ><h2><Icon icon="ep:office-building" />项目信息</h2
-            ><span class="help-text">从授权项目中选择</span></header
-          >
-          <div class="inspection-card__body">
-            <div class="form-grid">
+        <ProjectInformationCard :project="projectInformation" :customer-service-level="projectCustomerServiceLevel" :loading="projectInformationLoading"
+          :error="createProjectsError || projectInformationError" hint="从授权项目中选择">
               <el-form-item label="项目名称" prop="projectId">
                 <el-select
                   v-model="form.projectId"
+                  data-testid="inspection-create-project-select"
                   filterable
                   remote
                   clearable
@@ -192,63 +188,23 @@
                   >
                 </el-select>
               </el-form-item>
-              <el-form-item label="客户名称"
-                ><el-input
-                  :model-value="selectedProject?.customerName || ''"
-                  placeholder="选择项目后带入"
-                  readonly
-              /></el-form-item>
-            </div>
-            <el-alert
-              v-if="createProjectsError"
-              :title="createProjectsError"
-              type="error"
-              :closable="false"
-              class="create-error"
-            />
-            <el-form-item label="巡检设备" prop="deviceIds">
-              <el-select
-                v-model="form.deviceIds"
-                multiple
-                filterable
-                :loading="devicesLoading"
-                :disabled="!form.projectId || devicesLoading || !!devicesError"
-                :placeholder="form.projectId ? '选择该项目的设备（可搜索序列号）' : '请先选择项目'"
-                no-data-text="该项目暂无可选设备"
-              >
-                <el-option
-                  v-for="device in devices"
-                  :key="String(device.id)"
-                  :value="String(device.id)"
-                  :label="deviceLabel(device)"
-                />
-              </el-select>
-            </el-form-item>
-            <el-alert v-if="devicesError" :title="devicesError" type="error" :closable="false"
-              ><template #default
-                ><el-button
-                  link
-                  type="primary"
-                  :disabled="submitting || !!pendingCreate"
-                  @click="loadDevices(form.projectId)"
-                  >重新加载设备</el-button
-                ></template
-              ></el-alert
-            >
-          </div>
-        </section>
+        </ProjectInformationCard>
+        <el-form-item prop="deviceIds" class="device-selection-field" style="display: block">
+          <ProjectDeviceSelection :model-value="devices" :project-id="form.projectId"
+            :disabled="submitting || !!pendingCreate" :project-loading="projectInformationLoading"
+            :project-error="projectInformationError" empty-text="请添加本次巡检设备"
+            @update:model-value="updateDevices" @busy="devicesLoading = $event" />
+        </el-form-item>
         <section class="inspection-card">
           <header class="inspection-card__header"
             ><h2><Icon icon="ep:setting" />巡检准备信息</h2></header
           >
           <div class="inspection-card__body">
             <div class="form-grid">
-              <el-form-item label="任务名称" prop="taskName"
-                ><el-input v-model="form.taskName" placeholder="填写巡检任务名称"
-              /></el-form-item>
               <el-form-item label="计划时间"
                 ><el-date-picker
                   v-model="form.plannedAt"
+                  data-testid="inspection-create-planned-at"
                   type="datetime"
                   placeholder="选择计划巡检时间"
               /></el-form-item>
@@ -286,7 +242,7 @@
         <el-button
           type="primary"
           :loading="submitting"
-          :disabled="!canCreate || (!pendingCreate && (devicesLoading || !!devicesError))"
+          :disabled="!canCreate || (!pendingCreate && (devicesLoading))"
           @click="submitCreate"
           >{{ pendingCreate ? '重试原请求' : '保存巡检准备' }}</el-button
         >
@@ -317,11 +273,15 @@ import { formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { inspectionFailure } from '../shared/interaction'
 import InspectionSteps from '../components/InspectionSteps.vue'
+import ProjectInformationCard from '@/components/ProjectInformationCard/index.vue'
+import { useProjectInformation } from '@/components/ProjectInformationCard/useProjectInformation'
+import { useProjectOptions } from '@/components/ProjectInformationCard/useProjectOptions'
+import type { ProjectDevice } from '@/api/pms/project/selection'
+import ProjectDeviceSelection from '@/components/ProjectDeviceSelection/index.vue'
 import '../shared/inspection.css'
 
 defineOptions({ name: 'PmsInspectionTaskList' })
-type ProjectOption = Awaited<ReturnType<typeof InspectionApi.getProjectOptions>>[number]
-type DeviceOption = Awaited<ReturnType<typeof InspectionApi.getDeviceOptions>>[number]
+type DeviceOption = ProjectDevice
 type ProjectSearch = { keyword: string; target: 'filter' | 'create' }
 
 const router = useRouter()
@@ -408,52 +368,27 @@ const actionLabel = (status: string) =>
 const openTask = (id: WireLong) =>
   router.push(`/pms/inspection/tasks/${encodeURIComponent(String(id))}`)
 
-const filterProjects = ref<ProjectOption[]>([])
-const createProjects = ref<ProjectOption[]>([])
-const filterProjectsLoading = ref(false)
-const createProjectsLoading = ref(false)
-const filterProjectsError = ref('')
-const createProjectsError = ref('')
-const projectSequences = { filter: 0, create: 0 }
-const searchProjects = async ({ keyword, target }: ProjectSearch) => {
-  const current = ++projectSequences[target]
-  const options = target === 'filter' ? filterProjects : createProjects
-  const busy = target === 'filter' ? filterProjectsLoading : createProjectsLoading
-  const error = target === 'filter' ? filterProjectsError : createProjectsError
-  busy.value = true
-  error.value = ''
-  try {
-    const candidates = await InspectionApi.getProjectOptions(keyword.trim())
-    if (current !== projectSequences[target]) return
-    const selectedId = target === 'filter' ? query.projectId : form.projectId
-    const selected = options.value.find((option) => String(option.id) === selectedId)
-    options.value =
-      selected && !candidates.some((option) => String(option.id) === selectedId)
-        ? [selected, ...candidates]
-        : candidates
-  } catch {
-    if (current !== projectSequences[target]) return
-    error.value = '项目候选加载失败，请重新输入项目名称查找。'
-  } finally {
-    if (current === projectSequences[target]) busy.value = false
-  }
-}
+const { options: filterProjects, loading: filterProjectsLoading, error: filterProjectsError, search: searchFilterProjects } =
+  useProjectOptions(() => query.projectId)
+const { options: createProjects, loading: createProjectsLoading, error: createProjectsError, search: searchCreateProjects, reset: resetCreateProjects } =
+  useProjectOptions(() => form.projectId)
+const searchProjects = ({ keyword, target }: ProjectSearch) =>
+  target === 'filter' ? searchFilterProjects(keyword) : searchCreateProjects(keyword)
 
 const createVisible = ref(false)
 const formRef = ref<FormInstance>()
 const form = reactive({
-  taskName: '',
   projectId: '',
   deviceIds: [] as string[],
   background: '',
   plannedAt: null as Date | null,
   mode: 'ONLINE' as CreateTaskInput['mode']
 })
-const selectedProject = computed(() =>
-  createProjects.value.find((project) => String(project.id) === form.projectId)
-)
+const defaultPlannedAt = ref<number>()
+const { project: projectInformation, customerServiceLevel: projectCustomerServiceLevel,
+  loading: projectInformationLoading, error: projectInformationError, load: loadProjectInformation } = useProjectInformation()
+watch(() => form.projectId, projectId => { void loadProjectInformation(projectId) })
 const rules: FormRules = {
-  taskName: [{ required: true, whitespace: true, message: '请填写任务名称', trigger: 'blur' }],
   projectId: [{ required: true, message: '请选择项目', trigger: 'change' }],
   deviceIds: [
     { type: 'array', required: true, min: 1, message: '请选择至少一台巡检设备', trigger: 'change' }
@@ -463,56 +398,34 @@ const rules: FormRules = {
 }
 const devices = ref<DeviceOption[]>([])
 const devicesLoading = ref(false)
-const devicesError = ref('')
-let deviceSequence = 0
-const deviceLabel = (device: DeviceOption) =>
-  [device.serialNumber, device.name, device.productModel].filter(Boolean).join(' · ')
-const loadDevices = async (projectId: string) => {
-  const current = ++deviceSequence
-  devices.value = []
-  devicesError.value = ''
-  devicesLoading.value = false
-  if (!projectId) return
-  devicesLoading.value = true
-  try {
-    const candidates = await InspectionApi.getDeviceOptions(projectId)
-    if (current === deviceSequence && projectId === form.projectId) devices.value = candidates
-  } catch {
-    if (current === deviceSequence) devicesError.value = '项目设备加载失败，请重新加载后选择。'
-  } finally {
-    if (current === deviceSequence) devicesLoading.value = false
-  }
-}
-const changeProject = () => {
-  form.deviceIds = []
+const updateDevices = (selected: DeviceOption[]) => {
+  devices.value = selected
+  form.deviceIds = selected.map(device => String(device.deviceId))
   formRef.value?.clearValidate('deviceIds')
-  void loadDevices(form.projectId)
 }
+const changeProject = () => { updateDevices([]) }
 const submitting = ref(false)
 const createError = ref('')
 const pendingCreate = ref<{ key: string; data: CreateTaskInput } | null>(null)
 const createDirty = computed(
   () =>
-    !!form.taskName ||
     !!form.projectId ||
     form.deviceIds.length > 0 ||
     !!form.background ||
-    !!form.plannedAt ||
+    form.plannedAt?.getTime() !== defaultPlannedAt.value ||
     form.mode !== 'ONLINE'
 )
 const resetCreateForm = () => {
+  defaultPlannedAt.value = undefined
   Object.assign(form, {
-    taskName: '',
-    projectId: '',
+      projectId: '',
     deviceIds: [],
     background: '',
     plannedAt: null,
     mode: 'ONLINE'
   })
-  deviceSequence++
-  projectSequences.create++
+  resetCreateProjects()
   devices.value = []
-  devicesError.value = ''
   devicesLoading.value = false
   createProjectsLoading.value = false
   createProjectsError.value = ''
@@ -559,8 +472,7 @@ const submitCreate = async () => {
   if (!pendingCreate.value) {
     if (
       !(await formRef.value?.validate().catch(() => false)) ||
-      devicesLoading.value ||
-      devicesError.value
+      devicesLoading.value
     ) {
       submitting.value = false
       return
@@ -568,7 +480,6 @@ const submitCreate = async () => {
     pendingCreate.value = {
       key: generateUUID(),
       data: {
-        taskName: form.taskName.trim(),
         projectId: form.projectId,
         deviceIds: [...form.deviceIds],
         background: form.background.trim(),
@@ -584,17 +495,14 @@ const submitCreate = async () => {
     pendingCreate.value = null
     createVisible.value = false
     Object.assign(form, {
-      taskName: '',
-      projectId: '',
+          projectId: '',
       deviceIds: [],
       background: '',
       plannedAt: null,
       mode: 'ONLINE'
     })
-    deviceSequence++
-    devices.value = []
-    devicesError.value = ''
-    message.success('巡检任务已创建')
+      devices.value = []
+      message.success('巡检任务已创建')
     void loadPage()
   } catch (error) {
     if (definiteRejection(error)) {
@@ -619,6 +527,9 @@ const applyRouteQuery = () => {
   if (showCreate && !createVisible.value) {
     createVisible.value = true
     if (!pendingCreate.value) {
+      const now = new Date()
+      defaultPlannedAt.value = now.getTime()
+      form.plannedAt = now
       createError.value = ''
       void searchProjects({ keyword: '', target: 'create' })
     }
@@ -651,15 +562,12 @@ onDeactivated(() => {
   createVisible.value = false
   pageSequence++
   loading.value = false
-  projectSequences.filter++
   filterProjectsLoading.value = false
 })
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload)
   pageSequence++
-  deviceSequence++
-  projectSequences.filter++
-  projectSequences.create++
+  resetCreateProjects()
 })
 </script>
 
