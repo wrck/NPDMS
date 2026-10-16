@@ -6,9 +6,9 @@
         <PmsEntitySelect v-else v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['projectCode', 'projectName']" value-field="id" query-field="projectName" placeholder="选择项目查看初验与终验" clearable :disabled="creating || detailRef?.isDirty()" class="!w-220px" />
       </el-form-item>
       <el-form-item><el-button :loading="loading" :disabled="!validProject" @click="load"><Icon icon="ep:search" />查询报告活动</el-button></el-form-item>
-      <el-form-item v-if="!embedded && !readonly && validProject && checkPermi(['pms:acceptance:report:write'])">
-        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('PRELIMINARY')">上传初验交付件</el-button>
-        <el-button :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('FINAL')">上传终验交付件</el-button>
+      <el-form-item v-if="canCreate">
+        <el-button v-if="!selectedType || selectedType === 'PRELIMINARY'" :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('PRELIMINARY')">上传初验交付件</el-button>
+        <el-button v-if="!selectedType || selectedType === 'FINAL'" :loading="creating" :disabled="creating || detailRef?.isDirty()" @click="createActivity('FINAL')">上传终验交付件</el-button>
       </el-form-item>
     </el-form>
     <el-alert v-if="errorText" :title="errorText" type="error" :closable="false" />
@@ -36,6 +36,9 @@ import * as ProjectApi from '@/api/pms/project/projects'
 import { checkPermi } from '@/utils/permission'
 import { isBusinessViewId, legacyOwnerId, sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
+import { useNativeBusinessApi, useNativeBusiness } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const ReportApiClient = useNativeBusinessApi('acceptance', ReportApi)
+const nativeBusiness = useNativeBusiness()
 import type { AcceptanceActivityVO } from '@/api/pms/acceptance/acceptance-report'
 import AcceptanceReportDetail from './detail.vue'
 
@@ -54,6 +57,10 @@ const scoped = computed(() => props.projectId !== undefined)
 const effectiveProjectId = computed(() => scoped.value ? props.projectId : query.projectId)
 const validProject = computed(() => isBusinessViewId(effectiveProjectId.value))
 const embedded = computed(() => props.objectId !== undefined || props.allowedActions !== undefined)
+const selectedType = computed(() => nativeBusiness?.bridge.state.model.value ? nativeBusiness.bridge.state.selectors().acceptanceType : undefined)
+const canCreate = computed(() => !props.readonly && validProject.value && checkPermi(['pms:acceptance:report:write'])
+  && (nativeBusiness ? nativeBusiness.can('create') : !embedded.value)
+  && (props.allowedActions === undefined || props.allowedActions.includes('CREATE')))
 const contextBlocked = ref(false)
 let listSequence = 0, switchSequence = 0
 let activeProject: BusinessViewId | undefined, activeObject: BusinessViewId | undefined
@@ -73,7 +80,7 @@ const load = async () => {
   if (!isBusinessViewId(project) || contextBlocked.value || !canQuery()) { activities.value = []; loading.value = false; return }
   loading.value = true
   try {
-    const result = await ReportApi.getActivities(legacyOwnerId(project))
+    const result = await ReportApiClient.getActivities(legacyOwnerId(project))
     if (token !== listSequence || !canQuery()) return
     activities.value = result.filter(item => sameBusinessViewId(item.projectId, project))
   } catch {
@@ -83,17 +90,17 @@ const load = async () => {
 const changed = () => { emit('changed'); void load() }
 const createActivity = async (acceptanceType: ReportApi.AcceptanceType) => {
   const project = activeProject
-  if (creating.value || props.readonly || embedded.value || contextBlocked.value || !isBusinessViewId(project)
+  if (creating.value || !canCreate.value || selectedType.value && selectedType.value !== acceptanceType || contextBlocked.value || !isBusinessViewId(project)
       || !checkPermi(['pms:acceptance:report:write']) || !(await requestLeave())) return
   creating.value = true; errorText.value = ''; emit('dirty-change', true)
   try {
     if (!pendingCreate || !sameBusinessViewId(pendingCreate.request.projectId, project) || pendingCreate.request.acceptanceType !== acceptanceType) {
-      const context = await ReportApi.getIndependentContext(legacyOwnerId(project))
+      const context = await ReportApiClient.getIndependentContext(legacyOwnerId(project))
       if (context.lifecycleStatus !== 'ACTIVE') { errorText.value = '当前项目未在执行中，无法创建验收。'; return }
       pendingCreate = { key: generateUUID(), request: { projectId: legacyOwnerId(project), acceptanceType,
         expectedProjectVersion: context.projectVersion, expectedTreeVersion: context.treeVersion } }
     }
-    const result = await ReportApi.createIndependent(pendingCreate.request, pendingCreate.key)
+    const result = await ReportApiClient.createIndependent(pendingCreate.request, pendingCreate.key)
     pendingCreate = undefined
     if (sameBusinessViewId(activeProject, project)) { await load(); await openDetail(result.acceptanceId, true) }
     emit('changed')
@@ -112,7 +119,7 @@ const switchContext = async () => {
   activities.value = []; loading.value = false
   if (contextBlocked.value) { errorText.value = '项目上下文无效，未查询其他项目。'; return }
   await load()
-  if (token === switchSequence && isBusinessViewId(object)) await openDetail(object)
+  if (!nativeBusiness && token === switchSequence && isBusinessViewId(object)) await openDetail(object)
 }
 watch(() => props.projectId, value => { if (value !== undefined) query.projectId = value }, { immediate: true })
 watch(contextKey, switchContext)

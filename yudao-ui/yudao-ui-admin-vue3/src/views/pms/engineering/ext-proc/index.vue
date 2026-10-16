@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-ext-proc:create']"
+        <el-button type="primary" :disabled="!!nativeBusiness && !nativeBusiness.can('create', 'procurement')" @click="openCreate()" v-hasPermi="['pms:imp-ext-proc:create']"
           ><Icon icon="ep:plus" />新建外采申请</el-button
         >
       </el-form-item>
@@ -149,7 +149,7 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <ExternalProcurementFormDialog ref="formRef" v-model="formVisible" :form="form"
+  <ExternalProcurementFormDialog ref="formRef" v-model="dialogVisible" :form="form"
     :source-survey-id="sourceSurveyId" :saving="saving" @save="save" @attachment-changed="attachmentOwnerChanged" />
 
   <!-- 明细对话框 -->
@@ -169,7 +169,7 @@
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
         <PmsEntitySelect
-          v-model="approveForm.approverUserId"
+          v-model="approveForm.approverUserId" :disabled="!!nativeBusiness"
           :api="UserApi.getUserPage"
           label-field="nickname"
           value-field="id"
@@ -199,7 +199,10 @@ import { loadSurveyActionContext } from '@/views/pms/delivery-business/site-surv
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
-import * as ExtProcApi from '@/api/pms/engineering/ext-proc'
+import * as OriginalExtProcApi from '@/api/pms/engineering/ext-proc'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const ExtProcApi = useNativeBusinessApi('procurement', OriginalExtProcApi)
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
 import ProjectTag from '@/components/ProjectTag/index.vue'
@@ -218,7 +221,7 @@ const total = ref(0)
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
-  projectId: undefined as number | undefined,
+  projectId: nativeBusiness?.projectId() as number | undefined,
   code: '',
   name: '',
   procurementType: '',
@@ -273,7 +276,7 @@ const openCreate = () => {
   form.triggerRefId = undefined
   Object.assign(form, {
     id: undefined,
-    projectId: undefined,
+    projectId: nativeBusiness?.projectId(),
     code: '',
     name: '',
     procurementType: 'GOODS',
@@ -315,15 +318,15 @@ const save = async () => {
   saving.value = true
   try {
     if (form.id) {
-      await ExtProcApi.updateExternalProcurement(form)
+      await ExtProcApi.updateExternalProcurement({ ...form, ...await nativeBusiness?.formInput('procurement') })
       message.success('更新成功')
     } else {
-      await ExtProcApi.createExternalProcurement(form)
+      await ExtProcApi.createExternalProcurement({ ...form, ...await nativeBusiness?.formInput('procurement') })
       message.success('创建成功')
     }
     formVisible.value = false
     if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
-    else await load()
+    else await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -355,7 +358,7 @@ const openApprove = (row: ExternalProcurementVO) => {
     id: row.id,
     approveAction: 'PASS',
     approveOpinion: '',
-    approverUserId: undefined
+    approverUserId: nativeBusiness ? userStore.getUser.id : undefined
   })
   approveVisible.value = true
 }
@@ -366,7 +369,7 @@ const confirmApprove = async () => {
     await ExtProcApi.approveExternalProcurement(approveForm as any)
     message.success('审批完成')
     approveVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -377,27 +380,30 @@ const handleSubmit = async (row: ExternalProcurementVO) => {
   await message.confirm('确认提交此外采申请？提交后将进入审批流程。')
   await ExtProcApi.submitExternalProcurement(row.id!)
   message.success('提交成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleWithdraw = async (row: ExternalProcurementVO) => {
   await message.confirm('确认撤回此外采申请？')
   await ExtProcApi.withdrawExternalProcurement(row.id!)
   message.success('撤回成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleTerminate = async (row: ExternalProcurementVO) => {
   await message.confirm('确认终止此外采申请？终止后不可恢复。')
   await ExtProcApi.terminateExternalProcurement(row.id!)
   message.success('终止成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const remove = async (row: ExternalProcurementVO) => {
   await message.delConfirm()
   await ExtProcApi.deleteExternalProcurement(row.id!)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 
+const dialogVisible = useNativeBusinessDialog('procurement', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'procurement')
+useNativeBusinessEntry('procurement', async id => openDetail({ id: id as number } as ExternalProcurementVO))
 onMounted(load)
 watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) => {
   if (!value) return

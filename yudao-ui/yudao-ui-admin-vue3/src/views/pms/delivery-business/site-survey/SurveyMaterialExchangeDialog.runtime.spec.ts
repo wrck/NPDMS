@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, provide, ref } from 'vue'
+import { nativeBusinessKey, type NativeBusinessContext } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import Dialog from './SurveyMaterialExchangeDialog.vue'
 import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
@@ -63,5 +64,36 @@ it('requires materials and a nonempty reason before saving the survey', async ()
     m.state.form.serials = [{ scopeId: 60, quantity: 2 }]
     m.state.form.reason = '<p><br></p>'; await m.state.save()
     expect(m.saveSurvey).not.toHaveBeenCalled()
+  } finally { m.app.unmount() }
+})
+
+it('uses the hosted exchange command and keeps the popup when extensions are invalid or leaving is refused', async () => {
+  const dialog = ref(), closed = vi.fn(), create = vi.fn().mockResolvedValue(100)
+  const saveSurvey = vi.fn().mockResolvedValue({ id: '2108608319822127106', projectId: 10, name: '工勘' })
+  const formInput = vi.fn().mockRejectedValueOnce(new Error('扩展字段未填写'))
+    .mockResolvedValue({ $extensions: { handlingNote: '保留原换货数量' } })
+  const requestLeave = vi.fn().mockResolvedValue(false)
+  const m = mount(defineComponent({ setup() {
+    provide(nativeBusinessKey, {
+      api: () => ({ createMaterialExchange: create }), can: () => true, formInput, requestLeave,
+      registerForm: () => () => undefined, Form: defineComponent({ setup: () => () => h('shared-form') })
+    } as unknown as NativeBusinessContext)
+    return () => h(Dialog, { ref: dialog, modelValue: true, projectId: 10, saveSurvey, 'onUpdate:modelValue': closed })
+  } }), {}, { ElForm: form })
+  try {
+    const state = dialog.value.$.setupState
+    state.form.serials = [{ scopeId: 60, quantity: 2 }]
+    state.form.reason = '<p>接口不符</p>'
+    await state.save()
+    expect(saveSurvey).not.toHaveBeenCalled()
+    expect(state.form.serials).toEqual([{ scopeId: 60, quantity: 2 }])
+    await state.updateVisible(false)
+    expect(requestLeave).toHaveBeenCalledWith('exchange')
+    expect(closed).not.toHaveBeenCalled()
+    await state.save()
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ serials: [{ scopeId: 60, quantity: 2 }],
+      remark: '来源工勘 #2108608319822127106', $extensions: { handlingNote: '保留原换货数量' } }))
+    expect(api.createMaterialExchange).not.toHaveBeenCalled()
+    expect(closed).toHaveBeenCalledWith(false)
   } finally { m.app.unmount() }
 })

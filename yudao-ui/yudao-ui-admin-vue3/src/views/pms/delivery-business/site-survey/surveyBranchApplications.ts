@@ -10,12 +10,13 @@ export const branchApplications = {
   outsource: { title: '整单转包（独立流程）', button: '发起转包申请', permission: 'pms:res-outsource', get: getOutsourceRequest }
 }
 export type BranchKind = keyof typeof branchApplications
-export const loadBranchApplications = async (kind: Exclude<BranchKind, 'outsource'>, projectId: number, surveyId: number | string) => {
+export const loadBranchApplications = async (kind: Exclude<BranchKind, 'outsource'>, projectId: number, surveyId: number | string,
+  readPage = branchApplications[kind].page) => {
   const records: any[] = []
   let pageNo = 1
   while (true) {
     const query = { projectId, pageNo, pageSize: 100, ...(kind === 'exchange' ? {} : { triggerSource: 'SITE_SURVEY' }) }
-    const page = await branchApplications[kind].page(query)
+    const page = await readPage(query)
     const list = page.list || []
     records.push(...list.filter((row: any) => String(row.projectId) === String(projectId) &&
       (kind === 'exchange' ? row.remark === `来源工勘 #${surveyId}` :

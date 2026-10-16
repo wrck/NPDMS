@@ -58,8 +58,8 @@
     />
   </ContentWrap>
 
-  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看签收' : '编辑签收') : '登记到货'" width="min(640px, 95vw)">
-    <el-form class="receipt-form" :class="{ 'receipt-readonly': readOnly }" ref="formRef" :model="form" :rules="rules" label-position="top" :disabled="readOnly">
+  <Dialog v-model="dialogVisible" :title="form.id ? (readOnly ? '查看签收' : '编辑签收') : '登记到货'" width="min(640px, 95vw)">
+    <el-form class="receipt-form" :class="{ 'receipt-readonly': readOnly }" ref="formRef" :model="form" :rules="rules" label-position="top">
       <el-row :gutter="16">
         <el-col :xs="24" :sm="12">
           <el-form-item label="到货人">
@@ -94,8 +94,9 @@
         </el-col>
       </el-row>
     </el-form>
+    <component v-if="nativeBusiness && formVisible && !detailLoading && !detailError" :is="nativeBusiness.Form" :record="form" :readonly="readOnly" />
     <template #footer>
-      <el-button :disabled="saving" @click="formVisible = false">{{ readOnly ? '关闭' : '取消' }}</el-button>
+      <el-button :disabled="saving" @click="dialogVisible = false">{{ readOnly ? '关闭' : '取消' }}</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -105,7 +106,8 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
-import * as ArrivalApi from '@/api/pms/engineering/arrival'
+import * as OriginalArrivalApi from '@/api/pms/engineering/arrival'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import type { ArrivalVO } from '@/api/pms/engineering/arrival'
 import * as UserApi from '@/api/system/user'
 import { useUserStore } from '@/store/modules/user'
@@ -117,6 +119,8 @@ import { createArrivalUploadAttempt, saveArrivalReceipt, type ArrivalUploadAttem
 
 defineOptions({ name: 'ProjectArrivalReceiptPanel' })
 const props = defineProps<{ projectId: number; /** 任务所属阶段未进入时由工作区强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
+const nativeBusiness = useNativeBusiness()
+const ArrivalApi = useNativeBusinessApi('arrival', OriginalArrivalApi)
 const userStore = useUserStore()
 const message = useMessage()
 const loading = ref(false)
@@ -134,7 +138,7 @@ let detailSequence = 0
 type ArrivalForm = Omit<ArrivalVO, 'arrivalTime'> & { arrivalTime?: string | number | null }
 const form = ref<ArrivalForm>({ projectId: props.projectId, code: '', status: 0 })
 const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || row.status === 2) && checkPermi(['pms:imp-arrival:update'])
-const readOnly = computed(() => detailLoading.value || detailError.value || !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create'])))
+const readOnly = computed(() => detailLoading.value || detailError.value || !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create'])) || !!nativeBusiness && !nativeBusiness.can(form.value.id ? 'save' : 'create', 'arrival'))
 const rules = {
   attachmentUrl: [{ validator: (_rule: unknown, _value: unknown, callback: (error?: Error) => void) =>
     callback(uploadAttempt || form.value.signDocumentArtifactId ? undefined : new Error('请选择签收单文件')) }]
@@ -220,10 +224,14 @@ const save = async () => {
   saving.value = true
   try {
     form.value.projectId = props.projectId
-    await saveArrivalReceipt(form.value as ArrivalVO, uploadAttempt)
+    if (nativeBusiness) {
+      await saveArrivalReceipt(form.value as ArrivalVO, uploadAttempt, ArrivalApi, await nativeBusiness.formInput())
+    } else {
+      await saveArrivalReceipt(form.value as ArrivalVO, uploadAttempt)
+    }
     message.success('保存成功')
     formVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } catch (failure: any) {
     message.error(failure?.message || '保存失败，请重试；已上传文件会保留')
   } finally {
@@ -235,15 +243,18 @@ const remove = async (row: ArrivalVO) => {
   await message.delConfirm()
   await ArrivalApi.deleteArrival(row.id!)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleAction = async (row: ArrivalVO, action: 'markAbnormal') => {
   const actionText = { markAbnormal: '标记异常' }[action]
   await message.confirm(`确认${actionText}该签收记录？`)
   if (action === 'markAbnormal') await ArrivalApi.markAbnormalArrival(row.id!)
   message.success(`${actionText}成功`)
-  await load()
+  await load(); nativeBusiness?.changed()
 }
+const dialogVisible = useNativeBusinessDialog('arrival', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'arrival')
+useNativeBusinessEntry('arrival', async id => openForm({ id: id as number } as ArrivalVO))
 onMounted(load)
 </script>
 

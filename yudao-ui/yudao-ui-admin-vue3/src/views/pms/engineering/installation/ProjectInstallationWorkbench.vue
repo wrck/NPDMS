@@ -41,7 +41,7 @@
     <Pagination :total="deviceHistory.length" v-model:page="historyPageNo" v-model:limit="historyPageSize" />
   </el-drawer>
 
-  <Dialog v-model="formVisible" :title="form.id ? (readOnly ? '查看安装' : '编辑安装') : '新增安装'" width="min(900px, 95vw)">
+  <Dialog v-model="dialogVisible" :title="form.id ? (readOnly ? '查看安装' : '编辑安装') : '新增安装'" width="min(900px, 95vw)">
     <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="readOnly">
       <el-row :gutter="16">
         <el-col :span="12">
@@ -85,8 +85,9 @@
         </el-col>
       </el-row>
     </el-form>
+    <component v-if="nativeBusiness && formVisible" :is="nativeBusiness.Form" :key="String(form.id || 'new')" :record="form" kind="installation" :readonly="readOnly" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -95,11 +96,13 @@
 <script setup lang="ts">
 import { locationSnapshotText } from '@/utils/locationSnapshot'
 import PmsLocationSelector from '@/components/PmsLocationSelector/index.vue'
+import DeviceTag from '@/components/DeviceTag/index.vue'
 import { computed, onMounted, ref, watch, onBeforeUnmount } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE } from '@/utils/dict'
 import { formatDate, dateFormatter } from '@/utils/formatTime'
-import * as InstallationApi from '@/api/pms/engineering/installation'
+import * as OriginalInstallationApi from '@/api/pms/engineering/installation'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import * as DeviceApi from '@/api/pms/asset/device'
 import type { InstallationVO } from '@/api/pms/engineering/installation'
 import * as UserApi from '@/api/system/user'
@@ -108,6 +111,8 @@ import { checkPermi } from '@/utils/permission'
 
 defineOptions({ name: 'ProjectInstallationWorkbench' })
 const props = defineProps<{ projectId: number; /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
+const nativeBusiness = useNativeBusiness()
+const InstallationApi = useNativeBusinessApi('installation', OriginalInstallationApi)
 const message = useMessage()
 const userStore = useUserStore()
 const loading = ref(false)
@@ -140,7 +145,7 @@ const openHistory = (device: DeviceApi.DeviceListVO) => {
   historyPageNo.value = 1
   historyVisible.value = true
 }
-const addressCompletion = ref<InstallationApi.InstallationAddressCompletion>()
+const addressCompletion = ref<OriginalInstallationApi.InstallationAddressCompletion>()
 const errorText = ref('')
 const visibleDevices = computed(() => devices.value.filter(d =>
   d.sn.includes(sn.value.trim()) &&
@@ -165,7 +170,7 @@ const formVisible = ref(false)
 const formRef = ref()
 type InstallationForm = Omit<InstallationVO, 'installTime'> & { installTime?: string | number | null }
 const form = ref<InstallationForm>({ projectId: 0, status: 0 })
-const readOnly = computed(() => !!props.readonly || !!form.value.id || !checkPermi(['pms:imp-installation:create']))
+const readOnly = computed(() => !!props.readonly || !!form.value.id || !checkPermi(['pms:imp-installation:create']) || !!nativeBusiness && !nativeBusiness.can('create', 'installation'))
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],
   installLocation: [{ validator: (_rule: unknown, _value: unknown, callback: (error?: Error) => void) => {
@@ -275,7 +280,7 @@ const save = async () => {
   await formRef.value.validate()
   saving.value = true
   try {
-    const payload = savePayload()
+    const payload = { ...savePayload(), ...await nativeBusiness?.formInput('installation') }
     const projectId = props.projectId
     if (form.value.id) await InstallationApi.updateInstallation(payload)
     else {
@@ -287,16 +292,19 @@ const save = async () => {
     if (props.projectId !== projectId) return
     message.success('保存成功，安装已完成')
     formVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } catch {
     message.error(form.value.id ? '保存失败，请刷新核对记录后重试。' : '批量保存失败，请刷新核对记录后重试。')
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
 }
 watch(() => props.projectId, () => { formVisible.value = false; historyVisible.value = false; historyDevice.value = undefined; sn.value = ''; productCode.value = ''; productModel.value = ''; void load() }, { immediate: true })
 onBeforeUnmount(() => { ++loadSequence })
+const dialogVisible = useNativeBusinessDialog('installation', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'installation')
+useNativeBusinessEntry('installation', async id => openForm(await InstallationApi.getInstallation(id as number)))
 onMounted(() => {
   UserApi.getSimpleUserList()
     .then((result) => (users.value = result))

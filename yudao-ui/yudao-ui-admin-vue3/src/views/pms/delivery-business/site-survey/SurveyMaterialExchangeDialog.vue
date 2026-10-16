@@ -6,14 +6,10 @@
     :close-on-click-modal="false"
     :close-on-press-escape="!saving"
     :show-close="!saving"
-    @update:model-value="
-      (value) => {
-        if (!saving) emit('update:modelValue', value)
-      }
-    "
+    @update:model-value="updateVisible"
   >
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
-    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="saving">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" :disabled="saving || !canCreate">
       <el-form-item label="物料选择">
         <MaterialDevicePicker v-if="modelValue" :project-id="projectId" v-model="form.serials" />
       </el-form-item>
@@ -21,20 +17,23 @@
         <Editor v-if="modelValue" v-model="form.reason" height="180px" />
       </el-form-item>
     </el-form>
+    <component v-if="nativeBusiness && modelValue" :is="nativeBusiness.Form" :record="form" kind="exchange" />
     <template #footer>
-      <el-button :disabled="saving" @click="emit('update:modelValue', false)">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="save">保存换货申请</el-button>
+      <el-button :disabled="saving" @click="updateVisible(false)">取消</el-button>
+      <el-button type="primary" :loading="saving" :disabled="!canCreate" @click="save">保存换货申请</el-button>
     </template>
   </Dialog>
 </template>
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import MaterialDevicePicker from '@/views/pms/engineering/material-exch/MaterialDevicePicker.vue'
-import {
-  createMaterialExchange,
-  type MaterialExchangeSerialVO
-} from '@/api/pms/engineering/material-exch'
+import * as MaterialExchangeApi from '@/api/pms/engineering/material-exch'
+import type { MaterialExchangeSerialVO } from '@/api/pms/engineering/material-exch'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import { useMessage } from '@/hooks/web/useMessage'
+const nativeBusiness = useNativeBusiness()
+const { createMaterialExchange } = useNativeBusinessApi('exchange', MaterialExchangeApi)
+const canCreate = computed(() => !nativeBusiness || nativeBusiness.can('create', 'exchange'))
 const props = defineProps<{
   modelValue: boolean
   projectId: number
@@ -47,8 +46,18 @@ const form = reactive({ serials: [] as MaterialExchangeSerialVO[], reason: '' })
 const rules = { reason: [{ required: true, message: '请输入换货原因' }] }
 const saving = ref(false)
 const error = ref('')
+useNativeBusinessLeave(async () => !saving.value, 'exchange')
+let closing = false
+const updateVisible = async (value: boolean) => {
+  if (saving.value || closing) return
+  closing = true
+  try {
+    if (!value && nativeBusiness && !await nativeBusiness.requestLeave('exchange')) return
+    emit('update:modelValue', value)
+  } finally { closing = false }
+}
 const save = async () => {
-  if (saving.value) return
+  if (saving.value || !canCreate.value) return
   error.value = ''
   if (!form.serials.length) {
     error.value = '请选择物料并填写换货数量'
@@ -62,6 +71,7 @@ const save = async () => {
   const projectId = props.projectId
   saving.value = true
   try {
+    const sharedValues = await nativeBusiness?.formInput('exchange')
     const survey = await props.saveSurvey()
     if (
       String(survey.projectId) !== String(projectId) ||
@@ -78,7 +88,8 @@ const save = async () => {
       unit: '个',
       reason: form.reason,
       remark: `来源工勘 #${survey.id}`,
-      applicantUserId: undefined!
+      applicantUserId: undefined!,
+      ...sharedValues
     })
     message.success('换货申请创建成功')
     emit('created')

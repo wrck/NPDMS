@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, provide } from 'vue'
+import { nativeBusinessKey } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import Arrival from './ProjectArrivalReceiptPanel.vue'
 import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const api = vi.hoisted(() => ({ getArrivalPage: vi.fn(), getArrival: vi.fn(), save: vi.fn(), error: vi.fn() }))
@@ -24,6 +25,22 @@ const render = (readonly = false) => {
 const file = { name: '签收.txt', size: 5, raw: { name: '签收.txt', size: 5, type: 'text/plain' } }
 beforeEach(() => { vi.resetAllMocks(); api.getArrivalPage.mockResolvedValue({ list: [], total: 0 }); api.getArrival.mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 3 })) })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+it.each(['pending-success','failure'])('mounts native support only after successful receipt details (%s)', async outcome => {
+  const mountedSupport=vi.fn()
+  const Support=defineComponent({props:['record'],setup(props){mountedSupport(props.record.version);return()=>h('native-support')}})
+  const context={Form:Support,api:(_kind:string,original:unknown)=>original,can:()=>true,initialEntityId:()=>undefined,
+    registerForm:()=>()=>{},requestLeave:async()=>true}
+  let finish!:(value:unknown)=>void,fail!:(reason:unknown)=>void
+  api.getArrival.mockImplementationOnce(()=>new Promise((resolve,reject)=>{finish=resolve;fail=reject}))
+  let state:any
+  const wrapper=defineComponent({setup(){provide(nativeBusinessKey,context as any);return()=>h(Arrival,{ref:(value:any)=>{if(value)state=value.$.setupState},projectId:1})}})
+  const view=mount(wrapper,{}, {ElTable:passthrough,ElTableColumn:tableColumn,ElForm:formStub,ElRow:passthrough,ElCol:passthrough,ElUpload:passthrough})
+  apps.push(view.app);await nextTick()
+  const opening=state.openForm({id:8,projectId:1,status:0})
+  await nextTick();expect(mountedSupport).not.toHaveBeenCalled()
+  if(outcome==='failure'){fail(new Error('detail unavailable'));await opening;await nextTick();expect(mountedSupport).not.toHaveBeenCalled()}
+  else{finish({id:8,projectId:1,status:0,version:13});await opening;await nextTick();expect(mountedSupport).toHaveBeenCalledTimes(1);expect(mountedSupport).toHaveBeenCalledWith(13)}
+})
 it('keeps signed receipts and their original attachments read-only', async () => {
   const view = render()
   api.getArrival.mockResolvedValue({ id: 8, projectId: 1, status: 1, version: 2, attachmentUrl: 'original-file' })

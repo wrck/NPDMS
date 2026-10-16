@@ -43,6 +43,8 @@ import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
+import { useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const ReportApiClient = useNativeBusinessApi('acceptance', ReportApi)
 import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/acceptance/acceptance-report'
 import { useOperationClient } from '@/components/BusinessView/operationHost'
 import type { OperationClient } from '@/components/BusinessView/operationClient'
@@ -56,6 +58,12 @@ const userStore = useUserStore()
 const visible = ref(false)
 const saving = ref(false)
 const publishing = ref(false)
+const completing = ref(false)
+let changedPending = false
+const notifyChanged = () => {
+  if (completing.value) changedPending = true
+  else emit('changed')
+}
 const activity = ref<AcceptanceActivityVO>()
 const draftId = ref<number>()
 const draftNo = ref<number>()
@@ -77,7 +85,8 @@ const canUpdate = computed(() => allowed('UPDATE'))
 const canPublish = computed(() => allowed('PUBLISH'))
 // Embedded uploads remain closed until the Owner supplies the precise file action.
 const canUpload = computed(() => allowed('FILE_WRITE') && checkPermi(['pms:file:upload']))
-const busy = computed(() => saving.value || publishing.value || !!uploaderRef.value?.isBusy())
+const stepBusy = computed(() => saving.value || publishing.value || !!uploaderRef.value?.isBusy())
+const busy = computed(() => completing.value || stepBusy.value)
 const dirty = computed(() => visible.value && (snapshot() !== baseline.value || !!uploaderRef.value?.hasPendingFile()))
 watch([dirty, busy], () => emit('dirty-change', dirty.value || busy.value), { flush: 'sync' })
 const requestLeave = async (): Promise<boolean> => {
@@ -111,7 +120,7 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
   openedClient = executionClient.value
   draftId.value = draft?.id
   draftNo.value = draft?.reportVersionNo
-  uploadedCount.value = draft?.attachments.length || 0
+  uploadedCount.value = draft?.draftAttachmentCount ?? draft?.attachments.length ?? 0
   referenceKey.value = generateUUID()
   publishKey.value = generateUUID()
   Object.assign(form, {
@@ -128,15 +137,15 @@ const open = async (target: AcceptanceActivityVO, draft?: AcceptanceReportVersio
 }
 
 const saveDraft = async () => {
-  if (!visible.value || !activity.value || !allowed('UPDATE') || busy.value) return false
+  if (!visible.value || !activity.value || !allowed('UPDATE') || stepBusy.value) return false
   const token = generation
   const savedSnapshot = snapshot()
   const content = { ...form, expectedReportVersionNo: draftNo.value }
   saving.value = true
   try {
     const result = draftId.value
-      ? await ReportApi.updateDraft(activity.value.id, draftId.value, content, activity.value.version, openedClient)
-      : await ReportApi.createDraft(activity.value.id, content, activity.value.version, openedClient)
+      ? await ReportApiClient.updateDraft(activity.value.id, draftId.value, content, activity.value.version, openedClient)
+      : await ReportApiClient.createDraft(activity.value.id, content, activity.value.version, openedClient)
     if (token !== generation) return false
     draftId.value = result.reportVersionId
     draftNo.value = result.reportVersionNo
@@ -144,7 +153,7 @@ const saveDraft = async () => {
     if (result.activityVersion != null) activity.value = { ...activity.value, version: result.activityVersion }
     publishKey.value = generateUUID()
     baseline.value = savedSnapshot
-    emit('changed')
+    notifyChanged()
     return true
   } finally {
     if (token === generation) saving.value = false
@@ -155,20 +164,20 @@ const attachmentCompleted = () => {
   if (!visible.value) return
   uploadedCount.value += 1
   referenceKey.value = generateUUID()
-  emit('changed')
+  notifyChanged()
 }
 
 const publish = async () => {
-  if (!visible.value || !activity.value || !draftId.value || !draftNo.value || !allowed('PUBLISH') || busy.value) return false
+  if (!visible.value || !activity.value || !draftId.value || !draftNo.value || !allowed('PUBLISH') || stepBusy.value) return false
   if (dirty.value) { message.warning('请先保存草稿修改并处理待上传文件'); return false }
   const token = generation
   publishing.value = true
   try {
-    await ReportApi.publishVersion(activity.value, { id: draftId.value, reportVersionNo: draftNo.value }, publishKey.value, openedClient)
+    await ReportApiClient.publishVersion(activity.value, { id: draftId.value, reportVersionNo: draftNo.value }, publishKey.value, openedClient)
     if (token !== generation) return false
     message.success(`${typeLabel(activity.value.acceptanceType)}已通过`)
     visible.value = false
-    emit('changed')
+    notifyChanged()
     return true
   } finally {
     if (token === generation) publishing.value = false
@@ -176,14 +185,20 @@ const publish = async () => {
 }
 const saveAndComplete = async () => {
   if (!canUpdate.value || !canPublish.value || busy.value) return false
-  if (uploaderRef.value?.hasPendingFile()) {
-    if (!canUpload.value) return false
-    await uploaderRef.value.submit()
-    if (uploaderRef.value.hasPendingFile()) return false
+  completing.value = true
+  try {
+    if (uploaderRef.value?.hasPendingFile()) {
+      if (!canUpload.value) return false
+      await uploaderRef.value.submit()
+      if (uploaderRef.value.hasPendingFile()) return false
+    }
+    if (!uploadedCount.value) { message.warning('请先上传验收报告'); return false }
+    if (!(await saveDraft())) return false
+    return await publish()
+  } finally {
+    completing.value = false
+    if (changedPending) { changedPending = false; emit('changed') }
   }
-  if (!uploadedCount.value) { message.warning('请先上传验收报告'); return false }
-  if (!(await saveDraft())) return false
-  return publish()
 }
 onBeforeUnmount(() => { generation++ })
 

@@ -31,6 +31,8 @@ import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 import { extractSurveyValues } from './siteSurveyForm'
 import { surveyPreparationBranches, type SurveyPreparationBranch } from './surveyPreparationBranches'
 import { branchApplications, loadBranchApplications, type BranchKind } from './surveyBranchApplications'
+import { useNativeBusiness } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+import type { BusinessId } from '@/api/pms/platform/business'
 import { checkPermi } from '@/utils/permission'
 import { DICT_TYPE } from '@/utils/dict'
 import MaterialExchangeDetailDialog from '@/views/pms/engineering/material-exch/MaterialExchangeDetailDialog.vue'
@@ -39,6 +41,10 @@ import ExternalProcurementDetailDialog from '@/views/pms/engineering/ext-proc/Ex
 import OutsourceRequestDetailDialog from '@/views/pms/engineering/outsource/OutsourceRequestDetailDialog.vue'
 const props = defineProps<{ getSurvey?: () => SiteSurveyVO; branches?: SurveyPreparationBranch[]; readonly?: boolean;
   launch?: (kind: string) => void; getApplicationRevision?: () => number }>()
+const nativeBusiness = useNativeBusiness()
+const getApplication = async (kind: BranchKind, id: BusinessId) => nativeBusiness
+  ? (await nativeBusiness.getBridge(kind).read(id)).value
+  : branchApplications[kind].get(id as number)
 const survey = computed(() => props.getSurvey?.())
 const kindOf = (title: string) => (Object.keys(branchApplications) as BranchKind[]).find(key => branchApplications[key].title === title)
 const definition = (title: string) => { const kind = kindOf(title); return kind ? branchApplications[kind] : undefined }
@@ -48,11 +54,11 @@ const detailVisible = ref(false)
 const detailKind = ref<BranchKind>()
 const detail = ref<any>({})
 let detailSequence = 0
-const view = async (kind: BranchKind, id: number) => {
+const view = async (kind: BranchKind, id: BusinessId) => {
   const request = ++detailSequence
   detailVisible.value = false
   try {
-    const record = await branchApplications[kind].get(id)
+    const record = await getApplication(kind, id)
     if (request !== detailSequence) return
     detail.value = record
     detailKind.value = kind
@@ -71,8 +77,9 @@ const load = async () => {
     const results = await Promise.all((Object.keys(branchApplications) as BranchKind[]).map(async kind =>
       [kind, checkPermi([branchApplications[kind].permission + ':query'])
         ? kind === 'outsource'
-          ? survey.outsourceRequestId ? [await branchApplications.outsource.get(survey.outsourceRequestId)] : []
-          : await loadBranchApplications(kind, survey.projectId, survey.id!)
+          ? survey.outsourceRequestId ? [await getApplication('outsource', survey.outsourceRequestId)] : []
+          : await loadBranchApplications(kind, survey.projectId, survey.id!, nativeBusiness
+            ? query => nativeBusiness.getBridge(kind).page(query) : undefined)
         : []] as const))
     if (current === sequence) applications.value = Object.fromEntries(results) as Record<BranchKind, any[]>
   } catch { if (current === sequence) error.value = '关联申请记录加载失败，请重试' }

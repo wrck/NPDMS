@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:res-outsource:create']"
+        <el-button type="primary" :disabled="!!nativeBusiness && !nativeBusiness.can('create', 'outsource')" @click="openCreate()" v-hasPermi="['pms:res-outsource:create']"
           ><Icon icon="ep:plus" />新建外包申请</el-button
         >
       </el-form-item>
@@ -148,7 +148,7 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <OutsourceRequestFormDialog ref="formRef" v-model="formVisible" :form="form"
+  <OutsourceRequestFormDialog ref="formRef" v-model="dialogVisible" :form="form"
     :source-survey-id="sourceSurveyId" :saving="saving" @save="save" @attachment-changed="attachmentOwnerChanged" />
 
   <!-- 明细对话框 -->
@@ -168,7 +168,7 @@
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
         <PmsEntitySelect
-          v-model="approveForm.approverUserId"
+          v-model="approveForm.approverUserId" :disabled="!!nativeBusiness"
           :api="UserApi.getUserPage"
           label-field="nickname"
           value-field="id"
@@ -195,7 +195,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
-import * as OutsourceApi from '@/api/pms/engineering/outsource'
+import * as OriginalOutsourceApi from '@/api/pms/engineering/outsource'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const OutsourceApi = useNativeBusinessApi('outsource', OriginalOutsourceApi)
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
 import type { OutsourceRequestVO } from '@/api/pms/engineering/outsource'
@@ -218,7 +221,7 @@ const total = ref(0)
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
-  projectId: undefined as number | undefined,
+  projectId: nativeBusiness?.projectId() as number | undefined,
   code: '',
   name: '',
   outsourceType: '',
@@ -266,7 +269,7 @@ const openCreate = () => {
   sourceSurveyId.value = undefined
   Object.assign(form, {
     id: undefined,
-    projectId: undefined,
+    projectId: nativeBusiness?.projectId(),
     code: '',
     name: '',
     outsourceType: 'LABOR',
@@ -306,10 +309,10 @@ const save = async () => {
   saving.value = true
   try {
     if (form.id) {
-      await OutsourceApi.updateOutsourceRequest(form)
+      await OutsourceApi.updateOutsourceRequest({ ...form, ...await nativeBusiness?.formInput('outsource') })
       message.success('更新成功')
     } else {
-      await OutsourceApi.createOutsourceRequest(form)
+      await OutsourceApi.createOutsourceRequest({ ...form, ...await nativeBusiness?.formInput('outsource') })
       message.success(sourceSurveyId.value ? '转包申请草稿已创建，ID已关联回工勘；尚未提交审批。' : '创建成功')
     }
     formVisible.value = false
@@ -317,7 +320,7 @@ const save = async () => {
       surveyId: String(sourceSurveyId.value), ...surveyExecutionQuery(form.siteSurveyExecution,
         typeof route.query.surveyStageCode === 'string' ? route.query.surveyStageCode : undefined)
     } })
-    else await load()
+    else await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -349,7 +352,7 @@ const openApprove = (row: OutsourceRequestVO) => {
     id: row.id,
     approveAction: 'PASS',
     approveOpinion: '',
-    approverUserId: undefined
+    approverUserId: nativeBusiness ? userStore.getUser.id : undefined
   })
   approveVisible.value = true
 }
@@ -360,7 +363,7 @@ const confirmApprove = async () => {
     await OutsourceApi.approveOutsourceRequest(approveForm as any)
     message.success('审批完成')
     approveVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -371,28 +374,31 @@ const handleSubmit = async (row: OutsourceRequestVO) => {
   await message.confirm('确认提交此外包申请？提交后将进入审批流程。')
   await OutsourceApi.submitOutsourceRequest(row.id!)
   message.success('提交成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleWithdraw = async (row: OutsourceRequestVO) => {
   await message.confirm('确认撤回此外包申请？')
   await OutsourceApi.withdrawOutsourceRequest(row.id!)
   message.success('撤回成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleTerminate = async (row: OutsourceRequestVO) => {
   await message.confirm('确认终止此外包申请？终止后不可恢复。')
   await OutsourceApi.terminateOutsourceRequest(row.id!)
   message.success('终止成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const remove = async (row: OutsourceRequestVO) => {
   const execution = row.triggerSource === 'SITE_SURVEY' ? await resolveSurveyExecution(row.projectId, route.query) : undefined
   await message.delConfirm()
   await OutsourceApi.deleteOutsourceRequest(row.id!, execution)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 
+const dialogVisible = useNativeBusinessDialog('outsource', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'outsource')
+useNativeBusinessEntry('outsource', async id => openDetail({ id: id as number } as OutsourceRequestVO))
 onMounted(load)
 watch(() => [route.query.siteSurveyId, route.query.requestId, route.query.surveyTaskId, route.query.surveyStageId,
   route.query.surveyStageCode, route.query.surveyExecutionId], async ([surveyValue, requestValue], _previous, onCleanup) => {

@@ -17,11 +17,13 @@ export const createArrivalUploadAttempt = (file: File): ArrivalUploadAttempt => 
 
 // Keep the saved owner and upload attempt on failure: retry completes the same
 // receipt and file session rather than creating another receipt or file version.
-export const saveArrivalReceipt = async (form: ArrivalVO, attempt?: ArrivalUploadAttempt) => {
+export const saveArrivalReceipt = async (form: ArrivalVO, attempt?: ArrivalUploadAttempt,
+  api: typeof ArrivalApi = ArrivalApi, additionalValues: Record<string, unknown> = {}) => {
+  const creating = !form.id
   if (!form.id) {
-    form.id = await ArrivalApi.createArrival({ ...form, attachmentUrl: '',
+    form.id = await api.createArrival({ ...form, ...additionalValues, attachmentUrl: '',
       arrivalTime: form.arrivalTime ?? Math.floor(Date.now() / 1000) * 1000 })
-    Object.assign(form, await ArrivalApi.getArrival(form.id!))
+    Object.assign(form, await api.getArrival(form.id!))
   }
   if (attempt && !attempt.completed) {
     const mime: Record<string, string> = {
@@ -30,7 +32,8 @@ export const saveArrivalReceipt = async (form: ArrivalVO, attempt?: ArrivalUploa
     }
     attempt.initialized ||= await initializeUpload({
       modeCode: form.signDocumentArtifactId ? 'ADD_VERSION' : 'CREATE_ARTIFACT',
-      artifactId: form.signDocumentArtifactId, expectedReferenceVersion: form.signDocumentReferenceVersion,
+      artifactId: form.signDocumentArtifactId ?? undefined,
+      expectedReferenceVersion: form.signDocumentReferenceVersion ?? undefined,
       ownerContext: 'IMP', objectType: 'ARRIVAL', objectId: String(form.id),
       purposeCode: 'ARRIVAL_SIGN_DOCUMENT', referenceKey: 'arrival-sign-document', categoryCode: 'ARRIVAL_SIGN_DOCUMENT',
       fileName: attempt.file.name, declaredSizeBytes: attempt.file.size,
@@ -40,15 +43,16 @@ export const saveArrivalReceipt = async (form: ArrivalVO, attempt?: ArrivalUploa
     attempt.completedAt = Math.floor(Date.now() / 1000) * 1000
   }
   // A retry can observe the already completed sign command after a lost response.
-  const current: ArrivalVO = await ArrivalApi.getArrival(form.id!)
+  const current: ArrivalVO = await api.getArrival(form.id!)
   form.signDocumentArtifactId = current.signDocumentArtifactId
   form.signDocumentVersionNo = current.signDocumentVersionNo
   form.signDocumentReferenceVersion = current.signDocumentReferenceVersion
   if (current.status === 1) { Object.assign(form, current); return }
   if (!current.signDocumentArtifactId) throw new Error('签收单上传尚未完成，请重试')
   if (attempt?.completedAt) form.arrivalTime = attempt.completedAt
-  await ArrivalApi.updateArrival({ ...form, version: current.version })
-  const updated: ArrivalVO = await ArrivalApi.getArrival(form.id!)
-  if (updated.status === 0) await ArrivalApi.signArrival(form.id!)
-  Object.assign(form, await ArrivalApi.getArrival(form.id!))
+  // A newly created receipt has already saved its extension form in the create transaction.
+  await api.updateArrival({ ...form, ...(creating ? {} : additionalValues), version: current.version })
+  const updated: ArrivalVO = await api.getArrival(form.id!)
+  if (updated.status === 0) await api.signArrival(form.id!)
+  Object.assign(form, await api.getArrival(form.id!))
 }

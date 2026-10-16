@@ -34,9 +34,12 @@
       </el-descriptions-item>
     </el-descriptions>
     <NativeAttachments v-if="current.id" kind="outsourceRequest" :entity-id="current.id" :readonly="true" :legacy="current.attachmentFiles" />
+    <component v-if="nativeBusiness && modelValue && current.id" :is="nativeBusiness.Form" :record="current" kind="outsource" readonly />
   </Dialog>
 </template>
 <script setup lang="ts">
+import { useNativeBusiness } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
 import { computed } from 'vue'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import type { OutsourceRequestVO } from '@/api/pms/engineering/outsource'

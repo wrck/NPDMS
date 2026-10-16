@@ -23,5 +23,7 @@ export const outsourceShortcutRoute = (surveyId: number, execution?: SiteSurveyE
   path: outsourcePath,
   query: { siteSurveyId: businessViewIdKey(surveyId), ...surveyExecutionQuery(execution, stageCode) }
 })
-export const outsourceDetailUrl = (id: number, execution?: SiteSurveyExecutionSelection, stageCode?: string) =>
-  `${outsourcePath}?${new URLSearchParams({ requestId: businessViewIdKey(id), ...surveyExecutionQuery(execution, stageCode) })}`
+export const outsourceDetailUrl = (id: number | string, execution?: SiteSurveyExecutionSelection, stageCode?: string, projectId?: number | string) =>
+  projectId == null
+    ? `${outsourcePath}?${new URLSearchParams({ requestId: businessViewIdKey(id), ...surveyExecutionQuery(execution, stageCode) })}`
+    : `/pms/business/records/RES_OUTSOURCE_REQUEST?${new URLSearchParams({ projectId: businessViewIdKey(projectId), entityId: businessViewIdKey(id), ...surveyExecutionQuery(execution, stageCode) })}`

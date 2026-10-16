@@ -127,6 +127,8 @@
         </section>
       </template>
     </el-form>
+    <component v-if="nativeBusiness && visible && mode === 'INITIAL'" :is="nativeBusiness.Form"
+      :record="{ projectId: project.id, ...form }" kind="duration" :readonly="!canWrite" />
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
       <el-button type="primary" :loading="saving" :disabled="!canWrite" @click="save">
@@ -149,6 +151,9 @@ import { useFileSlotState } from '@/components/PmsFileArtifact/useFileSlotState'
 import type { DetachedFileSlot, FileSelection } from '@/components/PmsFileArtifact/types'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
+import { useNativeBusiness, useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const DurationApiClient = useNativeBusinessApi('duration', DurationApi)
 import type {
   ConstructionPlanChangeVO,
   ConstructionPlanVO,
@@ -322,7 +327,7 @@ const saveEvidence = async (selection: FileSelection) => {
     customerEvidenceReferenceKey: selection.referenceKey
   })
   try {
-    const updated = await DurationApi.patchChange(
+    const updated = await DurationApiClient.patchChange(
       plan.value.planId,
       draft.value.changeId,
       {
@@ -365,7 +370,7 @@ const clearEvidence = async (result: DetachedFileSlot) => {
     customerEvidenceReferenceKey: undefined
   })
   try {
-    const updated = await DurationApi.patchChange(
+    const updated = await DurationApiClient.patchChange(
       plan.value.planId,
       draft.value.changeId,
       {
@@ -402,7 +407,7 @@ const recoverDraftAfterPatchLoss = async () => {
   const version = contextVersion
   const local = structuredClone(toRaw(form))
   try {
-    const current = await DurationApi.getChange(plan.value.planId, draft.value.changeId)
+    const current = await DurationApiClient.getChange(plan.value.planId, draft.value.changeId)
     if (version !== contextVersion) return false
     const recovered = reconcilePatchResponseLoss(local, current)
     draft.value = recovered.current
@@ -426,8 +431,9 @@ const save = async () => {
   saving.value = true
   try {
     if (mode.value === 'INITIAL') {
-      await DurationApi.createInitial(
+      await DurationApiClient.createInitial(
         {
+          ...await nativeBusiness?.formInput('duration'),
           projectId: props.project.id!,
           expectedProjectVersion: props.project.version || 0,
           ...durationPayload()
@@ -437,7 +443,7 @@ const save = async () => {
       if (version !== contextVersion) return
       message.success('项目工期已生效')
     } else if (mode.value === 'CREATE') {
-      const created = await DurationApi.createChange(
+      const created = await DurationApiClient.createChange(
         plan.value!.planId,
         {
           expectedProjectVersion: props.project.version || 0,
@@ -462,7 +468,7 @@ const save = async () => {
     } else {
       const patch = patchPayload()
       if (Object.keys(patch).length === 1) return message.warning('没有需要保存的变化')
-      await DurationApi.patchChange(
+      await DurationApiClient.patchChange(
         plan.value!.planId,
         draft.value!.changeId,
         patch,

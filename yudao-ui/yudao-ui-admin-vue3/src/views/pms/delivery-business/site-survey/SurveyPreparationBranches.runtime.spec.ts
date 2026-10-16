@@ -1,5 +1,6 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { defineComponent, h } from 'vue'
+import { defineComponent, h, provide, ref } from 'vue'
+import { nativeBusinessKey, type NativeBusinessContext } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import Branches from './SurveyPreparationBranches.vue'
 import { mount } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 const api = vi.hoisted(() => ({ exchange: vi.fn(), material: vi.fn(), procurement: vi.fn(), outsource: vi.fn(), permission: vi.fn() }))
@@ -57,5 +58,23 @@ it('reads the bound outsource application and keeps it when the requirement is u
     expect(api.outsource).toHaveBeenCalledWith(22)
     expect(state.applications.outsource).toEqual([{ id: 22, code: 'OS-22', status: 0 }])
     expect(state.evaluated.find((branch: any) => branch.title === '整单转包（独立流程）').state).toBe('NOT_MATCHED')
+  } finally { m.app.unmount() }
+})
+
+it('opens each hosted external detail through its own bridge without rounding linked ids', async () => {
+  const child = ref(), reads = Object.fromEntries(['exchange', 'material', 'procurement', 'outsource']
+    .map(kind => [kind, vi.fn().mockResolvedValue({ value: { id: '2108608319822127106', projectId: 7, version: 4, code: kind } })]))
+  const m = mount(defineComponent({ setup() {
+    provide(nativeBusinessKey, { getBridge: kind => ({ read: reads[kind!] }) } as unknown as NativeBusinessContext)
+    return () => h(Branches, { ref: child })
+  } }))
+  try {
+    const state = child.value.$.setupState
+    for (const kind of ['exchange', 'material', 'procurement', 'outsource'] as const) {
+      await state.view(kind, '2108608319822127106')
+      expect(reads[kind]).toHaveBeenCalledWith('2108608319822127106')
+      expect(api[kind]).not.toHaveBeenCalled()
+      expect(state.detail).toMatchObject({ id: '2108608319822127106', version: 4, code: kind })
+    }
   } finally { m.app.unmount() }
 })

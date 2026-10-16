@@ -2,8 +2,9 @@ import request from '@/config/axios'
 import { getDeliveryTypes } from '@/api/pms/platform/delivery'
 import { initializeUpload,completeUpload } from '@/api/pms/platform/file'
 import { createDeliveryUploadAttempt,type DeliveryUploadAttempt } from '@/components/DeliveryArtifact/uploadDeliveryFile'
-export interface CustomerDocumentAttached {version:number;customerPlanUrl:string;materialIds:number[]}
-export const saveCustomerSolutionDocuments=async(root:{id:number;version:number},files:File[],previous:DeliveryUploadAttempt[]=[]):Promise<{attached:CustomerDocumentAttached;attempts:DeliveryUploadAttempt[]}>=>{
+export interface CustomerDocumentAttached {version:number;customerPlanUrl:string;materialIds?:number[]}
+export const saveCustomerSolutionDocuments=async(root:{id:number;version:number},files:File[],previous:DeliveryUploadAttempt[]=[],
+  attach?: (root: {id:number;version:number}, referenceIds: NonNullable<DeliveryUploadAttempt['referenceId']>[]) => Promise<CustomerDocumentAttached>):Promise<{attached:CustomerDocumentAttached;attempts:DeliveryUploadAttempt[]}>=>{
   if(!root.id||root.version===undefined)throw new Error('请先保存真实方案草稿')
   const type=(await getDeliveryTypes(true)).find(item=>item.typeCode==='IMPLEMENTATION_PLAN')
   if(!type)throw new Error('实施方案交付类型不可用')
@@ -17,7 +18,8 @@ export const saveCustomerSolutionDocuments=async(root:{id:number;version:number}
       const completed=await completeUpload(attempt.initialized.artifactId,attempt.initialized.sessionId,file,attempt.completeKey);attempt.referenceId=completed.referenceId
     }
   }
-  const attached=await request.post<CustomerDocumentAttached>({url:`/api/v1/pms/solutions/${root.id}/customer-files`,data:{expectedVersion:root.version,referenceIds:previous.slice(0,files.length).map(item=>item.referenceId)}})
+  const references=previous.slice(0,files.length).map(item=>item.referenceId!)
+  const attached=attach ? await attach(root,references) : await request.post<CustomerDocumentAttached>({url:`/api/v1/pms/solutions/${root.id}/customer-files`,data:{expectedVersion:root.version,referenceIds:references}})
   return {attached,attempts:previous.slice(0,files.length)}
 }
 export const resolveCustomerSolutionDocument=async(url:string):Promise<string>=>url.startsWith('/api/v1/pms/solutions/')?await request.get({url}):url

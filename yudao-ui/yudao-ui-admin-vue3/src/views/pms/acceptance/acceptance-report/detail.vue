@@ -20,6 +20,7 @@
         <p v-if="current.conclusionCode">结论：{{ current.conclusionCode === 'PASS' ? '通过' : current.conclusionCode }}<span v-if="current.conclusionText"> · {{ current.conclusionText }}</span></p>
         <div class="current-meta"><span>{{ current.conclusionCode ? `验收人：${current.acceptorName}` : `操作人：${current.uploaderUserId}` }}</span><span>验收时间：{{ current.acceptanceTime == null ? '未填写' : formatDate(new Date(current.acceptanceTime)) }}</span><span>附件：{{ current.attachments.length }}</span></div>
       </section>
+      <component v-if="nativeBusiness" :is="nativeBusiness.Form" :key="String(activity.id)" :record="activity" kind="acceptance" :readonly="readonly || !activityAllowsReportWrite(activity)" standalone-save @saved="reload" />
       <div class="detail-actions">
         <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ current ? '替换交付件' : '上传交付件' }}</el-button>
         <el-button v-if="versions.length" v-hasPermi="['pms:acceptance:report:query']" @click="openHistory">查看版本历史</el-button>
@@ -39,6 +40,9 @@ import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import { isBusinessViewId, legacyOwnerId, sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import * as ReportApi from '@/api/pms/acceptance/acceptance-report'
+import { useNativeBusiness, useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const ReportApiClient = useNativeBusinessApi('acceptance', ReportApi)
 import type { AcceptanceActivityVO, AcceptanceReportVersionVO } from '@/api/pms/acceptance/acceptance-report'
 import { useOperationClient } from '@/components/BusinessView/operationHost'
 import type { OperationClient } from '@/components/BusinessView/operationClient'
@@ -92,10 +96,10 @@ const load = async (id: BusinessViewId, show = false) => {
   const token = ++sequence, project = expectedProject
   errorText.value = ''; loading.value = true
   try {
-    const target = await ReportApi.getActivity(legacyOwnerId(id))
+    const target = await ReportApiClient.getActivity(legacyOwnerId(id))
     if (token !== sequence || !canQuery()) return false
     if (!sameBusinessViewId(target.id, id) || (project !== undefined && !sameBusinessViewId(target.projectId, project))) { message.warning('该验收活动不属于当前项目'); return false }
-    const reports = await ReportApi.getReportVersions(legacyOwnerId(id))
+    const reports = await ReportApiClient.getReportVersions(legacyOwnerId(id))
     if (token !== sequence || !canQuery() || reports.some(report => !sameBusinessViewId(report.acceptanceId, id))) return false
     activity.value = target; versions.value = reports
     if (show) visible.value = true
@@ -118,7 +122,7 @@ const revoke = async () => {
   if (token !== sequence || !canWrite('REVOKE') || revoking.value || editorRef.value?.isDirty()) return false
   revoking.value = true; emit('dirty-change', true)
   try {
-    await ReportApi.revokeCurrentVersion(target, report, revokeKey.value, openedClient)
+    await ReportApiClient.revokeCurrentVersion(target, report, revokeKey.value, openedClient)
     if (token !== sequence) return false
     revokeKey.value = generateUUID(); message.success('当前报告版本已撤销'); await reload()
     return true

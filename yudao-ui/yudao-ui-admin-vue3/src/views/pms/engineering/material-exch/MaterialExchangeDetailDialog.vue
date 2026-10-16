@@ -49,9 +49,12 @@
         <template #default="{ row }">{{ row.quantity ?? 1 }}</template>
       </el-table-column>
     </el-table>
+    <component v-if="nativeBusiness && modelValue && current.id" :is="nativeBusiness.Form" :record="current" kind="exchange" readonly />
   </Dialog>
 </template>
 <script setup lang="ts">
+import { useNativeBusiness } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
 import { computed } from 'vue'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import type { MaterialExchangeVO } from '@/api/pms/engineering/material-exch'

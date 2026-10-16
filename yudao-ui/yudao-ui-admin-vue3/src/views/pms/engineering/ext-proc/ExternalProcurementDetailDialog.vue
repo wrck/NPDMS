@@ -26,7 +26,7 @@
       <el-descriptions-item label="需求日期">{{ current.neededDate }}</el-descriptions-item>
       <el-descriptions-item label="预计到货日期">{{ current.expectedDeliveryDate }}</el-descriptions-item>
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
-      <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
+      <el-descriptions-item label="申请时间">{{ current.applyTime ? formatDate(current.applyTime) : '-' }}</el-descriptions-item>
       <el-descriptions-item label="状态">
         <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
@@ -39,10 +39,14 @@
       </el-descriptions-item>
     </el-descriptions>
     <NativeAttachments v-if="current.id" kind="externalProcurement" :entity-id="current.id" :readonly="true" :legacy="current.attachmentFiles" />
+    <component v-if="nativeBusiness && modelValue && current.id" :is="nativeBusiness.Form" :record="current" kind="procurement" readonly />
   </Dialog>
 </template>
 <script setup lang="ts">
+import { useNativeBusiness } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
 import { computed } from 'vue'
+import { formatDate } from '@/utils/formatTime'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import type { ExternalProcurementVO } from '@/api/pms/engineering/ext-proc'
 import { DICT_TYPE } from '@/utils/dict'

@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-material-req:create']"
+        <el-button type="primary" :disabled="!!nativeBusiness && !nativeBusiness.can('create', 'material')" @click="openCreate()" v-hasPermi="['pms:imp-material-req:create']"
           ><Icon icon="ep:plus" />新建领料申请</el-button
         >
       </el-form-item>
@@ -150,7 +150,7 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <MaterialRequisitionFormDialog ref="formRef" v-model="formVisible" :form="form"
+  <MaterialRequisitionFormDialog ref="formRef" v-model="dialogVisible" :form="form"
     :source-survey-id="sourceSurveyId" :saving="saving" @save="save" @attachment-changed="attachmentOwnerChanged" />
 
   <!-- 明细对话框 -->
@@ -170,7 +170,7 @@
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
         <PmsEntitySelect
-          v-model="approveForm.approverUserId"
+          v-model="approveForm.approverUserId" :disabled="!!nativeBusiness"
           :api="UserApi.getUserPage"
           label-field="nickname"
           value-field="id"
@@ -200,7 +200,10 @@ import { loadSurveyActionContext } from '@/views/pms/delivery-business/site-surv
 import { dateFormatter } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
-import * as MaterialReqApi from '@/api/pms/engineering/material-req'
+import * as OriginalMaterialReqApi from '@/api/pms/engineering/material-req'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const MaterialReqApi = useNativeBusinessApi('material', OriginalMaterialReqApi)
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
 import type { MaterialRequisitionVO } from '@/api/pms/engineering/material-req'
@@ -219,7 +222,7 @@ const total = ref(0)
 const query = reactive({
   pageNo: 1,
   pageSize: 10,
-  projectId: undefined as number | undefined,
+  projectId: nativeBusiness?.projectId() as number | undefined,
   code: '',
   name: '',
   requisitionType: '',
@@ -269,7 +272,7 @@ const openCreate = () => {
   form.triggerRefId = undefined
   Object.assign(form, {
     id: undefined,
-    projectId: undefined,
+    projectId: nativeBusiness?.projectId(),
     code: '',
     name: '',
     requisitionType: 'SPARE',
@@ -306,15 +309,15 @@ const save = async () => {
   saving.value = true
   try {
     if (form.id) {
-      await MaterialReqApi.updateMaterialRequisition(form)
+      await MaterialReqApi.updateMaterialRequisition({ ...form, ...await nativeBusiness?.formInput('material') })
       message.success('更新成功')
     } else {
-      await MaterialReqApi.createMaterialRequisition(form)
+      await MaterialReqApi.createMaterialRequisition({ ...form, ...await nativeBusiness?.formInput('material') })
       message.success('创建成功')
     }
     formVisible.value = false
     if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
-    else await load()
+    else await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -346,7 +349,7 @@ const openApprove = (row: MaterialRequisitionVO) => {
     id: row.id,
     approveAction: 'PASS',
     approveOpinion: '',
-    approverUserId: undefined
+    approverUserId: nativeBusiness ? userStore.getUser.id : undefined
   })
   approveVisible.value = true
 }
@@ -357,7 +360,7 @@ const confirmApprove = async () => {
     await MaterialReqApi.approveMaterialRequisition(approveForm as any)
     message.success('审批完成')
     approveVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -368,27 +371,30 @@ const handleSubmit = async (row: MaterialRequisitionVO) => {
   await message.confirm('确认提交此领料申请？提交后将进入审批流程。')
   await MaterialReqApi.submitMaterialRequisition(row.id!)
   message.success('提交成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleWithdraw = async (row: MaterialRequisitionVO) => {
   await message.confirm('确认撤回此领料申请？')
   await MaterialReqApi.withdrawMaterialRequisition(row.id!)
   message.success('撤回成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleTerminate = async (row: MaterialRequisitionVO) => {
   await message.confirm('确认终止此领料申请？终止后不可恢复。')
   await MaterialReqApi.terminateMaterialRequisition(row.id!)
   message.success('终止成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const remove = async (row: MaterialRequisitionVO) => {
   await message.delConfirm()
   await MaterialReqApi.deleteMaterialRequisition(row.id!)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 
+const dialogVisible = useNativeBusinessDialog('material', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'material')
+useNativeBusinessEntry('material', async id => openDetail({ id: id as number } as MaterialRequisitionVO))
 onMounted(load)
 watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) => {
   if (!value) return

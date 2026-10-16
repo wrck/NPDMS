@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { defineComponent, nextTick } from 'vue'
 import Panel from './ProjectSchedulePanel.vue'
 import * as PlanApi from '@/api/pms/engineering/stage-plan'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
@@ -15,6 +15,11 @@ const feedback = vi.hoisted(() => ({
   warning: vi.fn(),
   error: vi.fn(),
   confirm: vi.fn()
+}))
+const nativeContext = vi.hoisted(() => ({ current: undefined as any }))
+vi.mock('@/components/ProjectBusiness/native/nativeBusinessContext', () => ({
+  useNativeBusiness: () => nativeContext.current,
+  useNativeBusinessApi: (_kind: string, original: unknown) => original
 }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => feedback }))
 vi.mock('vue-router', () => ({
@@ -104,6 +109,7 @@ const render = () => {
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  nativeContext.current = undefined
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   vi.mocked(DurationApi.getByProjectId).mockResolvedValue({
     currentRevision: { revisionId: 2, durationDays: 31 }
@@ -130,6 +136,103 @@ it('loads effective plan dates for warnings even when the page response has no d
   } finally {
     app.app.unmount()
   }
+})
+
+it('reads the associated effective plan only once when task and list IDs use different scalar types', async () => {
+  nativeContext.current = {
+    initialEntityId: () => '7',
+    can: () => false,
+    Form: defineComponent({ setup: () => () => null })
+  }
+  vi.mocked(PlanApi.getStagePlanBatch).mockImplementation(async id =>
+    String(id) === '7' ? structuredClone(effective) : draft())
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch.id).toBe(7)
+    expect(app.state.editable).toBe(false)
+    expect(PlanApi.getStagePlanBatch).toHaveBeenCalledTimes(1)
+    expect(String(vi.mocked(PlanApi.getStagePlanBatch).mock.calls[0][0])).toBe('7')
+  } finally { app.app.unmount() }
+})
+
+it('reads selected and effective plan details while independent duration and overdue requests are pending', async () => {
+  let resolveDuration!: (value: any) => void, resolveOverdue!: (value: any) => void
+  vi.mocked(DurationApi.getByProjectId).mockReturnValue(new Promise(resolve => { resolveDuration = resolve }))
+  vi.mocked(PlanApi.getOverdueStages).mockReturnValue(new Promise(resolve => { resolveOverdue = resolve }))
+  const app = render()
+  try {
+    await flush()
+    expect(PlanApi.getOverdueStages).toHaveBeenCalledWith(1)
+    expect(PlanApi.getStagePlanBatch).toHaveBeenCalledWith(8)
+    expect(PlanApi.getStagePlanBatch).toHaveBeenCalledWith(7)
+    expect(app.state.batch).toBeUndefined()
+    expect(app.state.loading).toBe(true)
+    resolveDuration({ currentRevision: { revisionId: 2, durationDays: 31 } })
+    resolveOverdue([])
+    await flush()
+    expect(app.state.batch.id).toBe(8)
+    expect(app.state.tightSchedule).toBe(true)
+    expect(app.state.loading).toBe(false)
+  } finally { app.app.unmount() }
+})
+
+it('loads distinct selected and effective versions concurrently', async () => {
+  let resolveSelected!: (value: any) => void
+  vi.mocked(PlanApi.getStagePlanBatch).mockImplementation(id => id === 8
+    ? new Promise(resolve => { resolveSelected = resolve })
+    : Promise.resolve(structuredClone(effective)))
+  const app = render()
+  try {
+    await flush()
+    expect(PlanApi.getStagePlanBatch).toHaveBeenCalledWith(7)
+    expect(app.state.batch).toBeUndefined()
+    resolveSelected(draft()); await flush()
+    expect(app.state.batch.id).toBe(8)
+    expect(app.state.currentEffective.id).toBe(7)
+    expect(app.state.tightSchedule).toBe(true)
+  } finally { app.app.unmount() }
+})
+
+it('keeps overdue lookup failure visible while retaining the readable plan', async () => {
+  vi.mocked(PlanApi.getOverdueStages).mockRejectedValue(new Error('超期查询失败'))
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch.id).toBe(8)
+    expect(app.state.overdueError).toBe(true)
+    expect(app.state.errorText).toBe('')
+    expect(app.state.loading).toBe(false)
+  } finally { app.app.unmount() }
+})
+
+it('does not publish plan data when a required duration read is forbidden', async () => {
+  vi.mocked(DurationApi.getByProjectId).mockRejectedValue(new Error('403'))
+  const app = render()
+  try {
+    await flush()
+    expect(app.state.batch).toBeUndefined()
+    expect(app.state.batches).toEqual([])
+    expect(app.state.errorText).toBe('施工计划加载失败，请重试。')
+    expect(app.state.loading).toBe(false)
+  } finally { app.app.unmount() }
+})
+
+it('ignores a superseded read after a newer refresh has completed', async () => {
+  let resolveOld!: (value: any) => void
+  vi.mocked(DurationApi.getByProjectId).mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }))
+  const app = render()
+  try {
+    await flush()
+    await app.state.load(7)
+    expect(app.state.batch.id).toBe(7)
+    resolveOld({ currentRevision: { revisionId: 99, durationDays: 999 } })
+    await flush()
+    expect(app.state.batch.id).toBe(7)
+    expect(app.state.durationPlan.currentRevision.revisionId).toBe(2)
+    expect(app.state.loading).toBe(false)
+    expect(app.state.errorText).toBe('')
+  } finally { app.app.unmount() }
 })
 
 it.each([1, 2])(

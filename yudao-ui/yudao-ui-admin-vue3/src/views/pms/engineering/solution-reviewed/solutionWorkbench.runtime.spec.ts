@@ -145,6 +145,27 @@ beforeEach(() => {
 })
 
 describe('实施方案页面结构', () => {
+  it('项目工作台并行读取列表与审核策略，详情不等待策略但正文须在两者完成后显示', async () => {
+    let releasePage!: (value: { list: any[]; total: number }) => void
+    let releasePolicy!: (value: unknown) => void
+    getSolutionPage.mockReturnValueOnce(new Promise(resolve => { releasePage = resolve }))
+    policyMock.mockReturnValueOnce(new Promise(resolve => { releasePolicy = resolve }))
+    getSolution.mockResolvedValue(draftRow())
+    const root = await mountWorkbench({ projectId: 123 })
+    try {
+      expect(policyMock).toHaveBeenCalledWith(123)
+      releasePage({ list: [draftRow()], total: 1 })
+      await vi.waitFor(() => expect(getSolution).toHaveBeenCalledWith(11))
+      expect(findByTestId(root, 'chapter-form-stub')).toBeFalsy()
+    } finally {
+      releasePage({ list: [draftRow()], total: 1 })
+      // The pre-fix implementation starts the policy only after the page resolves.
+      await vi.waitFor(() => expect(releasePolicy).toBeTypeOf('function'))
+      releasePolicy({ configured: true, reviewLevel: 0, reason: '' })
+    }
+    await vi.waitFor(() => expect(renderedText(root)).toContain('CHAPTER readOnly=false'))
+    expect(policyMock).toHaveBeenCalledTimes(1)
+  })
   it('项目工作台：无列表与弹窗，自动选中首个方案并内联展开正文', async () => {
     getSolutionPage.mockResolvedValue({ list: [draftRow()], total: 1 })
     getSolution.mockResolvedValue(draftRow())

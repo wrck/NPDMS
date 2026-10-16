@@ -67,6 +67,7 @@
             @submit-review="submitReview"
           />
         </el-form>
+        <component v-if="nativeBusiness && !detailLoading && !detailError" :is="nativeBusiness.Form" :key="`${form.id || 'new'}-${form.version}`" :record="form" kind="solution" :readonly="readOnly" />
       </ContentWrap>
     </template>
   </template>
@@ -193,6 +194,7 @@
         @submit-review="submitReview"
       />
     </el-form>
+    <component v-if="nativeBusiness && formVisible" :is="nativeBusiness.Form" :key="`${form.id || 'new'}-${form.version}`" :record="form" kind="solution" :readonly="readOnly" />
     <template #footer>
       <el-button @click="formVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存草稿</el-button>
@@ -235,6 +237,9 @@ import { computed, onMounted, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as SolutionApi from '@/api/pms/engineering/solution'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const SolutionApiClient = useNativeBusinessApi('solution', SolutionApi)
 import * as ReviewApi from '@/api/pms/engineering/solution-review'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import * as ProjectApi from '@/api/pms/project/projects'
@@ -251,7 +256,7 @@ import SolutionChapterForm from './SolutionReviewChapterForm.vue'
 
 defineOptions({ name: 'PmsSolutionReviewed' })
 const tieredReview = ref()
-const props = defineProps<{ projectId?: number }>()
+const props = defineProps<{ projectId?: number; readonly?: boolean }>()
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
@@ -290,7 +295,7 @@ let detailSequence = 0
 const formRef = ref()
 const form = ref<SolutionVO>({ projectId: props.projectId ?? 0, name: '', reviewLevel: 0, status: 0 })
 const editableDraft = (row: SolutionVO) => row.status === 0 && checkPermi(['pms:sol-solution:update'])
-const readOnly = computed(() => detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])))
+const readOnly = computed(() => !!props.readonly || detailLoading.value || !!detailError.value || (form.value.id ? !editableDraft(form.value) : !checkPermi(['pms:sol-solution:create'])) || !!nativeBusiness && !nativeBusiness.can(form.value.id ? 'save' : 'create', 'solution'))
 const rules = {
   projectId: [
     { required: true, message: '请选择项目' },
@@ -332,25 +337,27 @@ watch(
 )
 
 const solutionLabel = (row: SolutionVO) => `${row.name}（${row.versionLabel || '未设版本'}）`
-const pickSolution = (id: number | string) => {
+const pickSolution = async (id: number | string) => {
+  if (nativeBusiness && !await nativeBusiness.requestLeave('solution')) return
   const row = rows.value.find(item => item.id === Number(id))
   if (row) openForm(row)
 }
 
+const loadPolicy = async (projectId: number) => {
+  try { policies[projectId] = await ReviewApi.policy(projectId) }
+  catch { policies[projectId] = { configured: true, reviewLevel: null, reason: '审核判定加载失败，请刷新后重试。' } }
+}
 const load = async () => {
   loading.value = true
   try {
-    const data = await SolutionApi.getSolutionPage(query)
+    const projectPolicy = props.projectId ? loadPolicy(props.projectId) : undefined
+    const data = await SolutionApiClient.getSolutionPage(query)
     rows.value = data.list
     total.value = data.total
     const projects = new Set<number>(data.list.map((row: SolutionVO) => row.projectId))
-    if (props.projectId) projects.add(props.projectId)
-    await Promise.all([...projects].map(async projectId => {
-      try { policies[projectId] = await ReviewApi.policy(projectId) }
-      catch { policies[projectId] = { configured: true, reviewLevel: null, reason: '审核判定加载失败，请刷新后重试。' } }
-    }))
+    if (props.projectId) projects.delete(props.projectId)
     // 工作台没有列表态：加载后保持选中并刷新当前方案状态；无方案时进入新建草稿
-    if (props.projectId) await syncSelection()
+    await Promise.all([projectPolicy, ...[...projects].map(loadPolicy), props.projectId ? syncSelection() : undefined])
   } catch {
     // 拦截器已弹后端错误提示；保留既有列表/选中态，吞掉 rejection 防止逃逸到业务视图错误边界
   } finally {
@@ -360,7 +367,11 @@ const load = async () => {
 }
 const syncSelection = async () => {
   if (!props.projectId) return
-  const currentId = form.value.id
+  const currentId = form.value.id ?? nativeBusiness?.initialEntityId('solution')
+  if (currentId != null && !rows.value.some(item => String(item.id) === String(currentId))) {
+    await openForm({ id: currentId as number } as SolutionVO)
+    return
+  }
   const row = (currentId ? rows.value.find(item => item.id === currentId) : null) ?? rows.value[0]
   if (row) await openForm(row)
   else {
@@ -442,7 +453,7 @@ const openForm = async (row?: SolutionVO) => {
     return
   }
   try {
-    const detail: SolutionVO | null = await SolutionApi.getSolution(row.id)
+    const detail: SolutionVO | null = await SolutionApiClient.getSolution(row.id)
     if (sequence !== detailSequence) return
     if (!detail || detail.id !== row.id) {
       detailError.value = '方案不存在或已不可见，请刷新后重试'
@@ -460,6 +471,14 @@ onBeforeUnmount(() => {
   ++detailSequence
   bodyResizeObserver?.disconnect()
 })
+const attachCustomerFiles = async (root: { id: number; version: number }, referenceIds: (number | string)[]) => {
+  const bridge = nativeBusiness!.getBridge('solution')
+  await bridge.command('attach-customer-files', root.id, { referenceIds }, root.version)
+  const { value } = await bridge.read(root.id)
+  const customerPlanUrl = parseEnvelope(value.remark).customerPlanUrl
+  if (typeof customerPlanUrl !== 'string' || !customerPlanUrl) throw new Error('客户方案文件尚未登记，请确认操作回执')
+  return { version: value.version, customerPlanUrl }
+}
 const draftFingerprint=()=>JSON.stringify({...form.value,version:undefined})
 const persistDraftAndCustomerFiles=async()=>{
   // 新保存/提交版本不再携带 1.5；历史提交和批准版本不走草稿写入口。
@@ -467,15 +486,15 @@ const persistDraftAndCustomerFiles=async()=>{
   const withFiles=pendingCustomerFiles.value.length>0&&parseEnvelope(form.value.remark).hasCustomerPlan==='yes'
   if(!withFiles||savedCustomerDraft!==draftFingerprint()){
     const existingId=form.value.id, previousVersion=form.value.version
-    if(existingId)await SolutionApi.updateSolution(form.value)
-    else form.value.id=await SolutionApi.createSolution(form.value)
-    const current=await SolutionApi.getSolution(form.value.id!)
+    if(existingId)await SolutionApiClient.updateSolution({ ...form.value, ...await nativeBusiness?.formInput('solution') })
+    else form.value.id=await SolutionApiClient.createSolution({ ...form.value, ...await nativeBusiness?.formInput('solution') })
+    const current=await SolutionApiClient.getSolution(form.value.id!)
     if(existingId&&previousVersion!==undefined&&current.version!==previousVersion+1)throw new Error('方案版本已变化，请刷新后重试')
     form.value.version=current.version
     savedCustomerDraft=withFiles?draftFingerprint():undefined
   }
   if(withFiles){
-    const {attached}=await saveCustomerSolutionDocuments({id:form.value.id!,version:form.value.version!},pendingCustomerFiles.value,customerAttempts)
+    const {attached}=await saveCustomerSolutionDocuments({id:form.value.id!,version:form.value.version!},pendingCustomerFiles.value,customerAttempts,nativeBusiness ? attachCustomerFiles : undefined)
     form.value.version=attached.version
     form.value.remark=JSON.stringify({...parseEnvelope(form.value.remark),hasCustomerPlan:'yes',customerPlanUrl:attached.customerPlanUrl})
     pendingCustomerFiles.value=[];customerAttempts.splice(0);savedCustomerDraft=undefined
@@ -490,7 +509,7 @@ const save = async () => {
     await persistDraftAndCustomerFiles()
     message.success('保存成功')
     if (!props.projectId) formVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } catch {
     // 保存失败保留表单内容与弹窗状态，便于修正后重试；提示已由拦截器弹出
   } finally {
@@ -506,7 +525,7 @@ const submitReview = async () => {
   saving.value = true
   try {
     await persistDraftAndCustomerFiles()
-    await load()
+    await load(); nativeBusiness?.changed()
     tieredReview.value?.open(form.value)
   } catch {
     // 同 save：保存/刷新失败不打开审批框，保留表单与工作区，提示已由拦截器弹出
@@ -518,13 +537,18 @@ const remove = async (row: SolutionVO) => {
   if (row.status !== 0) return
   await message.delConfirm()
   try {
-    await SolutionApi.deleteSolution(row.id!)
+    await SolutionApiClient.deleteSolution(row.id!)
     message.success('删除成功')
-    await load()
+    await load(); nativeBusiness?.changed()
   } catch {
     // 拦截器已弹后端错误提示；吞掉 rejection 防止逃逸到业务视图错误边界，工作区保持当前状态
   }
 }
+useNativeBusinessLeave(async () => {
+  if (saving.value || detailLoading.value) return false
+  if (!pendingCustomerFiles.value.length) return true
+  try { await message.confirm('客户方案文件尚未保存，确认离开？'); return true } catch { return false }
+}, 'solution')
 onMounted(load)
 </script>
 

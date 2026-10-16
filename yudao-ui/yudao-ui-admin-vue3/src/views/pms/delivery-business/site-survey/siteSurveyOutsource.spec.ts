@@ -7,6 +7,12 @@ import {
 import { mergeSurveyValues } from './siteSurveyForm'
 
 describe('one outsourcing shortcut for a whole site survey', () => {
+  it('opens the adapted outsourcing page with lossless project and record identities', () => {
+    const target = new URL(outsourceDetailUrl('2102228462045130754', undefined, undefined, '2102228462045130701'), 'http://localhost')
+    expect(target.pathname).toBe('/pms/business/records/RES_OUTSOURCE_REQUEST')
+    expect(target.searchParams.get('entityId')).toBe('2102228462045130754')
+    expect(target.searchParams.get('projectId')).toBe('2102228462045130701')
+  })
   it('carries only the saved survey identity into the original outsourcing route', () => {
     expect(outsourceShortcutRoute(30011)).toEqual({
       path: '/pms/engineering/procurement/res-outsource',

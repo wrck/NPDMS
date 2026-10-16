@@ -16,7 +16,7 @@
     >
     <el-link
       v-if="!inBranches && survey.outsourceRequestId"
-      :href="outsourceDetailUrl(survey.outsourceRequestId)"
+      :href="outsourceDetailUrl(survey.outsourceRequestId, undefined, undefined, survey.projectId)"
       target="_blank"
       rel="noopener"
       type="primary"

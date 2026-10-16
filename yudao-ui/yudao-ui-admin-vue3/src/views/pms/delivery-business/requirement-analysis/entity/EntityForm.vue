@@ -32,7 +32,8 @@ import type { BusinessOperationReceipt } from '@/api/pms/platform/businessmodel'
 import { toRaw } from 'vue'
 import { vFormCreateKeyboardRows } from '@/views/pms/project/project-master-detail/components/formCreateKeyboardRows'
 import type { JsonObject } from '@/api/pms/platform/dynamic-form'
-import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import * as OriginalRequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import { useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import type { View, PresentationOption } from '@/api/pms/engineering/requirement-analysis/entity'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
@@ -56,6 +57,7 @@ const emit = defineEmits<{
   saved: [detail?: View]
   receipt: [receipt: BusinessOperationReceipt]
 }>()
+const RequirementAnalysisApi = useNativeBusinessApi('requirement', OriginalRequirementAnalysisApi)
 const message = useMessage()
 registerDynamicFormComponents()
 formCreateEngine.component('RequirementRevisionFiles', RevisionFiles)

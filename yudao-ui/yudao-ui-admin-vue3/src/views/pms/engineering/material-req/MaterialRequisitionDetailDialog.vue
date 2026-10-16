@@ -22,17 +22,21 @@
         <dict-tag :type="DICT_TYPE.PMS_APPROVAL_STATUS" :value="current.status ?? ''" />
       </el-descriptions-item>
       <el-descriptions-item label="申请人"><UserTag :user-id="current.applicantUserId" /></el-descriptions-item>
-      <el-descriptions-item label="申请时间">{{ current.applyTime }}</el-descriptions-item>
+      <el-descriptions-item label="申请时间">{{ current.applyTime ? formatDate(current.applyTime) : '-' }}</el-descriptions-item>
       <el-descriptions-item label="备注" :span="2">{{ current.remark }}</el-descriptions-item>
       <el-descriptions-item v-if="current.approveOpinion" label="审批意见" :span="2">
         {{ current.approveOpinion }}
       </el-descriptions-item>
     </el-descriptions>
     <NativeAttachments v-if="current.id" kind="materialRequisition" :entity-id="current.id" :readonly="true" :legacy="current.attachmentFiles" />
+    <component v-if="nativeBusiness && modelValue && current.id" :is="nativeBusiness.Form" :record="current" kind="material" readonly />
   </Dialog>
 </template>
 <script setup lang="ts">
+import { useNativeBusiness } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
 import { computed } from 'vue'
+import { formatDate } from '@/utils/formatTime'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
 import type { MaterialRequisitionVO } from '@/api/pms/engineering/material-req'
 import { DICT_TYPE } from '@/utils/dict'

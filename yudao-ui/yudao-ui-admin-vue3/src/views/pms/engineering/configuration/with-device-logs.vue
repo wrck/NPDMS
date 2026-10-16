@@ -137,7 +137,7 @@
   />
 
   <Dialog
-    v-model="formVisible"
+    v-model="dialogVisible"
     :title="form.id ? (readOnly ? '查看配置' : '编辑配置') : '新增配置'"
     width="min(780px, 95vw)"
   >
@@ -159,7 +159,8 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="关联设备" prop="equipmentId">
-            <ProjectDeviceSelect v-model="form.equipmentId" :project-id="form.projectId" />
+            <DeviceTag v-if="readOnly" :device-id="form.equipmentId" />
+            <ProjectDeviceSelect v-else v-model="form.equipmentId" :project-id="form.projectId" />
           </el-form-item>
         </el-col>
         <el-col :span="12">
@@ -179,7 +180,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="配置日志" prop="configLogUrl"
-            ><UploadFile
+            ><component v-if="nativeBusiness" :is="nativeBusiness.Attachment" :record="form" :readonly="readOnly" :policy="attachmentPolicy" :legacy="form.configLogUrl" @version="value => form.version = value" /><UploadFile v-else
               v-model="form.configLogUrl!"
               :disabled="readOnly"
               :file-type="['log', 'txt', 'cfg', 'conf', 'doc', 'xls', 'ppt', 'pdf']"
@@ -202,8 +203,9 @@
       entry="configuration"
       :object-id="form.id"
     />
+    <component v-if="nativeBusiness && formVisible" :is="nativeBusiness.Form" :record="form" :readonly="readOnly" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -221,7 +223,8 @@ import { download as downloadArchivedLog } from '@/api/pms/asset/device-log-arch
 import request from '@/config/axios'
 import download from '@/utils/download'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
-import * as ConfigurationApi from '@/api/pms/engineering/configuration'
+import * as OriginalConfigurationApi from '@/api/pms/engineering/configuration'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/projects'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
@@ -230,6 +233,9 @@ import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngConfigurationWithDeviceLogs' })
+const nativeBusiness = useNativeBusiness()
+const ConfigurationApi = useNativeBusinessApi('configuration', OriginalConfigurationApi)
+const attachmentPolicy = { ownerModule: 'IMP', entityType: 'configuration', objectType: 'configuration', purpose: 'CONFIGURATION_LOG', accept: '.log,.cfg,.conf,.doc,.xls,.ppt,.txt,.pdf' }
 const props = defineProps<{
   projectId?: number
   /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean
@@ -259,7 +265,7 @@ const editableRecord = (row: Pick<ConfigurationVO, 'status' | 'importedLogFileId
   !row.importedLogFileId && [0, 1, 3].includes(row.status ?? -1) && checkPermi(['pms:imp-configuration:update'])
 const readOnly = computed(
   () =>
-    !!props.readonly ||
+    !!props.readonly || (!!nativeBusiness && !nativeBusiness.can(form.value.id ? 'save' : 'create', 'configuration')) ||
     (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-configuration:create']))
 )
 const rules = {
@@ -312,12 +318,13 @@ const save = async () => {
           ? undefined
           : Number(form.value.debugTime)
     }
+    if (nativeBusiness) Object.assign(data, await nativeBusiness.formInput())
     data.id
       ? await ConfigurationApi.updateConfiguration(data)
       : await ConfigurationApi.createConfiguration(data)
     message.success('保存成功')
     formVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -327,7 +334,7 @@ const remove = async (row: ConfigurationVO) => {
   await message.delConfirm()
   await ConfigurationApi.deleteConfiguration(row.id!)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleAction = async (
   row: ConfigurationVO,
@@ -339,7 +346,10 @@ const handleAction = async (
   if (action === 'complete') await ConfigurationApi.completeConfiguration(row.id!)
   if (action === 'markAbnormal') await ConfigurationApi.markAbnormalConfiguration(row.id!)
   message.success(`${actionText}成功`)
-  await load()
+  await load(); nativeBusiness?.changed()
 }
+const dialogVisible = useNativeBusinessDialog('configuration', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'configuration')
+useNativeBusinessEntry('configuration', async id => openForm(await ConfigurationApi.getConfiguration(id as number)))
 onMounted(load)
 </script>

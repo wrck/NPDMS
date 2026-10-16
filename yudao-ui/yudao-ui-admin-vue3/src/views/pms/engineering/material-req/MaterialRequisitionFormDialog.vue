@@ -1,7 +1,7 @@
 <template>
   <Dialog v-model="visible" :title="form.id ? '编辑领料申请' : '新建领料申请'" width="min(960px, 95vw)" :close-on-click-modal="false" :close-on-press-escape="!saving" :show-close="!saving">
     <el-alert v-if="error" :title="error" type="error" :closable="false" />
-    <el-form ref="formRef" :model="form" :rules="rules" :disabled="saving" label-width="120px">
+    <el-form ref="formRef" :model="form" :rules="rules" :disabled="saving || readOnly" label-width="120px">
       <el-row :gutter="16">
         <el-col :span="12">
           <el-form-item label="项目" prop="projectId">
@@ -15,7 +15,7 @@
               value-field="id"
               query-field="projectName"
               placeholder="请选择项目"
-              :disabled="!!form.id"
+              :disabled="!!form.id || !!nativeBusiness?.projectId()"
             />
           </el-form-item>
         </el-col>
@@ -96,6 +96,7 @@
             <PmsEntitySelect
               v-model="form.applicantUserId"
               :api="UserApi.getUserPage"
+              :disabled="!!nativeBusiness"
               label-field="nickname"
               value-field="id"
               query-field="nickname"
@@ -107,6 +108,7 @@
           <el-form-item label="申请时间" prop="applyTime">
             <el-date-picker
               v-model="form.applyTime"
+              :disabled="!!nativeBusiness"
               type="datetime"
               value-format="YYYY-MM-DD HH:mm:ss"
               placeholder="选择申请时间"
@@ -140,13 +142,16 @@
         </el-col>
       </el-row>
     </el-form>
+    <component v-if="nativeBusiness && modelValue" :is="nativeBusiness.Form" :key="String(form.id || 'new')" :record="form" kind="material" />
     <template #footer>
       <el-button :disabled="saving" @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" @click="emit('save')">保存</el-button>
+      <el-button type="primary" :loading="saving" :disabled="readOnly" @click="emit('save')">保存</el-button>
     </template>
   </Dialog>
 </template>
 <script setup lang="ts">
+import { useNativeBusiness } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
 import { computed, ref } from 'vue'
 import { checkPermi } from '@/utils/permission'
 import NativeAttachments from '../attachment/NativeAttachments.vue'
@@ -158,6 +163,7 @@ import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 const props = defineProps<{ modelValue: boolean; form: MaterialRequisitionVO; sourceSurveyId?: number | string; saving: boolean; error?: string }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; save: []; attachmentChanged: [owner: { version?: number; status?: number; configLogUrl?: string }] }>()
 const visible = computed({ get: () => props.modelValue, set: value => { if (!props.saving) emit('update:modelValue', value) } })
+const readOnly = computed(() => !!nativeBusiness && !nativeBusiness.can(props.form.id ? 'save' : 'create', 'material'))
 const formRef = ref()
 const rules = {
   projectId: [{ required: true, message: '请选择项目' }],

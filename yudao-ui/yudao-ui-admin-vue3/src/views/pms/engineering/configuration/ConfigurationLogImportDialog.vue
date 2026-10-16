@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="上传配置日志" width="min(640px, 95vw)" :close-on-click-modal="!uploading" :show-close="!uploading">
+  <el-dialog v-model="visible" title="上传配置日志" width="min(640px, 95vw)" :close-on-click-modal="!uploading" :close-on-press-escape="!uploading" :show-close="!uploading">
     <el-form label-width="90px">
       <el-form-item v-if="!props.projectId" label="项目">
         <PmsEntitySelect v-model="projectId" :api="ProjectApi.getProjectPage" label-field="projectName"
@@ -26,12 +26,12 @@ import { importConfigurationLog } from '@/api/pms/engineering/configuration'
 import { useMessage } from '@/hooks/web/useMessage'
 import { generateUUID } from '@/utils'
 
-const props = defineProps<{ projectId?: number }>()
+const props = defineProps<{ projectId?: number | string }>()
 const emit = defineEmits<{ (e: 'saved'): void }>()
 const message = useMessage()
 const visible = ref(false)
 const uploading = ref(false)
-const projectId = ref<number>()
+const projectId = ref<number | string>()
 // A retry of the same selected file keeps its key; a different file is a new import.
 let selectedFile: File | undefined
 let operationId = ''
@@ -68,5 +68,5 @@ const upload = async (options: UploadRequestOptions) => {
     uploading.value = false
   }
 }
-defineExpose({ open })
+defineExpose({ open, requestLeave: () => !uploading.value })
 </script>

@@ -1,16 +1,21 @@
 <template>
   <component :is="dialogs[kind]" ref="formRef" :model-value="modelValue" :form="form"
     :source-survey-id="survey?.id || -1" :saving="saving" :error="error"
-    @update:model-value="value => emit('update:modelValue', value)" @save="save" />
+    @update:model-value="updateVisible" @save="save" />
 </template>
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import MaterialRequisitionFormDialog from '@/views/pms/engineering/material-req/MaterialRequisitionFormDialog.vue'
 import ExternalProcurementFormDialog from '@/views/pms/engineering/ext-proc/ExternalProcurementFormDialog.vue'
 import OutsourceRequestFormDialog from '@/views/pms/engineering/outsource/OutsourceRequestFormDialog.vue'
-import { createMaterialRequisition } from '@/api/pms/engineering/material-req'
-import { createExternalProcurement } from '@/api/pms/engineering/ext-proc'
-import { createOutsourceRequest } from '@/api/pms/engineering/outsource'
+import * as MaterialApi from '@/api/pms/engineering/material-req'
+import { useNativeBusiness, useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const { createMaterialRequisition } = useNativeBusinessApi('material', MaterialApi)
+import * as ProcurementApi from '@/api/pms/engineering/ext-proc'
+const { createExternalProcurement } = useNativeBusinessApi('procurement', ProcurementApi)
+import * as OutsourceApi from '@/api/pms/engineering/outsource'
+const { createOutsourceRequest } = useNativeBusinessApi('outsource', OutsourceApi)
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 import { useUserStore } from '@/store/modules/user'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -28,6 +33,15 @@ const form = reactive<any>({})
 const formRef = ref()
 const saving = ref(false)
 const error = ref('')
+let closing = false
+const updateVisible = async (value: boolean) => {
+  if (saving.value || closing) return
+  closing = true
+  try {
+    if (!value && nativeBusiness && !await nativeBusiness.requestLeave(props.kind)) return
+    emit('update:modelValue', value)
+  } finally { closing = false }
+}
 watch(() => props.modelValue, visible => {
   if (!visible) return
   Object.keys(form).forEach(key => delete form[key])
@@ -51,7 +65,7 @@ const save = async () => {
       throw new Error('工勘所属项目已变化，请重新打开申请')
     const payload = { ...form, projectId, triggerSource: 'SITE_SURVEY', triggerRefId: source.id }
     if (kind === 'outsource') payload.siteSurveyExecution = await props.getExecution()
-    await creates[kind](payload)
+    await creates[kind]({ ...payload, ...await nativeBusiness?.formInput(kind) })
     message.success(`${names[kind]}申请创建成功`)
     emit('created', kind)
     emit('update:modelValue', false)

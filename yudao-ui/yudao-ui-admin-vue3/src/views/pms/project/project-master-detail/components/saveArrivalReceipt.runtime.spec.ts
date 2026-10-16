@@ -23,6 +23,19 @@ it('uploads under the saved arrival owner and uses the native sign command after
   expect(api.signArrival).toHaveBeenCalledWith(7)
   expect(form).toMatchObject({ id: 7, status: 1 })
 })
+it('creates the first file when the saved owner returns nullable attachment fields', async () => {
+  api.getArrival.mockResolvedValueOnce({ ...pending, signDocumentArtifactId: null, signDocumentReferenceVersion: null })
+    .mockResolvedValueOnce(attached).mockResolvedValueOnce(attached).mockResolvedValueOnce({ ...attached, status: 1 })
+  api.initializeUpload.mockImplementation(async data => {
+    if (data.artifactId === null) throw new Error('文件 ID 无效，请刷新后重试')
+    return { artifactId: 11, sessionId: 22 }
+  })
+  const form = { projectId: 123 }
+  await saveArrivalReceipt(form, createArrivalUploadAttempt(file))
+  expect(api.initializeUpload).toHaveBeenCalledWith(expect.objectContaining({ modeCode: 'CREATE_ARTIFACT',
+    artifactId: undefined, expectedReferenceVersion: undefined }), 'attempt-key')
+  expect(form).toMatchObject({ id: 7, status: 1 })
+})
 it('retains a failed upload session and reuses it without creating a second receipt', async () => {
   const form = { projectId: 123 }
   const attempt = createArrivalUploadAttempt(file)
@@ -55,4 +68,20 @@ it('requires a real attached document and preserves the abnormal-record lifecycl
   await saveArrivalReceipt({ ...attached, status: 2 })
   expect(api.updateArrival).toHaveBeenCalled()
   expect(api.signArrival).not.toHaveBeenCalled()
+})
+
+it('runs the original upload and sign flow through the supplied business API and saves new extensions once', async () => {
+  const adapted = { ...api, createArrival: vi.fn(async () => 7), updateArrival: vi.fn(), signArrival: vi.fn(),
+    getArrival: vi.fn().mockResolvedValueOnce(pending).mockResolvedValueOnce(attached)
+      .mockResolvedValueOnce({ ...attached, version: 1 }).mockResolvedValueOnce({ ...attached, status: 1, version: 2 }) }
+  const extension = { $extensions: { expectedVersion: 0, values: { note: '签收补充' } } }
+  const form = { projectId: 123, attachmentUrl: '' }
+  await saveArrivalReceipt(form, createArrivalUploadAttempt(file), adapted as any, extension)
+  expect(adapted.createArrival).toHaveBeenCalledWith(expect.objectContaining(extension))
+  expect(adapted.updateArrival.mock.calls[0][0]).not.toHaveProperty('$extensions')
+  expect(adapted.signArrival).toHaveBeenCalledWith(7)
+  expect(api.createArrival).not.toHaveBeenCalled()
+  expect(api.updateArrival).not.toHaveBeenCalled()
+  expect(api.signArrival).not.toHaveBeenCalled()
+  expect(form).toMatchObject({ id: 7, status: 1, version: 2 })
 })

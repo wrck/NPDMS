@@ -22,6 +22,18 @@ beforeEach(() => {
   const values = new Map<string,string>()
   vi.stubGlobal('sessionStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string,value: string) => values.set(key,value), removeItem: (key: string) => values.delete(key) })
 })
+it('does not notify a business change when refresh returns the same revision', async () => {
+  const changed = vi.fn()
+  vi.mocked(api.workspace).mockImplementation(async () => ({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] }))
+  const mounted = render({ project: { id: 7 }, onChanged: changed }); await flush()
+  await (findButton(mounted.root, '刷新')!.props!.onClick as Function)(); await flush()
+  expect(api.workspace).toHaveBeenCalledTimes(2)
+  expect(changed).not.toHaveBeenCalled()
+  vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: { ...view(), revision: { ...view().revision, version: 7 } }, currentEffective: null, allowedActions: [] })
+  await (findButton(mounted.root, '刷新')!.props!.onClick as Function)(); await flush()
+  expect(changed).toHaveBeenCalledOnce()
+  mounted.app.unmount()
+})
 it('opens current draft from workspace without reading old preparation detail', async () => {
   vi.mocked(api.workspace).mockResolvedValue({ projectId: '7', draft: view(), currentEffective: null, allowedActions: [] })
   const mounted = render(); await flush()

@@ -9,9 +9,9 @@ vi.mock('@/api/pms/engineering/configuration', () => ({ importConfigurationLog: 
 vi.mock('@/api/pms/project/projects', () => ({ getProjectPage: vi.fn() }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success, error }) }))
 vi.mock('@/utils', () => ({ generateUUID }))
-const render = () => {
+const render = (projectId: number | string = 21) => {
   const saved = vi.fn()
-  const mounted = mount(Dialog, { projectId: 21, onSaved: saved }, {
+  const mounted = mount(Dialog, { projectId, onSaved: saved }, {
     ElDialog: passthrough, ElForm: passthrough, ElFormItem: passthrough,
     ElUpload: passthrough, ElButton: passthrough, ElAlert: passthrough, PmsEntitySelect: passthrough
   })
@@ -47,6 +47,16 @@ it('rejects empty, oversize and unsupported files but accepts the exact existing
   } finally { page.app.unmount() }
 })
 
+it('preserves project identifiers above the safe integer range', async () => {
+  const page = render('2109371041417433096')
+  try {
+    page.state.open()
+    const file = new File(['log'], 'devices.log')
+    await page.state.upload({ file })
+    expect(importConfigurationLog).toHaveBeenCalledWith('2109371041417433096', 'operation-key', file)
+  } finally { page.app.unmount() }
+})
+
 it('retains the dialog and operation key after a rejected request', async () => {
   const page = render()
   try {
@@ -72,11 +82,13 @@ it('blocks duplicate clicks during upload and emits saved only after successful 
     const file = new File(['log'], 'one.log')
     const first = page.state.upload({ file })
     await nextTick()
+    expect((page.vm as any).requestLeave()).toBe(false)
     await page.state.upload({ file })
     expect(importConfigurationLog).toHaveBeenCalledTimes(1)
     expect(page.saved).not.toHaveBeenCalled()
     finish({ importId: '50', configurationIds: ['70'] })
     await first
+    expect((page.vm as any).requestLeave()).toBe(true)
     expect(page.saved).toHaveBeenCalledTimes(1)
   } finally { page.app.unmount() }
 })

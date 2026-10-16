@@ -113,6 +113,7 @@
           <PmsEntitySelect v-model="form.sourceContactId" :api="sourcePage" label-field="name" value-field="id" query-field="name" placeholder="请选择联系人" @change="selectSource" />
         </el-form-item>
         <ContactFields v-model="form" />
+        <component v-if="nativeBusiness && visible" :is="nativeBusiness.Form" :key="String(form.id || 'new')" :record="form" kind="contact" :readonly="!canEdit" />
       </el-form>
       <template #footer>
         <el-button @click="beforeClose(() => visible = false)">取消</el-button>
@@ -160,6 +161,9 @@
 import { generateUUID } from '@/utils'
 import { computed, reactive, ref, watch } from 'vue'
 import * as ContactApi from '@/api/pms/customer/contacts'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const ContactApiClient = useNativeBusinessApi('contact', ContactApi)
 import * as CustomerApi from '@/api/pms/customer'
 import type { ContactVO, ProjectContactContext } from '@/api/pms/customer/contacts'
 import { checkPermi } from '@/utils/permission'
@@ -192,7 +196,7 @@ const contactRowClassName = ({ row }: { row: ContactVO }) =>
 const customerCodes = ref<Record<number, string>>({})
 const customerId = computed(() => props.projectId ? context.value?.project.customerId : query.customerId)
 const customerEnabled = computed(() => context.value?.customerStatus === 'ENABLED')
-const canEdit = computed(() => !props.readonly && (props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read'])))
+const canEdit = computed(() => !props.readonly && (!nativeBusiness || nativeBusiness.can('create', 'contact') || nativeBusiness.can('save', 'contact')) && (props.projectId ? !!context.value?.project.canManage : checkPermi(['pms:customer:sensitive-read'])))
 const form = ref<ContactVO>({ name: '', status: 0, primaryFlag: false })
 const formRef = ref()
 const historyRef = ref<InstanceType<typeof ContactHistoryDialog>>()
@@ -203,7 +207,7 @@ const sourceRows = new Map<number, ContactVO>()
 const sourceQuery = reactive({ pageNo: 1, pageSize: 10, name: '' })
 const sourceOptions = ref<ContactVO[]>([]), sourceTotal = ref(0), sourceSelection = ref<ContactVO[]>([])
 const sourcePage = async (params: PageParam) => {
-  const page = await ContactApi.getProjectSources(props.projectId!, params)
+  const page = await ContactApiClient.getProjectSources(props.projectId!, params)
   page.list.forEach(row => sourceRows.set(row.id!, row))
   return page
 }
@@ -216,13 +220,13 @@ const load = async () => {
   loading.value = true; error.value = ''
   try {
     if (props.projectId) {
-      const result = await ContactApi.getProjectContext(props.projectId)
+      const result = await ContactApiClient.getProjectContext(props.projectId)
       if (current !== sequence) return
       context.value = result
     }
     if (props.projectId && !customerId.value) { rows.value = []; total.value = 0; return context.value }
-    const page = props.projectId ? await ContactApi.getProjectPage(props.projectId, query)
-      : await ContactApi.getMasterPage({ ...query, customerId: customerId.value })
+    const page = props.projectId ? await ContactApiClient.getProjectPage(props.projectId, query)
+      : await ContactApiClient.getMasterPage({ ...query, customerId: customerId.value })
     if (current !== sequence) return
     rows.value = page.list; total.value = page.total
     // Resolve the business code from CUS, once per customer on this page. The legacy
@@ -241,7 +245,7 @@ const load = async () => {
 const bindCustomer = async () => {
   if (!props.projectId || !query.customerId || !context.value) return
   await message.confirm('将所选客户关联到当前项目？已有客户关联不会被此入口替换。')
-  await ContactApi.associateCustomer(props.projectId, query.customerId, context.value.project.projectVersion)
+  await ContactApiClient.associateCustomer(props.projectId, query.customerId, context.value.project.projectVersion)
   await load(); emit('changed')
 }
 const resetQuery = async () => {
@@ -264,7 +268,7 @@ const loadSources = async () => {
   if (!props.projectId) return
   sourceLoading.value = true
   try {
-    const page = await ContactApi.getProjectSources(props.projectId, sourceQuery)
+    const page = await ContactApiClient.getProjectSources(props.projectId, sourceQuery)
     sourceOptions.value = page.list; sourceTotal.value = page.total; sourceSelection.value = []
   } finally { sourceLoading.value = false }
 }
@@ -274,7 +278,7 @@ const addSelectedSources = async () => {
   let created = 0
   try {
     for (const source of sourceSelection.value) {
-      await ContactApi.createProjectContact(props.projectId, {
+      await ContactApiClient.createProjectContact(props.projectId, {
         ...source,
         id: undefined,
         version: undefined,
@@ -294,8 +298,8 @@ const addSelectedSources = async () => {
     await load(); emit('changed')
   }
 }
-const open = (row?: ContactVO) => {
-  if (!canEdit.value || (props.projectId && !customerId.value)) return
+const open = (row?: ContactVO, view = false) => {
+  if ((!view && !canEdit.value) || (props.projectId && !customerId.value)) return
   createMode.value = 'new'; sourceRows.clear()
   form.value = { name: '', department: '', title: '', mobile: '', phone: '', email: '', remark: '', primaryFlag: !!props.projectId && total.value === 0, status: 0, customerId: customerId.value, ...row }
   operationKey = generateUUID(); initialPrimary = !!row?.primaryFlag
@@ -303,6 +307,10 @@ const open = (row?: ContactVO) => {
 }
 const beforeClose = async (done: () => void) => {
   if (saving.value) return
+  if (nativeBusiness) {
+    if (await nativeBusiness.requestLeave('contact')) done()
+    return
+  }
   if (baseline !== JSON.stringify(form.value)) { try { await message.confirm('存在未保存的联系人信息，确定放弃？') } catch { return } }
   done()
 }
@@ -315,13 +323,13 @@ const save = async () => {
   }
   saving.value = true
   try {
-    const data = { ...form.value, sourceContactId: createMode.value === 'reference' ? form.value.sourceContactId : undefined }
+    const data = { ...form.value, ...await nativeBusiness?.formInput('contact'), sourceContactId: createMode.value === 'reference' ? form.value.sourceContactId : undefined }
     if (props.projectId) {
       data.expectedProjectVersion = context.value!.project.projectVersion
-      if (data.id) await ContactApi.updateProjectContact(props.projectId, data)
-      else await ContactApi.createProjectContact(props.projectId, data, operationKey)
-    } else if (data.id) await ContactApi.updateMaster(data)
-    else await ContactApi.createMaster(data, operationKey)
+      if (data.id) await ContactApiClient.updateProjectContact(props.projectId, data)
+      else await ContactApiClient.createProjectContact(props.projectId, data, operationKey)
+    } else if (data.id) await ContactApiClient.updateMaster(data)
+    else await ContactApiClient.createMaster(data, operationKey)
     visible.value = false; message.success('联系人已保存'); await load(); emit('changed')
   } catch { message.warning('保存未完成，填写内容和本次操作标识已保留，请按提示处理后重试。') }
   finally { saving.value = false }
@@ -330,8 +338,8 @@ const remove = async (row: ContactVO) => {
   if (!canEdit.value) return
   if (row.primaryFlag && props.projectId) await message.confirm('删除当前主联系人并确认项目暂不设置主联系人？客户主档和历史快照将保留。')
   else await message.delConfirm()
-  if (props.projectId) await ContactApi.deleteProjectContact(props.projectId, row, context.value!.project.projectVersion, !!row.primaryFlag)
-  else await ContactApi.deleteMaster(row)
+  if (props.projectId) await ContactApiClient.deleteProjectContact(props.projectId, row, context.value!.project.projectVersion, !!row.primaryFlag)
+  else await ContactApiClient.deleteMaster(row)
   message.success('联系人已删除'); await load(); emit('changed')
 }
 const restore = async (entry: ContactApi.ContactHistoryVO) => {
@@ -340,9 +348,15 @@ const restore = async (entry: ContactApi.ContactHistoryVO) => {
   if (!before || before.version == null) return message.warning('删除前版本不可用，无法恢复')
   const status = before.status === 1 ? 1 : 0
   await message.confirm(`恢复该项目联系记录为删除前的${status === 1 ? '停用' : '启用'}状态，不设为主联系人；客户主档和其他项目不变，是否继续？`)
-  await ContactApi.restoreProjectContact(props.projectId, entry.projectRelationId, before.version + 1, context.value.project.projectVersion, status)
+  await ContactApiClient.restoreProjectContact(props.projectId, entry.projectRelationId, before.version + 1, context.value.project.projectVersion, status)
   message.success('项目联系记录已恢复'); await load(); await historyRef.value?.open(props.projectId); emit('changed')
 }
+useNativeBusinessEntry('contact', async id => {
+  await load()
+  const record = await nativeBusiness!.getBridge('contact').read(id)
+  open(record.value as ContactVO, true)
+})
+useNativeBusinessLeave(async () => !saving.value && !sourceSaving.value, 'contact')
 watch(() => props.projectId, async () => {
   visible.value = false; context.value = undefined; query.pageNo = 1
   await load()

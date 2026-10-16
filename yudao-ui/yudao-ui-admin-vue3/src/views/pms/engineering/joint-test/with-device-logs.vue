@@ -122,7 +122,7 @@
   </ContentWrap>
 
   <Dialog
-    v-model="formVisible"
+    v-model="dialogVisible"
     :title="form.id ? (readOnly ? '查看联调' : '编辑联调') : '新增联调'"
     width="min(880px, 95vw)"
   >
@@ -260,7 +260,7 @@
         </el-col>
         <el-col :span="24">
           <el-form-item label="证据附件" prop="evidenceUrl"
-            ><UploadFile
+            ><component v-if="nativeBusiness" :is="nativeBusiness.Attachment" :record="form" :readonly="readOnly" :policy="attachmentPolicy" :legacy="form.evidenceUrl" @version="value => form.version = value" /><UploadFile v-else
               v-model="form.evidenceUrl!"
               :disabled="readOnly"
               :file-type="['log', 'txt', 'cfg', 'conf', 'doc', 'xls', 'ppt', 'pdf']"
@@ -289,8 +289,9 @@
       entry="joint-test"
       :object-id="form.id"
     />
+    <component v-if="nativeBusiness && formVisible" :is="nativeBusiness.Form" :record="{ ...form, deviceLogin, jointMeta }" :readonly="readOnly" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -328,7 +329,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
-import * as JointTestApi from '@/api/pms/engineering/joint-test'
+import * as OriginalJointTestApi from '@/api/pms/engineering/joint-test'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import type { JointTestVO } from '@/api/pms/engineering/joint-test'
 import * as ProjectApi from '@/api/pms/project/projects'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
@@ -341,6 +343,9 @@ import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
 
 defineOptions({ name: 'PmsEngJointTestWithDeviceLogs' })
+const nativeBusiness = useNativeBusiness()
+const JointTestApi = useNativeBusinessApi('jointTest', OriginalJointTestApi)
+const attachmentPolicy = { ownerModule: 'IMP', entityType: 'jointTest', objectType: 'jointTest', purpose: 'JOINT_TEST_EVIDENCE', accept: '.log,.cfg,.conf,.doc,.xls,.ppt,.txt,.pdf' }
 const props = defineProps<{
   projectId?: number
   /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean
@@ -431,7 +436,7 @@ const editableRecord = (row: Pick<JointTestVO, 'status'>) =>
   (row.status === 0 || row.status === 1) && checkPermi(['pms:imp-joint-test:update'])
 const readOnly = computed(
   () =>
-    !!props.readonly ||
+    !!props.readonly || (!!nativeBusiness && !nativeBusiness.can(form.value.id ? 'save' : 'create', 'jointTest')) ||
     (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-joint-test:create']))
 )
 const rules = {
@@ -490,10 +495,11 @@ const save = async () => {
           ? undefined
           : Number(form.value.testTime)
     }
+    if (nativeBusiness) Object.assign(data, await nativeBusiness.formInput())
     data.id ? await JointTestApi.updateJointTest(data) : await JointTestApi.createJointTest(data)
     message.success('保存成功')
     formVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -503,7 +509,7 @@ const remove = async (row: JointTestVO) => {
   await message.delConfirm()
   await JointTestApi.deleteJointTest(row.id!)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleAction = async (row: JointTestVO, action: 'start' | 'pass') => {
   const actionText = { start: '开始联调', pass: '联调通过' }[action]
@@ -511,7 +517,7 @@ const handleAction = async (row: JointTestVO, action: 'start' | 'pass') => {
   if (action === 'start') await JointTestApi.startJointTest(row.id!)
   if (action === 'pass') await JointTestApi.passJointTest(row.id!)
   message.success(`${actionText}成功`)
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const failVisible = ref(false)
 const failForm = reactive({ id: 0, exceptionRecord: '' })
@@ -530,11 +536,14 @@ const confirmFail = async () => {
     await JointTestApi.failJointTest(failForm.id, failForm.exceptionRecord.trim())
     message.success('已记录联调失败')
     failVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
 }
+const dialogVisible = useNativeBusinessDialog('jointTest', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'jointTest')
+useNativeBusinessEntry('jointTest', async id => openForm(await JointTestApi.getJointTest(id as number)))
 onMounted(load)
 </script>
 

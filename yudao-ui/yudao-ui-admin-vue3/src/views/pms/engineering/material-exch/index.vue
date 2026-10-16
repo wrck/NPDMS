@@ -50,7 +50,7 @@
       </el-form-item>
       <el-form-item>
         <el-button @click="load"><Icon icon="ep:search" />查询</el-button>
-        <el-button type="primary" @click="openCreate()" v-hasPermi="['pms:imp-material-exch:create']"
+        <el-button type="primary" :disabled="!!nativeBusiness && !nativeBusiness.can('create', 'exchange')" @click="openCreate()" v-hasPermi="['pms:imp-material-exch:create']"
           ><Icon icon="ep:plus" />新建换货申请</el-button
         >
       </el-form-item>
@@ -164,7 +164,7 @@
   </ContentWrap>
 
   <!-- 新建/编辑对话框 -->
-  <Dialog v-model="formVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="min(960px, 95vw)">
+  <Dialog v-model="dialogVisible" :title="form.id ? '编辑换货申请' : '新建换货申请'" width="min(960px, 95vw)">
     <el-alert v-if="sourceSurveyId" title="此入口只创建内部换货申请草稿；CRM推送尚未接入，不会自动推送。" type="warning" :closable="false" />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
       <el-form-item label="物料选择">
@@ -221,8 +221,9 @@
         </el-col>
       </el-row>
     </el-form>
+    <component v-if="nativeBusiness && formVisible" :is="nativeBusiness.Form" :key="String(form.id || 'new')" :record="form" kind="exchange" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -244,7 +245,7 @@
       </el-form-item>
       <el-form-item label="审批人" prop="approverUserId">
         <PmsEntitySelect
-          v-model="approveForm.approverUserId"
+          v-model="approveForm.approverUserId" :disabled="!!nativeBusiness"
           :api="UserApi.getUserPage"
           label-field="nickname"
           value-field="id"
@@ -276,7 +277,10 @@ import { loadSurveyActionContext } from '@/views/pms/delivery-business/site-surv
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import { useMessage } from '@/hooks/web/useMessage'
 import { DICT_TYPE, getIntDictOptions, getStrDictOptions } from '@/utils/dict'
-import * as MaterialExchApi from '@/api/pms/engineering/material-exch'
+import * as OriginalMaterialExchApi from '@/api/pms/engineering/material-exch'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const MaterialExchApi = useNativeBusinessApi('exchange', OriginalMaterialExchApi)
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import * as UserApi from '@/api/system/user'
@@ -441,15 +445,15 @@ const save = async () => {
   saving.value = true
   try {
     if (form.id) {
-      await MaterialExchApi.updateMaterialExchange(form)
+      await MaterialExchApi.updateMaterialExchange({ ...form, ...await nativeBusiness?.formInput('exchange') })
       message.success('更新成功')
     } else {
-      await MaterialExchApi.createMaterialExchange(form)
+      await MaterialExchApi.createMaterialExchange({ ...form, ...await nativeBusiness?.formInput('exchange') })
       message.success('创建成功')
     }
     formVisible.value = false
     if (sourceSurveyId.value) await router.push({ path: surveyPath, query: { surveyId: String(sourceSurveyId.value) } })
-    else await load()
+    else await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -481,7 +485,7 @@ const openApprove = (row: MaterialExchangeVO) => {
     id: row.id,
     approveAction: 'PASS',
     approveOpinion: '',
-    approverUserId: undefined
+    approverUserId: nativeBusiness ? userStore.getUser.id : undefined
   })
   approveVisible.value = true
 }
@@ -492,7 +496,7 @@ const confirmApprove = async () => {
     await MaterialExchApi.approveMaterialExchange(approveForm as any)
     message.success('审批完成')
     approveVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
@@ -503,27 +507,30 @@ const handleSubmit = async (row: MaterialExchangeVO) => {
   await message.confirm('确认提交此换货申请？提交后将进入审批流程。')
   await MaterialExchApi.submitMaterialExchange(row.id!)
   message.success('提交成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleWithdraw = async (row: MaterialExchangeVO) => {
   await message.confirm('确认撤回此换货申请？')
   await MaterialExchApi.withdrawMaterialExchange(row.id!)
   message.success('撤回成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const handleTerminate = async (row: MaterialExchangeVO) => {
   await message.confirm('确认终止此换货申请？终止后不可恢复。')
   await MaterialExchApi.terminateMaterialExchange(row.id!)
   message.success('终止成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const remove = async (row: MaterialExchangeVO) => {
   await message.delConfirm()
   await MaterialExchApi.deleteMaterialExchange(row.id!)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 
+const dialogVisible = useNativeBusinessDialog('exchange', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'exchange')
+useNativeBusinessEntry('exchange', async id => openDetail({ id: id as number } as MaterialExchangeVO))
 onMounted(load)
 watch(() => [route.query.surveyId, route.query.deviceSn], async ([value, sn]) => {
   if (!value) return

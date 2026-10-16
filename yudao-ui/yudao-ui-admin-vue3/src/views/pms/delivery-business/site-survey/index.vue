@@ -41,7 +41,7 @@
     </el-form>
   </ContentWrap>
   <ContentWrap>
-    <el-table v-loading="loading" :data="rows">
+    <el-table v-loading="loading" :data="rows" class="survey-records-table">
       <el-table-column prop="name" label="工勘名称" min-width="180" />
       <el-table-column prop="location" label="工勘地点" min-width="180" show-overflow-tooltip />
       <el-table-column prop="locationResolutionStatus" label="地点状态" width="110">
@@ -213,7 +213,7 @@
           <el-form-item label="转包关联">
             <el-link
               v-if="form.outsourceRequestId"
-              :href="readonly ? undefined : outsourceDetailUrl(form.outsourceRequestId, openedExecution, stageCode)"
+              :href="readonly ? undefined : outsourceDetailUrl(form.outsourceRequestId, openedExecution, stageCode, form.projectId)"
               :disabled="readonly"
               target="_blank"
               rel="noopener"
@@ -899,6 +899,10 @@ onBeforeUnmount(() => { ++contextSequence; ++formSequence; ++listSequence })
 </script>
 
 <style scoped>
+.survey-records-table :deep(.el-loading-mask) {
+  transition-duration: 0s;
+}
+
 @media (max-width: 767px) {
   :deep(.el-col-12) {
     max-width: 100%;

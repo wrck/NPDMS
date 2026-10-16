@@ -36,6 +36,8 @@ import { ElDrawer } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { projectApprovalDetailKey, useProjectApprovalDetail } from '@/views/pms/project/project-master-detail/components/projectApprovalDetail'
 import * as ReviewApi from '@/api/pms/engineering/solution-review'
+import { useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const ReviewApiClient = useNativeBusinessApi('solutionReview', ReviewApi)
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import { useMessage } from '@/hooks/web/useMessage'
 const emit = defineEmits<{ changed: [] }>()
@@ -55,9 +57,9 @@ const open = async (row: SolutionVO) => {
   visible.value = true; loading.value = true; error.value = ''; solution.value = row
   record.value = null; definition.value = undefined
   try {
-    record.value = await ReviewApi.read(row.projectId, row.id!)
+    record.value = await ReviewApiClient.read(row.projectId, row.id!)
     if (record.value?.status === 'RUNNING') await openProcess()
-    else if (!record.value) definition.value = await ReviewApi.definition()
+    else if (!record.value) definition.value = await ReviewApiClient.definition()
   } catch (failure: any) { error.value = failure?.message || '方案审批信息加载失败，请关闭后重试' }
   finally { loading.value = false }
 }
@@ -65,7 +67,7 @@ const submit = async () => {
   if (!solution.value || !definition.value) return
   saving.value = true
   try {
-    record.value = await ReviewApi.start({ projectId: solution.value.projectId, solutionId: solution.value.id!,
+    record.value = await ReviewApiClient.start({ projectId: solution.value.projectId, solutionId: solution.value.id!,
       expectedVersion: solution.value.version!, processDefinitionId: definition.value.id })
     message.success('已提交审批'); emit('changed')
     await openProcess()
@@ -80,7 +82,7 @@ const openProcess = () => {
 const refresh = async () => {
   if (!solution.value) return
   saving.value = true
-  try { record.value = await ReviewApi.refresh(solution.value.projectId, solution.value.id!); emit('changed') }
+  try { record.value = await ReviewApiClient.refresh(solution.value.projectId, solution.value.id!); emit('changed') }
   catch {
     // 同 submit：拦截器已提示，仅阻止错误逃逸破坏业务办理区
   }
@@ -89,7 +91,7 @@ const refresh = async () => {
 const revise = async () => {
   if (!solution.value) return
   saving.value = true
-  try { await ReviewApi.revise(solution.value.projectId, solution.value.id!); message.success('已生成新的方案草稿'); visible.value = false; emit('changed') }
+  try { await ReviewApiClient.revise(solution.value.projectId, solution.value.id!); message.success('已生成新的方案草稿'); visible.value = false; emit('changed') }
   catch {
     // 同 submit：拦截器已提示，仅阻止错误逃逸破坏业务办理区
   }

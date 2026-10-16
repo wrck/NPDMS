@@ -25,6 +25,9 @@
     <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
     <el-skeleton v-else-if="loading" :rows="5" animated />
     <template v-else-if="plan">
+      <component v-if="nativeBusiness" :is="nativeBusiness.Form" :key="`${plan.planId}-${plan.planVersion}`"
+        :record="{ id: plan.planId, projectId: project.id, version: plan.planVersion }" kind="duration"
+        :readonly="!canWrite" standalone-save @saved="load" />
       <el-alert
         v-if="plan.planRecalculationStatus === 'PENDING_RECALCULATION'"
         title="当前工期已生效，阶段施工计划尚待重算；已有计划版本不会被本次工期录入覆盖。"
@@ -164,6 +167,9 @@ import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import * as ProcessInstanceApi from '@/api/bpm/processInstance'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
+import { useNativeBusiness, useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const DurationApiClient = useNativeBusinessApi('duration', DurationApi)
 import type {
   ConstructionPlanChangeVO,
   ConstructionPlanVO,
@@ -176,7 +182,7 @@ import { initialDurationHint, isDurationProjectId } from './durationEntry'
 const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const emit = defineEmits<{ 'dirty-change': [value: boolean]; changed: [] }>()
 const validProject = computed(() => isDurationProjectId(props.project.id))
-const canWrite = computed(() => validProject.value && !props.readonly)
+const canWrite = computed(() => validProject.value && !props.readonly && (!nativeBusiness || nativeBusiness.can('create', 'duration') || nativeBusiness.can('save', 'duration')))
 const initialEntryHint = computed(() => initialDurationHint(props.project))
 const drawerDirty = ref(false)
 const errorText = ref('')
@@ -213,15 +219,15 @@ const load = async () => {
   }
   loading.value = true
   try {
-    const current = await DurationApi.getByProjectId(projectId)
+    const current = await DurationApiClient.getByProjectId(projectId)
     if (sequence !== loadSequence) return
     let currentDraft: ConstructionPlanChangeVO | undefined
     if (current) {
-      const page = await DurationApi.getChanges(current.planId, { pageSize: 20 })
+      const page = await DurationApiClient.getChanges(current.planId, { pageSize: 20 })
       if (sequence !== loadSequence) return
       const draftSummary = page.items.find((item) => item.status === 'DRAFT')
       currentDraft = draftSummary
-        ? await DurationApi.getChange(current.planId, draftSummary.changeId)
+        ? await DurationApiClient.getChange(current.planId, draftSummary.changeId)
         : undefined
     }
     if (sequence !== loadSequence) return
@@ -243,7 +249,7 @@ const submitDraft = async () => {
   if (!canWrite.value || version !== contextVersion) return
   submitting.value = true
   try {
-    await DurationApi.submitChange(
+    await DurationApiClient.submitChange(
       currentPlan.planId,
       currentDraft.changeId,
       projectVersion,

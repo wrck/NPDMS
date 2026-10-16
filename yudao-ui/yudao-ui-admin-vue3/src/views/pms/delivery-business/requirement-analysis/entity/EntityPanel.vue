@@ -48,7 +48,10 @@
           @dirty-change="formDirty = $event" @saved="deliveryEpoch += 1; emit('changed')" @receipt="operationReceipt = $event"
         />
         <RequirementBriefingSection v-if="project.id" :project-id="project.id" :manage="openBriefing" />
-        <DeliveryPanel :key="`${detail.revision.ref.entity.entityId}-${detail.revision.ref.revisionId}-${deliveryEpoch}`"
+        <component v-if="nativeBusiness" :is="nativeBusiness.Form" kind="requirement" native-form
+          :record="{ ...detail.values, id: detail.revision.ref.revisionId, version: detail.revision.version }"
+          :readonly="readonly || detail.revision.state !== 'DRAFT'" />
+        <DeliveryPanel v-else :key="`${detail.revision.ref.entity.entityId}-${detail.revision.ref.revisionId}-${deliveryEpoch}`"
           owner-module="SOL" entity-type="requirementAnalysis" :entity-id="detail.revision.ref.entity.entityId" :readonly="true" />
         <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
           <el-button v-if="canComplete" :loading="commandLoading" type="success" class="mt-15px" @click="complete">完成并冻结当前草稿</el-button>
@@ -67,7 +70,8 @@ import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import type { StageExecutionContext } from '@/api/pms/project/stage-business'
 import type { TaskExecutionContext } from '@/api/pms/project/task-business'
 import type { ProjectBusinessExecutionSelection } from '@/api/pms/project/projects/nodeExecutions'
-import * as RequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import * as OriginalRequirementAnalysisApi from '@/api/pms/engineering/requirement-analysis/entity'
+import { useNativeBusiness, useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import { type BusinessViewId } from '@/api/pms/platform/business-view/ids'
 import type { EntityId, Revision, View, Workspace } from '@/api/pms/engineering/requirement-analysis/entity'
 import { useMessage } from '@/hooks/web/useMessage'
@@ -82,6 +86,8 @@ import { useBusinessActionBar } from '@/components/BusinessView/businessActionBa
 
 // PM-03: optional host restrictions narrow, never replace, the SOL Owner permissions.
 const props = defineProps<{ project: ProjectMasterVO; revisionId?: BusinessViewId; stageExecution?: StageExecutionContext; taskExecution?: TaskExecutionContext; allowedActions?: string[]; readonly?: boolean; openBriefing?: () => unknown }>()
+const RequirementAnalysisApi = useNativeBusinessApi('requirement', OriginalRequirementAnalysisApi)
+const nativeBusiness = useNativeBusiness()
 const { barTarget } = useBusinessActionBar()
 const selectedExecution = (): ProjectBusinessExecutionSelection | undefined =>
   props.taskExecution || props.stageExecution ? {
@@ -408,7 +414,10 @@ watch([() => props.project.id, missingCreationActions], async ([projectId, missi
     if (!cancelled) errorText.value = '业务操作状态刷新失败，请点击查询重试；当前正文未改变。'
   }
 })
-watch(() => overview.value, (value, previous) => {
+const overviewVersion = () => overview.value && JSON.stringify([overview.value.projectId,
+  ...[overview.value.draft, overview.value.currentEffective].map(view => view && [
+    view.revision.ref.revisionId, view.revision.version, view.revision.state, view.revision.effective, view.extensionValueVersion])])
+watch(overviewVersion, (value, previous) => {
   if (previous && value) emit('changed')
 })
 defineExpose({ requestLeave, isDirty: () => formDirty.value })

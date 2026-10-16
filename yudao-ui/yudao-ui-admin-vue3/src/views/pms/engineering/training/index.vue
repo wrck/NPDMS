@@ -107,8 +107,8 @@
   <TrainingPrintTemplates ref="printTemplateManager" @changed="loadPrintTemplates" />
 
   <!-- 新建/编辑对话框 -->
-  <Dialog v-model="formVisible" :title="form.id ? '编辑培训记录' : '新建培训记录'" width="min(860px, 94vw)">
-    <el-form ref="formRef" :model="form" :rules="rules" label-position="top">
+  <Dialog v-model="dialogVisible" :title="form.id ? '编辑培训记录' : '新建培训记录'" width="min(860px, 94vw)">
+    <el-form ref="formRef" :model="form" :rules="rules" label-position="top" :disabled="!!props.readonly || !!nativeBusiness && !nativeBusiness.can(form.id ? 'save' : 'create', 'training')">
       <el-row :gutter="16">
         <el-col v-if="!props.projectId" :xs="24" :sm="12">
           <el-form-item label="项目" prop="projectId">
@@ -217,8 +217,9 @@
         </el-col>
       </el-row>
     </el-form>
+    <component v-if="nativeBusiness && formVisible" :is="nativeBusiness.Form" kind="training" :record="form" :readonly="readonly" />
     <template #footer>
-      <el-button @click="formVisible = false">取消</el-button>
+      <el-button @click="dialogVisible = false">取消</el-button>
       <el-button type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
@@ -291,8 +292,9 @@
         <el-button tag="a" :href="detail.signatureImageDataUrl" download="客户手写签字.png" link type="primary">保存签字图片</el-button>
       </section>
       <template v-if="detail.remark"><h3>备注</h3><p class="training-text">{{ detail.remark }}</p></template>
+      <component v-if="nativeBusiness && detail.id" :is="nativeBusiness.Form" kind="training" :record="detail" readonly />
       <DeliveryPanel v-if="detail.id" :key="detail.id" owner-module="IMP" entity-type="training"
-        :entity-id="detail.id" :type-codes="['TRAINING_RECORD']" :readonly="readonly || detail.status === 3" />
+        :entity-id="detail.id" :type-codes="['TRAINING_RECORD']" :readonly="readonly || detail.status === 3 || !!nativeBusiness && !nativeBusiness.can('delivery', 'training')" />
     </div>
     <template #footer>
       <div class="training-detail-actions">
@@ -311,7 +313,8 @@ import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import TrainingPrintTemplates from './TrainingPrintTemplates.vue'
 import TrainingPrintPreview from './TrainingPrintPreview.vue'
 import { PRINT_CATEGORY } from './trainingPrintForm'
-import * as TrainingApi from '@/api/pms/engineering/training'
+import * as OriginalTrainingApi from '@/api/pms/engineering/training'
+import { useNativeBusiness, useNativeBusinessApi, useNativeBusinessEntry, useNativeBusinessDialog, useNativeBusinessLeave } from '@/components/ProjectBusiness/native/nativeBusinessContext'
 import type { TrainingVO } from '@/api/pms/engineering/training'
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserApi from '@/api/system/user'
@@ -327,6 +330,8 @@ defineOptions({ name: 'PmsImpTraining' })
 
 // 项目详情页嵌入模式：传入 project-id 固定项目并隐藏项目选择；独立路由页行为不变
 const props = defineProps<{ projectId?: number; /** 内嵌于未进入阶段的任务工作区时强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
+const nativeBusiness = useNativeBusiness()
+const TrainingApi = useNativeBusinessApi('training', OriginalTrainingApi)
 
 const message = useMessage()
 const route = useRoute()
@@ -503,18 +508,19 @@ const save = async () => {
   try {
     // 后端 SaveReqVO.trainingTypes 为 List<String>，回显时再由逗号串拆分
     const { trainingTypeList, ...rest } = form
-    const payload = { ...rest, trainingTypes: trainingTypeList || [] } as unknown as TrainingApi.TrainingVO
+    const payload = { ...rest, trainingTypes: trainingTypeList || [],
+      ...(nativeBusiness ? await nativeBusiness.formInput('training') : {}) } as unknown as TrainingVO
     form.id ? await TrainingApi.updateTraining(payload) : await TrainingApi.createTraining(payload)
     message.success('保存成功')
     formVisible.value = false
-    await load()
+    await load(); nativeBusiness?.changed()
   } finally {
     saving.value = false
   }
 }
 
 const issueVisible = ref(false)
-const issueResult = ref<TrainingApi.TrainingIssueVO>()
+const issueResult = ref<OriginalTrainingApi.TrainingIssueVO>()
 const qrImage = ref('')
 const publicBaseUrl = ref(import.meta.env.VITE_CUSTOMER_CONFIRM_BASE_URL || window.location.origin)
 const publicUrl = computed(() => {
@@ -533,7 +539,7 @@ const issue = async (row: TrainingVO) => {
   )
   issueResult.value = await TrainingApi.issueTraining(row.id!)
   issueVisible.value = true
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 
 const downloadIssuedFile = async (fileUrl: string) => {
@@ -577,15 +583,18 @@ const voidRow = async (row: TrainingVO) => {
   await message.confirm(`确认作废培训记录【${row.name}】？作废后确认链接即刻失效。`)
   await TrainingApi.voidTraining(row.id!)
   message.success('作废成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 const remove = async (row: TrainingVO) => {
   await message.delConfirm()
   await TrainingApi.deleteTraining(row.id!)
   message.success('删除成功')
-  await load()
+  await load(); nativeBusiness?.changed()
 }
 
+const dialogVisible = useNativeBusinessDialog('training', formVisible, () => saving.value)
+useNativeBusinessLeave(async () => !saving.value, 'training')
+useNativeBusinessEntry('training', async id => openDetail({ id: id as number } as TrainingVO))
 onMounted(load)
 </script>
 

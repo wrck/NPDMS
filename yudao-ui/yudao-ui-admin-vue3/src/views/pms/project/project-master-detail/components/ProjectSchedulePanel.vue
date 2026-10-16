@@ -137,6 +137,7 @@
         :closable="false"
         class="schedule-notice"
       />
+      <component v-if="nativeBusiness" :is="nativeBusiness.Form" :key="`${batch.id}-${batch.version}`" :record="batch" kind="stagePlan" :readonly="!editable" />
       <SchedulePlanningTable
         :items="batch.items"
         :tasks="batch.tasks || []"
@@ -268,7 +269,12 @@ import { formatDate } from '@/utils/formatTime'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import * as MemberApi from '@/api/pms/project/unified-members'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
+import { sameBusinessViewId } from '@/api/pms/platform/business-view/ids'
+import { useNativeBusiness, useNativeBusinessApi } from '@/components/ProjectBusiness/native/nativeBusinessContext'
+const nativeBusiness = useNativeBusiness()
+const DurationApiClient = useNativeBusinessApi('duration', DurationApi)
 import * as PlanApi from '@/api/pms/engineering/stage-plan'
+const PlanApiClient = useNativeBusinessApi('stagePlan', PlanApi)
 import * as TaskApi from '@/api/pms/project/task-workbench'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectDurationPanel from './ProjectDurationPanel.vue'
@@ -276,7 +282,7 @@ import SchedulePlanningTable from './SchedulePlanningTable.vue'
 import { useBusinessActionBar } from '@/components/BusinessView/businessActionBar'
 import { initialDurationHint } from './durationEntry'
 
-const props = defineProps<{ project: ProjectMasterVO }>()
+const props = defineProps<{ project: ProjectMasterVO; readonly?: boolean }>()
 const { barTarget } = useBusinessActionBar()
 const emit = defineEmits<{
   'open-task': [task: TaskApi.TaskNode, stageCode: string]
@@ -308,6 +314,7 @@ const dirty = computed(() => !!batch.value && JSON.stringify(batch.value) !== sa
 const editable = computed(
   () =>
     !!batch.value &&
+    !props.readonly && (!nativeBusiness || nativeBusiness.can('save', 'stagePlan')) &&
     [0, 3].includes(batch.value.status!) &&
     checkPermi(['pms:imp-stage-plan:update'])
 )
@@ -430,12 +437,13 @@ const guard = async () => {
   }
 }
 const selectBatch = async (id: number) => {
+  if (nativeBusiness && !await nativeBusiness.requestLeave('stagePlan')) return
   if (!(await guard())) return
   const current = ++sequence
   loading.value = true
   errorText.value = ''
   try {
-    const value = await PlanApi.getStagePlanBatch(id)
+    const value = await PlanApiClient.getStagePlanBatch(id)
     if (current === sequence) apply(value)
   } catch {
     if (current === sequence) errorText.value = '计划版本加载失败，请重试。'
@@ -450,48 +458,52 @@ const load = async (preferred?: number) => {
   loading.value = true
   errorText.value = ''
   try {
-    const [duration, page] = await Promise.all([
-      DurationApi.getByProjectId(projectId),
-      PlanApi.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 100 })
-    ])
-    if (current !== sequence) return
-    durationPlan.value = duration
-    const versions: PlanApi.StagePlanBatchVO[] = [...(page.list || [])]
-    for (let pageNo = 2; versions.length < Number(page.total || 0); pageNo++) {
-      const next = await PlanApi.getStagePlanBatchPage({ projectId, pageNo, pageSize: 100 })
+    const readPlans = async () => {
+      const page = await PlanApiClient.getStagePlanBatchPage({ projectId, pageNo: 1, pageSize: 100 })
       if (current !== sequence) return
-      if (!next.list?.length) break
-      versions.push(...next.list)
-    }
-    batches.value = versions
-    overdueError.value = false
-    try {
-      const rows = await PlanApi.getOverdueStages(projectId)
+      const versions: PlanApi.StagePlanBatchVO[] = [...(page.list || [])]
+      for (let pageNo = 2; versions.length < Number(page.total || 0); pageNo++) {
+        const next = await PlanApiClient.getStagePlanBatchPage({ projectId, pageNo, pageSize: 100 })
+        if (current !== sequence) return
+        if (!next.list?.length) break
+        versions.push(...next.list)
+      }
+      const id =
+        preferred ||
+        nativeBusiness?.initialEntityId('stagePlan') as number ||
+        versions.find((item) => item.status === 0 || item.status === 3)?.id ||
+        versions[0]?.id
+      const effectiveId = versions.filter((item) => item.status === 2)
+        .sort((a, b) => (b.id || 0) - (a.id || 0))[0]?.id
+      const [value, effective] = await Promise.all([
+        id ? PlanApiClient.getStagePlanBatch(id) : undefined,
+        effectiveId && !sameBusinessViewId(effectiveId, id)
+          ? PlanApiClient.getStagePlanBatch(effectiveId)
+          : undefined
+      ])
       if (current !== sequence) return
-      overdue.value = rows || []
-    } catch {
-      if (current === sequence) {
-        overdue.value = []
-        overdueError.value = true
+      const effectiveValue = sameBusinessViewId(effectiveId, id) ? value : effective
+      return {
+        versions: effectiveValue
+          ? versions.map((item) => sameBusinessViewId(item.id, effectiveValue.id) ? effectiveValue : item)
+          : versions,
+        value
       }
     }
-    const id =
-      preferred ||
-      batches.value.find((item) => item.status === 0 || item.status === 3)?.id ||
-      batches.value[0]?.id
-    const value = id ? await PlanApi.getStagePlanBatch(id) : undefined
-    if (current !== sequence) return
-    const effectiveId = currentEffective.value?.id
-    const effective =
-      effectiveId === id
-        ? value
-        : effectiveId
-          ? await PlanApi.getStagePlanBatch(effectiveId)
-          : undefined
-    if (current !== sequence) return
-    if (effective)
-      batches.value = batches.value.map((item) => (item.id === effective.id ? effective : item))
-    if (value) apply(value)
+    const [duration, plans, overdueResult] = await Promise.all([
+      DurationApiClient.getByProjectId(projectId),
+      readPlans(),
+      PlanApiClient.getOverdueStages(projectId).then(
+        (rows) => ({ rows: rows || [], failed: false }),
+        () => ({ rows: [], failed: true })
+      )
+    ])
+    if (current !== sequence || !plans) return
+    durationPlan.value = duration
+    batches.value = plans.versions
+    overdue.value = overdueResult.rows
+    overdueError.value = overdueResult.failed
+    if (plans.value) apply(plans.value)
     else {
       batch.value = undefined
       selectedId.value = undefined
@@ -523,8 +535,9 @@ const command = async (action: () => Promise<PlanApi.StagePlanBatchVO>, success:
   }
 }
 const createDraft = () =>
-  command(() => PlanApi.createStagePlanBatch(props.project.id!), '计划草稿已创建')
+  command(() => PlanApiClient.createStagePlanBatch(props.project.id!), '计划草稿已创建')
 const estimate = async () => {
+  if (!await sharedFieldsSaved()) return
   try {
     await message.confirm(
       '将按最新工期、阶段占比和回款验收时间重新倒排，替换本草稿的阶段日期。已安排任务会保留，请核对是否仍在阶段范围内。'
@@ -533,11 +546,12 @@ const estimate = async () => {
     return
   }
   await command(
-    () => PlanApi.autoEstimateStagePlanBatch(batch.value!.id!),
+    () => PlanApiClient.autoEstimateStagePlanBatch(batch.value!.id!),
     '倒排已完成，请核对阶段与任务安排'
   )
 }
 const openSubmit = async () => {
+  if (!await sharedFieldsSaved()) return
   const projectId = props.project.id!
   submitVisible.value = true
   approverId.value = undefined
@@ -582,7 +596,7 @@ const showComparison = async () => {
   comparisonLoading.value = true
   comparisonRows.value = []
   try {
-    const current = await PlanApi.getStagePlanBatch(currentEffective.value.id)
+    const current = await PlanApiClient.getStagePlanBatch(currentEffective.value.id)
     if (projectId === props.project.id) comparisonRows.value = compareSchedules(current, selected)
   } catch {
     comparisonVisible.value = false
@@ -595,8 +609,9 @@ const save = async () => {
   const value = batch.value
   if (!value || !editable.value) return
   await command(
-    () =>
-      PlanApi.updateStagePlanItems({
+    async () =>
+      PlanApiClient.updateStagePlanItems({
+        ...await nativeBusiness?.formInput('stagePlan'),
         id: value.id!,
         version: value.version!,
         remark: value.remark,
@@ -617,6 +632,7 @@ const save = async () => {
 const submit = async () => {
   const value = batch.value
   if (!value || !approverId.value || dirty.value) return
+  if (!await sharedFieldsSaved()) return
   if (value.adjustmentReasonRequired && !adjustmentReason.value.trim()) return message.warning('请填写调整理由')
   for (const item of value.items) {
     const issue = stageItemIssue(item, value)
@@ -626,16 +642,22 @@ const submit = async () => {
     return message.warning(`${taskIssues.value[0].task.name}：${taskIssues.value[0].issue}`)
   if (
     await command(
-      () => PlanApi.submitStagePlanBatch(value.id!, approverId.value!, value.adjustmentReasonRequired ? adjustmentReason.value.trim() : undefined),
+      () => PlanApiClient.submitStagePlanBatch(value.id!, approverId.value!, value.adjustmentReasonRequired ? adjustmentReason.value.trim() : undefined),
       '计划已提交审核'
     )
   )
     submitVisible.value = false
 }
 const durationChanged = async () => {
-  durationPlan.value = await DurationApi.getByProjectId(props.project.id!)
+  durationPlan.value = await DurationApiClient.getByProjectId(props.project.id!)
   emit('changed')
   if (!dirty.value) await load(selectedId.value)
+}
+const sharedFieldsSaved = async () => {
+  if (!nativeBusiness) return true
+  try { if (!Object.keys(await nativeBusiness.formInput('stagePlan')).length) return true } catch { /* Keep invalid input for correction. */ }
+  message.warning('请先保存扩展信息，再执行计划操作')
+  return false
 }
 const closeDuration = (done: () => void) => {
   if (durationRef.value?.isDirty()) {
