@@ -29,6 +29,7 @@ public class DeviceArchivedLogParsingService {
     private final PlatformTransactionManager transactions;
     private final cn.iocoder.yudao.module.pms.platform.api.file.FileEvidenceApi evidence;
     private final DeviceLogSlotProjectionService slots;
+    private final DeviceLogParseSnapshotMapper snapshots;
 
     public void register(DeviceLogFileDO file,String sanitizedContent) {
         if (!TransactionSynchronizationManager.isSynchronizationActive())
@@ -84,12 +85,15 @@ public class DeviceArchivedLogParsingService {
         if (job==null) return new ResultView("NOT_REGISTERED",null,null,"该历史日志尚无解析任务",null);
         if (!Objects.equals(job.getTenantId(),file.getTenantId()) || !Objects.equals(job.getProjectId(),file.getProjectId()))
             throw new IllegalArgumentException("日志解析来源已变化");
-        var parser=parsers.getIfAvailable();
-        if (parser==null) return new ResultView(job.getState(),job.getExternalTaskId(),job.getParserVersion(),"日志解析服务尚未启用",null);
-        DeviceLogParsingApi.ParseTask remote;
-        try { remote=parser.find(requestId(job),job.getProjectId().toString(),null); }
-        catch (DeviceLogParsingApi.ParsingException unavailable) {
-            return new ResultView(job.getState(),job.getExternalTaskId(),job.getParserVersion(),"解析查询暂不可用，请刷新重试",null);
+        var remote=localResult(file,job,snapshots.selectById(fileId));
+        boolean local=remote!=null;
+        if (remote==null) {
+            var parser=parsers.getIfAvailable();
+            if (parser==null) return new ResultView(job.getState(),job.getExternalTaskId(),job.getParserVersion(),"日志解析服务尚未启用；该记录尚未补存本地结果",null);
+            try { remote=parser.find(requestId(job),job.getProjectId().toString(),null); }
+            catch (DeviceLogParsingApi.ParsingException unavailable) {
+                return new ResultView(job.getState(),job.getExternalTaskId(),job.getParserVersion(),"该记录尚未补存本地结果，解析服务恢复后可自动补存，无需重新上传或解析",null);
+            }
         }
         if (remote==null) return new ResultView("SUBMITTING",null,null,"解析受理尚未确认，请刷新重试",null);
         if (job.getExternalTaskId()!=null && !Objects.equals(job.getExternalTaskId(),remote.taskId()))
@@ -101,7 +105,54 @@ public class DeviceArchivedLogParsingService {
         var values=DeviceLogSemanticFacts.from(remote.result());
         if (values.serialNumber()!=null && !file.getSerialNumber().equalsIgnoreCase(values.serialNumber()))
             return new ResultView(remote.state(),remote.taskId(),remote.releaseVersion(),"解析序列号与归档设备不一致",null);
+        if (!local) saveSnapshot(file,remote);
         return new ResultView(remote.state(),remote.taskId(),remote.releaseVersion(),null,remote.result());
+    }
+
+    private DeviceLogParsingApi.ParseTask localResult(DeviceLogFileDO file,DeviceLogParseJobDO job,DeviceLogParseSnapshotDO snapshot) {
+        if (snapshot==null) return null;
+        if (!Objects.equals(snapshot.getTenantId(),file.getTenantId())
+                || !Objects.equals(snapshot.getProjectId(),file.getProjectId())
+                || !Objects.equals(snapshot.getFileReferenceId(),file.getFileReferenceId())
+                || !Objects.equals(snapshot.getArtifactId(),file.getArtifactId())
+                || !Objects.equals(snapshot.getArtifactVersion(),file.getArtifactVersion())
+                || !Objects.equals(snapshot.getSourceSha256(),file.getSha256())
+                || (job.getExternalTaskId()!=null && !Objects.equals(snapshot.getParserTaskId(),job.getExternalTaskId()))
+                || (job.getParserVersion()!=null && !Objects.equals(snapshot.getParserVersion(),job.getParserVersion())))
+            throw new IllegalArgumentException("本地解析快照来源与归档任务不一致");
+        @SuppressWarnings("unchecked")
+        java.util.Map<String,Object> result=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(snapshot.getResultJson(),java.util.Map.class);
+        if (result==null || !snapshot.getParserTaskId().equals(result.get("taskId"))
+                || !(result.get("semanticResult") instanceof java.util.Map))
+            throw new IllegalStateException("本地解析快照内容无效");
+        return new DeviceLogParsingApi.ParseTask(snapshot.getParserTaskId(),"SUCCEEDED",null,
+                snapshot.getParserVersion(),java.util.List.of(),result);
+    }
+
+    /** Serialize concurrent first readers on the existing job; never update a stored snapshot. */
+    private void saveSnapshot(DeviceLogFileDO file,DeviceLogParsingApi.ParseTask remote) {
+        var job=jobs.lock(new cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogParseJobLockQuery(file.getTenantId(),file.getId()));
+        if (job==null || !Objects.equals(job.getTenantId(),file.getTenantId())
+                || !Objects.equals(job.getProjectId(),file.getProjectId())
+                || (job.getExternalTaskId()!=null && !Objects.equals(job.getExternalTaskId(),remote.taskId()))
+                || (job.getParserVersion()!=null && !Objects.equals(job.getParserVersion(),remote.releaseVersion())))
+            throw new IllegalArgumentException("日志解析快照任务绑定已变化");
+        var existing=localResult(file,job,snapshots.selectByFileForUpdate(new cn.iocoder.yudao.module.pms.asset.dal.mysql.configurationlog.query.DeviceLogParseSnapshotLockQuery(file.getTenantId(),file.getId())));
+        if (existing!=null) {
+            if (!existing.result().equals(remote.result()))
+                throw new IllegalArgumentException("同一解析任务不能替换已保存的结构化结果");
+            return;
+        }
+        if (remote.result()==null || !remote.taskId().equals(remote.result().get("taskId"))
+                || !(remote.result().get("semanticResult") instanceof java.util.Map))
+            throw new IllegalArgumentException("日志解析快照内容绑定无效");
+        var row=new DeviceLogParseSnapshotDO();row.setId(file.getId());row.setTenantId(file.getTenantId());
+        row.setProjectId(file.getProjectId());row.setParserTaskId(remote.taskId());row.setParserVersion(remote.releaseVersion());
+        row.setFileReferenceId(file.getFileReferenceId());row.setArtifactId(file.getArtifactId());
+        row.setArtifactVersion(file.getArtifactVersion());row.setSourceSha256(file.getSha256());
+        row.setResultJson(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(remote.result()));
+        row.setCreator(job.getActorId().toString());row.setUpdater(job.getActorId().toString());
+        if (snapshots.insert(row)!=1) throw new IllegalStateException("本地解析快照保存失败");
     }
 
     private boolean availableEvidence(DeviceLogFileDO file) {
@@ -127,16 +178,19 @@ public class DeviceArchivedLogParsingService {
         if (job==null) return new View("NOT_REGISTERED",null,null,null,null,"该历史日志尚无解析任务");
         if (!Objects.equals(job.getTenantId(),tenant) || !Objects.equals(job.getProjectId(),file.getProjectId()))
             throw new IllegalArgumentException("日志解析来源已变化");
-        var parser=parsers.getIfAvailable();
-        if (parser==null) return new View(job.getState(),job.getExternalTaskId(),job.getParserVersion(),null,null,"日志解析服务尚未启用");
-        DeviceLogParsingApi.ParseTask remote;
-        try {
-            remote=parser.find(requestId(job),job.getProjectId().toString(),null);
-            if (remote==null) return new View("SUBMITTING",null,null,null,null,"解析受理尚未确认；刷新查询，未受理时请重新上传");
-        } catch (DeviceLogParsingApi.ParsingException unavailable) {
-            return new View(job.getState(),job.getExternalTaskId(),job.getParserVersion(),null,null,"解析查询暂不可用，请刷新重试");
+        var remote=localResult(file,job,snapshots.selectById(fileId));
+        boolean local=remote!=null;
+        if (!local) {
+            var parser=parsers.getIfAvailable();
+            if (parser==null) return new View(job.getState(),job.getExternalTaskId(),job.getParserVersion(),null,null,"日志解析服务尚未启用");
+            try {
+                remote=parser.find(requestId(job),job.getProjectId().toString(),null);
+                if (remote==null) return new View("SUBMITTING",null,null,null,null,"解析受理尚未确认；请等待原任务恢复查询，无需重新上传");
+            } catch (DeviceLogParsingApi.ParsingException unavailable) {
+                return new View(job.getState(),job.getExternalTaskId(),job.getParserVersion(),null,null,"解析查询暂不可用，请刷新重试");
+            }
+            saveObserved(job,remote);
         }
-        saveObserved(job,remote);
         DeviceLogParsedFactApi.Outcome association=null;
         String version=null;
         if ("SUCCEEDED".equals(remote.state())) {
@@ -146,6 +200,9 @@ public class DeviceArchivedLogParsingService {
             var slotFacts=cn.iocoder.yudao.module.pms.asset.api.device.DeviceLogSlotFacts.from(remote.result());
             if (values.serialNumber()!=null && !file.getSerialNumber().equalsIgnoreCase(values.serialNumber()))
                 return new View(remote.state(),remote.taskId(),remote.releaseVersion(),null,null,"解析序列号与归档设备不一致，未更新设备");
+            if (!local) saveSnapshot(file,remote);
+            if (local && Boolean.TRUE.equals(job.getProjected()))
+                return new View(remote.state(),remote.taskId(),remote.releaseVersion(),null,values.conpVersion(),"已保存结构化解析结果");
             if (!slotFacts.devices().isEmpty()) slots.prepare(tenant);
             var parentFact=new DeviceLogParsedFactApi.ParsedLog(tenant,job.getActorId(),job.getProjectId(),
                     requestId(job),"ast-file:"+fileId,job.getLogReceivedAt(),remote.taskId(),remote.releaseVersion(),fileId,

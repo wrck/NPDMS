@@ -26,20 +26,70 @@ class DeviceLogParsingServiceTest {
     PlatformTransactionManager tx = mock(PlatformTransactionManager.class);
     DeviceLogParsingService service;
     DeviceLogParseDO saved;
+    ObjectProvider<cn.iocoder.yudao.module.pms.asset.api.device.DeviceLogParsedFactApi> assetProvider=mock(ObjectProvider.class);
     @BeforeEach void setup() {
         TenantContextHolder.setTenantId(1L);
         var provider = mock(ObjectProvider.class);
         when(provider.getIfAvailable()).thenReturn(remote);
         when(tx.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
-        service = new DeviceLogParsingService(parses, requests, tasks, files, auth, List.of(source), provider, mock(ObjectProvider.class), tx);
+        service = new DeviceLogParsingService(parses, requests, tasks, files, auth, List.of(source), provider, assetProvider, tx);
         when(parses.insert(any(DeviceLogParseDO.class))).thenAnswer(call -> {
             saved = call.getArgument(0); saved.setId(123L); return 1;
         });
         when(parses.selectByTenantAndIdForUpdate(1L, 123L)).thenAnswer(call -> saved);
         when(parses.selectById(123L)).thenAnswer(call -> saved);
         when(remote.submit(any())).thenReturn(result("QUEUED"));
+        when(parses.updateById(any(DeviceLogParseDO.class))).thenReturn(1);
     }
     @AfterEach void clear() { TenantContextHolder.clear(); }
+    @Test void completeSuccessfulResultIsSavedAndReadableWithoutDac() {
+        var original=new DeviceLogParsingApi.ParseTask("parse-1","SUCCEEDED",null,"1.4.0",List.of("original warning"),
+                java.util.Map.of("taskId","parse-1","semanticResult",java.util.Map.of("snapshot",java.util.Map.of())));
+        when(remote.submit(any())).thenReturn(original);
+        service.submit(7L,input("log"));
+        assertNotNull(saved.getResultSnapshotJson());
+        var snapshot=saved.getResultSnapshotJson();
+        reset(remote);
+        var view=service.get(7L,123L);
+        assertEquals(original.result(),view.result());assertEquals(original.warnings(),view.warnings());
+        assertEquals(snapshot,saved.getResultSnapshotJson());verifyNoInteractions(remote);
+        saved.setTenantId(2L);assertThrows(CollectionOperationException.class,() -> service.get(7L,123L));
+    }
+    @Test void historicalSuccessIsBackfilledByOriginalTaskReadOnly() {
+        service.submit(7L,input("log"));saved.setState("SUCCEEDED");
+        when(remote.find("log-123","21",null)).thenReturn(new DeviceLogParsingApi.ParseTask("parse-1","SUCCEEDED",null,"1.4.0",List.of(),
+                java.util.Map.of("taskId","parse-1","semanticResult",java.util.Map.of())));
+        clearInvocations(remote);
+        assertNotNull(service.get(7L,123L).result());assertNotNull(saved.getResultSnapshotJson());
+        assertNotNull(service.get(7L,123L).result());
+        verify(remote,times(1)).find("log-123","21",null);verify(remote,never()).submit(any());
+    }
+    @Test void cachedCollectedResultStillRequiresAvailableAuthorizedSource() {
+        var file=collectedSource();
+        when(remote.submit(any())).thenReturn(new DeviceLogParsingApi.ParseTask("parse-1","SUCCEEDED",null,"1.4.0",List.of(),
+                java.util.Map.of("taskId","parse-1","semanticResult",java.util.Map.of())));
+        service.submit(7L,collectedInput());reset(remote);
+        file.setAvailabilityStatusCode("QUARANTINED");
+        assertThrows(CollectionOperationException.class,() -> service.get(7L,123L));verifyNoInteractions(remote);
+    }
+    @Test void malformedSuccessfulResponseCannotBeSnapshotted() {
+        when(remote.submit(any())).thenReturn(new DeviceLogParsingApi.ParseTask("parse-1","SUCCEEDED",null,"1.4.0",List.of(),
+                java.util.Map.of("taskId","another","semanticResult",java.util.Map.of())));
+        assertNull(service.submit(7L,input("log")).result());assertNull(saved.getResultSnapshotJson());
+    }
+    @Test void failedDeviceProjectionCanRetryFromLocalResultWithoutDac() {
+        service.submit(7L,input("log"));saved.setCreateTime(java.time.LocalDateTime.now());
+        var asset=mock(cn.iocoder.yudao.module.pms.asset.api.device.DeviceLogParsedFactApi.class);
+        when(assetProvider.getIfAvailable()).thenReturn(asset);
+        when(asset.record(any())).thenThrow(new IllegalStateException("transient"))
+                .thenReturn(new cn.iocoder.yudao.module.pms.asset.api.device.DeviceLogParsedFactApi.Outcome("LINKED",31L,"SN","UPDATED","updated"));
+        when(remote.find("log-123","21",null)).thenReturn(new DeviceLogParsingApi.ParseTask("parse-1","SUCCEEDED",null,"1.4.0",List.of(),
+                java.util.Map.of("taskId","parse-1","semanticResult",java.util.Map.of())));
+        assertEquals("PROJECTION_FAILED",service.get(7L,123L).deviceProjection().status());
+        reset(remote);
+        assertEquals("LINKED",service.get(7L,123L).deviceProjection().status());
+        verify(asset,times(2)).record(any());verifyNoInteractions(remote);
+    }
     @Test void commitsIdentityBeforeIoAndReplayDoesNotSubmitAgain() {
         service.submit(7L, input("show version\nversion 1"));
         var order = inOrder(parses, tx, remote);

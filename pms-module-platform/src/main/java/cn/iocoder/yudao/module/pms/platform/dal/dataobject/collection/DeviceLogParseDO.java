@@ -28,6 +28,8 @@ public class DeviceLogParseDO extends TenantBaseDO {
     private String state;
     private String externalTaskId;
     private String releaseVersion;
+    /** Immutable sanitized successful response, written once under the parse row lock. */
+    private String resultSnapshotJson;
     @TableField(updateStrategy = FieldStrategy.ALWAYS)
     private String waitReason;
 }

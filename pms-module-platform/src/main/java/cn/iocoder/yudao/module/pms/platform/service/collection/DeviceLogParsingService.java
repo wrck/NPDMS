@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Local authorization and source identity only. DAC remains the parser/input/result owner. */
+/** DAC owns parsing; PLT retains immutable successful evidence for authorized offline reads. */
 @Service
 @RequiredArgsConstructor
 public class DeviceLogParsingService {
@@ -103,6 +103,12 @@ public class DeviceLogParsingService {
         var row = parses.selectById(id);
         if (row == null || !tenant().equals(row.getTenantId())) throw new CollectionOperationException("解析记录不存在");
         authorizeRead(actor, row);
+        if (row.getResultSnapshotJson()!=null) {
+            var local=JsonUtils.parseObject(row.getResultSnapshotJson(),DeviceLogParsingApi.ParseTask.class);
+            validateSnapshot(row,local);
+            // Preserve retry of a previously failed device projection, using only the frozen result.
+            return observed(row,local);
+        }
         try {
             var current = provider().find(remoteId(row), row.getProjectId().toString(), row.getSourceCollectionId());
             if (current == null) {
@@ -182,6 +188,8 @@ public class DeviceLogParsingService {
             if (locked.getExternalTaskId() != null && !locked.getExternalTaskId().equals(remote.taskId())) {
                 throw new DeviceLogParsingApi.ParsingException("DAC 解析任务标识发生变化，拒绝读取结果");
             }
+            if (locked.getReleaseVersion()!=null && !Objects.equals(locked.getReleaseVersion(),remote.releaseVersion()))
+                throw new DeviceLogParsingApi.ParsingException("DAC 解析版本发生变化，拒绝替换历史结果");
             if (!TERMINAL.contains(locked.getState())) {
                 var change = new DeviceLogParseDO(); change.setId(locked.getId());
                 change.setState(remote.state()); change.setExternalTaskId(remote.taskId());
@@ -189,6 +197,17 @@ public class DeviceLogParsingService {
                 parses.updateById(change);
                 locked.setState(remote.state()); locked.setExternalTaskId(remote.taskId());
                 locked.setReleaseVersion(remote.releaseVersion()); locked.setWaitReason(remote.waitReason());
+            }
+            if ("SUCCEEDED".equals(remote.state())) {
+                validateSnapshot(locked,remote);
+                if (locked.getResultSnapshotJson()==null) {
+                    var change=new DeviceLogParseDO();change.setId(locked.getId());
+                    change.setResultSnapshotJson(JsonUtils.toJsonString(remote));
+                    if (parses.updateById(change)!=1) throw new CollectionOperationException("本地解析结果保存失败");
+                    locked.setResultSnapshotJson(change.getResultSnapshotJson());
+                } else if (!Objects.equals(JsonUtils.parseObject(locked.getResultSnapshotJson(),DeviceLogParsingApi.ParseTask.class),remote)) {
+                    throw new DeviceLogParsingApi.ParsingException("同一解析任务不能替换已保存的结构化结果");
+                }
             }
             return locked;
         });
@@ -227,6 +246,15 @@ public class DeviceLogParsingService {
             throw new CollectionOperationException("原解析请求内容已变化，请新建解析任务");
         }
         return new Prepared(row, false);
+    }
+
+    private void validateSnapshot(DeviceLogParseDO row,DeviceLogParsingApi.ParseTask task) {
+        if (task==null || !"SUCCEEDED".equals(row.getState()) || !"SUCCEEDED".equals(task.state())
+                || !Objects.equals(row.getExternalTaskId(),task.taskId())
+                || !Objects.equals(row.getReleaseVersion(),task.releaseVersion())
+                || task.result()==null || !task.taskId().equals(task.result().get("taskId"))
+                || !(task.result().get("semanticResult") instanceof Map))
+            throw new DeviceLogParsingApi.ParsingException("本地解析结果与原任务绑定不一致");
     }
 
     private void validate(Input input) {

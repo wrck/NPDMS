@@ -850,6 +850,9 @@ DAC新增 POST `/api/v1/npdms/log-splits`，只接受 `TERMINAL_TEXT` 或已验�
 
 GET `/api/v1/pms/device-configuration-log-archives/{fileId}/parse` 返回每设备归档文件的解析状态、关联结果和版本更新状态；GET `/pms/asset/devices/{id}/log-parses` 返回授权设备的结构化解析记录。归档事务提交后创建独立解析任务，后台在原租户和原操作人授权范围内查询结果并投影；不重新执行设备命令。解析 SN 与不可变归档 SN 不一致、文件不可用或文件归属不一致时禁止更新。原历史来源与 ITR 事件记录不被改写。没有正式语义字段时不猜测 CONP 派生属性或 BOOT 版本。
 
+已批准补充（2026-10-16）：GET `/{fileId}/parse-result` 在当前租户、项目 VIEW 范围及原文件有效性校验后，优先返回 AST 本地不可变完整解析快照，不依赖 DAC 实时在线；状态查询对已完成且已投影的本地结果同样不回查 DAC。首次读取原成功任务或新任务成功关联时，将 DAC 原完整脱敏结果补存到 `ast_device_log_parse_snapshot`，明确保存原任务、解析版本和文件来源绑定，仅插入，不覆盖。补存只查询原任务，不提交解析、不连接设备、不回写历史版本；未补存且 DAC 不可用时如实提示待恢复补存。原租户、范围、文件归属/隔离及设备 SN 校验继续生效。独立上传和命令采集解析由 PLT 在原解析行保存一次成功响应（含原警告），详情同样先鉴权、后读本地；列表不加载完整结果正文，原来源及版本变化继续拒绝读取。
+
+
 ### 项目安装批量创建（2026-10-08用户确认）
 
 `POST /api/v1/pms/implementation/installation-records/batch`：接收 `projectId`、非空且不重复的 `equipmentIds` 及共用安装信息、`installLocation`、可选 `locationMaintenance`，返回按设备顺序排列的安装记录ID。权限为 `pms:imp-installation:create` 且当前项目具有 `PROJECT_EDIT` 完整范围；服务端整体校验设备归属，在一个事务内新增安装记录，地址/站点/任意深度位置链只维护一次，后续记录引用相同地点ID与版本。任一步失败整批回滚，不改变旧记录、既有单条API或安装状态机。手动地点沿用 `UNRESOLVED` 兼容文本语义。前端只提交一次请求，不循环调用单条新增API。

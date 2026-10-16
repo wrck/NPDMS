@@ -29,6 +29,8 @@ class DeviceArchivedLogParsingServiceTest {
     final ProjectScopeApi scopes=mock(ProjectScopeApi.class);
     final PlatformTransactionManager tx=mock(PlatformTransactionManager.class);
     final FileEvidenceApi evidence=mock(FileEvidenceApi.class);
+    final DeviceLogParseSnapshotMapper snapshots=mock(DeviceLogParseSnapshotMapper.class);
+    DeviceLogParseSnapshotDO stored;
     DeviceArchivedLogParsingService service;
     DeviceLogFileDO file;
     DeviceLogParseJobDO job;
@@ -38,7 +40,10 @@ class DeviceArchivedLogParsingServiceTest {
         var user=new LoginUser();user.setId(7L);user.setTenantId(1L);
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(user,null));
         ObjectProvider<DeviceLogParsingApi> provider=mock(ObjectProvider.class);when(provider.getIfAvailable()).thenReturn(parser);
-        service=new DeviceArchivedLogParsingService(jobs,files,imports,provider,projection,scopes,tx,evidence,mock(DeviceLogSlotProjectionService.class));
+        service=new DeviceArchivedLogParsingService(jobs,files,imports,provider,projection,scopes,tx,evidence,mock(DeviceLogSlotProjectionService.class),snapshots);
+        when(snapshots.selectById(90L)).thenAnswer(i -> stored);
+        when(snapshots.selectByFileForUpdate(any())).thenAnswer(i -> stored);
+        when(snapshots.insert(any(DeviceLogParseSnapshotDO.class))).thenAnswer(i -> {stored=i.getArgument(0);return 1;});
         file=new DeviceLogFileDO();file.setId(90L);file.setTenantId(1L);file.setProjectId(10L);file.setDeviceId(91L);
         file.setSerialNumber("SN-A");file.setImportId(80L);file.setFileReferenceId(11L);file.setArtifactId(22L);file.setArtifactVersion(1);file.setSha256("known");
         job=new DeviceLogParseJobDO();job.setId(90L);job.setTenantId(1L);job.setProjectId(10L);job.setActorId(7L);
@@ -88,6 +93,48 @@ class DeviceArchivedLogParsingServiceTest {
         assertEquals("RUNNING",service.getResult(90L).state());assertNull(service.getResult(90L).result());
         verifyNoInteractions(projection);
     }
+    @Test void savedResultAndCompletedStateWorkWithoutParserAndNeverRewriteHistory() {
+        var original=service.getResult(90L);
+        var json=stored.getResultJson();
+        reset(parser);when(parser.find(anyString(),anyString(),any())).thenThrow(new DeviceLogParsingApi.ParsingException("offline"));
+        job.setProjected(true);
+        assertEquals(original.result(),service.getResult(90L).result());
+        assertEquals("V2",service.get(90L).conpVersion());
+        assertEquals(json,stored.getResultJson());
+        verify(snapshots,times(1)).insert(any(DeviceLogParseSnapshotDO.class));
+        verifyNoInteractions(parser,projection);
+    }
+    @Test void cachedResultStillRejectsScopeQuarantineAndChangedSource() {
+        service.getResult(90L);reset(parser);
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L,1L,Set.of(),Set.of()));
+        assertThrows(IllegalArgumentException.class,() -> service.getResult(90L));
+        when(scopes.resolveCurrent(any())).thenReturn(new ProjectScopeResult(10L,1L,Set.of(10L),Set.of()));
+        when(evidence.lockAndRevalidate(any())).thenReturn(new FileEvidenceApi.Fact(false,"quarantined",1,2,1));
+        assertNull(service.getResult(90L).result());
+        file.setSha256("changed");assertThrows(IllegalArgumentException.class,() -> service.getResult(90L));
+        verifyNoInteractions(parser,projection);
+    }
+    @Test void unavailableParserWithoutSnapshotDoesNotReuploadOrCreateSnapshot() {
+        when(parser.find(anyString(),anyString(),any())).thenThrow(new DeviceLogParsingApi.ParsingException("offline"));
+        assertNull(service.getResult(90L).result());
+        assertNull(stored);verify(parser,never()).submit(any());verifyNoInteractions(projection);
+    }
+    @Test void invalidEnvelopeCannotBeStoredAsLocalEvidence() {
+        when(parser.find(anyString(),anyString(),any())).thenReturn(new DeviceLogParsingApi.ParseTask("native","SUCCEEDED",null,"1.3.0",List.of(),Map.of("taskId","another","semanticResult",Map.of())));
+        assertThrows(IllegalArgumentException.class,() -> service.getResult(90L));assertNull(stored);
+    }
+    @Test void concurrentFirstReaderUsesLockedSnapshotAndCannotReplaceItsContent() {
+        service.getResult(90L);
+        var originalJson=stored.getResultJson();
+        // Simulate an earlier repeatable-read view that missed another reader's committed insert.
+        when(snapshots.selectById(90L)).thenReturn(null);
+        assertNotNull(service.getResult(90L).result());
+        when(parser.find(anyString(),anyString(),any())).thenReturn(new DeviceLogParsingApi.ParseTask(
+                "native","SUCCEEDED",null,"1.3.0",List.of(),Map.of("taskId","native","semanticResult",Map.of())));
+        assertThrows(IllegalArgumentException.class,() -> service.getResult(90L));
+        assertEquals(originalJson,stored.getResultJson());
+        verify(snapshots,times(1)).insert(any(DeviceLogParseSnapshotDO.class));
+    }
     @Test void archivedParsePassesAllFourObservedVersionsToProjection() {
         var snapshot=List.of(
                 Map.of("semanticKey","device.identity.serialNumber","status","OBSERVED","value","SN-A"),
@@ -95,7 +142,7 @@ class DeviceArchivedLogParsingServiceTest {
                 Map.of("semanticKey","device.hardware.cpldVersion","status","OBSERVED","value","CPLD"),
                 Map.of("semanticKey","device.hardware.pcbVersion","status","OBSERVED","value","PCB"),
                 Map.of("semanticKey","device.hardware.bootloader.basicVersion","status","OBSERVED","value","BASIC"));
-        when(parser.find(anyString(),eq("10"),isNull())).thenReturn(new DeviceLogParsingApi.ParseTask("native","SUCCEEDED",null,"1.3.1",List.of(),Map.of("semanticResult",Map.of("snapshot",snapshot))));
+        when(parser.find(anyString(),eq("10"),isNull())).thenReturn(new DeviceLogParsingApi.ParseTask("native","SUCCEEDED",null,"1.3.1",List.of(),Map.of("taskId","native","semanticResult",Map.of("snapshot",snapshot))));
         service.get(90L);
         verify(projection).record(argThat(c -> "SOFT".equals(c.conpVersion()) && "CPLD".equals(c.cpldVersion())
                 && "PCB".equals(c.pcbVersion()) && "BASIC".equals(c.bootVersion())));
@@ -144,7 +191,7 @@ class DeviceArchivedLogParsingServiceTest {
         return new FileEvidenceApi.Document(11L,"AST","DeviceConfigurationLogFile",id,"DEVICE_CONFIGURATION_LOG","device-log",22L,1,"known","file.log",available);
     }
     private DeviceLogParsingApi.ParseTask result(String serial) {
-        return new DeviceLogParsingApi.ParseTask("native","SUCCEEDED",null,"1.3.0",List.of(),Map.of("semanticResult",Map.of("snapshot",Map.of("entities",Map.of("device",Map.of(
+        return new DeviceLogParsingApi.ParseTask("native","SUCCEEDED",null,"1.3.0",List.of(),Map.of("taskId","native","semanticResult",Map.of("snapshot",Map.of("entities",Map.of("device",Map.of(
                 "serial",Map.of("semanticKey","device.identity.serialNumber","status","OBSERVED","value",serial),
                 "version",Map.of("semanticKey","device.software.version","status","OBSERVED","value","V2")))))));
     }
