@@ -19,7 +19,7 @@ vi.mock('./saveCustomerSolutionDocuments', () => ({ resolveCustomerSolutionDocum
 
 const flush = async () => { for (let i = 0; i < 8; i++) await nextTick() }
 const overview = (values: Record<string, unknown>, draft?: Record<string, unknown>) => ({
-  currentEffective: { values }, draft: draft ? { values: draft } : null
+  currentEffective: { values, revision: { effective: true, state: 'FROZEN', revisionNo: 2, version: 3, ref: { entity: { tenantId: 1, ownerModule: 'SOL', entityType: 'REQUIREMENT_ANALYSIS', entityId: 300 }, revisionId: 400 } } }, draft: draft ? { values: draft } : null
 }) as any
 const render = (projectId?: number, readOnly = false) => {
   const form = ref<any>({ projectId })

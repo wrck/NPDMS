@@ -6,6 +6,7 @@ export interface SolutionVO {
   code?: string
   name: string
   solutionType?: string
+  sectionData?: string
   background?: string
   target?: string
   team?: string

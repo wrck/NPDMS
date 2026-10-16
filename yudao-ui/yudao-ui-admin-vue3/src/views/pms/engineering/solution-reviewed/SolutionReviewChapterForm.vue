@@ -4,10 +4,10 @@
          登记客户文档的版本正文即客户文档，九章编写动作（生成/下载）不再出现；
          独立弹窗与审核详情无操作栏提供方，原地渲染 -->
     <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
-      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="emit('save')">保存草稿</el-button>
+      <el-button v-if="!readOnly" type="primary" :loading="saving" @click="saveDraft">保存草稿</el-button>
       <el-button v-if="!readOnly && !customerDocUrl" @click="generateFromSources">生成方案（引用前序数据）</el-button>
       <el-button v-if="!customerDocUrl" @click="downloadSolution">下载方案</el-button>
-      <el-button v-if="!readOnly" type="warning" :loading="saving" @click="emit('submitReview')">提交审核</el-button>
+      <el-button v-if="!readOnly" type="warning" :loading="saving" @click="submitReview">提交审核</el-button>
     </Teleport>
 
     <!-- 客户方案文档：登记客户文档的版本正文即该文档，直接内嵌展示且不再渲染九章手工文本；
@@ -34,6 +34,7 @@
       <el-button link type="primary" :disabled="readOnly || requirementLoading" @click="loadRequirement()">重新加载需求分析</el-button>
     </el-alert>
     <div v-else-if="requirementLoading" role="status" class="mb-12px">正在加载需求分析引用内容…</div>
+    <el-alert v-if="readOnly && !requirementSnapshot" title="本方案未保存需求分析引用快照" type="info" :closable="false" class="mb-12px" />
     <!-- 第1章 项目概述 -->
     <section class="chapter">
       <div class="chapter-title">1. 项目概述</div>
@@ -131,7 +132,7 @@
         </el-radio-group>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'no'" label-width="140px">
-        <div class="ref-body standalone">直接调用 2.3 需求分析中的网络拓扑：{{ stripHtml(reqTopology) || '需求分析暂无网络拓扑' }}</div>
+        <div class="ref-body standalone">直接调用 2.3 需求分析中的网络拓扑：{{ stripHtml(reqTopology) || (readOnly && !requirementSnapshot ? '本方案未保存需求分析引用快照' : '需求分析暂无网络拓扑') }}</div>
       </el-form-item>
       <el-form-item v-if="topology.toBeChanged === 'yes'" label="上传最新拓扑" label-width="140px">
         <UploadFile v-model="topology.toBeUrl" :disabled="readOnly" :file-type="['ppt', 'pptx', 'vsd', 'vsdx', 'png']" />
@@ -358,6 +359,7 @@
 
 <script setup lang="ts">
 import { locationSnapshotText } from '@/utils/locationSnapshot'
+import { freezeSolutionRequirementSnapshot, readSolutionRequirementSnapshot } from './solutionRequirementSnapshot'
 import { resolveCustomerSolutionDocument,downloadCustomerSolutionDocument,customerSolutionDocumentUrls,customerSolutionDocumentName } from './saveCustomerSolutionDocuments'
 import DeliveryPanel from '@/components/BusinessEntity/DeliveryPanel.vue'
 import { ElMessage } from 'element-plus'
@@ -387,6 +389,7 @@ const { barTarget } = useBusinessActionBar()
 //   topology = {asIsUrl,toBeChanged,toBeUrl,deploy[],software[]}（2.1/3.1/3.2/3.5）；
 //   script = {network,businessModule,ha,full}（4.x）；quality/risk/oAndM = 6.x 正文；
 //   remark = {hasCustomerPlan,customerPlanUrl,hardwareInvolved,softwareDebug,trainingPurpose,trainingContent,archive(6.4),business[]}。
+//   sectionData.requirementReference = 保存方案时引用的需求版本及章节内容快照。
 type Row = Record<string, string>
 const parseRows = (raw: unknown): Row[] => (Array.isArray(raw) ? (raw as Row[]) : [])
 const parseObject = (raw: string | undefined | null): Record<string, unknown> => {
@@ -402,6 +405,8 @@ const parseObject = (raw: string | undefined | null): Record<string, unknown> =>
 const requirementLoading = ref(false)
 const requirementError = ref('')
 const reqValues = ref<Record<string, unknown>>({})
+const effectiveRequirement = ref<RequirementAnalysisApi.View>()
+const requirementSnapshot = computed(() => readSolutionRequirementSnapshot(form.value.sectionData))
 const members = ref<MemberRecord[]>([])
 const contacts = ref<ContactApi.ContactVO[]>([])
 const scopeRows = ref<{ productCode: string; deviceTypeCode: string; allocatedQuantity: number }[]>([])
@@ -654,27 +659,36 @@ onBeforeUnmount(() => {
   releaseCustomerDocBlob()
 })
 
-// 需求分析使用当前实体业务字段，独立加载并提供失败重试。
+// 编辑优先引用有效版，保留草稿预览；审批与历史只读仅使用保存快照。
 let requirementRequest = 0
 const loadRequirement = async () => {
   const requestId = ++requirementRequest
   const projectId = form.value.projectId
   reqValues.value = {}
+  effectiveRequirement.value = undefined
   requirementError.value = ''
   requirementLoading.value = false
-  if (props.readOnly || !projectId) return
+  if (props.readOnly) {
+    reqValues.value = requirementSnapshot.value?.values ?? {}
+    return
+  }
+  if (!projectId) return
   requirementLoading.value = true
   try {
     const overview = await RequirementAnalysisApi.workspace(projectId)
     if (requestId !== requirementRequest) return
-    reqValues.value = (overview.currentEffective ?? overview.draft)?.values ?? {}
+    const source = overview.currentEffective ?? overview.draft
+    if (source) {
+      effectiveRequirement.value = source
+      reqValues.value = source.values
+    }
   } catch {
     if (requestId === requirementRequest) requirementError.value = '需求分析引用内容加载失败，请重新加载'
   } finally {
     if (requestId === requirementRequest) requirementLoading.value = false
   }
 }
-watch(() => [props.readOnly, form.value.projectId], () => { void loadRequirement() }, { immediate: true })
+watch(() => [props.readOnly, form.value.projectId, props.readOnly ? form.value.sectionData : null], () => { void loadRequirement() }, { immediate: true })
 
 // 引用数据按项目加载；工作台自动选中时 projectId 晚于挂载到达，须响应式触发
 let referencesProjectId = 0
@@ -717,8 +731,21 @@ const loadReferences = async () => {
 watch(() => [props.readOnly, form.value.projectId], () => { loadReferences() }, { immediate: true })
 
 // ---------- 生成方案（引用前序数据，只填空字段） ----------
+const captureRequirementReference = () => {
+  if (props.readOnly) return
+  form.value.sectionData = freezeSolutionRequirementSnapshot(form.value.sectionData, effectiveRequirement.value) ?? undefined
+}
+const saveDraft = () => {
+  captureRequirementReference()
+  emit('save')
+}
+const submitReview = () => {
+  captureRequirementReference()
+  emit('submitReview')
+}
 const generateFromSources = () => {
   if (props.readOnly) return
+  captureRequirementReference()
   if (reqBackground.value && !String(form.value.background ?? '').trim()) form.value.background = reqBackground.value
   if (reqObjective.value && !String(form.value.target ?? '').trim()) form.value.target = reqObjective.value
   if (teamRefRows.value.length && !tables.team.length) tables.team = memberRows()
