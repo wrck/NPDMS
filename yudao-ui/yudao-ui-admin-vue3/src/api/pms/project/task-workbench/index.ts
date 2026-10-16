@@ -225,7 +225,7 @@ const patchTask = async <T>(url: string, data: unknown, version: number) => {
 export const getProjectWorkspace = (projectId: number) =>
   request.get<ProjectWorkspace>({ url: `${baseUrl}/projects/${projectId}/workspace` })
 
-export const getProjectTasks = (projectId: number, params: TaskTreeQuery) =>
+export const getProjectTasks = (projectId: number | string, params: TaskTreeQuery) =>
   request.get<CursorResult<TaskNode>>({ url: `${baseUrl}/projects/${projectId}/tasks`, params })
 
 export const getTaskWorkbench = (taskId: number | string) =>

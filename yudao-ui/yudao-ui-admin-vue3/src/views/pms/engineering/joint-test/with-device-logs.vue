@@ -33,7 +33,8 @@
         >
         <el-button
           :disabled="!query.projectId"
-          @click="projectLogsVisible = true"
+          :loading="openingProjectLogs"
+          @click="openProjectLogs"
           v-hasPermi="['pms:device-log-archive:query']"
           >上传日志 / 文件历史</el-button
         >
@@ -320,8 +321,8 @@
   <ProjectDeviceLogArchiveDialog
     v-model="projectLogsVisible"
     :project-id="query.projectId"
-    :origin-task-id="props.originTaskId"
-    :readonly="props.readonly"
+    :origin-task-id="logOriginTaskId"
+    :readonly="props.readonly || !logOriginTaskId"
   />
 </template>
 
@@ -340,6 +341,7 @@ import * as DeviceArchiveApi from '@/api/pms/asset/device/archive'
 import DeviceTag from '@/components/DeviceTag/index.vue'
 import { checkPermi } from '@/utils/permission'
 import { dateFormatter } from '@/utils/formatTime'
+import { resolveJointLogTask } from './resolveLogTask'
 
 defineOptions({ name: 'PmsEngJointTestWithDeviceLogs' })
 const props = defineProps<{
@@ -382,6 +384,26 @@ const deviceLogin = reactive<DeviceLoginMeta>({
 })
 const collection = ref<InstanceType<typeof CollectionDialog>>()
 const projectLogsVisible = ref(false)
+const openingProjectLogs = ref(false)
+const logOriginTaskId = ref<string | number>()
+const openProjectLogs = async () => {
+  const projectId = query.projectId
+  if (!projectId) return
+  openingProjectLogs.value = true
+  logOriginTaskId.value = undefined
+  try {
+    const taskId = props.originTaskId ?? (props.readonly ? undefined : await resolveJointLogTask(projectId))
+    if (query.projectId !== projectId) return
+    logOriginTaskId.value = taskId
+    projectLogsVisible.value = true
+  } catch {
+    if (query.projectId !== projectId) return
+    message.warning('无法唯一确定业务联调任务，当前仅查看日志历史；请从对应联调任务进入上传。')
+    projectLogsVisible.value = true
+  } finally {
+    openingProjectLogs.value = false
+  }
+}
 const businessLogs = ref<InstanceType<typeof BusinessCollectionLogs>>()
 const jointMeta = reactive({ businessDesc: '', note: '' })
 const deviceInfo = ref<DeviceArchiveApi.DeviceArchiveVO | null>(null)
