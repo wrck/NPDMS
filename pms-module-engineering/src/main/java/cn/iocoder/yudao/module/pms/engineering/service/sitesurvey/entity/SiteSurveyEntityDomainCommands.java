@@ -44,6 +44,8 @@ public class SiteSurveyEntityDomainCommands {
     @Resource
     private SiteSurveyEntityWriteAccess writeAccess;
     @Resource
+    private cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi deletedObjectReferences;
+    @Resource
     private cn.iocoder.yudao.module.pms.project.api.deadline.ProjectEndDateApi projectEndDateApi;
     @Resource
     private cn.iocoder.yudao.module.pms.engineering.service.taskbusiness.EngineeringRuleReevaluationEvents ruleEvents;
@@ -105,6 +107,8 @@ public class SiteSurveyEntityDomainCommands {
                 existing.getId(), existing.getTenantId(), existing.getVersion())) != 1) {
             throw exception(SITE_SURVEY_VERSION_NOT_MATCH);
         }
+        deletedObjectReferences.unlinkDeletedObject(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi.DeletedObject(
+                existing.getProjectId(), "SOL", "SITE_SURVEY", existing.getId().toString()));
         requestRuleReevaluation(existing);
     }
 

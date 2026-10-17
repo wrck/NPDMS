@@ -62,6 +62,17 @@ import static org.mockito.ArgumentMatchers.*;
  * External permission/project/deadline/location/form-layout and result-recording facts are test doubles.
  * This does not certify production MySQL DDL, browser HTTP authorization or an execution runtime replacement. */
 class SiteSurveySpringPersistenceTest {
+    @Test void referenceCleanupFailureRollsBackTheSurveyDeleteAndItsReceipt() {
+        var draft=create();
+        var references=ctx.getBean(cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi.class);
+        var before=counts();
+        doThrow(new IllegalStateException("reference conflict")).when(references).unlinkDeletedObject(any());
+        assertThrows(RuntimeException.class,()->action("delete",draft,"delete-reference-conflict"));
+        assertNotNull(ctx.getBean(SiteSurveyEntityMapper.class).selectById(draft.entityRef().entityId()));
+        assertEquals(before,counts());
+        reset(references);
+        assertTrue(SiteSurveyBusinessApplicationService.result(action("delete",draft,"delete-reference-conflict")).deleted());
+    }
     AnnotationConfigApplicationContext ctx;
     JdbcTemplate jdbc;
     SiteSurveyEntityCommands commands;
@@ -336,6 +347,9 @@ class SiteSurveySpringPersistenceTest {
         @Bean BusinessEntityPersistenceRegistry persistence(ObjectProvider<BusinessModelContributor> contributors) {return new BusinessEntityPersistenceRegistry(contributors);}
         @Bean BusinessEntityIdentityResolver identities(org.springframework.beans.factory.ListableBeanFactory beans) {return new BusinessEntityIdentityResolver(beans);}
         @Bean BusinessCallerContext caller() {return ()->new AbstractBusinessApplicationService.ResolvedCaller(TenantContextHolder.getRequiredTenantId(),cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils.getLoginUserId(),"survey-it");}
+        @Bean cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi deletedObjectReferences() {
+            return mock(cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi.class);
+        }
         @Bean jakarta.validation.Validator validator() {return jakarta.validation.Validation.buildDefaultValidatorFactory().getValidator();}
         @Bean BusinessModelDescriptor descriptor() {return new BusinessModelDescriptor("SOL","siteSurvey","SOL_SITE_SURVEY",1,BusinessModelKind.AGGREGATE_ROOT,"工勘",null,SiteSurveyEntityProvider.publicFields().stream().map(f->new BusinessFieldDescriptor(f.code(),f.code(),f.type(),f.required(),true,false,null)).toList(),List.of(),SiteSurveyBusinessApplicationService.operations(),List.of(new BusinessCapabilityBinding(BusinessCapabilityType.DYNAMIC_FORM,null,true)),"sol_site_survey");}
         @Bean BusinessModelCatalog catalog(BusinessModelDescriptor descriptor) {var c=mock(BusinessModelCatalog.class);when(c.require("SOL","siteSurvey")).thenReturn(descriptor);return c;}

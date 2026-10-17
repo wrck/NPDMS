@@ -13,6 +13,30 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class SiteSurveyEntityWriteEntryTest {
+    @org.junit.jupiter.api.Test
+    void successfulDeleteClosesReferencesBeforePublishingRefreshAndFailedDeleteNeverDoes() {
+        var mapper=mock(SiteSurveyEntityMapper.class);
+        var access=mock(SiteSurveyEntityWriteAccess.class);
+        var references=mock(cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi.class);
+        var events=mock(EngineeringRuleReevaluationEvents.class);
+        var service=new SiteSurveyEntityDomainCommands();
+        ReflectionTestUtils.setField(service,"siteSurveyEntityMapper",mapper);
+        ReflectionTestUtils.setField(service,"writeAccess",access);
+        ReflectionTestUtils.setField(service,"deletedObjectReferences",references);
+        ReflectionTestUtils.setField(service,"ruleEvents",events);
+        var row=new SiteSurveyEntityDO(); row.setId(11L); row.setProjectId(9L); row.setStatus(0); row.setVersion(1L);
+        when(mapper.selectById(11L)).thenReturn(row);
+        when(mapper.deleteDraft(any())).thenReturn(0);
+        assertThrows(RuntimeException.class,()->service.deleteSiteSurveyEntity(11L,null));
+        verifyNoInteractions(references,events);
+        when(mapper.deleteDraft(any())).thenReturn(1);
+        service.deleteSiteSurveyEntity(11L,null);
+        var order=inOrder(mapper,references,events);
+        order.verify(mapper,atLeastOnce()).selectById(11L);
+        order.verify(mapper,atLeastOnce()).deleteDraft(any());
+        order.verify(references).unlinkDeletedObject(new cn.iocoder.yudao.module.pms.project.api.taskbusiness.ProjectBusinessObjectDeletionApi.DeletedObject(9L,"SOL","SITE_SURVEY","11"));
+        order.verify(events).changed(eq(9L),eq("SiteSurvey"),eq(11L),any(),anyString());
+    }
     @ParameterizedTest
     @ValueSource(strings={"create","update","delete","confirm","reject","archive","associate","release"})
     void everyOwnerWriteRejectsUnavailableExecutionBeforeAnyMutation(String action) {
