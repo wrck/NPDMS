@@ -39,7 +39,9 @@ public class DppmsExecutionOrderSyncAdapter implements DataSyncAdapter {
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public List<Change> apply(Batch batch) {
         Plan plan = plan(batch);
-        if (plan.changes().stream().anyMatch(c -> "CONFLICT".equals(c.action()) || "ISSUE".equals(c.action()))) return plan.changes();
+        if (plan.changes().stream().anyMatch(c -> "CONFLICT".equals(c.action()))) return plan.changes();
+        if (plan.changes().stream().anyMatch(c -> "ISSUE".equals(c.action())))
+            throw new IllegalArgumentException("执行单分块包含无效来源记录，当前分块未写入且不推进断点；请修正后重试");
         Map<String, Long> ids = new HashMap<>();
         List<CrmExecutionOrderDO> created = new ArrayList<>();
         List<CrmExecutionOrderDO> updated = new ArrayList<>();

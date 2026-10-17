@@ -14,13 +14,9 @@ import java.util.List;
 public interface ExternalKeyMappingMapper extends BaseMapperX<ExternalKeyMappingDO> {
     int insertRows(@org.apache.ibatis.annotations.Param("rows") List<ExternalKeyMappingDO> rows);
 
-    default List<ExternalKeyMappingDO> selectSourcePage(MigrationSourcePageQuery query) {
-        if (query.sourceRecordIds() == null || query.sourceRecordIds().isEmpty()) return List.of();
-        return selectList(new LambdaQueryWrapperX<ExternalKeyMappingDO>()
-                .eq(ExternalKeyMappingDO::getTenantId, query.tenantId())
-                .eq(ExternalKeyMappingDO::getBatchId, query.batchId())
-                .in(ExternalKeyMappingDO::getSourceRecordId, query.sourceRecordIds()));
-    }
+    /** Bound the pre-insert existence check to this batch even while table statistics lag bulk loading. */
+    List<ExternalKeyMappingDO> selectSourcePage(
+            @org.apache.ibatis.annotations.Param("query") MigrationSourcePageQuery query);
 
     default List<ExternalKeyMappingDO> selectListBySourceRecordIds(MigrationMappingSourceQuery query) {
         if (query.sourceRecordIds() == null || query.sourceRecordIds().isEmpty()) return List.of();

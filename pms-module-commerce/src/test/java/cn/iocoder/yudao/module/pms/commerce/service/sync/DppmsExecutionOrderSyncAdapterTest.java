@@ -42,6 +42,14 @@ class DppmsExecutionOrderSyncAdapterTest {
         assertTrue(change.message().contains("projectAmount"));
     }
 
+    @Test void mixedGoodAndInvalidRowsFailTheChunkInsteadOfReportingUnwrittenCreates() {
+        var bad=new LinkedHashMap<>(row("2","错误项目").fields());bad.put("projectAmount","bad");
+        assertThrows(IllegalArgumentException.class,()->adapter.apply(batch(row("1","正常项目"),
+                new Row("EXECUTION_ORDER","2",bad,null))));
+        verify(mapper,never()).insertBatch(anyCollection(),anyInt());
+        verify(mapper,never()).updateBatch(anyCollection(),anyInt());
+    }
+
     @Test void batchesDistinctTargetsAndReturnsGeneratedIdsForEveryRevision() {
         doAnswer(invocation -> {
             Collection<CrmExecutionOrderDO> rows = invocation.getArgument(0);

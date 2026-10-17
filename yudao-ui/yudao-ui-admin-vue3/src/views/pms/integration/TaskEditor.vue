@@ -179,6 +179,22 @@
             :closable="false"
             title="当前业务适配器需要整批上下文，不支持流式分块执行。"
           />
+          <el-form-item label="同步证据策略">
+            <el-select v-model="draft.definition.evidencePolicy" aria-label="同步证据策略">
+              <el-option label="完整记录每次读取（兼容模式）" value="FULL" />
+              <el-option
+                label="复用未变化证据（大批量同步）"
+                value="REUSE_UNCHANGED"
+                :disabled="draft.definition.adapter !== 'TABLE_MAPPING' || draft.definition.readStrategy !== 'STREAMING_CURSOR'"
+              />
+            </el-select>
+          </el-form-item>
+          <el-alert
+            v-if="draft.definition.evidencePolicy === 'REUSE_UNCHANGED'"
+            type="info"
+            :closable="false"
+            title="仍逐行核对来源和目标。完全未变化时复用原证据，不追加重复来源/映射，也不改写绑定；新增、变化及异常照常留证，历史记录保留。"
+          />
           <template v-if="draft.definition.readStrategy === 'STREAMING_CURSOR'">
             <el-form-item label="JDBC Fetch Size">
               <el-input-number v-model="draft.definition.fetchSize" :min="1" :max="10000" />
@@ -291,6 +307,7 @@ const normalizePerformance = () => {
   const definition = draft.value.definition
   if (definition.autoPaging) definition.readStrategy = 'KEYSET_PAGING'
   definition.readStrategy ??= 'SNAPSHOT'
+  definition.evidencePolicy ??= 'FULL'
   definition.fetchSize ??= 2000
   definition.chunkSize ??= 1000
   definition.restartPolicy ??= 'RESTART_ALL'
@@ -302,6 +319,7 @@ const syncLegacyPaging = () => {
   draft.value.definition.autoPaging = draft.value.definition.readStrategy === 'KEYSET_PAGING'
   if (draft.value.definition.readStrategy !== 'STREAMING_CURSOR') {
     draft.value.definition.restartPolicy ??= 'RESTART_ALL'
+    draft.value.definition.evidencePolicy = 'FULL'
   }
 }
 const open = async (id?: api.Id) => {
@@ -362,6 +380,7 @@ const changeAdapter = async () => {
   }
   draft.value.definition.loadingMode = selectedAdapter.value.loadingModes[0]
   draft.value.definition.readStrategy = 'SNAPSHOT'
+  draft.value.definition.evidencePolicy = 'FULL'
   draft.value.definition.autoPaging = false
   draft.value.definition.fetchSize = 2000
   draft.value.definition.chunkSize = 1000
@@ -388,6 +407,7 @@ const selectMappingReset = () => {
   draft.value.definition.clearBeforeLoad = false
   draft.value.definition.loadingMode = 'UPSERT'
   draft.value.definition.readStrategy = 'SNAPSHOT'
+  draft.value.definition.evidencePolicy = 'FULL'
   draft.value.definition.autoPaging = false
   draft.value.definition.sources.forEach((source) => (source.syncPrimaryKey = true))
 }

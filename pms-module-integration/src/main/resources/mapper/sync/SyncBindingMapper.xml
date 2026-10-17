@@ -18,6 +18,11 @@
       AND b.fields_json LIKE '%"_targets"%'
     ORDER BY b.id LIMIT #{query.limit} FOR UPDATE
   </select>
+  <select id="selectFirstTaskBindingId" resultType="java.lang.Long">
+    SELECT id FROM int_sync_binding
+    WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE
+    LIMIT 1
+  </select>
   <update id="updateLastRun">
     UPDATE int_sync_binding SET last_run_id=#{runId},updater='data_sync',update_time=#{updatedAt}
     WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE

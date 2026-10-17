@@ -65,6 +65,58 @@ class PlatformMigrationEvidenceMapperContractTest {
         assertAllParametersResolvable(sql);
     }
 
+    @Test void bindsStagingCardinalityWithoutClassificationSubqueries() {
+        Configuration configuration=configuration("MigrationSourceRecordMapper.xml");
+        var params=new org.apache.ibatis.binding.MapperMethod.ParamMap<>();
+        params.put("query",new MigrationBatchIdQuery(7L,22L));
+        BoundSql sql=boundSql(configuration,
+                "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.countBatchSources",params);
+        assertEquals("SELECT COUNT(*) FROM plt_migration_source_record WHERE tenant_id = ? AND batch_id = ? AND deleted = 0",
+                normalize(sql.getSql()));
+        assertAllParametersResolvable(sql);
+        assertEquals(List.of("query.tenantId","query.batchId"),
+                sql.getParameterMappings().stream().map(ParameterMapping::getProperty).toList());
+    }
+
+    @Test void mappingPageUsesBatchIndexAndBindsAllScopePredicates() {
+        Configuration config=configuration("ExternalKeyMappingMapper.xml");
+        var params=new org.apache.ibatis.binding.MapperMethod.ParamMap<>();
+        params.put("query",new MigrationSourcePageQuery(7L,22L,List.of(31L,32L)));
+        BoundSql sql=boundSql(config,
+                "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.ExternalKeyMappingMapper.selectSourcePage",params);
+        String text=normalize(sql.getSql());
+        assertTrue(text.contains("FROM plt_external_key_mapping FORCE INDEX (idx_plt_external_mapping_batch)"));
+        assertTrue(text.contains("WHERE tenant_id = ? AND batch_id = ? AND deleted = 0"));
+        assertTrue(text.contains("AND source_record_id IN"));
+        assertEquals(4,sql.getParameterMappings().size());
+        assertAllParametersResolvable(sql);
+        assertEquals("query.tenantId",sql.getParameterMappings().get(0).getProperty());
+        assertEquals("query.batchId",sql.getParameterMappings().get(1).getProperty());
+        for(List<Long> ids:java.util.Arrays.asList(List.<Long>of(),null)) {
+            params.put("query",new MigrationSourcePageQuery(7L,22L,ids));
+            BoundSql empty=boundSql(config,
+                    "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.ExternalKeyMappingMapper.selectSourcePage",params);
+            assertTrue(normalize(empty.getSql()).endsWith("AND 1 = 0"));
+            assertEquals(2,empty.getParameterMappings().size());
+            assertAllParametersResolvable(empty);
+        }
+    }
+
+    @Test void classificationUsesBoundedSourceAndCorrelatedEvidenceIndexes() {
+        var config=configuration("MigrationSourceRecordMapper.xml");
+        var params=new org.apache.ibatis.binding.MapperMethod.ParamMap<>();
+        params.put("query",new MigrationBatchIdQuery(7L,22L));
+        BoundSql sql=boundSql(config,
+                "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectClassificationSummary",params);
+        String text=normalize(sql.getSql());
+        assertTrue(text.contains("FROM plt_migration_source_record s FORCE INDEX (idx_plt_migration_source_cursor)"));
+        assertEquals(2,text.split("FORCE INDEX \\(uk_plt_external_mapping_result\\)",-1).length-1);
+        assertTrue(text.contains("FROM plt_migration_issue i FORCE INDEX (uk_plt_migration_issue_key)"));
+        assertTrue(text.contains("has_mapped + has_issue + has_retained > 1"));
+        assertEquals(2,sql.getParameterMappings().size());
+        assertAllParametersResolvable(sql);
+    }
+
     private static Configuration configuration(String resourceName) {
         Configuration configuration = new Configuration();
         String resource = "mapper/migration/" + resourceName;
