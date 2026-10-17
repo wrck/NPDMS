@@ -543,7 +543,7 @@
 import ProjectBaseInfo from './components/ProjectBaseInfo.vue'
 import ProjectCurrentPlanTag from './components/ProjectCurrentPlanTag.vue'
 import BusinessFlowNav from './components/BusinessFlowNav.vue'
-import { computed, onMounted, provide, ref, type Component } from 'vue'
+import { computed, defineAsyncComponent, onMounted, provide, ref, type Component } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import ProjectApprovalDrawer from './components/ProjectApprovalDrawer.vue'
 import { projectApprovalDetailKey } from './components/projectApprovalDetail'
@@ -552,54 +552,57 @@ import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
 import * as RiskApi from '@/api/pms/project/project-risk'
-import ProjectSplitWizard from './components/ProjectSplitPanel.vue'
-import ProjectTreePanel from '@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'
-import ProjectProgressPanel from './components/ProjectProgressSummaryPanel.vue'
-import ProjectClosureGuardPanel from './components/ProjectClosureGuardPanel.vue'
-import ProjectNormalClosurePanel from './components/ProjectNormalClosurePanel.vue'
 import ProjectStatusTag from '../projects/ProjectStatusTag.vue'
-import ProjectAuthorizationPanel from './components/ProjectAuthorizationPanel.vue'
-import ProjectGovernancePanel from './components/ProjectGovernancePanel.vue'
-import ProjectServiceManagerPanel from './components/ProjectServiceManagerPanel.vue'
-import ProjectMembersPanel from '@/views/pms/project/inheritance/members/ProjectMembersPanel.vue'
-import DeliveryModuleTable, { type DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
-import ProjectCustomerOverview from './components/ProjectCustomerOverview.vue'
-import ProjectAttributePanel from './components/ProjectAttributePanel.vue'
-import ProjectTemplateMatchHistoryPanel from './components/ProjectTemplateMatchHistoryPanel.vue'
-import ProjectTaskPanel from './components/ProjectTaskPanel.vue'
-import ProjectStageStatusPanel from './components/ProjectStageStatusPanel.vue'
-import ProjectSchedulePanel from './components/ProjectSchedulePanel.vue'
-import ProjectSerialPanel from './components/ProjectSerialPanel.vue'
+import type { DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
 import ProjectDeviceConfigLogDrawer from './components/ProjectDeviceConfigLogDrawer.vue'
 import StageProgressRail from './components/StageProgressRail.vue'
-import ProjectFlowPanel from './components/ProjectFlowPanel.vue'
 import ProjectDeliverableDialog from './components/ProjectDeliverableDialog.vue'
-import ProjectDeliverablesPanel from './components/ProjectDeliverablesPanel.vue'
-import StageGateResultsPanel from './components/StageGateResultsPanel.vue'
-import ProjectTaskTree from './components/ProjectTaskTree.vue'
-import ProjectExecutionHistory from './components/ProjectExecutionHistory.vue'
 import { businessFlowGroups, businessNavItems, businessModuleConfigs, flowEmbedKeys } from './components/businessModules'
 import type { ProjectFlowSelection } from './components/project-flow'
 import type { TaskNode } from '@/api/pms/project/task-workbench'
-import ProjectSiteSurveyPanel from '@/views/pms/delivery-business/site-survey/index.vue'
-import DeliverableSummaryPanel from '@/views/pms/engineering/deliverable/summary/index.vue'
-import TrainingWorkbench from '@/views/pms/engineering/training/index.vue'
-import ArrivalAcceptanceWorkbench from './components/ProjectArrivalReceiptPanel.vue'
-import InstallationWorkbench from '@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'
-import ConfigurationWorkbench from '@/views/pms/engineering/configuration/with-device-logs.vue'
-import JointTestWorkbench from '@/views/pms/engineering/joint-test/with-device-logs.vue'
-import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
-import MaterialExchWorkbench from '@/views/pms/engineering/material-exch/index.vue'
-import ProjectCutoverTasks from '@/views/pms/cutover/project-tasks/index.vue'
-import ProjectDeviceLogsPanel from './components/ProjectDeviceLogsPanel.vue'
-import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
-import AcceptanceReportWorkbench from '@/views/pms/acceptance/acceptance-report/index.vue'
 import * as ContactsApi from '@/api/pms/customer/contacts'
 import { loadProjectEquipmentList } from '@/api/pms/commerce/projectEquipment'
 import { checkPermi, checkRole } from '@/utils/permission'
 import { isBusinessViewId, legacyOwnerId } from '@/api/pms/platform/business-view/ids'
-import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import type { ProjectMasterVO, ProjectInstancesVO } from '@/api/pms/project/projects'
+
+// Only load business workspaces when their existing tab host is first mounted.
+const ProjectSplitWizard = defineAsyncComponent(() => import('./components/ProjectSplitPanel.vue'))
+const ProjectTreePanel = defineAsyncComponent(() => import('@/views/pms/project/inheritance/tree/ProjectTreePanel.vue'))
+const ProjectProgressPanel = defineAsyncComponent(() => import('./components/ProjectProgressSummaryPanel.vue'))
+const ProjectClosureGuardPanel = defineAsyncComponent(() => import('./components/ProjectClosureGuardPanel.vue'))
+const ProjectNormalClosurePanel = defineAsyncComponent(() => import('./components/ProjectNormalClosurePanel.vue'))
+const ProjectAuthorizationPanel = defineAsyncComponent(() => import('./components/ProjectAuthorizationPanel.vue'))
+const ProjectGovernancePanel = defineAsyncComponent(() => import('./components/ProjectGovernancePanel.vue'))
+const ProjectServiceManagerPanel = defineAsyncComponent(() => import('./components/ProjectServiceManagerPanel.vue'))
+const ProjectMembersPanel = defineAsyncComponent(() => import('@/views/pms/project/inheritance/members/ProjectMembersPanel.vue'))
+const ProjectCustomerOverview = defineAsyncComponent(() => import('./components/ProjectCustomerOverview.vue'))
+const ProjectAttributePanel = defineAsyncComponent(() => import('./components/ProjectAttributePanel.vue'))
+const ProjectTemplateMatchHistoryPanel = defineAsyncComponent(() => import('./components/ProjectTemplateMatchHistoryPanel.vue'))
+const ProjectTaskPanel = defineAsyncComponent(() => import('./components/ProjectTaskPanel.vue'))
+const ProjectStageStatusPanel = defineAsyncComponent(() => import('./components/ProjectStageStatusPanel.vue'))
+const ProjectSchedulePanel = defineAsyncComponent(() => import('./components/ProjectSchedulePanel.vue'))
+const ProjectSerialPanel = defineAsyncComponent(() => import('./components/ProjectSerialPanel.vue'))
+const ProjectFlowPanel = defineAsyncComponent(() => import('./components/ProjectFlowPanel.vue'))
+const ProjectDeliverablesPanel = defineAsyncComponent(() => import('./components/ProjectDeliverablesPanel.vue'))
+const StageGateResultsPanel = defineAsyncComponent(() => import('./components/StageGateResultsPanel.vue'))
+const ProjectTaskTree = defineAsyncComponent(() => import('./components/ProjectTaskTree.vue'))
+const ProjectExecutionHistory = defineAsyncComponent(() => import('./components/ProjectExecutionHistory.vue'))
+const ProjectSiteSurveyPanel = defineAsyncComponent(() => import('@/views/pms/delivery-business/site-survey/index.vue'))
+const DeliverableSummaryPanel = defineAsyncComponent(() => import('@/views/pms/engineering/deliverable/summary/index.vue'))
+const TrainingWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/training/index.vue'))
+const ArrivalAcceptanceWorkbench = defineAsyncComponent(() => import('./components/ProjectArrivalReceiptPanel.vue'))
+const InstallationWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue'))
+const ConfigurationWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/configuration/with-device-logs.vue'))
+const JointTestWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/joint-test/with-device-logs.vue'))
+const SolutionWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/solution-reviewed/index.vue'))
+const MaterialExchWorkbench = defineAsyncComponent(() => import('@/views/pms/engineering/material-exch/index.vue'))
+const ProjectCutoverTasks = defineAsyncComponent(() => import('@/views/pms/cutover/project-tasks/index.vue'))
+const ProjectDeviceLogsPanel = defineAsyncComponent(() => import('./components/ProjectDeviceLogsPanel.vue'))
+const SatisfactionWorkbench = defineAsyncComponent(() => import('@/views/pms/acceptance/satisfaction/index.vue'))
+const AcceptanceReportWorkbench = defineAsyncComponent(() => import('@/views/pms/acceptance/acceptance-report/index.vue'))
+const ProjectRequirementAnalysisPanel = defineAsyncComponent(() => import('@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'))
+const DeliveryModuleTable = defineAsyncComponent(() => import('@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'))
 
 defineOptions({ name: 'PmsProjectMasterDetail' })
 
