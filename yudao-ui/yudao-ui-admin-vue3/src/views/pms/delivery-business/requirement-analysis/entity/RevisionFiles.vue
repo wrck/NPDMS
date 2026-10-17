@@ -1,7 +1,5 @@
 <template>
-  <details class="controlled-file-field" :open="topologyRequired && canWrite">
-    <summary>{{ topologyRequired ? '网络拓扑附件' : '附件' }}<span v-if="current.length">（{{ current.length }}）</span><span v-else> · {{ canWrite ? '添加文件' : '暂无文件' }}</span></summary>
-    <p v-if="topologyRequired && canWrite" class="file-requirement" role="note">完成需求分析前，至少上传一个有效的网络拓扑附件；草稿可先保存。</p>
+  <section class="controlled-file-field" aria-label="需求分析附件">
     <div v-for="fact in current" :key="fact.referenceKey" class="file-slot">
       <PmsFileReferenceList
         owner-context="SOL"
@@ -18,6 +16,8 @@
       />
       <PmsFileUploader
         v-if="canWrite"
+        auto-submit
+        hide-submit
         owner-context="SOL"
         object-type="REQUIREMENT_ANALYSIS_REVISION"
         :object-id="String(revisionId)"
@@ -35,6 +35,8 @@
     </div>
     <PmsFileUploader
       v-if="canWrite"
+        auto-submit
+        hide-submit
       owner-context="SOL"
       object-type="REQUIREMENT_ANALYSIS_REVISION"
       :object-id="String(revisionId)"
@@ -46,7 +48,7 @@
       @completed="handleCompleted"
     />
     <el-empty v-else-if="!current.length" description="暂无文件材料" :image-size="56" />
-  </details>
+  </section>
 </template>
 
 <script setup lang="ts">
@@ -85,7 +87,6 @@ const toVisibleFiles = (facts: DynamicFormFileFactVO[]): VisibleFile[] =>
 const current = ref<VisibleFile[]>(toVisibleFiles(props.currentFacts))
 const uploadSlotKey = ref(generateUUID())
 const purposeCode = computed(() => `FORM_FIELD_ATTACHMENT/${props.fieldKey || ''}`)
-const topologyRequired = computed(() => props.fieldKey === 'NETWORK_TOPOLOGY__ATTACHMENTS')
 const canWrite = computed(
   () => !!props.revisionId && !props.disabled && props.allowedActions.includes('PATCH_FORM')
 )
@@ -144,11 +145,4 @@ watch(
     width: 100%;
   }
 }
-</style>
-
-<style scoped>
-summary { cursor: pointer; color: var(--el-color-primary); font-size: 13px; padding: 8px 0; }
-summary span { color: var(--el-text-color-secondary); }
-.file-requirement { margin: 0; color: var(--el-text-color-regular); font-size: 13px; }
-details[open] summary { margin-bottom: 8px; }
 </style>

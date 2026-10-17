@@ -20,7 +20,7 @@ describe('requirement analysis without secure-context randomUUID', () => {
     const draft = mount(RevisionFiles, { revisionId: '11', fieldKey: 'NETWORK_TOPOLOGY__ATTACHMENTS', allowedActions: ['PATCH_FORM'] })
     const history = mount(RevisionFiles, { revisionId: '12', fieldKey: 'NETWORK_TOPOLOGY__ATTACHMENTS', disabled: true })
     await nextTick()
-    expect(textOf(draft.root)).toContain('至少上传一个有效的网络拓扑附件')
+    expect(textOf(draft.root)).not.toContain('至少上传')
     expect(textOf(draft.root)).toContain('upload')
     expect(textOf(history.root)).not.toContain('至少上传')
     expect(textOf(history.root)).not.toContain('upload')
@@ -31,7 +31,7 @@ describe('requirement analysis without secure-context randomUUID', () => {
     insecureCrypto()
     const view = mount(RevisionFiles, { revisionId: '11', fieldKey: 'BACKGROUND__ATTACHMENTS' })
     await nextTick()
-    expect(textOf(view.root)).toContain('附件')
+    expect(textOf(view.root)).not.toContain('upload')
     view.app.unmount()
   })
 

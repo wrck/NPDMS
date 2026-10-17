@@ -20,7 +20,7 @@
         </div>
       </template>
     </el-upload>
-    <div class="upload-feedback" :class="{ 'upload-feedback--auto': autoSubmit }">
+    <div class="upload-feedback" :class="{ 'upload-feedback--auto': autoSubmit && !hideSubmit }">
     <el-progress v-if="busy" :percentage="progress" class="upload-progress" />
     <div v-if="busy" class="upload-state" role="status" aria-live="polite">
       {{ stage === 'UPLOADING' ? '正在上传文件' : '上传完成，服务端正在执行适用校验' }}
@@ -100,7 +100,9 @@ const selectFile = (file: UploadFile) => {
   }
   uploadFailed.value = false
   selectedFile.value = file.raw
-  if (props.autoSubmit && file.status === 'ready' && file.raw && !props.disabled && !busy.value) void submit().catch(() => { message.error('上传未完成，请点击重试上传') })
+  if (props.autoSubmit && file.status === 'ready' && file.raw && !props.disabled && !busy.value) void submit().catch(() => {
+    message.error(props.hideSubmit ? '上传未完成，请移除文件后重新选择' : '上传未完成，请点击重试上传')
+  })
 }
 const removeFile = () => {
   uploadFailed.value = false

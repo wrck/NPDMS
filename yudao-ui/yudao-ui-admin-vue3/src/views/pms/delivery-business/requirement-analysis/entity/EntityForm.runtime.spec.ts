@@ -31,6 +31,23 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key,value), removeItem: (key: string) => values.delete(key) })
 })
 describe('independent requirement entity form', () => {
+  it('uses the latest compatible revision of the configured template for a clean draft', async () => {
+    const view = detail()
+    const layout = (revisionNo: number, id: string) => ({ ...view.form!, revisionNo,
+      binding: { ...view.form!.binding, formRevisionId: id },
+      formRulesJson: JSON.stringify([{ type: 'input', field: 'PROJECT_BACKGROUND', title: `revision-${revisionNo}` }]) })
+    vi.mocked(api.presentations).mockResolvedValueOnce({ defaultTemplateId: '51', defaultRevisionId: '52', options: [
+      { name: 'original', layout: layout(3, '52') }, { name: 'latest', layout: layout(10, '60') }
+    ] })
+    let rendered: any
+    const capture = defineComponent({ props: { rule: Array }, setup(props) { rendered = props; return () => h('div') } })
+    const mounted = mount(EntityForm, { detail: view }, { 'form-create': capture })
+    try {
+      for (let i = 0; i < 6; i++) await nextTick()
+      expect(rendered.rule[0].title).toBe('revision-10')
+      expect(api.save).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
   it('keeps frozen source layout, labels and validation even when a new default template is available', async () => {
     const view = detail()
     view.revision.state = 'FROZEN'; view.allowedActions = []
@@ -39,7 +56,7 @@ describe('independent requirement entity form', () => {
     const next = { ...view.form!, templateId: '99', binding: { ...view.form!.binding, formRevisionId: '100' }, formRulesJson: JSON.stringify(nextTemplate.formRulesJson) }
     vi.mocked(api.presentations).mockResolvedValueOnce({ defaultTemplateId: '99', options: [{ name: '新修订', layout: next }] })
     let rendered: any
-    const capture = defineComponent({ props: ['rule', 'option'], setup(props) { rendered = props; return () => h('div') } })
+    const capture = defineComponent({ props: { rule: Array, option: Object }, setup(props) { rendered = props; return () => h('div') } })
     const mounted = mount(EntityForm, { detail: view }, { 'form-create': capture })
     try {
       for (let i = 0; i < 6; i++) await nextTick()
@@ -64,7 +81,7 @@ describe('independent requirement entity form', () => {
     view.attachments = [{ key: { purposeCode: 'FORM_FIELD_ATTACHMENT/PROJECT_BACKGROUND__ATTACHMENTS' }, scopeVersion: 3, activeFacts: [] }]
     const before = JSON.stringify(view)
     let rendered: any
-    const capture = defineComponent({ props: ['rule', 'modelValue'], setup(props) { rendered = props; return () => h('div') } })
+    const capture = defineComponent({ props: { rule: Array, modelValue: Object }, setup(props) { rendered = props; return () => h('div') } })
     const mounted = mount(EntityForm, { detail: view }, { 'form-create': capture })
     try {
       await nextTick()
@@ -85,7 +102,7 @@ describe('independent requirement entity form', () => {
     const rows = [{ deviceName: '设备A', serialNumber: 'SN-A', remark: '保留备注' }]
     view.values.businessDeviceDetails = rows
     let rendered: any
-    const capture = defineComponent({ props: ['rule', 'modelValue'], setup(props) {
+    const capture = defineComponent({ props: { rule: Array, modelValue: Object }, setup(props) {
       rendered = props
       return () => h('div')
     } })
@@ -144,12 +161,14 @@ describe('independent requirement entity form', () => {
     const view = detail(), form = ref<any>()
     const layout = { ...view.form!, binding: { ...view.form!.binding, formRevisionId: '61', fieldBindings: { count: 'count' } },
       formRulesJson: JSON.stringify([{ type: 'inputNumber', field: 'count' }]) }
-    vi.mocked(api.presentations).mockResolvedValue({ options: [{ name: '简表', layout }] })
+    let resolvePresentations!: (value: any) => void
+    vi.mocked(api.presentations).mockImplementationOnce(() => new Promise(resolve => { resolvePresentations = resolve }))
     vi.mocked(api.save).mockResolvedValue(view.revision)
     const reload = async () => ({ ...view, revision: { ...view.revision, version: 7 }, values: { projectBackground: 'changed', count: 0, enabled: false } })
     const mounted = mount(defineComponent({ setup: () => () => h(EntityForm, { detail: view, reload, ref: form }) }), {}, { 'form-create': renderer })
     await nextTick(); await nextTick()
     await (findByTestId(mounted.root, 'edit')!.props!.onClick as Function)(); await nextTick()
+    resolvePresentations({ options: [{ name: '简表', layout }] }); await nextTick(); await nextTick()
     form.value.switchPresentation('61'); await nextTick()
     expect(form.value.isDirty()).toBe(true)
     expect(api.save).not.toHaveBeenCalled()

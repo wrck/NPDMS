@@ -1,15 +1,6 @@
 <template>
   <section class="requirement-form-shell" aria-label="需求分析动态表单">
-    <div class="presentation-toolbar">
-      <label for="requirement-presentation">展示模板</label>
-      <el-select id="requirement-presentation" :model-value="selectedPresentation" :disabled="saving" style="width: 300px" @change="switchPresentation">
-        <el-option label="基础业务表单" value="base" />
-        <el-option v-if="detail.form" label="原始展示模板" value="original" />
-        <el-option v-for="option in presentationOptions" :key="String(option.layout.binding.formRevisionId)"
-          :label="`${option.name} · V${option.layout.revisionNo}`" :value="String(option.layout.binding.formRevisionId)" />
-      </el-select>
-      <span v-if="presentationError" role="status">{{ presentationError }}</span>
-    </div>
+    <p v-if="presentationError" role="status">{{ presentationError }}</p>
     <div v-form-create-keyboard-rows="!editable" class="form-host" :class="{ 'is-readonly': !editable }">
       <form-create
         v-model="values"
@@ -86,10 +77,14 @@ const loadPresentations = async () => {
     if (sequence !== presentationSequence) return
     presentationOptions.value = result.options
     presentationError.value = ''
-    if (editable.value && (result.defaultRevisionId != null || !props.detail.form && selectedPresentation.value === 'base') && !dirty.value) {
-      const preferred = result.options.find(option => result.defaultRevisionId != null
-        ? String(option.layout.binding.formRevisionId) === String(result.defaultRevisionId)
-        : result.defaultTemplateId != null && String(option.layout.templateId) === String(result.defaultTemplateId))
+    if (editable.value && !dirty.value) {
+      const configured = result.options.find(option =>
+        String(option.layout.binding.formRevisionId) === String(result.defaultRevisionId))
+      const templateId = result.defaultTemplateId ?? configured?.layout.templateId ?? props.detail.form?.templateId
+      const candidates = result.options.filter(option => templateId == null ||
+        String(option.layout.templateId) === String(templateId))
+      const preferred = candidates.reduce<PresentationOption | undefined>((latest, option) =>
+        !latest || option.layout.revisionNo > latest.layout.revisionNo ? option : latest, undefined)
       if (preferred) switchPresentation(String(preferred.layout.binding.formRevisionId))
     }
   } catch {
@@ -149,6 +144,9 @@ const apply = (source: View, preserve?: JsonObject) => {
         type: 'input', props: { type: 'textarea' }, validate: field.required ? [{ required: true, message: '请填写此项' }] : [] })) }
   const fields = collectValueFields(decoded.rule as JsonObject[])
   const visit = (rules: JsonObject[]) => rules.forEach(rule => {
+    if (detail.revision.state === 'DRAFT' && rule.field === 'BUSINESS_DEVICE_DETAILS') {
+      rule.title = '6、客户当前运行业务情况'
+    }
     if (rule.type === 'PmsFileArtifact' && typeof rule.field === 'string') {
       const set = detail.attachments.find(item => item.key.purposeCode === `FORM_FIELD_ATTACHMENT/${rule.field}`)
       rule.type = 'RequirementRevisionFiles'
@@ -281,14 +279,6 @@ defineExpose({ save, discardChanges, isDirty: () => dirty.value, isSaving: () =>
 .requirement-form-shell,
 .form-host {
   min-width: 0;
-}
-
-.presentation-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
 }
 
 .form-actions {
