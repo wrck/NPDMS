@@ -34,8 +34,13 @@ public class InspectionAccessService {
     }
 
     public ProjectBusinessContextApi.AccessScope queryScope(InspectionRequestContext context) {
-        return projects.currentActorScope(ProjectBusinessContextApi.ActorQuery.builder()
+        var scope = projects.currentActorScope(ProjectBusinessContextApi.ActorQuery.builder()
                 .tenantId(context.tenantId()).actorId(context.actorId()).build());
+        if (permissions.hasAnyRoles(context.actorId(), "PROJECT_MANAGER")) {
+            // Assigned/authorized project visibility only; this set never grants task commands.
+            return new ProjectBusinessContextApi.AccessScope(scope.visibleProjectIds(), scope.visibleProjectIds());
+        }
+        return scope;
     }
 
     public ProjectBusinessContextApi.Context project(ProjectAccess request) {
@@ -80,7 +85,9 @@ public class InspectionAccessService {
             throw new InspectionException(InspectionException.Reason.NOT_FOUND, "巡检任务不存在或不可见");
         var project = project(new ProjectAccess(context, task.getProjectId(), request.write()));
         boolean manager = manager(new ProjectAccess(context, task.getProjectId(), request.write()));
-        if (request.managerOnly() ? !manager : (!Objects.equals(task.getOwnerUserId(), context.actorId()) && !manager))
+        boolean projectManagerRead = !request.write() && !request.managerOnly()
+                && permissions.hasAnyRoles(context.actorId(), "PROJECT_MANAGER");
+        if (!projectManagerRead && (request.managerOnly() ? !manager : (!Objects.equals(task.getOwnerUserId(), context.actorId()) && !manager)))
             forbidden();
         if (request.write()) {
             task = tasks.selectForUpdate(new InspectionTaskRows(context.tenantId(), request.taskId()));

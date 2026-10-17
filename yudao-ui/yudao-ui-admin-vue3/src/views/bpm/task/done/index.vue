@@ -179,7 +179,7 @@
       <el-table-column align="center" label="任务编号" prop="id" :show-overflow-tooltip="true" />
       <el-table-column align="center" label="操作" fixed="right" width="130">
         <template #default="scope">
-          <el-button link type="warning" @click="handleWithdraw(scope.row)">撤回</el-button>
+          <el-button v-if="!serviceManagerApprovalOnly" v-hasPermi="['bpm:task:update']" link type="warning" @click="handleWithdraw(scope.row)">撤回</el-button>
           <el-button link type="primary" @click="handleAudit(scope.row)">历史</el-button>
         </template>
       </el-table-column>
@@ -199,11 +199,15 @@ import { dateFormatter, formatPast2 } from '@/utils/formatTime'
 import * as TaskApi from '@/api/bpm/task'
 import { CategoryApi, CategoryVO } from '@/api/bpm/category'
 import * as DefinitionApi from '@/api/bpm/definition'
+import { useUserStore } from '@/store/modules/user'
+import { checkPermi } from '@/utils/permission'
 
 defineOptions({ name: 'BpmDoneTask' })
 
 const { push } = useRouter() // 路由
 const message = useMessage()
+const serviceManagerApprovalOnly = computed(() => useUserStore().getRoles.includes('SERVICE_MANAGER')
+  && !checkPermi(['bpm:task:manager-query']))
 
 const loading = ref(true) // 列表的加载中
 const total = ref(0) // 列表的总页数

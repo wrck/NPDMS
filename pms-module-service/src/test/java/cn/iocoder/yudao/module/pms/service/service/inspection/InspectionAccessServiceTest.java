@@ -147,6 +147,29 @@ class InspectionAccessServiceTest {
     }
 
     @Test
+    void projectManagerCanReadAnAuthorizedProjectTaskWithoutReceivingCommands() {
+        when(permissions.hasAnyPermissions(ACTOR_ID, QUERY_PERMISSION)).thenReturn(true);
+        when(permissions.hasAnyRoles(ACTOR_ID,"PROJECT_MANAGER")).thenReturn(true);
+        var row = task(); row.setOwnerUserId(99L); when(tasks.selectById(TASK_ID)).thenReturn(row);
+        var request = new InspectionAccessService.TaskAccess(context,TASK_ID,QUERY_PERMISSION,false,false);
+        assertSame(row,service.task(request));
+        var write = new InspectionAccessService.TaskAccess(context,TASK_ID,QUERY_PERMISSION,true,false);
+        assertThrows(InspectionException.class,()->service.task(write));
+        verify(tasks,never()).selectForUpdate(any());
+    }
+
+    @Test
+    void projectManagerReadScopeDoesNotAddProjectsOrChangeCommandMembership() {
+        var facts = new ProjectBusinessContextApi.AccessScope(Set.of(PROJECT_ID),Set.of());
+        doReturn(facts).when(projects).currentActorScope(any());
+        when(permissions.hasAnyRoles(ACTOR_ID,"PROJECT_MANAGER")).thenReturn(true);
+        var readScope=service.queryScope(context);
+        assertEquals(Set.of(PROJECT_ID),readScope.visibleProjectIds());
+        assertEquals(Set.of(PROJECT_ID),readScope.serviceManagedProjectIds());
+        assertFalse(service.manager(projectAccess(false)));
+    }
+
+    @Test
     void fullProjectScopeStillRequiresEitherTaskOwnershipOrCurrentManagerMembershipForReading() {
         when(permissions.hasAnyPermissions(ACTOR_ID, QUERY_PERMISSION)).thenReturn(true);
         var task = task();

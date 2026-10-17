@@ -1,5 +1,12 @@
 package cn.iocoder.yudao.module.pms.engineering.service.jointtest;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.engineering.dal.mysql.jointtest.query.JointTestPageQuery;
+import java.util.Set;
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.engineering.controller.admin.jointtest.vo.JointTestPageReqVO;
@@ -31,6 +38,9 @@ import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*
 public class JointTestServiceImpl implements JointTestService {
 
     @Resource
+    private ProjectScopeApi projectScopeApi;
+
+    @Resource
     private cn.iocoder.yudao.module.pms.asset.api.device.ProjectDeviceSelectionApi deviceSelectionApi;
 
     @Resource
@@ -41,6 +51,7 @@ public class JointTestServiceImpl implements JointTestService {
     @Override
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Long createJointTest(JointTestSaveReqVO createReqVO) {
+        requireManage(createReqVO.getProjectId());
         if (createReqVO.getEquipmentId() != null) {
             deviceSelectionApi.validateSelection(createReqVO.getProjectId(), java.util.List.of(createReqVO.getEquipmentId()));
         }
@@ -56,6 +67,9 @@ public class JointTestServiceImpl implements JointTestService {
     @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void updateJointTest(JointTestSaveReqVO updateReqVO) {
         JointTestDO existing = validateJointTestExists(updateReqVO.getId());
+        requireManage(existing.getProjectId());
+        if (updateReqVO.getProjectId() != null && !Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) throw exception(FORBIDDEN);
+        updateReqVO.setProjectId(existing.getProjectId());
         Long equipmentId = updateReqVO.getEquipmentId() != null ? updateReqVO.getEquipmentId() : existing.getEquipmentId();
         if (equipmentId != null) {
             deviceSelectionApi.validateSelection(updateReqVO.getProjectId(), java.util.List.of(equipmentId));
@@ -73,8 +87,10 @@ public class JointTestServiceImpl implements JointTestService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void deleteJointTest(Long id) {
         JointTestDO entity = validateJointTestExists(id);
+        requireManage(entity.getProjectId());
         if (JointTestStatusRules.isTerminal(entity.getStatus())) {
             throw exception(JOINT_TEST_STATUS_INVALID);
         }
@@ -83,13 +99,15 @@ public class JointTestServiceImpl implements JointTestService {
 
     @Override
     public JointTestDO getJointTest(Long id) {
-        return jointTestMapper.selectById(id);
+        JointTestDO entity = validateJointTestExists(id);
+        requireView(entity.getProjectId());
+        return entity;
     }
 
     @Override
     public JointTestDO validateJointTestExists(Long id) {
         JointTestDO entity = jointTestMapper.selectById(id);
-        if (entity == null) {
+        if (entity == null || !Objects.equals(entity.getTenantId(), TenantContextHolder.getRequiredTenantId())) {
             throw exception(JOINT_TEST_NOT_EXISTS);
         }
         return entity;
@@ -97,29 +115,40 @@ public class JointTestServiceImpl implements JointTestService {
 
     @Override
     public PageResult<JointTestDO> getJointTestPage(JointTestPageReqVO pageReqVO) {
-        return jointTestMapper.selectPage(pageReqVO);
+        Set<Long> visible = projectScopeApi.resolveAllCurrent(new ProjectAllScopeQuery(
+                TenantContextHolder.getRequiredTenantId(), actorId(), ProjectScopeApi.ACTION_VIEW));
+        if (visible == null || visible.isEmpty() || pageReqVO.getProjectId() != null && !visible.contains(pageReqVO.getProjectId())) return PageResult.empty();
+        JointTestPageQuery query = BeanUtils.toBean(pageReqVO, JointTestPageQuery.class);
+        query.setVisibleProjectIds(Set.copyOf(visible));
+        return jointTestMapper.selectPage(query);
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void start(Long id) {
         JointTestDO entity = validateJointTestExists(id);
+        requireManage(entity.getProjectId());
         requireTransition(entity, JointTestStatusRules.Action.START);
         updateStatus(id, JointTestStatusRules.Action.START, entity.getVersion());
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void pass(Long id) {
         JointTestDO entity = validateJointTestExists(id);
+        requireManage(entity.getProjectId());
         requireTransition(entity, JointTestStatusRules.Action.PASS);
         updateStatus(id, JointTestStatusRules.Action.PASS, entity.getVersion());
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void fail(Long id, String exceptionRecord) {
         if (StringUtils.isBlank(exceptionRecord)) {
             throw exception(JOINT_TEST_STATUS_INVALID);
         }
         JointTestDO entity = validateJointTestExists(id);
+        requireManage(entity.getProjectId());
         requireTransition(entity, JointTestStatusRules.Action.FAIL);
         JointTestDO update = new JointTestDO();
         update.setId(id);
@@ -148,6 +177,36 @@ public class JointTestServiceImpl implements JointTestService {
     private void updateRecord(JointTestDO update) {
         if (jointTestMapper.updateById(update) != 1) {
             throw exception(JOINT_TEST_VERSION_NOT_MATCH);
+        }
+    }
+
+    private Long actorId() {
+        Long actor = SecurityFrameworkUtils.getLoginUserId();
+        if (actor == null || actor <= 0) throw exception(FORBIDDEN);
+        return actor;
+    }
+
+    private void requireView(Long projectId) {
+        requireScope(ProjectCurrentScopeQuery.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actorId()).anchorProjectId(projectId).actionCode(ProjectScopeApi.ACTION_VIEW).build());
+    }
+
+    private void requireManage(Long projectId) {
+        requireScope(ProjectCurrentScopeQuery.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actorId()).anchorProjectId(projectId).actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+    }
+
+    private void requireScope(ProjectCurrentScopeQuery query) {
+        if (query.anchorProjectId() == null) throw exception(FORBIDDEN);
+        var scope = projectScopeApi.resolveCurrent(query);
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(query.anchorProjectId())) throw exception(FORBIDDEN);
+        if (ProjectScopeApi.ACTION_MANAGE.equals(query.actionCode())) {
+            var locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                    .tenantId(query.tenantId()).subjectUserId(query.subjectUserId()).anchorProjectId(query.anchorProjectId())
+                    .actionCode(query.actionCode()).expectedScopeVersion(scope.treeVersion()).build());
+            if (locked == null || !Objects.equals(scope.treeVersion(), locked.treeVersion()) || locked.fullProjectIds() == null
+                    || !locked.fullProjectIds().contains(query.anchorProjectId())) throw exception(FORBIDDEN);
         }
     }
 

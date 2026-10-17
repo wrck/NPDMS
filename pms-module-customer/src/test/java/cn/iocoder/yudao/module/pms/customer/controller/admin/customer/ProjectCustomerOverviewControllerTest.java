@@ -32,8 +32,9 @@ class ProjectCustomerOverviewControllerTest {
     @EnableMethodSecurity
     static class Config {
         @Bean ProjectCustomerOverviewService service() { return mock(ProjectCustomerOverviewService.class); }
-        @Bean ProjectCustomerOverviewController controller(ProjectCustomerOverviewService service) {
-            return new ProjectCustomerOverviewController(service);
+        @Bean cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationService commands() { return mock(cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationService.class); }
+        @Bean ProjectCustomerOverviewController controller(ProjectCustomerOverviewService service, cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationService commands) {
+            return new ProjectCustomerOverviewController(service,commands);
         }
         @Bean(name = "ss") PermissionCheck permissions() { return new PermissionCheck(); }
     }
@@ -76,5 +77,17 @@ class ProjectCustomerOverviewControllerTest {
         when(service.get(query)).thenReturn(customer);
         assertSame(customer, controller.get(100L).getData());
         verify(service).get(query);
+    }
+    @Test
+    void projectCustomerWriteRequiresBothPermissionsAndUsesTrustedIdentity() {
+        var request = new ProjectCustomerOverviewController.ExtensionRequest("test remark");
+        permissions.granted.add("pms:customer:update");
+        assertThrows(AccessDeniedException.class,()->controller.update(100L,request,2L,"key"));
+        permissions.granted.clear(); permissions.granted.add("pms:project:query");
+        assertThrows(AccessDeniedException.class,()->controller.update(100L,request,2L,"key"));
+        permissions.granted.add("pms:customer:update");
+        controller.update(100L,request,2L,"key");
+        verify(context.getBean(cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationService.class)).updateProjectExtension(
+                new cn.iocoder.yudao.module.pms.customer.service.customer.command.ProjectCustomerExtensionCommand(1L,100L,"test remark",2L,"key"));
     }
 }

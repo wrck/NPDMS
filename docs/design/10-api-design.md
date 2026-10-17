@@ -567,6 +567,7 @@ F-SOL-003现已形成首个真实调用方，因此F-PLT-002前向增加`Dynamic
 - 客户动作路径为`/{id}/actions/{disable|delete|restore}`；删除必须完成全部`CustomerReferenceGuardApi`检查。
 - 客户地点路径为`/{id}/locations`，仅维护CUS对Address/Site的引用，写入前调用AST校验。
 - `GET /api/v1/pms/projects/{projectId}/customer-overview`由CUS提供项目客户只读摘要：要求`pms:project:query`及`pms:customer:query`，先经PROJ公开`ProjectContactContextApi.inspect`核验调用者当前项目查看范围，再按Owner返回的唯一客户ID读取同租户客户。请求不接受客户ID或编码；未绑定客户返回null，绑定客户不存在时沿用客户不存在错误。响应复用`CustomerRespVO`及既有联系方式脱敏，不附带其他项目、设备、地点或全局变更历史；停用客户的既有项目引用继续展示。客户主档全局查询与修改范围不因此扩大。
+- `PUT /api/v1/pms/projects/{projectId}/customer-overview`由CUS维护当前项目唯一关联客户的平台备注，仅接受`remark`，要求`pms:project:query`及`pms:customer:update`，必须携带`If-Match`客户版本和`Idempotency-Key`。CUS通过PROJ既有范围契约解析并锁定重验当前MANAGE完整项目范围，再由`ProjectContactContextApi.inspect`取得同租户唯一客户；不接受客户端客户ID、不修改项目绑定或CRM权威字段。复用CUS更新、乐观锁、幂等、历史、审计及事件；项目未关联、范围撤销、非ACTIVE项目和旧版本均拒绝且无成功副作用。该入口不授予客户主档全局范围，也不覆盖既有历史。
 - 设备客户归属命令固定为`POST /api/v1/pms/devices/{id}/actions/assign-customer`，携带目标客户、关系类型、原因、`If-Match`和幂等键。
 - 设备详情采用固定摘要外壳和分Tab DTO；每个Tab统一返回`sourceSystem/sourceVersion/dataAsOf/syncStatus`。官网信息通过`KnowledgePublicProductInfoQueryApi`查询KNO已发布版本。
 - 配置Log下载链接默认5分钟、可配置、绑定当前用户和文件；每次生成前重新校验设备查询与文件下载权限。

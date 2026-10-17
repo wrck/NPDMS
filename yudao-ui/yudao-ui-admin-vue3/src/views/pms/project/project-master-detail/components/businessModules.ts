@@ -1,3 +1,4 @@
+import { checkPermi } from '@/utils/permission'
 // 业务中心全流程五组导航（工前准备/制定施工计划/实施方案/实施部署/验收交维），
 // 分组口径对齐 DemoV2 左侧导航 + PRD S0~S6 阶段主线；key 指向本页既有工作台页签或 businessModuleConfigs 模块面板。
 // 原基本信息组（项目信息/配置Log/团队成员/用户联系人）与项目概览重复已移除：
@@ -188,9 +189,9 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
     label: '项目闭环',
     icon: 'ep:lock',
     load: (pid, pageNo, pageSize) => ProjectClosureApi.getProjectClosurePage({ projectId: pid, pageNo, pageSize }),
-    create: (data) => ProjectClosureApi.createProjectClosure(data),
-    update: (data) => ProjectClosureApi.updateProjectClosure(data),
-    delete: (id) => ProjectClosureApi.deleteProjectClosure(id),
+    get create() { return checkPermi(['pms:acc-project-closure:create']) ? ProjectClosureApi.createProjectClosure : undefined },
+    get update() { return checkPermi(['pms:acc-project-closure:update']) ? ProjectClosureApi.updateProjectClosure : undefined },
+    get delete() { return checkPermi(['pms:acc-project-closure:delete']) ? ProjectClosureApi.deleteProjectClosure : undefined },
     columns: [
       { prop: 'name', label: '闭环名称', minWidth: 180 },
       { prop: 'applicationDate', label: '申请日期', width: 120, type: 'time' },
@@ -202,11 +203,11 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
     canEdit: (r) => r.status === 0,
     canDelete: (r) => r.status === 0 || r.status === 4,
     actions: [
-      { label: '提交', type: 'primary', show: (r) => r.status === 0, run: (r) => ProjectClosureApi.submitProjectClosure(r.id, r.projectId), confirm: '提交该闭环申请？' },
-      { label: '开始审批', type: 'success', show: (r) => r.status === 1, run: (r) => ProjectClosureApi.startApproveProjectClosure(r.id), confirm: '开始审批该闭环申请？' },
-      { label: '通过', type: 'success', show: (r) => r.status === 2, run: (r) => ProjectClosureApi.passProjectClosure(r.id), confirm: '通过该闭环申请？' },
-      { label: '驳回', type: 'danger', show: (r) => r.status === 2, run: (r) => ProjectClosureApi.rejectProjectClosure(r.id), confirm: '驳回该闭环申请？' },
-      { label: '归档', type: 'info', show: (r) => r.status === 3, run: (r) => ProjectClosureApi.archiveProjectClosure(r.id), confirm: '归档该闭环记录？' }
+      { label: '提交', type: 'primary', show: (r) => checkPermi(['pms:acc-project-closure:submit']) && r.status === 0, run: (r) => ProjectClosureApi.submitProjectClosure(r.id, r.projectId), confirm: '提交该闭环申请？' },
+      { label: '开始审批', type: 'success', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 1, run: (r) => ProjectClosureApi.startApproveProjectClosure(r.id), confirm: '开始审批该闭环申请？' },
+      { label: '通过', type: 'success', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 2, run: (r) => ProjectClosureApi.passProjectClosure(r.id), confirm: '通过该闭环申请？' },
+      { label: '驳回', type: 'danger', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 2, run: (r) => ProjectClosureApi.rejectProjectClosure(r.id), confirm: '驳回该闭环申请？' },
+      { label: '归档', type: 'info', show: (r) => checkPermi(['pms:acc-project-closure:audit']) && r.status === 3, run: (r) => ProjectClosureApi.archiveProjectClosure(r.id), confirm: '归档该闭环记录？' }
     ]
   },
   'archive-document': {

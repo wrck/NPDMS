@@ -1,5 +1,12 @@
 package cn.iocoder.yudao.module.pms.project.service.projectclosure;
 
+import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.*;
+import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectclosure.query.ProjectClosurePageQuery;
+import java.util.Set;
+import static cn.iocoder.yudao.framework.common.exception.enums.GlobalErrorCodeConstants.FORBIDDEN;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
@@ -44,6 +51,9 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.ACC_P
 @Service
 @Validated
 public class ProjectClosureServiceImpl implements ProjectClosureService {
+
+    @Resource
+    private ProjectScopeApi projectScopeApi;
 
     /**
      * 状态：0草稿
@@ -103,7 +113,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     private ProjectClosureGuardService projectClosureGuardService;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public Long createProjectClosure(ProjectClosureSaveReqVO createReqVO) {
+        requireManage(createReqVO.getProjectId());
+        if (createReqVO.getStatus() != null && createReqVO.getStatus() != STATUS_DRAFT) throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         // 插入；编码由系统按项目编码自动生成
         ProjectClosureDO entity = BeanUtils.toBean(createReqVO, ProjectClosureDO.class);
         entity.setCode(nextClosureCode(createReqVO.getProjectId()));
@@ -118,8 +131,12 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void updateProjectClosure(ProjectClosureSaveReqVO updateReqVO) {
         ProjectClosureDO existing = validateExists(updateReqVO.getId());
+        requireManage(existing.getProjectId());
+        if (updateReqVO.getProjectId() != null && !Objects.equals(existing.getProjectId(), updateReqVO.getProjectId())) throw exception(FORBIDDEN);
+        updateReqVO.setProjectId(existing.getProjectId());
         // 仅草稿态允许修改核心字段（编码由系统生成不可改）
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
@@ -131,8 +148,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void deleteProjectClosure(Long id) {
         ProjectClosureDO existing = validateExists(id);
+        requireManage(existing.getProjectId());
         // 仅草稿或已驳回状态允许删除
         if (!Objects.equals(existing.getStatus(), STATUS_DRAFT)
                 && !Objects.equals(existing.getStatus(), STATUS_REJECTED)) {
@@ -143,18 +162,26 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
 
     @Override
     public PageResult<ProjectClosureDO> getProjectClosurePage(ProjectClosurePageReqVO pageReqVO) {
-        return projectClosureMapper.selectPage(pageReqVO);
+        Set<Long> visible = projectScopeApi.resolveAllCurrent(new ProjectAllScopeQuery(
+                TenantContextHolder.getRequiredTenantId(), actorId(), ProjectScopeApi.ACTION_VIEW));
+        if (visible == null || visible.isEmpty() || pageReqVO.getProjectId() != null && !visible.contains(pageReqVO.getProjectId())) return PageResult.empty();
+        ProjectClosurePageQuery query = BeanUtils.toBean(pageReqVO, ProjectClosurePageQuery.class);
+        query.setVisibleProjectIds(Set.copyOf(visible));
+        return projectClosureMapper.selectPage(query);
     }
 
     @Override
     public ProjectClosureDO getProjectClosure(Long id) {
-        return projectClosureMapper.selectById(id);
+        ProjectClosureDO entity = validateExists(id);
+        requireView(entity.getProjectId());
+        return entity;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void submitProjectClosure(Long id, long expectedTreeVersion, ProjectClosureGuardService.Actor actor) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_DRAFT)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -173,8 +200,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void startApprove(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_PENDING_APPROVE)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -182,8 +211,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void passProjectClosure(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -197,8 +228,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void rejectProjectClosure(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_APPROVING)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -210,8 +243,10 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
     }
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public void archiveProjectClosure(Long id) {
         ProjectClosureDO entity = validateExists(id);
+        requireManage(entity.getProjectId());
         if (!Objects.equals(entity.getStatus(), STATUS_PASSED)) {
             throw exception(ACC_PROJECT_CLOSURE_STATUS_INVALID);
         }
@@ -260,7 +295,7 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
             throw exception(ACC_PROJECT_CLOSURE_NOT_EXISTS);
         }
         ProjectClosureDO entity = projectClosureMapper.selectById(id);
-        if (entity == null) {
+        if (entity == null || !Objects.equals(entity.getTenantId(), TenantContextHolder.getRequiredTenantId())) {
             throw exception(ACC_PROJECT_CLOSURE_NOT_EXISTS);
         }
         return entity;
@@ -281,6 +316,36 @@ public class ProjectClosureServiceImpl implements ProjectClosureService {
                         .eq(ProjectClosureDO::getProjectId, projectId))
                 .stream().map(ProjectClosureDO::getCode).filter(Objects::nonNull).toList();
         return ProjectScopedCodes.next(project.getProjectCode(), "BH", existing);
+    }
+
+    private Long actorId() {
+        Long actor = SecurityFrameworkUtils.getLoginUserId();
+        if (actor == null || actor <= 0) throw exception(FORBIDDEN);
+        return actor;
+    }
+
+    private void requireView(Long projectId) {
+        requireScope(ProjectCurrentScopeQuery.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actorId()).anchorProjectId(projectId).actionCode(ProjectScopeApi.ACTION_VIEW).build());
+    }
+
+    private void requireManage(Long projectId) {
+        requireScope(ProjectCurrentScopeQuery.builder().tenantId(TenantContextHolder.getRequiredTenantId())
+                .subjectUserId(actorId()).anchorProjectId(projectId).actionCode(ProjectScopeApi.ACTION_MANAGE).build());
+    }
+
+    private void requireScope(ProjectCurrentScopeQuery query) {
+        if (query.anchorProjectId() == null) throw exception(FORBIDDEN);
+        var scope = projectScopeApi.resolveCurrent(query);
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(query.anchorProjectId())) throw exception(FORBIDDEN);
+        if (ProjectScopeApi.ACTION_MANAGE.equals(query.actionCode())) {
+            var locked = projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                    .tenantId(query.tenantId()).subjectUserId(query.subjectUserId()).anchorProjectId(query.anchorProjectId())
+                    .actionCode(query.actionCode()).expectedScopeVersion(scope.treeVersion()).build());
+            if (locked == null || !Objects.equals(scope.treeVersion(), locked.treeVersion()) || locked.fullProjectIds() == null
+                    || !locked.fullProjectIds().contains(query.anchorProjectId())) throw exception(FORBIDDEN);
+        }
     }
 
 }

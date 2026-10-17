@@ -82,7 +82,7 @@
       show-section-header
       @changed="emit('changed')"
     />
-    <CustomerFormDrawer ref="customerFormRef" @success="load" />
+    <ProjectCustomerExtensionDrawer ref="customerFormRef" :project-id="project.id" @success="load" />
   </div>
 </template>
 
@@ -93,14 +93,14 @@ import * as ServiceLevelApi from '@/api/pms/customer/service-level'
 import type { CustomerRespVO } from '@/api/pms/customer'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
 import ProjectCustomerContacts from '@/views/pms/customer/contacts/index.vue'
-import CustomerFormDrawer from '@/views/pms/customer/components/CustomerFormDrawer.vue'
+import ProjectCustomerExtensionDrawer from './ProjectCustomerExtensionDrawer.vue'
 import { checkPermi } from '@/utils/permission'
 
 const props = defineProps<{ project: ProjectMasterVO }>()
 const emit = defineEmits<{ changed: [] }>()
 const customer = ref<CustomerRespVO>()
 const serviceLevel = ref('')
-const customerFormRef = ref<InstanceType<typeof CustomerFormDrawer>>()
+const customerFormRef = ref<InstanceType<typeof ProjectCustomerExtensionDrawer>>()
 const customerError = ref('')
 const customerLoading = ref(false)
 let loadSequence = 0
@@ -130,7 +130,7 @@ const customerSource = computed(
 )
 
 const openCustomerForm = async () => {
-  if (customer.value) customerFormRef.value?.open(await CustomerApi.getCustomer(customer.value.id))
+  if (customer.value) await customerFormRef.value?.open()
 }
 
 const load = async () => {

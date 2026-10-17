@@ -10,7 +10,7 @@ vi.mock('@/api/pms/customer', () => ({
 vi.mock('@/api/pms/customer/service-level', () => ({ getServiceLevelPage: vi.fn() }))
 vi.mock('@/utils/permission', () => ({ checkPermi: () => false }))
 vi.mock('@/views/pms/customer/contacts/index.vue', () => ({ default: defineComponent({ setup: () => () => h('contacts') }) }))
-vi.mock('@/views/pms/customer/components/CustomerFormDrawer.vue', () => ({ default: defineComponent({ setup: () => () => h('drawer') }) }))
+vi.mock('./ProjectCustomerExtensionDrawer.vue', () => ({ default: defineComponent({ setup: () => () => h('drawer') }) }))
 
 beforeEach(() => vi.clearAllMocks())
 const settle = async () => { await nextTick(); await nextTick(); await nextTick() }

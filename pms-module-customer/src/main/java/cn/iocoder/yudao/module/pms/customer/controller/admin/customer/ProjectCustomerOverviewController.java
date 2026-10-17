@@ -19,6 +19,21 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
 @RequestMapping("/api/v1/pms/projects/{projectId}/customer-overview")
 public class ProjectCustomerOverviewController {
     private final ProjectCustomerOverviewService service;
+    private final cn.iocoder.yudao.module.pms.customer.service.customer.CustomerApplicationService commands;
+
+    public record ExtensionRequest(String remark) { }
+
+    @org.springframework.web.bind.annotation.PutMapping
+    @PreAuthorize("@ss.hasPermission('pms:project:query') and @ss.hasPermission('pms:customer:update')")
+    public CommonResult<cn.iocoder.yudao.module.pms.customer.service.customer.command.CustomerCommandResult> update(
+            @PathVariable("projectId") Long projectId,
+            @org.springframework.web.bind.annotation.RequestBody ExtensionRequest request,
+            @org.springframework.web.bind.annotation.RequestHeader("If-Match") Long expectedVersion,
+            @org.springframework.web.bind.annotation.RequestHeader("Idempotency-Key") String idempotencyKey) {
+        return success(commands.updateProjectExtension(new cn.iocoder.yudao.module.pms.customer.service.customer.command.ProjectCustomerExtensionCommand(
+                TenantContextHolder.getRequiredTenantId(),projectId,request.remark(),expectedVersion,idempotencyKey)));
+    }
+
 
     @GetMapping
     @PreAuthorize("@ss.hasPermission('pms:project:query') and @ss.hasPermission('pms:customer:query')")
