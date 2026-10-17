@@ -30,6 +30,17 @@ import static cn.iocoder.yudao.module.pms.asset.enums.ErrorCodeConstants.*;
 @RequiredArgsConstructor
 public class AssetLocationApiImpl implements AssetLocationApi {
 
+    @Override
+    public List<SiteRespDTO> getCustomerSites(CustomerSiteQuery query) {
+        if (query == null || query.customerId() == null || !Objects.equals(query.tenantId(),
+                cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.getRequiredTenantId())) {
+            throw exception(AST_LOCATION_REFERENCE_INVALID);
+        }
+        return siteMapper.selectCurrentCustomerSites(
+                new cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.CurrentCustomerSiteListQuery(
+                        query.tenantId(), query.customerId())).stream().map(this::toSiteResp).toList();
+    }
+
     private static final String SOURCE_SYSTEM_PMS = "PMS";
 
     private final cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customerQueryApi;

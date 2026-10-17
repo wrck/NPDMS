@@ -37,6 +37,12 @@ class ProjectCustomerOverviewControllerTest {
             return new ProjectCustomerOverviewController(service,commands);
         }
         @Bean(name = "ss") PermissionCheck permissions() { return new PermissionCheck(); }
+        @Bean cn.iocoder.yudao.module.pms.customer.service.query.ProjectCustomerLocationService locations() {
+            return mock(cn.iocoder.yudao.module.pms.customer.service.query.ProjectCustomerLocationService.class);
+        }
+        @Bean ProjectCustomerLocationController locationController(cn.iocoder.yudao.module.pms.customer.service.query.ProjectCustomerLocationService locations) {
+            return new ProjectCustomerLocationController(locations);
+        }
     }
 
     public static class PermissionCheck {
@@ -67,6 +73,20 @@ class ProjectCustomerOverviewControllerTest {
             assertThrows(AccessDeniedException.class, () -> controller.get(100L));
         }
         verifyNoInteractions(service);
+    }
+
+    @Test
+    void locationLookupRequiresBothPermissionsAndPassesOnlyTrustedIdentity() {
+        var locations = context.getBean(cn.iocoder.yudao.module.pms.customer.service.query.ProjectCustomerLocationService.class);
+        var endpoint = context.getBean(ProjectCustomerLocationController.class);
+        for (String key : List.of("pms:project:query", "pms:customer:query")) {
+            permissions.granted.clear(); permissions.granted.add(key);
+            assertThrows(AccessDeniedException.class, () -> endpoint.get(100L,21L));
+        }
+        verifyNoInteractions(locations);
+        permissions.granted.addAll(Set.of("pms:project:query", "pms:customer:query"));
+        endpoint.get(100L,21L);
+        verify(locations).get(new cn.iocoder.yudao.module.pms.customer.service.query.ProjectCustomerLocationService.Query(1L,31L,100L,21L));
     }
 
     @Test

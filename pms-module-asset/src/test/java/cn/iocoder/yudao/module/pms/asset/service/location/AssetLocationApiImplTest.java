@@ -27,6 +27,28 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AssetLocationApiImplTest {
 
+    @Test
+    void customerSitesRejectMissingIdentityAndCrossTenantBeforeQuery() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        try {
+            assertThrows(ServiceException.class, () -> api.getCustomerSites(null));
+            assertThrows(ServiceException.class, () -> api.getCustomerSites(new CustomerSiteQuery(1L, null)));
+            assertThrows(ServiceException.class, () -> api.getCustomerSites(new CustomerSiteQuery(2L, 200L)));
+            verifyNoInteractions(siteMapper);
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
+    @Test
+    void customerSitesPassOnlyTheTrustedTenantAndExactCustomerToMapper() {
+        cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.setTenantId(1L);
+        try {
+            var query = new cn.iocoder.yudao.module.pms.asset.dal.mysql.location.query.CurrentCustomerSiteListQuery(1L, 200L);
+            when(siteMapper.selectCurrentCustomerSites(query)).thenReturn(List.of());
+            assertTrue(api.getCustomerSites(new CustomerSiteQuery(1L,200L)).isEmpty());
+            verify(siteMapper).selectCurrentCustomerSites(query);
+        } finally { cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder.clear(); }
+    }
+
     @Mock private cn.iocoder.yudao.module.pms.customer.api.query.CustomerQueryApi customerQueryApi;
     @Mock private LocationCodeService locationCodeService;
     @Mock private AddressMapper addressMapper;

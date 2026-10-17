@@ -1,5 +1,6 @@
 <template>
   <div class="location-selector">
+    <el-alert v-if="contextError" :title="contextError" type="error" :closable="false" class="mb-12px" />
     <el-radio-group v-model="mode" class="mb-12px" @change="changeMode">
       <el-radio-button value="existing">选择已有地点</el-radio-button>
       <el-radio-button value="new">现场维护新地点</el-radio-button>
@@ -152,13 +153,15 @@ import type {
 
 const props = defineProps<{
   modelValue?: LocationMaintainRequest
-  projectId?: number
+  projectId?: number | string
   projectCustomerSitesOnly?: boolean
+  projectScoped?: boolean
 }>()
 const emit = defineEmits<{ (e: 'update:modelValue', value: LocationMaintainRequest): void }>()
 
 const customerId = ref<number>()
 const customerName = ref('')
+const contextError = ref('')
 const customerAddresses = ref<AddressVO[]>([])
 const selectedCustomerAddressId = ref<number>()
 
@@ -279,6 +282,10 @@ const chainPreviewVisible = computed(() =>
 )
 
 const loadSites = async () => {
+  if (props.projectScoped) {
+    await loadCustomerContext(props.projectId)
+    return
+  }
   if (props.projectCustomerSitesOnly) {
     sites.value = []
     const scopeCustomerId = customerId.value
@@ -317,16 +324,29 @@ const stampSiteCustomer = () => {
 }
 
 let customerSequence = 0
-const loadCustomerContext = async (projectId?: number) => {
+const loadCustomerContext = async (projectId?: number | string) => {
   const current = ++customerSequence
   customerId.value = undefined
-  if (props.projectCustomerSitesOnly) sites.value = []
+  if (props.projectCustomerSitesOnly || props.projectScoped) sites.value = []
+  if (props.projectScoped) addresses.value = []
+  contextError.value = ''
   customerName.value = ''
   customerAddresses.value = []
   selectedCustomerAddressId.value = undefined
   stampSiteCustomer()
   if (!projectId) return
   try {
+    if (props.projectScoped) {
+      const context = await LocationApi.getProjectCustomerLocations(projectId)
+      if (current !== customerSequence) return
+      customerId.value = context.customerId
+      customerName.value = context.customerName ?? ''
+      sites.value = context.sites
+      addresses.value = context.addresses
+      customerAddresses.value = context.customerAddresses
+      stampSiteCustomer()
+      return
+    }
     const project = await ProjectApi.getProject(projectId)
     if (current !== customerSequence || !project.customerCode) return
     const detail = await CustomerApi.getCustomerByCode(project.customerCode)
@@ -344,9 +364,16 @@ const loadCustomerContext = async (projectId?: number) => {
     if (current !== customerSequence) return
     customerAddresses.value = list.filter((item) => item.status === 0)
   } catch {
+    if (props.projectScoped && current === customerSequence) contextError.value = '项目地点加载失败，请重新打开后重试。'
     // 项目客户信息不可读时不阻塞地点维护，仅不提供客户地址选择
   }
   stampSiteCustomer()
+}
+
+const readLocationTree = async (siteId: number) => {
+  if (!props.projectScoped) return LocationApi.getSiteLocationTree(siteId)
+  if (!props.projectId) return []
+  return (await LocationApi.getProjectCustomerLocations(props.projectId, siteId)).siteLocations
 }
 
 const selectCustomerAddress = (id?: number) => {
@@ -375,7 +402,7 @@ const selectSite = async (siteId?: number) => {
   draft.site = site ? { id: site.id, expectedVersion: site.version } : undefined
   if (siteId)
     locationTree.value = handleTree(
-      await LocationApi.getSiteLocationTree(siteId),
+      await readLocationTree(siteId),
       'id',
       'parentId'
     )
@@ -447,7 +474,7 @@ watch(
       if (selectedSiteId.value) {
         if (!sites.value.length) await loadSites()
         locationTree.value = handleTree(
-          await LocationApi.getSiteLocationTree(selectedSiteId.value),
+          await readLocationTree(selectedSiteId.value),
           'id',
           'parentId'
         )
@@ -487,7 +514,7 @@ const changeMode = (value: 'existing' | 'new' | 'fallback') => {
 }
 
 onMounted(() => {
-  if (!props.projectCustomerSitesOnly) loadSites()
+  if (!props.projectCustomerSitesOnly && !props.projectScoped) loadSites()
   loadCustomerContext(props.projectId)
 })
 </script>
