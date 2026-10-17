@@ -44,6 +44,8 @@ public class ProjectMemberAssignmentDO extends TenantBaseDO {
     private String memberName;
     private String externalMobile;
     private String externalEmail;
+    /** 外部最终用户职务，随成员区间留痕，不解释为项目角色。 */
+    private String title;
     /** 外部最终用户设为false，不参与系统授权；历史确认值保持原样。 */
     private Boolean authorizationConfirmed;
     /**

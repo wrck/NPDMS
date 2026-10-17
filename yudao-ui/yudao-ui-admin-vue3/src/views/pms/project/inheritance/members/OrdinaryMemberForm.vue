@@ -9,14 +9,18 @@
     <template v-if="isExternal">
       <el-form-item label="姓名" required><el-input v-model="externalName" aria-label="姓名" maxlength="128" :disabled="saving" /></el-form-item>
       <el-form-item label="单位"><el-input v-model="externalCompany" aria-label="单位" maxlength="255" :disabled="saving" /></el-form-item>
+      <el-form-item label="部门"><el-input v-model="externalDepartment" aria-label="部门" maxlength="64" :disabled="saving" /></el-form-item>
+      <el-form-item label="职务"><el-input v-model="externalTitle" aria-label="职务" maxlength="64" :disabled="saving" /></el-form-item>
       <el-form-item label="联系电话"><el-input v-model="externalMobile" aria-label="联系电话" maxlength="64" :disabled="saving" /></el-form-item>
       <el-form-item label="邮箱"><el-input v-model="externalEmail" aria-label="邮箱" maxlength="255" :disabled="saving" /></el-form-item>
     </template>
     <template v-else>
       <el-form-item label="人员" required>
-        <el-select v-model="userId" aria-label="人员" filterable remote :remote-method="search"
+        <el-select
+v-model="userId" aria-label="人员" filterable remote :remote-method="search"
           :loading="searching" :disabled="!candidateReady || saving" placeholder="按姓名或账号搜索">
-          <el-option v-for="user in candidates" :key="user.id" :value="user.id"
+          <el-option
+v-for="user in candidates" :key="user.id" :value="user.id"
             :label="`${user.nickname}（${user.username}）`" />
           <template #footer>
             <el-button v-if="candidates.length < total" link :loading="searching" @click="more">加载更多人员</el-button>
@@ -35,7 +39,8 @@
       <p class="form-helper">首次添加自动成为该角色主责；勾选可切换主责，取消勾选不自动撤销已有主责。</p>
     </el-form-item>
     <el-form-item label="备注"><el-input v-model="remark" aria-label="备注" type="textarea" maxlength="500" /></el-form-item>
-    <el-form-item label="调整原因"><el-input v-model="reason" aria-label="调整原因" type="textarea"
+    <el-form-item label="调整原因"><el-input
+v-model="reason" aria-label="调整原因" type="textarea"
       maxlength="500" show-word-limit placeholder="选填，说明加入或调整的原因" /></el-form-item>
     <el-alert v-if="error" :title="error" type="error" :closable="false" role="alert" />
     <div class="actions">
@@ -62,6 +67,8 @@ const memberRole = ref<Members.ProjectMemberRole>(Members.logicalMemberRole(prop
 const isExternal = computed(() => memberRole.value === memberRoles.END_USER)
 const externalName = ref(props.member?.memberName || '')
 const externalCompany = ref(props.member?.companyName || '')
+const externalDepartment = ref(props.member?.departmentName || '')
+const externalTitle = ref(props.member?.title || '')
 const externalMobile = ref(props.member?.mobile || '')
 const externalEmail = ref(props.member?.email || '')
 const primary = ref(props.member?.memberRole === memberRoles.PROJECT_MANAGER
@@ -131,6 +138,7 @@ const submit = async () => {
     responsibility: responsibility.value.trim(), remark: remark.value.trim(), reason: reason.value.trim(),
     primary: memberRole.value === memberRoles.PROJECT_MANAGER || memberRole.value === memberRoles.SERVICE_MANAGER ? primary.value : undefined }
   if (isExternal.value) data.externalPerson = { name: externalName.value.trim(), companyName: externalCompany.value.trim(),
+    department: externalDepartment.value.trim(), title: externalTitle.value.trim(),
     mobile: externalMobile.value.trim(), email: externalEmail.value.trim() }
   const assignmentId = props.rejoin ? undefined : props.member?.id
   saving.value = true

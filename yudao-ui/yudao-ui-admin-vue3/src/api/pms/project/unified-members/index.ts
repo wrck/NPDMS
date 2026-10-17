@@ -29,6 +29,7 @@ export interface MemberRecord extends Omit<ProjectMemberAssignmentVO, 'userId'> 
   departmentId?: number | null
   departmentCode?: string | null
   departmentName?: string | null
+  title?: string | null
   siteId?: number | null
   responsibility?: string | null
   remark?: string | null
@@ -38,7 +39,7 @@ export interface MemberRecord extends Omit<ProjectMemberAssignmentVO, 'userId'> 
 export interface MemberCandidate { id: number; username: string; nickname: string; deptId?: number; mobile?: string | null; email?: string | null }
 export interface MemberMutation {
   userId: number | null
-  externalPerson?: { name: string; companyName?: string; mobile?: string; email?: string }
+  externalPerson?: { name: string; companyName?: string; department?: string; title?: string; mobile?: string; email?: string }
   memberRole: ProjectMemberRole
   responsibility?: string
   remark?: string

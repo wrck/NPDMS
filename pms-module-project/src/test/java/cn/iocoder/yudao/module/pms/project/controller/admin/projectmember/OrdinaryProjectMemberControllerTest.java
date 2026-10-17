@@ -20,7 +20,7 @@ class OrdinaryProjectMemberControllerTest {
         try {
             var members = mock(OrdinaryProjectMemberService.class);
             var users = mock(AdminUserApi.class);
-            var member = new ProjectMemberAssignmentDO(); member.setId(1L); member.setUserId(7L);
+            var member = new ProjectMemberAssignmentDO(); member.setId(1L); member.setUserId(7L); member.setDepartmentName("系统部门");
             when(members.page(eq(10L), any(), any())).thenReturn(new PageResult<>(List.of(member), 1L));
             var contact = new AdminUserRespDTO(); contact.setId(7L); contact.setMobile("13800000000");
             contact.setEmail("member@example.test");
@@ -29,7 +29,26 @@ class OrdinaryProjectMemberControllerTest {
                     .page(10L, new OrdinaryProjectMemberController.MemberPageRequest()).getData();
             assertEquals("member@example.test", result.getList().getFirst().getEmail());
             assertEquals("13800000000", result.getList().getFirst().getMobile());
+            assertEquals("系统部门", result.getList().getFirst().getDepartmentName());
+            assertNull(result.getList().getFirst().getTitle());
             verify(users).getUserMap(List.of(7L));
+        } finally { TenantContextHolder.clear(); }
+    }
+
+    @Test
+    void externalPagePreservesDepartmentAndTitleWithoutLookingUpSystemIdentity() {
+        TenantContextHolder.setTenantId(1L);
+        try {
+            var members = mock(OrdinaryProjectMemberService.class);
+            var users = mock(AdminUserApi.class);
+            var member = new ProjectMemberAssignmentDO(); member.setId(2L); member.setMemberRole("END_USER");
+            member.setDepartmentName("建设部"); member.setTitle("主管"); member.setExternalMobile("123");
+            when(members.page(eq(10L), any(), any())).thenReturn(new PageResult<>(List.of(member), 1L));
+            var result = new OrdinaryProjectMemberController(members, users)
+                    .page(10L, new OrdinaryProjectMemberController.MemberPageRequest()).getData().getList().getFirst();
+            assertEquals("建设部", result.getDepartmentName()); assertEquals("主管", result.getTitle());
+            assertEquals("123", result.getMobile()); assertNull(result.getUserId());
+            verifyNoInteractions(users);
         } finally { TenantContextHolder.clear(); }
     }
 

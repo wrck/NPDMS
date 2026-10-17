@@ -45,6 +45,8 @@ public class ProjectMemberAssignmentRespVO {
     private Long departmentId;
     private String departmentCode;
     private String departmentName;
+    @Schema(description = "成员职务，未记录为空；不是项目角色")
+    private String title;
     private Long siteId;
     private String responsibility;
     private String remark;

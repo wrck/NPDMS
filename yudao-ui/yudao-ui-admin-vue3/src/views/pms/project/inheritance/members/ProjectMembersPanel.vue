@@ -27,6 +27,8 @@
         {{ row.memberName || '姓名未记录' }}
       </template></el-table-column>
       <el-table-column label="单位" min-width="130" show-overflow-tooltip><template #default="{ row }">{{ row.companyName || '—' }}</template></el-table-column>
+      <el-table-column label="部门" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.departmentName || '—' }}</template></el-table-column>
+      <el-table-column label="职务" min-width="120" show-overflow-tooltip><template #default="{ row }">{{ row.title || '—' }}</template></el-table-column>
       <el-table-column label="角色" min-width="95"><template #default="{ row }">{{ roleLabel(row.memberRole) }}</template></el-table-column>
       <el-table-column label="联系电话" min-width="125"><template #default="{ row }">{{ row.mobile || '—' }}</template></el-table-column>
       <el-table-column label="邮箱" min-width="155" show-overflow-tooltip><template #default="{ row }">{{ row.email || '—' }}</template></el-table-column>
@@ -44,9 +46,11 @@
     </el-table>
     <Pagination v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="load" />
     <el-text v-if="project.lifecycleStatus !== 'ACTIVE'" type="info">项目已关闭，成员只读。</el-text>
-    <el-dialog v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
+    <el-dialog
+v-model="memberVisible" :title="rejoin ? '重新加入项目' : selected ? '编辑项目成员' : '新增项目成员'"
       :width="dialogWidth" append-to-body :close-on-click-modal="false" destroy-on-close>
-      <UnifiedMemberForm v-if="memberVisible && dialogProject?.version != null" :project="dialogProject" :default-role="initialRole"
+      <UnifiedMemberForm
+v-if="memberVisible && dialogProject?.version != null" :project="dialogProject" :default-role="initialRole"
         :primary-user-id="managers?.primaryUserId ?? undefined" :member="selected" :rejoin="rejoin" @cancel="memberVisible = false" @saved="saved" />
     </el-dialog>
     <el-dialog v-model="removeVisible" title="移出项目成员" :width="dialogWidth" append-to-body :close-on-click-modal="false">

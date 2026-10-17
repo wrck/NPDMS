@@ -194,6 +194,8 @@ public class OrdinaryProjectMemberService {
         var person = values.externalPerson();
         if (previous != null && Objects.equals(previous.getMemberName(), normalized(person.name()))
                 && Objects.equals(previous.getCompanyName(), normalized(person.companyName()))
+                && Objects.equals(previous.getDepartmentName(), normalized(person.department()))
+                && Objects.equals(previous.getTitle(), normalized(person.title()))
                 && Objects.equals(previous.getExternalMobile(), normalized(person.mobile()))
                 && Objects.equals(previous.getExternalEmail(), normalized(person.email()))
                 && Objects.equals(normalized(previous.getResponsibility()), normalized(values.responsibility()))
@@ -205,6 +207,7 @@ public class OrdinaryProjectMemberService {
         member.setMemberRole(END_USER); member.setMemberName(normalized(person.name()));
         member.setAuthorizationConfirmed(false);
         member.setCompanyName(normalized(person.companyName()));
+        member.setDepartmentName(normalized(person.department())); member.setTitle(normalized(person.title()));
         member.setExternalMobile(normalized(person.mobile())); member.setExternalEmail(normalized(person.email()));
         member.setResponsibility(normalized(values.responsibility())); member.setRemark(normalized(values.remark()));
         member.setChangeReason(command.reason()); member.setEffectiveFrom(now); member.setStatus("ACTIVE"); member.setVersion(0);
@@ -428,6 +431,8 @@ public class OrdinaryProjectMemberService {
                 if (values.userId() != null || Boolean.TRUE.equals(values.primary()) || values.scope() != null
                         || person == null || normalized(person.name()) == null || person.name().length() > 128
                         || person.companyName() != null && person.companyName().length() > 255
+                        || person.department() != null && person.department().length() > 64
+                        || person.title() != null && person.title().length() > 64
                         || person.mobile() != null && person.mobile().length() > 64
                         || person.email() != null && person.email().length() > 255)
                     throw invalid("最终用户资料无效");
@@ -457,7 +462,8 @@ public class OrdinaryProjectMemberService {
     public record Filter(int pageNo, int pageSize, String state, String role, String keyword) { }
     public record CandidateFilter(int pageNo, int pageSize, String keyword, Long userId, String projectRole, ServiceScope scope) { }
     public record ServiceScope(String levelCode, String assignmentType, Long siteId, Long departmentId, String departmentCode) { }
-    public record ExternalPerson(String name, String companyName, String mobile, String email) { }
+    @lombok.Builder
+    public record ExternalPerson(String name, String companyName, String mobile, String email, String department, String title) { }
     public record MemberValues(Long userId, String memberRole, String responsibility, String remark, Boolean primary,
                                ServiceScope scope, ExternalPerson externalPerson) {
         public MemberValues(Long userId, String memberRole, String responsibility, String remark, Boolean primary, ServiceScope scope) {
