@@ -185,44 +185,8 @@
               v-if="!formReadonly"
               v-model="form.locationMaintenance"
               :project-id="form.projectId"
+              project-scoped
             />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24" v-if="!formReadonly && !integratedOutsource">
-          <el-form-item label="分工／转包">
-            <el-checkbox v-model="form.outsourceRequired">需要转包</el-checkbox>
-            <el-button
-              v-if="form.outsourceRequired && !form.outsourceRequestId"
-              link
-              type="primary"
-              :loading="saving"
-              @click="startOutsource"
-              v-hasPermi="['pms:res-outsource:create']"
-            >
-              保存工勘并发起转包申请
-            </el-button>
-          </el-form-item>
-        </el-col>
-        <el-col
-          :span="24"
-          v-if="
-            !integratedOutsource &&
-            (form.outsourceRequestId || (formReadonly && form.outsourceRequired))
-          "
-        >
-          <el-form-item label="转包关联">
-            <el-link
-              v-if="form.outsourceRequestId"
-              :href="formReadonly ? undefined : outsourceDetailUrl(form.outsourceRequestId, openedExecution, stageCode)"
-              :disabled="formReadonly"
-              target="_blank"
-              rel="noopener"
-              type="primary"
-            >
-              查看转包申请 #{{ form.outsourceRequestId }}
-            </el-link>
-            <span v-else>已勾选需要转包，尚未关联申请</span>
-            <p v-if="form.outsourceRequestId">取消勾选不会撤回或删除已有申请。</p>
           </el-form-item>
         </el-col>
         <el-col :span="24" v-if="!formReadonly">
@@ -251,7 +215,6 @@
             :application-revision="applicationRevision"
             @update:model-value="updateDynamicForm"
             @action="performSurveyAction"
-            @integrated-outsource="integratedOutsource = $event"
           />
         </el-col>
         <template v-else>
@@ -369,10 +332,7 @@ import SurveyMaterialExchangeDialog from './SurveyMaterialExchangeDialog.vue'
 import SurveyApplicationDialog from './SurveyApplicationDialog.vue'
 import { hasStructuredSurveyLocation } from './siteSurveyForm'
 import { resolveSurveyExecution } from './siteSurveyExecutionShortcut'
-import {
-  outsourceDetailUrl,
-  positiveShortcutId
-} from './siteSurveyOutsource'
+import { positiveShortcutId } from './siteSurveyOutsource'
 
 defineOptions({ name: 'PmsSiteSurveyEntity' })
 const props = defineProps<{
@@ -420,7 +380,6 @@ const receiptReadError = ref('')
 const receiptReading = ref(false)
 const receiptReopenRequired = ref(false)
 const formReadonly = computed(() => !!pendingIntent.value || receiptReopenRequired.value || detailReadonly.value || !can(form.id ? 'UPDATE' : 'CREATE'))
-const integratedOutsource = ref(false)
 const users = ref<UserApi.UserVO[]>([])
 const dynamicFormRef = ref<InstanceType<typeof SiteSurveyDynamicForm>>()
 const templateVisible = ref(false)
@@ -487,7 +446,6 @@ const openForm = async (row?: SiteSurveyVO, view = false) => {
   formVisible.value = false
   openedExecution = requestedExecution
   detailReadonly.value = view || (!!row && row.status !== 0)
-  integratedOutsource.value = false
   for (const key of Object.keys(form)) delete (form as unknown as Record<string, unknown>)[key]
   Object.assign(
     form,

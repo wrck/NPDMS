@@ -23,7 +23,7 @@ import formCreateEngine from '@form-create/element-ui'
 import type { SiteSurveyVO } from '@/api/pms/engineering/site-survey/entity'
 import { getFormSchema } from '@/api/pms/engineering/site-survey/entity'
 import { decodeDynamicForm } from '@/views/pms/platform/dynamic-form/components/dynamicFormCodec'
-import { extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
+import { currentSurveyRules, extractSurveyValues, mergeSurveyValues } from './siteSurveyForm'
 import SurveyOutsourceShortcut from './SurveyOutsourceShortcut.vue'
 import SurveyProcurementLinks from './SurveyProcurementLinks.vue'
 import SurveyMaterialSelector from './SurveyMaterialSelector.vue'
@@ -67,6 +67,7 @@ const load = async () => {
     )
     if (sequence !== loadSequence) return
     const decoded = decodeDynamicForm(schema.formConfJson, schema.formRulesJson)
+    decoded.rule = currentSurveyRules(decoded.rule)
     const model = { ...props.modelValue, fieldCatalog: schema.fieldCatalog,
       fieldBindings: props.modelValue.id ? props.modelValue.fieldBindings : schema.fieldBindings }
     const initialValues = extractSurveyValues(model)
@@ -117,6 +118,7 @@ const load = async () => {
           }
         }
         if (rule.type === 'Editor') {
+          rule.style = { ...rule.style, width: '100%', minWidth: '0' }
           const readonly =
             props.readonly ||
             rule.props?.readonly === true ||
