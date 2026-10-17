@@ -1,0 +1,32 @@
+[
+  {
+    "actor": "y06496",
+    "routingGateGranted": true,
+    "nativeDeleteStillDenied": true,
+    "checks": [
+      {
+        "case": "native-delete-denied",
+        "result": "403"
+      },
+      {
+        "case": "foreign-project-create-denied",
+        "result": "403"
+      }
+    ]
+  },
+  {
+    "actor": "z01010",
+    "routingGateGranted": true,
+    "nativeDeleteStillDenied": true,
+    "checks": [
+      {
+        "case": "native-delete-denied",
+        "result": "403"
+      },
+      {
+        "case": "foreign-project-create-denied",
+        "result": "403"
+      }
+    ]
+  }
+]

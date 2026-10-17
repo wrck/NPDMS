@@ -1,0 +1,29 @@
+{
+  "actor": "y06496",
+  "projectId": "992203060198",
+  "customerId": "2102227613952667649",
+  "siteCount": 22,
+  "addressCount": 22,
+  "selectedSiteId": "930815",
+  "treeNodeCount": 2,
+  "foreignSiteId": "930835",
+  "foreignProjectId": "2110018733130579976",
+  "checks": [
+    {
+      "case": "global-site-list-still-denied",
+      "result": "Permission API business error 403"
+    },
+    {
+      "case": "global-address-list-still-denied",
+      "result": "Permission API business error 403"
+    },
+    {
+      "case": "foreign-customer-site-tree-denied",
+      "result": "Permission API business error 403"
+    },
+    {
+      "case": "foreign-project-locations-denied",
+      "result": "Permission API business error 1014024033"
+    }
+  ]
+}

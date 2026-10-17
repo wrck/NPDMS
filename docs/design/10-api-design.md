@@ -400,6 +400,8 @@ COM合同不可见或项目关联无管理范围时保持拒绝和零写入，�
 | RES | RES-01、SUB-01～SUB-05、INT-07 | `/suppliers`、`/subcontract-requests`、`/payment-gates` | 备件业务由外部系统承接；财务结果只回写引用 |
 | KNO | INT-04 | `/technical-notices`、`/technical-notices/{id}/references` | V2 仅 ITR 同步查询与业务引用；无本地 publish/disable API |
 
+工勘项目地点选择使用`GET /api/v1/pms/projects/{projectId}/customer-overview/locations`，要求`pms:project:query + pms:customer:query`。CUS复用PROJ当前VIEW及关联客户检查，只接受项目ID，不接受客户端customerId；返回关联客户ID/名称、该客户启用站点及所引用地址、客户当前ADDRESS引用。可选siteId必须属于上述站点集合，才经AST公开契约读取任意深度位置树。租户/操作者来自登录上下文；无关联客户返回空集合，越项目/跨租户/他客站点拒绝，不回退全局查询。AST按受信tenantId/customerId提供只读启用站点列表，保留AST全局管理API权限不变；此查询不授予地点管理权限，原工勘保存和地址/站点写入规则不变。
+
 设备归属命令 `POST /devices/{id}/actions/assign-project` 必须携带 `If-Match`、目标项目和原因；返回新的 `assignmentVersion` 和异步投影 `operationId`。上级项目统计读取设备祖先投影，不创建第二条归属。
 
 跨模块只调用`AssetLocationApi`：
@@ -982,6 +984,7 @@ POST `/{id}/documents`接收multipart PDF、kind（COMPLETION/SATISFACTION）、
 独立完成条件 `PROJECT_CONTACT_EXISTS`，parameters为空，只用于客户联系人PAGE任务的独立完成规则。完成命令读取CUS锁定事实，保留contactId/version到当前轮次结果证据，经原状态机SUBMIT→COMPLETE完成；该条件不替代其他PAGE/TASK_NATIVE的本轮手工提交要求。联系人新增/引用、修改、删除和恢复在原命令事务内写入既有 `ProjectRuleReevaluationRequested` Outbox；事务回滚不发送，提交后重新读取事实，不由CUS直接改项目状态。计划生效的既有重判机制使已有有效记录也参与判定。原联系人接口、项目客户归属及已发布模板不变。
 
 2026-10-15经需求方确认，新增独立完成条件`PROJECT_END_USER_EXISTS`，parameters为空，仅用于项目成员PAGE（`/pms/project-management/project-master-detail`）任务的独立完成规则。读取本项目、本租户当前有效`END_USER`成员区间并锁定，至少一条有效外部人员记录才满足；轮次证据保留区间ID/版本，经原SUBMIT→COMPLETE状态机完成。沿用成员变更Outbox重新判定，不改联系人条件。统一成员写接口增补`externalPerson: {name, companyName?, mobile?, email?}`：`END_USER`要求该对象且`userId`为空，其余角色要求有效`userId`且不接受外部资料；列表继续返回姓名、单位、电话、邮箱，外部人员联系方式来自PROJ自己的区间资料。
+2026-10-17经需求方确认，项目成员补齐与项目客户联系人同口径的部门、职务字段。`externalPerson`增补可选`department`、`title`（各最多64字符）；仅作为PROJ外部最终用户的区间资料，不创建系统部门关系、不授予系统身份，也不与CUS联系人按姓名匹配或互相写入。列表沿用`departmentName`展示内部成员既有部门及外部成员填写部门，并新增可空`title`；未记录时显示“—”，不以项目角色推断职务。编辑仍关闭原区间并新增区间，历史原值不回填或覆盖；原项目范围、版本、幂等和状态约束不变。
 
 PROJ公共`ProjectBusinessContextApi`增补冻结实施前置查询及锁定重验，使用现有Query/Revalidation上下文，返回计划ID、计划版本、是否显式配置及必选EXE来源码；不得让IMP直接读取PROJ表。IMP公开就绪上下文增补可空计划适用事实，历史无该字段仍要求EXE_01～04全量完成；显式不适用项使用`NOT_APPLICABLE`并禁止携带伪造的完成对象、水位或重开标记。CUT继续消费IMP就绪/重验接口，既有任务冻结快照不被重写。
 
@@ -1064,3 +1067,8 @@ PLT在创建任务前先解析当次临时认证或重新核验保存凭证，�
 
 
 2026-10-16新建割接等级确认最小输入：项目、已发货设备、等级问卷。创建请求的 `configurationCode/background/cutoverType/networkMode/scheduledTime` 可缺省或为空；未提供配置时，服务端重查创建时点有效发布配置，仅唯一时采用，零个或多个均返回配置冲突，不自行挑选。既有显式配置及来源调用保留范围校验。A/B/C在调研选定类型、组网、设备类型并保存结构化割接背景；D级跳过调研且无需这三个匹配字段。方案与审批不得继续把创建时背景和计划时间作为必填事实；所有方案（在线标准、D级简易、完整上传）增加单个 `scheduledTime` 计划割接时间输入；审批采用该明确输入值，原明细计划表保留，A/B时限继续按该值执行，不以当前时间或虚构默认值填补。D级来源允许匹配类型及计划时间为空，不影响人工等级、审批权限、状态机和不可变历史。
+
+
+### 2026-10-17 工勘删除与当前业务关联的事务边界
+
+SOL工勘Owner在原生删除授权、项目MANAGE范围、执行入口、草稿状态、委外引用及行版本校验全部通过并删除成功后，在同一事务调用PROJ公开内部端口 `ProjectBusinessObjectDeletionApi.unlinkDeletedObject(DeletedObject)`。该端口不开放HTTP入口，租户和操作者来自当前认证上下文，重验项目范围；只按项目、Owner、对象类型及对象ID精确关闭有效计划下当前未结束阶段/任务轮次的活动关联，沿用关联版本CAS与审计。已完成轮次、旧计划、其他对象及关联原行均保留；清理冲突必须与工勘删除和回执整体回滚。异步规则重评继续使用原事件，不再承担删除回执返回前的引用清理。

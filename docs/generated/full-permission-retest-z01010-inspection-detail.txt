@@ -1,0 +1,195 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理":
+        - generic: 项目管理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务" [expanded]:
+        - generic: 巡检服务
+        - menu:
+          - menuitem "巡检任务":
+            - generic: 巡检任务
+          - menuitem "巡检规则":
+            - generic: 巡检规则
+      - menuitem "交付件汇总":
+        - generic: 交付件汇总
+      - menuitem "现场培训":
+        - generic: 现场培训
+      - menuitem "阶段施工计划":
+        - generic: 阶段施工计划
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+  - menuitem "工作流程":
+    - generic: 工作流程
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "周文成":
+  - generic: 周文成
+- button "首页":
+  - text: 首页
+- button "巡检任务详情":
+  - generic: 巡检任务详情
+- button:
+- main:
+  - button "返回任务列表":
+    - generic: 返回任务列表
+  - heading "吉林移动互联互通系统防火墙建设项目-巡检-INS-2111100129140260864" [level=1]
+  - paragraph: INS-2111100129140260864
+  - generic: 巡检中
+  - button "刷新":
+    - generic: 刷新
+  - navigation "巡检办理步骤":
+    - list:
+      - button "1. 巡检准备，已完成":
+        - generic: 巡检准备
+      - button "2. 巡检执行，当前环节":
+        - generic: "2"
+        - generic: 巡检执行
+      - button "3. 报告生成，待办理":
+        - generic: "3"
+        - generic: 报告生成
+      - button "4. 待办跟踪，待办理":
+        - generic: "4"
+        - generic: 待办跟踪
+      - button "5. 闭环，待办理":
+        - generic: "5"
+        - generic: 闭环
+  - region "项目信息":
+    - heading "项目信息" [level=2]:
+      - text: 项目信息
+    - generic: 巡检任务关联项目
+    - generic: 项目名称
+    - textbox "项目名称": 吉林移动互联互通系统防火墙建设项目
+    - generic: 项目编号
+    - generic: 16200723010901N-0
+    - generic: 客户名称
+    - generic: 中国移动通信集团吉林有限公司
+    - generic: 项目经理
+    - generic: y06496-杨凯添
+    - generic: 服务经理
+    - generic: z01010-周文成
+    - generic: 所属行业
+    - generic: 移动
+    - generic: 办事处
+    - generic: 长春办事处
+    - generic: 项目级别
+    - generic: 无
+    - generic: 客户服务等级
+    - generic: 三级普通（默认）
+    - generic: 销售
+    - generic: 刘显龙
+  - text: "*"
+  - region "离线巡检执行":
+    - heading "离线巡检执行" [level=2]
+    - generic: 第 1 次尝试 · 进行中
+    - alert:
+      - generic: 人工执行巡检命令后上传设备日志。缺少输出或解析失败时可补传，原记录保留。
+    - generic: 日志上传方式
+    - radiogroup "日志上传方式":
+      - radio "单设备日志" [checked]
+      - generic: 单设备日志
+      - radio "多设备日志（按SN识别）"
+      - generic: 多设备日志（按SN识别）
+    - generic: 巡检设备
+    - combobox "巡检设备"
+    - generic: 02010078T231000338 · DPtech SFP+万兆光模块,单模,(1310nm,10km,LC) · SFPP-LX10-SM1310
+    - group "巡检日志":
+      - generic: 巡检日志
+      - button "点击或拖拽选择巡检日志文件 支持 .log / .txt / .zip，单文件不超过 50MB":
+        - generic: 点击或拖拽选择巡检日志文件
+        - generic: 支持 .log / .txt / .zip，单文件不超过 50MB
+      - button "选择离线巡检日志文件"
+    - generic: 命令提示（可选）
+    - combobox "命令提示（可选）"
+    - generic: 仅从当前设备冻结命令中选择
+    - paragraph: 只包含单条命令输出的日志可选择对应提示；多命令日志可留空。
+    - button "上传并解析" [disabled]:
+      - generic: 上传并解析
+    - heading "巡检命令清单" [level=3]
+    - button "复制命令":
+      - generic: 复制命令
+    - button "下载 TXT 清单":
+      - generic: 下载 TXT 清单
+    - button "查看当前设备巡检命令":
+      - generic: 查看当前设备巡检命令
+    - heading "执行记录" [level=3]
+    - generic: 当前与历史尝试均保留
+    - table:
+      - rowgroup:
+        - row "执行记录 设备 / SN 用途 状态 日志文件 失败 / 异常说明 提交时间 操作":
+          - columnheader
+          - columnheader "执行记录":
+            - generic: 执行记录
+          - columnheader "设备 / SN":
+            - generic: 设备 / SN
+          - columnheader "用途":
+            - generic: 用途
+          - columnheader "状态":
+            - generic: 状态
+          - columnheader "日志文件":
+            - generic: 日志文件
+          - columnheader "失败 / 异常说明":
+            - generic: 失败 / 异常说明
+          - columnheader "提交时间":
+            - generic: 提交时间
+          - columnheader "操作":
+            - generic: 操作
+    - table:
+      - rowgroup
+    - generic: 暂无执行记录
+    - heading "巡检判定结果" [level=3]
+    - alert:
+      - generic: 未判定、判定错误或缺失输出均不表示通过。展开记录可查看来源，历史判定保留。
+    - table:
+      - rowgroup:
+        - row "尝试 设备 / SN 规则 / 修订 ID 分类 严重级别 判定 实测值 / 单位 正则匹配 输出摘要 判定说明":
+          - columnheader
+          - columnheader "尝试":
+            - generic: 尝试
+          - columnheader "设备 / SN":
+            - generic: 设备 / SN
+          - columnheader "规则 / 修订 ID":
+            - generic: 规则 / 修订 ID
+          - columnheader "分类":
+            - generic: 分类
+          - columnheader "严重级别":
+            - generic: 严重级别
+          - columnheader "判定":
+            - generic: 判定
+          - columnheader "实测值 / 单位":
+            - generic: 实测值 / 单位
+          - columnheader "正则匹配":
+            - generic: 正则匹配
+          - columnheader "输出摘要":
+            - generic: 输出摘要
+          - columnheader "判定说明":
+            - generic: 判定说明
+    - table:
+      - rowgroup
+    - generic: 暂无判定结果，不能视为巡检通过
+    - paragraph: 检测结果完整且日志解析结束后，可进入报告阶段。
+    - button "完成执行并进入报告":
+      - generic: 完成执行并进入报告
+    - button "查看全部执行尝试":
+      - generic: 查看全部执行尝试
+  - text: "*"
+  - button "办理历史":
+    - generic: 办理历史
+  - button "负责人分配与取消":
+    - generic: 负责人分配与取消
+- generic: Copyright ©2026 项目实施交付管理平台

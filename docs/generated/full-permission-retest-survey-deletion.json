@@ -1,0 +1,62 @@
+[
+  {
+    "projectId": "992203060199",
+    "taskId": "2107841899949817858",
+    "testObjectId": "2111373479091806210",
+    "wasWritable": true,
+    "deleteOutcome": "SAVED",
+    "immediateReads": [
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      }
+    ],
+    "originalReferencesUnchanged": true
+  },
+  {
+    "projectId": "992203060198",
+    "taskId": "2107838747846483970",
+    "testObjectId": "2111373305053356033",
+    "wasWritable": false,
+    "deleteOutcome": "SAVED",
+    "immediateReads": [
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      },
+      {
+        "contextError": null,
+        "workbenchError": null
+      }
+    ],
+    "originalReferencesUnchanged": true
+  }
+]

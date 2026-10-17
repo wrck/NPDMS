@@ -1,0 +1,53 @@
+- link "项目实施交付管理平台":
+  - /url: /
+  - generic: 项目实施交付管理平台
+- menubar:
+  - menuitem "首页":
+    - generic: 首页
+  - menuitem "项目交付" [expanded]:
+    - generic: 项目交付
+    - menu:
+      - menuitem "项目管理":
+        - generic: 项目管理
+      - menuitem "工程实施":
+        - generic: 工程实施
+      - menuitem "割接交付":
+        - generic: 割接交付
+      - menuitem "验收闭环":
+        - generic: 验收闭环
+      - menuitem "巡检服务" [expanded]:
+        - generic: 巡检服务
+        - menu:
+          - menuitem "巡检任务":
+            - generic: 巡检任务
+      - menuitem "交付件汇总":
+        - generic: 交付件汇总
+      - menuitem "现场培训":
+        - generic: 现场培训
+      - menuitem "阶段施工计划":
+        - generic: 阶段施工计划
+  - menuitem "客户与资产":
+    - generic: 客户与资产
+- navigation "面包屑"
+- generic "项目配置":
+- combobox
+- generic: 请输入菜单内容
+- button:
+- button:
+- button "杨凯添":
+  - generic: 杨凯添
+- button "首页":
+  - text: 首页
+- button "巡检任务详情":
+  - generic: 巡检任务详情
+- button:
+- main:
+  - button "返回任务列表":
+    - generic: 返回任务列表
+  - heading "巡检任务详情" [level=1]
+  - paragraph: "2111100129140260864"
+  - button "刷新":
+    - generic: 刷新
+  - alert:
+    - generic: 任务详情加载失败或无权访问。当前内容禁止提交，请刷新后继续。
+- generic: Copyright ©2026 项目实施交付管理平台
