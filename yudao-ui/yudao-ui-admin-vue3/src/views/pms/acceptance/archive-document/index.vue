@@ -52,9 +52,6 @@
         </template>
       </el-table-column>
       <el-table-column prop="version" label="版本" width="90" />
-      <el-table-column prop="uploadedBy" label="上传人" width="100" />
-      <el-table-column prop="uploadedDate" label="上传日期" width="120" />
-      <el-table-column prop="fileChecksum" label="校验值" min-width="140" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_ACCEPTANCE_STATUS" :value="row.status" />
@@ -62,8 +59,8 @@
       </el-table-column>
       <el-table-column label="操作" width="460" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-archive-document:query']"
-            >查看</el-button
+          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-archive-document:update']"
+            >编辑</el-button
           >
           <el-button
             link
@@ -130,22 +127,9 @@
           <el-form-item label="版本" prop="version"><el-input v-model="form.version" /></el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="上传人" prop="uploadedBy"><el-input v-model="form.uploadedBy" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="上传日期" prop="uploadedDate">
-            <el-date-picker v-model="form.uploadedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
           <el-form-item label="文件地址" prop="fileUrl">
             <el-button v-if="form.fileUrl" link type="primary" @click="openDocumentFile">查看当前文件</el-button>
             <span v-else>暂无当前文件</span>
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="文件校验值" prop="fileChecksum">
-            <el-input v-model="form.fileChecksum" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -218,9 +202,6 @@ const openForm = (row?: ArchiveDocumentVO) => {
       documentType: 'SCHEME',
       version: '',
       fileUrl: '',
-      fileChecksum: '',
-      uploadedBy: undefined,
-      uploadedDate: '',
       status: 0,
       remark: '',
       versionNum: undefined

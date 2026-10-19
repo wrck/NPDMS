@@ -43,10 +43,11 @@ public class NormalClosureQueryService {
                 checks.add(new Check("TERMINAL_STAGE", graph.terminal(), graph.terminal() ? null : "NOT_TERMINAL", graph.currentStageId()));
                 boolean completed = "SATISFIED".equals(graph.completionStatus());
                 checks.add(new Check("STAGE_COMPLETION", completed, completed ? null : graph.completionStatus(), graph.currentStageId()));
+                checks.add(new Check("ALL_TASKS_DONE", graph.allTasksDone(),
+                        graph.allTasksDone() ? null : "TASKS_NOT_DONE", projectId));
             } catch (RuntimeException ex) {
                 checks.add(new Check("RUNTIME_GRAPH", false, "RUNTIME_GRAPH_UNAVAILABLE", projectId));
             }
-            checks.add(new Check("ALL_TASKS_DONE", graphDone(actor.tenantId(), projectId), graphDone(actor.tenantId(), projectId) ? null : "TASKS_NOT_DONE", projectId));
         }
         boolean snapshotCurrent = snapshot != null && Boolean.TRUE.equals(snapshot.getPassed())
                 && Objects.equals(snapshot.getProjectVersion(), context.projectVersion())
@@ -62,10 +63,6 @@ public class NormalClosureQueryService {
         }
         return new Overview(projectId, context.projectVersion(), context.treeVersion(), context.currentStage(), context.lifecycleStatus(),
                 policyAvailable, List.copyOf(checks), snapshot, latest, List.copyOf(actions));
-    }
-
-    private boolean graphDone(Long tenantId, Long projectId) {
-        return checkApi.inspectGraph(tenantId, projectId).allTasksDone();
     }
 
     /** Resolve only the tenant-bound identity; the existing application query owns authorization. */

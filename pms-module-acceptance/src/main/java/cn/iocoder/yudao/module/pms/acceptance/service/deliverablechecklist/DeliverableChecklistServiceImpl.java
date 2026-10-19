@@ -7,6 +7,11 @@ import cn.iocoder.yudao.module.pms.acceptance.controller.admin.deliverablecheckl
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.deliverablechecklist.DeliverableChecklistDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.DeliverableChecklistMapper;
 import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceProjectAccess;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.deliverablechecklist.query.DeliverableChecklistPageQuery;
+import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.AcceptanceMapper;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.acceptance.query.AcceptanceOwnerLockQuery;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -18,6 +23,7 @@ import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionU
 import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_DELIVERABLE_CHECKLIST_CODE_DUPLICATE;
 import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS;
 import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID;
+import static cn.iocoder.yudao.module.pms.acceptance.enums.ErrorCodeConstants.ACC_DELIVERABLE_CHECKLIST_ACCEPTANCE_INVALID;
 
 /**
  * 交付件完整性检查 Service 实现类
@@ -56,13 +62,17 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
     private AcceptanceRecordCodeGenerator recordCodeGenerator;
     @Resource private DeliverableChecklistDeliveryAccess deliveryAccess;
     @Resource private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi materials;
+    @Resource private NativeAcceptanceProjectAccess projectAccess;
+    @Resource private AcceptanceMapper acceptanceMapper;
 
     @Override
     @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
     public Long createDeliverableChecklist(DeliverableChecklistSaveReqVO createReqVO) {
+        projectAccess.requireWrite(createReqVO.getProjectId());
         // 插入；编码由系统按项目编码自动生成
         if(createReqVO.getStatus()!=null && createReqVO.getStatus()!=STATUS_DRAFT)throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         DeliverableChecklistDO entity = BeanUtils.toBean(createReqVO, DeliverableChecklistDO.class);
+        validateAcceptanceReference(entity);
         entity.setCode(recordCodeGenerator.next(createReqVO.getProjectId(),
                 AcceptanceRecordCodeGenerator.DELIVERABLE_CHECKLIST, deliverableChecklistMapper));
         if (entity.getStatus() == null) {
@@ -85,9 +95,13 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
             throw exception(ACC_DELIVERABLE_CHECKLIST_STATUS_INVALID);
         }
         DeliverableChecklistDO updateObj = BeanUtils.toBean(updateReqVO, DeliverableChecklistDO.class);
+        projectAccess.requireWrite(updateReqVO.getProjectId());
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         updateObj.setTenantId(existing.getTenantId());
+        // An omitted optional relation retains the existing link, as updateById does.
+        if (updateObj.getAcceptanceId() == null) updateObj.setAcceptanceId(existing.getAcceptanceId());
+        validateAcceptanceReference(updateObj);
         deliveryAccess.require(updateObj,"update");
         updateRecord(updateObj);
     }
@@ -107,12 +121,17 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
 
     @Override
     public PageResult<DeliverableChecklistDO> getDeliverableChecklistPage(DeliverableChecklistPageReqVO pageReqVO) {
-        return deliverableChecklistMapper.selectPage(pageReqVO);
+        var query = BeanUtils.toBean(pageReqVO, DeliverableChecklistPageQuery.class);
+        query.setTenantId(TenantContextHolder.getRequiredTenantId());
+        query.setVisibleProjectIds(projectAccess.readableProjects());
+        return deliverableChecklistMapper.selectPage(query);
     }
 
     @Override
     public DeliverableChecklistDO getDeliverableChecklist(Long id) {
-        return deliverableChecklistMapper.selectById(id);
+        var row = deliverableChecklistMapper.selectById(id);
+        if (row != null) projectAccess.requireRead(row.getProjectId());
+        return row;
     }
 
     @Override
@@ -163,6 +182,16 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         updateRecord(updateObj);
     }
 
+    private void validateAcceptanceReference(DeliverableChecklistDO row) {
+        if (row.getAcceptanceId() == null) return;
+        Long tenantId = TenantContextHolder.getRequiredTenantId();
+        var acceptance = acceptanceMapper.selectOwnerForUpdate(new AcceptanceOwnerLockQuery(tenantId, row.getAcceptanceId()));
+        if (acceptance == null || !Objects.equals(tenantId, acceptance.getTenantId())
+                || !Objects.equals(row.getProjectId(), acceptance.getProjectId())) {
+            throw exception(ACC_DELIVERABLE_CHECKLIST_ACCEPTANCE_INVALID);
+        }
+    }
+
     private void updateRecord(DeliverableChecklistDO row) {
         if(row.getVersion()==null || deliverableChecklistMapper.updateById(row)!=1)
             throw new cn.iocoder.yudao.module.pms.platform.api.businessmodel.BusinessContractException("CHECKLIST_VERSION_CONFLICT","Current native checklist version required");
@@ -175,6 +204,7 @@ public class DeliverableChecklistServiceImpl implements DeliverableChecklistServ
         if (entity == null) {
             throw exception(ACC_DELIVERABLE_CHECKLIST_NOT_EXISTS);
         }
+        projectAccess.requireWrite(entity.getProjectId());
         return entity;
     }
 

@@ -54,6 +54,11 @@ class CompletionConfirmationWorkflowServiceTest {
         lenient().when(projects.inspect(any())).thenReturn(context);lenient().when(projects.lock(any(),any(),any())).thenReturn(context);
         lenient().when(permissions.hasAnyPermissions(eq(1L),any(String[].class))).thenReturn(true);
     }
+    @Test void issueWithoutAuditPermissionFailsBeforeCreatingSurveyOrGrant(){
+        when(permissions.hasAnyPermissions(1L,"pms:acc-completion-certificate:audit")).thenReturn(false);
+        assertThrows(org.springframework.security.access.AccessDeniedException.class,()->service.issue(1L,1L,10L));
+        verifyNoInteractions(independent,grants,bundles,legacy);
+    }
     private void published(boolean uploads){
         var template=new SatisfactionQuestionnaireTemplateDO();template.setId(11L);template.setTenantId(1L);template.setStatus("PUBLISHED");template.setCurrentRevisionId(12L);
         when(templateMapper.selectById(11L)).thenReturn(template);

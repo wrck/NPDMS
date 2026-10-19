@@ -3,9 +3,12 @@ package cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate;
 import cn.iocoder.yudao.framework.common.pojo.PageResult;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.ProjectScopedCodeMapper;
 import cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX;
-import cn.iocoder.yudao.module.pms.acceptance.controller.admin.completioncertificate.vo.CompletionCertificatePageReqVO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertificate.CompletionCertificateDO;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificatePageQuery;
 import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+import java.util.Objects;
 
 @Mapper
 public interface CompletionCertificateMapper extends ProjectScopedCodeMapper<CompletionCertificateDO> {
@@ -31,14 +34,20 @@ public interface CompletionCertificateMapper extends ProjectScopedCodeMapper<Com
             cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery query);
 
 
-    default PageResult<CompletionCertificateDO> selectPage(CompletionCertificatePageReqVO reqVO) {
-        return selectPage(reqVO, new LambdaQueryWrapperX<CompletionCertificateDO>()
-                .eqIfPresent(CompletionCertificateDO::getProjectId, reqVO.getProjectId())
-                .likeIfPresent(CompletionCertificateDO::getCode, reqVO.getCode())
-                .likeIfPresent(CompletionCertificateDO::getName, reqVO.getName())
-                .eqIfPresent(CompletionCertificateDO::getCustomerId, reqVO.getCustomerId())
-                .eqIfPresent(CompletionCertificateDO::getStatus, reqVO.getStatus())
-                .betweenIfPresent(CompletionCertificateDO::getCompletionDate, reqVO.getCompletionDate())
+    default PageResult<CompletionCertificateDO> selectPage(CompletionCertificatePageQuery query) {
+        Objects.requireNonNull(query.getVisibleProjectIds());
+        if (query.getVisibleProjectIds().isEmpty()) {
+            return new PageResult<>(List.of(), 0L);
+        }
+        return selectPage(query, new LambdaQueryWrapperX<CompletionCertificateDO>()
+                .eq(CompletionCertificateDO::getTenantId, query.getTenantId())
+                .in(CompletionCertificateDO::getProjectId, query.getVisibleProjectIds())
+                .eqIfPresent(CompletionCertificateDO::getProjectId, query.getProjectId())
+                .likeIfPresent(CompletionCertificateDO::getCode, query.getCode())
+                .likeIfPresent(CompletionCertificateDO::getName, query.getName())
+                .eqIfPresent(CompletionCertificateDO::getCustomerId, query.getCustomerId())
+                .eqIfPresent(CompletionCertificateDO::getStatus, query.getStatus())
+                .betweenIfPresent(CompletionCertificateDO::getCompletionDate, query.getCompletionDate())
                 .orderByDesc(CompletionCertificateDO::getId));
     }
 

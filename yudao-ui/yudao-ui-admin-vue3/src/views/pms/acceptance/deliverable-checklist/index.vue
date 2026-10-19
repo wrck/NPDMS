@@ -49,27 +49,13 @@
     <h3>历史检查清单</h3>
     <el-table v-loading="loading" :data="rows">
       <el-table-column prop="name" label="交付件名称" min-width="180" show-overflow-tooltip />
+      <el-table-column prop="acceptanceId" label="关联验收编号" width="130" />
       <el-table-column prop="deliverableType" label="类型" width="90">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_DELIVERABLE_TYPE" :value="row.deliverableType" />
         </template>
       </el-table-column>
-      <el-table-column prop="version" label="版本" width="90" />
-      <el-table-column prop="signedFlag" label="已签章" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.signedFlag ? 'success' : 'info'" size="small">
-            {{ row.signedFlag ? '是' : '否' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="validFlag" label="有效" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.validFlag ? 'success' : 'danger'" size="small">
-            {{ row.validFlag ? '是' : '否' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="submittedDate" label="提交日期" width="120" />
+      <el-table-column prop="checkResult" label="检查结果" min-width="180" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_DELIVERABLE_STATUS" :value="row.status" />
@@ -149,27 +135,14 @@
             </el-select>
           </el-form-item>
         </el-col>
-        <el-col :span="12">
-          <el-form-item label="版本" prop="version"><el-input v-model="form.version" /></el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="提交日期" prop="submittedDate">
-            <el-date-picker v-model="form.submittedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="是否签章" prop="signedFlag">
-            <el-switch v-model="form.signedFlag" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item label="是否有效" prop="validFlag">
-            <el-switch v-model="form.validFlag" />
+        <el-col :span="24">
+          <el-form-item label="检查结果" prop="checkResult">
+            <el-input v-model="form.checkResult" type="textarea" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl!" />
+          <el-form-item label="交付件附件" prop="deliverableUrl">
+            <UploadFile v-model="form.deliverableUrl!" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -238,14 +211,12 @@ const openForm = (row?: DeliverableChecklistVO) => {
       projectId: undefined,
       name: '',
       deliverableType: 'REQUIRED',
-      version: '',
-      signedFlag: false,
-      validFlag: true,
-      submittedDate: '',
-      attachmentUrl: '',
+      acceptanceId: undefined,
+      deliverableUrl: '',
+      checkResult: '',
       status: 0,
       remark: '',
-      versionNum: undefined
+      version: undefined
     },
     row || {}
   )

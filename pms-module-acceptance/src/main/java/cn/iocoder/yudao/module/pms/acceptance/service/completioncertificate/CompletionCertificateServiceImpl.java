@@ -10,6 +10,8 @@ import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.completioncertifica
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateDeviceMapper;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.CompletionCertificateMapper;
 import cn.iocoder.yudao.module.pms.acceptance.service.AcceptanceRecordCodeGenerator;
+import cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceProjectAccess;
+import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificatePageQuery;
 import jakarta.annotation.Resource;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery;
@@ -70,11 +72,14 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     private PlatformDeliveryMaterialApi deliveryMaterials;
     @Resource
     private cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
+    @Resource
+    private NativeAcceptanceProjectAccess projectAccess;
     @Resource private cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.CompletionSatisfactionBundleMapper jointBundles;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createCompletionCertificate(CompletionCertificateSaveReqVO createReqVO) {
+        projectAccess.requireWrite(createReqVO.getProjectId());
         // 插入；编码由系统按项目编码自动生成
         if(createReqVO.getStatus()!=null && createReqVO.getStatus()!=STATUS_DRAFT)throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         CompletionCertificateDO entity = BeanUtils.toBean(createReqVO, CompletionCertificateDO.class);
@@ -97,6 +102,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
             throw exception(ACC_COMPLETION_CERTIFICATE_STATUS_INVALID);
         }
         CompletionCertificateDO updateObj = BeanUtils.toBean(updateReqVO, CompletionCertificateDO.class);
+        projectAccess.requireWrite(updateReqVO.getProjectId());
         // 保持状态不被前端覆盖
         updateObj.setStatus(existing.getStatus());
         if (updateObj.getVersion() == null || completionCertificateMapper.updateById(updateObj) != 1) {
@@ -122,16 +128,24 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
 
     @Override
     public PageResult<CompletionCertificateDO> getCompletionCertificatePage(CompletionCertificatePageReqVO pageReqVO) {
-        return completionCertificateMapper.selectPage(pageReqVO);
+        var query = BeanUtils.toBean(pageReqVO, CompletionCertificatePageQuery.class);
+        query.setTenantId(TenantContextHolder.getRequiredTenantId());
+        query.setVisibleProjectIds(projectAccess.readableProjects());
+        return completionCertificateMapper.selectPage(query);
     }
 
     @Override
     public CompletionCertificateDO getCompletionCertificate(Long id) {
-        return completionCertificateMapper.selectById(id);
+        var row = completionCertificateMapper.selectById(id);
+        if (row != null) projectAccess.requireRead(row.getProjectId());
+        return row;
     }
 
     @Override
     public List<CompletionCertificateDeviceDO> getCompletionCertificateDevices(Long certificateId) {
+        if (getCompletionCertificate(certificateId) == null) {
+            throw exception(ACC_COMPLETION_CERTIFICATE_NOT_EXISTS);
+        }
         return completionCertificateDeviceMapper.selectListByCertificateId(certificateId);
     }
 
@@ -248,6 +262,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
         if (entity == null) {
             throw exception(ACC_COMPLETION_CERTIFICATE_NOT_EXISTS);
         }
+        projectAccess.requireWrite(entity.getProjectId());
         return entity;
     }
 

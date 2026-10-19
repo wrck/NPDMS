@@ -58,8 +58,8 @@
           <dict-tag :type="DICT_TYPE.PMS_ACCEPTANCE_TYPE" :value="row.acceptanceType" />
         </template>
       </el-table-column>
-      <el-table-column prop="signedDate" label="签署日期" width="120" />
-      <el-table-column prop="conclusion" label="验收结论" min-width="160" show-overflow-tooltip />
+      <el-table-column prop="acceptanceDate" label="验收日期" width="120" />
+      <el-table-column prop="approveOpinion" label="审批意见" min-width="160" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
           <dict-tag :type="DICT_TYPE.PMS_ACCEPTANCE_STATUS" :value="row.status" />
@@ -67,7 +67,7 @@
       </el-table-column>
       <el-table-column label="操作" width="560" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-acceptance:update']"
+          <el-button v-if="row.status === 0" link type="primary" @click="openForm(row)" v-hasPermi="['pms:acc-acceptance:update']"
             >编辑</el-button
           >
           <el-button
@@ -75,7 +75,7 @@
             type="success"
             v-if="row.status === 0"
             @click="handleAction(row, 'submitAcceptance', '提交')"
-            v-hasPermi="['pms:acc-acceptance:update']"
+            v-hasPermi="['pms:acc-acceptance:submit']"
             >提交</el-button
           >
           <el-button
@@ -83,7 +83,7 @@
             type="primary"
             v-if="row.status === 1"
             @click="handleAction(row, 'approveAcceptance', '开始审批')"
-            v-hasPermi="['pms:acc-acceptance:update']"
+            v-hasPermi="['pms:acc-acceptance:audit']"
             >开始审批</el-button
           >
           <el-button
@@ -91,7 +91,7 @@
             type="success"
             v-if="row.status === 2"
             @click="handleAction(row, 'passAcceptance', '通过')"
-            v-hasPermi="['pms:acc-acceptance:update']"
+            v-hasPermi="['pms:acc-acceptance:audit']"
             >通过</el-button
           >
           <el-button
@@ -99,7 +99,7 @@
             type="danger"
             v-if="row.status === 2"
             @click="handleAction(row, 'rejectAcceptance', '驳回')"
-            v-hasPermi="['pms:acc-acceptance:update']"
+            v-hasPermi="['pms:acc-acceptance:audit']"
             >驳回</el-button
           >
           <el-button
@@ -107,10 +107,10 @@
             type="primary"
             v-if="row.status === 3"
             @click="handleAction(row, 'archiveAcceptance', '归档')"
-            v-hasPermi="['pms:acc-acceptance:update']"
+            v-hasPermi="['pms:acc-acceptance:audit']"
             >归档</el-button
           >
-          <el-button link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-acceptance:delete']"
+          <el-button v-if="row.status === 0 || row.status === 4" link type="danger" @click="remove(row)" v-hasPermi="['pms:acc-acceptance:delete']"
             >删除</el-button
           >
         </template>
@@ -156,23 +156,13 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="签署日期" prop="signedDate">
-            <el-date-picker v-model="form.signedDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
+          <el-form-item label="验收日期" prop="acceptanceDate">
+            <el-date-picker v-model="form.acceptanceDate" type="date" value-format="YYYY-MM-DD" class="!w-full" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
-          <el-form-item label="验收结论" prop="conclusion">
-            <Editor v-model="form.conclusion" :height="300" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="审批意见" prop="opinion">
-            <Editor v-model="form.opinion" :height="300" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="24">
-          <el-form-item label="附件" prop="attachmentUrl">
-            <UploadFile v-model="form.attachmentUrl!" />
+          <el-form-item label="审批意见" prop="approveOpinion">
+            <Editor v-model="form.approveOpinion" :height="300" />
           </el-form-item>
         </el-col>
         <el-col :span="24">
@@ -238,10 +228,8 @@ const openForm = (row?: AcceptanceVO) => {
       projectId: undefined,
       name: '',
       acceptanceType: 'PRELIMINARY',
-      signedDate: '',
-      conclusion: '',
-      opinion: '',
-      attachmentUrl: '',
+      acceptanceDate: '',
+      approveOpinion: '',
       status: 0,
       remark: '',
       version: undefined

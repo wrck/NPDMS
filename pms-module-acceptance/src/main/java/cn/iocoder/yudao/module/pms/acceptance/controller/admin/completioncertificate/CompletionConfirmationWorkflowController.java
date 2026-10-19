@@ -26,7 +26,7 @@ public class CompletionConfirmationWorkflowController {
     public CommonResult<Long> create(@Valid @RequestBody CompletionCertificateSaveReqVO body){body.setId(null);return success(service.save(tenant(),actor(),body));}
     @PutMapping("/{id}") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:update')")
     public CommonResult<Long> update(@PathVariable("id") Long id,@Valid @RequestBody CompletionCertificateSaveReqVO body){body.setId(id);return success(service.save(tenant(),actor(),body));}
-    @PostMapping("/{id}/actions/issue") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:submit')")
+    @PostMapping("/{id}/actions/issue") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:submit') && @ss.hasPermission('pms:acc-completion-certificate:audit')")
     public CommonResult<CompletionConfirmationWorkflowService.Issue> issue(@PathVariable("id") Long id){return success(service.issue(tenant(),actor(),id));}
     @PostMapping("/{id}/actions/void") @PreAuthorize("@ss.hasPermission('pms:acc-completion-certificate:update')")
     public CommonResult<Boolean> voidRecord(@PathVariable("id") Long id){service.voidRecord(tenant(),actor(),id);return success(true);}

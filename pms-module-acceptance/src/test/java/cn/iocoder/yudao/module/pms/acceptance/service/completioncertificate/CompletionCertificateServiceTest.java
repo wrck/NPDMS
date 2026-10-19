@@ -44,6 +44,7 @@ class CompletionCertificateServiceTest {
     private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi deliveryMaterials;
 
     @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceDeliveryAccess nativeAccess;
+ @Mock cn.iocoder.yudao.module.pms.acceptance.service.acceptance.NativeAcceptanceProjectAccess projectAccess;
  @InjectMocks
     private CompletionCertificateServiceImpl service;
 
@@ -167,6 +168,10 @@ class CompletionCertificateServiceTest {
 
     @Test
     void getDevices_shouldDelegateToMapper() {
+        CompletionCertificateDO certificate = new CompletionCertificateDO();
+        certificate.setId(7L);
+        certificate.setProjectId(9L);
+        when(completionCertificateMapper.selectById(7L)).thenReturn(certificate);
         List<CompletionCertificateDeviceDO> devices = List.of(new CompletionCertificateDeviceDO());
         when(completionCertificateDeviceMapper.selectListByCertificateId(7L)).thenReturn(devices);
 

@@ -5,15 +5,15 @@ export interface DeliverableChecklistVO {
   projectId: number
   code?: string
   name: string
+  acceptanceId?: number
   deliverableType?: string
-  version?: string
-  signedFlag?: boolean
-  validFlag?: boolean
-  submittedDate?: Date
-  attachmentUrl?: string
+  deliverableUrl?: string
+  checkUserId?: number
+  checkTime?: Date
+  checkResult?: string
   status?: number
   remark?: string
-  versionNum?: number
+  version?: number
   createTime?: Date
 }
 

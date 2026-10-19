@@ -117,6 +117,8 @@ public class CompletionConfirmationWorkflowService {
 
     @Transactional(rollbackFor=Exception.class)
     public Issue issue(Long tenant,Long actor,Long id){
+        if(actor==null || !permissions.hasAnyPermissions(actor,"pms:acc-completion-certificate:audit"))
+            throw new org.springframework.security.access.AccessDeniedException("发起调查需要完工证明审核权限");
         var observed=requireCertificate(tenant,actor,id);
         var project=lockProject(tenant,actor,observed.getProjectId());
         access.requireCommand(tenant,actor,"completionCertificate",observed.getProjectId(),"submit");
