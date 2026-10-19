@@ -77,7 +77,7 @@ class CompletionSatisfactionBundleServiceTest {
     }
 
     @Test void refusesUnconfirmedJointSubmissionBeforeAnyWrite() {
-        assertThrows(IllegalArgumentException.class, () -> service.confirm(7L, grant(), task(), 50L, false, signature()));
+        assertThrows(IllegalArgumentException.class, () -> service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, false, signature(), null, evaluation(true))));
         verifyNoInteractions(bundles, signings, certificates, deliveryMaterials);
     }
 
@@ -85,7 +85,7 @@ class CompletionSatisfactionBundleServiceTest {
         arrange();
         when(bundles.confirmPendingCertificate(any())).thenReturn(1);
         when(signings.insert(any(CompletionSatisfactionSigningDO.class))).thenReturn(1);
-        service.confirm(7L, grant(), task(), 50L, true, signature());
+        service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), null, evaluation(true)));
         var signing = ArgumentCaptor.forClass(CompletionSatisfactionSigningDO.class);
         verify(signings).insert(signing.capture());
         assertEquals(11L, signing.getValue().getQuestionnaireId());
@@ -100,7 +100,7 @@ class CompletionSatisfactionBundleServiceTest {
 
     @Test void versionConflictProducesNoSigningOrCompletionMaterial() {
         arrange();
-        assertThrows(IllegalStateException.class, () -> service.confirm(7L, grant(), task(), 50L, true, signature()));
+        assertThrows(IllegalStateException.class, () -> service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), null, evaluation(true))));
         verify(signings, never()).insert(any(CompletionSatisfactionSigningDO.class));
         verifyNoInteractions(deliveryMaterials);
     }
@@ -111,7 +111,7 @@ class CompletionSatisfactionBundleServiceTest {
         when(certificates.selectDeliveryOwnerForUpdate(any())).thenReturn(certificate);
         when(signings.selectFirstSigning(any())).thenReturn(new CompletionSatisfactionSigningDO());
         when(signings.insert(any(CompletionSatisfactionSigningDO.class))).thenReturn(1);
-        service.confirm(7L, grant(), task(), 51L, true, signature());
+        service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 51L, true, signature(), null, evaluation(true)));
         verify(bundles, never()).confirmPendingCertificate(any());
         verifyNoInteractions(deliveryMaterials);
     }
@@ -119,11 +119,11 @@ class CompletionSatisfactionBundleServiceTest {
     @Test void rejectsCrossTenantBundleAndRevokedIssuerRights() {
         var other = bundle(); other.setTenantId(8L);
         when(bundles.selectById(40L)).thenReturn(other);
-        assertThrows(IllegalStateException.class, () -> service.confirm(7L, grant(), task(), 50L, true, signature()));
+        assertThrows(IllegalStateException.class, () -> service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), null, evaluation(true))));
         when(bundles.selectById(40L)).thenReturn(bundle());
         when(access.requireCommand(eq(7L), eq(30L), anyString(), eq(9L), eq("audit")))
                 .thenThrow(new IllegalStateException("permission revoked"));
-        assertThrows(IllegalStateException.class, () -> service.confirm(7L, grant(), task(), 50L, true, signature()));
+        assertThrows(IllegalStateException.class, () -> service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), null, evaluation(true))));
         verify(bundles, never()).confirmPendingCertificate(any());
         verify(signings, never()).insert(any(CompletionSatisfactionSigningDO.class));
     }
@@ -147,7 +147,7 @@ class CompletionSatisfactionBundleServiceTest {
             var transaction = new TransactionTemplate(new DataSourceTransactionManager(db));
             assertThrows(IllegalStateException.class, () -> transaction.execute(status -> {
                 jdbc.update("INSERT INTO response VALUES(50)");
-                service.confirm(7L, grant(), task(), 50L, true, signature());
+                service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), null, evaluation(true)));
                 return null;
             }));
             assertEquals(1, jdbc.queryForObject("SELECT status FROM proof WHERE id=20", Integer.class));
@@ -158,7 +158,7 @@ class CompletionSatisfactionBundleServiceTest {
     }
 
     @Test void previewImageMustMatchCanonicalUploadedSignatureBeforeAnyWrites() {
-        assertThrows(IllegalArgumentException.class, () -> service.confirm(7L,grant(),task(),50L,true,signature(),"data:image/png;base64,aW52YWxpZA=="));
+        assertThrows(IllegalArgumentException.class, () -> service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L, true, signature(), "data:image/png;base64,aW52YWxpZA==", evaluation(true))));
         verifyNoInteractions(bundles,signings,certificates,generatedDocuments);
     }
 
@@ -187,12 +187,52 @@ class CompletionSatisfactionBundleServiceTest {
             var grant=grant();grant.setGrantVersion(1);
             var transaction=new TransactionTemplate(new DataSourceTransactionManager(db));
             var canonical=new SatisfactionResponseSubmissionService.FileFact("SIGNATURE","slot-1",1,100L,1,"signature-ref",1,1,1,3L,cn.hutool.crypto.digest.DigestUtil.sha256Hex("image"));
-            assertThrows(IllegalStateException.class,()->transaction.execute(status->{jdbc.update("INSERT INTO response VALUES(50)");service.confirm(7L,grant,task(),50L,true,canonical,"data:image/png;base64,aW1hZ2U=");return null;}));
+            assertThrows(IllegalStateException.class,()->transaction.execute(status->{jdbc.update("INSERT INTO response VALUES(50)");service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant, task(), 50L, true, canonical, "data:image/png;base64,aW1hZ2U=", evaluation(true)));return null;}));
             assertEquals(1,jdbc.queryForObject("SELECT status FROM proof",Integer.class));
             assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM response",Integer.class));
             assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM signing",Integer.class));
             assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM document",Integer.class));
         }finally{db.shutdown();}
+    }
+
+    @Test void failedScorePreservesSignatureWithoutConfirmingCertificate() {
+        arrange();
+        when(signings.insert(any(CompletionSatisfactionSigningDO.class))).thenReturn(1);
+        service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L,
+                true, signature(), null, evaluation(false)));
+        verify(signings).insert(any(CompletionSatisfactionSigningDO.class));
+        verify(bundles, never()).confirmPendingCertificate(any());
+        verifyNoInteractions(deliveryMaterials, generatedDocuments);
+    }
+
+    @Test void failedScoreWithPrintedTemplateRetainsSignatureWithoutGeneratingConfirmedDocuments() {
+        arrange();
+        var certificate = certificate(); certificate.setSatisfactionTemplateId(90L);
+        when(certificates.selectDeliveryOwnerForUpdate(any())).thenReturn(certificate);
+        when(signings.insert(any(CompletionSatisfactionSigningDO.class))).thenReturn(1);
+        var canonical = new SatisfactionResponseSubmissionService.FileFact("SIGNATURE", "slot-1", 1, 100L, 1,
+                "signature-ref", 1, 1, 1, 3L, cn.hutool.crypto.digest.DigestUtil.sha256Hex("image"));
+        service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 50L,
+                true, canonical, "data:image/png;base64,aW1hZ2U=", evaluation(false)));
+        verify(signings).insert(any(CompletionSatisfactionSigningDO.class));
+        verify(bundles, never()).confirmPendingCertificate(any());
+        verifyNoInteractions(generatedDocuments, deliveryMaterials);
+    }
+
+    @Test void passedRemediationConfirmsPendingCertificateAfterAnEarlierFailedSignature() {
+        arrange();
+        when(signings.selectFirstSigning(any())).thenReturn(new CompletionSatisfactionSigningDO());
+        when(signings.insert(any(CompletionSatisfactionSigningDO.class))).thenReturn(1);
+        when(bundles.confirmPendingCertificate(any())).thenReturn(1);
+        service.confirm(new CompletionSatisfactionBundleService.Confirmation(7L, grant(), task(), 51L,
+                true, signature(), null, evaluation(true)));
+        verify(bundles).confirmPendingCertificate(any());
+        verify(signings).insert(argThat((CompletionSatisfactionSigningDO row) -> row.getResponseId().equals(51L)));
+    }
+
+    private cn.iocoder.yudao.module.pms.acceptance.domain.satisfaction.SatisfactionQuestionnaireDefinition.Evaluation evaluation(boolean passed) {
+        return new cn.iocoder.yudao.module.pms.acceptance.domain.satisfaction.SatisfactionQuestionnaireDefinition.Evaluation(
+                java.math.BigDecimal.valueOf(passed ? 100 : 30), java.math.BigDecimal.valueOf(80), passed, true, "frozen-rule");
     }
 
     private void arrange() {

@@ -112,9 +112,9 @@ public class SatisfactionResponseSubmissionService {
         response.setCreator(actorRef);
         if (responseMapper.insert(response) != 1) throw new IllegalStateException("SATISFACTION_RESPONSE_CREATE_FAILED");
         for (FileFact fact : canonicalFiles) insertFile(command, responseId, fact, actorRef);
-        if (grant.getCompletionBundleId() != null) completionBundles.confirm(command.tenantId(), grant, task,
+        if (grant.getCompletionBundleId() != null) completionBundles.confirm(new CompletionSatisfactionBundleService.Confirmation(command.tenantId(), grant, task,
                 responseId, command.confirmCompletionCertificate(), canonicalFiles.stream()
-                        .filter(file -> "SIGNATURE".equals(file.role())).findFirst().orElseThrow(),command.signatureImageDataUrl());
+                        .filter(file -> "SIGNATURE".equals(file.role())).findFirst().orElseThrow(), command.signatureImageDataUrl(), evaluation));
         if (grantMapper.consumeIfActive(new SatisfactionGrantConsumeUpdate(command.tenantId(), grant.getId(),
                 grant.getVersion(), now, actorRef)) != 1
                 || taskMapper.moveToPendingDecision(new SatisfactionTaskDecisionUpdate(command.tenantId(),

@@ -100,15 +100,20 @@ public class CompletionSatisfactionBundleService {
     }
 
     /** Runs inside Response submission, after PLT has locked and revalidated the canonical signature. */
-    @Transactional(propagation = Propagation.MANDATORY)
-    public void confirm(Long tenantId, SatisfactionAccessGrantDO grant, SatisfactionCollectionTaskDO task,
-                        Long responseId, Boolean confirmed, SatisfactionResponseSubmissionService.FileFact signature) {
-        confirm(tenantId,grant,task,responseId,confirmed,signature,null);
-    }
+    public record Confirmation(Long tenantId, SatisfactionAccessGrantDO grant, SatisfactionCollectionTaskDO task,
+                               Long responseId, Boolean confirmed,
+                               SatisfactionResponseSubmissionService.FileFact signature, String signatureImage,
+                               cn.iocoder.yudao.module.pms.acceptance.domain.satisfaction.SatisfactionQuestionnaireDefinition.Evaluation evaluation) { }
 
     @Transactional(propagation = Propagation.MANDATORY)
-    public void confirm(Long tenantId, SatisfactionAccessGrantDO grant, SatisfactionCollectionTaskDO task,
-                        Long responseId, Boolean confirmed, SatisfactionResponseSubmissionService.FileFact signature,String signatureImage) {
+    public void confirm(Confirmation command) {
+        Long tenantId = command.tenantId();
+        var grant = command.grant();
+        var task = command.task();
+        Long responseId = command.responseId();
+        Boolean confirmed = command.confirmed();
+        var signature = command.signature();
+        String signatureImage = command.signatureImage();
         if (grant.getCompletionBundleId() == null) return;
         if (!Objects.equals(tenantId, grant.getTenantId()) || !Objects.equals(tenantId, task.getTenantId())
                 || !Objects.equals(grant.getQuestionnaireId(), task.getQuestionnaireId()))
@@ -134,7 +139,11 @@ public class CompletionSatisfactionBundleService {
         requireIdentity(tenantId, task.getProjectId(), certificate);
         if(certificate.getSatisfactionTemplateId()!=null && signatureImage==null)
             throw new IllegalArgumentException("COMPLETION_SIGNATURE_IMAGE_REQUIRED");
-        boolean first = requireSignable(bundle, certificate);
+        boolean pending = requireSignable(bundle, certificate);
+        var evaluation = command.evaluation();
+        if (evaluation == null || !evaluation.requiredComplete())
+            throw new IllegalStateException("COMPLETION_SATISFACTION_EVALUATION_REQUIRED");
+        boolean first = pending && evaluation.passed();
         LocalDateTime now = LocalDateTime.now();
         String actorRef = "BUSINESS_GRANT:" + grant.getId();
         if (first && bundles.confirmPendingCertificate(new CompletionSatisfactionConfirmUpdate(tenantId,
@@ -150,7 +159,7 @@ public class CompletionSatisfactionBundleService {
         if (first) deliveryMaterials.registerBusinessResultMaterial("ACC", "completionCertificate", certificate.getId(),
                 "COMPLETION_CERTIFICATE", "completionCertificate", certificate.getId().toString(), null,
                 certificate.getName(), certificate.getProjectId());
-        if(certificate.getSatisfactionTemplateId()!=null){
+        if(certificate.getSatisfactionTemplateId()!=null && evaluation.passed()){
             var question=documentQuestionnaires.selectById(grant.getQuestionnaireId());var response=documentResponses.selectById(responseId);
             if(question==null || response==null || !Objects.equals(tenantId,question.getTenantId()) || !Objects.equals(tenantId,response.getTenantId()))
                 throw new IllegalStateException("COMPLETION_DOCUMENT_FACTS_REQUIRED");
@@ -180,17 +189,17 @@ public class CompletionSatisfactionBundleService {
             throw new IllegalStateException("COMPLETION_SATISFACTION_CERTIFICATE_IDENTITY_CONFLICT");
     }
 
-    /** Only this bundle's first signed submission can establish the certificate confirmation. */
+    /** A pending bundle may confirm only after a passing signed submission; failed signatures remain historical. */
     private boolean requireSignable(CompletionSatisfactionBundleDO bundle, CompletionCertificateDO certificate) {
         var first = signings.selectFirstSigning(new CompletionSatisfactionSigningQuery(bundle.getTenantId(), bundle.getId()));
-        if (first == null) {
-            if (!Integer.valueOf(1).equals(certificate.getStatus())
-                    || !Objects.equals(bundle.getCertificateVersion(), certificate.getVersion()))
+        if (Integer.valueOf(1).equals(certificate.getStatus())) {
+            if (!Objects.equals(bundle.getCertificateVersion(), certificate.getVersion()))
                 throw new IllegalStateException("COMPLETION_SATISFACTION_CERTIFICATE_VERSION_CONFLICT");
             return true;
         }
-        // Remediation stays in the same chain; never overwrite the original certificate or signature.
-        if (!(Integer.valueOf(2).equals(certificate.getStatus()) || Integer.valueOf(3).equals(certificate.getStatus())))
+        // Failed signatures leave the certificate pending; successful remediation can confirm it later.
+        // Previously confirmed historical certificates and their signatures remain immutable.
+        if (first == null || !(Integer.valueOf(2).equals(certificate.getStatus()) || Integer.valueOf(3).equals(certificate.getStatus())))
             throw new IllegalStateException("COMPLETION_SATISFACTION_CERTIFICATE_STATE_CONFLICT");
         return false;
     }

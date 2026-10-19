@@ -181,7 +181,7 @@ public class CompletionCertificateServiceImpl implements CompletionCertificateSe
     @Transactional(rollbackFor = Exception.class)
     public void customerConfirm(Long id) {
         CompletionCertificateDO entity = validateExists(id);
-        if(jointBundles.selectByCertificate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionBundleCertificateQuery(
+        if(entity.getSatisfactionTemplateId()!=null || jointBundles.selectByCertificate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionBundleCertificateQuery(
                 TenantContextHolder.getRequiredTenantId(),id))!=null)
             throw new IllegalStateException("成套完工证明必须由客户一次签字统一提交");
         nativeAccess.requireCommand(TenantContextHolder.getRequiredTenantId(),

@@ -23,6 +23,8 @@ const deviceApi = vi.hoisted(() => ({ getDevicePage: vi.fn() }))
 const commerceApi = vi.hoisted(() => ({ getDeliveryScopePage: vi.fn(), getSalesOrderLinePage: vi.fn() }))
 const profileApi = vi.hoisted(() => ({ getUserProfile: vi.fn() }))
 const fileApi = vi.hoisted(() => ({ updateFile: vi.fn() }))
+const satisfactionApi = vi.hoisted(() => ({ listResults: vi.fn(), getResultDownload: vi.fn() }))
+const platformFiles = vi.hoisted(() => ({ createAccessTicket: vi.fn() }))
 const message = vi.hoisted(() => ({
   confirm: vi.fn(),
   delConfirm: vi.fn(),
@@ -42,12 +44,16 @@ vi.mock('@/api/pms/platform/dynamic-form', () => ({
   getTemplateSelection: vi.fn(async () => ({ list: [], total: 0 }))
 }))
 vi.mock('@/api/infra/file', () => fileApi)
+vi.mock('@/api/pms/acceptance/satisfaction', () => satisfactionApi)
+vi.mock('@/api/pms/platform/file', () => platformFiles)
 vi.mock('@/store/modules/user', () => ({
   useUserStore: () => ({ user: { id: 1, nickname: '当前用户' }, getUser: { id: 1, nickname: '当前用户' } })
 }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
-const auditPermission = vi.hoisted(() => ({ allowed: true }))
-vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) => !codes.includes('pms:acc-completion-certificate:audit') || auditPermission.allowed }))
+const auditPermission = vi.hoisted(() => ({ allowed: true, download: true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) =>
+  codes.some(code => code.endsWith(':download')) ? auditPermission.download
+    : !codes.includes('pms:acc-completion-certificate:audit') || auditPermission.allowed }))
 vi.mock('@/utils/dict', () => ({
   DICT_TYPE: { PMS_COMPLETION_CERT_STATUS: 'completion_status' },
   getIntDictOptions: () => []
@@ -151,6 +157,7 @@ const renderPage = (initial: { projectId?: number; readonly?: boolean } = { proj
 }
 beforeEach(() => {
   vi.clearAllMocks()
+  auditPermission.download = true
   print.exporting = false
   guards.leave.length = 0
   api.getConfirmationPage.mockResolvedValue({ list: [], total: 0 })
@@ -170,7 +177,7 @@ beforeEach(() => {
   message.delConfirm.mockResolvedValue(undefined)
   editor.validate.mockResolvedValue(true)
   fileApi.updateFile.mockResolvedValue({ data: '/saved-signature.png' })
-  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn(), open: vi.fn() })
 })
 afterEach(() => {
   mounted.splice(0).forEach((app) => app.unmount())
@@ -178,6 +185,58 @@ afterEach(() => {
 })
 
 describe('completion workbench save and context protection', () => {
+  const openSignedDetail = async () => {
+    const history = { taskId: 510, revisionNo: 1, submittedAt: '2026-10-19T23:00:00', signatureImageDataUrl: 'data:image/png;base64,fixture' }
+    api.getConfirmation.mockResolvedValue({ certificate: draft(), history: [history], survey: history })
+    satisfactionApi.listResults.mockResolvedValue([{ taskId: 510, resultId: 610, responseId: 710 }])
+    satisfactionApi.getResultDownload.mockResolvedValue({ role: 'SIGNATURE', file: { artifactId: 810, versionNo: 1, referenceKey: 'signature-710' } })
+    platformFiles.createAccessTicket.mockResolvedValue({ shortLivedUrl: '/controlled-signature' })
+    const page = renderPage()
+    await flush()
+    await page.state().openDetail(draft())
+    return page
+  }
+
+  it('downloads the selected survey signature through owner lookup and a controlled ticket', async () => {
+    const page = await openSignedDetail()
+    await page.state().downloadSurveySignature()
+    expect(satisfactionApi.listResults).toHaveBeenCalledWith(41)
+    expect(satisfactionApi.getResultDownload).toHaveBeenCalledWith(610, 2)
+    expect(platformFiles.createAccessTicket).toHaveBeenCalledWith(810, 1, 'DOWNLOAD', {
+      ownerContext: 'ACC', objectType: 'SATISFACTION_RESPONSE', objectId: '710',
+      purposeCode: 'SATISFACTION_SIGNATURE', referenceKey: 'signature-710'
+    })
+    expect(window.open).toHaveBeenCalledWith('/controlled-signature', '_blank', 'noopener,noreferrer')
+  })
+
+  it('does not request signature download without download permissions', async () => {
+    const page = await openSignedDetail()
+    auditPermission.download = false
+    await page.state().downloadSurveySignature()
+    expect(satisfactionApi.listResults).not.toHaveBeenCalled()
+    expect(platformFiles.createAccessTicket).not.toHaveBeenCalled()
+  })
+
+  it('does not open a download after the detail was closed while its ticket was pending', async () => {
+    const page = await openSignedDetail()
+    const ticket = deferred<any>()
+    platformFiles.createAccessTicket.mockReturnValueOnce(ticket.promise)
+    const pending = page.state().downloadSurveySignature()
+    await flush()
+    page.state().detailVisible = false
+    ticket.resolve({ shortLivedUrl: '/stale-signature' })
+    await pending
+    expect(window.open).not.toHaveBeenCalled()
+  })
+
+  it('does not request a ticket when the selected result has no matching signature', async () => {
+    const page = await openSignedDetail()
+    satisfactionApi.getResultDownload.mockResolvedValueOnce({ role: 'RESULT_DOCUMENT', file: {} })
+    await page.state().downloadSurveySignature()
+    expect(platformFiles.createAccessTicket).not.toHaveBeenCalled()
+    expect(window.open).not.toHaveBeenCalled()
+  })
+
   it('issues the saved completion once while the linked survey is being prepared', async () => {
     const issued = deferred<any>()
     api.issueConfirmation.mockReturnValueOnce(issued.promise)

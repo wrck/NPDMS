@@ -13,6 +13,9 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface SatisfactionCollectionTaskMapper extends BaseMapperX<SatisfactionCollectionTaskDO> {
+    java.util.List<SatisfactionCollectionTaskDO> selectAssociationCandidates(
+            @Param("query") cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.SatisfactionAssociationQuery query);
+
     default java.util.List<SatisfactionCollectionTaskDO> selectByCollection(
             cn.iocoder.yudao.module.pms.acceptance.dal.mysql.satisfaction.query.CompletionSatisfactionBundleQuery query) {
         return selectList(new cn.iocoder.yudao.framework.mybatis.core.query.LambdaQueryWrapperX<SatisfactionCollectionTaskDO>()

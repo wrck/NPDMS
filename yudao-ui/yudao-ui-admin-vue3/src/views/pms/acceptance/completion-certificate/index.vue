@@ -153,6 +153,14 @@
           :src="detailSignature"
           alt="客户手写签字"
         /><el-button
+          v-if="selectedHistory && checkPermi(['pms:acceptance:satisfaction:download']) && checkPermi(['pms:file:download'])"
+          :loading="signatureDownloading"
+          link
+          type="primary"
+          @click="downloadSurveySignature"
+          >保存签字图片</el-button
+        ><el-button
+          v-else-if="!selectedHistory"
           tag="a"
           :href="detailSignature"
           download="客户手写签字.png"
@@ -214,6 +222,8 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import { useMessage } from '@/hooks/web/useMessage'
 import { useUserStore } from '@/store/modules/user'
 import * as CompletionCertificateApi from '@/api/pms/acceptance/completion-certificate'
+import * as SatisfactionApi from '@/api/pms/acceptance/satisfaction'
+import * as PlatformFileApi from '@/api/pms/platform/file'
 import * as ProjectApi from '@/api/pms/project/projects'
 import * as UserProfileApi from '@/api/system/user/profile'
 import { loadProjectEquipmentList, type ProjectEquipmentProduct } from '@/api/pms/commerce/projectEquipment'
@@ -640,6 +650,33 @@ const detail = ref<CompletionCertificateApi.CompletionConfirmationDetail>(),
 const detailProjectName = ref('')
 const selectedHistory = computed(() => detail.value?.history.find(record => String(record.taskId) === historyIndex.value) ?? detail.value?.survey)
 const detailSignature = computed(() => selectedHistory.value ? selectedHistory.value.signatureImageDataUrl : detail.value?.certificate.customerSignUrl)
+const signatureDownloading = ref(false)
+const downloadSurveySignature = async () => {
+  const record = selectedHistory.value
+  const projectId = detail.value?.certificate.projectId
+  if (!record || !projectId || signatureDownloading.value
+      || !checkPermi(['pms:acceptance:satisfaction:download']) || !checkPermi(['pms:file:download'])) return
+  const request = detailRequest
+  const current = () => detailVisible.value && detailRequest === request
+    && String(selectedHistory.value?.taskId) === String(record.taskId)
+  signatureDownloading.value = true
+  try {
+    const results = await SatisfactionApi.listResults(projectId)
+    if (!current()) return
+    const result = results.find(item => String(item.taskId) === String(record.taskId))
+    if (!result) return message.warning('评价结果尚未生成，请稍后重试。')
+    const fact = await SatisfactionApi.getResultDownload(result.resultId, 2)
+    if (!current()) return
+    if (fact.role !== 'SIGNATURE') return message.warning('签字文件不匹配，请重新打开记录。')
+    const ticket = await PlatformFileApi.createAccessTicket(fact.file.artifactId, fact.file.versionNo, 'DOWNLOAD', {
+      ownerContext: 'ACC', objectType: 'SATISFACTION_RESPONSE', objectId: String(result.responseId),
+      purposeCode: 'SATISFACTION_SIGNATURE', referenceKey: fact.file.referenceKey
+    })
+    if (current()) window.open(ticket.shortLivedUrl, '_blank', 'noopener,noreferrer')
+  } finally {
+    signatureDownloading.value = false
+  }
+}
 const openDetail = async (row: CompletionCertificateVO) => {
   const request = ++detailRequest,
     current = context

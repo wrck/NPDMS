@@ -201,6 +201,15 @@ class CompletionCertificateServiceTest {
     }
 
 
+    @Test void configuredSatisfactionCannotBypassScoringThroughLegacyConfirmation() {
+        var row = new CompletionCertificateDO(); row.setId(8L); row.setStatus(1); row.setVersion(2L);
+        row.setSatisfactionTemplateId(90L);
+        when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L, 8L))).thenReturn(row);
+        assertThrows(IllegalStateException.class, () -> service.customerConfirm(8L));
+        verify(completionCertificateMapper, never()).updateById(any(CompletionCertificateDO.class));
+        org.mockito.Mockito.verifyNoInteractions(deliveryMaterials);
+    }
+
     @Test void staleDraftUpdateDoesNotReplaceDevices() {
         var row=new CompletionCertificateDO();row.setId(5L);row.setStatus(0);row.setVersion(2L);
         when(completionCertificateMapper.selectDeliveryOwnerForUpdate(new cn.iocoder.yudao.module.pms.acceptance.dal.mysql.completioncertificate.query.CompletionCertificateDeliveryLockQuery(7L,5L))).thenReturn(row);

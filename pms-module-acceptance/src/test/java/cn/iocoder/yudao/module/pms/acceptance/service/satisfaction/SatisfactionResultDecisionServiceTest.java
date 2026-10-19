@@ -103,6 +103,15 @@ class SatisfactionResultDecisionServiceTest {
         when(resultMapper.insert(any(SatisfactionResultDO.class))).thenReturn(1);
         when(resultFileMapper.insert(any(SatisfactionResultFileDO.class))).thenReturn(1);
         when(taskMapper.completeDecision(any())).thenReturn(1);
+        when(resultMapper.updateArchiveProjection(any())).thenReturn(1);
+        when(fileArtifactApi.archiveReferenceSets(any())).thenAnswer(invocation -> {
+            var command = (cn.iocoder.yudao.module.pms.platform.api.file.dto.ArchiveFileReferenceSetsCommand) invocation.getArgument(0);
+            return new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArchiveReferenceSetFact(command.archiveBatchId(),
+                    command.archiveSetKey(), command.orderedExpectedPublicFileFacts().stream().map(file ->
+                    new FileArtifactVersionFact(file.artifactId(), file.versionNo(), file.referenceKey(), file.categoryCode(),
+                            file.name(), file.sizeBytes(), file.mediaType(), file.sha256(), file.availabilityStatus(), "ARCHIVED",
+                            file.fileFactVersion(), file.scopeVersion())).toList());
+        });
         var result = service.decide(command());
         assertTrue(result.passed()); assertEquals(new BigDecimal("5.0"), result.score());
         org.junit.jupiter.api.Assertions.assertNull(result.deliverableId());
@@ -112,10 +121,39 @@ class SatisfactionResultDecisionServiceTest {
         verify(independent).lockIfDirect(7L, 99L, direct);
         var stored = org.mockito.ArgumentCaptor.forClass(SatisfactionResultDO.class);
         verify(resultMapper).insert(stored.capture());
-        org.junit.jupiter.api.Assertions.assertNull(stored.getValue().getArchiveStatus());
+        assertEquals("ARCHIVED", stored.getValue().getArchiveStatus());
+        verify(fileArtifactApi, org.mockito.Mockito.times(2)).archiveReferenceSets(any());
+        verify(resultMapper).updateArchiveProjection(org.mockito.ArgumentMatchers.argThat(update ->
+                "ARCHIVED".equals(update.archiveStatus()) && update.deliverableSourceVersionId() == null));
         verify(taskMapper).completeDecision(org.mockito.ArgumentMatchers.argThat(update -> "PASSED".equals(update.targetStatus())));
         assertEquals("ACC.IndependentSatisfactionResultChanged.v1", emitted.businessEvents().getFirst().eventType());
         assertEquals(2, result.files().size());
+    }
+
+    @Test void archiveFailureRollsBackIndependentResultAndTaskTransition() {
+        var direct = task(); direct.setOriginKind("DIRECT"); direct.setProjectTaskId(null); direct.setDeliverableId(null);
+        when(taskMapper.selectById(10L)).thenReturn(direct);
+        when(taskMapper.selectByIdForUpdate(7L, 10L)).thenReturn(direct);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "independent", org.mockito.Mockito.mock(IndependentSatisfactionService.class));
+        when(fileArtifactApi.createGeneratedBusinessFile(any())).thenReturn(file());
+        var db = new org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder().generateUniqueName(true)
+                .setType(org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType.H2).build();
+        try {
+            var jdbc = new org.springframework.jdbc.core.JdbcTemplate(db);
+            jdbc.execute("CREATE TABLE result_fact(id BIGINT PRIMARY KEY)");
+            jdbc.execute("CREATE TABLE task_fact(id BIGINT PRIMARY KEY, status VARCHAR(30))");
+            jdbc.update("INSERT INTO task_fact VALUES(10,'PENDING_DECISION')");
+            when(resultMapper.insert(any(SatisfactionResultDO.class))).thenAnswer(call -> jdbc.update("INSERT INTO result_fact VALUES(12)"));
+            when(resultFileMapper.insert(any(SatisfactionResultFileDO.class))).thenReturn(1);
+            when(taskMapper.completeDecision(any())).thenAnswer(call -> jdbc.update("UPDATE task_fact SET status='PASSED' WHERE id=10"));
+            when(fileArtifactApi.archiveReferenceSets(any())).thenThrow(new IllegalStateException("archive unavailable"));
+            var transaction = new org.springframework.transaction.support.TransactionTemplate(
+                    new org.springframework.jdbc.datasource.DataSourceTransactionManager(db));
+            assertThrows(IllegalStateException.class, () -> transaction.execute(status -> service.decide(command())));
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM result_fact", Integer.class));
+            assertEquals("PENDING_DECISION", jdbc.queryForObject("SELECT status FROM task_fact", String.class));
+            verify(resultMapper, never()).updateArchiveProjection(any());
+        } finally { db.shutdown(); }
     }
 
     @Test

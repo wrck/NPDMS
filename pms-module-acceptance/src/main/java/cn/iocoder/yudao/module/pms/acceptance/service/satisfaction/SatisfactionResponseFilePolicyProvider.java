@@ -6,6 +6,8 @@ import cn.iocoder.yudao.module.pms.platform.api.file.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.scope.ProjectScopeApi;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeRevalidationQuery;
 import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectScopeResult;
+import cn.iocoder.yudao.module.pms.project.api.scope.dto.ProjectCurrentScopeQuery;
+import cn.iocoder.yudao.module.system.api.permission.PermissionApi;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionAccessGrantDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionCollectionTaskDO;
 import cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.satisfaction.SatisfactionQuestionnaireDO;
@@ -39,13 +41,19 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
     private final SatisfactionResponseReservationService reservationService;
     private final SatisfactionAssistedResponseReservationService assistedReservationService;
     private final ProjectScopeApi projectScopeApi;
+    private final PermissionApi permissionApi;
 
     @Override public String ownerContext() { return OWNER; }
     @Override public String objectType() { return TYPE; }
-    @Override public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) { return denied(); }
+    @Override public FileBusinessObjectPolicyFact inspect(FileBusinessObjectPolicyQuery query) {
+        return readPolicy(new ReadAccess(query, false, null));
+    }
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public FileBusinessObjectPolicyFact lockAndRevalidate(FileBusinessObjectPolicyRevalidationQuery query) {
+        if (query != null && FileActionCodes.DOWNLOAD.equals(query.requiredAction())) {
+            return readPolicy(new ReadAccess(query.toInspectionQuery(), true, query.expectedScopeVersion()));
+        }
         if (query == null || !(FileActionCodes.ARCHIVE.equals(query.requiredAction())
                 || FileActionCodes.REFERENCE.equals(query.requiredAction()))
                 || !(SIGNATURE.equals(query.purposeCode()) || ATTACHMENT.equals(query.purposeCode()))) {
@@ -71,6 +79,43 @@ public class SatisfactionResponseFilePolicyProvider implements FileBusinessObjec
                 || !scope.fullProjectIds().contains(task.getProjectId())) {
             throw new IllegalStateException("SATISFACTION_RESPONSE_ARCHIVE_SCOPE_CONFLICT");
         }
+        return policy(query.purposeCode(), scope.treeVersion());
+    }
+
+    private record ReadAccess(FileBusinessObjectPolicyQuery query, boolean locked, Long expectedScopeVersion) { }
+
+    private FileBusinessObjectPolicyFact readPolicy(ReadAccess access) {
+        var query = access.query();
+        if (query == null || query.tenantId() == null || query.actorUserId() == null
+                || !OWNER.equals(query.ownerContext()) || !TYPE.equals(query.objectType())
+                || !FileActionCodes.DOWNLOAD.equals(query.requiredAction())
+                || !(SIGNATURE.equals(query.purposeCode()) || ATTACHMENT.equals(query.purposeCode()))
+                || !permissionApi.hasAnyPermissions(query.actorUserId(), "pms:acceptance:satisfaction:download")) {
+            return denied();
+        }
+        Long responseId = positiveLong(query.objectId());
+        var response = access.locked() ? responseMapper.selectByIdForUpdate(query.tenantId(), responseId)
+                : responseMapper.selectById(responseId);
+        if (response == null || !query.tenantId().equals(response.getTenantId())) return denied();
+        var questionnaire = access.locked()
+                ? questionnaireMapper.selectByIdForUpdate(query.tenantId(), response.getQuestionnaireId())
+                : questionnaireMapper.selectById(response.getQuestionnaireId());
+        if (questionnaire == null || !query.tenantId().equals(questionnaire.getTenantId())) return denied();
+        var task = access.locked()
+                ? taskMapper.selectByIdForUpdate(query.tenantId(), questionnaire.getCollectionTaskId())
+                : taskMapper.selectById(questionnaire.getCollectionTaskId());
+        if (task == null || !query.tenantId().equals(task.getTenantId())) return denied();
+        // Historical responses remain readable; current assignment and collection state are write constraints.
+        var scope = access.locked()
+                ? projectScopeApi.lockAndRevalidate(ProjectScopeRevalidationQuery.builder()
+                    .tenantId(query.tenantId()).subjectUserId(query.actorUserId()).anchorProjectId(task.getProjectId())
+                    .actionCode(ProjectScopeApi.ACTION_VIEW).expectedScopeVersion(access.expectedScopeVersion()).build())
+                : projectScopeApi.resolveCurrent(ProjectCurrentScopeQuery.builder()
+                    .tenantId(query.tenantId()).subjectUserId(query.actorUserId()).anchorProjectId(task.getProjectId())
+                    .actionCode(ProjectScopeApi.ACTION_VIEW).build());
+        if (scope == null || scope.treeVersion() == null || scope.fullProjectIds() == null
+                || !scope.fullProjectIds().contains(task.getProjectId())
+                || access.locked() && !Objects.equals(access.expectedScopeVersion(), scope.treeVersion())) return denied();
         return policy(query.purposeCode(), scope.treeVersion());
     }
 

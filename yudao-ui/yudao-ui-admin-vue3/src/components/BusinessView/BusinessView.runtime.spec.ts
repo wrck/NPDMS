@@ -2,6 +2,7 @@
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BusinessViewHost from './BusinessViewHost.vue'
+import { businessPageRoutes } from './presentationRoute'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import { businessViewTargetKey, resolveStandaloneBusinessEntityView, resolveBusinessView, type BusinessViewTarget } from './registry'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
@@ -26,6 +27,7 @@ vi.mock('@/views/pms/project/project-master-detail/components/formCreateKeyboard
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RevisionFiles.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/requirement-analysis/entity/RequirementBriefingSection.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', () => ({ default: { name: 'PmsEngSiteSurvey', render: () => null } }))
+vi.mock('@/views/pms/acceptance/satisfaction/index.vue', () => ({ default: { name: 'SatisfactionWorkbench', render: () => null } }))
 vi.mock('@/views/pms/acceptance/acceptance-report/index.vue', () => ({ default: { name: 'AcceptanceReport', render: () => null } }))
 vi.mock('@/views/pms/engineering/training/TrainingPrintTemplates.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/views/pms/engineering/training/TrainingPrintPreview.vue', () => ({ default: { render: () => null } }))
@@ -825,4 +827,18 @@ it('loads one shared declared runtime with an exact object reference and denies 
   value.resolvedContext = { businessObjectId: 7 }
   value.registration.dynamicFormRevisionId = 9
   expect(resolveBusinessView(value).error).toBeTruthy()
+})
+
+describe('Satisfaction entity binding', () => {
+  it('opens the satisfaction entity page in its authorized project and keeps query-only access readonly', () => {
+    const satisfaction = businessPageRoutes.ACC_SATISFACTION
+    const source = { registration: { ...satisfaction, id: '8', status: 'PUBLISHED' },
+      resolvedContext: { project: { id: '1' }, businessObjectId: '20' }, allowedActions: ['QUERY'] }
+    const resolved = resolveBusinessView(source as never)
+    expect(resolved.error).toBeFalsy()
+    expect(resolved.props).toMatchObject({ projectId: '1', readonly: true })
+    expect(resolveBusinessView({ ...source, resolvedContext: { project: { id: 'invalid' } } } as never).error).toBeTruthy()
+    expect(resolveBusinessView({ ...source, presentation: { pageUrl: satisfaction.pageUrl,
+      query: { projectId: '99' } } } as never).error).toBeTruthy()
+  })
 })

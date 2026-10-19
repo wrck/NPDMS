@@ -11,6 +11,7 @@ import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requi
 import DynamicFormInstanceContent from '@/views/pms/platform/dynamic-form/instance/DynamicFormInstanceContent.vue'
 import SiteSurveyPage from '@/views/pms/delivery-business/site-survey/index.vue'
 import AcceptanceReportPage from '@/views/pms/acceptance/acceptance-report/index.vue'
+import SatisfactionWorkbench from '@/views/pms/acceptance/satisfaction/index.vue'
 import ProjectDurationPanel from '@/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue'
 import ProjectSchedulePanel from '@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue'
 import SolutionWorkbench from '@/views/pms/engineering/solution-reviewed/index.vue'
@@ -147,6 +148,15 @@ const adapters: readonly Adapter[] = [
         : undefined
   },
   {
+    ...businessPageRoutes.ACC_SATISFACTION,
+    component: markRaw(SatisfactionWorkbench),
+    resolve: ({ registration, resolvedContext, allowedActions }) =>
+      registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
+        && (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
+        ? { projectId: resolvedContext.project.id, readonly: !allowedActions.includes('MANAGE') }
+        : undefined
+  },
+  {
     ...businessPageRoutes.ACC_ACCEPTANCE_REPORT,
     component: markRaw(AcceptanceReportPage),
     resolve: ({ registration, resolvedContext }) =>
@@ -271,7 +281,7 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
     try { pageUrl = validatePagePresentation(target.presentation, adapter.pageUrl, target.resolvedContext) }
     catch { return { error: '页面路径或参数与冻结Owner上下文不匹配，禁止回退到默认页面。' } }
   }
-  const readonly = target.readonly === true || registration.status === 'DISABLED'
+  const readonly = target.readonly === true || registration.status === 'DISABLED' || context.readonly === true
   return {
     component: adapter.component,
     pageUrl,

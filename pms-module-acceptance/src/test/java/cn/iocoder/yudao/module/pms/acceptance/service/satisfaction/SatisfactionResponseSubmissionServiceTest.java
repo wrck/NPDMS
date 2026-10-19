@@ -59,7 +59,10 @@ class SatisfactionResponseSubmissionServiceTest {
                 original.reservedResponseId(), original.submitChannel(), original.customerContactRef(), null,
                 original.answerSnapshot(), original.files(), original.actorRef(), true));
         var ordered = inOrder(completionBundles, grantMapper);
-        ordered.verify(completionBundles).confirm(eq(7L), eq(grant), any(), eq(50L), eq(true), eq(original.files().getFirst()),isNull());
+        ordered.verify(completionBundles).confirm(argThat(command -> command.tenantId().equals(7L)
+                && command.grant().equals(grant) && command.responseId().equals(50L) && command.confirmed()
+                && command.signature().equals(original.files().getFirst()) && command.signatureImage() == null
+                && command.evaluation() != null));
         ordered.verify(grantMapper).consumeIfActive(any());
     }
 
