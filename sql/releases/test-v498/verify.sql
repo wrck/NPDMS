@@ -1,4 +1,4 @@
--- Read-only checks immediately after B498 / optional administrator bootstrap.
+-- Read-only checks immediately after B498 + V499 + V500 / optional administrator bootstrap.
 -- Zero rows from each violations query means PASS. Do not use seed-count checks after business use.
 -- This verifies database release integrity, not workflow deployment or browser/business acceptance.
 SELECT DATABASE() AS target_schema, VERSION() AS mysql_version;
@@ -558,8 +558,8 @@ SELECT 'srv_service_issue' AS check_name, 0 AS expected, COUNT(*) AS actual FROM
 SELECT 'srv_service_issue_remediation' AS check_name, 0 AS expected, COUNT(*) AS actual FROM `srv_service_issue_remediation` UNION ALL
 SELECT 'system_company' AS check_name, 0 AS expected, COUNT(*) AS actual FROM `system_company` UNION ALL
 SELECT 'system_dept' AS check_name, 0 AS expected, COUNT(*) AS actual FROM `system_dept` UNION ALL
-SELECT 'system_dict_data' AS check_name, 1414 AS expected, COUNT(*) AS actual FROM `system_dict_data` UNION ALL
-SELECT 'system_dict_type' AS check_name, 301 AS expected, COUNT(*) AS actual FROM `system_dict_type` UNION ALL
+SELECT 'system_dict_data' AS check_name, 1418 AS expected, COUNT(*) AS actual FROM `system_dict_data` UNION ALL
+SELECT 'system_dict_type' AS check_name, 302 AS expected, COUNT(*) AS actual FROM `system_dict_type` UNION ALL
 SELECT 'system_login_log' AS check_name, 0 AS expected, COUNT(*) AS actual FROM `system_login_log` UNION ALL
 SELECT 'system_mail_account' AS check_name, 0 AS expected, COUNT(*) AS actual FROM `system_mail_account` UNION ALL
 SELECT 'system_mail_log' AS check_name, 0 AS expected, COUNT(*) AS actual FROM `system_mail_log` UNION ALL
@@ -851,3 +851,35 @@ SELECT 'no_source_plaintext_config' AS check_name, (SELECT COUNT(*) FROM infra_c
 
 SELECT id,username,status,IF(password='!BOOTSTRAP_REQUIRED!','BOOTSTRAP_REQUIRED','CONFIGURED') AS credential_state FROM system_users;
 SELECT COUNT(*) AS configured_file_stores FROM infra_file_config;
+
+-- V500 risk status seed must be complete in this fresh release database.
+SELECT 'project_risk_status_type' AS check_name
+WHERE (SELECT COUNT(*) FROM system_dict_type
+       WHERE type='pms_project_risk_status' AND deleted=b'0' AND status=0) <> 1;
+SELECT 'project_risk_status_value' AS check_name, expected.value
+FROM (
+  SELECT '0' AS value, '已识别' AS label, 0 AS sort, 'info' AS color_type
+  UNION ALL SELECT '1', '处理中', 1, 'primary'
+  UNION ALL SELECT '2', '已关闭', 2, 'success'
+  UNION ALL SELECT '3', '已发生', 3, 'danger'
+) expected
+LEFT JOIN system_dict_data actual ON actual.dict_type='pms_project_risk_status'
+  AND actual.value=expected.value AND actual.deleted=b'0'
+GROUP BY expected.value, expected.label, expected.sort, expected.color_type
+HAVING COUNT(actual.id) <> 1
+  OR SUM(actual.label<>expected.label OR actual.sort<>expected.sort
+         OR COALESCE(actual.color_type, '')<>expected.color_type OR actual.status<>0) <> 0;
+
+-- Retired pages must stay disabled; shared permission rows are retained.
+SELECT 'active_retired_project_menu' AS check_name, id, component
+FROM system_menu
+WHERE deleted=b'0' AND (status<>1 OR visible<>b'0')
+  AND component IN (
+    'pms/project/project/index',
+    'pms/project/project-detail/index',
+    'pms/project/project-phase/index',
+    'pms/project/project-task/index',
+    'pms/project/project-team/index',
+    'pms/project/project-panoramic/index',
+    'pms/project/plan-change/index'
+  );

@@ -1,12 +1,14 @@
 # 正式测试环境空库发布包：V498
 
-本包将截至 V498 的 421 份 Flyway SQL 整合为一个空库基线。适用 **MySQL 8.4 / Flyway 11.10.5**，由独立 Flyway Compose 客户端执行；不启动或重启应用。
+本包将截至 V498 的 421 份 Flyway SQL 整合为一个空库基线，并附带 V499 旧项目应用入口退役迁移、V500 风险状态字典补齐迁移。适用 **MySQL 8.4 / Flyway 11.10.5**，由独立 Flyway Compose 客户端执行；不启动或重启应用。
 
 ## 交付内容
 
 | 文件 | 用途 |
 | --- | --- |
 | `migrations/B498__npdms_formal_test_baseline.sql` | 最终 461 张表、238 个触发器、29 张基础种子表中的 4,596 条数据 |
+| `migrations/V499__retire_legacy_project_application_entries.sql` | 停用依赖已移除旧表的 7 个页面菜单，保留权限及角色关系 |
+| `migrations/V500__complete_project_risk_status_dictionary.sql` | 补入 1 个风险状态字典类型和 4 个状态值，迁移后基础种子共 4,601 条 |
 | `bootstrap-admin-and-storage.sql` | 部署时设置管理员 BCrypt 密码哈希和数据库文件存储访问地址 |
 | `verify.sql` | 初始化后的只读核对：结构数量、种子数量、业务表为空、物理外键及逻辑引用 |
 | `compose.yaml`、`.env.example` | 指定目标数据库的 Flyway 执行入口；不内置连接凭据或默认数据库 |
@@ -14,6 +16,8 @@
 | `templates/project-delivery-source.json` | 正式项目模板的只读来源原件，**不自动导入数据库** |
 
 SQL 来自本次专用临时库对仓库迁移的完整演练，不是现有业务库备份。按需求方确认排除 V310 退役的 29 张旧表及其 87 个只读触发器，其余表的最终列、索引、外键、CHECK、生成列及触发器保留；不在目标库重新执行历史 ALTER、数据回填或示例数据写入。目标自增序列从空库/实际保留的种子开始，不继承演练库示例数据推高的序列。
+
+V500 沿用 V46 的 `pms_project_risk_status` 定义：`0=已识别`、`1=处理中`、`2=已关闭`、`3=已发生`。V46 的类型 ID 2105 已被 MES 字典占用，V500 改用专用高段 ID，仅补缺失类型/值，保留已有自定义、停用配置及软删除历史，不改写 V46 或 B498。来源清单保留原基线 4,596 条的数量，新增 5 条单独记入前向增量。
 
 ## 数据范围
 
@@ -43,7 +47,7 @@ docker compose --env-file "$releaseDir/.env" -f "$releaseDir/compose.yaml" run -
 docker compose --env-file "$releaseDir/.env" -f "$releaseDir/compose.yaml" run --rm migrate validate
 ```
 
-成功后历史表应出现 `version=498 / type=SQL_BASELINE / success=1`。再次 `migrate` 应报告无待执行迁移。
+成功后历史表应出现 `version=498 / type=SQL_BASELINE / success=1`、`version=499 / type=SQL / success=1` 和 `version=500 / type=SQL / success=1`。再次 `migrate` 应报告无待执行迁移。
 
 4. 通过受控部署通道，在**同一个 MySQL 会话**先设置下面两个变量，再执行 `bootstrap-admin-and-storage.sql`。BCrypt 哈希由目标环境密码工具生成，成本参数至少 10；本包不接收或生成明文管理员密码。变量不得写回发布文件或输出到共享日志。
 
@@ -56,7 +60,8 @@ SET @npdms_public_backend_origin = '<实际http或https后端访问地址，不�
 
 使用遇错即停的批处理方式提交完整 SQL，不使用 `--force` 或忽略 SQL 错误的执行器。变量不合法、管理员已初始化或已有存储配置时，脚本必须报错停止；它不会重置已有管理员密码。成功时管理员启用，并新增唯一的数据库文件存储。
 
-5. 在同一目标库执行 `verify.sql`。旧表残留、旧触发器残留、种子/空表差异、引用完整性这四组差异查询均应返回 **0 行**；结构数量应为 461 张业务/平台表和 238 个触发器，管理员应为 `CONFIGURED / status=0`，文件存储数量应为 1。Flyway 历史表不计入 461 张表。
+5. 在同一目标库执行 `verify.sql`。旧表残留、旧触发器残留、种子/空表差异、引用完整性、风险状态字典类型、风险状态四值及旧页面菜单状态这七组差异查询均应返回 **0 行**；结构数量应为 461 张业务/平台表和 238 个触发器，管理员应为 `CONFIGURED / status=0`，文件存储数量应为 1。Flyway 历史表不计入 461 张表。此计数在应用首次启动前核对；后端按现有 `flowable.database-schema-update=true` 配置首次启动时会创建 Flowable 引擎表，因此启动后总表数会增加。
+   校验文件按 UTF-8 输入；使用 MySQL CLI 时指定 `--default-character-set=utf8mb4`，避免中文标签比较因客户端编码不同而误报。
 6. 再按目标环境流程部署后端和前端、配置真实组织和人员、部署 BPM 定义及所需采集模板，完成真实浏览器业务验收。本包没有替这些操作生成成功证据。
 
 ## 项目模板的已确认边界
@@ -71,11 +76,15 @@ SET @npdms_public_backend_origin = '<实际http或https后端访问地址，不�
 
 ## 旧域移除与应用兼容边界
 
-需求方已确认从空库基线中排除全部 29 张旧表及对应 87 个触发器，不采用暂留 6 张表的过渡方案。本次只调整数据库发布包及验证资产，菜单种子和应用代码保持原值。
+需求方已确认从空库基线中排除全部 29 张旧表及对应 87 个触发器，并继续清理应用依赖。旧项目、阶段、任务树、团队、全景、历史计划变更的 Controller、Service、Mapper 和页面已移除；这些旧 API 不再注册。V499 停用对应 7 个菜单组件，包含旧项目详情深链；不删除菜单、角色关系或新域仍使用的共用权限。
 
-当前源码仍通过旧 Controller、Service、Mapper 查询以下 6 张表：`pms_project_retired`、`pms_project_phase_retired`、`pms_project_task_retired`、`pms_project_team_member_retired`、`pms_plan_change_request_retired`、`pms_plan_change_phase_snapshot_retired`。旧项目、阶段、任务树、团队、全景及计划变更接口在此空库中没有对应存储；调用这些路径会出现表不存在错误。基线菜单 `19151`（历史计划变更）和 `18017`（项目风险）仍启用，前者加载历史列表、两者选择项目时仍消费旧查询。
+仓库配套清理也移除了仍调用旧接口的 `checkpoint-smoke-test.ps1`，施工计划集成测试不再查询已排除的旧计划变更表；退役守卫改为确认旧运行文件不存在。旧客户、项目、WBS与计划变更的库存记录按实际移除状态同步，仍有效的历史只读能力保留。此轮不增加删除存量库的迁移，也不改写已冻结的 B498 或原历史迁移。
 
-因此数据库迁移通过不代表当前应用已经兼容该基线。应用投用前需要单独处理这些旧页面和接口的退役或改接，并进行真实浏览器验收；共用权限（如 `pms:project:query`）仍服务新项目入口，不能随旧菜单一并删除。本次没有以空结果替身掩盖缺失依赖，也没有恢复旧表写入。
+项目风险继续保留在 `proj_project_risk`，创建时改为校验新项目主档 `proj_project`，筛选和新增表单使用新域项目分页接口及 `projectName` 字段。新项目列表、详情、任务工作台、团队、工期和项目治理实现保持原有契约。首页旧项目和任务快捷入口改为新项目列表。
+
+配套应用修复了空库首次启动时暂停割接任务的注册：任务注册后仍保持暂停，不改来源启停状态；同时对齐项目状态查询 UNION 输出列的排序规则，兼容基线中阶段/任务表与完成留痕表的既有定义。
+
+应用代码必须与 B498 + V499 + V500 一起发布。数据库结构、菜单和字典检查不能替代目标环境的登录、权限及业务验收；本地验证范围见发布验证记录。原历史迁移与已有数据库中的历史记录不作删除或回写。
 
 ## 版本与后续升级
 
@@ -83,7 +92,7 @@ SET @npdms_public_backend_origin = '<实际http或https后端访问地址，不�
 - 历史演练在 V374 前仅于本次临时库将 `acc_project_deliverable.deliverable_code` 对齐为 `utf8mb4_unicode_ci`，解决 JSON_TABLE 比较的排序规则冲突；各迁移会话使用相同连接排序规则。仓库历史迁移文件未改动。整合 SQL 已包含此最终列定义。
 - `B498` 是会真实执行 SQL 的 [Flyway baseline migration](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/baseline-migrations)，应使用 `migrate`，不能用 `baseline` 命令代替初始化。
 - 该包只用于新空库。已有数据库继续原有迁移入口；不要给已有数据库套本包，也不要使用 `repair`、`clean`、关闭校验或手写历史记录处理冲突。
-- 本包一旦用于环境初始化，`B498` 内容即冻结。以后把正式的 `V499` 及更高版本迁移加入本包 `migrations` 目录，沿用同一入口执行。不得重生成并覆盖已执行的 `B498`。
+- 本包一旦用于环境初始化，`B498` 内容即冻结。本包已包含正式 `V499`、`V500`；以后把 `V501` 及更高版本迁移加入本包 `migrations` 目录，沿用同一入口执行。不得重生成并覆盖已执行的 `B498`。
 - MySQL DDL 不支持整包事务回滚。失败时保留日志，核对本次新库的部分落地状态；只有经该环境明确批准，才能重建这个新库后重试，不自动清理任何数据库。
 
 实际验证结果见 [发布验证记录](../../../docs/generated/2026-10-17-flyway-test-v498-release.md)。238 个触发器的名称、目标表、作用及 SQL 行号见 [触发器清单](../../../docs/generated/2026-10-17-flyway-trigger-inventory.md)。其中 2 个项目触发器会在阶段/任务完成时追加完成与逾期留痕，其余用于拒写或完整性约束；不是所有触发器都只有拦截作用。

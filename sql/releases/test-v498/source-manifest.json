@@ -1204,6 +1204,18 @@
       "trg_pms_srv_task_ro_insert",
       "trg_pms_srv_task_ro_update"
     ],
-    "application_dependency_boundary": "Six legacy project tables still have frontend/API/Mapper consumers in current source; database verification does not establish application compatibility. Application cleanup is outside this release-only change."
-  }
+    "application_dependency_boundary": "Legacy controllers, services, mappers and frontend pages for the six project tables are removed. Project risk uses proj_project and its current project selector. V499 disables the seven retired menu components while preserving shared permissions and role bindings."
+  },
+  "forward_migrations": [
+    "V499__retire_legacy_project_application_entries.sql",
+    "V500__complete_project_risk_status_dictionary.sql"
+  ],
+  "forward_seed_additions": {
+    "V500": {
+      "system_dict_type": 1,
+      "system_dict_data": 4,
+      "reason": "Restore the V46 risk status dictionary using non-conflicting IDs; preserve installed values and deleted history."
+    }
+  },
+  "final_seed_row_count": 4601
 }
