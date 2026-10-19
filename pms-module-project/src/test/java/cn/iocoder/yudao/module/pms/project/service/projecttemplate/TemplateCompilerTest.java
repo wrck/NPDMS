@@ -8,6 +8,23 @@ import tools.jackson.databind.JsonNode;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TemplateCompilerTest {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"priority", "defaultBranch"})
+    void rejectsMissingRequiredRuntimeEdgeFieldsBeforePublication(String field) {
+        var designer = validDesigner();
+        var edge = designer.getTransitions().getFirst();
+        if ("priority".equals(field)) edge.setPriority(null);
+        else edge.setDefaultBranch(null);
+
+        var result = compiler.compileVersioned(designer);
+
+        assertFalse(result.valid());
+        assertNull(result.snapshot());
+        assertTrue(result.issues().stream().anyMatch(issue ->
+                ("transitions[0]." + field).equals(issue.field()) && "REQUIRED".equals(issue.code())),
+                () -> result.issues().toString());
+    }
+
     @Test void normalClosureTaskRequiresATerminalOwnerApprovalContract() {
         var designer=validDesigner();var task=designer.getTasks().getFirst();
         task.getWorkBinding().setType("PAGE");task.getWorkBinding().setParameters(JsonUtils.parseTree("{\"routePath\":\"/pms/project/normal-closure\"}"));

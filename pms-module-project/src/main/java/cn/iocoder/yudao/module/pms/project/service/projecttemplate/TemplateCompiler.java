@@ -247,6 +247,10 @@ public class TemplateCompiler {
                 issues.add(new Issue("transitions[" + i + "].edgeKey", "INVALID_EDGE_KEY", "关系edgeKey不能为空且必须唯一"));
             if (!code(edge.getCode()) || !edgeCodes.add(edge.getCode()))
                 issues.add(new Issue("transitions[" + i + "].code", "INVALID_EDGE_CODE", "关系编码不能为空且必须唯一"));
+            if (edge.getPriority() == null)
+                issues.add(new Issue("transitions[" + i + "].priority", "REQUIRED", "关系优先级不能为空"));
+            if (edge.getDefaultBranch() == null)
+                issues.add(new Issue("transitions[" + i + "].defaultBranch", "REQUIRED", "关系默认标记不能为空"));
             if (!stages.contains(edge.getFromStageCode()) || !stages.contains(edge.getToStageCode()))
                 issues.add(new Issue("transitions[" + i + "]", "DANGLING_STAGE", "依赖引用的阶段不存在"));
             if (Objects.equals(edge.getFromStageCode(), edge.getToStageCode()))

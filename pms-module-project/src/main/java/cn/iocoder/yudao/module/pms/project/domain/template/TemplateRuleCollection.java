@@ -24,8 +24,10 @@ public final class TemplateRuleCollection {
                 throw new IllegalArgumentException("规则需要有效的局部key和结果类型");
             if (result.putIfAbsent(rule.key(), rule) != null) throw new IllegalArgumentException("规则key重复: " + rule.key());
             boolean condition = rule.kind() == VersionRule.Kind.CONDITION;
-            if (condition ? rule.expression() == null || rule.decision() != null
-                    : rule.decision() == null || rule.expression() != null)
+            // HTTP/JSON往返的显式null不是另一份可编辑条件来源。
+            boolean hasExpression = rule.expression() != null && !rule.expression().isNull();
+            if (condition ? !hasExpression || rule.decision() != null
+                    : rule.decision() == null || hasExpression)
                 throw new IllegalArgumentException("规则必须只有一种可编辑来源: " + rule.key());
         }
         return result;
