@@ -10,6 +10,7 @@ import cn.iocoder.yudao.framework.security.core.util.SecurityFrameworkUtils;
 import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.instance.BpmProcessInstanceCancelReqVO;
 import cn.iocoder.yudao.module.bpm.api.task.BpmProcessInstanceApiImpl;
+import cn.iocoder.yudao.module.bpm.service.durationchange.DurationChangeBpmService;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.task.BpmTaskApproveReqVO;
 import cn.iocoder.yudao.module.bpm.controller.admin.task.vo.task.BpmTaskRejectReqVO;
 import cn.iocoder.yudao.module.bpm.dal.dataobject.definition.BpmProcessDefinitionInfoDO;
@@ -213,6 +214,7 @@ class DurationChangeBpmMySqlIntegrationTest {
         bpmnModel = model();
         deploymentId = repositoryService.createDeployment()
                 .name(PROCESS_KEY)
+                .tenantId("0")
                 .addBpmnModel(PROCESS_KEY + ".bpmn20.xml", bpmnModel)
                 .deploy().getId();
         participantFactApi.useMock();
@@ -275,6 +277,9 @@ class DurationChangeBpmMySqlIntegrationTest {
         assertEquals(command == Command.APPROVE ? candidateRevisionId : baseRevisionId,
                 number("SELECT current_duration_revision_id FROM sol_construction_plan WHERE id=?", planId));
         assertNull(value("SELECT pending_change_id FROM sol_construction_plan WHERE id=?", planId));
+        if (command == Command.APPROVE) {
+            assertEquals("同意", value("SELECT approval_opinion FROM sol_construction_plan_change WHERE id=?", changeId));
+        }
         assertEquals(command == Command.APPROVE ? ConstructionPlanDO.RECALCULATION_PENDING : "RECALCULATED",
                 value("SELECT plan_recalculation_status_code FROM sol_construction_plan WHERE id=?", planId));
         assertEquals(1L, jdbcTemplate.queryForObject("SELECT COUNT(*) FROM plt_operation_audit "
@@ -714,10 +719,10 @@ class DurationChangeBpmMySqlIntegrationTest {
 
     private void createPendingFacts() {
         identityService.setAuthenticatedUserId(String.valueOf(APPLICANT));
-        ProcessInstance instance = runtimeService.startProcessInstanceByKey(
-                PROCESS_KEY, "duration:" + changeId,
+        ProcessInstance instance = runtimeService.startProcessInstanceByKeyAndTenantId(
+                PROCESS_KEY, String.valueOf(changeId),
                 Map.of(BpmnVariableConstants.PROCESS_INSTANCE_VARIABLE_STATUS, 1,
-                        "projectId", projectId, "approverUserId", APPROVER));
+                        "projectId", projectId, "approverUserId", APPROVER), "0");
         identityService.setAuthenticatedUserId(null);
         processInstanceId = instance.getId();
         LocalDateTime now = LocalDateTime.now();
@@ -972,7 +977,7 @@ class DurationChangeBpmMySqlIntegrationTest {
             cn.iocoder.yudao.module.pms.platform.service.file.event.FileEventFactory.class,
             ConstructionPlanChangeFilePolicyProvider.class,
             DurationChangeApplicationService.class,
-            DurationChangeProperties.class, DurationChangeBpmListener.class,
+            DurationChangeProperties.class, DurationChangeBpmListener.class, DurationChangeBpmService.class,
             DurationChangeBpmAuthorizationGuard.class, DurationChangeBpmResultService.class,
             ProjectTreeScopeService.class, ProjectTreeProjectionService.class, ProjectTreeMetrics.class})
     static class TestApplication {

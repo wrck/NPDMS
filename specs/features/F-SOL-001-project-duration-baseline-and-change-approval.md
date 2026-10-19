@@ -61,6 +61,7 @@
 - 服务经理通过/驳回使用平台既有BPM任务入口；申请人撤回使用平台既有流程撤回入口。SOL不提供可绕过BPM的直接通过/驳回/撤回命令。
 - SOL按冻结的`processInstanceId`消费平台`BpmProcessInstanceStatusEvent`终态：`APPROVE`才切换当前revision并记`APPROVED`，`REJECT`记`REJECTED`，`CANCEL`仅在BPM确认申请人合法撤回后记`WITHDRAWN`。重复、乱序、未知流程或非终态结果不得推进业务状态。
 - 处理终态时先通过PROJ公共契约锁定并重验项目资格/角色事实，再锁定plan和pending change，重验候选revision、附件版本及流程关联。通过时同一事务切换`current_duration_revision_id`、清空pending并将计划影响设为`PENDING_RECALCULATION`；驳回/撤回只清空pending并保留当前工期。
+- 同意时的`approval_opinion`读取BPM中本流程、冻结服务经理的已完成审批任务意见，不将流程结束原因当作任务意见。BPM命令完成历史写入后，在原事务提交前完成回写；读取关联失败使原审批事务回滚。允许同意时未填写可选意见，不新增必填要求；已有终态记录不补写、不覆盖。
 - PLN-01未实施、查询不可用或重算失败不得让通过命令回滚；旧施工计划及其生效引用保持不变。本Feature不发布跨Context事件。
 - 驳回必须有非空意见，将变更记为`REJECTED`并清空pending指针；撤回只允许申请人在`PENDING_APPROVAL`执行并记为`WITHDRAWN`。两者均不改当前生效revision和计划影响状态。
 

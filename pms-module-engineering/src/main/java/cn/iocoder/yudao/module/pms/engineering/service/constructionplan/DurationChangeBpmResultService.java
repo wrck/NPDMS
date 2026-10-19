@@ -1,6 +1,8 @@
 package cn.iocoder.yudao.module.pms.engineering.service.constructionplan;
 
 import cn.iocoder.yudao.module.bpm.enums.task.BpmProcessInstanceStatusEnum;
+import cn.iocoder.yudao.module.bpm.api.durationchange.DurationChangeBpmApi;
+import cn.iocoder.yudao.module.bpm.api.event.BpmProcessInstanceStatusEvent;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanChangeDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanDO;
 import cn.iocoder.yudao.module.pms.engineering.dal.dataobject.constructionplan.ConstructionPlanRevisionDO;
@@ -45,9 +47,13 @@ public class DurationChangeBpmResultService {
     private final DurationChangeBpmAuthorizationGuard authorizationGuard;
     private final OperationAuditApi operationAuditApi;
     private final FileArtifactApi fileArtifactApi;
+    private final DurationChangeBpmApi durationChangeBpmApi;
 
     @Transactional(rollbackFor = Exception.class)
-    public void handle(String processInstanceId, Integer status, String reason) {
+    public void handle(BpmProcessInstanceStatusEvent event) {
+        String processInstanceId = event.getId();
+        Integer status = event.getStatus();
+        String reason = event.getReason();
         TerminalResult result = TerminalResult.from(status);
         if (result == null) {
             return;
@@ -82,6 +88,12 @@ public class DurationChangeBpmResultService {
             throw exception(DURATION_CHANGE_BPM_ASSOCIATION_INVALID);
         }
         revalidateFrozenEvidence(change);
+
+        if (result == TerminalResult.APPROVE) {
+            reason = durationChangeBpmApi.getApprovalOpinion(new DurationChangeBpmApi.ApprovalOpinionQuery(
+                    authorization.tenantId(), processInstanceId, change.getProcessDefinitionKey(),
+                    String.valueOf(change.getId()), change.getApproverUserId()));
+        }
 
         Long currentBefore = plan.getCurrentDurationRevisionId();
         String recalculationBefore = plan.getPlanRecalculationStatusCode();
