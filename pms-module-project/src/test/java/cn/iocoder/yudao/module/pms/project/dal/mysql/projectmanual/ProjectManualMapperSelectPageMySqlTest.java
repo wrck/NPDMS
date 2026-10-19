@@ -72,6 +72,29 @@ class ProjectManualMapperSelectPageMySqlTest {
     }
 
     @Test
+    void overdueFactsSupportEmptyProjectsAndMixedSchemaCollations() throws Exception {
+        long project = insertProject("S1", "ACTIVE", "OVERDUE-COLLATION");
+        // Production tenant/data-permission interceptors parse this SQL before MySQL receives it.
+        var statement = sqlSession.getConfiguration().getMappedStatement(
+                ProjectOverdueMapper.class.getName() + ".selectStatusFacts");
+        com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(
+                statement.getBoundSql(Map.of("query", statusQuery())).getSql());
+        assertTrue(overdueMapper.selectStatusFacts(statusQuery()).isEmpty());
+        long stage = insertStage(project, EFFECTIVE_AT.minusDays(1), null);
+        jdbcTemplate.update("UPDATE proj_project_stage SET name=? WHERE tenant_id=? AND id=?",
+                "阶段兼容🙂", TENANT, stage);
+        assertEquals("阶段兼容🙂", overdueMapper.selectStatusFacts(statusQuery()).getFirst().getNodeName());
+        stageMapper.updateStatusIfMatch(new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStageStatusUpdate(
+                TENANT, project, stage, 0, "ACTIVE", "DONE", "it-overdue", EFFECTIVE_AT));
+        var completed = overdueMapper.selectStatusFacts(statusQuery()).getFirst();
+        assertEquals("阶段兼容🙂", completed.getNodeName());
+        assertTrue(completed.getCompletedAt() != null);
+        assertTrue(overdueMapper.selectStatusFacts(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectStatusQuery(
+                        TENANT, Set.of(), EFFECTIVE_AT)).isEmpty());
+    }
+
+    @Test
     void stageStatusFiltersCurrentStageWithActiveLifecycle() {
         long stageProject = insertProject("S1", "ACTIVE", "S1-ACTIVE");
         long closedAtS1 = insertProject("S1", "NORMAL_CLOSED", "CLOSED-AT-S1");

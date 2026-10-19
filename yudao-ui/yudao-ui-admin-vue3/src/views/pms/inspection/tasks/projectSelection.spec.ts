@@ -8,6 +8,10 @@ vi.mock('@/api/pms/inspection/tasks', () => ({}))
 vi.mock('@/utils', () => ({ generateUUID: () => 'test-id' }))
 vi.mock('@/utils/permission', () => ({ checkPermi: (permissions: string[]) => permissions.every(p => p.startsWith('pms:inspection-task:')) }))
 vi.mock('@/utils/formatTime', () => ({ formatDate: vi.fn() }))
+vi.mock('@/utils/dict', () => ({
+  DICT_TYPE: { PMS_MAJOR_PROJECT_LEVEL: 'pms_major_project_level' },
+  getDictLabel: (_type: string, value: unknown) => String(value ?? '')
+}))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ error: vi.fn(), success: vi.fn(), confirm: vi.fn() }) }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ref(false) }))
 vi.mock('vue-router', () => ({ useRoute: () => ({ path: '/pms/inspection/tasks', query: { create: '1' } }),

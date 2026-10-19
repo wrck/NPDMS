@@ -1003,6 +1003,7 @@ class ProjectManualCreationServiceImplTest {
     private TemplateExecutionSnapshot snapshotOf(TemplateDefinitionContent content) {
         var designer = TemplateDesignerDocument.fromResolvedLegacy(content);
         for (var stage : designer.getStages()) {
+            stage.setLifecycleStage("S0");
             var binding = new TemplateDesignerDocument.WorkBindingSpec(); binding.setType("STAGE_NATIVE");
             binding.setParameters(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("{}"));
             stage.setWorkBinding(binding);
@@ -1012,6 +1013,12 @@ class ProjectManualCreationServiceImplTest {
             completion.setExpression(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree(
                     "{\"predicate\":\"STAGE_NATIVE_STATUS\",\"parameters\":{\"requiredStatus\":\"DONE\"}}"));
             stage.setCompletionRule(completion);
+        }
+        for (var deliverable : designer.getDeliverables()) {
+            deliverable.setConfiguration(cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseTree("""
+                    {"scope":"STAGE","deliverableType":"DOCUMENT","required":true,"minimumQuantity":1,
+                     "allowedSources":["UPLOAD"],"outputType":"FILE","confirmationRule":{"predicate":"TASK","parameters":{"refCode":"T1"}}}
+                    """));
         }
         var compilation = new TemplateCompiler().compile(designer);
         org.junit.jupiter.api.Assertions.assertTrue(compilation.valid(), () -> compilation.issues().toString());

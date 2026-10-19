@@ -26,13 +26,12 @@ import static cn.iocoder.yudao.framework.common.pojo.CommonResult.success;
  * 管理后台 - PMS 项目风险 Controller（FR-PROJ-026 / T-V1-PROJ-009）。
  * <p>
  * 路径前缀 {@code /pms/project-risk}，对应菜单权限 {@code pms:project-risk:*}。
-  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
-*/
+ * 项目归属校验使用新域项目主档，风险记录保存在 proj_project_risk。
+ */
 @Tag(name = "管理后台 - PMS 项目风险")
 @RestController
 @RequestMapping("/pms/project-risk")
 @Validated
-@Deprecated
 public class ProjectRiskController {
 
     @Resource

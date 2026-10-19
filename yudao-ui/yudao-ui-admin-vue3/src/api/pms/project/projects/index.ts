@@ -6,7 +6,7 @@ import type { TemplateMatchEvaluation } from '../project-templates'
  * 新链项目 API（F-PM01 / PM-01，复数路由 /pms/projects）
  *
  * 承接全部项目写语义（创建/更新/指派）与主档查询；
- * 旧单数路由 /pms/project 已冻结只读（仅 get/page 供旧页面选择器过渡）。
+ * 旧单数路由 /pms/project 已退役，项目选择器统一使用本接口。
  */
 
 /** 项目主档（列表行与详情共用） */

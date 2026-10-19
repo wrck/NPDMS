@@ -217,7 +217,7 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
         declarations.add(new BusinessModelDeclaration(splitRequest, ProjectSplitRequestDO.class, projectSplitRequestMapper, null));
         BusinessModelDescriptor treeVersion = new BusinessModelDescriptor("PRJ", "treeVersion",
                 "PRJ_TREE_VERSION", 1, BusinessModelKind.AGGREGATE_ROOT, "项目树版本",
-                "pms:project-tree:query",
+                "pms:project:query",
                 List.of(required("rootProjectId", "根项目", EntityField.Type.NUMBER),
                         field("treeVersion", "树版本号", EntityField.Type.NUMBER),
                         field("status", "状态", EntityField.Type.TEXT),
@@ -230,7 +230,7 @@ public class ProjectBusinessModelContributor implements BusinessModelContributor
         declarations.add(new BusinessModelDeclaration(treeVersion, ProjectTreeVersionDO.class, projectTreeVersionMapper, null));
         BusinessModelDescriptor treeChange = new BusinessModelDescriptor("PRJ", "treeChange",
                 "PRJ_TREE_CHANGE", 1, BusinessModelKind.AGGREGATE_ROOT, "项目树变更",
-                "pms:project-tree:query",
+                "pms:project:query",
                 List.of(required("changeBatchId", "变更批次", EntityField.Type.TEXT),
                         field("operationType", "操作类型", EntityField.Type.TEXT),
                         field("projectId", "项目", EntityField.Type.NUMBER),

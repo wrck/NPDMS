@@ -23,7 +23,9 @@
         </choose>
     </sql>
     <select id="selectStatusFacts" resultType="cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.projection.ProjectOverdueNodeFact">
-        SELECT project_id, 'STAGE' AS node_kind, id AS node_id, name AS node_name,
+        <!-- Existing node tables and completion history retain different utf8mb4 collations. -->
+        SELECT project_id, 'STAGE' AS node_kind, id AS node_id,
+               name COLLATE utf8mb4_unicode_ci AS node_name,
                plan_end_time, acceptance_time, NULL AS completed_at,
                IFNULL(plan_end_time &lt; DATE(#{query.effectiveAt}), 0) AS work_overdue,
                IFNULL(acceptance_time &lt; DATE(#{query.effectiveAt}), 0) AS acceptance_overdue
@@ -32,7 +34,8 @@
           AND (plan_end_time &lt; DATE(#{query.effectiveAt}) OR acceptance_time &lt; DATE(#{query.effectiveAt}))
           AND <include refid="authorizedProjects"/>
         UNION ALL
-        SELECT project_id, 'TASK', id, name, plan_end_time, acceptance_time, NULL,
+        SELECT project_id, 'TASK', id,
+               name COLLATE utf8mb4_unicode_ci, plan_end_time, acceptance_time, NULL,
                IFNULL(plan_end_time &lt; DATE(#{query.effectiveAt}), 0),
                IFNULL(acceptance_time &lt; DATE(#{query.effectiveAt}), 0)
         FROM proj_project_task WHERE tenant_id = #{query.tenantId} AND deleted = b'0'
@@ -40,7 +43,8 @@
           AND (plan_end_time &lt; DATE(#{query.effectiveAt}) OR acceptance_time &lt; DATE(#{query.effectiveAt}))
           AND <include refid="authorizedProjects"/>
         UNION ALL
-        SELECT project_id, node_kind, node_id, node_name, plan_end_time, acceptance_time, completed_at,
+        SELECT project_id, node_kind COLLATE utf8mb4_unicode_ci, node_id,
+               node_name COLLATE utf8mb4_unicode_ci, plan_end_time, acceptance_time, completed_at,
                work_overdue, acceptance_overdue
         FROM proj_node_overdue_completion WHERE tenant_id = #{query.tenantId}
           AND (work_overdue = b'1' OR acceptance_overdue = b'1')

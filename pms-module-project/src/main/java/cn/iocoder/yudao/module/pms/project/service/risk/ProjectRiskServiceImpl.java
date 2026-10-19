@@ -5,7 +5,7 @@ import cn.iocoder.yudao.framework.common.util.object.BeanUtils;
 import cn.iocoder.yudao.module.pms.project.controller.admin.risk.vo.ProjectRiskPageReqVO;
 import cn.iocoder.yudao.module.pms.project.controller.admin.risk.vo.ProjectRiskSaveReqVO;
 import cn.iocoder.yudao.module.pms.project.dal.dataobject.risk.ProjectRiskDO;
-import cn.iocoder.yudao.module.pms.project.dal.mysql.project.ProjectMapper;
+import cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper;
 import cn.iocoder.yudao.module.pms.project.dal.mysql.risk.ProjectRiskMapper;
 import cn.iocoder.yudao.module.pms.project.domain.risk.RiskStatusRules;
 import jakarta.annotation.Resource;
@@ -30,12 +30,11 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
  * <p>
  * 风险状态机：已识别→处理中→已关闭/已发生；已发生→已关闭。
  * 创建时默认状态为已识别并写入 identified_at；迁入已关闭时写入 closed_at。
-  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
-*/
+ * 项目归属校验使用新域项目主档，风险记录保存在 proj_project_risk。
+ */
 @Service
 @Validated
 @Slf4j
-@Deprecated
 public class ProjectRiskServiceImpl implements ProjectRiskService {
 
     /** 合法风险等级集合 */
@@ -44,7 +43,7 @@ public class ProjectRiskServiceImpl implements ProjectRiskService {
     @Resource
     private ProjectRiskMapper projectRiskMapper;
     @Resource
-    private ProjectMapper projectMapper;
+    private ProjectMasterMapper projectMapper;
 
     @Override
     public Long createRiskRetired(ProjectRiskSaveReqVO createReqVO) {

@@ -13,9 +13,8 @@ import java.util.List;
  * PMS 项目风险 Service 接口（FR-PROJ-026 / T-V1-PROJ-009）。
  * <p>
  * 状态迁移由 {@code RiskStatusRules} 校验：已识别→处理中→已关闭/已发生；已发生→已关闭。
-  * @deprecated 已随 pms_* 旧域退役：业务由新实现入口承接，数据库仅读；仅保留存量只读兼容，禁止新开发接入。
-*/
-@Deprecated
+ * 项目归属校验使用新域项目主档，风险记录保存在 proj_project_risk。
+ */
 public interface ProjectRiskService {
 
     /**
