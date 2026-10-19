@@ -3409,8 +3409,22 @@
       "implementation": "C",
       "implementationLabel": "新虚基类套件",
       "adapter": "BASE_P15",
-      "verification": "FAILED / 0",
+      "verification": "PREVIEW_READY / 4706900",
       "runs": [
+        {
+          "id": 2112161183148769281,
+          "task_id": 2111504249399701506,
+          "task_code": "BASE_P15",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 4706900,
+          "inserted_count": 4706900,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED",
+          "started_at": "2026-10-19 20:37:22.790000",
+          "finished_at": "2026-10-19 20:42:41.297000"
+        },
         {
           "id": 2112051493786001409,
           "task_id": 2111504249399701506,
@@ -3474,12 +3488,18 @@
       "codePaths": [
         "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java"
       ],
-      "currentCandidateVerified": null,
+      "currentCandidateVerified": true,
       "browserVerification": {
         "scope": "已有19084登录首页恢复检查；新套件无专属任务UI。该任务结论来自真实API与数据库终态，不是任务专属UI业务验收。",
         "proof": "docs/generated/standalone-base-sync-20261017.md"
       },
-      "latestFollowupEvidence": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/P15-current-preview.json"
+      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p15-order-type-customer-20261019\\P15-preview.json",
+      "customerSelectionFollowup": {
+        "decision": "MAXIMUM_ORDER_NUMBER_BY_TYPE",
+        "remainingCustomerConflicts": 0,
+        "report": "base-sync-p15-order-type-customer-20261019.md",
+        "targetedTests": 33
+      }
     },
     {
       "task": "P16",
@@ -10294,5 +10314,14 @@
       "FAILED": 10
     },
     "currentProof": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\final-proof.json"
+  },
+  "orderTypeCustomerFollowup": {
+    "report": "base-sync-p15-order-type-customer-20261019.json",
+    "task": "P15",
+    "latestRunId": 2112161183148769281,
+    "statusCounts": {
+      "PREVIEW_READY": 20,
+      "FAILED": 4
+    }
   }
 }

@@ -19,7 +19,12 @@
         CASE WHEN o.customer_code IS NOT NULL AND o.customer_code&lt;&gt;''
           AND (NOT(o.customer_code REGEXP '^[A-Za-z]')
             OR CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))&gt;5)
-          THEN 1 ELSE 0 END AS customer_code_invalid
+          THEN 1 ELSE 0 END AS customer_code_invalid,
+        DENSE_RANK() OVER (
+          PARTITION BY CAST(o.company_code AS BINARY),CAST(o.contract_no AS BINARY)
+          ORDER BY CASE WHEN o.order_no IS NOT NULL AND o.order_no&lt;&gt;'' THEN CASE o.order_type WHEN '0' THEN 2 WHEN '1' THEN 1 ELSE 0 END ELSE 0 END DESC,
+            CAST(CASE WHEN o.order_type IN ('0','1') AND o.order_no IS NOT NULL AND o.order_no&lt;&gt;'' THEN o.order_no END AS BINARY) DESC
+        ) AS customer_order_rank
       FROM com_sales_order o
       WHERE o.tenant_id=#{tenantId} AND o.deleted=0
         AND o.source_system IN ('SAP','D365','SMS')
@@ -28,6 +33,7 @@
       
       
     ) x
+    WHERE x.customer_order_rank=1
     GROUP BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY)
     ORDER BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY) 
   ) o LEFT JOIN (SELECT s.tenant_id,s.contract_no,

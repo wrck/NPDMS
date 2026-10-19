@@ -4,7 +4,11 @@
 
 **共24项、每项3种实现、72份验证记录；原字段处置861行。当前不能称为“72项验收全部通过”。**
 
-## 剩余五项正式输入复核后的最新结果
+## 新P15按订单类型选客后的最新结果
+
+[本轮裁决和真实预览](base-sync-p15-order-type-customer-20261019.md)及[24项最新终态](base-sync-p15-order-type-customer-20261019.json)：新P15完整4706900条真实预览PREVIEW_READY，Run 2112161183148769281。按订单类型选取最大订单号所属客户，原389组冲突全部消歧；80302合同组取正向最大号、1220组仅退货取退货最大号，无逐合同特例。33项受影响检查通过；24项当前20 PREVIEW_READY、4 FAILED，其余23项未重跑，P30仍为空预览。原任务和历史保护保持，无迁移、真实同步或59191操作，自动迁移关闭。当前C以本节为准。
+
+## 剩余五项正式输入复核后的结果（历史）
 
 [base-sync-five-input-dependencies-20261019](base-sync-five-input-dependencies-20261019.md)及[24项当前回执](base-sync-five-input-dependencies-20261019.json)：当前19 PREVIEW_READY、5 FAILED。P15预览改为原表三份单层查询，CRM应收误筛修复；追加裁决仅过滤发货合同ID/号同时为空的1行后再真实运行。最终Run 2112144970750287873用时328秒，四段原始历史4625378条完整读取，归并81522合同组后因389组客户冲突失败。P18真实阻断已核实为当前操作者缺001/002/003公司授权（82373条），另8条缺公司码；P33仍是原地址未决。52项定向检查通过。原任务、历史及测试库保护保持，59284专用环境自动迁移关闭，无迁移、真实同步或59191操作。P30仍为空预览。当前C以本节JSON为准，旧阶段保留其当时证据。
 
@@ -74,7 +78,7 @@
 | [P12](P12/README.md) | DPPMS缺失产品补齐 | PREVIEW_READY / 34,976 | PREVIEW_READY / 34,976 | PREVIEW_READY / 34,976 |
 | [P13](P13/README.md) | CRM执行单 | PREVIEW_READY / 99,895；ISSUE=99,895（全行） | PREVIEW_READY / 1,895 | PREVIEW_READY / 99,895 |
 | [P14](P14/README.md) | 销售订单与订单行 | PREVIEW_READY / 467,190；ISSUE=2,138 | PREVIEW_READY / 465,804；ISSUE=1,102 | FAILED / 0 |
-| [P15](P15/README.md) | 合同、发货引用、包裹、发货事件和设备关系 | PREVIEW_READY / 3,848,169；ISSUE=814 | PREVIEW_READY / 3,848,169；ISSUE=814 | FAILED / 0 |
+| [P15](P15/README.md) | 合同、发货引用、包裹、发货事件和设备关系 | PREVIEW_READY / 3,848,169；ISSUE=814 | PREVIEW_READY / 3,848,169；ISSUE=814 | PREVIEW_READY / 4,706,900 |
 | [P16](P16/README.md) | 有效项目主档及全部旧身份 | FAILED / 0 | FAILED / 0 | PREVIEW_READY / 158,871 |
 | [P18](P18/README.md) | 项目合同关系 | PREVIEW_READY / 82,676；ISSUE=82,676（全行） | PREVIEW_READY / 82,676；ISSUE=82,676（全行） | FAILED / 0 |
 | [P19](P19/README.md) | 项目相关方及状态资料 | PREVIEW_READY / 265,547；ISSUE=265,547（全行） | PREVIEW_READY / 265,547；ISSUE=265,547（全行） | PREVIEW_READY / 186,118 |
@@ -121,15 +125,14 @@
 - P37：B/C整表475468条已有真实预览，sourceId472122空码按原始空串加密并登记。正式设备/合同关联可空，所有关联待需要时处理；不引入旧试点Owner。A旧路径未接入已批整表边界，不能把旧配置缺项重新归为整表未授权。
 - P31/P33/P35：C真实执行只使用自身P16完整非预览COMPLETED范围；只读预览按同源原项目ID规划，不要求先真实写入P16。已存在项目继续核验当前身份/权限；P33另保留地址基线。A/B旧完整发布前置保持各自独立。
 
-## C当前五项失败及外部处理条件
+## C当前四项失败及外部处理条件
 
-以[base-sync-five-input-dependencies-20261019.md](base-sync-five-input-dependencies-20261019.md)及真实终态为准。补列、容量、项目ID环境修正及原日期裁决的旧阻断不再列为当前缺项。
+以[base-sync-five-input-dependencies-20261019.md](base-sync-five-input-dependencies-20261019.md)及真实终态为准。补列、容量、项目ID环境修正、原日期及P15选客裁决的旧阻断不再列为当前缺项。最新终态见[base-sync-p15-order-type-customer-20261019](base-sync-p15-order-type-customer-20261019.md)。
 
 | 任务 | 具体缺项及处理 |
 |---|---|
 | P10 | 83个CRM身份问题：22组44条同码不同账号/名称，35条缺名称、4条超长。需来源Owner提供归属及完整名称处理。 |
 | P14 | 169个订单键/410条执行单展开冲突、10个行键/40条缺订单号；Q023仍需正式承载与身份依据。 |
-| P15 | 双空发货合同已按追加裁决在查询过滤；正式P24不再作为只读预览前置。最新Run与到达阶段见本轮报告，389组合同客户归属仍待Q024处理。 |
 | P18 | 当前公司范围仅DPTECH-DEMO，缺001/002/003授权上下文，影响82373条；另8条公司码缺失。缺正式合同可登记预览，真实写入仍需合同外键及既有结构。 |
 | P33 | 原地址NULL/普通空格空值26002条、超255字符6111条，需既有安装规则负责人明确承接。设备及当前选择的正式引用已区分为写入前置；串货沿已有暂缓结论。 |
 

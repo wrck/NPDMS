@@ -50,11 +50,45 @@ class P15ContractInputMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(P15DeliverySyncTask.business(new P15DeliverySyncTask.Validation("Contract",expected.getTarget())),P15DeliverySyncTask.business(new P15DeliverySyncTask.Validation("Contract",raw.getFirst().getTarget())));
   assertEquals(new SyncCounts(1,1,0,0,0),run(task,true));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
  }
- @Test void rawContractPreviewDoesNotChooseBetweenConflictingCustomers(){
-  jdbc.update("UPDATE pm_order_data_from_erp SET customerName='different buyer' WHERE id=2");
-  var task=new ContractProbe(mapper);assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("CONTRACT_CUSTOMER_CONFLICT"));
-  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
- }
+  void materializeOrderInputs(){
+   jdbc.update("DELETE FROM com_sales_order");
+   jdbc.update("INSERT INTO com_sales_order(id,tenant_id,source_system,company_code,order_type,order_no,contract_no,customer_code,customer_name,status,creator,updater) SELECT id,1,source,CASE compCode WHEN '01' THEN '001' WHEN '02' THEN '002' ELSE compCode END,CAST(orderType AS CHAR),orderNumber,contractNo,customerCode,customerName,'ENABLED','fixture','fixture' FROM pm_order_data_from_erp");
+  }
+  @Test void maximumPositiveOrderSuppliesTheCustomerInRawAndLocalInputs(){
+   jdbc.update("UPDATE pm_order_data_from_erp SET orderNumber='SO200',customerCode='C000009',customerName='selected buyer' WHERE id=1");
+   jdbc.update("UPDATE pm_order_data_from_erp SET orderNumber='SO100',customerCode='C000099',customerName='older buyer' WHERE id=2");
+   jdbc.update("INSERT INTO pm_order_data_from_erp(id,orderNumber,compCode,orderType,source,syncTime,contractNo,customerCode,customerName) VALUES(3,'ZZRETURN','01',1,'SAP','2030-01-01','C','C000088','return buyer')");
+   materializeOrderInputs();var task=new ContractProbe(mapper);var raw=task.query(context(true).forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3))).getFirst();var local=localContracts().getFirst();
+   assertNull(raw.getIssue());assertNull(local.getIssue());assertEquals("C00009",raw.getTarget().getCustomerCode());assertEquals("selected buyer",raw.getTarget().getCustomerName());
+   assertEquals(P15DeliverySyncTask.business(new P15DeliverySyncTask.Validation("Contract",local.getTarget())),P15DeliverySyncTask.business(new P15DeliverySyncTask.Validation("Contract",raw.getTarget())));
+   assertEquals(new SyncCounts(1,1,0,0,0),run(task,true));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
+  }
+  @Test void orderNumberMaximumUsesTheSameExactOrderingInBothPaths(){
+   jdbc.update("UPDATE pm_order_data_from_erp SET orderNumber='a',customerCode='C000009',customerName='selected buyer' WHERE id=1");
+   jdbc.update("UPDATE pm_order_data_from_erp SET customerCode='C000099',customerName='other buyer' WHERE id=2");
+   materializeOrderInputs();var raw=new ContractProbe(mapper).query(context(true).forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3))).getFirst();var local=localContracts().getFirst();
+   assertNull(raw.getIssue());assertNull(local.getIssue());assertEquals("C00009",raw.getTarget().getCustomerCode());assertEquals(raw.getTarget().getCustomerCode(),local.getTarget().getCustomerCode());assertEquals(raw.getTarget().getCustomerName(),local.getTarget().getCustomerName());assertTrue(saved.isEmpty());
+  }
+  @Test void conflictingCustomersOnTheMaximumOrderStillFailInBothPaths(){
+   jdbc.update("UPDATE pm_order_data_from_erp SET orderNumber='A',source='D365',customerCode='C000099',customerName='different buyer' WHERE id=2");
+   materializeOrderInputs();var task=new ContractProbe(mapper);assertEquals("CONTRACT_CUSTOMER_CONFLICT",localContracts().getFirst().getIssue());
+   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("CONTRACT_CUSTOMER_CONFLICT"));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
+  }
+  @Test void contractsWithoutPositiveOrdersUseTheMaximumReturnOrderCustomer(){
+   jdbc.update("UPDATE pm_order_data_from_erp SET orderType=1");jdbc.update("UPDATE pm_order_data_from_erp SET customerCode='C000099',customerName='different buyer' WHERE id=2");
+   materializeOrderInputs();var task=new ContractProbe(mapper);var local=localContracts().getFirst();var raw=task.query(context(true).forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3))).getFirst();
+   assertNull(local.getIssue());assertNull(raw.getIssue());assertEquals("C00099",raw.getTarget().getCustomerCode());assertEquals("different buyer",raw.getTarget().getCustomerName());assertEquals(raw.getTarget().getCustomerCode(),local.getTarget().getCustomerCode());assertEquals(raw.getTarget().getCustomerName(),local.getTarget().getCustomerName());
+   assertEquals(new SyncCounts(1,1,0,0,0),run(task,true));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
+  }
+  @Test void conflictingCustomersOnTheMaximumReturnOrderStillFailInBothPaths(){
+   jdbc.update("UPDATE pm_order_data_from_erp SET orderType=1");jdbc.update("UPDATE pm_order_data_from_erp SET orderNumber='A',source='D365',customerCode='C000099',customerName='different buyer' WHERE id=2");
+   materializeOrderInputs();var task=new ContractProbe(mapper);assertEquals("CONTRACT_CUSTOMER_CONFLICT",localContracts().getFirst().getIssue());
+   assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("CONTRACT_CUSTOMER_CONFLICT"));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_contract",Integer.class));assertTrue(saved.isEmpty());
+  }
+  @Test void invalidCustomerCodeOnTheSelectedOrderStillFailsInBothPaths(){
+   jdbc.update("UPDATE pm_order_data_from_erp SET customerCode='INVALID-CUSTOMER-CODE' WHERE id=2");materializeOrderInputs();
+   assertEquals("ERP_CUSTOMER_CODE_FORMAT_INVALID",localContracts().getFirst().getIssue());assertTrue(assertThrows(IllegalArgumentException.class,()->run(new ContractProbe(mapper),true)).getMessage().contains("ERP_CUSTOMER_CODE_FORMAT_INVALID"));assertTrue(saved.isEmpty());
+  }
  @Test void approvedSourceFilterRequiresBothShipmentContractIdAndNumberToBeEmpty(){
   jdbc.update("INSERT INTO fb_contract(contract_id,contract_code) VALUES('',''),(NULL,NULL)");
   var task=new ContractProbe(mapper);var context=context(true).forParameters(new P15DeliverySyncTask.Parameters(Map.of(),3));

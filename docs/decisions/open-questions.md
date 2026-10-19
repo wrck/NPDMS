@@ -45,6 +45,10 @@
 ### Q-LEGACY-MISSING-FORMAL-MASTERS-20261013-024 — 整表扩围后的合同及产品主档缺口
 
 - Status: OPEN / BLOCKED_BY_SPEC
+- Latest decision（2026-10-19补充，独立新套件）: 需求方明确“逻辑相同，合同客户根据订单类型选取对应最大订单号的所属客户”。在已批准正向订单优先的基础上，仅有退货订单（orderType=1）的合同同样取该类型最大订单号所属客户；不限定为两个合同特例。新BASE_P15预览和正式输入查询均按公司编码＋合同号处理，客户编码及名称取自同一选定订单，保留同类型最大号内的客户冲突校验。原A/B任务、历史及实际写入前置保持。
+- Earlier decision（2026-10-19本轮首次裁决）: 同合同多个客户编码以正向销售订单（orderType=0）中订单号最大的一笔为准，并确认“最大”指订单号而非金额；此实现范围仅新虚基类套件。首次真实预览Run 2112158780395544577已完整读取4625378条原始历史，389组冲突消歧387组，剩余51020140121A、51020131018A没有正向订单；该次FAILED回执保留。[首次只读来源核查](D:/CodexTaskArtifacts/project-detail-followup/base-sync-p15-maximum-positive-order-20261019/P15-customer-selection-source-audit.json)。
+- Latest source verification（2026-10-19补充裁决后）: 91565条原订单归并81522个合同；80302组以最大正向订单号选客，1220组仅有退货订单、以最大退货订单号选客。原389组客户冲突全部消歧，未排除合同或修改来源。[按类型选客的完整只读核查](D:/CodexTaskArtifacts/project-detail-followup/base-sync-p15-order-type-customer-20261019/P15-customer-selection-source-audit.json)。本项A/B历史来源及正式主档补齐仍保留原边界，新套件真实预览终态另见本轮报告。
+- Latest independent preview（2026-10-19）: 新BASE_P15的Run 2112161183148769281完整读取4706900条，PREVIEW_READY，合同客户sourceIssues=0。客户归属不再阻断新套件预览；实际写入正式输入尚未验证，未执行真实同步，原A/B任务及旧回执未重跑或改写。[本轮验证及隔离证据](../generated/dppms-24-tasks-three-implementations-20261019/base-sync-p15-order-type-customer-20261019.md)。
 - Preview verification（2026-10-15，新验证库）: npdms_reverify_20261014 的P15 v6 / Run 2110493133556776962为PREVIEW_READY，完整读取3,848,169条。CONTRACT的80,517条完整来源证据中814条为CONTRACT_CUSTOMER_CONFLICT、79,703条无该源问题；保留明细的814个不同来源身份覆盖全部814 ISSUE。四份合同已批准特例参数保持，其他来源/客户冲突仍待裁决；本轮未正式迁入。见[修复预览报告](../generated/2026-10-13-dppms-migration-mapping/production-tasks/preview-repair-20261015.md)。
 - Latest decision（2026-10-14）: 需求方授权信息缺失时调用对应业务来源的既有迁移任务补齐基础资料。产品目录按原4列及已裁决的正式目录/实体扩展映射先预览，再补齐合法缺项；未知来源或同键异值仍阻断，不将此授权解释成任意选择合同客户或伪造合同资料。
 - Latest verification（2026-10-14）: 原目录任务2110070397648699394已正式补齐26,558个产品，8,418个来源编码UNCHANGED；重放2110077295412371457全部34,976个编码UNCHANGED。原4字段及正式扩展逐项一致，原8,447条目录的21列保持，真实产品选择器可查。产品缺口已关闭，本项仅剩合同来源/客户冲突；下文“尚未创建”为首次核查记录，不代表当前状态。

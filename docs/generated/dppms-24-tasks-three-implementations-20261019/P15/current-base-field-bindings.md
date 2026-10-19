@@ -1,6 +1,6 @@
 # P15 新虚基类实际读写字段衔接
 
-当前C代码投影。原表值经Java归并/转换/授权核验后再进入正式INSERT；本表不宣称同名即可直接写入。预览三份合同原表输入与实际写入本地合同输入分开，正式输入未由预览创建。设备关系的raw_relationship_created_at由relationshipTime精确解析后赋给effectiveFrom；发货时间/合同号由两个原键投影在流式回调前补入，均不是正式业务ID回查。
+当前C代码投影。客户按公司＋合同内订单类型选取对应最大订单号：正向优先，仅退货时取最大退货订单；同类型最大号内客户冲突仍阻断。原表值经Java归并/转换/授权核验后再进入正式INSERT；本表不宣称同名即可直接写入。预览三份合同原表输入与实际写入本地合同输入分开，正式输入未由预览创建。设备关系的raw_relationship_created_at由relationshipTime精确解析后赋给effectiveFrom；发货时间/合同号由两个原键投影在流式回调前补入，均不是正式业务ID回查。
 
 | 来源语句 | 原表达式 | 查询别名 |
 |---|---|---|
@@ -88,6 +88,8 @@
 | selectDeviceRelationship | r.updatetime | source_version |
 | selectDeviceRelationship | r.item1 | source_item |
 | selectDeviceRelationship | r.item2 | target_item |
+| selectContractCustomers | r.orderType | order_type |
+| selectContractCustomers | r.orderNumber | order_no |
 | selectContractCustomers | CAST(JSON_ARRAY(CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE r.compCode END,r.contractNo) AS CHAR) | raw_key |
 | selectContractCustomers | CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE r.compCode END | company_code |
 | selectContractCustomers | r.contractNo | contract_no |

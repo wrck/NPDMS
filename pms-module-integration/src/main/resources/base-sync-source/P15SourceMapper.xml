@@ -16,7 +16,7 @@ SELECT CAST(r.id AS CHAR) AS raw_key,'DPPMS' AS `source_system`,CAST(r.id AS CHA
 <select id="countShipmentEvents" resultType="long">SELECT COUNT(*) FROM fb_shipment_barcode</select>
 <select id="selectContractCustomers" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$ContractCustomer"><![CDATA[
 SELECT CAST(JSON_ARRAY(CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE r.compCode END,r.contractNo) AS CHAR) AS raw_key,
- CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE r.compCode END AS company_code,r.contractNo AS contract_no,r.customerName AS customer_name,
+ CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE r.compCode END AS company_code,r.contractNo AS contract_no,r.customerName AS customer_name,r.orderType AS order_type,r.orderNumber AS order_no,
  CASE WHEN r.customerCode IS NULL OR r.customerCode='' THEN r.customerCode
  WHEN r.customerCode REGEXP '^[A-Za-z]' AND CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(r.customerCode,2)))<=5
  THEN CONCAT(LEFT(r.customerCode,1),LPAD(TRIM(LEADING '0' FROM SUBSTRING(r.customerCode,2)),5,'0')) ELSE NULL END AS customer_code,
