@@ -1,5 +1,7 @@
 # P10 CRM客户
 
+最新逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p10)。当前新P10仍FAILED，完整具体缺项与Run见本轮报告；原任务及历史回执保持。
+
 本轮最新：[base-sync-department-code-preview-20261019](../base-sync-department-code-preview-20261019.md)，本项真实回执[P10-preview.json](D:/CodexTaskArtifacts/project-detail-followup/base-sync-deferred-extensions-20261019/P10-preview.json)。此前阶段判断及回执保留。
 
 2026-10-19当前更新：[本次真实预览仍受外部前置阻断，依据及Run](../base-sync-13-failures-followup-20261019.md#p10)。原历史回执保留。

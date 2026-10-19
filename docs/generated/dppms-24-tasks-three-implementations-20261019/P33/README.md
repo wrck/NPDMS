@@ -1,5 +1,7 @@
 # P33 普通安装历史及获准当前位置
 
+最新逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p33)。当前新P33仍FAILED，完整具体缺项与Run见本轮报告；原任务及历史回执保持。
+
 本轮正式输入依赖、追加裁决与真实终态：[P33](../base-sync-five-input-dependencies-20261019.md#p33)；[当前24项JSON](../base-sync-five-input-dependencies-20261019.json)。下方旧阶段回执保留其历史范围，当前C以本轮记录为准。
 
 最新原用户名/原ID规则及回执：[本项结果](../base-sync-original-identifiers-preview-20261019.md#p33)。此前阶段判断和运行原件保留。

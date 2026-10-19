@@ -1,0 +1,1010 @@
+{
+  "phase": "REMAINING_FOUR_TASKS_SOURCE_AUTHORIZATION_AND_REAL_PREVIEW_AUDIT",
+  "verifiedAt": "2026-10-19T20:58:58.873040+08:00",
+  "worktree": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "implementationBaselineCommit": "08a8ecf38",
+  "counts": {
+    "PREVIEW_READY": 20,
+    "FAILED": 4
+  },
+  "latest24Runs": [
+    {
+      "id": 2111504172950122498,
+      "task_id": 2111504172530692098,
+      "task_code": "BASE_P01",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 208,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 208,
+      "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+      "started_at": "2026-10-18 01:06:39.351000",
+      "finished_at": "2026-10-18 01:06:39.773000"
+    },
+    {
+      "id": 2111517837875126273,
+      "task_id": 2111504175751917570,
+      "task_code": "BASE_P04",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 12632,
+      "inserted_count": 12605,
+      "updated_count": 0,
+      "unchanged_count": 27,
+      "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3",
+      "started_at": "2026-10-18 02:00:57.327000",
+      "finished_at": "2026-10-18 02:00:58.290000"
+    },
+    {
+      "id": 2112057345712537601,
+      "task_id": 2111470471713304577,
+      "task_code": "BASE_P08",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 612,
+      "inserted_count": 611,
+      "updated_count": 0,
+      "unchanged_count": 1,
+      "error_message": null,
+      "started_at": "2026-10-19 13:44:46.012000",
+      "finished_at": "2026-10-19 13:44:46.238000"
+    },
+    {
+      "id": 2112165966710439937,
+      "task_id": 2111470474389270529,
+      "task_code": "BASE_P10",
+      "status": "FAILED",
+      "preview": "01",
+      "read_count": 0,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "CRM客户原记录存在未决问题：DUPLICATE_CUSTOMER_CODE",
+      "started_at": "2026-10-19 20:56:23.277000",
+      "finished_at": "2026-10-19 20:56:41.581000"
+    },
+    {
+      "id": 2111436809982627841,
+      "task_id": 2111407905813229570,
+      "task_code": "BASE_P11",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 8443,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": null,
+      "started_at": "2026-10-17 20:38:58.768000",
+      "finished_at": "2026-10-17 20:38:59.454000"
+    },
+    {
+      "id": 2111436813732335618,
+      "task_id": 2111435600580231169,
+      "task_code": "BASE_P12",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 34976,
+      "inserted_count": 34976,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": null,
+      "started_at": "2026-10-17 20:38:59.654000",
+      "finished_at": "2026-10-17 20:39:00.734000"
+    },
+    {
+      "id": 2111515526163517442,
+      "task_id": 2111504177542885378,
+      "task_code": "BASE_P13",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 99895,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION",
+      "started_at": "2026-10-18 01:51:46.160000",
+      "finished_at": "2026-10-18 01:51:58.973000"
+    },
+    {
+      "id": 2112166044439281665,
+      "task_id": 2111504179094777858,
+      "task_code": "BASE_P14",
+      "status": "FAILED",
+      "preview": "01",
+      "read_count": 0,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+      "started_at": "2026-10-19 20:56:41.803000",
+      "finished_at": "2026-10-19 20:57:05.975000"
+    },
+    {
+      "id": 2112161183148769281,
+      "task_id": 2111504249399701506,
+      "task_code": "BASE_P15",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 4706900,
+      "inserted_count": 4706900,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED",
+      "started_at": "2026-10-19 20:37:22.790000",
+      "finished_at": "2026-10-19 20:42:41.297000"
+    },
+    {
+      "id": 2112103755224866818,
+      "task_id": 2111504250456666113,
+      "task_code": "BASE_P16",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 158871,
+      "inserted_count": 79429,
+      "updated_count": 0,
+      "unchanged_count": 79442,
+      "error_message": "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P16_ALIASES_REQUIRE_NEW_MASTERS:79442",
+      "started_at": "2026-10-19 16:49:10.905000",
+      "finished_at": "2026-10-19 16:52:12.280000"
+    },
+    {
+      "id": 2112166146755133442,
+      "task_id": 2111504251568156674,
+      "task_code": "BASE_P18",
+      "status": "FAILED",
+      "preview": "01",
+      "read_count": 0,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P18_PROJECT_COMPANY_NOT_AUTHORIZED",
+      "started_at": "2026-10-19 20:57:06.195000",
+      "finished_at": "2026-10-19 20:57:18.574000"
+    },
+    {
+      "id": 2112100784705585154,
+      "task_id": 2111504252700618753,
+      "task_code": "BASE_P19",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 186118,
+      "inserted_count": 186118,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at",
+      "started_at": "2026-10-19 16:37:22.670000",
+      "finished_at": "2026-10-19 16:37:32.225000"
+    },
+    {
+      "id": 2112059695747514370,
+      "task_id": 2111504298947014658,
+      "task_code": "BASE_P20",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 7818,
+      "inserted_count": 7818,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+      "started_at": "2026-10-19 13:54:06.300000",
+      "finished_at": "2026-10-19 13:54:18.478000"
+    },
+    {
+      "id": 2112053188930744321,
+      "task_id": 2111463419926470657,
+      "task_code": "BASE_P21",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 1190,
+      "inserted_count": 1190,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+      "started_at": "2026-10-19 13:28:14.959000",
+      "finished_at": "2026-10-19 13:28:15.153000"
+    },
+    {
+      "id": 2112100511387959297,
+      "task_id": 2111504342123180033,
+      "task_code": "BASE_P22",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 343858,
+      "inserted_count": 340882,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference",
+      "started_at": "2026-10-19 16:36:17.507000",
+      "finished_at": "2026-10-19 16:36:34.343000"
+    },
+    {
+      "id": 2111466972774600705,
+      "task_id": 2111463421356728322,
+      "task_code": "BASE_P23",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 35501,
+      "inserted_count": 35501,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": null,
+      "started_at": "2026-10-17 22:38:50.135000",
+      "finished_at": "2026-10-17 22:38:51.262000"
+    },
+    {
+      "id": 2112057587128287234,
+      "task_id": 2111463422476607489,
+      "task_code": "BASE_P24",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 81547,
+      "inserted_count": 81540,
+      "updated_count": 0,
+      "unchanged_count": 7,
+      "error_message": null,
+      "started_at": "2026-10-19 13:45:43.563000",
+      "finished_at": "2026-10-19 13:45:50.106000"
+    },
+    {
+      "id": 2111480444740603906,
+      "task_id": 2111463425983045633,
+      "task_code": "BASE_P25",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 462213,
+      "inserted_count": 462213,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": null,
+      "started_at": "2026-10-17 23:32:22.096000",
+      "finished_at": "2026-10-17 23:32:37.135000"
+    },
+    {
+      "id": 2111481771424153602,
+      "task_id": 2111480508636631041,
+      "task_code": "BASE_P30",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 0,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0",
+      "started_at": "2026-10-17 23:37:38.410000",
+      "finished_at": "2026-10-17 23:37:38.463000"
+    },
+    {
+      "id": 2112123456126668802,
+      "task_id": 2111504367108648961,
+      "task_code": "BASE_P31",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 381195,
+      "inserted_count": 381195,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P31_SOURCE_INTERVAL_PENDING:152",
+      "started_at": "2026-10-19 18:07:27.965000",
+      "finished_at": "2026-10-19 18:08:05.072000"
+    },
+    {
+      "id": 2112166199544643585,
+      "task_id": 2111504368203362306,
+      "task_code": "BASE_P33",
+      "status": "FAILED",
+      "preview": "01",
+      "read_count": 0,
+      "inserted_count": 0,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P33_SOURCE_BASELINE_INVALID",
+      "started_at": "2026-10-19 20:57:18.783000",
+      "finished_at": "2026-10-19 20:57:54.627000"
+    },
+    {
+      "id": 2111480509467103233,
+      "task_id": 2111463678895382530,
+      "task_code": "BASE_P34",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 165801,
+      "inserted_count": 165801,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": null,
+      "started_at": "2026-10-17 23:32:37.529000",
+      "finished_at": "2026-10-17 23:32:41.213000"
+    },
+    {
+      "id": 2112116707562823682,
+      "task_id": 2111504369105137665,
+      "task_code": "BASE_P35",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 1586578,
+      "inserted_count": 1586578,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change",
+      "started_at": "2026-10-19 17:40:38.976000",
+      "finished_at": "2026-10-19 17:41:43.928000"
+    },
+    {
+      "id": 2111480525451595777,
+      "task_id": 2111474184809000961,
+      "task_code": "BASE_P37",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 475468,
+      "inserted_count": 475468,
+      "updated_count": 0,
+      "unchanged_count": 0,
+      "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468",
+      "started_at": "2026-10-17 23:32:41.338000",
+      "finished_at": "2026-10-17 23:33:01.767000"
+    }
+  ],
+  "newPreviewRuns": {
+    "P10": {
+      "key": "P10",
+      "taskId": 2111470474389270529,
+      "apiCode": 500,
+      "counts": null,
+      "publicError": "系统异常",
+      "run": {
+        "id": 2112165966710439937,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "CRM客户原记录存在未决问题：DUPLICATE_CUSTOMER_CODE",
+        "started_at": "2026-10-19 20:56:23.277000",
+        "finished_at": "2026-10-19 20:56:41.581000"
+      },
+      "seconds": 18.564
+    },
+    "P14": {
+      "key": "P14",
+      "taskId": 2111504179094777858,
+      "apiCode": 500,
+      "counts": null,
+      "publicError": "系统异常",
+      "run": {
+        "id": 2112166044439281665,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+        "started_at": "2026-10-19 20:56:41.803000",
+        "finished_at": "2026-10-19 20:57:05.975000"
+      },
+      "seconds": 24.307
+    },
+    "P18": {
+      "key": "P18",
+      "taskId": 2111504251568156674,
+      "apiCode": 500,
+      "counts": null,
+      "publicError": "系统异常",
+      "run": {
+        "id": 2112166146755133442,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P18_PROJECT_COMPANY_NOT_AUTHORIZED",
+        "started_at": "2026-10-19 20:57:06.195000",
+        "finished_at": "2026-10-19 20:57:18.574000"
+      },
+      "seconds": 12.515
+    },
+    "P33": {
+      "key": "P33",
+      "taskId": 2111504368203362306,
+      "apiCode": 500,
+      "counts": null,
+      "publicError": "系统异常",
+      "run": {
+        "id": 2112166199544643585,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P33_SOURCE_BASELINE_INVALID",
+        "started_at": "2026-10-19 20:57:18.783000",
+        "finished_at": "2026-10-19 20:57:54.627000"
+      },
+      "seconds": 35.985
+    }
+  },
+  "taskFindings": {
+    "P10": {
+      "classification": "BLOCKED_BY_SOURCE_DATA_AND_SPEC",
+      "sourceRows": 59601,
+      "problemIdentities": 83,
+      "duplicateCodeGroups": 22,
+      "duplicateCodeIdentities": 44,
+      "missingNameIdentities": 35,
+      "overlengthNameIdentities": 4,
+      "needed": [
+        "CRM owner must resolve customer-code ownership for the 44 AccountIds in 22 groups.",
+        "Provide authoritative names for 35 AccountIds.",
+        "Approve a lossless formal handling of the four 130/131/131/143-character names, or provide formally corrected source names. Existing customer name VARCHAR(128) NOT NULL and mandatory-name semantics remain."
+      ],
+      "implementationOrConfigurationDefectFound": false
+    },
+    "P14": {
+      "classification": "BLOCKED_BY_SPEC_AND_SOURCE_IDENTITY",
+      "rawHeaders": 91572,
+      "headerBusinessKeys": 91239,
+      "conflictingHeaderKeys": 169,
+      "conflictingHeaderRows": 410,
+      "rawLines": 380605,
+      "lineBusinessKeys": 379522,
+      "missingOrderNumberLineKeys": 10,
+      "missingOrderNumberRawLines": 40,
+      "needed": [
+        "Q023: decide the official scalar/multiple relation handling of the execution numbers; all 169 groups differ only in execution number.",
+        "Provide an authoritative source order number for all 40 original line IDs. Exact same-company/type/execution lookup finds no header for 38, and a candidate for only 2; a candidate is not a source-identity decision."
+      ],
+      "implementationOrConfigurationDefectFound": false
+    },
+    "P18": {
+      "classification": "BLOCKED_BY_AUTHORIZATION_AND_SOURCE_COMPANY",
+      "businessRelations": 82381,
+      "relationsWithoutAuthorizedCompanyScope": 82373,
+      "relationsWithoutSourceCompany": 8,
+      "needed": [
+        "An officially authorized execution context covering companies 001/002/003. Existing company masters are present; all 38 active scope rows of 19 users cover only DPTECH-DEMO.",
+        "Provide the company ownership of original project IDs 48275-48282; compId itself is NULL."
+      ],
+      "executionOnlyPrerequisites": [
+        "Formal independent project and exact company/contract inputs; current formal contract count is zero.",
+        "The existing unique target index uk_int_base_sync_binding_target conflicts with approved many-originals-to-one-relation bindings. An authorized schema/version update is an execution prerequisite; preview retains a warning. No DDL is authorized this turn."
+      ],
+      "implementationOrConfigurationDefectFound": false,
+      "alreadyDecidedPreviewHandling": "Eight missing source companies may be registered as pending during preview; no new decision is requested. The current hard blocker is authorization for the 82373 nonempty-company relations."
+    },
+    "P33": {
+      "classification": "BLOCKED_BY_SPEC_FOR_INSTALLATION_ADDRESS",
+      "sourceRows": 1063717,
+      "nullAddresses": 24142,
+      "spaceOnlyAddresses": 1860,
+      "overlengthAddresses": 6111,
+      "maximumAddressCharacters": 571,
+      "needed": [
+        "For 26002 NULL/space-only source addresses, decide the actual installation meaning/status and formal raw-value handling; status=2 was approved for records with an address.",
+        "Approve lossless formal handling of 6111 addresses longer than imp_eng_installation.install_location VARCHAR(255). Existing ast_address.full_address VARCHAR(1024) capacity alone does not authorize changing the installation field mapping."
+      ],
+      "decidedDeferredTransfers": 29,
+      "executionOnlyPrerequisites": [
+        "Independent complete formal P16 result, real project/device references, current project/device selection and location Owner. None of the 36 current formal device serials match the raw shipment source."
+      ],
+      "implementationOrConfigurationDefectFound": false
+    }
+  },
+  "auditArtifacts": {
+    "P10": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P10-current-audit.json",
+    "P14": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P14-current-audit.json",
+    "P18": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P18-current-audit.json",
+    "P33": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P33-current-audit.json"
+  },
+  "formalExecutionPrerequisites": {
+    "formalDeviceSerialsChecked": 36,
+    "rawShipmentMatchesToAnyFormalDevice": {
+      "rowsMatchingAnyFormalDevice": 0,
+      "matchingSerials": 0
+    },
+    "ownFormalPrerequisiteRuns": [
+      {
+        "task_code": "BASE_P11",
+        "status": "FAILED",
+        "preview": "01",
+        "runs": 2
+      },
+      {
+        "task_code": "BASE_P12",
+        "status": "FAILED",
+        "preview": "01",
+        "runs": 1
+      },
+      {
+        "task_code": "BASE_P11",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "runs": 1
+      },
+      {
+        "task_code": "BASE_P12",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "runs": 1
+      },
+      {
+        "task_code": "BASE_P24",
+        "status": "FAILED",
+        "preview": "01",
+        "runs": 1
+      },
+      {
+        "task_code": "BASE_P24",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "runs": 3
+      },
+      {
+        "task_code": "BASE_P14",
+        "status": "FAILED",
+        "preview": "01",
+        "runs": 3
+      },
+      {
+        "task_code": "BASE_P15",
+        "status": "FAILED",
+        "preview": "01",
+        "runs": 10
+      },
+      {
+        "task_code": "BASE_P16",
+        "status": "FAILED",
+        "preview": "01",
+        "runs": 6
+      },
+      {
+        "task_code": "BASE_P16",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "runs": 1
+      },
+      {
+        "task_code": "BASE_P15",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "runs": 1
+      }
+    ],
+    "uniqueAndBindingIndexes": [
+      {
+        "TABLE_NAME": "cus_customer_master",
+        "INDEX_NAME": "PRIMARY",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "id"
+      },
+      {
+        "TABLE_NAME": "cus_customer_master",
+        "INDEX_NAME": "uk_cus_customer_master_tenant_code",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "tenant_id,code"
+      },
+      {
+        "TABLE_NAME": "int_base_sync_binding",
+        "INDEX_NAME": "PRIMARY",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "id"
+      },
+      {
+        "TABLE_NAME": "int_base_sync_binding",
+        "INDEX_NAME": "uk_int_base_sync_binding_source",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "tenant_id,task_id,object_key,source_key"
+      },
+      {
+        "TABLE_NAME": "int_base_sync_binding",
+        "INDEX_NAME": "uk_int_base_sync_binding_target",
+        "NON_UNIQUE": 0,
+        "columnsInIndex": "tenant_id,task_id,object_key,target_id"
+      }
+    ],
+    "writesPerformed": false
+  },
+  "targetProtection": {
+    "verifiedAt": "2026-10-19T20:58:58.873040+08:00",
+    "environment": {
+      "pid59284": 2032,
+      "flags": {
+        "--server.port=59284": true,
+        "--spring.profiles.active=local,dac": true,
+        "--spring.flyway.enabled=false": true,
+        "--flowable.database-schema-update=false": true,
+        "--spring.quartz.auto-startup=false": true,
+        "--spring.batch.job.enabled=false": true,
+        "--pms.bindings.backends.event-driven.enabled=false": true
+      },
+      "migrationContainers": [
+        {
+          "name": "npdms-domain-test-migrate-1",
+          "state": "exited"
+        }
+      ],
+      "verifiedAt": "2026-10-19T20:59:01.201966+08:00"
+    },
+    "latest24Runs": [
+      {
+        "id": 2111504172950122498,
+        "task_id": 2111504172530692098,
+        "task_code": "BASE_P01",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 208,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 208,
+        "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+        "started_at": "2026-10-18 01:06:39.351000",
+        "finished_at": "2026-10-18 01:06:39.773000"
+      },
+      {
+        "id": 2111517837875126273,
+        "task_id": 2111504175751917570,
+        "task_code": "BASE_P04",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 12632,
+        "inserted_count": 12605,
+        "updated_count": 0,
+        "unchanged_count": 27,
+        "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3",
+        "started_at": "2026-10-18 02:00:57.327000",
+        "finished_at": "2026-10-18 02:00:58.290000"
+      },
+      {
+        "id": 2112057345712537601,
+        "task_id": 2111470471713304577,
+        "task_code": "BASE_P08",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "error_message": null,
+        "started_at": "2026-10-19 13:44:46.012000",
+        "finished_at": "2026-10-19 13:44:46.238000"
+      },
+      {
+        "id": 2112165966710439937,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "CRM客户原记录存在未决问题：DUPLICATE_CUSTOMER_CODE",
+        "started_at": "2026-10-19 20:56:23.277000",
+        "finished_at": "2026-10-19 20:56:41.581000"
+      },
+      {
+        "id": 2111436809982627841,
+        "task_id": 2111407905813229570,
+        "task_code": "BASE_P11",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 8443,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 20:38:58.768000",
+        "finished_at": "2026-10-17 20:38:59.454000"
+      },
+      {
+        "id": 2111436813732335618,
+        "task_id": 2111435600580231169,
+        "task_code": "BASE_P12",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 34976,
+        "inserted_count": 34976,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 20:38:59.654000",
+        "finished_at": "2026-10-17 20:39:00.734000"
+      },
+      {
+        "id": 2111515526163517442,
+        "task_id": 2111504177542885378,
+        "task_code": "BASE_P13",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 99895,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION",
+        "started_at": "2026-10-18 01:51:46.160000",
+        "finished_at": "2026-10-18 01:51:58.973000"
+      },
+      {
+        "id": 2112166044439281665,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+        "started_at": "2026-10-19 20:56:41.803000",
+        "finished_at": "2026-10-19 20:57:05.975000"
+      },
+      {
+        "id": 2112161183148769281,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 4706900,
+        "inserted_count": 4706900,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED",
+        "started_at": "2026-10-19 20:37:22.790000",
+        "finished_at": "2026-10-19 20:42:41.297000"
+      },
+      {
+        "id": 2112103755224866818,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 158871,
+        "inserted_count": 79429,
+        "updated_count": 0,
+        "unchanged_count": 79442,
+        "error_message": "P16_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P16_ALIASES_REQUIRE_NEW_MASTERS:79442",
+        "started_at": "2026-10-19 16:49:10.905000",
+        "finished_at": "2026-10-19 16:52:12.280000"
+      },
+      {
+        "id": 2112166146755133442,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P18_PROJECT_COMPANY_NOT_AUTHORIZED",
+        "started_at": "2026-10-19 20:57:06.195000",
+        "finished_at": "2026-10-19 20:57:18.574000"
+      },
+      {
+        "id": 2112100784705585154,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 186118,
+        "inserted_count": 186118,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P19_EXTENSION_ATTRIBUTES_DEFERRED:shipment_status,shipment_status_updated_at,execution_status,execution_status_updated_at",
+        "started_at": "2026-10-19 16:37:22.670000",
+        "finished_at": "2026-10-19 16:37:32.225000"
+      },
+      {
+        "id": 2112059695747514370,
+        "task_id": 2111504298947014658,
+        "task_code": "BASE_P20",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "started_at": "2026-10-19 13:54:06.300000",
+        "finished_at": "2026-10-19 13:54:18.478000"
+      },
+      {
+        "id": 2112053188930744321,
+        "task_id": 2111463419926470657,
+        "task_code": "BASE_P21",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+        "started_at": "2026-10-19 13:28:14.959000",
+        "finished_at": "2026-10-19 13:28:15.153000"
+      },
+      {
+        "id": 2112100511387959297,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 343858,
+        "inserted_count": 340882,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P22_DEPARTMENT_ID_POSTFILL_PENDING:-1;P22_ORDER_LINE_ID_POSTFILL_PENDING:-1;P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference;P22_ZERO_QUANTITY_PENDING:2976;P22_DEPARTMENT_SOURCE_MISSING_PENDING:14293;P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference",
+        "started_at": "2026-10-19 16:36:17.507000",
+        "finished_at": "2026-10-19 16:36:34.343000"
+      },
+      {
+        "id": 2111466972774600705,
+        "task_id": 2111463421356728322,
+        "task_code": "BASE_P23",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 35501,
+        "inserted_count": 35501,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 22:38:50.135000",
+        "finished_at": "2026-10-17 22:38:51.262000"
+      },
+      {
+        "id": 2112057587128287234,
+        "task_id": 2111463422476607489,
+        "task_code": "BASE_P24",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 81547,
+        "inserted_count": 81540,
+        "updated_count": 0,
+        "unchanged_count": 7,
+        "error_message": null,
+        "started_at": "2026-10-19 13:45:43.563000",
+        "finished_at": "2026-10-19 13:45:50.106000"
+      },
+      {
+        "id": 2111480444740603906,
+        "task_id": 2111463425983045633,
+        "task_code": "BASE_P25",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 462213,
+        "inserted_count": 462213,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 23:32:22.096000",
+        "finished_at": "2026-10-17 23:32:37.135000"
+      },
+      {
+        "id": 2111481771424153602,
+        "task_id": 2111480508636631041,
+        "task_code": "BASE_P30",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0",
+        "started_at": "2026-10-17 23:37:38.410000",
+        "finished_at": "2026-10-17 23:37:38.463000"
+      },
+      {
+        "id": 2112123456126668802,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 381195,
+        "inserted_count": 381195,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P31_SOURCE_INTERVAL_PENDING:152",
+        "started_at": "2026-10-19 18:07:27.965000",
+        "finished_at": "2026-10-19 18:08:05.072000"
+      },
+      {
+        "id": 2112166199544643585,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P33_SOURCE_BASELINE_INVALID",
+        "started_at": "2026-10-19 20:57:18.783000",
+        "finished_at": "2026-10-19 20:57:54.627000"
+      },
+      {
+        "id": 2111480509467103233,
+        "task_id": 2111463678895382530,
+        "task_code": "BASE_P34",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 165801,
+        "inserted_count": 165801,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 23:32:37.529000",
+        "finished_at": "2026-10-17 23:32:41.213000"
+      },
+      {
+        "id": 2112116707562823682,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1586578,
+        "inserted_count": 1586578,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED;P35_EXTENSION_ATTRIBUTES_DEFERRED:conp_bak,conp_change,boot_bak,boot_change,cpld_bak,cpld_change,pcb_bak,pcb_change",
+        "started_at": "2026-10-19 17:40:38.976000",
+        "finished_at": "2026-10-19 17:41:43.928000"
+      },
+      {
+        "id": 2111480525451595777,
+        "task_id": 2111474184809000961,
+        "task_code": "BASE_P37",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 475468,
+        "inserted_count": 475468,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468",
+        "started_at": "2026-10-17 23:32:41.338000",
+        "finished_at": "2026-10-17 23:33:01.767000"
+      }
+    ],
+    "statusCounts": {
+      "PREVIEW_READY": 20,
+      "FAILED": 4
+    },
+    "allLatestRunsAreTerminalPreviews": true,
+    "protectedItemCount": 180,
+    "protectedCountsMaxIdsOriginalTaskVersionsUnchangedSincePostRepairBaseline": true,
+    "approved1570RowsStillMatchEveryExpectedField": true,
+    "originalTaskRunBindingRowsExactlyUnchanged": true,
+    "originalObjectCounts": {
+      "int_sync_task": 46,
+      "int_sync_run": 209,
+      "int_sync_binding": 211
+    },
+    "restoredTriggerDefinitions": 33,
+    "insertDeleteGuardsUnchangedIncludingCreationTimes": 22,
+    "testProjectIdentityControlRowsUnchanged": 6734,
+    "oldIds1001To1040Free": true,
+    "independentBindings": 0,
+    "independentNonPreviewRuns": 0,
+    "activeIndependentTasks": 0,
+    "flyway": {
+      "version": "473",
+      "success": 1
+    },
+    "maintenanceProof": "D:\\CodexTaskArtifacts\\project-detail-followup\\project-id-release-data-only-20261019\\data-correction-proof.json",
+    "authorizedCapacityAndPackagePatch": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-seven-blockers-followup-20261019\\capacity-and-package-proof.json",
+    "boundary": "A separately authorized verification-database ID correction changed 1570 technical-reference rows. The earlier seven-blocker phase separately applied exactly the authorized package source column, max_rows CHECK and three independent-task capacity changes. This remaining-four-task audit phase made no DDL changes. This read-only source and authorization audit plus independent preview retries did not change formal inputs, original sync objects, restored triggers or test identity controls. No Flyway, real sync or 59191 operation."
+  },
+  "productImplementationChanges": [],
+  "reusedValidation": "Existing native MySQL, isolation, state and history protection results are retained; no code or configuration changes required a new code test run. This turn rechecked source facts and ran all four actual authenticated preview APIs.",
+  "boundary": "Only existing frozen 59284 artifact started because it was offline; 24306/24379 and 19084 already running. No rebuild/reload of code, original-task operations, dual-line comparison, DDL, migration, formal input creation, real synchronization, permission grants, environment data correction, or 59191 operation."
+}

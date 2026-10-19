@@ -1,5 +1,7 @@
 # P14 销售订单与订单行
 
+最新逐项核查与真实预览：[base-sync-four-blockers-audit-20261019](../base-sync-four-blockers-audit-20261019.md#p14)。当前新P14仍FAILED，完整具体缺项与Run见本轮报告；原任务及历史回执保持。
+
 2026-10-19当前更新：[本次真实预览仍受外部前置阻断，依据及Run](../base-sync-13-failures-followup-20261019.md#p14)。原历史回执保留。
 
 [返回24项总表](../README.md)

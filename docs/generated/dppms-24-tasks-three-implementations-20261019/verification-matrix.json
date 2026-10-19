@@ -1397,6 +1397,20 @@
       "verification": "FAILED / 0",
       "runs": [
         {
+          "id": 2112165966710439937,
+          "task_id": 2111470474389270529,
+          "task_code": "BASE_P10",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "CRM客户原记录存在未决问题：DUPLICATE_CUSTOMER_CODE",
+          "started_at": "2026-10-19 20:56:23.277000",
+          "finished_at": "2026-10-19 20:56:41.581000"
+        },
+        {
           "id": 2112067330504867842,
           "task_id": 2111470474389270529,
           "task_code": "BASE_P10",
@@ -1464,7 +1478,12 @@
         "scope": "已有19084登录首页恢复检查；新套件无专属任务UI。该任务结论来自真实API与数据库终态，不是任务专属UI业务验收。",
         "proof": "docs/generated/standalone-base-sync-20261017.md"
       },
-      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-deferred-extensions-20261019\\P10-preview.json"
+      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P10-preview.json",
+      "remainingBlockerAudit": {
+        "report": "base-sync-four-blockers-audit-20261019.md",
+        "classification": "BLOCKED_BY_SOURCE_DATA_AND_SPEC",
+        "productImplementationChangeRequiredWithinExistingDecisions": false
+      }
     },
     {
       "task": "P11",
@@ -2849,6 +2868,20 @@
       "verification": "FAILED / 0",
       "runs": [
         {
+          "id": 2112166044439281665,
+          "task_id": 2111504179094777858,
+          "task_code": "BASE_P14",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+          "started_at": "2026-10-19 20:56:41.803000",
+          "finished_at": "2026-10-19 20:57:05.975000"
+        },
+        {
           "id": 2112051434155581442,
           "task_id": 2111504179094777858,
           "task_code": "BASE_P14",
@@ -2902,7 +2935,12 @@
         "scope": "已有19084登录首页恢复检查；新套件无专属任务UI。该任务结论来自真实API与数据库终态，不是任务专属UI业务验收。",
         "proof": "docs/generated/standalone-base-sync-20261017.md"
       },
-      "latestFollowupEvidence": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/P14-current-preview.json"
+      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P14-preview.json",
+      "remainingBlockerAudit": {
+        "report": "base-sync-four-blockers-audit-20261019.md",
+        "classification": "BLOCKED_BY_SPEC_AND_SOURCE_IDENTITY",
+        "productImplementationChangeRequiredWithinExistingDecisions": false
+      }
     },
     {
       "task": "P15",
@@ -4381,6 +4419,20 @@
       "verification": "FAILED / 0",
       "runs": [
         {
+          "id": 2112166146755133442,
+          "task_id": 2111504251568156674,
+          "task_code": "BASE_P18",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P18_PROJECT_COMPANY_NOT_AUTHORIZED",
+          "started_at": "2026-10-19 20:57:06.195000",
+          "finished_at": "2026-10-19 20:57:18.574000"
+        },
+        {
           "id": 2112059597156204546,
           "task_id": 2111504251568156674,
           "task_code": "BASE_P18",
@@ -4447,7 +4499,12 @@
         "scope": "已有19084登录首页恢复检查；新套件无专属任务UI。该任务结论来自真实API与数据库终态，不是任务专属UI业务验收。",
         "proof": "docs/generated/standalone-base-sync-20261017.md"
       },
-      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\P18-preview.json"
+      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P18-preview.json",
+      "remainingBlockerAudit": {
+        "report": "base-sync-four-blockers-audit-20261019.md",
+        "classification": "BLOCKED_BY_AUTHORIZATION_AND_SOURCE_COMPANY",
+        "productImplementationChangeRequiredWithinExistingDecisions": false
+      }
     },
     {
       "task": "P19",
@@ -8550,6 +8607,20 @@
       "verification": "FAILED / 0",
       "runs": [
         {
+          "id": 2112166199544643585,
+          "task_id": 2111504368203362306,
+          "task_code": "BASE_P33",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P33_SOURCE_BASELINE_INVALID",
+          "started_at": "2026-10-19 20:57:18.783000",
+          "finished_at": "2026-10-19 20:57:54.627000"
+        },
+        {
           "id": 2112057626944815105,
           "task_id": 2111504368203362306,
           "task_code": "BASE_P33",
@@ -8617,7 +8688,12 @@
         "scope": "已有19084登录首页恢复检查；新套件无专属任务UI。该任务结论来自真实API与数据库终态，不是任务专属UI业务验收。",
         "proof": "docs/generated/standalone-base-sync-20261017.md"
       },
-      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\P33-preview.json"
+      "latestFollowupEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-four-blockers-audit-20261019\\P33-preview.json",
+      "remainingBlockerAudit": {
+        "report": "base-sync-four-blockers-audit-20261019.md",
+        "classification": "BLOCKED_BY_SPEC_FOR_INSTALLATION_ADDRESS",
+        "productImplementationChangeRequiredWithinExistingDecisions": false
+      }
     },
     {
       "task": "P34",
@@ -10320,6 +10396,19 @@
     "task": "P15",
     "latestRunId": 2112161183148769281,
     "statusCounts": {
+      "PREVIEW_READY": 20,
+      "FAILED": 4
+    }
+  },
+  "remainingFourAudit": {
+    "report": "base-sync-four-blockers-audit-20261019.json",
+    "newPreviewRunIds": {
+      "P10": 2112165966710439937,
+      "P14": 2112166044439281665,
+      "P18": 2112166146755133442,
+      "P33": 2112166199544643585
+    },
+    "counts": {
       "PREVIEW_READY": 20,
       "FAILED": 4
     }
