@@ -1,0 +1,53 @@
+{
+  "migration": "V502__restore_verified_base_configuration.sql",
+  "source": {
+    "backendPort": 59299,
+    "schema": "npdms_fullcycle_v4_3d5c63bd453d",
+    "tenantId": 1,
+    "capturedAt": "2026-10-19",
+    "status": "source published definitions; target activation not implied"
+  },
+  "selectedRows": {
+    "plt_dynamic_form_template": 11,
+    "plt_dynamic_form_template_revision": 12,
+    "plt_business_view_revision": 14,
+    "plt_delivery_type": 21,
+    "proj_stage_suggestion_rule": 4,
+    "proj_task_state_machine_revision": 1,
+    "proj_task_state_transition": 8,
+    "acc_satisfaction_questionnaire_template": 1,
+    "acc_satisfaction_questionnaire_template_revision": 1,
+    "bpm_category": 1,
+    "infra_config": 9,
+    "proj_project_template": 1,
+    "proj_project_template_revision": 1,
+    "cut_cutover_configuration_revision": 1,
+    "cut_configuration_dimension": 5,
+    "cut_configuration_dictionary_value": 27,
+    "cut_configuration_plan_section": 6,
+    "cut_cutover_checklist_item_definition_revision": 133,
+    "cut_cutover_checklist_binding_rule_revision": 133,
+    "cut_configuration_plan_section_scope": 80,
+    "cut_checklist_field_definition": 407,
+    "cut_checklist_external_mapping": 0,
+    "cut_checklist_field_option": 10,
+    "cut_checklist_binding_condition": 726
+  },
+  "newIdRange": [
+    996610195020001,
+    996610195021613
+  ],
+  "applicationCodeChanged": false,
+  "newStatefulDefinitions": "DRAFT; native validation/publication required",
+  "bpmDeployment": "Use the native BPM model management UI; do not insert Flowable definition/runtime tables",
+  "excluded": [
+    "business instances",
+    "test accounts",
+    "permission grants",
+    "secrets",
+    "generated files",
+    "notification channels",
+    "sync connections",
+    "retired preparation form configuration"
+  ]
+}
