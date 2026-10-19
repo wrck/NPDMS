@@ -6,11 +6,13 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from validate_implementation_baseline_inventory import (
+    _candidate_files,
     find_retired_cutover_runtime_surfaces,
     find_retired_maintenance_runtime_surfaces,
     find_retired_project_tree_write_runtime_surfaces,
@@ -175,13 +177,74 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
 
         self.assertEqual([], errors)
 
-    def test_customer_master_runtime_is_adapted_and_legacy_customer_is_read_only(self) -> None:
+    def test_inventory_candidates_exclude_tests_and_deleted_worktree_files(self) -> None:
+        live = "yudao-ui/yudao-ui-admin-vue3/src/api/pms/example/index.ts"
+        test_sources = (
+            "yudao-ui/yudao-ui-admin-vue3/src/api/pms/example/index.spec.ts",
+            "yudao-ui/yudao-ui-admin-vue3/src/api/pms/example/contract.runtime.spec.ts",
+            "yudao-ui/yudao-ui-admin-vue3/src/api/pms/example/__tests__/fixture.ts",
+        )
+        deleted = "pms-module-project/src/main/java/example/DeletedController.java"
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            self._write_runtime_fixture(repository, live, "export const query = () => null")
+            for path in test_sources:
+                self._write_runtime_fixture(repository, path, "'/pms/project/create'")
+            with patch("validate_implementation_baseline_inventory._tracked_files",
+                       return_value=(live, *test_sources, deleted)):
+                self.assertEqual((live,), _candidate_files(repository))
+            self.assertEqual([], find_retired_project_write_runtime_surfaces(repository))
+            self._write_runtime_fixture(repository, live, "request.post({ url: '/pms/project/create' })")
+            self.assertTrue(find_retired_project_write_runtime_surfaces(repository))
+
+    def test_historical_cutover_accepts_current_feature_increment_but_requires_evidence_and_code(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            self._write_runtime_fixture(repository, "docs/traceability/requirement-matrix.md", "PM-01")
+            self._write_runtime_fixture(repository, "tasks/features/F-PROJ-001.md",
+                                        "> Feature实施状态：`IN_PROGRESS`\n历史创建范围已完成，新成员增量在途。")
+            self._write_runtime_fixture(repository, "src/Current.java", "class Current {}")
+            cutover = {
+                "legacyKey": "LegacyExample",
+                "status": "RUNTIME_REMOVED",
+                "requirementRefs": ["PM-01"],
+                "replacementFeatureRefs": ["F-PROJ-001"],
+                "legacyPaths": ["src/Retired.java"],
+                "replacementPaths": ["src/Current.java"],
+                "cutoverEvidence": "Approved historical cutover; current increment remains in progress",
+                "newImplementationPolicy": "FORBIDDEN",
+            }
+            inventory = {
+                "schemaVersion": 2,
+                "status": "BASELINE_SYNCED_IMPLEMENTATION_RECONCILIATION_REQUIRED",
+                "items": [],
+                "legacyCutovers": [cutover],
+            }
+            with patch("validate_implementation_baseline_inventory._tracked_files", return_value=()):
+                self.assertEqual([], validate_inventory(repository, inventory))
+                for field, value, expected in (
+                    ("replacementPaths", ["src/Missing.java"], "replacement path has no implementation"),
+                    ("cutoverEvidence", "", "cutoverEvidence must be non-empty"),
+                    ("replacementFeatureRefs", ["F-PROJ-999"], "replacement Feature has no master Task"),
+                ):
+                    with self.subTest(field=field):
+                        changed = copy.deepcopy(inventory)
+                        changed["legacyCutovers"][0][field] = value
+                        errors = validate_inventory(repository, changed)
+                        self.assertTrue(any(expected in error for error in errors), errors)
+
+    def test_customer_master_runtime_is_adapted_and_legacy_customer_runtime_is_removed(self) -> None:
         items = self._items()
 
         self.assertEqual("ADAPTED", items["CustomerMasterCurrentRuntime"]["classification"])
-        self.assertEqual("REUSED", items["LegacyCustomerHistoryReadOnly"]["classification"])
+        self.assertEqual(
+            "RUNTIME_RETIRED_DATA_PENDING_EVIDENCE",
+            items["LegacyCustomerHistoryReadOnly"]["classification"],
+        )
         self.assertIn("CUS-03", items["CustomerMasterCurrentRuntime"]["requirementRefs"])
         self.assertIn("pms-module-customer/", items["CustomerMasterCurrentRuntime"]["codePaths"])
+        for raw_path in items["LegacyCustomerHistoryReadOnly"]["codePaths"]:
+            self.assertFalse((self.repository / raw_path).exists(), raw_path)
 
     def test_commerce_runtime_is_owned_by_com_requirement(self) -> None:
         items = self._items()
@@ -205,7 +268,7 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
         cutovers = {item["legacyKey"]: item for item in self.inventory["legacyCutovers"]}
 
         self.assertEqual(
-            "HISTORICAL_READ_ONLY_ONLY",
+            "FORBIDDEN",
             cutovers["LegacyCustomerWriteRoutes"]["newImplementationPolicy"],
         )
         self.assertEqual(
@@ -241,6 +304,14 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
             "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/cut-observation",
             "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-execution",
             "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-observation",
+            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/enums/CutStatusEnum.java",
+            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/task/CutTaskController.java",
+            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutTaskService.java",
+            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutTaskServiceImpl.java",
+            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/domain/CutTaskStatusRules.java",
+            "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/cut-task/index.ts",
+            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-task/index.vue",
+            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-detail/index.vue",
         )
         for raw_path in forbidden_paths:
             path = self.repository / raw_path
@@ -251,14 +322,6 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
 
         shared_runtime_files = (
             "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/enums/ErrorCodeConstants.java",
-            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/enums/CutStatusEnum.java",
-            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/controller/admin/task/CutTaskController.java",
-            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutTaskService.java",
-            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/service/task/CutTaskServiceImpl.java",
-            "pms-module-cutover/src/main/java/cn/iocoder/yudao/module/pms/cutover/domain/CutTaskStatusRules.java",
-            "yudao-ui/yudao-ui-admin-vue3/src/api/pms/cutover/cut-task/index.ts",
-            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/cutover/cut-task/index.vue",
-            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-detail/index.vue",
         )
         forbidden_tokens = (
             "CutExecution",
@@ -394,6 +457,7 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
             "yudao-ui/yudao-ui-admin-vue3/src/api/pms/project/maintenance-transition",
             "yudao-ui/yudao-ui-admin-vue3/src/views/pms/service/srv-maintenance",
             "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/maintenance-transition",
+            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-detail/index.vue",
         )
         for raw_path in forbidden_paths:
             path = self.repository / raw_path
@@ -406,7 +470,6 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
             "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/enums/ErrorCodeConstants.java",
             "pms-module-service/src/main/java/cn/iocoder/yudao/module/pms/service/package-info.java",
             "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/enums/ErrorCodeConstants.java",
-            "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-detail/index.vue",
         )
         forbidden_tokens = (
             "SrvMaintenance",
@@ -491,6 +554,7 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
         rebuilt_sources = {
             "controller": (
                 "pms-module-project/src/main/java/example/template/ProjectTemplateController.java",
+                '/** PM-03 single project-template resource. */ '
                 '@RequestMapping("/pms/project-templates") class ProjectTemplateController {}',
             ),
             "service": (
@@ -549,11 +613,6 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
                 "request.post({ url: '/pms/project/create', data })",
                 "retired project write route",
             ),
-            "permission": (
-                "pms-module-project/src/main/java/example/hidden/ShadowProjectPermission.java",
-                "@PreAuthorize(\"@ss.hasPermission('pms:project:assign')\")",
-                "permission",
-            ),
             "comment-cannot-hide-route": (
                 "yudao-ui/yudao-ui-admin-vue3/src/feature/hidden/arbitrary-comment.ts",
                 "// legacy pms/project/assign-manager must not return",
@@ -570,6 +629,18 @@ class ImplementationBaselineInventoryTest(unittest.TestCase):
                         any(path in error and expected_label in error for error in errors),
                         errors,
                     )
+
+    def test_project_permissions_are_shared_without_allowing_retired_routes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            repository = Path(directory)
+            path = "pms-module-project/src/main/java/example/members/CurrentMemberController.java"
+            source = "@PreAuthorize(\"@ss.hasPermission('pms:project:assign')\")"
+            self._write_runtime_fixture(repository, path, source)
+            self.assertEqual([], find_retired_project_write_runtime_surfaces(repository))
+            self._write_runtime_fixture(repository, path, source +
+                                        '@RequestMapping("/pms/project") @PostMapping("/create")')
+            errors = find_retired_project_write_runtime_surfaces(repository)
+            self.assertTrue(any("route composition" in error for error in errors), errors)
 
     def test_retired_project_write_guard_allows_plural_new_chain_surfaces(self) -> None:
         rebuilt_sources = {
