@@ -24,7 +24,7 @@ public class CutoverJobRegistrar implements ApplicationRunner {
         if (current == null) return;
         for (String handler : List.of("cutoverApprovalNotificationJob", "cutoverResultDeliveryJob")) {
             if (current.getTrigger(TriggerKey.triggerKey(handler)) == null) {
-                jobs.syncEnabledJobByHandlerName(handler);
+                jobs.syncJobByHandlerName(handler);
             }
         }
     }

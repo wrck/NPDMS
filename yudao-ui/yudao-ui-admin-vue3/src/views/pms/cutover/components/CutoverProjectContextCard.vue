@@ -27,6 +27,7 @@ const memberNames = (roles: string[]) => [...new Set(members.value.filter(member
   const end = member.effectiveTo ? new Date(member.effectiveTo).getTime() : null
   return roles.includes(member.memberRole) && start <= Date.now() && (end === null || end > Date.now())
 }).map(member => member.memberName).filter(Boolean))].join('、')
+const savedServiceLevelCode = computed(() => props.detail.assessment?.manualCustomerServiceLevelCode || props.detail.customerServiceLevel?.serviceLevelCode)
 const fields = computed(() => [
   { label: '项目名称', value: props.detail.project.projectName || props.detail.task.projectName },
   { label: '项目经理', value: project.value?.managerName || memberNames(['PROJECT_MANAGER']) },
@@ -34,7 +35,7 @@ const fields = computed(() => [
   { label: '所属行业', value: project.value?.industryName || project.value?.industryCode },
   { label: '办事处', value: project.value?.departmentName },
   { label: '项目级别', value: project.value?.majorProjectLevel ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, project.value.majorProjectLevel) || project.value.majorProjectLevel : null },
-  { label: '客户服务等级', value: props.detail.customerServiceLevel?.serviceLevelCode || '三级普通（默认）' },
+  { label: '客户服务等级', value: savedServiceLevelCode.value ? getDictLabel('pms_service_level', savedServiceLevelCode.value) || savedServiceLevelCode.value : props.detail.customerServiceLevel?.status === 'NOT_CONFIGURED' ? '未配置' : '未获取' },
   { label: '销售', value: memberNames(['SALES_REPRESENTATIVE']) },
   { label: '计划割接时间', value: formatWireDateTime(props.detail.task.scheduledTime) }
 ])

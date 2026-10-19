@@ -25,7 +25,7 @@ public final class CutoverTaskRequestCodec {
             "projectId", "projectVersion", "projectCode", "projectName", "customerId", "customerCode",
             "customerName", "departmentId", "departmentCode", "departmentName");
     private static final Set<String> DEVICE_KEYS = Set.of("deviceId", "serialNumber", "projectAssignmentVersion");
-    private static final Set<String> ASSESSMENT_KEYS = Set.of("answers", "manualGrade");
+    private static final Set<String> ASSESSMENT_KEYS = Set.of("answers", "manualGrade", "manualCustomerServiceLevelCode");
     private static final Set<String> ANSWER_KEYS = Set.of(
             "businessImportanceLevel", "operationComplexityLevel", "hiddenRiskLevel", "sparePartApplied");
     private static final Set<String> LIST_QUERY_KEYS = Set.of(
@@ -60,7 +60,10 @@ public final class CutoverTaskRequestCodec {
     }
 
     public CutoverTaskReqVO.SaveAssessment saveAssessment(JsonNode body) {
-        exact(body, ASSESSMENT_KEYS, "save-assessment");
+        require(body != null && body.isObject(), "save-assessment");
+        Set<String> keys = new HashSet<>();
+        body.properties().forEach(entry -> keys.add(entry.getKey()));
+        require(ASSESSMENT_KEYS.containsAll(keys) && keys.containsAll(Set.of("answers", "manualGrade")), "save-assessment keys");
         exact(body.get("answers"), ANSWER_KEYS, "answers");
         return read(body, CutoverTaskReqVO.SaveAssessment.class);
     }

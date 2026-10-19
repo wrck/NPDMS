@@ -22,7 +22,7 @@
           <el-alert title="根据问卷填写评估信息，人工确定A/B/C/D等级。D级使用简易割接流程；已提交内容需通过修订创建新版本。" type="info" :closable="false" show-icon />
           <CutoverProjectContextCard :detail="detail" />
           <CutoverTaskDevices :detail="detail" />
-          <CutoverAssessmentPanel :model="assessmentModel" :customer-service-level="detail.customerServiceLevel?.serviceLevelCode"
+          <CutoverAssessmentPanel :model="assessmentModel" :customer-service-level="assessmentCustomerLevel"
             :editable="!readonly && !detailError && detail.allowedActions.includes('SAVE_ASSESSMENT')"
             :submittable="!readonly && !detailError && (detail.allowedActions.includes('SUBMIT_ASSESSMENT') || (detail.allowedActions.includes('SAVE_ASSESSMENT') && checkPermi(['pms:cutover-task:submit-assessment'])))"
             :saving="saving" :submitting="submitting" @save="saveAssessment" @submit="submitAssessment" />
@@ -109,7 +109,11 @@ const revisionImpact = computed(() => `${detail.value?.task.currentStage === 'P5
   ? '后续清单及方案将失效，需要重新确认等级并继续填写。' : '后续方案将失效，需要重新提交清单并编制方案。'}`)
 let loadSequence = 0
 const assessmentWrites = createCutoverWriteCoordinator()
-const assessmentModel = reactive<{ answers: AssessmentAnswers; manualGrade: ManualGrade | null }>({ answers: emptyAnswers(), manualGrade: null })
+const assessmentModel = reactive<{ answers: AssessmentAnswers; manualGrade: ManualGrade | null; manualCustomerServiceLevelCode: string | null }>({ answers: emptyAnswers(), manualGrade: null, manualCustomerServiceLevelCode: null })
+const assessmentCustomerLevel = computed(() => {
+  const saved = detail.value?.assessment?.customerServiceLevel
+  return saved && saved.status !== 'UNAVAILABLE' ? saved : detail.value?.customerServiceLevel
+})
 const activeStagePanel = computed(() => activeCutoverStagePanel(selectedStage.value || detail.value?.task.currentStage || null))
 const statusLabels: Record<string, string> = {
   GRADE_CONFIRMING: '人工分级中', SURVEYING: '现场调研', PLAN_DRAFTING: '方案编制',
@@ -136,6 +140,7 @@ const refreshDetail = async () => {
     detail.value = loaded
     Object.assign(assessmentModel.answers, loaded.assessment?.answers || emptyAnswers())
     assessmentModel.manualGrade = loaded.assessment?.manualGrade || null
+    assessmentModel.manualCustomerServiceLevelCode = loaded.assessment?.manualCustomerServiceLevelCode || null
   } catch (error) {
     if (sequence !== loadSequence) return
     detailError.value = '割接任务详情加载失败，请点击刷新重试。当前无法办理任务。'
@@ -178,7 +183,7 @@ const persistAssessment = async () => {
   if (!detail.value) return false
   const command = { taskId: detail.value.task.id, taskVersion: detail.value.task.version,
     assessmentVersion: detail.value.assessment?.rowVersion || 0,
-    data: JSON.parse(JSON.stringify(assessmentModel)) }
+    data: { ...JSON.parse(JSON.stringify(assessmentModel)), manualCustomerServiceLevelCode: assessmentCustomerLevel.value?.status === 'NOT_CONFIGURED' ? assessmentModel.manualCustomerServiceLevelCode : null } }
   const result = await assessmentWrites.run(JSON.stringify(['SAVE_ASSESSMENT', command]),
     idempotencyKey => CutoverApi.saveCutoverAssessment({ ...command, idempotencyKey }), refreshDetail)
   if (!result.writeCalled || !result.refreshSucceeded) {
@@ -200,7 +205,11 @@ const submitAssessment = async () => {
   submitting.value = true
   try {
     const stored = detail.value.assessment
-    if (!stored || JSON.stringify(stored.answers) !== JSON.stringify(assessmentModel.answers) || stored.manualGrade !== assessmentModel.manualGrade) {
+    const currentLevel = assessmentCustomerLevel.value
+    if (currentLevel?.status === 'NOT_CONFIGURED' && !assessmentModel.manualCustomerServiceLevelCode) {
+      message.warning('请选择客户服务等级并保存评估。'); return
+    }
+    if (!stored || JSON.stringify(stored.answers) !== JSON.stringify(assessmentModel.answers) || stored.manualGrade !== assessmentModel.manualGrade || (stored.manualCustomerServiceLevelCode || null) !== assessmentModel.manualCustomerServiceLevelCode) {
       if (!(await persistAssessment())) return
     }
     if (!detail.value?.assessment || !detail.value.allowedActions.includes('SUBMIT_ASSESSMENT')) {

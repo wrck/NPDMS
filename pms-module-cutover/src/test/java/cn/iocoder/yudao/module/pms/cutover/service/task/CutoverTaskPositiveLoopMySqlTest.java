@@ -176,8 +176,17 @@ class CutoverTaskPositiveLoopMySqlTest {
     }
 
     private SaveCutoverAssessmentCommand saveCommand(Long taskId, Long taskVersion, String grade) {
-        return new SaveCutoverAssessmentCommand(tenantId, ACTOR_ID, taskId, taskVersion, 0L,
-                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), grade, "save-" + grade, "corr-save-" + grade);
+        return SaveCutoverAssessmentCommand.builder()
+                .tenantId(tenantId)
+                .actorId(ACTOR_ID)
+                .taskId(taskId)
+                .expectedTaskVersion(taskVersion)
+                .expectedAssessmentVersion(0L)
+                .answers(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true))
+                .manualGrade(grade)
+                .idempotencyKey("save-" + grade)
+                .correlationId("corr-save-" + grade)
+                .build();
     }
 
     private SubmitCutoverAssessmentCommand submitCommand(Long taskId, Long taskVersion,
@@ -220,8 +229,17 @@ class CutoverTaskPositiveLoopMySqlTest {
     }
 
     private static CutoverCustomerLevelPort.CustomerLevelFact customerFact() {
-        return new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
-                500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null);
+        return CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status("AVAILABLE")
+                .customerId(200L)
+                .customerCode("CUS-200")
+                .customerName("示例客户")
+                .serviceLevelRevisionId(500L)
+                .serviceLevelCode("LEVEL_1")
+                .factVersion(2L)
+                .effectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0))
+                .effectiveTo(null)
+                .build();
     }
 
     private static CutoverReadinessPort.ReadinessFact readinessFact() {
@@ -295,7 +313,6 @@ class CutoverTaskPositiveLoopMySqlTest {
         @Bean CutoverCustomerLevelPort customerLevelPort() {
             return new CutoverCustomerLevelPort() {
                 @Override public CustomerLevelFact inspect(Long customerId) { return customerFact(); }
-                @Override public CustomerLevelFact lockAndRevalidate(CustomerLevelFact expected) { return expected; }
             };
         }
         @Bean CutoverReadinessPort readinessPort() {

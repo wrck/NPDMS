@@ -60,18 +60,34 @@ public final class CutoverTaskResponses {
         }
     }
 
+    @lombok.Builder
     public record Assessment(Long id, Long assessmentVersion, Long rowVersion,
             String status, String questionnaireTemplateCode, long questionnaireTemplateVersion,
             AssessmentAnswers answers, CustomerLevel customerServiceLevel, String manualGrade,
             boolean simpleFlow, Long submittedBy, LocalDateTime submittedAt,
-            LocalDateTime invalidatedAt, String invalidationReason) {
+            LocalDateTime invalidatedAt, String invalidationReason, String manualCustomerServiceLevelCode,
+            Long manualCustomerServiceLevelSelectedBy, LocalDateTime manualCustomerServiceLevelSelectedAt) {
         public static Assessment from(CutoverTaskViews.Assessment value) {
             if (value == null) return null;
-            return new Assessment(value.id(), value.assessmentVersion(), value.rowVersion(),
-                    value.status(), value.questionnaireTemplateCode(), value.questionnaireTemplateVersion(),
-                    AssessmentAnswers.from(value.answers()), CustomerLevel.from(value.customerServiceLevel()), value.manualGrade(),
-                    value.simpleFlow(), value.submittedBy(), value.submittedAt(),
-                    value.invalidatedAt(), value.invalidationReason());
+            return Assessment.builder()
+                    .id(value.id())
+                    .assessmentVersion(value.assessmentVersion())
+                    .rowVersion(value.rowVersion())
+                    .status(value.status())
+                    .questionnaireTemplateCode(value.questionnaireTemplateCode())
+                    .questionnaireTemplateVersion(value.questionnaireTemplateVersion())
+                    .answers(AssessmentAnswers.from(value.answers()))
+                    .customerServiceLevel(CustomerLevel.from(value.customerServiceLevel()))
+                    .manualGrade(value.manualGrade())
+                    .simpleFlow(value.simpleFlow())
+                    .submittedBy(value.submittedBy())
+                    .submittedAt(value.submittedAt())
+                    .invalidatedAt(value.invalidatedAt())
+                    .invalidationReason(value.invalidationReason())
+                    .manualCustomerServiceLevelCode(value.manualCustomerServiceLevelCode())
+                    .manualCustomerServiceLevelSelectedBy(value.manualCustomerServiceLevelSelectedBy())
+                    .manualCustomerServiceLevelSelectedAt(value.manualCustomerServiceLevelSelectedAt())
+                    .build();
         }
     }
 
@@ -104,14 +120,24 @@ public final class CutoverTaskResponses {
         }
     }
 
+    @lombok.Builder
     public record CustomerLevel(String status, Long customerId, String customerCode,
             String customerName, Long serviceLevelRevisionId, String serviceLevelCode,
-            long factVersion, LocalDateTime effectiveFrom, LocalDateTime effectiveTo) {
+            long factVersion, LocalDateTime effectiveFrom, LocalDateTime effectiveTo, Long sourceRecordId) {
         public static CustomerLevel from(CutoverCustomerLevelPort.CustomerLevelFact value) {
             if (value == null) return null;
-            return new CustomerLevel(value.status(), value.customerId(), value.customerCode(),
-                    value.customerName(), value.serviceLevelRevisionId(), value.serviceLevelCode(),
-                    value.factVersion(), value.effectiveFrom(), value.effectiveTo());
+            return CustomerLevel.builder()
+                    .status(value.status())
+                    .customerId(value.customerId())
+                    .customerCode(value.customerCode())
+                    .customerName(value.customerName())
+                    .serviceLevelRevisionId(value.serviceLevelRevisionId())
+                    .serviceLevelCode(value.serviceLevelCode())
+                    .factVersion(value.factVersion())
+                    .effectiveFrom(value.effectiveFrom())
+                    .effectiveTo(value.effectiveTo())
+                    .sourceRecordId(value.sourceRecordId())
+                    .build();
         }
     }
 

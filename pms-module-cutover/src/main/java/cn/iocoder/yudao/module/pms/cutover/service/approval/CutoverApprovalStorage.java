@@ -134,7 +134,7 @@ public class CutoverApprovalStorage {
                 new CollectionAnalysisSnapshot(root.getSourceCutoverTypeCode(), root.getSourceNetworkModeCode(), millis(root.getSourceScheduleTime(), ZoneId.systemDefault())),
                 risks, surveys, new AssessmentApprovalSnapshot(assessment.getId(), assessment.getAssessmentVersion(),
                         assessment.getQuestionnaireTemplateVersion(), answers.businessImportanceLevel(), answers.operationComplexityLevel(),
-                        answers.hiddenRiskLevel(), answers.sparePartApplied(), assessment.getServiceLevelCode(), assessment.getManualGrade(),
+                        answers.hiddenRiskLevel(), answers.sparePartApplied(), cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskSnapshotStore.effectiveCustomerServiceLevel(assessment), assessment.getManualGrade(),
                         assessment.getSubmittedBy(), millis(assessment.getSubmittedAt(), ZoneId.systemDefault())),
                 new PlanApprovalSnapshot(plan.getId(), plan.getRevisionNo(), root.getSourcePlanVersion(),
                         planSource(plan), planContent(plan)));

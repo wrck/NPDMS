@@ -56,10 +56,11 @@
         <result column="service_level_effective_start_time" property="serviceLevelEffectiveStartTime"/>
         <result column="service_level_effective_end_time" property="serviceLevelEffectiveEndTime"/>
         <result column="readiness_decision_code" property="readinessDecisionCode"/>
+        <result column="service_level_source_record_id" property="serviceLevelSourceRecordId"/>
     </resultMap>
 
     <select id="selectForUpdate" resultMap="structuredCutoverTaskDO">
-        SELECT id, tenant_id, project_id, previous_task_id, task_no, task_name, background, cutover_type_code, network_mode_code, schedule_time, task_origin_code, intake_source_type_code, source_system, source_business_no, business_event_id, current_stage_code, task_status_code, owner_user_id, customer_id, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, manual_grade_code, current_assessment_id, version, creator, create_time, updater, update_time, deleted, configuration_revision_id, configuration_code, configuration_revision_no, project_version, project_code, project_name, customer_code, customer_name, department_id, department_code, department_name, customer_fact_status_code, service_level_revision_id, service_level_code, customer_fact_version, service_level_effective_start_time, service_level_effective_end_time, readiness_decision_code
+        SELECT id, tenant_id, project_id, previous_task_id, task_no, task_name, background, cutover_type_code, network_mode_code, schedule_time, task_origin_code, intake_source_type_code, source_system, source_business_no, business_event_id, current_stage_code, task_status_code, owner_user_id, customer_id, implementation_readiness_snapshot_id, implementation_readiness_snapshot_version, project_scope_version, manual_grade_code, current_assessment_id, version, creator, create_time, updater, update_time, deleted, configuration_revision_id, configuration_code, configuration_revision_no, project_version, project_code, project_name, customer_code, customer_name, department_id, department_code, department_name, customer_fact_status_code, service_level_revision_id, service_level_source_record_id, service_level_code, customer_fact_version, service_level_effective_start_time, service_level_effective_end_time, readiness_decision_code
         FROM cut_task
         WHERE tenant_id = #{query.tenantId}
           AND id = #{query.taskId}

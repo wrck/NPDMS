@@ -16,8 +16,8 @@ class CutoverJobRegistrarTest {
         JobApi jobs = mock(JobApi.class);
         Scheduler scheduler = mock(Scheduler.class);
         new CutoverJobRegistrar(jobs, provider(scheduler)).run(new DefaultApplicationArguments());
-        verify(jobs).syncEnabledJobByHandlerName("cutoverApprovalNotificationJob");
-        verify(jobs).syncEnabledJobByHandlerName("cutoverResultDeliveryJob");
+        verify(jobs).syncJobByHandlerName("cutoverApprovalNotificationJob");
+        verify(jobs).syncJobByHandlerName("cutoverResultDeliveryJob");
         verifyNoMoreInteractions(jobs);
     }
 

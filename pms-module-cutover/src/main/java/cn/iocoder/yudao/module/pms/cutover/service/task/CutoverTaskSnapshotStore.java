@@ -48,6 +48,7 @@ public class CutoverTaskSnapshotStore {
         row.setProjectScopeVersion(project.projectScopeVersion());
         row.setCustomerFactStatusCode(customer.status()); row.setServiceLevelRevisionId(customer.serviceLevelRevisionId());
         row.setServiceLevelCode(customer.serviceLevelCode()); row.setCustomerFactVersion(customer.factVersion());
+        row.setServiceLevelSourceRecordId(customer.sourceRecordId());
         row.setServiceLevelEffectiveStartTime(customer.effectiveFrom()); row.setServiceLevelEffectiveEndTime(customer.effectiveTo());
         row.setReadinessDecisionCode(context.readiness().decision());
         row.setImplementationReadinessSnapshotId(context.readiness().snapshotId());
@@ -69,6 +70,7 @@ public class CutoverTaskSnapshotStore {
         row.setProjectScopeVersion(project.projectScopeVersion());
         row.setCustomerFactStatusCode(customer.status()); row.setServiceLevelRevisionId(customer.serviceLevelRevisionId());
         row.setServiceLevelCode(customer.serviceLevelCode()); row.setCustomerFactVersion(customer.factVersion());
+        row.setServiceLevelSourceRecordId(customer.sourceRecordId());
         row.setServiceLevelEffectiveStartTime(customer.effectiveFrom()); row.setServiceLevelEffectiveEndTime(customer.effectiveTo());
         row.setReadinessDecisionCode(context.readiness().decision());
         row.setImplementationReadinessSnapshotId(context.readiness().snapshotId());
@@ -95,16 +97,45 @@ public class CutoverTaskSnapshotStore {
 
     public static CutoverCustomerLevelPort.CustomerLevelFact customer(CutoverTaskDO row) {
         if (row.getCustomerFactVersion() == null) return null;
-        return new CutoverCustomerLevelPort.CustomerLevelFact(row.getCustomerFactStatusCode(), row.getCustomerId(), row.getCustomerCode(),
-                row.getCustomerName(), row.getServiceLevelRevisionId(), row.getServiceLevelCode(), row.getCustomerFactVersion(),
-                row.getServiceLevelEffectiveStartTime(), row.getServiceLevelEffectiveEndTime());
+        return CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status(row.getCustomerFactStatusCode())
+                .customerId(row.getCustomerId())
+                .customerCode(row.getCustomerCode())
+                .customerName(row.getCustomerName())
+                .serviceLevelRevisionId(row.getServiceLevelRevisionId())
+                .sourceRecordId(row.getServiceLevelSourceRecordId())
+                .serviceLevelCode(row.getServiceLevelCode())
+                .factVersion(row.getCustomerFactVersion())
+                .effectiveFrom(row.getServiceLevelEffectiveStartTime())
+                .effectiveTo(row.getServiceLevelEffectiveEndTime())
+                .build();
     }
 
     public static CutoverCustomerLevelPort.CustomerLevelFact customer(CutoverAssessmentDO row) {
         if (row.getCustomerFactVersion() == null) return null;
-        return new CutoverCustomerLevelPort.CustomerLevelFact(row.getCustomerFactStatusCode(), row.getCustomerId(), row.getCustomerCode(),
-                row.getCustomerName(), row.getServiceLevelRevisionId(), row.getServiceLevelCode(), row.getCustomerFactVersion(),
-                row.getServiceLevelEffectiveStartTime(), row.getServiceLevelEffectiveEndTime());
+        return CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status(row.getCustomerFactStatusCode())
+                .customerId(row.getCustomerId())
+                .customerCode(row.getCustomerCode())
+                .customerName(row.getCustomerName())
+                .serviceLevelRevisionId(row.getServiceLevelRevisionId())
+                .sourceRecordId(row.getServiceLevelSourceRecordId())
+                .serviceLevelCode(row.getServiceLevelCode())
+                .factVersion(row.getCustomerFactVersion())
+                .effectiveFrom(row.getServiceLevelEffectiveStartTime())
+                .effectiveTo(row.getServiceLevelEffectiveEndTime())
+                .build();
+    }
+
+    public static String effectiveCustomerServiceLevel(CutoverAssessmentDO row) {
+        return row.getManualCustomerServiceLevelCode() != null ? row.getManualCustomerServiceLevelCode() : row.getServiceLevelCode();
+    }
+
+    public static boolean hasRequiredCustomerServiceLevelSelection(CutoverAssessmentDO row) {
+        // 保留独立割接原有的外部参考不可用边界；只校验新增的未维护手选路径。
+        return !"NOT_CONFIGURED".equals(row.getCustomerFactStatusCode())
+                || row.getManualCustomerServiceLevelCode() != null
+                && row.getManualCustomerServiceLevelSelectedBy() != null && row.getManualCustomerServiceLevelSelectedAt() != null;
     }
 
     public static CutoverAssessmentAnswers answers(CutoverAssessmentDO row) {

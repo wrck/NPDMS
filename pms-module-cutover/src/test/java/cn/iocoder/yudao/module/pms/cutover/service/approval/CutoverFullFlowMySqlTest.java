@@ -190,9 +190,17 @@ class CutoverFullFlowMySqlTest {
     @org.junit.jupiter.params.provider.CsvSource({"A,SUCCESS", "B,SUCCESS", "C,FAILED", "D,SUCCESS"})
     void completesTaskThroughArchiveWithControlledOwnerFacts(String grade, String finalResult) {
         CutoverTaskCommandResult created = taskService.create(createCommand());
-        CutoverAssessmentCommandResult assessment = taskService.saveAssessment(new SaveCutoverAssessmentCommand(
-                tenantId, ACTOR_ID, created.taskId(), created.version(), 0L,
-                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), grade, "assessment-save", "corr-assessment-save"));
+        CutoverAssessmentCommandResult assessment = taskService.saveAssessment(SaveCutoverAssessmentCommand.builder()
+                .tenantId(tenantId)
+                .actorId(ACTOR_ID)
+                .taskId(created.taskId())
+                .expectedTaskVersion(created.version())
+                .expectedAssessmentVersion(0L)
+                .answers(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true))
+                .manualGrade(grade)
+                .idempotencyKey("assessment-save")
+                .correlationId("corr-assessment-save")
+                .build());
         CutoverTaskCommandResult p3 = taskService.submitAssessment(new SubmitCutoverAssessmentCommand(
                 tenantId, ACTOR_ID, created.taskId(), assessment.taskVersion(), assessment.assessmentRowVersion(),
                 "assessment-submit", "corr-assessment-submit"));
@@ -717,8 +725,17 @@ class CutoverFullFlowMySqlTest {
     }
 
     private static CutoverCustomerLevelPort.CustomerLevelFact customerFact() {
-        return new CutoverCustomerLevelPort.CustomerLevelFact("UNAVAILABLE", null, null, null,
-                null, null, 0L, null, null);
+        return CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status("UNAVAILABLE")
+                .customerId(null)
+                .customerCode(null)
+                .customerName(null)
+                .serviceLevelRevisionId(null)
+                .serviceLevelCode(null)
+                .factVersion(0L)
+                .effectiveFrom(null)
+                .effectiveTo(null)
+                .build();
     }
 
     private static CutoverReadinessPort.ReadinessFact readinessFact() {
@@ -800,7 +817,6 @@ class CutoverFullFlowMySqlTest {
         @Bean CutoverCustomerLevelPort customerLevelPort() {
             return new CutoverCustomerLevelPort() {
                 @Override public CustomerLevelFact inspect(Long customerId) { return customerFact(); }
-                @Override public CustomerLevelFact lockAndRevalidate(CustomerLevelFact expected) { return expected; }
             };
         }
 

@@ -46,7 +46,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
 
 class CutoverTaskIntakePolicyTest {
 
@@ -138,8 +137,17 @@ class CutoverTaskIntakePolicyTest {
                 source.networkMode(), source.scheduledTime(), source.sourceSystem(), source.sourceBusinessNo(),
                 source.businessEventId(), new CreateCutoverTaskCommand.ExpectedCreateContext(project,
                 source.expectedContext().devices(),
-                new CutoverCustomerLevelPort.CustomerLevelFact("UNAVAILABLE", null, null, null,
-                        null, null, 0L, null, null), source.expectedContext().readiness()));
+                CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                        .status("UNAVAILABLE")
+                        .customerId(null)
+                        .customerCode(null)
+                        .customerName(null)
+                        .serviceLevelRevisionId(null)
+                        .serviceLevelCode(null)
+                        .factVersion(0L)
+                        .effectiveFrom(null)
+                        .effectiveTo(null)
+                        .build(), source.expectedContext().readiness()));
 
         var created = fixture.service().create(command);
         var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
@@ -208,7 +216,6 @@ class CutoverTaskIntakePolicyTest {
         assertEquals("NOT_APPLICABLE", fixture.task().get().getReadinessDecisionCode());
         assertEquals("UNAVAILABLE", fixture.assessment().get().getCustomerFactStatusCode());
         verifyNoInteractions(fixture.readiness());
-        verify(fixture.customerLevel(), never()).lockAndRevalidate(any());
     }
 
     @Test
@@ -298,8 +305,17 @@ class CutoverTaskIntakePolicyTest {
                 new CutoverDeviceProductTypePort.ProductTypeFact(400L, "ROUTER", true, "pt-v1",
                         "RESOLVED", "FRESH", LocalDateTime.of(2026, 8, 31, 0, 0), false));
         CutoverCustomerLevelPort.CustomerLevelFact customerFact =
-                new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
-                        500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null);
+                CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                        .status("AVAILABLE")
+                        .customerId(200L)
+                        .customerCode("CUS-200")
+                        .customerName("示例客户")
+                        .serviceLevelRevisionId(500L)
+                        .serviceLevelCode("LEVEL_1")
+                        .factVersion(2L)
+                        .effectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0))
+                        .effectiveTo(null)
+                        .build();
         CutoverReadinessPort.ReadinessFact readinessFact =
                 new CutoverReadinessPort.ReadinessFact(600L, 4L, "READY", 100L,
                         List.of(400L), "watermark-1", List.of());
@@ -321,7 +337,6 @@ class CutoverTaskIntakePolicyTest {
         when(deviceScope.lockAndRevalidate(100L, devices)).thenReturn(devices);
         when(productType.resolveAuthorized(8L, List.of(400L))).thenReturn(productTypes);
         when(customerLevel.inspect(200L)).thenReturn(customerFact);
-        when(customerLevel.lockAndRevalidate(customerFact)).thenReturn(customerFact);
         when(snapshots.readiness(any())).thenAnswer(invocation -> {
             CutoverTaskDO row = invocation.getArgument(0);
             return "NOT_APPLICABLE".equals(row.getReadinessDecisionCode())
@@ -400,15 +415,33 @@ class CutoverTaskIntakePolicyTest {
                                 .projectScopeVersion(7L)
                                 .build(),
                         List.of(new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L)),
-                        new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
-                                500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null),
+                        CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                                .status("AVAILABLE")
+                                .customerId(200L)
+                                .customerCode("CUS-200")
+                                .customerName("示例客户")
+                                .serviceLevelRevisionId(500L)
+                                .serviceLevelCode("LEVEL_1")
+                                .factVersion(2L)
+                                .effectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0))
+                                .effectiveTo(null)
+                                .build(),
                         new CutoverReadinessPort.ReadinessFact(600L, 4L, "READY", 100L,
                                 List.of(400L), "watermark-1", List.of())));
     }
 
     private static SaveCutoverAssessmentCommand saveCommand(Long taskId, Long taskVersion, String grade) {
-        return new SaveCutoverAssessmentCommand(1L, 8L, taskId, taskVersion, 0L,
-                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), grade, "save-" + grade, "corr-save-" + grade);
+        return SaveCutoverAssessmentCommand.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .taskId(taskId)
+                .expectedTaskVersion(taskVersion)
+                .expectedAssessmentVersion(0L)
+                .answers(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true))
+                .manualGrade(grade)
+                .idempotencyKey("save-" + grade)
+                .correlationId("corr-save-" + grade)
+                .build();
     }
 
     private static SubmitCutoverAssessmentCommand submitCommand(Long taskId, Long taskVersion,

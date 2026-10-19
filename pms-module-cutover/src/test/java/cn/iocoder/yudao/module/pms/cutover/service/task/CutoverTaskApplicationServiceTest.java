@@ -44,12 +44,182 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class CutoverTaskApplicationServiceTest {
+
+    @Test
+    void springMapperPreservesLegacyCompletedSaveReplayAndManualSelectionConflicts() {
+        var previousMapper = cn.iocoder.yudao.framework.common.util.json.JsonUtils.getObjectMapper();
+        try {
+            new org.springframework.boot.test.context.runner.ApplicationContextRunner()
+                    .withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(
+                            org.springframework.boot.jackson.autoconfigure.JacksonAutoConfiguration.class,
+                            cn.iocoder.yudao.framework.jackson.config.YudaoJacksonAutoConfiguration.class))
+                    .run(context -> {
+                        assertNull(context.getStartupFailure());
+                        assertTrue(cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(
+                                java.util.Collections.singletonMap("existingNull", null)).contains("\"existingNull\":null"));
+                        var fixture = fixture();
+                        var created = fixture.service().create(createCommand("legacy-spring-save"));
+                        var command = saveCommand(created.taskId(), created.version(), "D");
+                        var legacyInput = new LegacyAssessmentSaveInput(command.taskId(), command.expectedTaskVersion(),
+                                command.expectedAssessmentVersion(), command.answers(), command.manualGrade());
+                        String legacyJson = cn.iocoder.yudao.framework.common.util.json.JsonUtils.toJsonString(legacyInput);
+                        String legacyDigest = java.util.HexFormat.of().formatHex(java.security.MessageDigest
+                                .getInstance("SHA-256").digest(legacyJson.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                        var savedPreviously = new CutoverAssessmentCommandResult(created.taskId(), 12345L, 1L, 0L,
+                                created.version() + 1, "DRAFT");
+                        fixture.platform().completed.put("CUT:ASSESSMENT_SAVE:" + created.taskId() + ":8:" + command.idempotencyKey(),
+                                new DirectPlatform.CachedResult(legacyDigest, savedPreviously));
+                        assertEquals(savedPreviously, fixture.service().saveAssessment(command));
+                        assertNull(fixture.assessment().get());
+                        assertEquals(1, fixture.platform().facts.size());
+
+                        var manualFixture = fixture();
+                        var manualTask = manualFixture.service().create(createCommand("spring-manual-save"));
+                        unconfiguredCustomer(manualFixture);
+                        manualFixture.service().saveAssessment(manualLevelCommand(manualTask, "STANDARD"));
+                        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                                () -> manualFixture.service().saveAssessment(manualLevelCommand(manualTask, "IMPORTANT")));
+                        assertEquals(CutoverTaskApplicationException.Code.IDEMPOTENCY_CONFLICT, failure.code());
+                        assertEquals("STANDARD", manualFixture.assessment().get().getManualCustomerServiceLevelCode());
+                    });
+        } finally {
+            cn.iocoder.yudao.framework.common.util.json.JsonUtils.init(previousMapper);
+        }
+    }
+
+    private record LegacyAssessmentSaveInput(Long taskId, Long taskVersion, Long assessmentVersion,
+                                              CutoverAssessmentAnswers answers, String manualGrade) { }
+
+    @Test
+    void unconfiguredCustomerAllowsManualLevelAndSubmitsWithoutWritingCus() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("manual-level"));
+        unconfiguredCustomer(fixture);
+        var saved = fixture.service().saveAssessment(manualLevelCommand(created, "STANDARD"));
+        assertEquals("STANDARD", fixture.assessment().get().getManualCustomerServiceLevelCode());
+        assertEquals(8L, fixture.assessment().get().getManualCustomerServiceLevelSelectedBy());
+        assertEquals(LocalDateTime.of(2026, 8, 31, 1, 0),
+                fixture.assessment().get().getManualCustomerServiceLevelSelectedAt());
+        var submitted = fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(),
+                saved.assessmentRowVersion(), "submit-manual-level"));
+        assertEquals("P4", submitted.currentStage());
+        verify(fixture.dictionary()).validateDictDataList("pms_service_level", List.of("STANDARD"));
+    }
+
+    @Test
+    void unconfiguredCustomerWithoutManualLevelCannotSubmit() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("missing-manual-level"));
+        unconfiguredCustomer(fixture);
+        var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                () -> fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(),
+                        saved.assessmentRowVersion(), "submit-missing-level")));
+        assertEquals(CutoverTaskApplicationException.Code.BUSINESS_GATE_INVALID, failure.code());
+        assertEquals("DRAFT", fixture.assessment().get().getAssessmentStatus());
+        assertEquals(1, fixture.history().size());
+    }
+
+    @Test
+    void configuredCustomerRejectsManualOverride() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("override-level"));
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                () -> fixture.service().saveAssessment(manualLevelCommand(created, "STANDARD")));
+        assertEquals(CutoverTaskApplicationException.Code.INVALID_REQUEST, failure.code());
+        assertNull(fixture.assessment().get());
+        verifyNoInteractions(fixture.dictionary());
+    }
+
+    @Test
+    void unavailableCustomerCannotUseManualLevelAsFallback() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("unavailable-level"));
+        fixture.task().get().setCustomerFactStatusCode("UNAVAILABLE");
+        when(fixture.customerLevel().inspect(200L)).thenReturn(
+                CutoverCustomerLevelPort.CustomerLevelFact.builder().status("UNAVAILABLE")
+                        .customerId(200L).customerCode("CUS-200").customerName("示例客户").build());
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                () -> fixture.service().saveAssessment(manualLevelCommand(created, "STANDARD")));
+        assertEquals(CutoverTaskApplicationException.Code.CUS_PROVIDER_UNAVAILABLE, failure.code());
+        assertNull(fixture.assessment().get());
+        verifyNoInteractions(fixture.dictionary());
+    }
+
+    @Test
+    void customerLevelMaintainedAfterSaveKeepsSavedManualSelectionAndSubmits() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("level-changed"));
+        unconfiguredCustomer(fixture);
+        var saved = fixture.service().saveAssessment(manualLevelCommand(created, "STANDARD"));
+        var maintained = CutoverCustomerLevelPort.CustomerLevelFact.builder().status("AVAILABLE")
+                .customerId(200L).customerCode("CUS-200").customerName("示例客户")
+                .sourceRecordId(501L).serviceLevelCode("IMPORTANT").factVersion(1L).build();
+        when(fixture.customerLevel().inspect(200L)).thenReturn(maintained);
+        clearInvocations(fixture.customerLevel());
+        var submitted = fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(),
+                saved.assessmentRowVersion(), "submit-changed-level"));
+        assertEquals("P4", submitted.currentStage());
+        assertEquals("SUBMITTED", fixture.assessment().get().getAssessmentStatus());
+        assertEquals("STANDARD", fixture.assessment().get().getManualCustomerServiceLevelCode());
+        assertEquals("NOT_CONFIGURED", fixture.assessment().get().getCustomerFactStatusCode());
+        assertEquals(2, fixture.history().size());
+        verifyNoInteractions(fixture.customerLevel());
+    }
+
+    @Test
+    void invalidDictionaryValueRejectsManualSave() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("invalid-manual-level"));
+        unconfiguredCustomer(fixture);
+        var rejected = new IllegalArgumentException("invalid dictionary value");
+        org.mockito.Mockito.doThrow(rejected).when(fixture.dictionary())
+                .validateDictDataList("pms_service_level", List.of("UNKNOWN"));
+        assertEquals(rejected, org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException.class,
+                () -> fixture.service().saveAssessment(manualLevelCommand(created, "UNKNOWN"))));
+        assertNull(fixture.assessment().get());
+    }
+
+    @Test
+    void sameIdempotencyKeyWithChangedManualLevelConflicts() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("manual-idempotency"));
+        unconfiguredCustomer(fixture);
+        var command = manualLevelCommand(created, "STANDARD");
+        fixture.service().saveAssessment(command);
+        int writes = fixture.deviceWrites().size();
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                () -> fixture.service().saveAssessment(manualLevelCommand(created, "IMPORTANT")));
+        assertEquals(CutoverTaskApplicationException.Code.IDEMPOTENCY_CONFLICT, failure.code());
+        assertEquals("STANDARD", fixture.assessment().get().getManualCustomerServiceLevelCode());
+        assertEquals(writes, fixture.deviceWrites().size());
+    }
+
+    private static void unconfiguredCustomer(Fixture fixture) {
+        var fact = CutoverCustomerLevelPort.CustomerLevelFact.builder().status("NOT_CONFIGURED")
+                .customerId(200L).customerCode("CUS-200").customerName("示例客户").build();
+        var task = fixture.task().get();
+        task.setCustomerFactStatusCode(fact.status());
+        task.setCustomerFactVersion(0L);
+        task.setServiceLevelRevisionId(null);
+        task.setServiceLevelSourceRecordId(null);
+        task.setServiceLevelCode(null);
+        task.setServiceLevelEffectiveStartTime(null);
+        task.setServiceLevelEffectiveEndTime(null);
+    }
+
+    private static SaveCutoverAssessmentCommand manualLevelCommand(CutoverTaskCommandResult created, String level) {
+        return SaveCutoverAssessmentCommand.builder().tenantId(1L).actorId(8L).taskId(created.taskId())
+                .expectedTaskVersion(created.version()).expectedAssessmentVersion(0L)
+                .answers(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true)).manualGrade("D")
+                .manualCustomerServiceLevelCode(level).idempotencyKey("save-manual-level")
+                .correlationId("corr-save-manual-level").build();
+    }
 
     @org.junit.jupiter.params.ParameterizedTest
     @org.junit.jupiter.params.provider.ValueSource(ints = {0, 1, 2})
@@ -166,9 +336,17 @@ class CutoverTaskApplicationServiceTest {
         assertEquals(first, fixture.service().saveAssessment(command));
         assertEquals(writes, fixture.deviceWrites().size());
         assertEquals(2, fixture.platform().facts.size());
-        var changed = new SaveCutoverAssessmentCommand(command.tenantId(), command.actorId(), command.taskId(),
-                command.expectedTaskVersion(), command.expectedAssessmentVersion(), command.answers(), "A",
-                command.idempotencyKey(), command.correlationId());
+        var changed = SaveCutoverAssessmentCommand.builder()
+                .tenantId(command.tenantId())
+                .actorId(command.actorId())
+                .taskId(command.taskId())
+                .expectedTaskVersion(command.expectedTaskVersion())
+                .expectedAssessmentVersion(command.expectedAssessmentVersion())
+                .answers(command.answers())
+                .manualGrade("A")
+                .idempotencyKey(command.idempotencyKey())
+                .correlationId(command.correlationId())
+                .build();
         assertEquals(CutoverTaskApplicationException.Code.IDEMPOTENCY_CONFLICT,
                 org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
                         () -> fixture.service().saveAssessment(changed)).code());
@@ -190,6 +368,7 @@ class CutoverTaskApplicationServiceTest {
         CutoverDeviceScopePort deviceScope = mock(CutoverDeviceScopePort.class);
         CutoverDeviceProductTypePort productType = mock(CutoverDeviceProductTypePort.class);
         CutoverCustomerLevelPort customerLevel = mock(CutoverCustomerLevelPort.class);
+        var dictionary = mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class);
         CutoverReadinessPort readiness = mock(CutoverReadinessPort.class);
         CutoverTaskSnapshotStore snapshots = mock(CutoverTaskSnapshotStore.class);
         List<CutoverTaskSnapshotStore.DeviceWrite> deviceWrites = new ArrayList<>();
@@ -225,8 +404,17 @@ class CutoverTaskApplicationServiceTest {
                 new CutoverDeviceProductTypePort.ProductTypeFact(400L, "ROUTER", true, "pt-v1",
                         "RESOLVED", "FRESH", LocalDateTime.of(2026, 8, 31, 0, 0), false));
         CutoverCustomerLevelPort.CustomerLevelFact customerFact =
-                new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
-                        500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null);
+                CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                        .status("AVAILABLE")
+                        .customerId(200L)
+                        .customerCode("CUS-200")
+                        .customerName("示例客户")
+                        .serviceLevelRevisionId(500L)
+                        .serviceLevelCode("LEVEL_1")
+                        .factVersion(2L)
+                        .effectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0))
+                        .effectiveTo(null)
+                        .build();
         CutoverReadinessPort.ReadinessFact readinessFact =
                 new CutoverReadinessPort.ReadinessFact(600L, 4L, "READY", 100L,
                         List.of(400L), "watermark-1", List.of());
@@ -248,7 +436,6 @@ class CutoverTaskApplicationServiceTest {
         when(deviceScope.lockAndRevalidate(100L, devices)).thenReturn(devices);
         when(productType.resolveAuthorized(8L, List.of(400L))).thenReturn(productTypes);
         when(customerLevel.inspect(200L)).thenReturn(customerFact);
-        when(customerLevel.lockAndRevalidate(customerFact)).thenReturn(customerFact);
         when(snapshots.readiness(any())).thenAnswer(invocation -> {
             CutoverTaskDO row = invocation.getArgument(0);
             return "NOT_APPLICABLE".equals(row.getReadinessDecisionCode())
@@ -314,7 +501,9 @@ class CutoverTaskApplicationServiceTest {
                 Clock.fixed(Instant.parse("2026-08-31T01:00:00Z"), ZoneOffset.UTC),
                 org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverIntakeConfigurationPolicy.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "taskSnapshots", snapshots);
-        return new Fixture(service, task, assessment, deviceRows, history, platform, productType, deviceWrites, configurationMapper);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "serviceLevelDictionary", dictionary);
+        return new Fixture(service, task, assessment, deviceRows, history, platform, productType, deviceWrites, configurationMapper,
+                customerLevel, dictionary);
     }
 
     private static CreateCutoverTaskCommand createCommand(String key) {
@@ -337,15 +526,33 @@ class CutoverTaskApplicationServiceTest {
                                 .projectScopeVersion(7L)
                                 .build(),
                         List.of(new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 9L)),
-                        new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 200L, "CUS-200", "示例客户",
-                                500L, "LEVEL_1", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null),
+                        CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                                .status("AVAILABLE")
+                                .customerId(200L)
+                                .customerCode("CUS-200")
+                                .customerName("示例客户")
+                                .serviceLevelRevisionId(500L)
+                                .serviceLevelCode("LEVEL_1")
+                                .factVersion(2L)
+                                .effectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0))
+                                .effectiveTo(null)
+                                .build(),
                         new CutoverReadinessPort.ReadinessFact(600L, 4L, "READY", 100L,
                                 List.of(400L), "watermark-1", List.of())));
     }
 
     private static SaveCutoverAssessmentCommand saveCommand(Long taskId, Long taskVersion, String grade) {
-        return new SaveCutoverAssessmentCommand(1L, 8L, taskId, taskVersion, 0L,
-                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), grade, "save-" + grade, "corr-save-" + grade);
+        return SaveCutoverAssessmentCommand.builder()
+                .tenantId(1L)
+                .actorId(8L)
+                .taskId(taskId)
+                .expectedTaskVersion(taskVersion)
+                .expectedAssessmentVersion(0L)
+                .answers(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true))
+                .manualGrade(grade)
+                .idempotencyKey("save-" + grade)
+                .correlationId("corr-save-" + grade)
+                .build();
     }
 
     private static SubmitCutoverAssessmentCommand submitCommand(Long taskId, Long taskVersion,
@@ -359,7 +566,8 @@ class CutoverTaskApplicationServiceTest {
                            List<CutoverTaskDeviceScopeDO> deviceRows,
                            List<CutoverTaskStageHistoryDO> history, DirectPlatform platform,
                            CutoverDeviceProductTypePort productType, List<CutoverTaskSnapshotStore.DeviceWrite> deviceWrites,
-                           CutoverConfigurationRevisionMapper configurations) {
+                           CutoverConfigurationRevisionMapper configurations, CutoverCustomerLevelPort customerLevel,
+                           cn.iocoder.yudao.module.system.api.dict.DictDataApi dictionary) {
     }
 
     private static final class DirectPlatform implements PlatformCommandExecutionApi {

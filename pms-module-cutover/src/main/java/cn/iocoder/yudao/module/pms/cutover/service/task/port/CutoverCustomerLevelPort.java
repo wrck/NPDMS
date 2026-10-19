@@ -7,10 +7,9 @@ public interface CutoverCustomerLevelPort {
 
     CustomerLevelFact inspect(Long customerId);
 
-    CustomerLevelFact lockAndRevalidate(CustomerLevelFact expected);
-
+    @lombok.Builder(toBuilder = true)
     record CustomerLevelFact(String status, Long customerId, String customerCode, String customerName,
                              Long serviceLevelRevisionId, String serviceLevelCode, long factVersion,
-                             LocalDateTime effectiveFrom, LocalDateTime effectiveTo) {
+                             LocalDateTime effectiveFrom, LocalDateTime effectiveTo, Long sourceRecordId) {
     }
 }

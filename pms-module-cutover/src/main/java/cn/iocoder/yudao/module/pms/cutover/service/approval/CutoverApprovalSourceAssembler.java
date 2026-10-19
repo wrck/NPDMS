@@ -141,7 +141,7 @@ public class CutoverApprovalSourceAssembler {
 
         requirePlanProject(plan, project);
         CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
-        String serviceLevel = assessment.getServiceLevelCode();
+        String serviceLevel = cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskSnapshotStore.effectiveCustomerServiceLevel(assessment);
         JsonNode planContent = completePlanContent(command.tenantId(), plan);
         Long scheduledTime = cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanScheduleTime.value(planContent);
         require(scheduledTime != null, BUSINESS_INCOMPLETE, "请在方案页填写计划割接时间");

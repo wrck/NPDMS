@@ -45,7 +45,7 @@ class CutoverDashboardPolicyTest {
     void projectsApprovedP5Actions() {
         CutoverDashboardCandidate candidate = candidate(5L, "P5", "APPROVING", "A");
         assertThat(new CutoverP5ActionPolicy().allowedActions(candidate,
-                ActionFacts.p5("PENDING", "PENDING", null, 9L, true), PermissionFacts.p5()))
+                ActionFacts.p5("PENDING", "PENDING", null, 9L, true), PermissionFacts.p5(true)))
                 .containsExactly("APPROVE", "REJECT");
     }
 

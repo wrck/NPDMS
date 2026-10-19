@@ -187,7 +187,8 @@ public class CutoverTaskQueryService {
             require(currentDevices != null, AST_PROVIDER_UNAVAILABLE, "设备事实不可用");
             currentDevices = currentDevices.stream().filter(device -> task.getProjectId().equals(device.projectId())).toList();
             boolean comparable = sameFrozenProject(storedProject, currentProject)
-                    && equivalentDevices(storedDevices, currentDevices);
+                    && equivalentDevices(storedDevices, currentDevices)
+                    && CutoverTaskSnapshotStore.hasRequiredCustomerServiceLevelSelection(assessment);
             if (!requiresImplementationReadiness(task.getIntakeSourceType())) {
                 return new P2ActionEligibility(true, comparable);
             }
@@ -251,6 +252,12 @@ public class CutoverTaskQueryService {
         CutoverAssessmentDO assessmentRow = task.getCurrentAssessmentId() == null
                 ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
         CutoverTaskViews.Assessment assessment = assessment(assessmentRow);
+        if (assessmentRow != null) customer = CutoverTaskSnapshotStore.customer(assessmentRow);
+        if (CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
+                && (assessmentRow == null || CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessmentRow.getAssessmentStatus()))
+                && (customer == null || "UNAVAILABLE".equals(customer.status()))) {
+            customer = customerReference(customerLevelPort, project);
+        }
         CutoverChecklistDO checklist = Set.of("P3", "P4", "P5").contains(task.getCurrentStage())
                 ? checklistMapper.selectCurrent(new CutoverChecklistRowQuery(tenantId, taskId, null)) : null;
         P2ActionEligibility p2Eligibility = CutoverTaskRules.STAGE_P2.equals(task.getCurrentStage())
@@ -295,12 +302,25 @@ public class CutoverTaskQueryService {
         if (row == null) {
             return null;
         }
-        return new CutoverTaskViews.Assessment(row.getId(), row.getAssessmentVersion(), row.getVersion(),
-                row.getAssessmentStatus(), row.getQuestionnaireTemplateCode(), row.getQuestionnaireTemplateVersion(),
-                CutoverTaskSnapshotStore.answers(row),
-                CutoverTaskSnapshotStore.customer(row), row.getManualGrade(),
-                Boolean.TRUE.equals(row.getSimpleFlow()), row.getSubmittedBy(), row.getSubmittedAt(),
-                row.getInvalidatedAt(), row.getInvalidationReason());
+        return CutoverTaskViews.Assessment.builder()
+                .id(row.getId())
+                .assessmentVersion(row.getAssessmentVersion())
+                .rowVersion(row.getVersion())
+                .status(row.getAssessmentStatus())
+                .questionnaireTemplateCode(row.getQuestionnaireTemplateCode())
+                .questionnaireTemplateVersion(row.getQuestionnaireTemplateVersion())
+                .answers(CutoverTaskSnapshotStore.answers(row))
+                .customerServiceLevel(CutoverTaskSnapshotStore.customer(row))
+                .manualGrade(row.getManualGrade())
+                .simpleFlow(Boolean.TRUE.equals(row.getSimpleFlow()))
+                .submittedBy(row.getSubmittedBy())
+                .submittedAt(row.getSubmittedAt())
+                .invalidatedAt(row.getInvalidatedAt())
+                .invalidationReason(row.getInvalidationReason())
+                .manualCustomerServiceLevelCode(row.getManualCustomerServiceLevelCode())
+                .manualCustomerServiceLevelSelectedBy(row.getManualCustomerServiceLevelSelectedBy())
+                .manualCustomerServiceLevelSelectedAt(row.getManualCustomerServiceLevelSelectedAt())
+                .build();
     }
 
     private List<String> allowedActions(CutoverTaskDO task, CutoverAssessmentDO assessment,

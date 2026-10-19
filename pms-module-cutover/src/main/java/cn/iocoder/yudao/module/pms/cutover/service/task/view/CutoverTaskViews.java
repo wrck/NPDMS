@@ -53,13 +53,15 @@ public final class CutoverTaskViews {
     public record Project(Long projectId, String projectCode, String projectName, Long projectScopeVersion) {
     }
 
+    @lombok.Builder
     public record Assessment(Long id, Long assessmentVersion, Long rowVersion, String status,
                              String questionnaireTemplateCode, long questionnaireTemplateVersion,
                              CutoverAssessmentAnswers answers,
                              CutoverCustomerLevelPort.CustomerLevelFact customerServiceLevel,
                              String manualGrade, boolean simpleFlow, Long submittedBy,
                              LocalDateTime submittedAt, LocalDateTime invalidatedAt,
-                             String invalidationReason) {
+                             String invalidationReason, String manualCustomerServiceLevelCode,
+                             Long manualCustomerServiceLevelSelectedBy, LocalDateTime manualCustomerServiceLevelSelectedAt) {
     }
 
     public record WorkbenchStep(String stage, String label, String state,

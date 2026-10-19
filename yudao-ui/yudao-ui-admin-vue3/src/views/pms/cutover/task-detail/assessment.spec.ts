@@ -82,4 +82,38 @@ describe('P2 detail write recovery', () => {
     expect(textOf(page.root)).not.toContain('割接101')
     page.app.unmount()
   })
+  it('saves an explicit manual customer level in the existing assessment command before submission', async () => {
+    const level = { status: 'NOT_CONFIGURED', serviceLevelCode: null, sourceRecordId: null, factVersion: 1 }
+    const loaded = { ...detail(), customerServiceLevel: level, assessment: { ...detail().assessment, customerServiceLevel: level, manualCustomerServiceLevelCode: null } }
+    api.getCutoverTaskDetail.mockResolvedValue(loaded)
+    api.saveCutoverAssessment.mockResolvedValue({})
+    const page = mount(TaskDetail, { taskId: '101' }); await flush()
+    ;(page.vm as any).$.setupState.assessmentModel.manualCustomerServiceLevelCode = 'GOLD'
+    await (findByTestId(page.root, 'save-assessment')!.props!.onClick as Function)()
+    expect(api.saveCutoverAssessment).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ manualCustomerServiceLevelCode: 'GOLD' }) }))
+    expect(api.submitCutoverAssessment).not.toHaveBeenCalled()
+    page.app.unmount()
+  })
+  it('requires a manual choice when the current customer level is unconfigured', async () => {
+    api.getCutoverTaskDetail.mockResolvedValue({ ...detail(), customerServiceLevel: { status: 'NOT_CONFIGURED', serviceLevelCode: null } })
+    const page = mount(TaskDetail, { taskId: '101' }); await flush()
+    await (findByTestId(page.root, 'submit-assessment')!.props!.onClick as Function)()
+    expect(messages.warning).toHaveBeenCalledWith('请选择客户服务等级并保存评估。')
+    expect(api.submitCutoverAssessment).not.toHaveBeenCalled()
+    page.app.unmount()
+  })
+  it('allows a legacy unavailable draft to save a manual level using the now-unconfigured source', async () => {
+    api.getCutoverTaskDetail.mockResolvedValue({ ...detail(), customerServiceLevel: { status: 'NOT_CONFIGURED', serviceLevelCode: null },
+      assessment: { ...detail().assessment, status: 'DRAFT', customerServiceLevel: { status: 'UNAVAILABLE', serviceLevelCode: null } } })
+    api.saveCutoverAssessment.mockResolvedValue({})
+    const page = mount(TaskDetail, { taskId: '101' }); await flush()
+    const state = (page.vm as any).$.setupState
+    expect(state.assessmentCustomerLevel.status).toBe('NOT_CONFIGURED')
+    state.assessmentModel.manualCustomerServiceLevelCode = 'GOLD'
+    await (findByTestId(page.root, 'save-assessment')!.props!.onClick as Function)()
+    expect(api.saveCutoverAssessment).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ manualCustomerServiceLevelCode: 'GOLD' }) }))
+    expect(messages.warning).not.toHaveBeenCalled()
+    page.app.unmount()
+  })
+
 })

@@ -3,7 +3,7 @@ import type { AxiosRequestConfig } from 'axios'
 
 // 复用平台拦截器中的 Token、租户、错误处理；割接使用正式 Business API 物理路径。
 type CutoverRequest = AxiosRequestConfig & { silentError?: boolean }
-const options = (value: CutoverRequest) => ({ ...value, baseURL: import.meta.env.VITE_BASE_URL || '/' })
+const options = (value: CutoverRequest) => ({ ...value, preserveBusinessError: true, baseURL: import.meta.env.VITE_BASE_URL || '/' })
 
 export const baseUrl = '/api/v1/pms/cutover-tasks'
 export default {

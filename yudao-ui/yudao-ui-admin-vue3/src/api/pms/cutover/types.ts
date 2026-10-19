@@ -43,6 +43,7 @@ export interface ProjectContext {
 }
 
 export interface CustomerServiceLevelContext {
+  sourceRecordId?: WireLong | null
   status: 'AVAILABLE' | 'NOT_CONFIGURED' | 'UNAVAILABLE'
   customerId: WireLong | null
   customerCode: string | null
@@ -104,6 +105,9 @@ export interface AssessmentView {
   questionnaireTemplateVersion: WireLong
   answers: AssessmentAnswers
   customerServiceLevel: CustomerServiceLevelContext
+  manualCustomerServiceLevelCode?: string | null
+  manualCustomerServiceLevelSelectedBy?: WireLong | null
+  manualCustomerServiceLevelSelectedAt?: WireDateTime | null
   manualGrade: ManualGrade | null
   simpleFlow: boolean
   submittedBy: WireLong | null

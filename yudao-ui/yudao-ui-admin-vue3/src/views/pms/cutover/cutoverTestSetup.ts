@@ -14,7 +14,7 @@ vi.mock('@/api/pms/project/projects', () => ({
   getProjectMembers: vi.fn(async () => [])
 }))
 vi.mock('@/api/pms/asset/device', () => ({ getDevice: vi.fn(async () => ({})) }))
-vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: vi.fn(() => '') }))
+vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getStrDictOptions: vi.fn(() => []), getDictLabel: vi.fn(() => '') }))
 vi.mock('@/config/axios', () => ({
   default: new Proxy({}, {
     get: (_, method) => () => { throw new Error(`Unstubbed Owner request: ${String(method)}`) }

@@ -71,8 +71,17 @@ class CutoverTaskControllerContractTest {
                 .projectScopeVersion(7L)
                 .build();
         var device = new CutoverDeviceScopePort.DeviceFact(61L, "SN-001", 31L, 8L);
-        var customer = new CutoverCustomerLevelPort.CustomerLevelFact(
-                "AVAILABLE", 41L, "CUS-01", "示例客户", 71L, "GOLD", 9L, now.minusDays(1), null);
+        var customer = CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status("AVAILABLE")
+                .customerId(41L)
+                .customerCode("CUS-01")
+                .customerName("示例客户")
+                .serviceLevelRevisionId(71L)
+                .serviceLevelCode("GOLD")
+                .factVersion(9L)
+                .effectiveFrom(now.minusDays(1))
+                .effectiveTo(null)
+                .build();
         var readiness = new CutoverReadinessPort.ReadinessFact(
                 81L, 10L, "READY", 31L, List.of(61L), "wm-1", List.of());
         when(queryService.resolveCreateContext(context.current(), List.of("SN-001"))).thenReturn(

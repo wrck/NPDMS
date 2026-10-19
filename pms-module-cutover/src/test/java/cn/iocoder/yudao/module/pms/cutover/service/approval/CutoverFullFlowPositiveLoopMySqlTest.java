@@ -172,9 +172,17 @@ class CutoverFullFlowPositiveLoopMySqlTest {
     @Test
     void completesOneTaskFromP1ThroughP6ArchiveWithControlledOwnerFacts() {
         CutoverTaskCommandResult created = taskService.create(createCommand());
-        CutoverAssessmentCommandResult assessment = taskService.saveAssessment(new SaveCutoverAssessmentCommand(
-                tenantId, ACTOR_ID, created.taskId(), created.version(), 0L,
-                new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true), "A", "assessment-save", "corr-assessment-save"));
+        CutoverAssessmentCommandResult assessment = taskService.saveAssessment(SaveCutoverAssessmentCommand.builder()
+                .tenantId(tenantId)
+                .actorId(ACTOR_ID)
+                .taskId(created.taskId())
+                .expectedTaskVersion(created.version())
+                .expectedAssessmentVersion(0L)
+                .answers(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", true))
+                .manualGrade("A")
+                .idempotencyKey("assessment-save")
+                .correlationId("corr-assessment-save")
+                .build());
         CutoverTaskCommandResult p3 = taskService.submitAssessment(new SubmitCutoverAssessmentCommand(
                 tenantId, ACTOR_ID, created.taskId(), assessment.taskVersion(), assessment.assessmentRowVersion(),
                 "assessment-submit", "corr-assessment-submit"));
@@ -433,8 +441,17 @@ class CutoverFullFlowPositiveLoopMySqlTest {
     }
 
     private static CutoverCustomerLevelPort.CustomerLevelFact customerFact() {
-        return new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 99L, "CUS-1", "客户",
-                500L, "GOLD", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null);
+        return CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status("AVAILABLE")
+                .customerId(99L)
+                .customerCode("CUS-1")
+                .customerName("客户")
+                .serviceLevelRevisionId(500L)
+                .serviceLevelCode("GOLD")
+                .factVersion(2L)
+                .effectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0))
+                .effectiveTo(null)
+                .build();
     }
 
     private static CutoverReadinessPort.ReadinessFact readinessFact() {
@@ -498,7 +515,6 @@ class CutoverFullFlowPositiveLoopMySqlTest {
         @Bean CutoverCustomerLevelPort customerLevelPort() {
             return new CutoverCustomerLevelPort() {
                 @Override public CustomerLevelFact inspect(Long customerId) { return customerFact(); }
-                @Override public CustomerLevelFact lockAndRevalidate(CustomerLevelFact expected) { return expected; }
             };
         }
 

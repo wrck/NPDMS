@@ -76,6 +76,8 @@ public class CutoverTaskDO extends BaseBusinessEntity {
     private String customerFactStatusCode;
     /** 客户服务等级修订引用 */
     private Long serviceLevelRevisionId;
+    /** 既有 CUS 维护记录引用，不能冒充不可变修订 ID。 */
+    private Long serviceLevelSourceRecordId;
     /** 来源服务等级编码 */
     private String serviceLevelCode;
     /** CustomerLevelFact.factVersion；保留long类型 */

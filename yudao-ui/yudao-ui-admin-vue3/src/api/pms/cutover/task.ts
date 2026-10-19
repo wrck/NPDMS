@@ -33,7 +33,7 @@ export const saveCutoverAssessment = (command: {
   taskId: WireLong
   taskVersion: WireLong
   assessmentVersion: WireLong
-  data: { answers: AssessmentAnswers; manualGrade: ManualGrade | null }
+  data: { answers: AssessmentAnswers; manualGrade: ManualGrade | null; manualCustomerServiceLevelCode?: string | null }
   idempotencyKey: string
 }) =>
   request.put({

@@ -8,9 +8,8 @@ import cn.iocoder.yudao.module.pms.asset.api.device.DeviceScopeFactApi;
 import cn.iocoder.yudao.module.pms.asset.api.device.dto.*;
 import cn.iocoder.yudao.module.pms.asset.api.producttype.AssetProductTypeApi;
 import cn.iocoder.yudao.module.pms.asset.api.producttype.dto.AuthorizedDeviceProductTypeQuery;
-import cn.iocoder.yudao.module.pms.customer.api.servicelevel.CustomerServiceLevelFactApi;
+import cn.iocoder.yudao.module.pms.customer.api.servicelevel.CustomerServiceLevelCurrentApi;
 import cn.iocoder.yudao.module.pms.customer.api.servicelevel.CustomerServiceLevelFactException;
-import cn.iocoder.yudao.module.pms.customer.api.servicelevel.dto.*;
 import cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.ImplementationReadinessApi;
 import cn.iocoder.yudao.module.pms.engineering.api.implementationreadiness.dto.*;
 import cn.iocoder.yudao.module.pms.project.api.reference.ProjectBusinessContextApi;
@@ -151,28 +150,24 @@ public class CutoverOwnerAdapters {
     }
 
     @Bean
-    CutoverCustomerLevelPort cutoverCustomerLevelPort(ObjectProvider<CustomerServiceLevelFactApi> provider) {
+    CutoverCustomerLevelPort cutoverCustomerLevelPort(ObjectProvider<CustomerServiceLevelCurrentApi> provider) {
         return new CutoverCustomerLevelPort() {
             public CustomerLevelFact inspect(Long customerId) {
                 if (customerId == null || provider.getIfAvailable() == null) throw unavailable("客户服务等级参考暂不可用");
-                try { return fact(provider.getObject().inspectCurrent(new CustomerServiceLevelFactQuery(tenant(), customerId))); }
-                catch (CustomerServiceLevelFactException error) {
-                    if (error.getCode() == CustomerServiceLevelFactException.Code.PROVIDER_UNAVAILABLE) throw unavailable("客户服务等级参考暂不可用");
-                    throw error;
-                }
+                try { return fact(provider.getObject().inspect(new CustomerServiceLevelCurrentApi.Query(tenant(), customerId))); }
+                catch (CustomerServiceLevelFactException error) { throw ownerFailure(error); }
             }
-            public CustomerLevelFact lockAndRevalidate(CustomerLevelFact expected) {
-                if (provider.getIfAvailable() == null) throw unavailable("客户服务等级参考暂不可用");
-                return fact(provider.getObject().lockAndRevalidate(new CustomerServiceLevelFactRevalidationQuery(tenant(), expected.customerId(),
-                        new ExpectedCustomerServiceLevelFact(CustomerServiceLevelFact.Status.valueOf(expected.status()), tenant(), expected.customerId(),
-                                expected.serviceLevelRevisionId(), expected.serviceLevelCode(), expected.factVersion(), expected.effectiveFrom(), expected.effectiveTo()))));
-            }
-            private CustomerLevelFact fact(CustomerServiceLevelFactResult result) {
-                if (result.decision() == CustomerServiceLevelFactResult.Decision.STALE) throw new CutoverOwnerFactException(STALE, "客户等级参考已变化");
-                var value = result.currentFact();
+            private CustomerLevelFact fact(CustomerServiceLevelCurrentApi.Fact value) {
                 requireTenant(value.tenantId());
-                return new CustomerLevelFact(value.status().name(), value.customerId(), null, null, value.serviceLevelRevisionId(),
-                        value.serviceLevelCode(), value.factVersion(), value.effectiveFrom(), value.effectiveTo());
+                return CustomerLevelFact.builder().status(value.status().name()).customerId(value.customerId())
+                        .sourceRecordId(value.sourceRecordId()).serviceLevelCode(value.serviceLevelCode())
+                        .factVersion(value.sourceRecordVersion() == null ? 0L : value.sourceRecordVersion())
+                        .effectiveFrom(value.validFrom() == null ? null : value.validFrom().atStartOfDay())
+                        .effectiveTo(value.validTo() == null ? null : value.validTo().plusDays(1).atStartOfDay()).build();
+            }
+            private CutoverOwnerFactException ownerFailure(CustomerServiceLevelFactException error) {
+                return new CutoverOwnerFactException(error.getCode() == CustomerServiceLevelFactException.Code.PROVIDER_UNAVAILABLE
+                        ? PROVIDER_UNAVAILABLE : INVALID_FACT, error.getMessage(), error);
             }
         };
     }

@@ -116,7 +116,7 @@ public class CutoverApprovalQueryService {
             full = currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         else if (full && candidate)
             currentEligible = eligibilityPolicy.eligible(root, current, actorId);
-        if (full) return full(root, task, nodes, current, currentEligible, actorId);
+        if (full) return full(root, task, nodes, current, currentEligible, context);
         if (projectView && List.of("APPROVED", "REJECTED").contains(root.getStatusCode())) return finalResult(root);
         if (context.canReassign() && "PENDING".equals(root.getStatusCode())) return reassignment(root, task, nodes);
         throw failure(STATE_CONFLICT, "审批详情不可见");
@@ -200,11 +200,12 @@ public class CutoverApprovalQueryService {
                 OWNER_DATA_CORRUPTED, "审批结果节点身份损坏");
         CutoverApprovalNodeDO current = nodes.stream()
                 .filter(node -> Objects.equals(node.getNodeNo(), root.getCurrentNodeNo())).findFirst().orElse(null);
-        return full(root, task, nodes, current, false, actorId);
+        return full(root, task, nodes, current, false, context);
     }
 
     private CutoverApprovalViews.ApprovalDetail full(CutoverApprovalInstanceDO root, CutoverTaskDO task,
-            List<CutoverApprovalNodeDO> nodes, CutoverApprovalNodeDO current, boolean currentEligible, long viewerId) {
+            List<CutoverApprovalNodeDO> nodes, CutoverApprovalNodeDO current, boolean currentEligible, CutoverApprovalContext context) {
+        long viewerId = context.actorId();
         Map<Long, List<CutoverApprovalReviewItemDO>> reviews = reviewMapper.byInstance(new CutoverApprovalNodesQuery(root.getTenantId(), root.getId()))
                 .stream().collect(java.util.stream.Collectors.groupingBy(CutoverApprovalReviewItemDO::getApprovalNodeId));
         Long actorId = currentEligible && current != null ? viewerId : null;
@@ -216,7 +217,7 @@ public class CutoverApprovalQueryService {
                                 ? actorId : current.getCurrentApproverUserId(), currentEligible);
         List<String> actions = List.copyOf(ACTION_POLICY.allowedActions(candidate, facts,
                 cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
-                        .p5()));
+                        .p5(context.canApprove())));
         return new CutoverApprovalViews.ApprovalDetail("FULL", root.getId(), root.getVersion(), root.getTaskId(),
                 task.getVersion(), root.getPlanRevisionId(), root.getPlanRevisionNo(), root.getGradeCode(),
                 root.getStatusCode(), root.getHoldReasonCode(), root.getCurrentNodeNo(),

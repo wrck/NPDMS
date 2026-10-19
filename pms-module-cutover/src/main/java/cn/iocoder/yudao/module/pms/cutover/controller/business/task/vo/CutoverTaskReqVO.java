@@ -36,6 +36,6 @@ public final class CutoverTaskReqVO {
                                     String hiddenRiskLevel, Boolean sparePartApplied) {
     }
 
-    public record SaveAssessment(AssessmentAnswers answers, String manualGrade) {
+    public record SaveAssessment(AssessmentAnswers answers, String manualGrade, String manualCustomerServiceLevelCode) {
     }
 }

@@ -21,8 +21,12 @@
           </el-radio-group>
         </div>
         <div class="question-row">
-          <div><label>⑤ 客户服务等级</label><p>项目客户信息带入</p></div>
-          <span class="customer-level">{{ customerServiceLevel || '三级普通（默认）' }}</span>
+          <div><label>⑤ 客户服务等级</label><p>{{ customerServiceLevel?.status === 'NOT_CONFIGURED' ? '客户未配置等级，请手动选择' : '项目客户信息带入' }}</p></div>
+          <el-select v-if="editable && customerServiceLevel?.status === 'NOT_CONFIGURED'" v-model="model.manualCustomerServiceLevelCode" placeholder="请选择客户服务等级" clearable data-testid="manual-customer-service-level">
+            <el-option v-for="item in serviceLevelOptions" :key="item.value" :value="item.value" :label="item.label" />
+          </el-select>
+          <span v-else class="customer-level">{{ serviceLevelLabel }}</span>
+          <el-alert v-if="editable && customerServiceLevel?.status === 'UNAVAILABLE'" title="客户服务等级暂时无法获取，请刷新重试，不能手动替代。" type="error" :closable="false" />
         </div>
         <div class="question-row">
           <div>
@@ -45,12 +49,14 @@
   </section>
 </template>
 <script setup lang="ts">
-import type { AssessmentAnswers, ManualGrade } from '@/api/pms/cutover'
+import { computed } from 'vue'
+import { getStrDictOptions } from '@/utils/dict'
+import type { CustomerServiceLevelContext, AssessmentAnswers, ManualGrade } from '@/api/pms/cutover'
 import { gradeDestination } from '../shared/cutoverTaskInteraction'
 
-defineProps<{
-  model: { answers: AssessmentAnswers; manualGrade: ManualGrade | null }
-  customerServiceLevel?: string | null
+const props = defineProps<{
+  model: { answers: AssessmentAnswers; manualGrade: ManualGrade | null; manualCustomerServiceLevelCode?: string | null }
+  customerServiceLevel?: CustomerServiceLevelContext | null
   editable: boolean
   submittable: boolean
   saving: boolean
@@ -58,6 +64,11 @@ defineProps<{
   hideActions?: boolean
 }>()
 defineEmits<{ save: []; submit: [] }>()
+const serviceLevelOptions = computed(() => getStrDictOptions('pms_service_level'))
+const serviceLevelLabel = computed(() => {
+  const code = props.customerServiceLevel?.status === 'AVAILABLE' ? props.customerServiceLevel.serviceLevelCode : props.model.manualCustomerServiceLevelCode
+  return serviceLevelOptions.value.find(item => item.value === code)?.label || code || (props.customerServiceLevel?.status === 'NOT_CONFIGURED' ? '未配置' : '未获取')
+})
 
 const questions = [
   { number: '①', label: '业务重要等级', hint: '评估业务对客户的重要程度', key: 'businessImportanceLevel' },

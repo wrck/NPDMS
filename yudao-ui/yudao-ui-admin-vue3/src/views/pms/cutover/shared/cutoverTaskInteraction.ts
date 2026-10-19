@@ -1,4 +1,5 @@
 import { generateUUID } from '@/utils'
+import { OperationRejected } from '@/components/BusinessView/operationClient'
 import type {
   CreateContextCandidate,
   CreateCutoverTaskRequest,
@@ -134,6 +135,7 @@ export const createCutoverPlanWriteBarrier = () => {
 }
 
 export const cutoverPlanRecoveryAction = (error: unknown) => {
+  if (error instanceof OperationRejected) return 'SURFACE_ERROR'
   const action = (error as any)?.response?.data?.data?.recoveryAction
   if (
     ['REFRESH_AGGREGATE', 'REFRESH_OWNER_FACTS', 'RETRY_SAME_KEY', 'START_NEW_INTENT'].includes(

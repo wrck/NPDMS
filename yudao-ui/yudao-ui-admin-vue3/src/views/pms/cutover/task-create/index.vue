@@ -10,7 +10,7 @@
     <el-alert v-if="optionsError" :title="optionsError" type="error" :closable="false" show-icon><el-button link @click="loadOptions">重试加载</el-button></el-alert>
     <el-form ref="formRef" :model="validationModel" :rules="rules" label-position="top" :disabled="locked" @submit.prevent>
     <ProjectInformationCard
-      :project="projectContext?.project" :customer-service-level="projectContext?.customerServiceLevel"
+      :project="projectContext?.project" :customer-service-level="creationServiceLevelLabel"
       :loading="projectLoading" :error="projectOptionsError || projectError" hint="选择项目或在下方输入设备序列号后自动回填">
           <el-form-item label="项目名称" prop="projectId" required>
             <el-select
@@ -38,7 +38,7 @@
     </el-form-item>
     </el-form>
     <CutoverAssessmentPanel
-      :model="assessmentModel" :customer-service-level="projectContext?.customerServiceLevel"
+      :model="assessmentModel" :customer-service-level="assessmentCustomerLevel"
       :editable="!locked && props.createAllowed" :submittable="false" :saving="submitting" :submitting="false" hide-actions />
     <footer class="cut-actions cut-actions--sticky">
       <el-button :disabled="submitting || unknownResult" @click="requestClose">返回任务列表</el-button>
@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import '../shared/cutover.css'
 import { useMessage } from '@/hooks/web/useMessage'
+import { getStrDictOptions } from '@/utils/dict'
 import type { FormInstance, FormRules } from 'element-plus'
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import ProjectInformationCard from '@/components/ProjectInformationCard/index.vue'
@@ -86,6 +87,7 @@ const { options: projectOptions, loading: projectOptionsLoading, error: projectO
   useProjectOptions(() => selectedProjectId.value)
 const { context: projectContext, loading: projectLoading, error: projectError, load: loadProjectInformation } = useProjectInformation()
 const selectedDevices = ref<CreationDevice[]>([])
+const assessmentLevelDeviceIds = ref<string[]>([])
 const serialText = ref('')
 const resolving = ref(false)
 const submitting = ref(false)
@@ -96,10 +98,19 @@ const optionsError = ref('')
 
 const creationSteps: CutoverApi.CutoverTaskDetail['workbenchSteps'] = (['P2', 'P3', 'P4', 'P5', 'P6'] as const)
   .map(stage => ({ stage, label: '', state: stage === 'P2' ? 'CURRENT' : 'FUTURE', isCurrent: stage === 'P2', isAccessible: false }))
-const assessmentModel = reactive<{ answers: CutoverApi.AssessmentAnswers; manualGrade: CutoverApi.ManualGrade | null }>({
-  answers: { businessImportanceLevel: null, operationComplexityLevel: null, hiddenRiskLevel: null, sparePartApplied: null }, manualGrade: null
+const assessmentCustomerLevel = ref<CutoverApi.CustomerServiceLevelContext | null>(null)
+const assessmentModel = reactive<{ answers: CutoverApi.AssessmentAnswers; manualGrade: CutoverApi.ManualGrade | null; manualCustomerServiceLevelCode: string | null }>({
+  answers: { businessImportanceLevel: null, operationComplexityLevel: null, hiddenRiskLevel: null, sparePartApplied: null }, manualGrade: null, manualCustomerServiceLevelCode: null
 })
-const assessmentDirty = computed(() => !!assessmentModel.manualGrade || Object.values(assessmentModel.answers).some(value => value !== null))
+const creationServiceLevelLabel = computed(() => {
+  const level = assessmentCustomerLevel.value
+  if (!level || level.status === 'UNAVAILABLE') return '未获取'
+  const code = level.status === 'AVAILABLE' ? level.serviceLevelCode : assessmentModel.manualCustomerServiceLevelCode
+  if (!code) return level.status === 'NOT_CONFIGURED' ? '未维护' : '未获取'
+  const label = getStrDictOptions('pms_service_level').find(item => item.value === code)?.label || code
+  return level.status === 'NOT_CONFIGURED' ? `${label}（手选）` : label
+})
+const assessmentDirty = computed(() => !!assessmentModel.manualCustomerServiceLevelCode || !!assessmentModel.manualGrade || Object.values(assessmentModel.answers).some(value => value !== null))
 const createdTaskId = ref<WireLong | null>(null)
 let pendingAssessment: Parameters<typeof CutoverApi.saveCutoverAssessment>[0] | null = null
 const formRef = ref<FormInstance>()
@@ -149,6 +160,9 @@ const changeProject = async (value: WireLong | null | undefined) => {
     try { await message.confirm('切换项目会移除当前已选设备，请确认后重新选择。') } catch { return false }
   }
   ++projectSequence
+  assessmentCustomerLevel.value = null
+  assessmentLevelDeviceIds.value = []
+  assessmentModel.manualCustomerServiceLevelCode = null
   selectedProjectId.value = next
   selectedDevices.value = []
   const context = await loadProjectInformation(next)
@@ -163,6 +177,22 @@ const addDevices = (devices: CreationDevice[]) => {
   const existing = new Set(selectedDevices.value.map(device => String(device.deviceId)))
   selectedDevices.value = [...selectedDevices.value, ...devices.filter(device => !existing.has(String(device.deviceId)))]
 }
+watch(() => selectedDevices.value.map(device => String(device.deviceId)).join(','), async () => {
+  const devices = [...selectedDevices.value]
+  if (!devices.length) { assessmentCustomerLevel.value = null; assessmentLevelDeviceIds.value = []; return }
+  if (assessmentCustomerLevel.value && devices.every(device => assessmentLevelDeviceIds.value.includes(String(device.deviceId)))) return
+  const projectId = selectedProjectId.value
+  const serials = devices.map(device => device.serialNumber)
+  assessmentCustomerLevel.value = null
+  try {
+    const resolved = await CutoverApi.resolveCreationDevices(serials)
+    if (projectId !== selectedProjectId.value || serials.join(',') !== selectedDevices.value.map(device => device.serialNumber).join(',')) return
+    const candidate = resolved.context.candidates.find(value => String(value.project.projectId) === projectId)
+    if (!candidate) return
+    assessmentCustomerLevel.value = candidate.customerServiceLevel
+    assessmentLevelDeviceIds.value = candidate.devices.map(device => String(device.deviceId))
+  } catch { message.warning('客户服务等级暂时无法获取，请重新查询设备后重试。') }
+})
 const pendingResolution = ref<ResolvedCreationDevices | null>(null)
 const candidateVisible = ref(false)
 const candidateProjectId = ref('')
@@ -171,6 +201,8 @@ const applyResolution = async (result: ResolvedCreationDevices, targetProject: s
   if (!candidate) return
   if (selectedProjectId.value !== targetProject && !await changeProject(targetProject)) return
   if (!projectContext.value && !await changeProject(targetProject)) return
+  assessmentCustomerLevel.value = candidate.customerServiceLevel
+  assessmentLevelDeviceIds.value = candidate.devices.map(device => String(device.deviceId))
   const ids = new Set(candidate.devices.map(device => String(device.deviceId)))
   addDevices(result.devices.filter(device => ids.has(String(device.deviceId))))
   serialText.value = ''
@@ -221,6 +253,7 @@ const submit = async () => {
         message.warning('设备归属已变化，请重新选择本项目设备。')
         return
       }
+      assessmentCustomerLevel.value = candidate.customerServiceLevel
       const data = buildCreateRequest(candidate)
       const { serialNumbers } = data
       pendingCreate = { key: newIntentKey(), data, input: { serialNumbers } }
@@ -245,7 +278,7 @@ const submit = async () => {
         const detail = await CutoverApi.getCutoverTaskDetail(taskId)
         if (!detail.allowedActions.includes('SAVE_ASSESSMENT')) throw new Error('当前任务不允许保存问卷，请打开已创建任务核查。')
         pendingAssessment = { taskId, taskVersion: detail.task.version, assessmentVersion: detail.assessment?.rowVersion || 0,
-          data: JSON.parse(JSON.stringify(assessmentModel)), idempotencyKey: newIntentKey() }
+          data: { ...JSON.parse(JSON.stringify(assessmentModel)), manualCustomerServiceLevelCode: detail.customerServiceLevel?.status === 'NOT_CONFIGURED' ? assessmentModel.manualCustomerServiceLevelCode : null }, idempotencyKey: newIntentKey() }
       }
       await CutoverApi.saveCutoverAssessment(pendingAssessment)
     }
@@ -256,7 +289,8 @@ const submit = async () => {
     message.success(assessmentDirty.value ? '割接任务及等级评估问卷已保存' : '割接任务已创建，请继续确认割接等级')
     emit('created', taskId)
   } catch (error) {
-    unknownResult.value = !!createdTaskId.value || (!!pendingCreate && cutoverPlanRecoveryAction(error) === 'RETRY_SAME_KEY')
+    // 重试时被拒绝不能证明此前丢失响应的请求没有提交，仍保留原意图与幂等键。
+    unknownResult.value = !!createdTaskId.value || (!!pendingCreate && (unknownResult.value || cutoverPlanRecoveryAction(error) === 'RETRY_SAME_KEY'))
     if (!unknownResult.value) pendingCreate = null
     const response = (error as any)?.response?.data
     message.error(response?.data?.recoveryAction === 'OPEN_EXISTING_TASK' ? '设备已有活动割接任务，请返回任务列表继续办理。'

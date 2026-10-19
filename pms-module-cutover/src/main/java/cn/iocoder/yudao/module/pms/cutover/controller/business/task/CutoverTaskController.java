@@ -222,12 +222,18 @@ public class CutoverTaskController {
                 .map(item -> new CutoverDeviceScopePort.DeviceFact(item.deviceId(), item.serialNumber(),
                         request.projectId(), requiredVersion(item.projectAssignmentVersion(),
                         "projectAssignmentVersion"))).toList();
-        CutoverCustomerLevelPort.CustomerLevelFact customer = new CutoverCustomerLevelPort.CustomerLevelFact(
-                request.expectedCustomerServiceLevelStatus(), project.customerId(), project.customerCode(),
-                project.customerName(), request.expectedCustomerServiceLevelRevisionId(),
-                request.expectedCustomerServiceLevelCode(), request.expectedCustomerServiceLevelFactVersion() == null
-                ? 0L : requiredVersion(request.expectedCustomerServiceLevelFactVersion(), "expectedCustomerServiceLevelFactVersion"),
-                request.expectedCustomerServiceLevelEffectiveFrom(), request.expectedCustomerServiceLevelEffectiveTo());
+        CutoverCustomerLevelPort.CustomerLevelFact customer = CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status(request.expectedCustomerServiceLevelStatus())
+                .customerId(project.customerId())
+                .customerCode(project.customerCode())
+                .customerName(project.customerName())
+                .serviceLevelRevisionId(request.expectedCustomerServiceLevelRevisionId())
+                .serviceLevelCode(request.expectedCustomerServiceLevelCode())
+                .factVersion(request.expectedCustomerServiceLevelFactVersion() == null
+                ? 0L : requiredVersion(request.expectedCustomerServiceLevelFactVersion(), "expectedCustomerServiceLevelFactVersion"))
+                .effectiveFrom(request.expectedCustomerServiceLevelEffectiveFrom())
+                .effectiveTo(request.expectedCustomerServiceLevelEffectiveTo())
+                .build();
         CutoverReadinessPort.ReadinessFact readiness = new CutoverReadinessPort.ReadinessFact(
                 null, 0L, "NOT_APPLICABLE", request.projectId(),
                 devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList(), null, List.of());
@@ -259,11 +265,19 @@ public class CutoverTaskController {
         require(request != null && request.answers() != null, "assessment request");
         var trusted = requestContext.current();
         var answers = request.answers();
-        return success(CutoverTaskResponses.AssessmentCommand.from(applicationService.saveAssessment(new SaveCutoverAssessmentCommand(
-                trusted.tenantId(), trusted.actorId(), id, version(ifMatch), version(assessmentIfMatch),
-                new CutoverAssessmentAnswers(answers.businessImportanceLevel(), answers.operationComplexityLevel(),
-                        answers.hiddenRiskLevel(), answers.sparePartApplied()), request.manualGrade(),
-                header(CutoverRequestHeaders.value(headers, "Idempotency-Key"), "Idempotency-Key"), trusted.correlationId()))));
+        return success(CutoverTaskResponses.AssessmentCommand.from(applicationService.saveAssessment(SaveCutoverAssessmentCommand.builder()
+                .tenantId(trusted.tenantId())
+                .actorId(trusted.actorId())
+                .taskId(id)
+                .expectedTaskVersion(version(ifMatch))
+                .expectedAssessmentVersion(version(assessmentIfMatch))
+                .answers(new CutoverAssessmentAnswers(answers.businessImportanceLevel(), answers.operationComplexityLevel(),
+                        answers.hiddenRiskLevel(), answers.sparePartApplied()))
+                .manualGrade(request.manualGrade())
+                .manualCustomerServiceLevelCode(request.manualCustomerServiceLevelCode())
+                .idempotencyKey(header(CutoverRequestHeaders.value(headers, "Idempotency-Key"), "Idempotency-Key"))
+                .correlationId(trusted.correlationId())
+                .build())));
     }
 
     @PostMapping("/{id}/assessment/actions/submit")

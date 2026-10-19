@@ -76,6 +76,8 @@ public class CutoverTaskApplicationService {
     private final CutoverProjectContextPort projectContextPort;
     private final CutoverDeviceScopePort deviceScopePort;
     private final CutoverCustomerLevelPort customerLevelPort;
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.system.api.dict.DictDataApi serviceLevelDictionary;
     private final CutoverReadinessPort readinessPort;
     private final PlatformCommandExecutionApi commandExecutionApi;
     private final Clock clock;
@@ -135,7 +137,7 @@ public class CutoverTaskApplicationService {
         var execution = commandExecutionApi.execute(new PlatformCommandExecutionApi.IdempotencyScope(
                         command.tenantId(), "CUT:ASSESSMENT_SAVE:" + command.taskId(), command.actorId(), command.idempotencyKey()),
                 sha256(JsonUtils.toJsonString(new AssessmentSaveInput(command.taskId(), command.expectedTaskVersion(),
-                        command.expectedAssessmentVersion(), command.answers(), command.manualGrade()))),
+                        command.expectedAssessmentVersion(), command.answers(), command.manualGrade(), command.manualCustomerServiceLevelCode()))),
                 CutoverAssessmentCommandResult.class, () -> saveAssessmentOnce(command),
                 result -> new PlatformCommandExecutionApi.SuccessFacts("CUTOVER_ASSESSMENT_SAVE", "CutoverTask",
                         String.valueOf(result.taskId()), command.correlationId(), JsonUtils.toJsonString(result), List.of()));
@@ -144,7 +146,9 @@ public class CutoverTaskApplicationService {
     }
 
     private record AssessmentSaveInput(Long taskId, Long taskVersion, Long assessmentVersion,
-                                       CutoverAssessmentAnswers answers, String manualGrade) { }
+                                       CutoverAssessmentAnswers answers, String manualGrade,
+                                       @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+                                       String manualCustomerServiceLevelCode) { }
 
     private CutoverAssessmentCommandResult saveAssessmentOnce(SaveCutoverAssessmentCommand command) {
         CutoverTaskDO snapshot = requireTask(taskMapper.selectById(command.taskId()), command.tenantId());
@@ -166,6 +170,7 @@ public class CutoverTaskApplicationService {
             row.setQuestionnaireTemplateVersion(CutoverTaskRules.TEMPLATE_VERSION);
             CutoverTaskSnapshotStore.applyAssessment(new CutoverTaskSnapshotStore.AssessmentWrite(row, contextFacts, command.answers()));
             row.setManualGrade(normalizeOptionalGrade(command.manualGrade()));
+            applyManualCustomerLevel(new ManualCustomerLevelWrite(row, context.customer(), command));
             row.setSimpleFlow(false);
             row.setCurrentMarker(1);
             row.setVersion(0L);
@@ -185,8 +190,14 @@ public class CutoverTaskApplicationService {
                 command.tenantId(), command.taskId(), lockedTask.getCurrentAssessmentId()));
         require(row != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(row.getAssessmentStatus()),
                 STATE_CONFLICT, "当前评估不可编辑");
+        var savedCustomer = CutoverTaskSnapshotStore.customer(row);
+        if (savedCustomer != null && !"UNAVAILABLE".equals(savedCustomer.status())) {
+            context = context.toBuilder().customer(savedCustomer).build();
+            contextFacts = snapshotContext(context, lockedTask.getIntakeSourceType());
+        }
         CutoverTaskSnapshotStore.applyAssessment(new CutoverTaskSnapshotStore.AssessmentWrite(row, contextFacts, command.answers()));
         row.setManualGrade(normalizeOptionalGrade(command.manualGrade()));
+        applyManualCustomerLevel(new ManualCustomerLevelWrite(row, context.customer(), command));
         row.setUpdater(String.valueOf(command.actorId()));
         requireAssessmentVersion(assessmentMapper.updateDraftIfMatch(new CutoverAssessmentDraftUpdate(
                 row, command.expectedAssessmentVersion())) == 1, row.getVersion());
@@ -308,6 +319,33 @@ public class CutoverTaskApplicationService {
         return new CutoverTaskCommandResult(taskId, row.getTaskNo(), row.getCurrentStage(), row.getTaskStatus(), 0L, false);
     }
 
+    private record ManualCustomerLevelWrite(CutoverAssessmentDO assessment,
+                                            CutoverCustomerLevelPort.CustomerLevelFact customer,
+                                            SaveCutoverAssessmentCommand command) { }
+
+    private void applyManualCustomerLevel(ManualCustomerLevelWrite write) {
+        String selected = write.command().manualCustomerServiceLevelCode();
+        var customer = write.customer();
+        require(customer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级暂不可用");
+        if (selected != null) {
+            require(!"AVAILABLE".equals(customer.status()), INVALID_REQUEST, "客户服务等级已维护，不允许手工修改；请刷新问卷");
+            require("NOT_CONFIGURED".equals(customer.status()), CUS_PROVIDER_UNAVAILABLE, "未能确认客户服务等级是否维护，请重试");
+            validateManualCustomerLevel(selected);
+        }
+        var row = write.assessment();
+        if (!Objects.equals(selected, row.getManualCustomerServiceLevelCode())) {
+            row.setManualCustomerServiceLevelCode(selected);
+            row.setManualCustomerServiceLevelSelectedBy(selected == null ? null : write.command().actorId());
+            row.setManualCustomerServiceLevelSelectedAt(selected == null ? null : LocalDateTime.now(clock));
+        }
+    }
+
+    private void validateManualCustomerLevel(String selected) {
+        require(selected != null && !selected.isBlank() && selected.equals(selected.trim()) && selected.length() <= 64,
+                INVALID_REQUEST, "请选择有效客户服务等级");
+        serviceLevelDictionary.validateDictDataList("pms_service_level", List.of(selected));
+    }
+
     private CutoverTaskCommandResult submitOnce(SubmitCutoverAssessmentCommand command) {
         CutoverTaskDO snapshot = requireTask(taskMapper.selectById(command.taskId()), command.tenantId());
         requireOwnedP2(snapshot, command.actorId(), command.expectedTaskVersion());
@@ -323,13 +361,16 @@ public class CutoverTaskApplicationService {
                 command.tenantId(), command.taskId(), task.getCurrentAssessmentId()));
         require(assessment != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus()),
                 STATE_CONFLICT, "当前评估不可提交");
+        var savedCustomer = CutoverTaskSnapshotStore.customer(assessment);
+        require(CutoverTaskSnapshotStore.hasRequiredCustomerServiceLevelSelection(assessment),
+                BUSINESS_GATE_INVALID, "请选择客户服务等级后再提交");
         CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
         require(answers != null && answers.complete(), INVALID_REQUEST, "人工评估答案不完整");
         String grade = CutoverTaskRules.normalizeGrade(assessment.getManualGrade());
         CutoverTaskRules.SubmissionTarget target = CutoverTaskRules.submissionTarget(grade);
         LocalDateTime now = LocalDateTime.now(clock);
         CutoverTaskSnapshotStore.applyAssessment(new CutoverTaskSnapshotStore.AssessmentWrite(assessment,
-                snapshotContext(locked, task.getIntakeSourceType()), answers));
+                snapshotContext(locked.toBuilder().customer(savedCustomer).build(), task.getIntakeSourceType()), answers));
         assessment.setManualGrade(grade); assessment.setSimpleFlow(target.simpleFlow());
         assessment.setSubmittedBy(command.actorId()); assessment.setSubmittedAt(now); assessment.setUpdater(String.valueOf(command.actorId()));
         taskSnapshots.replaceAssessmentDevices(CutoverTaskSnapshotStore.DeviceWrite.builder().assessment(assessment)
@@ -396,7 +437,18 @@ public class CutoverTaskApplicationService {
         // 暂存保留受信冻结上下文；当前 Owner 事实在提交事务中重新锁定核对。
         return new ResolvedContext(CutoverTaskSnapshotStore.project(task),
                 devices, frozenProductTypes(rows),
-                CutoverTaskSnapshotStore.customer(task), taskSnapshots.readiness(task));
+                initialCustomerLevel(task), taskSnapshots.readiness(task));
+    }
+
+    private CutoverCustomerLevelPort.CustomerLevelFact initialCustomerLevel(CutoverTaskDO task) {
+        var saved = task.getCurrentAssessmentId() == null ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
+        if (saved != null && !"UNAVAILABLE".equals(saved.getCustomerFactStatusCode())) {
+            return CutoverTaskSnapshotStore.customer(saved);
+        }
+        var customer = CutoverTaskSnapshotStore.customer(task);
+        // 旧任务创建时提供方尚未接入，首次保存补齐来源；已有等级始终沿用创建事实。
+        return customer == null || "UNAVAILABLE".equals(customer.status())
+                ? customerReference(customerLevelPort, CutoverTaskSnapshotStore.project(task)) : customer;
     }
 
     private ResolvedContext lockContext(Long actorId, ResolvedContext expected) {
@@ -726,6 +778,7 @@ public class CutoverTaskApplicationService {
         }
     }
 
+    @lombok.Builder(toBuilder = true)
     private record ResolvedContext(CutoverProjectContextPort.ProjectContextFact project,
                                    List<CutoverDeviceScopePort.DeviceFact> devices,
                                    Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> productTypesByDevice,

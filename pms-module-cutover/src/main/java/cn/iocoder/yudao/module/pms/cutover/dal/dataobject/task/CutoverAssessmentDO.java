@@ -90,4 +90,10 @@ public class CutoverAssessmentDO extends BaseBusinessEntity {
     private LocalDateTime serviceLevelEffectiveStartTime;
     /** 来源等级失效时间 */
     private LocalDateTime serviceLevelEffectiveEndTime;
+    /** 既有 CUS 维护记录引用，不能冒充不可变修订 ID。 */
+    private Long serviceLevelSourceRecordId;
+    /** 仅未维护时由当前评估操作者显式选择，不写回客户。 */
+    private String manualCustomerServiceLevelCode;
+    private Long manualCustomerServiceLevelSelectedBy;
+    private LocalDateTime manualCustomerServiceLevelSelectedAt;
 }

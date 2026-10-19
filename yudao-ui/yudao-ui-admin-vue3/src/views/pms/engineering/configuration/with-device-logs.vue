@@ -86,36 +86,33 @@
             v-hasPermi="['pms:imp-configuration:query']"
             >{{ editableRecord(row) && !readonly ? '编辑' : '查看' }}</el-button
           >
+          <!-- 动态动作由 Vue 同时控制状态与权限，避免指令移除节点后破坏后续插入锚点。 -->
           <el-button
             link
             type="success"
-            v-if="!readonly && row.status === 0"
+            v-if="!readonly && row.status === 0 && checkPermi(['pms:imp-configuration:update'])"
             @click="handleAction(row, 'start')"
-            v-hasPermi="['pms:imp-configuration:update']"
             >开始调试</el-button
           >
           <el-button
             link
             type="success"
-            v-if="!readonly && row.status === 1"
+            v-if="!readonly && row.status === 1 && checkPermi(['pms:imp-configuration:update'])"
             @click="handleAction(row, 'complete')"
-            v-hasPermi="['pms:imp-configuration:update']"
             >完成调试</el-button
           >
           <el-button
             link
             type="warning"
-            v-if="!readonly && row.status === 0"
+            v-if="!readonly && row.status === 0 && checkPermi(['pms:imp-configuration:update'])"
             @click="handleAction(row, 'markAbnormal')"
-            v-hasPermi="['pms:imp-configuration:update']"
             >标记异常</el-button
           >
           <el-button
-            v-if="!readonly && !row.importedLogFileId && row.status !== 2"
+            v-if="!readonly && !row.importedLogFileId && row.status !== 2 && checkPermi(['pms:imp-configuration:delete'])"
             link
             type="danger"
             @click="remove(row)"
-            v-hasPermi="['pms:imp-configuration:delete']"
             >删除</el-button
           >
         </template>
@@ -164,9 +161,14 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item label="调试人员" prop="debuggerUserId"
-            ><el-input v-model="form.debuggerUserId"
-          /></el-form-item>
+          <el-form-item label="调试人员" prop="debuggerUserId">
+            <PmsEntitySelect v-if="!readOnly"
+              v-model="form.debuggerUserId" :api="queryDebuggerUsers"
+              label-field="nickname" value-field="id" query-field="nickname" placeholder="请选择调试人员" />
+            <UserTag v-else-if="form.debuggerUserId" :user-id="form.debuggerUserId" />
+            <span v-else>—</span>
+            <el-alert v-if="!readOnly && debuggerUsersError" :title="debuggerUsersError" type="warning" :closable="false" />
+          </el-form-item>
         </el-col>
         <el-col :span="12">
           <el-form-item label="调试时间" prop="debugTime">
@@ -225,6 +227,9 @@ import { DICT_TYPE, getIntDictOptions } from '@/utils/dict'
 import * as ConfigurationApi from '@/api/pms/engineering/configuration'
 import type { ConfigurationVO } from '@/api/pms/engineering/configuration'
 import * as ProjectApi from '@/api/pms/project/projects'
+import * as UserApi from '@/api/system/user'
+import UserTag from '@/components/UserTag/index.vue'
+import { useUserStore } from '@/store/modules/user'
 import ProjectDeviceSelect from '@/components/ProjectDeviceSelect/index.vue'
 import DeviceTag from '@/components/DeviceTag/index.vue'
 import { checkPermi } from '@/utils/permission'
@@ -240,6 +245,24 @@ const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref<ConfigurationVO[]>([])
+const debuggerUsersError = ref('')
+const userStore = useUserStore()
+const queryDebuggerUsers = async (params: PageParam) => {
+  try {
+    const result = await UserApi.getUserPage(params)
+    debuggerUsersError.value = ''
+    return result
+  } catch {
+    debuggerUsersError.value = '其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。'
+    const self = userStore.getUser
+    const list = self.id ? [{ id: self.id, nickname: self.nickname || '本人' }] : []
+    const selected = form.value.debuggerUserId
+    if (selected && String(selected) !== String(self.id)) {
+      list.push({ id: selected, nickname: `已选调试人员（${selected}）` })
+    }
+    return { list, total: list.length }
+  }
+}
 const downloadImported = async (row: ConfigurationVO) => {
   if (!row.importedLogFileId) return
   const url = await downloadArchivedLog(row.importedLogFileId)
@@ -286,6 +309,7 @@ const load = async () => {
   }
 }
 const openForm = (row?: ConfigurationVO) => {
+  debuggerUsersError.value = ''
   form.value = {
     id: undefined,
     projectId: props.projectId ?? 0,

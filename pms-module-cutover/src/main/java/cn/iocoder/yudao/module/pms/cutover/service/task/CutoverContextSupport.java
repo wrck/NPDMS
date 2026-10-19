@@ -46,11 +46,20 @@ final class CutoverContextSupport {
             CutoverCustomerLevelPort port, CutoverProjectContextPort.ProjectContextFact project) {
         try {
             var fact = project.customerId() == null ? null : port.inspect(project.customerId());
-            if (fact != null) return fact;
+            if (fact != null) return fact.toBuilder().customerCode(project.customerCode()).customerName(project.customerName()).build();
         } catch (CutoverOwnerFactException exception) {
             if (exception.code() != CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE) throw exception;
         }
-        return new CutoverCustomerLevelPort.CustomerLevelFact("UNAVAILABLE", project.customerId(),
-                project.customerCode(), project.customerName(), null, null, 0L, null, null);
+        return CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status("UNAVAILABLE")
+                .customerId(project.customerId())
+                .customerCode(project.customerCode())
+                .customerName(project.customerName())
+                .serviceLevelRevisionId(null)
+                .serviceLevelCode(null)
+                .factVersion(0L)
+                .effectiveFrom(null)
+                .effectiveTo(null)
+                .build();
     }
 }

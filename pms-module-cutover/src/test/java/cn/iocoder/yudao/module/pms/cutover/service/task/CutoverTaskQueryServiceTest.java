@@ -84,8 +84,17 @@ class CutoverTaskQueryServiceTest {
                 .majorProjectLevel("公司级")
                 .build();
         device = new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 5L);
-        customer = new CutoverCustomerLevelPort.CustomerLevelFact("AVAILABLE", 201L, "C-201", "示例客户",
-                501L, "GOLD", 2L, LocalDateTime.of(2026, 8, 1, 0, 0), null);
+        customer = CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .status("AVAILABLE")
+                .customerId(201L)
+                .customerCode("C-201")
+                .customerName("示例客户")
+                .serviceLevelRevisionId(501L)
+                .serviceLevelCode("GOLD")
+                .factVersion(2L)
+                .effectiveFrom(LocalDateTime.of(2026, 8, 1, 0, 0))
+                .effectiveTo(null)
+                .build();
         readiness = new CutoverReadinessPort.ReadinessFact(601L, 4L, "READY", 101L,
                 List.of(401L), List.of("W-1"), List.of());
     }

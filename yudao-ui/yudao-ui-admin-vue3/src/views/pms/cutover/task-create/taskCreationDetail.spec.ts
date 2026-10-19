@@ -56,6 +56,49 @@ beforeEach(() => {
 })
 
 describe('详情式新建割接任务', () => {
+  it('keeps the original intent when a retry is rejected after an earlier response was lost', async () => {
+    operation.enabled = true
+    operation.execute.mockRejectedValueOnce(new Error('Network Error'))
+      .mockRejectedValueOnce(new OperationRejected(403, '权限已变化'))
+      .mockResolvedValueOnce({ objectId: '701' })
+    const view = mount(TaskCreate, { projectId: '101', createAllowed: true }, controls); await flush()
+    await update(view.root, 'create-serials', 'SN-401'); await click(view.root, 'resolve-create-serials')
+    await click(view.root, 'submit-create-detail')
+    const firstKey = operation.execute.mock.calls[0][0].key
+    await click(view.root, 'submit-create-detail')
+    expect(findByTestId(view.root, 'close-cutover-create')!.props!.disabled).toBe(true)
+    await click(view.root, 'submit-create-detail')
+    expect(operation.execute.mock.calls.map(call => call[0].key)).toEqual([firstKey, firstKey, firstKey])
+    expect(api.createCutoverTask).not.toHaveBeenCalled()
+    view.app.unmount()
+  })
+  it('does not lock the embedded create form after a definite operation rejection', async () => {
+    operation.enabled = true
+    operation.execute.mockRejectedValueOnce(new OperationRejected(1011005122, '存在多个有效已发布割接配置'))
+    const view = mount(TaskCreate, { projectId: '101', createAllowed: true }, controls); await flush()
+    await update(view.root, 'create-serials', 'SN-401'); await click(view.root, 'resolve-create-serials')
+    await click(view.root, 'submit-create-detail')
+    expect(feedback.error).toHaveBeenCalledWith('存在多个有效已发布割接配置')
+    expect(findByTestId(view.root, 'close-cutover-create')!.props!.disabled).toBe(false)
+    expect(api.createCutoverTask).not.toHaveBeenCalled()
+    const firstKey = operation.execute.mock.calls[0][0].key
+    operation.execute.mockResolvedValueOnce({ objectId: '701' })
+    await click(view.root, 'submit-create-detail')
+    expect(operation.execute.mock.calls[1][0].key).not.toBe(firstKey)
+    view.app.unmount()
+  })
+  it('keeps the form editable after a definite business refusal and starts a new intent on retry', async () => {
+    api.createCutoverTask.mockRejectedValueOnce({ response: { data: { code: 1011005122, msg: '存在多个有效已发布割接配置' } } })
+    const view = mount(TaskCreate, {}, controls); await flush()
+    await update(view.root, 'create-serials', 'SN-401'); await click(view.root, 'resolve-create-serials')
+    await click(view.root, 'submit-create-detail')
+    expect(feedback.error).toHaveBeenCalledWith('存在多个有效已发布割接配置')
+    expect(textOf(view.root)).not.toContain('结果未知')
+    const firstKey = api.createCutoverTask.mock.calls[0][0].idempotencyKey
+    await click(view.root, 'submit-create-detail')
+    expect(api.createCutoverTask.mock.calls[1][0].idempotencyKey).not.toBe(firstKey)
+    view.app.unmount()
+  })
   it('creates with only project and devices, without the removed task-information fields', async () => {
     const view = mount(TaskCreate, {}, controls); await flush()
     for (const id of ['create-configuration', 'create-cutover-type', 'create-network-mode', 'create-scheduled-time', 'create-background']) {
@@ -284,4 +327,21 @@ describe('详情式新建割接任务', () => {
     expect(textOf(view.root)).toContain('SN-401'); expect(textOf(view.root)).toContain('SN-402'); expect(textOf(view.root)).toContain('CODE-401')
     expect(textOf(view.root)).toContain('部分产品信息暂时无法读取'); expect(findByTestId(view.root, 'remove-create-device-401')).toBeUndefined(); view.app.unmount()
   })
+  it('saves a manual service level from the shared creation questionnaire when the customer has none configured', async () => {
+    const resolved = resolution()
+    resolved.context.candidates[0].customerServiceLevel.status = 'NOT_CONFIGURED'
+    api.resolveCreationDevices.mockResolvedValue(resolved)
+    api.getCutoverTaskDetail.mockResolvedValue({ task: { id: '701', version: '2' }, assessment: { rowVersion: '1' }, customerServiceLevel: { status: 'NOT_CONFIGURED' }, allowedActions: ['SAVE_ASSESSMENT'] })
+    const view = mount(TaskCreate, {}, controls); await flush()
+    await update(view.root, 'create-serials', 'SN-401'); await click(view.root, 'resolve-create-serials')
+    const select = findByTestId(view.root, 'manual-customer-service-level')!
+    expect(select).toBeDefined()
+    expect(select.props!.modelValue).toBeNull()
+    await update(view.root, 'manual-customer-service-level', 'GOLD')
+    await click(view.root, 'submit-create-detail')
+    expect(api.saveCutoverAssessment).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ manualCustomerServiceLevelCode: 'GOLD' }) }))
+    view.app.unmount()
+  })
+
 })
+import { OperationRejected } from '@/components/BusinessView/operationClient'

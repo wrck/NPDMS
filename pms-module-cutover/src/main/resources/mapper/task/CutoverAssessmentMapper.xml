@@ -48,9 +48,13 @@
         <result column="customer_fact_version" property="customerFactVersion"/>
         <result column="service_level_effective_start_time" property="serviceLevelEffectiveStartTime"/>
         <result column="service_level_effective_end_time" property="serviceLevelEffectiveEndTime"/>
+        <result column="service_level_source_record_id" property="serviceLevelSourceRecordId"/>
+        <result column="manual_customer_service_level_code" property="manualCustomerServiceLevelCode"/>
+        <result column="manual_customer_service_level_selected_by" property="manualCustomerServiceLevelSelectedBy"/>
+        <result column="manual_customer_service_level_selected_at" property="manualCustomerServiceLevelSelectedAt"/>
     </resultMap>
     <sql id="columns">
-        `id`, `tenant_id`, `task_id`, `assessment_version`, `assessment_status_code`, `questionnaire_template_code`, `questionnaire_template_version`, `manual_grade_code`, `simple_flow_flag`, `submit_user_id`, `submit_time`, `invalidate_user_id`, `invalidate_time`, `invalidation_reason`, `current_marker`, `version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `business_importance_level`, `operation_complexity_level`, `hidden_risk_level`, `spare_part_applied_flag`, `intake_source_type_code`, `implementation_readiness_snapshot_id`, `implementation_readiness_snapshot_version`, `readiness_decision_code`, `project_id`, `project_version`, `project_code`, `project_name`, `customer_id`, `customer_code`, `customer_name`, `department_id`, `department_code`, `department_name`, `project_scope_version`, `customer_fact_status_code`, `service_level_revision_id`, `service_level_code`, `customer_fact_version`, `service_level_effective_start_time`, `service_level_effective_end_time`
+        `id`, `tenant_id`, `task_id`, `assessment_version`, `assessment_status_code`, `questionnaire_template_code`, `questionnaire_template_version`, `manual_grade_code`, `simple_flow_flag`, `submit_user_id`, `submit_time`, `invalidate_user_id`, `invalidate_time`, `invalidation_reason`, `current_marker`, `version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`, `business_importance_level`, `operation_complexity_level`, `hidden_risk_level`, `spare_part_applied_flag`, `intake_source_type_code`, `implementation_readiness_snapshot_id`, `implementation_readiness_snapshot_version`, `readiness_decision_code`, `project_id`, `project_version`, `project_code`, `project_name`, `customer_id`, `customer_code`, `customer_name`, `department_id`, `department_code`, `department_name`, `project_scope_version`, `customer_fact_status_code`, `service_level_revision_id`, `manual_customer_service_level_selected_at`, `manual_customer_service_level_selected_by`, `manual_customer_service_level_code`, `service_level_source_record_id`, `service_level_code`, `customer_fact_version`, `service_level_effective_start_time`, `service_level_effective_end_time`
     </sql>
     <select id="selectForUpdate" resultMap="assessment">
         SELECT <include refid="columns"/> FROM cut_assessment
@@ -83,6 +87,10 @@
         customer_fact_version = #{query.assessment.customerFactVersion},
         service_level_effective_start_time = #{query.assessment.serviceLevelEffectiveStartTime},
         service_level_effective_end_time = #{query.assessment.serviceLevelEffectiveEndTime},
+        service_level_source_record_id = #{query.assessment.serviceLevelSourceRecordId},
+        manual_customer_service_level_code = #{query.assessment.manualCustomerServiceLevelCode},
+        manual_customer_service_level_selected_by = #{query.assessment.manualCustomerServiceLevelSelectedBy},
+        manual_customer_service_level_selected_at = #{query.assessment.manualCustomerServiceLevelSelectedAt},
         manual_grade_code = #{query.assessment.manualGrade},
         updater = #{query.assessment.updater}, version = version + 1, update_time = NOW(3)
     </sql>

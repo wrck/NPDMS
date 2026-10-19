@@ -1,5 +1,19 @@
 {
   "schemaVersion": 1,
+  "approvedServiceLevelAmendment20261019": {
+    "migration": "sql/migrations/V501__cutover_manual_customer_service_level.sql",
+    "storageBaseline": "V476 structured columns; old JSON originals remain unchanged",
+    "cut_task": {"service_level_source_record_id": "BIGINT NULL; immutable creation source"},
+    "cut_assessment": {
+      "service_level_source_record_id": "BIGINT NULL; CUS maintenance record, not revision",
+      "manual_customer_service_level_code": "VARCHAR(64) NULL; enabled pms_service_level only when CUS NOT_CONFIGURED",
+      "manual_customer_service_level_selected_by": "BIGINT NULL; server actor",
+      "manual_customer_service_level_selected_at": "DATETIME(3) NULL; server time"
+    },
+    "submission": "Use saved creation/assessment source without re-reading CUS; AVAILABLE uses saved owner code, NOT_CONFIGURED requires manual code and audit fields; initial unavailable or conflicting source cannot be treated as NOT_CONFIGURED",
+    "history": "new fields are immutable after DRAFT; no history backfill; P5 reads effective code from the referenced immutable assessment",
+    "precedence": "replaces prior prohibition of manual substitution for NOT_CONFIGURED only; original historical contracts below remain evidence"
+  },
   "featureId": "F-CUT-002",
   "status": "BASELINE_READY",
   "featureReadyGate": {

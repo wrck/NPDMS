@@ -76,17 +76,18 @@
       "authority": "concurrency guard only; CUT persists only ProjectCutoverContextFactApi locked FOUND currentFact"
     },
     "customerServiceLevelContext": {
-      "exactKeys": ["status", "customerId", "customerCode", "customerName", "serviceLevelRevisionId", "serviceLevelCode", "factVersion", "effectiveFrom", "effectiveTo"],
-      "status": "AVAILABLE|NOT_CONFIGURED",
+      "exactKeys": ["status", "customerId", "customerCode", "customerName", "serviceLevelRevisionId", "serviceLevelCode", "factVersion", "effectiveFrom", "effectiveTo", "sourceRecordId"],
+      "status": "AVAILABLE|NOT_CONFIGURED|UNAVAILABLE",
       "customerId": "POSITIVE_LONG",
       "customerCode": "NORMALIZED_NON_BLANK_STRING_MAX_64",
       "customerName": "NORMALIZED_NON_BLANK_STRING_MAX_255",
-      "serviceLevelRevisionId": "POSITIVE_LONG_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
+      "serviceLevelRevisionId": "HISTORICAL_REVISION_ONLY; NULL_FOR_CURRENT_MAINTENANCE_RECORD",
+      "sourceRecordId": "POSITIVE_CUS_MAINTENANCE_RECORD_ID_FOR_AVAILABLE_OR_JSON_NULL",
       "serviceLevelCode": "ENABLED_BASIC_PLATFORM_DICTIONARY_CODE_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
       "factVersion": "NON_NEGATIVE_LONG",
-      "effectiveFrom": "wireContract.dateTime_FOR_AVAILABLE_OR_JSON_NULL_FOR_NOT_CONFIGURED",
+      "effectiveFrom": "wireContract.dateTime_OR_JSON_NULL_FOR_UNBOUNDED_START",
       "effectiveTo": "wireContract.dateTime_OR_JSON_NULL",
-      "union": "AVAILABLE requires revision/code/effectiveFrom; NOT_CONFIGURED requires revision/code/effectiveFrom/effectiveTo all JSON null and still carries the Owner factVersion"
+      "union": "AVAILABLE current records require sourceRecordId/code/factVersion; dates may be unbounded. NOT_CONFIGURED requires no valid active CUS record and null source/code/dates. UNAVAILABLE never permits manual selection."
     },
     "readinessContext": {
       "exactKeys": ["snapshotId", "snapshotVersion", "decision", "projectId", "deviceIds", "sourceWatermark", "unmetCodes"],
@@ -272,7 +273,7 @@
       "union": "matches physicalContract.tables.cut_task.intakeSourceUnion"
     },
     "AssessmentView": {
-      "exactKeys": ["id", "assessmentVersion", "rowVersion", "status", "questionnaireTemplateCode", "questionnaireTemplateVersion", "answers", "customerServiceLevel", "manualGrade", "simpleFlow", "submittedBy", "submittedAt", "invalidatedAt", "invalidationReason"],
+      "exactKeys": ["id", "assessmentVersion", "rowVersion", "status", "questionnaireTemplateCode", "questionnaireTemplateVersion", "answers", "customerServiceLevel", "manualGrade", "simpleFlow", "submittedBy", "submittedAt", "invalidatedAt", "invalidationReason", "manualCustomerServiceLevelCode", "manualCustomerServiceLevelSelectedBy", "manualCustomerServiceLevelSelectedAt"],
       "id": "POSITIVE_LONG",
       "assessmentVersion": "POSITIVE_INTEGER",
       "rowVersion": "NON_NEGATIVE_INTEGER",
@@ -281,6 +282,9 @@
       "questionnaireTemplateVersion": "POSITIVE_LONG",
       "answers": "commonTypes.draftAssessmentAnswers_FOR_DRAFT; commonTypes.assessmentAnswers_FOR_SUBMITTED_OR_INVALIDATED",
       "customerServiceLevel": "commonTypes.customerServiceLevelContext",
+      "manualCustomerServiceLevelCode": "ENABLED_pms_service_level_CODE_OR_NULL; ONLY_FOR_NOT_CONFIGURED",
+      "manualCustomerServiceLevelSelectedBy": "SERVER_ACTOR_LONG_OR_NULL",
+      "manualCustomerServiceLevelSelectedAt": "SERVER_DATETIME_OR_NULL",
       "manualGrade": "A|B|C|D_OR_JSON_NULL",
       "simpleFlow": "BOOLEAN",
       "submittedBy": "POSITIVE_LONG_OR_JSON_NULL",
@@ -346,7 +350,7 @@
     "values": ["SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT"],
     "rules": {
       "SAVE_ASSESSMENT": "permission SAVE_ASSESSMENT + ProjectScopeApi.ACTION_EDIT + actor is task owner + NEW_PLATFORM + P2/GRADE_CONFIRMING + no existing SUBMITTED current assessment",
-      "SUBMIT_ASSESSMENT": "advisory read projection only: permission SUBMIT_ASSESSMENT + read-only ProjectScopeApi inspect + actor is task owner + NEW_PLATFORM + P2/GRADE_CONFIRMING + current DRAFT assessment + complete answers + manual grade + read-only Owner inspect reports the stored facts currently comparable and customer service level AVAILABLE; the submit command independently performs authoritative lockAndRevalidate"
+      "SUBMIT_ASSESSMENT": "advisory read projection only: permission SUBMIT_ASSESSMENT + read-only ProjectScopeApi inspect + actor is task owner + NEW_PLATFORM + P2/GRADE_CONFIRMING + current DRAFT assessment + complete answers + manual grade + read-only Owner inspect reports the stored facts currently comparable and (customer service level AVAILABLE or NOT_CONFIGURED with explicit valid manual selection); the submit command independently performs authoritative lockAndRevalidate"
     }
   },
   "endpoints": {
@@ -450,16 +454,18 @@
         "answers",
         "manualGrade"
       ],
+      "requestOptionalKeys": ["manualCustomerServiceLevelCode"],
       "request": {
         "answers": "commonTypes.draftAssessmentAnswers",
-        "manualGrade": "A|B|C|D_OR_JSON_NULL"
+        "manualGrade": "A|B|C|D_OR_JSON_NULL",
+        "manualCustomerServiceLevelCode": "NULL_OR_ENABLED_pms_service_level_CODE; ONLY_WHEN_CURRENT_CUS_NOT_CONFIGURED"
       },
       "guards": [
         "allowedActions contains SAVE_ASSESSMENT",
         "task If-Match",
         "current assessment row version or first-draft sentinel 0"
       ],
-      "write": "create revision 1 DRAFT with server-owned questionnaireTemplateCode CUT_P2_MANUAL_ASSESSMENT and questionnaireTemplateVersion 1, or update only current DRAFT answer/manual-grade fields under optimistic version; read-only inspect and refresh the DRAFT project/projectVersion/department/device/readiness/customer context, including transition from NOT_CONFIGURED to AVAILABLE, before persisting; do not advance task stage/status",
+      "write": "create revision 1 DRAFT with server-owned questionnaireTemplateCode CUT_P2_MANUAL_ASSESSMENT and questionnaireTemplateVersion 1, or update only current DRAFT answer/manual-grade fields under optimistic version; read-only inspect and refresh the DRAFT project/projectVersion/department/device/readiness/customer context, including transition from NOT_CONFIGURED to AVAILABLE, before persisting except customer level which retains its saved creation/assessment snapshot; later CUS changes do not refresh or block it; do not advance task stage/status",
       "success": "wireContract.successEnvelope<data=responseTypes.AssessmentCommandData>",
       "errors": [
         "VALIDATION",
@@ -471,7 +477,7 @@
         "IDEMPOTENCY_CONFLICT",
         "IDEMPOTENCY_IN_PROGRESS"
       ],
-      "idempotencyScope": "tenant + CUT:ASSESSMENT_SAVE:{id} + actor + Idempotency-Key; digest includes task/assessment versions, answers and manualGrade",
+      "idempotencyScope": "tenant + CUT:ASSESSMENT_SAVE:{id} + actor + Idempotency-Key; digest includes task/assessment versions, answers, manualGrade and manualCustomerServiceLevelCode",
       "replay": "recheck current function permission, tenant/task owner and ACTION_EDIT before replay; exact completed intent replays before stale-version/state checks; changed digest conflicts"
     },
     "submitAssessment": {
@@ -480,7 +486,7 @@
       "permission": "SUBMIT_ASSESSMENT",
       "headers": ["Idempotency-Key", "If-Match", "Assessment-If-Match"],
       "requestExactKeys": [],
-      "guards": ["allowedActions contains SUBMIT_ASSESSMENT", "task and assessment versions match", "current DRAFT contains all four answer values and manual grade", "ProjectScopeApi, ProjectCutoverContextFactApi, DeviceScopeFactApi, CustomerServiceLevelFactApi and ImplementationReadinessApi lock-and-revalidate match every stored version and identity"],
+      "guards": ["allowedActions contains SUBMIT_ASSESSMENT", "task and assessment versions match", "current DRAFT contains all four answer values and manual grade", "ProjectScopeApi, ProjectCutoverContextFactApi, DeviceScopeFactApi, applicable ImplementationReadinessApi lock-and-revalidate match every stored version and identity"],
       "write": "mark current assessment SUBMITTED with immutable answer/context/grade; set task manual grade/currentAssessmentId; A/B/C atomically enter P3/SURVEYING, D atomically enters P4/PLAN_DRAFTING; append one P2_ASSESSMENT_SUBMITTED history row and platform success facts",
       "idempotencyScope": "CUTOVER_ASSESSMENT_SUBMIT:{tenantId}:{id}:{actorId}:{Idempotency-Key}",
       "success": "wireContract.successEnvelope<data=responseTypes.CutoverTaskCommandData>",

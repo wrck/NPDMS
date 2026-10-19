@@ -25,6 +25,30 @@ import static org.mockito.Mockito.*;
 class CutoverApprovalQueryServiceTest {
 
     @Test
+    void eligibleInitiatorStillNeedsApprovePermissionForDecisionActions() {
+        Fixture f = new Fixture();
+        var task = task();
+        task.setTaskOrigin("NEW_PLATFORM"); task.setCurrentStage("P5"); task.setTaskStatus("APPROVING");
+        task.setOwnerUserId(11L);
+        when(f.instances.selectCurrentByTask(any())).thenReturn(root("PENDING"));
+        when(f.tasks.selectById(10L)).thenReturn(task);
+        when(f.nodes.all(any())).thenReturn(List.of(node()));
+        when(f.reviews.byInstance(any())).thenReturn(List.of());
+        when(f.scopes.inspect(any())).thenAnswer(invocation -> {
+            CutoverApprovalProjectScopePort.ScopeQuery query = invocation.getArgument(0);
+            return scope(11L, query.requiredAction());
+        });
+        var denied = (CutoverApprovalViews.ApprovalDetail) f.service.detail(
+                new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                        1L, 11L, "query-test", true, false, false), 10L);
+        assertThat(denied.allowedActions()).isEmpty();
+        var allowed = (CutoverApprovalViews.ApprovalDetail) f.service.detail(
+                new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                        1L, 11L, "query-test", true, true, false), 10L);
+        assertThat(allowed.allowedActions()).containsExactly("APPROVE", "REJECT");
+    }
+
+    @Test
     void returnsTerminalFinalResultToCurrentProjectViewer() {
         Fixture f = new Fixture();
         CutoverApprovalInstanceDO root = root("APPROVED"); root.setDecisionAt(LocalDateTime.now());
