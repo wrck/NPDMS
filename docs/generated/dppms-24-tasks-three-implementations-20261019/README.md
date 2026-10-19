@@ -1,10 +1,14 @@
 # 24项已决同步任务：三种实现、已有验证、字段及SQL
 
-汇总日期：2026-10-19。工作树：`C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup`；分支：`fix/dppms-migration-consolidation-20261012`。本报告结合当前未提交实现、既有候选/保存定义、真实预览回执及已执行测试日志。后续核查按授权仅修复新套件，原任务隔离保留，最新变更和证据见下方。
+汇总日期：2026-10-19。工作树：`C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup`；分支：`fix/dppms-migration-consolidation-20261012`。本报告结合分支实现、既有候选/保存定义、真实预览回执及已执行测试日志。后续核查按授权仅修复新套件，原任务隔离保留，最新变更和证据见下方。
 
 **共24项、每项3种实现、72份验证记录；原字段处置861行。当前不能称为“72项验收全部通过”。**
 
-## P22订单行延后回填后的最新结果
+## ID修正及P16映射修复后的最新结果
+
+[本阶段逐项报告](base-sync-post-id-release-preview-20261019.md)及[24项当前回执](base-sync-post-id-release-preview-20261019.json)：新虚基类套件为 **17 PREVIEW_READY、7 FAILED**。P22全量343858条、P19全量186118条已就绪；P16修复已批准Readonly回退的结果映射后，158871条真实预览就绪。剩余7项的来源、正式输入或结构/容量缺项逐项列明；P30仍是0行空预览。验证库40个项目及关联技术ID已按单独授权修正，维护材料在工作树外；原任务保留，未执行迁移、真实同步或双线对照，59191未操作。旧阶段的verification-matrix及各附件保留原回执，本阶段JSON提供C路线的当前终态。
+
+## P22订单行延后回填后的结果（历史）
 
 [本轮逐项报告](base-sync-p22-order-line-preview-20261019.md)：24项仍为14 PREVIEW_READY、10 FAILED。P22原查询直接带入原pm_project.column001，两个引用ID先-1；正式订单行缺失已不阻断读源，当前真实预览为缺原部门编码，正数量缺项14293条。2976条零数量按已有裁决列待处理；七类77项有效检查通过，最新19项受影响重跑。剩余十项处理依据及执行结构限制逐项列明；无DDL、迁移或真实同步。
 
@@ -26,7 +30,7 @@
 |---|---|---|
 | A 原通用引擎 / Owner适配器 | 原任务原身份候选；19业务适配器 + 5 TABLE_MAPPING | 当前24份候选未全部保存/重跑；下面保留历史组件结果，不冒充当前候选验收 |
 | B 独立直写 | 独立ID与来源绑定；Direct*写入器，部分任务仍复用GenericSyncEngine | 最新既有回执16 PREVIEW_READY、7 FAILED、1历史非预览SUCCESS（P01）；READY中有空预览及全ISSUE |
-| C 新虚基类 | BASE_Pxx + AbstractSyncTask/DefaultSyncTask + 专用XML + 独立int_base_sync_* | 14 PREVIEW_READY、10 FAILED；P30为0行空预览。此前177项及90项定向检查通过；前阶段96项、当前77项有效定向结果通过，未做真实同步 |
+| C 新虚基类 | BASE_Pxx + AbstractSyncTask/DefaultSyncTask + 专用XML + 独立int_base_sync_* | 17 PREVIEW_READY、7 FAILED；P30为0行空预览。P16新映射回归与装配3项通过；既有阶段证据保留，未做真实同步 |
 
 三种方式是现存实现路线，不新增任务，不运行双线业务对照。原37项组件按既有合并结论组成24项：P01←01/02/03，P04←04/05/06/07，P08←08/09，P15←15/26/27/28/29，P16←16/17，P31←31/32，P35←35/36，其余单项保留。
 
