@@ -57,12 +57,12 @@ class OriginalIdentityPolicyTest {
         assertThrows(org.springframework.security.access.AccessDeniedException.class,
                 ()->new BaseSyncProjectReferences(mapper,scope).resolve(new BaseSyncProjectReferences.Query(1,2,3,List.of("7"),true)));
     }
-    @Test void relationUsesSourceCompanyAndStillRequiresAnActualContract() {
+    @Test void relationUsesSourceCompanyAndRequiresAnActualContractForExecution() {
         var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
         when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
         var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
         var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
-        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));
+        var base=context();var c=new SyncContext<Void>(base.tenantId(),base.actorId(),base.connectionId(),false,base.batchSize(),base.maxRows(),base.startedAt(),base.source(),base.identities(),base.references(),base.dataName(),base.target(),false,true).forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));
         assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("FORMAL_CONTRACT_MISSING:C"));
         var query=org.mockito.ArgumentCaptor.forClass(P18ProjectContractSyncTask.ContractsQuery.class);verify(mapper).selectContracts(query.capture());
         assertEquals(List.of(new P18ProjectContractSyncTask.ContractKey("001","C")),query.getValue().keys());
@@ -71,5 +71,28 @@ class OriginalIdentityPolicyTest {
         source.setOriginalCompanyCode("01").setOriginalProjectCode("SOURCE");
         when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,0L,"OTHER","10",null,"001",null,"ACTIVE",false)));
         assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source)))).getMessage().contains("PROJECT_CODE_DIFFERS_FROM_SOURCE"));
+    }
+    @Test void relationPreviewKeepsOriginalBusinessKeysWithoutInventingContractIdsOrWriteCounts() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
+        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
+        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
+        var known=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
+        var missingCompany=new P18ProjectContractSyncTask.Source().setContractSourceId(3L).setMemberId(4L).setOriginalProjectId(7L).setContractNo("OTHER");
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));var batch=new SyncBatch<>(c,List.of(known,missingCompany));
+        assertDoesNotThrow(()->task.syncDataInsertBefore(batch));assertNull(known.getFormalContractId());assertNull(known.getTarget());assertNull(missingCompany.getCompanyCode());
+        assertEquals("C",known.getContractNo());assertEquals("OTHER",missingCompany.getContractNo());assertEquals(new SyncCounts(2,0,0,0,0),task.syncDataCount(batch));
+        assertTrue(c.runState().warnings().contains("P18_CONTRACT_REFERENCE_PENDING:2"));assertTrue(c.runState().warnings().contains("P18_COMPANY_SOURCE_PENDING:1"));
+        verify(mapper,never()).insertProjectContract(any());verify(c.identities(),never()).saveAll(any());
+        known.setOriginalCompanyCode("02");assertTrue(assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(known)))).getMessage().contains("PROJECT_COMPANY_NOT_AUTHORIZED"));
+    }
+    @Test void relationPreviewCannotDeferAContractForAnExistingIndependentBinding() {
+        var mapper=mock(P18ProjectContractSyncTask.TargetMapper.class);var projects=mock(BaseSyncProjectReferences.class);
+        when(projects.resolve(any())).thenReturn(Map.of("7",new BaseSyncProjectReferences.Identity("7",7L,1L,null,null,"10",null,null,null,null,false)));
+        var task=new P18ProjectContractSyncTask(mapper,projects,mock(OrganizationScopeApi.class));
+        var source=new P18ProjectContractSyncTask.Source().setContractSourceId(1L).setMemberId(2L).setOriginalProjectId(7L).setOriginalCompanyCode("01").setContractNo("C");
+        var c=context().forParameters(new P18ProjectContractSyncTask.Parameters(Set.of("001")));
+        when(c.identities().findByKeys(any())).thenAnswer(call->{var q=call.<SyncIdentityStore.Query>getArgument(0);return q.object().equals("RELATION_BUSINESS")?Map.of(source.businessKey(),new SyncIdentityStore.Identity(source.businessKey(),99L,"baseline")):Map.of();});
+        assertThrows(IllegalArgumentException.class,()->task.syncDataInsertBefore(new SyncBatch<>(c,List.of(source))));
+        verify(mapper,never()).insertProjectContract(any());verify(c.identities(),never()).saveAll(any());
     }
 }

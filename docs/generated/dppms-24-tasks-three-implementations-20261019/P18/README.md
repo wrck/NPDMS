@@ -1,8 +1,10 @@
 # P18 项目合同关系
 
+本轮正式输入依赖、追加裁决与真实终态：[P18](../base-sync-five-input-dependencies-20261019.md#p18)；[当前24项JSON](../base-sync-five-input-dependencies-20261019.json)。下方旧阶段回执保留其历史范围，当前C以本轮记录为准。
+
 最新原用户名/原ID规则及回执：[本项结果](../base-sync-original-identifiers-preview-20261019.md#p18)。此前阶段判断和运行原件保留。
 
-2026-10-19当前更新：[本次真实预览仍受外部前置阻断，依据及Run](../base-sync-13-failures-followup-20261019.md#p18)。原历史回执保留。
+较早阶段更新（历史）：[本次真实预览仍受外部前置阻断，依据及Run](../base-sync-13-failures-followup-20261019.md#p18)。原历史回执保留。
 
 [返回24项总表](../README.md)
 

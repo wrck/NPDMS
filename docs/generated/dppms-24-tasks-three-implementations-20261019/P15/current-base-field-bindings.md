@@ -1,6 +1,6 @@
 # P15 新虚基类实际读写字段衔接
 
-左侧是实际来源SELECT表达式和结果别名；右侧是实际INSERT列与运行参数。Java转换/合并/关联在两者之间执行，本表不宣称同名就是原值直写。
+当前C代码投影。原表值经Java归并/转换/授权核验后再进入正式INSERT；本表不宣称同名即可直接写入。预览三份合同原表输入与实际写入本地合同输入分开，正式输入未由预览创建。设备关系的raw_relationship_created_at由relationshipTime精确解析后赋给effectiveFrom；发货时间/合同号由两个原键投影在流式回调前补入，均不是正式业务ID回查。
 
 | 来源语句 | 原表达式 | 查询别名 |
 |---|---|---|
@@ -57,10 +57,8 @@
 | selectShipmentEvent | 'DPPMS' | source_system |
 | selectShipmentEvent | CAST(b.id AS CHAR) | source_key |
 | selectShipmentEvent | b.barcode | device_sn |
-| selectShipmentEvent | p.packdate | shipment_time |
 | selectShipmentEvent | b.pack_id | package_no |
 | selectShipmentEvent | b.pack_id | legacy_package_key |
-| selectShipmentEvent | f.contract_code | contract_no |
 | selectShipmentEvent | CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 'UNCLASSIFIED' ELSE 'SHIPMENT' END | event_type |
 | selectShipmentEvent | CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 1 ELSE 0 END | rma_marked |
 | selectShipmentEvent | b.warrantyStartDate | warranty_start_date |
@@ -86,10 +84,42 @@
 | selectDeviceRelationship | r.sn2 | target_device_sn |
 | selectDeviceRelationship | 'EXTRA_SN' | relationship_type |
 | selectDeviceRelationship | r.contract | contract_no |
-| selectDeviceRelationship | r.createtime | effective_from |
+| selectDeviceRelationship | r.createtime | raw_relationship_created_at |
 | selectDeviceRelationship | r.updatetime | source_version |
 | selectDeviceRelationship | r.item1 | source_item |
 | selectDeviceRelationship | r.item2 | target_item |
+| selectContractCustomers | CAST(JSON_ARRAY(CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE r.compCode END,r.contractNo) AS CHAR) | raw_key |
+| selectContractCustomers | CASE r.compCode WHEN '01' THEN '001' WHEN '02' THEN '002' WHEN '03' THEN '003' WHEN '04' THEN '004' ELSE r.compCode END | company_code |
+| selectContractCustomers | r.contractNo | contract_no |
+| selectContractCustomers | r.customerName | customer_name |
+| selectContractCustomers | CASE WHEN r.customerCode IS NULL OR r.customerCode='' THEN r.customerCode<br> WHEN r.customerCode REGEXP '^[A-Za-z]' AND CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(r.customerCode,2)))<=5<br> THEN CONCAT(LEFT(r.customerCode,1),LPAD(TRIM(LEADING '0' FROM SUBSTRING(r.customerCode,2)),5,'0')) ELSE NULL END | customer_code |
+| selectContractCustomers | CASE WHEN r.customerCode IS NOT NULL AND r.customerCode<>'' AND (NOT(r.customerCode REGEXP '^[A-Za-z]') OR CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(r.customerCode,2)))>5) THEN 'ERP_CUSTOMER_CODE_FORMAT_INVALID' ELSE NULL END | issue |
+| selectContractShipmentFields | s.contract_code | contract_no |
+| selectContractShipmentFields | SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)<>'' THEN CONCAT(RPAD(s.contract_id,64,' '),CAST(s.`project_name` AS CHAR)) END),65) | project_name |
+| selectContractShipmentFields | SUBSTRING(MAX(CASE WHEN s.`marketCode` IS NOT NULL AND CAST(s.`marketCode` AS CHAR)<>'' THEN CONCAT(RPAD(s.contract_id,64,' '),CAST(s.`marketCode` AS CHAR)) END),65) | market_code |
+| selectContractShipmentFields | SUBSTRING(MAX(CASE WHEN s.`marketName` IS NOT NULL AND CAST(s.`marketName` AS CHAR)<>'' THEN CONCAT(RPAD(s.contract_id,64,' '),CAST(s.`marketName` AS CHAR)) END),65) | market_name |
+| selectContractShipmentFields | SUBSTRING(MAX(CASE WHEN s.`office_code` IS NOT NULL AND CAST(s.`office_code` AS CHAR)<>'' THEN CONCAT(RPAD(s.contract_id,64,' '),CAST(s.`office_code` AS CHAR)) END),65) | department_code |
+| selectContractShipmentFields | SUBSTRING(MAX(CASE WHEN s.`systemName` IS NOT NULL AND CAST(s.`systemName` AS CHAR)<>'' THEN CONCAT(RPAD(s.contract_id,64,' '),CAST(s.`systemName` AS CHAR)) END),65) | system_name |
+| selectContractReceivableFields | s.contract_num | contract_no |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`currency_name` IS NOT NULL AND CAST(s.`currency_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`currency_name` AS CHAR)) END),40) | currency_name |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`contract_money_amount` IS NOT NULL AND CAST(s.`contract_money_amount` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`contract_money_amount` AS CHAR)) END),40) | contract_amount |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`contract_create_date` IS NOT NULL AND CAST(s.`contract_create_date` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`contract_create_date` AS CHAR)) END),40) | contract_create_time |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`project_name` AS CHAR)) END),40) | project_name |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`projectCode` IS NOT NULL AND CAST(s.`projectCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`projectCode` AS CHAR)) END),40) | project_code |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`marketCode` IS NOT NULL AND CAST(s.`marketCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`marketCode` AS CHAR)) END),40) | market_code |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`maketing_department_name` IS NOT NULL AND CAST(s.`maketing_department_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`maketing_department_name` AS CHAR)) END),40) | market_name |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`officeCode` IS NOT NULL AND CAST(s.`officeCode` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`officeCode` AS CHAR)) END),40) | department_code |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`office_name` IS NOT NULL AND CAST(s.`office_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`office_name` AS CHAR)) END),40) | department_name |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`industryId` IS NOT NULL AND CAST(s.`industryId` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`industryId` AS CHAR)) END),40) | industry_code |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`industry_name` IS NOT NULL AND CAST(s.`industry_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`industry_name` AS CHAR)) END),40) | industry_name |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`usernamec` IS NOT NULL AND CAST(s.`usernamec` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`usernamec` AS CHAR)) END),40) | marketing_representative_code |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`marketing_representative_name` IS NOT NULL AND CAST(s.`marketing_representative_name` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`marketing_representative_name` AS CHAR)) END),40) | marketing_representative_name |
+| selectContractReceivableFields | SUBSTRING(MAX(CASE WHEN s.`usernamec2` IS NOT NULL AND CAST(s.`usernamec2` AS CHAR)<>'' THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.update_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(CAST(s.id AS CHAR),20,'0')),CAST(s.`usernamec2` AS CHAR)) END),40) | secondary_representative_code |
+| selectShipmentPackageReferences | packlist_id | source_key |
+| selectShipmentPackageReferences | con_id | contract_source_key |
+| selectShipmentPackageReferences | packdate | shipment_time |
+| selectShipmentContractReferences | contract_id | source_key |
+| selectShipmentContractReferences | contract_code | contract_no |
 
 | 正式表.列 | 实际写入参数 | INSERT语句 |
 |---|---|---|

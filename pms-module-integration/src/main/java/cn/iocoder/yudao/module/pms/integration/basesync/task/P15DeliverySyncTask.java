@@ -27,14 +27,60 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  @Override public void work(SyncContext<Parameters> c){
   if(mapper.packageSourceColumnReady()!=1)fail("TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key");
   try(var session=c.source().open(c.connectionId())){long count=session.mapper(SourceMapper.class).countShipmentEvents(new SourceQuery<>(1,c.tenantId(),true,c.parameters()));if(count>c.maxRows())fail("FULL_SHIPMENT_SOURCE_EXCEEDS_CONFIGURED_LIMIT:"+count+":"+c.maxRows());}
-  var prerequisite=mapper.latestP24Execution(new PrerequisiteQuery(c.tenantId(),c.connectionId()));if(prerequisite==null || !"COMPLETED".equals(prerequisite))fail("COMPLETE_FORMAL_BASE_P24_INPUT_REQUIRED");
-  syncData(c.forData("ShipmentContract",false,true));syncData(c.forData("Package",false,true));
-  syncData(c.forData("ShipmentEvent",false,true));syncData(c.forData("DeviceRelationship",false,true));
-  // Contracts consume the now-complete local shipment and P24 facts once, after the raw history phases.
-  syncData(c.forLocalData("Contract",false,true));
+  if(!c.preview()){var prerequisite=mapper.latestP24Execution(new PrerequisiteQuery(c.tenantId(),c.connectionId()));if(prerequisite==null || !"COMPLETED".equals(prerequisite))fail("COMPLETE_FORMAL_BASE_P24_INPUT_REQUIRED");}
+  else c.runState().warning("P15_SOURCE_PREVIEW:FORMAL_BASE_P14_P24_INPUTS_NOT_VERIFIED");
+  try{
+   syncData(c.forData("ShipmentContract",false,true));syncData(c.forData("Package",false,true));
+   syncData(c.forData("ShipmentEvent",false,true));syncData(c.forData("DeviceRelationship",false,true));
+   // Actual writes consume the complete local facts; preview reads their raw sources.
+   if(c.preview())syncData(c.forData("Contract",false,false));else syncData(c.forLocalData("Contract",false,true));
+  }catch(StackOverflowError error){var frames=error.getStackTrace();org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).error("P15_STACK_OVERFLOW_FRAMES:{}",Arrays.toString(Arrays.copyOf(frames,Math.min(32,frames.length))));throw error;}
+ }
+ @Override protected List<Source> syncDataQuery(SyncContext<Parameters> c){
+  if(!c.preview()||!"Contract".equals(c.dataName()))return super.syncDataQuery(c);
+  try(var session=c.source().open(c.connectionId())){
+   var source=session.mapper(SourceMapper.class);var q=new SourceQuery<Parameters>(c.maxRows()+1,c.tenantId(),true,c.parameters());
+   var customers=source.selectContractCustomers(q);var shipments=source.selectContractShipmentFields(q);var receipts=source.selectContractReceivableFields(q);
+   if(customers.size()>c.maxRows()||shipments.size()>c.maxRows()||receipts.size()>c.maxRows())fail("CONTRACT_PREVIEW_SOURCE_CAPACITY");
+   var grouped=new LinkedHashMap<String,Source>();
+   for(var customer:customers){
+    var row=new Row();row.companyCode=customer.companyCode;row.contractNo=customer.contractNo;row.customerCode=customer.customerCode;row.customerName=customer.customerName;row.masterSourceSystem="DPPMS_ERP";row.masterSourceRecordKey=customer.rawKey;
+    var incoming=new Source();incoming.key=customer.rawKey;incoming.issue=customer.issue;incoming.target=row;var previous=grouped.putIfAbsent(incoming.key,incoming);if(previous==null)continue;
+    if(incoming.issue!=null)previous.issue=incoming.issue;
+    boolean conflict=nonempty(row.customerCode)&&nonempty(previous.target.customerCode)&&!row.customerCode.equals(previous.target.customerCode)||nonempty(row.customerName)&&nonempty(previous.target.customerName)&&!row.customerName.equals(previous.target.customerName);
+    if(conflict&&previous.issue==null)previous.issue="CONTRACT_CUSTOMER_CONFLICT";
+    if(!nonempty(previous.target.customerCode))previous.target.customerCode=row.customerCode;if(!nonempty(previous.target.customerName))previous.target.customerName=row.customerName;
+   }
+   var shipmentFields=new HashMap<String,Row>();for(var row:shipments)if(shipmentFields.putIfAbsent(row.contractNo,row)!=null)fail("SHIPMENT_CONTRACT_FIELDS_AMBIGUOUS");
+   var receiptFields=new HashMap<String,Row>();for(var row:receipts)if(receiptFields.putIfAbsent(row.contractNo,row)!=null)fail("RECEIVABLE_CONTRACT_FIELDS_AMBIGUOUS");
+   for(var entry:grouped.values()){
+    var row=entry.target;var shipment=shipmentFields.get(row.contractNo);var receipt=receiptFields.get(row.contractNo);
+    if(receipt!=null){row.currencyName=receipt.currencyName;row.currencyCode=receipt.currencyName;row.contractAmount=receipt.contractAmount;row.contractCreateTime=receipt.contractCreateTime;row.projectName=receipt.projectName;row.projectCode=receipt.projectCode;row.marketCode=receipt.marketCode;row.marketName=receipt.marketName;row.departmentCode=receipt.departmentCode;row.departmentName=receipt.departmentName;row.industryCode=receipt.industryCode;row.industryName=receipt.industryName;row.marketingRepresentativeCode=receipt.marketingRepresentativeCode;row.marketingRepresentativeName=receipt.marketingRepresentativeName;row.secondaryRepresentativeCode=receipt.secondaryRepresentativeCode;}
+    if(shipment!=null){if(shipment.projectName!=null)row.projectName=shipment.projectName;if(shipment.marketCode!=null)row.marketCode=shipment.marketCode;if(shipment.marketName!=null)row.marketName=shipment.marketName;if(shipment.departmentCode!=null)row.departmentCode=shipment.departmentCode;row.systemName=shipment.systemName;}
+   }
+   org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).info("P15_CONTRACT_SOURCE_READ:orderRows={},shipmentGroups={},receivableGroups={},contracts={},sourceIssues={}",customers.size(),shipments.size(),receipts.size(),grouped.size(),grouped.values().stream().filter(row->row.issue!=null).count());
+   return new ArrayList<>(grouped.values());
+  }
+ }
+ static boolean nonempty(String value){return value!=null&&!value.isEmpty();}
+ @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){
+  if(!"ShipmentEvent".equals(c.dataName())){super.syncDataQueryByRowHandler(c,handler);return;}
+  try(var session=c.source().open(c.connectionId())){
+   var source=session.mapper(SourceMapper.class);var query=new SourceQuery<>(c.maxRows()+1,c.tenantId(),c.preview(),c.parameters());
+   var packageRows=source.selectShipmentPackageReferences(query);var contractRows=source.selectShipmentContractReferences(query);
+   if(packageRows.size()>c.maxRows()||contractRows.size()>c.maxRows())fail("SHIPMENT_LOOKUP_SOURCE_CAPACITY");
+   var packages=new HashMap<String,ShipmentPackageReference>();for(var row:packageRows)if(row.sourceKey!=null&&packages.putIfAbsent(row.sourceKey,row)!=null)fail("PACKAGE_SOURCE_IDENTITY_AMBIGUOUS");
+   var contracts=new HashMap<String,ShipmentContractReference>();for(var row:contractRows)if(row.sourceKey!=null&&contracts.putIfAbsent(row.sourceKey,row)!=null)fail("SHIPMENT_CONTRACT_SOURCE_IDENTITY_AMBIGUOUS");
+   syncDataQueryBySql(session.sqlSession(),sourceQuery(c),(ResultHandler<Source>)result->{
+    var row=result.getResultObject().getTarget();var pack=packages.get(row.legacyPackageKey);var contract=pack==null?null:contracts.get(pack.contractSourceKey);
+    row.shipmentTime=pack==null?null:pack.shipmentTime;row.contractNo=contract==null?null:contract.contractNo;handler.handleResult(result);
+   });
+  }
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
-  var c=b.context();String kind=c.dataName();var keys=b.rows().stream().map(s->s.key).toList();
+  var c=b.context();String kind=c.dataName();
+  if(kind.equals("Contract")&&b.rows().size()>c.batchSize()){org.slf4j.LoggerFactory.getLogger(P15DeliverySyncTask.class).info("P15_CONTRACT_IDENTITY_BATCHES:rows={},batchSize={}",b.rows().size(),c.batchSize());for(int i=0;i<b.rows().size();i+=c.batchSize())syncDataInsertBefore(new SyncBatch<>(c,b.rows().subList(i,Math.min(i+c.batchSize(),b.rows().size()))));return;}
+  var keys=b.rows().stream().map(s->s.key).toList();
   var bindings=c.identities().findByKeys(new SyncIdentityStore.Query(objectKey(kind),keys));
   var current=new HashMap<String,Row>();
   // Typed scene query per table, with source identity and tenant fixed in XML.
@@ -45,6 +91,7 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
    if(s.issue!=null)fail(s.issue);if(s.key==null || s.key.isBlank())fail("RAW_SOURCE_KEY_MISSING");
    var row=s.target;if(kind.equals("ShipmentContract")){var years=DppmsWarrantyYearsConverter.fromSource(s.rawWarranty);row.warrantyYears=years==null?null:years.longValue();}
    if(kind.equals("Package"))row.carrierName=row.carrierCode==null?null:c.parameters().carriers.getOrDefault(row.carrierCode,row.carrierCode);
+   if(kind.equals("DeviceRelationship"))row.effectiveFrom=relationshipTime(s);
    validate(new Validation(kind,row));var old=current.get(s.key);var binding=bindings.get(s.key);s.action=SyncWriteAction.UNCHANGED;s.previous=binding==null?null:binding.fingerprint();
    if(old!=null){
     if(kind.equals("Contract")&&(!"DPPMS_ERP".equals(old.masterSourceSystem)||!Objects.equals(old.masterSourceRecordKey,s.key)) || kind.equals("Package")&&!Objects.equals(old.sourceRecordKey,s.key))fail("BUSINESS_KEY_ALREADY_OWNED");
@@ -67,6 +114,11 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
   }
  }
  public record Validation(String kind,Row row){}
+ static LocalDateTime relationshipTime(Source source){
+  if(source.rawRelationshipCreatedAt==null)return null;
+  LocalDateTime value;try{value=LocalDateTime.parse(source.rawRelationshipCreatedAt.replace(' ','T'));}catch(java.time.format.DateTimeParseException error){throw new IllegalArgumentException("P15_RELATIONSHIP_TIME_INVALID",error);}
+  if(value.getNano()%1_000_000!=0)fail("RELATIONSHIP_TIME_PRECISION_EXCEEDS_TARGET");return value;
+ }
  static void validate(Validation q){var r=q.row;
   switch(q.kind){case "Contract"->{if(r.companyCode==null||!Set.of("001","002","003","004").contains(r.companyCode)||r.contractNo==null||r.contractNo.isBlank())fail("LOCAL_CONTRACT_IDENTITY_INVALID");exactDecimal(r.contractAmount,20,2);}
    case "Package"->{if(r.packageNo==null||r.packageNo.isBlank())fail("PACKAGE_NUMBER_MISSING");if(r.warrantyStartTime!=null&&r.warrantyEndTime!=null&&r.warrantyEndTime.isBefore(r.warrantyStartTime))fail("PACKAGE_WARRANTY_INTERVAL_INVALID");}
@@ -84,14 +136,17 @@ public class P15DeliverySyncTask extends AbstractSyncTask<P15DeliverySyncTask.So
  @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){return SyncCounts.fromActions(b.rows(),Source::getAction);}
  @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){super.syncDataInsert(b.matching(s->s.action==SyncWriteAction.INSERT));super.syncDataUpdate(b.matching(s->s.action==SyncWriteAction.UPDATE));}
  @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){String kind=b.context().dataName();b.context().identities().saveAll(b.rows().stream().filter(s->s.action!=SyncWriteAction.UNCHANGED).map(s->new SyncIdentityStore.Save(objectKey(kind),s.key,s.target.id,fingerprint(new Validation(kind,s.target)),s.previous)).toList());}
- @lombok.Data public static class Source {private String key,issue,rawWarranty,previous;private Long expectedVersion;private Row target;private SyncWriteAction action;}
+ @lombok.Data public static class Source {private String key,issue,rawWarranty,rawRelationshipCreatedAt,previous;private Long expectedVersion;private Row target;private SyncWriteAction action;}
  @lombok.Data public static class Row {private Long id;private Long tenantId;private Long companyId;private String companyCode;private String companyName;private String contractNo;private String masterSourceSystem;private String masterSourceRecordKey;private String masterSourceVersion;private String contractType;private Long customerId;private String customerCode;private String customerName;private String contractName;private BigDecimal contractAmount;private String currencyCode;private String currencyName;private LocalDateTime contractCreateTime;private String authorityStatus;private String sourceLifecycleStatus;private LocalDate effectiveDate;private LocalDate expiryDate;private String projectName;private String projectCode;private String marketCode;private String marketName;private String departmentCode;private String departmentName;private String systemCode;private String systemName;private String expendCode;private String expendName;private String industryCode;private String industryName;private String marketingRepresentativeCode;private String marketingRepresentativeName;private String secondaryRepresentativeCode;private LocalDateTime sourceSyncTime;private LocalDateTime sourceUpdatedAt;private String status;private Long version;private String creator;private LocalDateTime createTime;private String updater;private LocalDateTime updateTime;private Boolean deleted;private Long contractId;private Long departmentId;private String systemSourceKey;private Long warrantyYears;private String remark;private String mappingStatus;private String sourceSystem;private String sourceRecordKey;private Long shipmentContractRefId;private String packageNo;private LocalDateTime shipmentTime;private LocalDateTime warrantyStartTime;private LocalDateTime warrantyEndTime;private String receiverName;private String expressNo;private String carrierName;private String carrierCode;private String deviceSn;private String eventType;private LocalDate warrantyStartDate;private Long warrantyMonths;private String rmaNo;private String relatedDeviceSn;private String sourceKey;private String sourceVersion;private LocalDateTime syncedAt;private String syncStatus;private String legacyPackageKey;private String rmaRelatedSn;private Boolean rmaMarked;private Long orderLineId;private String sourcePayload;private String orderNo;private String lineNo;private String productCode;private String secondarySn;private String secondaryItem;private String internalSerialNo;private Long isRma;private String profitCenter;private String soleAgentSuffix;private LocalDateTime syncTime;private String uuid;private String sourceDeviceSn;private String targetDeviceSn;private String relationshipType;private LocalDateTime effectiveFrom;private LocalDateTime effectiveTo;private String sourceItem;private String targetItem;private String shipmentContractSourceKey;}
  @lombok.Data public static class Carrier {private String code,label;}
+ @lombok.Data public static class ContractCustomer {private String rawKey,issue,companyCode,contractNo,customerCode,customerName;}
+ @lombok.Data public static class ShipmentPackageReference {private String sourceKey,contractSourceKey;private LocalDateTime shipmentTime;}
+ @lombok.Data public static class ShipmentContractReference {private String sourceKey,contractNo;}
  public record TenantQuery(long tenantId){}
  public record PrerequisiteQuery(long tenantId,long connectionId){}
  public record KeysQuery(long tenantId,List<String> keys,boolean preview){}
  public record ContractIdentity(String companyCode,String contractNo){}
  public record ContractsQuery(long tenantId,List<ContractIdentity> keys,boolean preview){}
- public interface SourceMapper {long countShipmentEvents(SourceQuery<Parameters> query);void selectShipmentContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectPackage(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentEvent(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectDeviceRelationship(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);}
+ public interface SourceMapper {long countShipmentEvents(SourceQuery<Parameters> query);void selectShipmentContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectPackage(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectShipmentEvent(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);void selectDeviceRelationship(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);List<ContractCustomer> selectContractCustomers(SourceQuery<Parameters> query);List<Row> selectContractShipmentFields(SourceQuery<Parameters> query);List<Row> selectContractReceivableFields(SourceQuery<Parameters> query);List<ShipmentPackageReference> selectShipmentPackageReferences(SourceQuery<Parameters> query);List<ShipmentContractReference> selectShipmentContractReferences(SourceQuery<Parameters> query);}
  @Mapper public interface TargetMapper {List<Carrier> selectCarriers(@Param("query") TenantQuery query);@com.baomidou.mybatisplus.annotation.InterceptorIgnore(tenantLine="true",dataPermission="true") int packageSourceColumnReady();String latestP24Execution(@Param("query") PrerequisiteQuery query);List<Row> selectContracts(@Param("query") ContractsQuery query);List<Row> selectShipmentContracts(@Param("query") KeysQuery query);List<Row> selectPackages(@Param("query") KeysQuery query);List<Row> selectEvents(@Param("query") KeysQuery query);List<Row> selectRelationships(@Param("query") KeysQuery query);void selectContract(SourceQuery<Parameters> query,ResultHandler<? super Source> handler);int insertContract(SyncBatch<Source,Parameters> batch);int insertShipmentContract(SyncBatch<Source,Parameters> batch);int insertPackage(SyncBatch<Source,Parameters> batch);int insertShipmentEvent(SyncBatch<Source,Parameters> batch);int insertDeviceRelationship(SyncBatch<Source,Parameters> batch); int updateContract(RowParameter<Source,Parameters> row);int updateShipmentContract(RowParameter<Source,Parameters> row);int updatePackage(RowParameter<Source,Parameters> row);}
 }

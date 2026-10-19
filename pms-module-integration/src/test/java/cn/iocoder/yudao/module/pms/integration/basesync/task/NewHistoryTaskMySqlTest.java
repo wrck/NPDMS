@@ -118,6 +118,30 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   var location=mock(AssetLocationApi.class);var task=installation(List.of(installationSource(1,at),installationSource(2,at)),location);
   assertThrows(IllegalArgumentException.class,()->run(task,false));verifyNoInteractions(location);assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));
  }
+ @Test void installationPreviewDoesNotInventAnIdentityForAMissingDevice(){
+  var location=mock(AssetLocationApi.class);var source=installationSource(1,at).setBarcode("UNRESOLVED-SN");var task=installation(List.of(source),location);
+  var context=context(true);assertEquals(new SyncCounts(1,0,0,0,0),transaction.execute(status->task.execute(context)));
+  assertNull(source.getEquipmentId());assertNull(source.getTarget());assertTrue(context.runState().warnings().contains("P33_FORMAL_DEVICE_PENDING:1"));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));assertTrue(saved.isEmpty());verifyNoInteractions(location);
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("FORMAL_DEVICE_MISSING"));
+  saved.put("INSTALLATION_HISTORY:1",new SyncIdentityStore.Identity("1",99L,"old-baseline"));
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("EXISTING_INSTALLATION_PROTECTED"));verifyNoInteractions(location);
+ }
+ @Test void installationDefersCurrentSelectionOnlyForAPreviewWithoutAFormalProject(){
+  jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
+  doReturn(Map.of("1",new BaseSyncProjectReferences.Identity("1",1000L,1L,null,"P-1","10",null,null,null,null,false))).when(projects).verifyPublished(any());
+  var selected=mock(ProjectDeviceSelectionApi.class);when(selected.validateSelection(any())).thenThrow(new IllegalArgumentException("formal current selection unavailable"));var location=mock(AssetLocationApi.class);
+  var task=spy(new P33InstallationSyncTask(session.getMapper(P33InstallationSyncTask.TargetMapper.class),publications,projects,selected,location));var source=installationSource(1,at);doReturn(new ArrayList<>(List.of(source))).when(task).syncDataQuery(any());
+  var context=context(true);assertEquals(new SyncCounts(1,1,0,0,0),transaction.execute(status->task.execute(context)));assertTrue(context.runState().warnings().contains("P33_CURRENT_PROJECT_SELECTION_PENDING:1"));verifyNoInteractions(selected,location);
+  assertThrows(IllegalArgumentException.class,()->run(task,false));verify(selected).validateSelection(any());verifyNoInteractions(location);
+  when(projects.verifyPublished(any())).thenReturn(Map.of("1",new BaseSyncProjectReferences.Identity("1",1000L,1L,0L,"P-1","10",null,null,null,"ACTIVE",false)));
+  assertThrows(IllegalArgumentException.class,()->run(task,true));verify(selected,times(2)).validateSelection(any());assertTrue(saved.isEmpty());
+ }
+ @Test void pendingDevicePreviewDoesNotRelaxOriginalInstallationFieldRules(){
+  var location=mock(AssetLocationApi.class);var source=installationSource(1,at).setBarcode("UNRESOLVED-SN").setInstallAddress(" ");var task=installation(List.of(source),location);
+  assertThrows(IllegalArgumentException.class,()->run(task,true));source.setInstallAddress("x".repeat(256));assertThrows(IllegalArgumentException.class,()->run(task,true));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM imp_eng_installation",Integer.class));assertTrue(saved.isEmpty());verifyNoInteractions(location);
+ }
  P35SoftwareHistorySyncTask software(List<P35SoftwareHistorySyncTask.Source> batches,List<P35SoftwareHistorySyncTask.Source> observations){
   var task=spy(new P35SoftwareHistorySyncTask(session.getMapper(P35SoftwareHistorySyncTask.TargetMapper.class),publications,projects));
   doAnswer(call->{SyncContext<?> c=call.getArgument(0);emit(c.dataName().equals("SoftwareBatch")?batches:observations,call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());return task;

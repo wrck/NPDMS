@@ -21,10 +21,18 @@ class PrerequisiteCompletionMySqlTest extends RemainingTaskMySqlSupport {
   var nativeMapper=session.getMapper(P15DeliverySyncTask.TargetMapper.class);assertEquals("COMPLETED",nativeMapper.latestP24Execution(new P15DeliverySyncTask.PrerequisiteQuery(1,3)));
   var mapper=mock(P15DeliverySyncTask.TargetMapper.class);when(mapper.packageSourceColumnReady()).thenReturn(1);when(mapper.latestP24Execution(any())).thenAnswer(call->nativeMapper.latestP24Execution(call.getArgument(0)));
   var source=mock(SyncSource.class);var opened=mock(SyncSource.Session.class);var sourceMapper=mock(P15DeliverySyncTask.SourceMapper.class);when(source.open(3)).thenReturn(opened);when(opened.mapper(P15DeliverySyncTask.SourceMapper.class)).thenReturn(sourceMapper);when(sourceMapper.countShipmentEvents(any())).thenReturn(1L);
-  var task=new DeliveryProbe(mapper);var c=new SyncContext<Void>(1,2,3,true,1,100,at,source,identities,mock(SyncReferences.class),"Task",session,false,true);assertDoesNotThrow(()->task.execute(c));jdbc.update("UPDATE int_base_sync_run SET status='FAILED' WHERE id=11");session.clearCache();assertThrows(IllegalArgumentException.class,()->task.execute(c));
+  var task=new DeliveryProbe(mapper);var c=new SyncContext<Void>(1,2,3,false,1,100,at,source,identities,mock(SyncReferences.class),"Task",session,false,true);assertDoesNotThrow(()->task.execute(c));jdbc.update("UPDATE int_base_sync_run SET status='FAILED' WHERE id=11");session.clearCache();assertThrows(IllegalArgumentException.class,()->task.execute(c));
+ }
+ @Test void deliveryPreviewUsesAllFiveSourcePhasesWithoutACompletedP24Receipt(){
+  var mapper=mock(P15DeliverySyncTask.TargetMapper.class);when(mapper.packageSourceColumnReady()).thenReturn(1);
+  var source=mock(SyncSource.class);var opened=mock(SyncSource.Session.class);var sourceMapper=mock(P15DeliverySyncTask.SourceMapper.class);when(source.open(3)).thenReturn(opened);when(opened.mapper(P15DeliverySyncTask.SourceMapper.class)).thenReturn(sourceMapper);
+  var task=new DeliveryProbe(mapper);var c=new SyncContext<Void>(1,2,3,true,1,100,at,source,identities,mock(SyncReferences.class),"Task",session,false,true);
+  assertDoesNotThrow(()->task.execute(c));assertEquals(List.of("ShipmentContract","Package","ShipmentEvent","DeviceRelationship","Contract"),task.steps);
+  assertEquals(List.of(false,false,false,false,false),task.localSources);verify(mapper,never()).latestP24Execution(any());verifyNoInteractions(identities);
  }
  static final class DeliveryProbe extends P15DeliverySyncTask {
+  final List<String> steps=new ArrayList<>();final List<Boolean> localSources=new ArrayList<>();
   DeliveryProbe(TargetMapper mapper){super(mapper);}
-  @Override protected List<Source> syncData(SyncContext<Parameters> c){return List.of();}
+  @Override protected List<Source> syncData(SyncContext<Parameters> c){steps.add(c.dataName());localSources.add(c.source().local());return List.of();}
  }
 }

@@ -1,6 +1,8 @@
 # P15 合同、发货引用、包裹、发货事件和设备关系
 
-2026-10-19当前更新：[本次真实预览仍受外部前置阻断，依据及Run](../base-sync-13-failures-followup-20261019.md#p15)。原历史回执保留。
+本轮正式输入依赖、追加裁决与真实终态：[P15](../base-sync-five-input-dependencies-20261019.md#p15)；[当前24项JSON](../base-sync-five-input-dependencies-20261019.json)。下方旧阶段回执保留其历史范围，当前C以本轮记录为准。
+
+较早阶段更新（历史）：[本次真实预览仍受外部前置阻断，依据及Run](../base-sync-13-failures-followup-20261019.md#p15)。原历史回执保留。
 
 [返回24项总表](../README.md)
 

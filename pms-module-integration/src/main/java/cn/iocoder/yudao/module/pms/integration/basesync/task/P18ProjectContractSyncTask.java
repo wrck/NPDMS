@@ -58,32 +58,40 @@ public class P18ProjectContractSyncTask extends AbstractSyncTask<P18ProjectContr
  }
  @Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
   var c=b.context();var canonical=b.rows().stream().map(s->s.originalProjectId.toString()).distinct().toList();var refs=new HashMap<String,BaseSyncProjectReferences.Identity>();
+  for(var s:b.rows()){s.previewReferencePending=false;s.formalContractId=null;}
   for(int i=0;i<canonical.size();i+=1000)refs.putAll(projects.resolve(new BaseSyncProjectReferences.Query(c.tenantId(),c.actorId(),c.connectionId(),canonical.subList(i,Math.min(i+1000,canonical.size())),c.preview())));
   var business=new LinkedHashMap<String,Source>();for(var s:b.rows())business.putIfAbsent(s.businessKey(),s);
   var sourceKeys=b.rows().stream().map(Source::sourceKey).toList();var originals=new HashMap<String,SyncIdentityStore.Identity>();
   for(int i=0;i<sourceKeys.size();i+=500)originals.putAll(c.identities().findByKeys(new SyncIdentityStore.Query("RELATION_ORIGINAL",sourceKeys.subList(i,Math.min(i+500,sourceKeys.size())))));
   var businessKeys=new ArrayList<>(business.keySet());var bindings=new HashMap<String,SyncIdentityStore.Identity>();
   for(int i=0;i<businessKeys.size();i+=500)bindings.putAll(c.identities().findByKeys(new SyncIdentityStore.Query("RELATION_BUSINESS",businessKeys.subList(i,Math.min(i+500,businessKeys.size())))));
-  var contractKeys=new ArrayList<ContractKey>();
+  var contractKeys=new ArrayList<ContractKey>();long missingCompanies=0,pendingContracts=0;
   for(var s:business.values()){var p=refs.get(s.originalProjectId.toString());s.companyCode=s.originalCompanyCode==null?p.companyCode():cn.iocoder.yudao.module.pms.platform.support.migration.DppmsCompanyCodeConverter.fromSource(s.originalCompanyCode);
    if(p.version()!=null&&!Objects.equals(p.projectCode(),s.originalProjectCode))fail("PROJECT_CODE_DIFFERS_FROM_SOURCE");
    if(p.companyCode()!=null&&!Objects.equals(p.companyCode(),s.companyCode))fail("PROJECT_COMPANY_DIFFERS_FROM_SOURCE");
-   if(s.companyCode==null || !c.parameters().companies.contains(s.companyCode))fail("PROJECT_COMPANY_NOT_AUTHORIZED");contractKeys.add(new ContractKey(s.companyCode,s.contractNo));}
+   if(s.companyCode==null){if(!c.preview())fail("PROJECT_COMPANY_NOT_AUTHORIZED");missingCompanies++;}
+   else{if(!c.parameters().companies.contains(s.companyCode))fail("PROJECT_COMPANY_NOT_AUTHORIZED");contractKeys.add(new ContractKey(s.companyCode,s.contractNo));}}
   var contracts=new HashMap<ContractKey,Contract>();
   for(int i=0;i<contractKeys.size();i+=60)for(var contract:mapper.selectContracts(new ContractsQuery(c.tenantId(),contractKeys.subList(i,Math.min(i+60,contractKeys.size())),c.preview()))){var key=new ContractKey(contract.companyCode,contract.contractNo);if(!contractKeys.contains(key) || contract.deleted!=0 || contracts.putIfAbsent(key,contract)!=null)fail("CONTRACT_NOT_EXACTLY_UNIQUE");}
   var targetKeys=new ArrayList<RelationKey>();
-  for(var s:business.values()){var p=refs.get(s.originalProjectId.toString());var contract=contracts.get(new ContractKey(s.companyCode,s.contractNo));if(contract==null)fail("FORMAL_CONTRACT_MISSING:"+s.contractNo);s.formalProjectId=p.id();s.formalContractId=contract.id;targetKeys.add(new RelationKey(p.id(),contract.id));}
+  for(var s:business.values()){var p=refs.get(s.originalProjectId.toString());var contract=contracts.get(new ContractKey(s.companyCode,s.contractNo));s.formalProjectId=p.id();
+   if(contract==null){if(!c.preview())fail("FORMAL_CONTRACT_MISSING:"+s.contractNo);if(bindings.containsKey(s.businessKey()))fail("BOUND_CONTRACT_INPUT_MISSING");s.previewReferencePending=true;s.target=null;s.action=null;pendingContracts++;continue;}
+   s.formalContractId=contract.id;targetKeys.add(new RelationKey(p.id(),contract.id));}
   var current=new HashMap<RelationKey,Row>();
   for(int i=0;i<targetKeys.size();i+=80)for(var row:mapper.selectRelations(new RelationsQuery(c.tenantId(),targetKeys.subList(i,Math.min(i+80,targetKeys.size())),c.preview()))){if(current.putIfAbsent(new RelationKey(row.projectId,row.contractId),row)!=null)fail("FORMAL_RELATION_AMBIGUOUS");}
   for(var s:business.values()){
+   if(s.previewReferencePending)continue;
    var old=current.get(new RelationKey(s.formalProjectId,s.formalContractId));var binding=bindings.get(s.businessKey());var next=convert(new Plan(s,c));s.action=SyncWriteAction.UNCHANGED;
    if(old!=null){if(binding==null || binding.targetId()!=old.id || !binding.fingerprint().equals(fingerprint(old)) || old.deleted!=0 || !sameFacts(old,next))fail("EXISTING_RELATION_PROTECTED");s.target=old;}
    else{if(binding!=null)fail("BOUND_RELATION_MISSING");next.id=c.preview()?null:IdWorker.getId();s.target=next;s.action=SyncWriteAction.INSERT;}
   }
   for(var s:b.rows()){
-   var chosen=business.get(s.businessKey());if(s!=chosen)s.action=SyncWriteAction.UNCHANGED;s.target=chosen.target;
+   var chosen=business.get(s.businessKey());s.previewReferencePending=chosen.previewReferencePending;
+   if(s.previewReferencePending){if(originals.containsKey(s.sourceKey()))fail("ORIGINAL_RELATION_CHANGED");s.target=null;s.action=null;s.newOriginal=false;continue;}
+   if(s!=chosen)s.action=SyncWriteAction.UNCHANGED;s.target=chosen.target;
    var previous=originals.get(s.sourceKey());if(previous!=null && (previous.targetId()!=s.target.id || !previous.fingerprint().equals(originalFingerprint(s))))fail("ORIGINAL_RELATION_CHANGED");s.newOriginal=previous==null;
   }
+  if(missingCompanies>0)c.runState().warning("P18_COMPANY_SOURCE_PENDING:"+missingCompanies);if(pendingContracts>0)c.runState().warning("P18_CONTRACT_REFERENCE_PENDING:"+pendingContracts);
  }
  record Plan(Source source,SyncContext<Parameters> context){}
  static Row convert(Plan q){var s=q.source;var c=q.context;var r=new Row();r.tenantId=c.tenantId();r.projectId=s.formalProjectId;r.contractId=s.formalContractId;r.relationRole="RELATED";r.sourceSystem="DPPMS";r.sourceTable="pm_project_contract";r.sourceRecordKey=s.canonical.sourceKey();r.effectiveFrom=s.createdAt;r.status=s.formalStatus;r.version=0;r.creator=s.resolvedCreator;r.updater=s.resolvedUpdater;r.createTime=s.createdAt;r.updateTime=s.updatedAt;r.deleted=0;return r;}
@@ -91,7 +99,7 @@ public class P18ProjectContractSyncTask extends AbstractSyncTask<P18ProjectContr
  static String originalFingerprint(Source s){return SyncFingerprint.of(Arrays.asList(s.target.id,s.contractSourceId,s.contractNo,s.projectGroupCode,s.contractCreateTime,s.contractCreateBy,s.contractUpdateTime,s.contractUpdateBy,s.memberId,s.memberProjectGroupCode,s.memberProjectCode,s.mergeBranchMark,s.smsProjectCode,s.memberCreateTime,s.memberCreateBy,s.memberUpdateTime,s.memberUpdateBy,s.groupId,s.groupProjectGroupCode,s.groupProjectGroupName,s.projectType,s.groupCreateTime,s.groupCreateBy,s.groupUpdateTime,s.groupUpdateBy,s.originalProjectId,s.originalProjectCode));}
  static String fingerprint(Row r){return SyncFingerprint.of(Arrays.asList(r.id,r.tenantId,r.projectId,r.contractId,r.relationRole,r.sourceSystem,r.sourceTable,r.sourceRecordKey,r.effectiveFrom,r.effectiveTo,r.status,r.version,r.creator,r.createTime,r.updater,r.updateTime,r.deleted));}
  static void fail(String code){throw new IllegalArgumentException("P18_"+code);}
- @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){return SyncCounts.fromActions(b.rows(),Source::getAction);}
+ @Override protected SyncCounts syncDataCount(SyncBatch<Source,Parameters> b){var known=SyncCounts.fromActions(b.rows().stream().filter(s->!s.previewReferencePending).toList(),Source::getAction);return new SyncCounts(b.rows().size(),known.inserted(),known.updated(),known.unchanged(),known.deleted());}
  @Override protected void syncDataInsert(SyncBatch<Source,Parameters> b){super.syncDataInsert(b.matching(s->s.action==SyncWriteAction.INSERT));}
  @Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){var saves=new ArrayList<SyncIdentityStore.Save>();for(var s:b.rows()){if(s.action==SyncWriteAction.INSERT)saves.add(new SyncIdentityStore.Save("RELATION_BUSINESS",s.businessKey(),s.target.id,fingerprint(s.target),null));if(s.newOriginal)saves.add(new SyncIdentityStore.Save("RELATION_ORIGINAL",s.sourceKey(),s.target.id,originalFingerprint(s),null));}b.context().identities().saveAll(saves);}
  @lombok.Data public static class Source implements SyncReferences.SourceAudit {
@@ -122,7 +130,7 @@ private String groupUpdateBy;
 private Long originalProjectId;
 private String originalProjectCode;
 private String originalCompanyCode,companyCode;
-  private Source canonical;private String formalStatus,creatorCode,updaterCode,resolvedCreator,resolvedUpdater;private LocalDateTime createdAt,updatedAt;private Long formalProjectId,formalContractId;private Row target;private SyncWriteAction action;private boolean newOriginal;
+  private Source canonical;private String formalStatus,creatorCode,updaterCode,resolvedCreator,resolvedUpdater;private LocalDateTime createdAt,updatedAt;private Long formalProjectId,formalContractId;private Row target;private SyncWriteAction action;private boolean newOriginal,previewReferencePending;
   String sourceKey(){return contractSourceId+":"+memberId;}
   String businessKey(){return SyncFingerprint.of(Arrays.asList(originalProjectId,contractNo));}
   LocalDateTime createdAt(){return contractCreateTime==null?memberCreateTime:contractCreateTime;}

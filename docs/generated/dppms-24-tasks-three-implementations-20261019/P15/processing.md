@@ -54,89 +54,20 @@ Mapper声明存在不等于此运行调用或正式执行；SQL原件、动态�
 
 ## 新虚基类套件
 
-五个独立步骤，先原发货再本地合同；缺shipment_contract_source_key、500万配置/结构及新P24正式输入；实际条码4283326。
+五阶段原事实完整读取；只读预览的合同阶段从三份单表查询按既有字段优先级归并，真实执行继续读正式输入。运输字典每运行一次；发货事件去掉逐行关联，仅投影包裹3列/发货合同2列并在该步骤各加载一次，条码仍逐批释放，匹配为精确原键且不增加SQL嵌套；双空发货合同按新裁决在来源查询过滤，客户冲突仍阻断。
 
-| 实际声明/动态模板 | 分类 | 多表JOIN | 原件 |
-|---|---|---|---|
-| updateContract | update | 否 | [P15TargetMapper.xml:82](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:82) |
-| updateShipmentContract | update | 否 | [P15TargetMapper.xml:85](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:85) |
-| updatePackage | update | 否 | [P15TargetMapper.xml:88](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:88) |
+[本轮真实验证及外部前置](../base-sync-five-input-dependencies-20261019.md#p15)。不是所有分支都已在真实运行到达；缺引用分支另有原生检查。
 
-Mapper声明存在不等于此运行调用或正式执行；SQL原件、动态分支和目标绑定见本方式.sql与-mappings.json。
+| 前后置入口 | 逻辑 | 原件 |
+|---|---|---|
+| createParameters | 运行内固定少量目录/参数。 | [createParameters](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:22) |
+| work | 按上述预览与实际写入边界编排。 | [work](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:27) |
+| syncDataQuery | 执行实际来源查询，保持既定容量及范围。 | [syncDataQuery](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:39) |
+| syncDataQueryByRowHandler | 发货事件单表流式读取；两个最小来源投影各查一次，按精确原键补入原发货时间/合同号，保留原LEFT JOIN缺关联语义。 | [syncDataQueryByRowHandler](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:66) |
+| relationshipTime | 按原VARCHAR日期精确解析LocalDateTime，拒绝超过目标毫秒精度的有效位，不修改原日期。 | [relationshipTime](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:117) |
+| syncDataInsertBefore | 映射/合并并核验当前目标、授权、身份与不可变历史；预览缺引用登记见本轮报告。 | [syncDataInsertBefore](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:80) |
+| syncDataCount | 待核验的缺引用条目计入read，不虚报插入/未变。 | [syncDataCount](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:136) |
+| syncDataInsert | 仅实际执行进入批量DML/原Owner写入；预览不写业务。 | [syncDataInsert](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:137) |
+| syncDataInsertAfter | 仅实际执行保存独立来源绑定，保留指纹/原身份保护。 | [syncDataInsertAfter](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:138) |
 
-### createParameters
-
-[P15DeliverySyncTask.java:22](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:22)
-
-```java
-protected Parameters createParameters(SyncContext<?> c){
-  var names=new HashMap<String,String>();var ambiguous=new HashSet<String>();
-  for(var item:mapper.selectCarriers(new TenantQuery(c.tenantId()))){if(item.code==null || item.label==null || item.label.isBlank())continue;var old=names.putIfAbsent(item.code,item.label);if(old!=null && !old.equals(item.label))ambiguous.add(item.code);}
-  ambiguous.forEach(names::remove);return new Parameters(Map.copyOf(names),c.connectionId());
- }
-```
-
-### work
-
-[P15DeliverySyncTask.java:27](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:27)
-
-```java
-public void work(SyncContext<Parameters> c){
-  if(mapper.packageSourceColumnReady()!=1)fail("TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key");
-  try(var session=c.source().open(c.connectionId())){long count=session.mapper(SourceMapper.class).countShipmentEvents(new SourceQuery<>(1,c.tenantId(),true,c.parameters()));if(count>c.maxRows())fail("FULL_SHIPMENT_SOURCE_EXCEEDS_CONFIGURED_LIMIT:"+count+":"+c.maxRows());}
-  var prerequisite=mapper.latestP24Execution(new PrerequisiteQuery(c.tenantId(),c.connectionId()));if(prerequisite==null || !"COMPLETED".equals(prerequisite))fail("COMPLETE_FORMAL_BASE_P24_INPUT_REQUIRED");
-  syncData(c.forData("ShipmentContract",false,true));syncData(c.forData("Package",false,true));
-  syncData(c.forData("ShipmentEvent",false,true));syncData(c.forData("DeviceRelationship",false,true));
-  // Contracts consume the now-complete local shipment and P24 facts once, after the raw history phases.
-  syncData(c.forLocalData("Contract",false,true));
- }
-```
-
-### syncDataInsertBefore
-
-[P15DeliverySyncTask.java:36](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:36)
-
-```java
-protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
-  var c=b.context();String kind=c.dataName();var keys=b.rows().stream().map(s->s.key).toList();
-  var bindings=c.identities().findByKeys(new SyncIdentityStore.Query(objectKey(kind),keys));
-  var current=new HashMap<String,Row>();
-  // Typed scene query per table, with source identity and tenant fixed in XML.
-  List<Row> selected=switch(kind){case "Contract"->mapper.selectContracts(new ContractsQuery(c.tenantId(),b.rows().stream().map(s->new ContractIdentity(s.target.companyCode,s.target.contractNo)).toList(),c.preview()));case "ShipmentContract"->mapper.selectShipmentContracts(new KeysQuery(c.tenantId(),keys,c.preview()));case "Package"->mapper.selectPackages(new KeysQuery(c.tenantId(),keys,c.preview()));case "ShipmentEvent"->mapper.selectEvents(new KeysQuery(c.tenantId(),keys,c.preview()));case "DeviceRelationship"->mapper.selectRelationships(new KeysQuery(c.tenantId(),keys,c.preview()));default->throw new IllegalArgumentException("P15_STEP_UNKNOWN");};
-  var contractKeys=new HashMap<String,String>();if(kind.equals("Contract"))for(var s:b.rows())contractKeys.put(SyncFingerprint.of(Arrays.asList(s.target.companyCode,s.target.contractNo)),s.key);
-  for(var row:selected){String key=kind.equals("Contract")?contractKeys.get(SyncFingerprint.of(Arrays.asList(row.companyCode,row.contractNo))):kind.equals("Package")?row.packageNo:kind.equals("ShipmentEvent")||kind.equals("DeviceRelationship")?row.sourceKey:row.sourceRecordKey;if(!keys.contains(key)||current.putIfAbsent(key,row)!=null)fail("FORMAL_IDENTITY_AMBIGUOUS");}
-  for(var s:b.rows()){
-   if(s.issue!=null)fail(s.issue);if(s.key==null || s.key.isBlank())fail("RAW_SOURCE_KEY_MISSING");
-   var row=s.target;if(kind.equals("ShipmentContract")){var years=DppmsWarrantyYearsConverter.fromSource(s.rawWarranty);row.warrantyYears=years==null?null:years.longValue();}
-   if(kind.equals("Package"))row.carrierName=row.carrierCode==null?null:c.parameters().carriers.getOrDefault(row.carrierCode,row.carrierCode);
-   validate(new Validation(kind,row));var old=current.get(s.key);var binding=bindings.get(s.key);s.action=SyncWriteAction.UNCHANGED;s.previous=binding==null?null:binding.fingerprint();
-   if(old!=null){
-    if(kind.equals("Contract")&&(!"DPPMS_ERP".equals(old.masterSourceSystem)||!Objects.equals(old.masterSourceRecordKey,s.key)) || kind.equals("Package")&&!Objects.equals(old.sourceRecordKey,s.key))fail("BUSINESS_KEY_ALREADY_OWNED");
-    if(Boolean.TRUE.equals(old.deleted) || binding==null || binding.targetId()!=old.id || !binding.fingerprint().equals(fingerprint(new Validation(kind,old))))fail("EXISTING_FACT_PROTECTED");
-    var next=new Row();org.springframework.beans.BeanUtils.copyProperties(old,next);var from=new org.springframework.beans.BeanWrapperImpl(row);var into=new org.springframework.beans.BeanWrapperImpl(next);
-    for(var field:sourceFields(kind))into.setPropertyValue(field,from.getPropertyValue(field));
-    if(business(new Validation(kind,old)).equals(business(new Validation(kind,next)))){s.target=old;continue;}
-    if(kind.equals("ShipmentEvent")||kind.equals("DeviceRelationship"))fail("IMMUTABLE_HISTORY_CHANGED");
-    next.updater=Long.toString(c.actorId());next.updateTime=c.startedAt();next.sourceSyncTime=c.startedAt();s.expectedVersion=old.version;
-    if(next.version!=null)next.version=Math.addExact(next.version,1);s.target=next;s.action=SyncWriteAction.UPDATE;
-   }else{
-    if(binding!=null)fail("BOUND_TARGET_MISSING");row.id=c.preview()?null:IdWorker.getId();row.tenantId=c.tenantId();row.deleted=false;
-    row.creator=Long.toString(c.actorId());row.updater=row.creator;row.createTime=c.startedAt();row.updateTime=c.startedAt();
-    if(kind.equals("Contract")||kind.equals("ShipmentEvent")||kind.equals("DeviceRelationship"))row.version=0L;
-    if(kind.equals("Contract"))row.authorityStatus="CONFIRMED";
-    if(kind.equals("ShipmentContract")||kind.equals("Package")){row.mappingStatus="PENDING_MAPPING";row.sourceSyncTime=c.startedAt();}
-    if(kind.equals("ShipmentEvent")){row.syncStatus="SYNCED";row.syncedAt=c.startedAt();}
-    s.action=SyncWriteAction.INSERT;
-   }
-  }
- }
-```
-
-### syncDataInsertAfter
-
-[P15DeliverySyncTask.java:86](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P15DeliverySyncTask.java:86)
-
-```java
-protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){String kind=b.context().dataName();b.context().identities().saveAll(b.rows().stream().filter(s->s.action!=SyncWriteAction.UNCHANGED).map(s->new SyncIdentityStore.Save(objectKey(kind),s.key,s.target.id,fingerprint(new Validation(kind,s.target)),s.previous)).toList());}
-```
-
+实际SQL及完整动态节点见[C-base-sync.sql](C-base-sync.sql)、[C-base-sync-mappings.json](C-base-sync-mappings.json)。本次没有新增多表关联UPDATE；不能把Mapper声明当作已执行。
