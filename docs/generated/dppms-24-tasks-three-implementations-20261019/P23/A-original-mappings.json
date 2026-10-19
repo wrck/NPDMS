@@ -1,0 +1,102 @@
+{
+  "task": "P23",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "PLAN",
+      "sourceObject": "pm_pb_plan_from_sms",
+      "sourceKey": "id",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "com_contract_collection_plan",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "mappings": [
+            {
+              "conversion": "STRING",
+              "source": "contractNo",
+              "target": "contract_no"
+            },
+            {
+              "conversion": "STRING",
+              "source": "batchCode",
+              "target": "batch_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "basicDataName",
+              "target": "collection_item_name"
+            },
+            {
+              "conversion": "STRING",
+              "source": "referenceEventName",
+              "target": "reference_event_name"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "eventPlanHappenDate",
+              "target": "event_planned_at"
+            },
+            {
+              "conversion": "LONG",
+              "source": "afterDaysNum",
+              "target": "after_days"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "eventActualFinishDate",
+              "target": "event_actual_finished_at"
+            },
+            {
+              "conversion": "STRING",
+              "source": "marketingFeedback",
+              "target": "marketing_feedback"
+            },
+            {
+              "conversion": "STRING",
+              "source": "createBy",
+              "target": "creator"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "createTime",
+              "target": "create_time"
+            },
+            {
+              "conversion": "STRING",
+              "source": "updateBy",
+              "target": "updater"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "updateTime",
+              "target": "update_time"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "effectiveFrom",
+              "target": "effective_from"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "effectiveTo",
+              "target": "effective_to"
+            },
+            {
+              "conversion": "STRING",
+              "source": "dataSource",
+              "target": "data_source"
+            }
+          ],
+          "lookups": []
+        }
+      ]
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": []
+}

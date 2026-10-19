@@ -1,0 +1,77 @@
+{
+  "adapter": "DPPMS_FACTORY_HISTORY_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 1000,
+  "clearBeforeLoad": false,
+  "connectionId": 2110305954295414785,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 2000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 10000,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [
+        "serial_number",
+        "conp",
+        "cpld",
+        "boot",
+        "pcb"
+      ],
+      "filters": [],
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "serial_number",
+          "target": "serial_number"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conp",
+          "target": "conp"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "cpld",
+          "target": "cpld"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "boot",
+          "target": "boot"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "pcb",
+          "target": "pcb"
+        }
+      ],
+      "object": "fb_soft_version",
+      "readMode": "TABLE",
+      "sourceKey": "factoryRowKey",
+      "sourceKeyColumns": [
+        "serial_number",
+        "conp",
+        "cpld",
+        "boot",
+        "pcb"
+      ],
+      "sourceObject": "fb_soft_version",
+      "syncPrimaryKey": false,
+      "table": "fb_soft_version"
+    }
+  ],
+  "taskKey": "P34_DIRECT"
+}

@@ -1,0 +1,150 @@
+{
+  "task": "P12",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "ast_product_official_info",
+      "column": "product_code",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_model",
+      "parameter": "#{row.productModel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_name",
+      "parameter": "#{row.productName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_desc",
+      "parameter": "#{row.productDesc}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_system",
+      "parameter": "#{row.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_key",
+      "parameter": "#{row.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_version",
+      "parameter": "#{row.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "status",
+      "parameter": "#{row.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "version",
+      "parameter": "#{row.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "synced_at",
+      "parameter": "#{row.syncedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "deleted",
+      "parameter": "#{row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "sync_status",
+      "parameter": "'SUCCESS'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.selectSupplementTargets",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml",
+      "xml": "<select id=\"selectSupplementTargets\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$ProductSyncRow\">\n    SELECT product_code, product_model, product_name, product_desc, id, tenant_id, source_system, source_key, source_version, status, version, synced_at, creator, updater, create_time, update_time, deleted FROM ast_product_official_info\n    WHERE tenant_id=#{query.tenantId}\n    <choose><when test=\"query.productCodes != null and !query.productCodes.isEmpty()\">\n      AND product_code IN <foreach collection=\"query.productCodes\" item=\"code\" open=\"(\" close=\")\" separator=\",\">#{code}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    <if test=\"!query.preview\">FOR UPDATE</if>\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper.insertSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P12TargetMapper.xml",
+      "xml": "<insert id=\"insertSupplementProduct\">\n    INSERT INTO ast_product_official_info\n      (product_code, product_model, product_name, product_desc, id, tenant_id, source_system, source_key, source_version, status, version, synced_at, creator, updater, create_time, update_time, deleted, sync_status)\n    VALUES\n    <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.productCode}, #{row.productModel}, #{row.productName}, #{row.productDesc}, #{row.id}, #{row.tenantId}, #{row.sourceSystem}, #{row.sourceKey}, #{row.sourceVersion}, #{row.status}, #{row.version}, #{row.syncedAt}, #{row.creator}, #{row.updater}, #{row.createTime}, #{row.updateTime}, #{row.deleted}, 'SUCCESS')</foreach>\n  </insert>\n  \n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$SourceMapper.selectSupplementProduct",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P12SourceMapper.xml",
+      "xml": "<select id=\"selectSupplementProduct\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$ProductSyncRow\">\n    SELECT item AS product_code, itemname AS product_model, describe_ AS product_name, describe_ AS product_desc\n    FROM fb_items ORDER BY item, id LIMIT #{limit}\n  </select>\n"
+    }
+  ]
+}

@@ -1,0 +1,454 @@
+{
+  "task": "P33",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "INSTALLATION_HISTORY",
+      "sourceObject": "pm_project_shipment",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "barcode",
+          "target": "barcode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemCode",
+          "target": "itemCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemModel",
+          "target": "itemModel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemName",
+          "target": "itemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "receiveName",
+          "target": "receiveName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "emsNum",
+          "target": "emsNum",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "emsCompany",
+          "target": "emsCompany",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "packdate",
+          "target": "packdate",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "installAddress",
+          "target": "installAddress",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "chProjectId",
+          "target": "chProjectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "chContractNo",
+          "target": "chContractNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "transferProjectId",
+          "target": "transferProjectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "transferContractNo",
+          "target": "transferContractNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "transferFlag",
+          "target": "transferFlag",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "imp_eng_installation",
+      "column": "id",
+      "parameter": "#{record.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "tenant_id",
+      "parameter": "#{record.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "project_id",
+      "parameter": "#{record.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "code",
+      "parameter": "#{record.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "equipment_id",
+      "parameter": "#{record.equipmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "install_location",
+      "parameter": "#{record.installLocation}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "address_id",
+      "parameter": "#{record.addressId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "address_version",
+      "parameter": "#{record.addressVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_id",
+      "parameter": "#{record.siteId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_version",
+      "parameter": "#{record.siteVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_location_id",
+      "parameter": "#{record.siteLocationId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_location_version",
+      "parameter": "#{record.siteLocationVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "location_resolution_status",
+      "parameter": "#{record.locationResolutionStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "address_snapshot",
+      "parameter": "#{record.addressSnapshot}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "location_snapshot",
+      "parameter": "#{record.locationSnapshot}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "effective_from",
+      "parameter": "#{record.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "effective_to",
+      "parameter": "#{record.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "install_time",
+      "parameter": "#{record.installTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "installer_user_id",
+      "parameter": "#{record.installerUserId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "environment_check",
+      "parameter": "#{record.environmentCheck}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "spec_check",
+      "parameter": "#{record.specCheck}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "photo_url",
+      "parameter": "#{record.photoUrl}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "result",
+      "parameter": "#{record.result}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "status",
+      "parameter": "#{record.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "remark",
+      "parameter": "#{record.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "version",
+      "parameter": "#{record.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "creator",
+      "parameter": "#{record.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "create_time",
+      "parameter": "#{record.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "updater",
+      "parameter": "#{record.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "update_time",
+      "parameter": "#{record.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "deleted",
+      "parameter": "#{record.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.selectBoundRecordForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml",
+      "xml": "<select id=\"selectBoundRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationRow\">\n        SELECT * FROM imp_eng_installation\n        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.installationId}\n        FOR UPDATE\n    </select>\n    \n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n        INSERT INTO imp_eng_installation\n          (id,tenant_id,project_id,code,equipment_id,install_location,\n           address_id,address_version,site_id,site_version,site_location_id,site_location_version,\n           location_resolution_status,address_snapshot,location_snapshot,\n           effective_from,effective_to,install_time,installer_user_id,environment_check,\n           spec_check,photo_url,result,status,remark,version,creator,create_time,updater,update_time,deleted)\n        VALUES\n          (#{record.id},#{record.tenantId},#{record.projectId},#{record.code},#{record.equipmentId},#{record.installLocation},\n           #{record.addressId},#{record.addressVersion},#{record.siteId},#{record.siteVersion},#{record.siteLocationId},#{record.siteLocationVersion},\n           #{record.locationResolutionStatus},#{record.addressSnapshot},#{record.locationSnapshot},\n           #{record.effectiveFrom},#{record.effectiveTo},#{record.installTime},#{record.installerUserId},#{record.environmentCheck},\n           #{record.specCheck},#{record.photoUrl},#{record.result},#{record.status},#{record.remark},#{record.version},\n           #{record.creator},#{record.createTime},#{record.updater},#{record.updateTime},#{record.deleted})\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.selectCurrentRecordForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml",
+      "xml": "<select id=\"selectCurrentRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationRow\">\n        SELECT * FROM imp_eng_installation WHERE tenant_id=#{query.tenantId} AND equipment_id=#{query.equipmentId} AND status=2 AND effective_to IS NULL AND deleted=0 FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectInstallationMapper.selectRecordCodesIncludeDeleted",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectInstallationMapper.xml",
+      "xml": "<select id=\"selectRecordCodesIncludeDeleted\" resultType=\"java.lang.String\">\n        SELECT code FROM imp_eng_installation WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND code IS NOT NULL\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSource",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSource\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSourceForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectRecords",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectRecords\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRecordRow\">\n    SELECT * FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" /> ORDER BY source_key,id\n    LIMIT #{query.offset},#{query.limit}\n  </select>\n"
+    }
+  ]
+}

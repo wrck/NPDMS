@@ -1,0 +1,418 @@
+{
+  "task": "P14",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "ORDER",
+      "sourceObject": "pm_order_data_from_erp",
+      "sourceKey": "migrationSourceKey",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "order",
+          "table": "com_sales_order",
+          "keys": [
+            "source_system",
+            "company_code",
+            "order_type",
+            "order_no"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [
+            "source_version",
+            "source_updated_at",
+            "source_sync_time",
+            "custom_info",
+            "sales_type",
+            "contract_no",
+            "execution_no",
+            "customer_code",
+            "customer_name",
+            "source_project_name",
+            "order_comment",
+            "order_create_time",
+            "customer_required_time",
+            "source_lifecycle_status",
+            "status",
+            "company_id",
+            "company_name"
+          ],
+          "newerBy": "source_updated_at",
+          "mappings": [
+            {
+              "conversion": "ENUM",
+              "source": "source",
+              "target": "source_system",
+              "values": {
+                "SAP": "SAP",
+                "D365": "D365",
+                "SMS": "SMS"
+              }
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "company_code",
+              "target": "company_code"
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "orderNumber",
+              "target": "order_no"
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "sourceRecordKey",
+              "target": "source_record_key"
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "sourceVersion",
+              "target": "source_version"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "migrationVersion",
+              "target": "source_updated_at"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "syncReceivedAt",
+              "target": "source_sync_time"
+            },
+            {
+              "conversion": "JSON_TEXT",
+              "source": "customInfo",
+              "target": "custom_info"
+            },
+            {
+              "conversion": "STRING",
+              "source": "orderType",
+              "target": "order_type"
+            },
+            {
+              "conversion": "STRING",
+              "source": "salesType",
+              "target": "sales_type"
+            },
+            {
+              "conversion": "STRING",
+              "source": "contractNo",
+              "target": "contract_no"
+            },
+            {
+              "conversion": "STRING",
+              "source": "orderExecNumber",
+              "target": "execution_no"
+            },
+            {
+              "conversion": "STRING",
+              "source": "migrationCustomerCode",
+              "target": "customer_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "customerName",
+              "target": "customer_name"
+            },
+            {
+              "conversion": "STRING",
+              "source": "projectName",
+              "target": "source_project_name"
+            },
+            {
+              "conversion": "STRING",
+              "source": "orderComment",
+              "target": "order_comment"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "orderCreateTime",
+              "target": "order_create_time"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "customerRequireTime",
+              "target": "customer_required_time"
+            },
+            {
+              "conversion": "ENUM",
+              "source": "orderType",
+              "target": "source_lifecycle_status",
+              "values": {
+                "0": "ACTIVE",
+                "1": "RETURNED"
+              }
+            },
+            {
+              "conversion": "ENUM",
+              "source": "orderType",
+              "target": "status",
+              "values": {
+                "0": "ENABLED",
+                "1": "DISABLED"
+              }
+            }
+          ],
+          "lookups": [
+            {
+              "table": "system_company",
+              "match": {
+                "code": "company_code"
+              },
+              "outputs": {
+                "company_id": "id",
+                "company_name": "name"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "sameVersionColumns": [
+            "custom_info",
+            "sales_type",
+            "contract_no",
+            "execution_no",
+            "customer_code",
+            "customer_name",
+            "source_project_name",
+            "order_comment",
+            "order_create_time",
+            "customer_required_time",
+            "source_lifecycle_status",
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "object": "LINE",
+      "sourceObject": "pm_order_line_from_erp",
+      "sourceKey": "migrationSourceKey",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "line",
+          "table": "com_sales_order_line",
+          "keys": [
+            "source_system",
+            "company_code",
+            "order_type",
+            "order_no",
+            "line_no"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [
+            "source_version",
+            "source_updated_at",
+            "source_sync_time",
+            "custom_info",
+            "line_type",
+            "product_code",
+            "product_desc",
+            "bundle_code",
+            "profit_center",
+            "real_execution_no",
+            "warranty_month",
+            "order_qty",
+            "open_qty",
+            "delivered_qty",
+            "source_lifecycle_status",
+            "status",
+            "company_id",
+            "company_name",
+            "customer_id",
+            "customer_code",
+            "customer_name",
+            "order_id",
+            "product_id"
+          ],
+          "newerBy": "source_updated_at",
+          "mappings": [
+            {
+              "conversion": "ENUM",
+              "source": "source",
+              "target": "source_system",
+              "values": {
+                "SAP": "SAP",
+                "D365": "D365",
+                "SMS": "SMS"
+              }
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "company_code",
+              "target": "company_code"
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "orderNumber",
+              "target": "order_no"
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "sourceRecordKey",
+              "target": "source_record_key"
+            },
+            {
+              "conversion": "DIRECT",
+              "source": "sourceVersion",
+              "target": "source_version"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "migrationVersion",
+              "target": "source_updated_at"
+            },
+            {
+              "conversion": "DATETIME",
+              "source": "syncReceivedAt",
+              "target": "source_sync_time"
+            },
+            {
+              "conversion": "JSON_TEXT",
+              "source": "customInfo",
+              "target": "custom_info"
+            },
+            {
+              "conversion": "STRING",
+              "source": "lineType",
+              "target": "order_type"
+            },
+            {
+              "conversion": "STRING",
+              "source": "lineType",
+              "target": "line_type"
+            },
+            {
+              "conversion": "STRING",
+              "source": "lineNum",
+              "target": "line_no"
+            },
+            {
+              "conversion": "STRING",
+              "source": "itemCode",
+              "target": "product_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "itemDesc",
+              "target": "product_desc"
+            },
+            {
+              "conversion": "STRING",
+              "source": "bundleCode",
+              "target": "bundle_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "profitCenter",
+              "target": "profit_center"
+            },
+            {
+              "conversion": "STRING",
+              "source": "realOrderExecNumber",
+              "target": "real_execution_no"
+            },
+            {
+              "conversion": "LONG",
+              "source": "warrantyMonth",
+              "target": "warranty_month"
+            },
+            {
+              "conversion": "DECIMAL",
+              "source": "orderQuantity",
+              "target": "order_qty"
+            },
+            {
+              "conversion": "DECIMAL",
+              "source": "openQuantity",
+              "target": "open_qty"
+            },
+            {
+              "conversion": "DECIMAL",
+              "source": "deliveredQuantity",
+              "target": "delivered_qty"
+            },
+            {
+              "conversion": "ENUM",
+              "source": "lineType",
+              "target": "source_lifecycle_status",
+              "values": {
+                "0": "ACTIVE",
+                "1": "RETURNED"
+              }
+            },
+            {
+              "conversion": "ENUM",
+              "source": "lineType",
+              "target": "status",
+              "values": {
+                "0": "ENABLED",
+                "1": "DISABLED"
+              }
+            }
+          ],
+          "lookups": [
+            {
+              "table": "com_sales_order",
+              "match": {
+                "source_system": "source_system",
+                "company_code": "company_code",
+                "order_type": "order_type",
+                "order_no": "order_no"
+              },
+              "outputs": {
+                "order_id": "id",
+                "company_id": "company_id",
+                "company_name": "company_name",
+                "customer_id": "customer_id",
+                "customer_code": "customer_code",
+                "customer_name": "customer_name"
+              },
+              "onMissing": "RETAIN"
+            },
+            {
+              "table": "system_company",
+              "match": {
+                "code": "company_code"
+              },
+              "outputs": {
+                "company_id": "id",
+                "company_name": "name"
+              },
+              "onMissing": "RETAIN"
+            },
+            {
+              "table": "ast_product_official_info",
+              "match": {
+                "product_code": "product_code"
+              },
+              "outputs": {
+                "product_id": "id"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "sameVersionColumns": [
+            "custom_info",
+            "line_type",
+            "product_code",
+            "product_desc",
+            "bundle_code",
+            "profit_center",
+            "real_execution_no",
+            "warranty_month",
+            "order_qty",
+            "open_qty",
+            "delivered_qty",
+            "source_lifecycle_status",
+            "status"
+          ]
+        }
+      ]
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": []
+}

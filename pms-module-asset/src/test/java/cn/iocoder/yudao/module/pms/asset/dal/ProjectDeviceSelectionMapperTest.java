@@ -28,7 +28,7 @@ class ProjectDeviceSelectionMapperTest {
                     + "product_model VARCHAR(255), contract_no VARCHAR(128), status VARCHAR(32), deleted INT DEFAULT 0)");
             sql.execute("INSERT INTO ast_device (id,tenant_id,project_id,sn,name,contract_no,deleted) VALUES "
                     + "(1,1,10,'PROJECT-1','设备一','OTHER',0),"
-                    + "(2,1,20,'CONTRACT-2','设备二','C-10',0),"
+                    + "(2,1,NULL,'CONTRACT-2','设备二','C-10',0),"
                     + "(3,1,20,'OTHER-3','设备三','OTHER',0),"
                     + "(4,2,10,'TENANT-4','跨租户','C-10',0),"
                     + "(5,1,10,'DELETED-5','已删除','C-10',1),"

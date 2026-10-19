@@ -47,4 +47,18 @@ class StreamingResultSampleTest {
         assertEquals("original",((Map<?,?>)appended.rows().getFirst().after().get("nested")).get("value"));
         assertEquals(JsonUtils.parseTree(appended.json()),JsonUtils.parseTree(JsonUtils.toJsonString(appended.rows())));
     }
+    @Test void lateEmptyCodeIssueIsVisibleOnlyForTheIndependentP37WithoutChangingItsAction() {
+        var ordinary=List.of(change("1","CREATED"),change("2","CREATED"),change("3","CREATED"));
+        var warning=new DataSyncAdapter.Change(DppmsSecureLicenseSyncTemplate.OBJECT,"472122",null,"CREATED",Map.of(),Map.of("sourceIssues",List.of("LICENSE_CODE_EMPTY")),"原始空字符串已加密保留");
+        var run=new SyncRunDO().setPreview(true).setResultJson(JsonUtils.toJsonString(ordinary))
+                .setConfigSnapshot("{\"adapter\":\"DPPMS_SECURE_LICENSE_DIRECT\"}");
+        var direct=new SyncRunService.StreamingResultSample(run,3);var update=direct.prepare(List.of(warning));
+        assertEquals(List.of("1","2","472122"),update.rows().stream().map(DataSyncAdapter.Change::sourceKey).toList());
+        assertEquals("CREATED",update.rows().getLast().action());direct.committed(update);
+        assertNull(direct.prepare(List.of(change("475468","CREATED"))));
+        run.setResultJson(update.json());var restored=new SyncRunService.StreamingResultSample(run,3);
+        assertNull(restored.prepare(List.of(change("475468","CREATED"))));
+        run.setResultJson(JsonUtils.toJsonString(ordinary)).setConfigSnapshot("{\"adapter\":\"DPPMS_SECURE_LICENSE\"}");
+        assertNull(new SyncRunService.StreamingResultSample(run,3).prepare(List.of(warning)));
+    }
 }

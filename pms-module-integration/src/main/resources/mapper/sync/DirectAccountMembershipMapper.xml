@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper">
+    <sql id="relations">
+        SELECT id,user_id AS userId,role_id AS roleId FROM system_user_role
+        WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id
+    </sql>
+    <select id="selectRelations" resultType="cn.iocoder.yudao.module.system.api.migration.SystemUserRoleMigrationApi$Relation">
+        <include refid="relations"/>
+    </select>
+    <select id="selectRelationsForUpdate" resultType="cn.iocoder.yudao.module.system.api.migration.SystemUserRoleMigrationApi$Relation">
+        <include refid="relations"/> FOR UPDATE
+    </select>
+    <sql id="users">
+        SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose><when test="query.userIds != null and !query.userIds.isEmpty()">
+            AND id IN <foreach collection="query.userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+        ORDER BY id
+    </sql>
+    <select id="selectUserIds" resultType="java.lang.Long"><include refid="users"/></select>
+    <select id="selectUserIdsForUpdate" resultType="java.lang.Long"><include refid="users"/> FOR UPDATE</select>
+    <sql id="roles">
+        SELECT id,code FROM system_role WHERE tenant_id=#{query.tenantId} AND status=0 AND deleted=FALSE
+        <choose><when test="query.roleIds != null and !query.roleIds.isEmpty()">
+            AND id IN <foreach collection="query.roleIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+        ORDER BY id
+    </sql>
+    <select id="selectRoles" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper$RoleReference"><include refid="roles"/></select>
+    <select id="selectRolesForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper$RoleReference"><include refid="roles"/> FOR UPDATE</select>
+    <insert id="insertHistoricalRelation">
+        INSERT INTO system_user_role(id,tenant_id,user_id,role_id,creator,create_time,updater,update_time,deleted)
+        VALUES(#{write.relation.id},#{write.tenantId},#{write.relation.userId},#{write.relation.roleId},NULL,NULL,NULL,NULL,FALSE)
+    </insert>
+</mapper>

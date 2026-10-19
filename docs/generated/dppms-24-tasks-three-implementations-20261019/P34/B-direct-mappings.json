@@ -1,0 +1,159 @@
+{
+  "task": "P34",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "fb_soft_version",
+      "sourceObject": "fb_soft_version",
+      "sourceKey": "factoryRowKey",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "serial_number",
+          "target": "serial_number",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "conp",
+          "target": "conp",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "cpld",
+          "target": "cpld",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "boot",
+          "target": "boot",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "pcb",
+          "target": "pcb",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "project_id",
+      "parameter": "#{row.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "device_sn",
+      "parameter": "#{row.deviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "conp_version",
+      "parameter": "#{row.conpVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "boot_version",
+      "parameter": "#{row.bootVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "cpld_version",
+      "parameter": "#{row.cpldVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "pcb_version",
+      "parameter": "#{row.pcbVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "deleted",
+      "parameter": "#{row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.selectGlobalRecordForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml",
+      "xml": "<select id=\"selectGlobalRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryRow\">\nSELECT * FROM ast_device_factory_version_record WHERE tenant_id=#{query.tenantId} AND project_id IS NULL AND id=#{query.id} FOR UPDATE\n</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectFactoryHistoryMapper.insert",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectFactoryHistoryMapper.xml",
+      "xml": "<insert id=\"insert\">INSERT INTO ast_device_factory_version_record(id,tenant_id,project_id,device_sn,conp_version,boot_version,cpld_version,pcb_version,creator,create_time,updater,update_time,deleted)\nVALUES(#{row.id},#{row.tenantId},#{row.projectId},#{row.deviceSn},#{row.conpVersion},#{row.bootVersion},#{row.cpldVersion},#{row.pcbVersion},#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted})</insert>\n"
+    }
+  ]
+}

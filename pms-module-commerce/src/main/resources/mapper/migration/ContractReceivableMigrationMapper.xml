@@ -11,6 +11,14 @@
       AND contract_no=#{query.contractNo}
       AND CAST(contract_no AS BINARY)=CAST(#{query.contractNo} AS BINARY) ORDER BY id
   </select>
+  <select id="selectContractIdentities" resultType="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper$ContractIdentity">
+    SELECT id,contract_no FROM com_contract WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+    <choose><when test="query.contractNos != null and !query.contractNos.isEmpty()">
+      AND contract_no IN <foreach collection="query.contractNos" item="no" open="(" separator="," close=")">#{no}</foreach>
+      AND CAST(contract_no AS BINARY) IN <foreach collection="query.contractNos" item="no" open="(" separator="," close=")">CAST(#{no} AS BINARY)</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+    ORDER BY id
+  </select>
   <insert id="insertReceipt">
     INSERT INTO com_contract_receivable (id, tenant_id, contract_id, contract_no, company_id, company_code, company_name, company_resolution_source, mapping_status, project_name, source_order_no, customer_code, customer_name, contract_amount, delivered_amount, collected_amount, collected_ratio, receivable_amount, overdue_amount, currency_name, market_code, market_name, department_id, department_code, department_name, industry_name, marketing_representative_name, source_batch_code, import_batch_no, project_code, system_source_key, system_code, system_name, industry_code, expend_source_key, expend_code, expend_name, marketing_representative_code, secondary_representative_code, original_division_values, source_effective_from, source_effective_to, contract_create_time, latest_ship_time, source_system, source_record_key, source_sync_time, creator, create_time, updater, update_time, deleted)
     VALUES (#{row.id}, #{row.tenantId}, #{row.contractId}, #{row.contractNo}, #{row.companyId}, #{row.companyCode}, #{row.companyName}, #{row.companyResolutionSource}, #{row.mappingStatus}, #{row.projectName}, #{row.sourceOrderNo}, #{row.customerCode}, #{row.customerName}, #{row.contractAmount}, #{row.deliveredAmount}, #{row.collectedAmount}, #{row.collectedRatio}, #{row.receivableAmount}, #{row.overdueAmount}, #{row.currencyName}, #{row.marketCode}, #{row.marketName}, #{row.departmentId}, #{row.departmentCode}, #{row.departmentName}, #{row.industryName}, #{row.marketingRepresentativeName}, #{row.sourceBatchCode}, #{row.importBatchNo}, #{row.projectCode}, #{row.systemSourceKey}, #{row.systemCode}, #{row.systemName}, #{row.industryCode}, #{row.expendSourceKey}, #{row.expendCode}, #{row.expendName}, #{row.marketingRepresentativeCode}, #{row.secondaryRepresentativeCode}, #{row.originalDivisionValues}, #{row.sourceEffectiveFrom}, #{row.sourceEffectiveTo}, #{row.contractCreateTime}, #{row.latestShipTime}, #{row.sourceSystem}, #{row.sourceRecordKey}, #{row.sourceSyncTime}, #{row.creator}, #{row.createTime}, #{row.updater}, #{row.updateTime}, #{row.deleted})

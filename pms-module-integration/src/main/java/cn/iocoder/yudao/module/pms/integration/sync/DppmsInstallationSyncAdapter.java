@@ -70,7 +70,7 @@ public class DppmsInstallationSyncAdapter implements DataSyncAdapter {
         if(facts.size()!=1 || !Objects.equals(facts.getFirst().id(),projectId))fail("PROJECT_UNRESOLVED");
         projects.lockBindings(new ProjectMasterMigrationApi.BindingVerification(run.tenantId(),run.actorId(),facts));
         var devices=bindings.selectIdentitySources(new SyncQueries.IdentitySources(run.tenantId(),"DPPMS",run.task().getConnectionId(),
-                DppmsDeviceBootstrapSyncTemplate.ADAPTER,"ast_device_shipment",List.copyOf(sns)));
+                DppmsDeviceBootstrapSyncTemplate.ADAPTER,"ast_device_shipment",List.copyOf(sns)).originalLine());
         var deviceIds=new HashSet<Long>();
         for(var device:devices) {
             if(!sns.contains(device.getSourceKey()) || device.getTargetId()==null || device.getTargetId()<=0)fail("DEVICE_BINDING_INVALID");

@@ -184,7 +184,7 @@ public class DppmsProjectMasterSyncAdapter implements DataSyncAdapter {
         Map<String,Long> result=new HashMap<>();
         for (var group:selected.entrySet()) {
             for (var binding:bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",connectionId,
-                    "DPPMS_USERS",group.getKey(),List.copyOf(group.getValue())))) {
+                    "DPPMS_USERS",group.getKey(),List.copyOf(group.getValue())).originalLine())) {
                 String key=group.getKey()+":"+binding.getSourceKey();
                 if (binding.getTargetId()==null) throw new IllegalArgumentException("项目审计账号无正式用户绑定");
                 Long previous=result.putIfAbsent(key,binding.getTargetId());

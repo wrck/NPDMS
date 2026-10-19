@@ -1,0 +1,1008 @@
+{
+  "task": "P16",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "proj_project",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_code",
+      "parameter": "#{row.target.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "code_root_id",
+      "parameter": "#{row.target.codeRootId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_sequence",
+      "parameter": "#{row.target.projectSequence}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "code_rule_version",
+      "parameter": "#{row.target.codeRuleVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_name",
+      "parameter": "#{row.target.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "parent_id",
+      "parameter": "#{row.target.parentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "root_id",
+      "parameter": "#{row.target.rootId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "tree_path",
+      "parameter": "#{row.target.treePath}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "tree_depth",
+      "parameter": "#{row.target.treeDepth}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "tree_sort",
+      "parameter": "#{row.target.treeSort}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "business_level_code",
+      "parameter": "#{row.target.businessLevelCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "business_level_name",
+      "parameter": "#{row.target.businessLevelName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "customer_id",
+      "parameter": "#{row.target.customerId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "customer_code",
+      "parameter": "#{row.target.customerCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "customer_name",
+      "parameter": "#{row.target.customerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "manager_id",
+      "parameter": "#{row.target.managerId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "manager_employee_no",
+      "parameter": "#{row.target.managerEmployeeNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "manager_name",
+      "parameter": "#{row.target.managerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "company_id",
+      "parameter": "#{row.target.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "company_code",
+      "parameter": "#{row.target.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "company_name",
+      "parameter": "#{row.target.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "department_id",
+      "parameter": "#{row.target.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "department_code",
+      "parameter": "#{row.target.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "department_name",
+      "parameter": "#{row.target.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_type",
+      "parameter": "#{row.target.projectType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "signing_method",
+      "parameter": "#{row.target.signingMethod}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_category",
+      "parameter": "#{row.target.projectCategory}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "implementation_mode",
+      "parameter": "#{row.target.implementationMode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "major_project_level",
+      "parameter": "#{row.target.majorProjectLevel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "market_code",
+      "parameter": "#{row.target.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "market_name",
+      "parameter": "#{row.target.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "system_code",
+      "parameter": "#{row.target.systemCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "system_name",
+      "parameter": "#{row.target.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "expend_code",
+      "parameter": "#{row.target.expendCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "expend_name",
+      "parameter": "#{row.target.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "industry_code",
+      "parameter": "#{row.target.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "industry_name",
+      "parameter": "#{row.target.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "customer_project_name",
+      "parameter": "#{row.target.customerProjectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "sales_type",
+      "parameter": "#{row.target.salesType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "business_type",
+      "parameter": "#{row.target.businessType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "service_level_code",
+      "parameter": "#{row.target.serviceLevelCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "not_track_reason",
+      "parameter": "#{row.target.notTrackReason}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "implementation_location",
+      "parameter": "#{row.target.implementationLocation}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "location_resolution_status",
+      "parameter": "#{row.target.locationResolutionStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "creation_reason",
+      "parameter": "#{row.target.creationReason}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "lifecycle_template_id",
+      "parameter": "#{row.target.lifecycleTemplateId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "lifecycle_template_revision_no",
+      "parameter": "#{row.target.lifecycleTemplateRevisionNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "lifecycle_template_revision_id",
+      "parameter": "#{row.target.lifecycleTemplateRevisionId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "template_load_method",
+      "parameter": "#{row.target.templateLoadMethod}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "process_definition_key",
+      "parameter": "#{row.target.processDefinitionKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "process_definition_version",
+      "parameter": "#{row.target.processDefinitionVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_start_time",
+      "parameter": "#{row.target.projectStartTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_refresh_time",
+      "parameter": "#{row.target.projectRefreshTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_close_time",
+      "parameter": "#{row.target.projectCloseTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "source_type",
+      "parameter": "#{row.target.sourceType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "progress",
+      "parameter": "#{row.target.progress}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "aggregation_weight",
+      "parameter": "#{row.target.aggregationWeight}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "weight_source",
+      "parameter": "#{row.target.weightSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "deleted_time",
+      "parameter": "#{row.target.deletedTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "lifecycle_status",
+      "parameter": "#{row.target.lifecycleStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "current_stage",
+      "parameter": "#{row.target.currentStage}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "assignment_status",
+      "parameter": "#{row.target.assignmentStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "task_tree_version",
+      "parameter": "#{row.target.taskTreeVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "task_progress_version",
+      "parameter": "#{row.target.taskProgressVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "project_end_date",
+      "parameter": "#{row.target.projectEndDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "closure_policy_snapshot",
+      "parameter": "#{row.target.closurePolicySnapshot}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "closure_type",
+      "parameter": "#{row.target.closureType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "closed_from_stage",
+      "parameter": "#{row.target.closedFromStage}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "closed_at",
+      "parameter": "#{row.target.closedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "active_plan_version_id",
+      "parameter": "#{row.target.activePlanVersionId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "custom_info",
+      "parameter": "#{row.target.customInfo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "order_create_time",
+      "parameter": "#{row.target.orderCreateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "disabled",
+      "parameter": "#{row.target.disabled}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "effective_from",
+      "parameter": "#{row.target.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project",
+      "column": "effective_to",
+      "parameter": "#{row.target.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "id",
+      "parameter": "#{row.party.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "tenant_id",
+      "parameter": "#{row.party.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "project_id",
+      "parameter": "#{row.party.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_role",
+      "parameter": "#{row.party.partyRole}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_code",
+      "parameter": "#{row.party.partyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_name",
+      "parameter": "#{row.party.partyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "contact_name",
+      "parameter": "#{row.party.contactName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "phone",
+      "parameter": "#{row.party.phone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_system",
+      "parameter": "#{row.party.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_table",
+      "parameter": "#{row.party.sourceTable}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_record_key",
+      "parameter": "#{row.party.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "effective_from",
+      "parameter": "#{row.party.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "effective_to",
+      "parameter": "#{row.party.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "status",
+      "parameter": "#{row.party.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "version",
+      "parameter": "#{row.party.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "creator",
+      "parameter": "#{row.party.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "create_time",
+      "parameter": "#{row.party.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "updater",
+      "parameter": "#{row.party.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "update_time",
+      "parameter": "#{row.party.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "deleted",
+      "parameter": "#{row.party.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "id",
+      "parameter": "#{s.treeVersionId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "root_project_id",
+      "parameter": "#{s.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "tree_version",
+      "parameter": "1",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "status",
+      "parameter": "'BUILDING'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "change_batch_id",
+      "parameter": "CONCAT('BASE_PROJECT_CREATE:',#{s.target.id})",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "node_count",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "path_count",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "creator",
+      "parameter": "#{context.actorId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "updater",
+      "parameter": "#{context.actorId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "create_time",
+      "parameter": "#{context.startedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "update_time",
+      "parameter": "#{context.startedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_version",
+      "column": "tenant_id",
+      "parameter": "#{context.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "id",
+      "parameter": "#{s.pathId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "tenant_id",
+      "parameter": "#{context.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "tree_version",
+      "parameter": "1",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "root_project_id",
+      "parameter": "#{s.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "ancestor_project_id",
+      "parameter": "#{s.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "descendant_project_id",
+      "parameter": "#{s.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "distance",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "creator",
+      "parameter": "#{context.actorId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "updater",
+      "parameter": "#{context.actorId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "create_time",
+      "parameter": "#{context.startedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "update_time",
+      "parameter": "#{context.startedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_tree_path",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.selectDirectory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<select id=\"selectDirectory\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$Directory\">SELECT id,code,name,'COMPANY' AS kind FROM system_company WHERE tenant_id=#{query.tenantId} AND deleted=FALSE UNION ALL SELECT id,code,name,'DEPARTMENT' AS kind FROM system_dept WHERE tenant_id=#{query.tenantId} AND deleted=FALSE</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.selectAccountBindings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<select id=\"selectAccountBindings\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$AccountBinding\">SELECT u.id,u.username,b.object_key AS kind,b.source_key FROM int_base_sync_binding b JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id AND t.task_code='BASE_P04' AND t.connection_id=#{query.connectionId} AND t.deleted=FALSE JOIN int_base_sync_run run ON run.tenant_id=b.tenant_id AND run.id=b.last_run_id AND run.task_id=t.id AND run.preview=FALSE AND run.status='COMPLETED' AND run.deleted=FALSE JOIN system_users u ON u.tenant_id=b.tenant_id AND u.id=b.target_id AND u.deleted=FALSE WHERE b.tenant_id=#{query.tenantId} AND b.object_key IN ('USER_FND','USER_T') AND b.deleted=FALSE</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.selectProjects",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<select id=\"selectProjects\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$Row\">SELECT `id`,`project_code`,`code_root_id`,`project_sequence`,`code_rule_version`,`project_name`,`parent_id`,`root_id`,`tree_path`,`tree_depth`,`tree_sort`,`business_level_code`,`business_level_name`,`customer_id`,`customer_code`,`customer_name`,`manager_id`,`manager_employee_no`,`manager_name`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`project_type`,`signing_method`,`project_category`,`implementation_mode`,`major_project_level`,`market_code`,`market_name`,`system_code`,`system_name`,`expend_code`,`expend_name`,`industry_code`,`industry_name`,`customer_project_name`,`sales_type`,`business_type`,`service_level_code`,`not_track_reason`,`contract_no`,`implementation_location`,`location_resolution_status`,`creation_reason`,`lifecycle_template_id`,`lifecycle_template_revision_no`,`lifecycle_template_revision_id`,`template_load_method`,`process_definition_key`,`process_definition_version`,`project_start_time`,`project_refresh_time`,`project_close_time`,`source_type`,`status`,`progress`,`aggregation_weight`,`weight_source`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`deleted_time`,`tenant_id`,`lifecycle_status`,`current_stage`,`assignment_status`,`task_tree_version`,`task_progress_version`,`project_end_date`,`closure_policy_snapshot`,`closure_type`,`closed_from_stage`,`closed_at`,`active_plan_version_id`,`custom_info`,`order_create_time`,`disabled`,`effective_from`,`effective_to` FROM proj_project WHERE tenant_id=#{query.tenantId} AND (1=0 <if test=\"query.codes != null and !query.codes.isEmpty()\">OR project_code IN <foreach collection=\"query.codes\" item=\"code\" open=\"(\" close=\")\" separator=\",\">#{code}</foreach></if><if test=\"query.ids != null and !query.ids.isEmpty()\">OR id IN <foreach collection=\"query.ids\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach></if>)<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.selectParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<select id=\"selectParties\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$PartyRow\">SELECT `id`,`tenant_id`,`project_id`,`party_role`,`party_code`,`party_name`,`contact_name`,`phone`,`source_system`,`source_table`,`source_record_key`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM proj_project_party WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS' AND source_table='pm_project_header' AND party_role='FINAL_CUSTOMER' <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND source_record_key IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertProjectMaster",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<insert id=\"insertProjectMaster\">INSERT INTO proj_project (`id`,`project_code`,`code_root_id`,`project_sequence`,`code_rule_version`,`project_name`,`parent_id`,`root_id`,`tree_path`,`tree_depth`,`tree_sort`,`business_level_code`,`business_level_name`,`customer_id`,`customer_code`,`customer_name`,`manager_id`,`manager_employee_no`,`manager_name`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`project_type`,`signing_method`,`project_category`,`implementation_mode`,`major_project_level`,`market_code`,`market_name`,`system_code`,`system_name`,`expend_code`,`expend_name`,`industry_code`,`industry_name`,`customer_project_name`,`sales_type`,`business_type`,`service_level_code`,`not_track_reason`,`contract_no`,`implementation_location`,`location_resolution_status`,`creation_reason`,`lifecycle_template_id`,`lifecycle_template_revision_no`,`lifecycle_template_revision_id`,`template_load_method`,`process_definition_key`,`process_definition_version`,`project_start_time`,`project_refresh_time`,`project_close_time`,`source_type`,`status`,`progress`,`aggregation_weight`,`weight_source`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`deleted_time`,`tenant_id`,`lifecycle_status`,`current_stage`,`assignment_status`,`task_tree_version`,`task_progress_version`,`project_end_date`,`closure_policy_snapshot`,`closure_type`,`closed_from_stage`,`closed_at`,`active_plan_version_id`,`custom_info`,`order_create_time`,`disabled`,`effective_from`,`effective_to`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.projectCode},#{row.target.codeRootId},#{row.target.projectSequence},#{row.target.codeRuleVersion},#{row.target.projectName},#{row.target.parentId},#{row.target.rootId},#{row.target.treePath},#{row.target.treeDepth},#{row.target.treeSort},#{row.target.businessLevelCode},#{row.target.businessLevelName},#{row.target.customerId},#{row.target.customerCode},#{row.target.customerName},#{row.target.managerId},#{row.target.managerEmployeeNo},#{row.target.managerName},#{row.target.companyId},#{row.target.companyCode},#{row.target.companyName},#{row.target.departmentId},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.projectType},#{row.target.signingMethod},#{row.target.projectCategory},#{row.target.implementationMode},#{row.target.majorProjectLevel},#{row.target.marketCode},#{row.target.marketName},#{row.target.systemCode},#{row.target.systemName},#{row.target.expendCode},#{row.target.expendName},#{row.target.industryCode},#{row.target.industryName},#{row.target.customerProjectName},#{row.target.salesType},#{row.target.businessType},#{row.target.serviceLevelCode},#{row.target.notTrackReason},#{row.target.contractNo},#{row.target.implementationLocation},#{row.target.locationResolutionStatus},#{row.target.creationReason},#{row.target.lifecycleTemplateId},#{row.target.lifecycleTemplateRevisionNo},#{row.target.lifecycleTemplateRevisionId},#{row.target.templateLoadMethod},#{row.target.processDefinitionKey},#{row.target.processDefinitionVersion},#{row.target.projectStartTime},#{row.target.projectRefreshTime},#{row.target.projectCloseTime},#{row.target.sourceType},#{row.target.status},#{row.target.progress},#{row.target.aggregationWeight},#{row.target.weightSource},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.deletedTime},#{row.target.tenantId},#{row.target.lifecycleStatus},#{row.target.currentStage},#{row.target.assignmentStatus},#{row.target.taskTreeVersion},#{row.target.taskProgressVersion},#{row.target.projectEndDate},#{row.target.closurePolicySnapshot},#{row.target.closureType},#{row.target.closedFromStage},#{row.target.closedAt},#{row.target.activePlanVersionId},#{row.target.customInfo},#{row.target.orderCreateTime},#{row.target.disabled},#{row.target.effectiveFrom},#{row.target.effectiveTo})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<insert id=\"insertParties\">INSERT INTO proj_project_party (`id`,`tenant_id`,`project_id`,`party_role`,`party_code`,`party_name`,`contact_name`,`phone`,`source_system`,`source_table`,`source_record_key`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.party.id},#{row.party.tenantId},#{row.party.projectId},#{row.party.partyRole},#{row.party.partyCode},#{row.party.partyName},#{row.party.contactName},#{row.party.phone},#{row.party.sourceSystem},#{row.party.sourceTable},#{row.party.sourceRecordKey},#{row.party.effectiveFrom},#{row.party.effectiveTo},#{row.party.status},#{row.party.version},#{row.party.creator},#{row.party.createTime},#{row.party.updater},#{row.party.updateTime},#{row.party.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreeVersions",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<insert id=\"insertTreeVersions\">INSERT INTO proj_project_tree_version(id,root_project_id,tree_version,status,change_batch_id,node_count,path_count,version,creator,updater,create_time,update_time,deleted,tenant_id) VALUES <foreach collection=\"rows\" item=\"s\" separator=\",\">(#{s.treeVersionId},#{s.target.id},1,'BUILDING',CONCAT('BASE_PROJECT_CREATE:',#{s.target.id}),0,0,0,#{context.actorId},#{context.actorId},#{context.startedAt},#{context.startedAt},FALSE,#{context.tenantId})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.insertTreePaths",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<insert id=\"insertTreePaths\">INSERT INTO proj_project_tree_path(id,tenant_id,tree_version,root_project_id,ancestor_project_id,descendant_project_id,distance,version,creator,updater,create_time,update_time,deleted) VALUES <foreach collection=\"rows\" item=\"s\" separator=\",\">(#{s.pathId},#{context.tenantId},1,#{s.target.id},#{s.target.id},#{s.target.id},0,0,#{context.actorId},#{context.actorId},#{context.startedAt},#{context.startedAt},FALSE)</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.activateTrees",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<update id=\"activateTrees\">UPDATE proj_project_tree_version SET status='ACTIVE',node_count=1,path_count=1,activated_at=#{context.startedAt},failed_reason=NULL,updater=#{context.actorId},update_time=#{context.startedAt} WHERE tenant_id=#{context.tenantId} AND tree_version=1 AND status='BUILDING' AND deleted=FALSE <choose><when test=\"rows != null and !rows.isEmpty()\">AND id IN <foreach collection=\"rows\" item=\"s\" open=\"(\" close=\")\" separator=\",\">#{s.treeVersionId}</foreach></when><otherwise>AND 1=0</otherwise></choose></update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$TargetMapper.oneSourcePerTargetIndex",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P16TargetMapper.xml",
+      "xml": "<select id=\"oneSourcePerTargetIndex\" resultType=\"int\">SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='int_base_sync_binding' AND index_name='uk_int_base_sync_binding_target' AND non_unique=0</select>"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$SourceMapper.selectCompanies",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P16SourceMapper.xml",
+      "xml": "<select id=\"selectCompanies\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$Company\">SELECT id,compCode AS code FROM t_company LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$SourceMapper.selectFndAccounts",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P16SourceMapper.xml",
+      "xml": "<select id=\"selectFndAccounts\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$Account\">SELECT id,username FROM fnd_user_info LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$SourceMapper.selectLegacyAccounts",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P16SourceMapper.xml",
+      "xml": "<select id=\"selectLegacyAccounts\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$Account\">SELECT user_id AS id,user_name AS username FROM t_user LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$SourceMapper.selectProjectMaster",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P16SourceMapper.xml",
+      "xml": "<select id=\"selectProjectMaster\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$Source\">SELECT p.`projectId`,p.`projectType`,p.`projectCode`,p.`projectName`,p.`projectState`,p.`isback`,p.`column001`,p.`column002`,p.`column003`,p.`column004`,p.`column005`,p.`column006`,p.`column007`,p.`column008`,p.`column009`,p.`column010`,p.`column011`,p.`column012`,p.`columno12_readonly`,p.`column013`,p.`column014`,p.`customerProjectName`,p.`salesType`,p.`majorProjectLevel`,p.`compId`,p.`createTime`,p.`createBy`,p.`updateTime`,p.`updateBy`,p.`effectiveFrom`,p.`effectiveTo`,CAST(p.disabled AS UNSIGNED) AS disabled,p.`projectStartTime`,p.`projectRefreshTime`,p.`projectCloseTime`,p.`customInfo`,p.`customConfig` FROM pm_project p JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) chosen ON chosen.projectId=p.projectId WHERE p.disabled=0 AND p.effectiveTo IS NULL AND p.projectType='10' ORDER BY p.projectId LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$SourceMapper.selectProjectAlias",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P16SourceMapper.xml",
+      "xml": "<select id=\"selectProjectAlias\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P16ProjectSyncTask$Source\">SELECT p.projectId,p.projectType,p.projectCode,chosen.projectId AS canonicalProjectId FROM pm_project p JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) chosen ON chosen.typeKey=CAST(p.projectType AS BINARY) AND chosen.codeKey=CAST(p.projectCode AS BINARY) JOIN pm_project current_project ON current_project.projectId=chosen.projectId WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10' ORDER BY p.projectId LIMIT #{limit}</select>\n"
+    }
+  ]
+}

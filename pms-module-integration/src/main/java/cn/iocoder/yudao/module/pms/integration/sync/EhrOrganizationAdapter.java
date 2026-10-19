@@ -26,6 +26,7 @@ public class EhrOrganizationAdapter implements DataSyncAdapter {
     public List<Change> preview(Batch batch) { return execute(batch,false).changes(); }
     PreviewPlan previewPlan(Batch batch) { return execute(batch,false); }
     public List<Change> apply(Batch batch) { return execute(batch,true).changes(); }
+    PreviewPlan applyPlan(Batch batch) { return execute(batch,true); }
     public void refreshCaches() { organization.refreshCaches(); }
 
     private PreviewPlan execute(Batch batch,boolean apply) {

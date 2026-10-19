@@ -9,6 +9,8 @@ public interface SystemUserRoleMigrationApi {
     record Request(Long tenantId, String owner, List<Entry> entries) {}
     record Result(String object, String sourceKey, Relation before, Relation after, String action) {}
     List<Result> preview(Request request);
+    record FoundationPreview(Request request, SystemAccountMigrationPreview preceding) {}
+    List<Result> previewAfterFoundation(FoundationPreview request);
     List<Result> apply(Request request);
     void refreshCaches();
 }

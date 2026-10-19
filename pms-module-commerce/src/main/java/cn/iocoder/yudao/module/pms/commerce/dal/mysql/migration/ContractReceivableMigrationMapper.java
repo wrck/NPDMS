@@ -11,6 +11,9 @@ public interface ContractReceivableMigrationMapper {
     List<ContractReceivableDO> selectSourceForUpdate(@Param("query") SourceQuery query);
     record ContractQuery(Long tenantId, String contractNo) {}
     List<Long> selectExactContractIds(@Param("query") ContractQuery query);
+    record ContractsQuery(Long tenantId,List<String> contractNos) {}
+    record ContractIdentity(Long id,String contractNo) {}
+    List<ContractIdentity> selectContractIdentities(@Param("query") ContractsQuery query);
     int insertReceipt(@Param("row") ContractReceivableDO row);
     int updateReceipt(@Param("row") ContractReceivableDO row);
 }

@@ -16,7 +16,7 @@ public class SyncLocalOwnerReader {
     static boolean reference(SyncDefinition.Source source) {return "LOCAL_OWNER".equals(source.readMode());}
     static void validate(Input input) {
         var d=input.definition();var s=input.source();
-        boolean deviceBase=DppmsDeviceBootstrapSyncTemplate.ADAPTER.equals(d.adapter())
+        boolean deviceBase=(DppmsDeviceBootstrapSyncTemplate.ADAPTER.equals(d.adapter()) || DppmsDirectDeviceBaseTemplate.ADAPTER.equals(d.adapter()))
                 && DppmsDeviceBootstrapSyncTemplate.BASE.equals(s.object()) && "ast_device_shipment".equals(s.sourceObject())
                 && "deviceSn".equals(s.sourceKey()) && (s.parameters()==null || s.parameters().isEmpty());
         if(deviceBase) {
@@ -26,7 +26,7 @@ public class SyncLocalOwnerReader {
                 throw new IllegalArgumentException("设备基础承接只读取正式Owner的本地发货事实");
             return;
         }
-        if(!"TABLE_MAPPING".equals(d.adapter()) || !"delivery-full-sync".equals(d.taskKey())
+        if(!"TABLE_MAPPING".equals(d.adapter()) || !"delivery-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(d))
                 || !"DPPMS".equals(d.sourceSystem()) || !"ONCE".equals(d.mode())
                 || !"STREAMING_CURSOR".equals(d.effectiveReadStrategy()) || !"RESTART_ALL".equals(d.effectiveRestartPolicy())
                 || !"CONTRACT".equals(s.object()) || !"com_sales_order".equals(s.sourceObject())
@@ -38,7 +38,7 @@ public class SyncLocalOwnerReader {
     }
     List<Map<String,Object>> read(Input input) {
         validate(input);var d=input.definition();var s=input.source();
-        if(DppmsDeviceBootstrapSyncTemplate.ADAPTER.equals(d.adapter())) {
+        if((DppmsDeviceBootstrapSyncTemplate.ADAPTER.equals(d.adapter()) || DppmsDirectDeviceBaseTemplate.ADAPTER.equals(d.adapter()))) {
             return devices.snapshot(new cn.iocoder.yudao.module.pms.asset.api.migration.DppmsDeviceBootstrapApi.SnapshotQuery(
                     TenantContextHolder.getRequiredTenantId(),d.executionActorId(),List.of(),d.maxBytes())).stream().map(seed->{
                 var row=new LinkedHashMap<String,Object>(JsonUtils.parseMap(JsonUtils.toJsonString(seed)));

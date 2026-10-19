@@ -1,0 +1,255 @@
+{
+  "adapter": "DPPMS_PROJECT_REAL_PRODUCT_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 1000,
+  "clearBeforeLoad": false,
+  "connectionId": "2110305954295414785",
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 2000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 10000,
+  "mergedIntoTaskId": null,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 180,
+  "readStrategy": "SNAPSHOT",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": null,
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderExecNumber",
+          "target": "orderExecNumber",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "productFirstName",
+          "target": "productFirstName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "productName",
+          "target": "productName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "productSubCode",
+          "target": "productSubCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "productSubModel",
+          "target": "productSubModel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "productSubName",
+          "target": "productSubName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "num",
+          "target": "num",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "memo",
+          "target": "memo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_projectCode",
+          "target": "upstream_projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_orderExecNumber",
+          "target": "upstream_orderExecNumber",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_productFirstName",
+          "target": "upstream_productFirstName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_productName",
+          "target": "upstream_productName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_productSubCode",
+          "target": "upstream_productSubCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_productSubModel",
+          "target": "upstream_productSubModel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_productSubName",
+          "target": "upstream_productSubName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_num",
+          "target": "upstream_num",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_memo",
+          "target": "upstream_memo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstream_dataSource",
+          "target": "upstream_dataSource",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "upstreamMatchCount",
+          "target": "upstreamMatchCount",
+          "values": null
+        }
+      ],
+      "object": "pm_project_product_line_real",
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "primaryTarget": null,
+      "queryRef": null,
+      "readMode": "SQL",
+      "rowProjection": null,
+      "sourceKey": "id",
+      "sourceKeyColumns": null,
+      "sourceObject": "pm_project_product_line_real",
+      "sql": "SELECT l.*, p.projectCode AS originalProjectCode, p.projectType,\n       u.projectCode AS upstream_projectCode, u.orderExecNumber AS upstream_orderExecNumber,\n       u.productFirstName AS upstream_productFirstName, u.productName AS upstream_productName,\n       u.productSubCode AS upstream_productSubCode, u.productSubModel AS upstream_productSubModel,\n       u.productSubName AS upstream_productSubName, u.num AS upstream_num,\n       u.memo AS upstream_memo, u.dataSource AS upstream_dataSource,\n       COALESCE(u.matchCount,0) AS upstreamMatchCount\nFROM pm_project_product_line_real l\nJOIN (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p ON p.projectId=l.projectId\nLEFT JOIN (\n  SELECT MIN(projectCode) AS projectCode, MIN(orderExecNumber) AS orderExecNumber,\n    MIN(productFirstName) AS productFirstName, MIN(productName) AS productName,\n    MIN(productSubCode) AS productSubCode, MIN(productSubModel) AS productSubModel,\n    MIN(productSubName) AS productSubName, MIN(num) AS num, MIN(memo) AS memo,\n    CASE WHEN COUNT(*)=1 THEN MAX(dataSource) ELSE NULL END AS dataSource, COUNT(*) AS matchCount\n  FROM pm_project_real_product_line_from_sms\n  GROUP BY CAST(projectCode AS BINARY), CAST(orderExecNumber AS BINARY),\n    CAST(productFirstName AS BINARY), CAST(productName AS BINARY), CAST(productSubCode AS BINARY),\n    CAST(productSubModel AS BINARY), CAST(productSubName AS BINARY), num, CAST(memo AS BINARY)\n) u ON u.projectCode <=> l.projectCode\n AND CAST(u.projectCode AS BINARY) <=> CAST(l.projectCode AS BINARY)\n AND CAST(u.orderExecNumber AS BINARY) <=> CAST(l.orderExecNumber AS BINARY)\n AND CAST(u.productFirstName AS BINARY) <=> CAST(l.productFirstName AS BINARY)\n AND CAST(u.productName AS BINARY) <=> CAST(l.productName AS BINARY)\n AND CAST(u.productSubCode AS BINARY) <=> CAST(l.productSubCode AS BINARY)\n AND CAST(u.productSubModel AS BINARY) <=> CAST(l.productSubModel AS BINARY)\n AND CAST(u.productSubName AS BINARY) <=> CAST(l.productSubName AS BINARY)\n AND u.num <=> l.num AND CAST(u.memo AS BINARY) <=> CAST(l.memo AS BINARY)\nWHERE (p.projectId IS NULL OR FIND_IN_SET(p.projectType,:projectTypes))",
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    }
+  ],
+  "taskKey": "P20_DIRECT"
+}

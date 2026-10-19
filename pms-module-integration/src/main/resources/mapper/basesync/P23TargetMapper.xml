@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper">
+  <select id="selectCollectionPlanIds" resultType="java.lang.Long">SELECT id FROM com_contract_collection_plan WHERE tenant_id=#{query.tenantId} <if test="!query.preview">FOR UPDATE</if></select>
+  <delete id="deleteCollectionPlan">DELETE FROM com_contract_collection_plan WHERE tenant_id=#{query.tenantId}</delete>
+  <insert id="insertCollectionPlan">INSERT INTO com_contract_collection_plan (`id`, `tenant_id`, `contract_no`, `batch_code`, `collection_item_name`, `reference_event_name`, `event_planned_at`, `after_days`, `event_actual_finished_at`, `marketing_feedback`, `creator`, `create_time`, `updater`, `update_time`, `effective_from`, `effective_to`, `data_source`, `deleted`) VALUES
+    <foreach collection="rows" item="row" separator=",">(#{row.target.id}, #{row.target.tenantId}, #{row.target.contractNo}, #{row.target.batchCode}, #{row.target.collectionItemName}, #{row.target.referenceEventName}, #{row.target.eventPlannedAt}, #{row.target.afterDays}, #{row.target.eventActualFinishedAt}, #{row.target.marketingFeedback}, #{row.target.creator}, #{row.target.createTime}, #{row.target.updater}, #{row.target.updateTime}, #{row.target.effectiveFrom}, #{row.target.effectiveTo}, #{row.target.dataSource}, #{row.target.deleted})</foreach>
+  </insert>
+  <select id="nullableColumns" resultType="java.lang.String">SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='com_contract_collection_plan' AND column_name IN ('create_time','update_time') AND is_nullable='YES'</select>
+</mapper>

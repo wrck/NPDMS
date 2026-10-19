@@ -18,6 +18,7 @@ public class DppmsWarrantyRenewalSyncAdapter implements DataSyncAdapter {
     private final DeviceWarrantyRenewalMigrationApi renewals;
     private final SyncTaskService tasks;
     private final SyncRunMapper runs;
+    private final cn.iocoder.yudao.module.pms.asset.api.migration.WarrantyShipmentEligibilityApi eligibility;
     @Override public boolean supportsStreaming() { return true; }
     @Override public boolean requiresAllBindings() { return false; }
     @Override public void refreshCaches() {}
@@ -51,6 +52,15 @@ public class DppmsWarrantyRenewalSyncAdapter implements DataSyncAdapter {
             if (!OBJECT.equals(binding.object()) || prior.put(binding.sourceKey(), binding) != null) fail("绑定身份重复");
         var keys = new HashSet<String>();
         var entries = new ArrayList<DeviceWarrantyRenewalMigrationApi.Entry>();
+        var qualification=new HashMap<String,cn.iocoder.yudao.module.pms.asset.api.migration.WarrantyShipmentEligibilityApi.Result>();
+        var serials=batch.rows().stream().map(row->text(row.fields().get("barcode"))).filter(Objects::nonNull).distinct().toList();
+        for(int i=0;i<serials.size();i+=500) {
+            var page=serials.subList(i,Math.min(i+500,serials.size()));
+            for(var result:eligibility.resolve(new cn.iocoder.yudao.module.pms.asset.api.migration.WarrantyShipmentEligibilityApi.Query(tenant,SyncFieldMapper.primaryKey(run.getCreator()),page)))
+                if(!page.contains(result.deviceSn()) || qualification.putIfAbsent(result.deviceSn(),result)!=null)fail("本地资格回执身份冲突");
+        }
+        if(!qualification.keySet().equals(new HashSet<>(serials)))fail("本地资格回执不完整");
+        var skipped=new HashMap<String,Change>();
         for (var row : batch.rows()) {
             if (!OBJECT.equals(row.object()) || !row.fields().keySet().containsAll(DeviceWarrantyRenewalMigrationApi.ORIGINAL_COLUMNS)
                     || !keys.add(row.sourceKey())) fail("原十字段不完整或身份重复");
@@ -63,17 +73,25 @@ public class DppmsWarrantyRenewalSyncAdapter implements DataSyncAdapter {
             if (binding == null && row.targetId() != null || binding != null
                     && (binding.targetId() == null || !Objects.equals(binding.targetId(), row.targetId())
                     || text(binding.lastFields().get("fingerprint")) == null)) fail("来源绑定已变化");
+            var qualified=qualification.get(source.deviceSn());
+            if(qualified==null || qualified.issue()!=null || !qualified.eligible()) {
+                if(binding!=null || row.targetId()!=null)fail("已绑定续保的本地资格已变化，禁止覆盖");
+                skipped.put(row.sourceKey(),new Change(OBJECT,row.sourceKey(),null,qualified==null||qualified.issue()!=null?"ISSUE":"SKIPPED",Map.of(),row.fields(),
+                        qualified==null?"WARRANTY_LOCAL_SHIPMENT_MISSING":qualified.issue()!=null?qualified.issue():"原合同类型或RMA条件不满足"));
+                continue;
+            }
             entries.add(new DeviceWarrantyRenewalMigrationApi.Entry(row.sourceKey(), source, row.targetId(),
                     binding == null ? null : text(binding.lastFields().get("fingerprint"))));
         }
         var request = new DeviceWarrantyRenewalMigrationApi.Request(tenant, SyncFieldMapper.primaryKey(run.getCreator()),
                 batch.owner(), List.copyOf(entries));
-        var results = apply ? renewals.apply(request) : renewals.preview(request);
+        var results = entries.isEmpty()?List.<DeviceWarrantyRenewalMigrationApi.Result>of():apply ? renewals.apply(request) : renewals.preview(request);
         if (results.size() != entries.size()) fail("Owner回执不完整");
+        var eligibleKeys=entries.stream().map(DeviceWarrantyRenewalMigrationApi.Entry::sourceKey).collect(java.util.stream.Collectors.toSet());
         var returned = new HashSet<String>();
         var changes = new ArrayList<Change>();
         for (var result : results) {
-            if (!keys.contains(result.sourceKey()) || !returned.add(result.sourceKey())
+            if (!eligibleKeys.contains(result.sourceKey()) || !returned.add(result.sourceKey())
                     || !Set.of("CREATED", "UPDATED", "UNCHANGED").contains(result.action())
                     || result.fingerprint() == null || apply && result.targetId() == null) fail("Owner回执身份无效");
             var binding = prior.get(result.sourceKey());
@@ -82,7 +100,8 @@ public class DppmsWarrantyRenewalSyncAdapter implements DataSyncAdapter {
                     Map.of("renewal", result.fields(), "fingerprint", result.fingerprint()),
                     "原十字段承接正式续保记录；参考年数转月数，实际起止日期保持"));
         }
-        return List.copyOf(changes);
+        var byKey=new HashMap<String,Change>();changes.forEach(change->byKey.put(change.sourceKey(),change));byKey.putAll(skipped);
+        return batch.rows().stream().map(row->byKey.get(row.sourceKey())).toList();
     }
     private static String text(Object value) {
         return value == null || value instanceof tools.jackson.databind.JsonNode node && node.isNull() ? null : value.toString();

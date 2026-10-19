@@ -1,0 +1,23 @@
+SELECT
+  LTRIM(RTRIM(t.[itemCode])) AS [product_code],
+  t.[itemModel] AS [product_model],
+  t.[itemDesc] AS [product_name],
+  t.[itemDesc] AS [product_desc],
+  t.[remark] AS [technical_spec],
+  t.[productCode] AS [product_category],
+  t.[productSubCode] AS [product_type],
+  t.[listPrice] AS [list_price],
+  t.[status] AS [crm_status],
+  t.[BU] AS [business_unit],
+  t.[productLine] AS [product_line],
+  t.[orgId] AS [org_id],
+  t.[createTime] AS [source_created_at],
+  t.[updateTime] AS [source_updated_at],
+  t.[statecode] AS [crm_state_code],
+  t.[statuscode] AS [crm_status_code],
+  t.[productStage] AS [product_stage],
+  t.[endOfSaleDate] AS [end_of_sale_date],
+  t.[endOfSupportDate] AS [end_of_support_date],
+  t.[endOfLifeDate] AS [end_of_life_date],
+  t.[lastRenewalDate] AS [last_renewal_date]
+FROM DPtech_v_product_info_single t;

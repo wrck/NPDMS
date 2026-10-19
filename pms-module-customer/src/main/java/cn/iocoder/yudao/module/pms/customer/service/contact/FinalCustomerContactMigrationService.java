@@ -37,14 +37,7 @@ public class FinalCustomerContactMigrationService implements FinalCustomerContac
         var expected=new TreeMap<Long,ProjectCustomerContactDO>();before.forEach(row->expected.put(row.getId(),cn.hutool.core.bean.BeanUtil.copyProperties(row,ProjectCustomerContactDO.class)));
         var keys=new HashSet<String>();var result=new ArrayList<Target>();
         for(var source:command.contacts()) {
-            if(source==null || source.sourceKey()==null || source.sourceKey().isBlank() || !keys.add(source.sourceKey())
-                    || !Objects.equals(party.sourceProjectKey(),source.sourceProjectKey())
-                    || !"10".equals(source.projectType()) || !"60".equals(source.memberRole())
-                    || source.name()==null || source.name().isBlank() || source.name().length()>64
-                    || source.createTime()==null || source.createTime().getNano()!=0
-                    || source.updateTime()!=null && source.updateTime().getNano()!=0
-                    || source.effectiveFrom()!=null && source.effectiveTo()!=null && source.effectiveTo().isBefore(source.effectiveFrom()))
-                fail("SOURCE_CONTACT_INVALID");
+            validateSource(source,party,keys);
             var row=new ProjectCustomerContactDO();row.setId(IdWorker.getId());row.setTenantId(query.tenantId());row.setProjectId(query.projectId());
             row.setProjectPartyId(party.id());row.setContactCode(source.contactCode());row.setName(source.name());row.setPhone(source.phone());
             row.setEmail(source.email());row.setRegistrationSource(source.registrationSource());row.setEffectiveFrom(source.effectiveFrom());row.setEffectiveTo(source.effectiveTo());
@@ -69,6 +62,24 @@ public class FinalCustomerContactMigrationService implements FinalCustomerContac
             var row=actual.get(target.id());
             if(row==null || !Objects.equals(target.formalFieldsChecksum(),fingerprint(row)))fail("REPLAY_CONTACT_CHANGED");
         }
+    }
+
+    @Override @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
+    public void validateContacts(Command command) {
+        if(command==null || command.contacts()==null || command.contacts().isEmpty() || command.contacts().size()>200)fail("SOURCE_CONTACTS_INVALID");
+        var party=requireParty(command.query());var before=rows(command.query());
+        if(!Objects.equals(party.id(),command.projectPartyId()) || !fingerprint(before).equals(command.existingContactsChecksum()))fail("TARGET_CHANGED_SINCE_PREVIEW");
+        var keys=new HashSet<String>();for(var source:command.contacts())validateSource(source,party,keys);
+    }
+    private static void validateSource(HistoricalContact source,ProjectContactContextApi.FinalCustomer party,Set<String> keys) {
+            if(source==null || source.sourceKey()==null || source.sourceKey().isBlank() || !keys.add(source.sourceKey())
+                    || !Objects.equals(party.sourceProjectKey(),source.sourceProjectKey())
+                    || !"10".equals(source.projectType()) || !"60".equals(source.memberRole())
+                    || source.name()==null || source.name().isBlank() || source.name().length()>64
+                    || source.createTime()==null || source.createTime().getNano()!=0
+                    || source.updateTime()!=null && source.updateTime().getNano()!=0
+                    || source.effectiveFrom()!=null && source.effectiveTo()!=null && source.effectiveTo().isBefore(source.effectiveFrom()))
+                fail("SOURCE_CONTACT_INVALID");
     }
 
     private ProjectContactContextApi.FinalCustomer requireParty(Query query) {

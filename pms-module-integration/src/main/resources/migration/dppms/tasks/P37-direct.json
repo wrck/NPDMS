@@ -1,0 +1,93 @@
+{
+  "adapter": "DPPMS_SECURE_LICENSE_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 200,
+  "clearBeforeLoad": false,
+  "connectionId": 2110305954295414785,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 2000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 200,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "filters": [],
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "sn",
+          "target": "sn"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "specModel",
+          "target": "specModel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contract",
+          "target": "contract"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contractType",
+          "target": "contractType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "item",
+          "target": "item"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "status",
+          "target": "status"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "ciphertext",
+          "target": "ciphertext"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "keyId",
+          "target": "keyId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "codeMac",
+          "target": "codeMac"
+        }
+      ],
+      "object": "LICENSE_HISTORY",
+      "parameters": {
+        "ownerProjectId": "",
+        "approvedLicenseIds": "",
+        "approvedLicenseFacts": "[]"
+      },
+      "readMode": "SECURE_LICENSE",
+      "sourceKey": "id",
+      "sourceObject": "pm_project_license_info_from_license",
+      "syncPrimaryKey": false
+    }
+  ],
+  "taskKey": "P37_DIRECT"
+}

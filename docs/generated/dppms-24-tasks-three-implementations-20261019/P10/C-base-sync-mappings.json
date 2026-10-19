@@ -1,0 +1,385 @@
+{
+  "task": "P10",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "cus_customer_master",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "code",
+      "parameter": "#{row.target.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "erp_customer_code",
+      "parameter": "#{row.target.erpCustomerCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "name",
+      "parameter": "#{row.target.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "short_name",
+      "parameter": "#{row.target.shortName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "customer_level",
+      "parameter": "#{row.target.customerLevel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "lifecycle_status",
+      "parameter": "#{row.target.lifecycleStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "source_type",
+      "parameter": "#{row.target.sourceType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "source_key",
+      "parameter": "#{row.target.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "source_version",
+      "parameter": "#{row.target.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "sync_status",
+      "parameter": "#{row.target.syncStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "temporary_reason",
+      "parameter": "#{row.target.temporaryReason}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "contact_phone",
+      "parameter": "#{row.target.contactPhone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "contact_email",
+      "parameter": "#{row.target.contactEmail}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "department_code",
+      "parameter": "#{row.target.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "department_name",
+      "parameter": "#{row.target.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "market_code",
+      "parameter": "#{row.target.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "market_name",
+      "parameter": "#{row.target.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "system_code",
+      "parameter": "#{row.target.systemCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "system_name",
+      "parameter": "#{row.target.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "expend_code",
+      "parameter": "#{row.target.expendCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "expend_name",
+      "parameter": "#{row.target.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "industry_code",
+      "parameter": "#{row.target.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "industry_name",
+      "parameter": "#{row.target.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "address",
+      "parameter": "#{row.target.address}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "remark",
+      "parameter": "#{row.target.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "data_as_of",
+      "parameter": "#{row.target.dataAsOf}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "reconciliation_pending",
+      "parameter": "#{row.target.reconciliationPending}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "id",
+      "parameter": "#{row.mapping.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "tenant_id",
+      "parameter": "#{row.mapping.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "customer_id",
+      "parameter": "#{row.mapping.customerId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "source_system",
+      "parameter": "#{row.mapping.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "source_key",
+      "parameter": "#{row.mapping.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "source_version",
+      "parameter": "#{row.mapping.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "creator",
+      "parameter": "#{row.mapping.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "updater",
+      "parameter": "#{row.mapping.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "effective_from",
+      "parameter": "#{row.mapping.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "effective_to",
+      "parameter": "#{row.mapping.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "create_time",
+      "parameter": "#{row.mapping.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "update_time",
+      "parameter": "#{row.mapping.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "deleted",
+      "parameter": "#{row.mapping.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.erpColumnReady",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+      "xml": "<select id=\"erpColumnReady\" resultType=\"java.lang.Integer\">SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='cus_customer_master' AND column_name='erp_customer_code'</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.selectMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+      "xml": "<select id=\"selectMappings\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$CustomerMapping\">SELECT id,tenant_id,customer_id,source_system,source_key,source_version,creator,updater,effective_from,effective_to,create_time,update_time,deleted FROM cus_customer_external_mapping WHERE tenant_id=#{query.tenantId} AND source_system='CRM' AND deleted=FALSE AND effective_to IS NULL <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND source_key IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\">FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.selectCustomers",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+      "xml": "<select id=\"selectCustomers\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$CustomerRow\">SELECT id,tenant_id,version,code,erp_customer_code,name,short_name,customer_level,lifecycle_status,source_type,source_key,source_version,sync_status,temporary_reason,contact_phone,contact_email,department_code,department_name,market_code,market_name,system_code,system_name,expend_code,expend_name,industry_code,industry_name,address,remark,creator,updater,data_as_of,create_time,update_time,reconciliation_pending,deleted FROM cus_customer_master WHERE tenant_id=#{query.tenantId} AND (1=0 <if test=\"query.ids != null and !query.ids.isEmpty()\">OR id IN <foreach collection=\"query.ids\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach></if><if test=\"query.codes != null and !query.codes.isEmpty()\">OR code IN <foreach collection=\"query.codes\" item=\"code\" open=\"(\" close=\")\" separator=\",\">#{code}</foreach></if>)<if test=\"!query.preview\">FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+      "xml": "<insert id=\"insertCustomer\">INSERT INTO cus_customer_master (`id`,`tenant_id`,`version`,`code`,`erp_customer_code`,`name`,`short_name`,`customer_level`,`lifecycle_status`,`source_type`,`source_key`,`source_version`,`sync_status`,`temporary_reason`,`contact_phone`,`contact_email`,`department_code`,`department_name`,`market_code`,`market_name`,`system_code`,`system_name`,`expend_code`,`expend_name`,`industry_code`,`industry_name`,`address`,`remark`,`creator`,`updater`,`data_as_of`,`create_time`,`update_time`,`reconciliation_pending`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.version},#{row.target.code},#{row.target.erpCustomerCode},#{row.target.name},#{row.target.shortName},#{row.target.customerLevel},#{row.target.lifecycleStatus},#{row.target.sourceType},#{row.target.sourceKey},#{row.target.sourceVersion},#{row.target.syncStatus},#{row.target.temporaryReason},#{row.target.contactPhone},#{row.target.contactEmail},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.marketCode},#{row.target.marketName},#{row.target.systemCode},#{row.target.systemName},#{row.target.expendCode},#{row.target.expendName},#{row.target.industryCode},#{row.target.industryName},#{row.target.address},#{row.target.remark},#{row.target.creator},#{row.target.updater},#{row.target.dataAsOf},#{row.target.createTime},#{row.target.updateTime},#{row.target.reconciliationPending},#{row.target.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.insertMappings",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+      "xml": "<insert id=\"insertMappings\">INSERT INTO cus_customer_external_mapping (`id`,`tenant_id`,`customer_id`,`source_system`,`source_key`,`source_version`,`creator`,`updater`,`effective_from`,`effective_to`,`create_time`,`update_time`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.mapping.id},#{row.mapping.tenantId},#{row.mapping.customerId},#{row.mapping.sourceSystem},#{row.mapping.sourceKey},#{row.mapping.sourceVersion},#{row.mapping.creator},#{row.mapping.updater},#{row.mapping.effectiveFrom},#{row.mapping.effectiveTo},#{row.mapping.createTime},#{row.mapping.updateTime},#{row.mapping.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.updateCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+      "xml": "<update id=\"updateCustomer\">UPDATE cus_customer_master SET `code`=#{row.target.code},`erp_customer_code`=#{row.target.erpCustomerCode},`name`=#{row.target.name},`short_name`=#{row.target.shortName},`contact_phone`=#{row.target.contactPhone},`contact_email`=#{row.target.contactEmail},`address`=#{row.target.address},`department_code`=#{row.target.departmentCode},`department_name`=#{row.target.departmentName},`market_code`=#{row.target.marketCode},`market_name`=#{row.target.marketName},`system_code`=#{row.target.systemCode},`system_name`=#{row.target.systemName},`expend_code`=#{row.target.expendCode},`expend_name`=#{row.target.expendName},`industry_code`=#{row.target.industryCode},`industry_name`=#{row.target.industryName},`lifecycle_status`=#{row.target.lifecycleStatus},`source_key`=#{row.target.sourceKey},`source_version`=#{row.target.sourceVersion},`data_as_of`=#{row.target.dataAsOf},`version`=#{row.target.version},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime} WHERE tenant_id=#{row.target.tenantId} AND id=#{row.target.id} AND version=#{row.expectedVersion} AND deleted=FALSE</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$TargetMapper.updateMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P10TargetMapper.xml",
+      "xml": "<update id=\"updateMapping\">UPDATE cus_customer_external_mapping SET source_version=#{row.mapping.sourceVersion},updater=#{row.mapping.updater},update_time=#{row.mapping.updateTime} WHERE tenant_id=#{row.mapping.tenantId} AND id=#{row.mapping.id} AND customer_id=#{row.mapping.customerId} AND source_key=#{row.mapping.sourceKey} AND source_system='CRM' AND source_version=#{row.expectedSourceVersion} AND effective_to IS NULL AND deleted=FALSE</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$SourceMapper.selectCustomer",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P10SourceMapper.xml",
+      "xml": "<select id=\"selectCustomer\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$CustomerSource\">SELECT TOP (#{limit}) CONVERT(varchar(128),[AccountId]) AS [source_key],\nLTRIM(RTRIM([AccountNumber])) AS [code],\nLTRIM(RTRIM([erpCustomerCode])) AS [erp_customer_code],\nLTRIM(RTRIM([Name])) AS [name],\nLTRIM(RTRIM([Telephone1])) AS [contact_phone],\nLTRIM(RTRIM([EMailAddress1])) AS [contact_email],\nLTRIM(RTRIM([Address1_Composite])) AS [address],\nCONVERT(varchar(128),[new_mkt_unit_id]) AS [department_code],\nLTRIM(RTRIM([new_mkt_unit_idName])) AS [department_name],\nCONVERT(varchar(128),[new_industry_level1_id]) AS [market_code],\nLTRIM(RTRIM([new_industry_level1_idName])) AS [market_name],\nCONVERT(varchar(128),[new_industry_level2_id]) AS [system_code],\nLTRIM(RTRIM([new_industry_level2_idName])) AS [system_name],\nCONVERT(varchar(128),[new_industry_level3_id]) AS [expend_code],\nLTRIM(RTRIM([new_industry_level3_idName])) AS [expend_name],\nCONVERT(varchar(128),[new_industry_level4_id]) AS [industry_code],\nLTRIM(RTRIM([new_industry_level4_idName])) AS [industry_name],\nCASE StateCode WHEN 0 THEN 'ENABLED' WHEN 1 THEN 'DISABLED' ELSE NULL END AS lifecycle_status, CONVERT(varchar(33),ModifiedOn,126) AS source_version, ModifiedOn AS data_as_of, CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)&gt;128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY LTRIM(RTRIM(AccountNumber)))&gt;1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migration_issue FROM DPtech_v_account ORDER BY AccountId</select>\n"
+    }
+  ]
+}

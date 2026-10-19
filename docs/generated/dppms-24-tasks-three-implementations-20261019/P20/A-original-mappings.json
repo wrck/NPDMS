@@ -1,0 +1,357 @@
+{
+  "task": "P20",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "pm_project_product_line_real",
+      "sourceObject": "pm_project_product_line_real",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectId",
+          "target": "projectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contractNo",
+          "target": "contractNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectCode",
+          "target": "projectCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "orderExecNumber",
+          "target": "orderExecNumber"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productFirstName",
+          "target": "productFirstName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productName",
+          "target": "productName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productSubCode",
+          "target": "productSubCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productSubModel",
+          "target": "productSubModel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productSubName",
+          "target": "productSubName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "num",
+          "target": "num"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "memo",
+          "target": "memo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_projectCode",
+          "target": "upstream_projectCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_orderExecNumber",
+          "target": "upstream_orderExecNumber"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_productFirstName",
+          "target": "upstream_productFirstName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_productName",
+          "target": "upstream_productName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_productSubCode",
+          "target": "upstream_productSubCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_productSubModel",
+          "target": "upstream_productSubModel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_productSubName",
+          "target": "upstream_productSubName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_num",
+          "target": "upstream_num"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_memo",
+          "target": "upstream_memo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstream_dataSource",
+          "target": "upstream_dataSource"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectCode",
+          "target": "originalProjectCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectType",
+          "target": "projectType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "upstreamMatchCount",
+          "target": "upstreamMatchCount"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.selectMaintenance",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+      "xml": "<select id=\"selectMaintenance\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO\">\n    SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at &lt; #{now}))\n      ORDER BY id LIMIT 100\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.ExternalKeyMappingMapper.selectSourcePage",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/ExternalKeyMappingMapper.xml",
+      "xml": "<select id=\"selectSourcePage\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.ExternalKeyMappingDO\">\n        SELECT id,batch_id,source_record_id,result_type,target_context,target_object_type,\n               target_table,target_id,target_role,target_sequence,tenant_id,create_time,\n               update_time,creator,updater,deleted\n        FROM plt_external_key_mapping FORCE INDEX (idx_plt_external_mapping_batch)\n        WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0\n        <choose>\n            <when test=\"query.sourceRecordIds != null and query.sourceRecordIds.size() &gt; 0\">\n                AND source_record_id IN\n                <foreach collection=\"query.sourceRecordIds\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n            </when>\n            <otherwise>AND 1 = 0</otherwise>\n        </choose>\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper.selectByTenantAndIdForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationBatchMapper.xml",
+      "xml": "<select id=\"selectByTenantAndIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO\">\n        SELECT * FROM plt_migration_batch\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.batchId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper.selectNextStagedForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationBatchMapper.xml",
+      "xml": "<select id=\"selectNextStagedForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO\">\n        SELECT * FROM plt_migration_batch\n        WHERE tenant_id = #{query.tenantId}\n          AND owner_context_code = #{query.ownerContextCode}\n          AND purpose_code = #{query.purposeCode}\n          AND batch_status = 'STAGED_READY'\n          AND deleted = b'0'\n          AND source_system IN\n          <foreach collection=\"query.sourceSystems\" item=\"value\" open=\"(\" separator=\",\" close=\")\">\n              #{value}\n          </foreach>\n          AND source_table IN\n          <foreach collection=\"query.sourceTables\" item=\"value\" open=\"(\" separator=\",\" close=\")\">\n              #{value}\n          </foreach>\n        ORDER BY create_time ASC, id ASC\n        LIMIT 1\n        FOR UPDATE SKIP LOCKED\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectByBatchAndIdForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectByBatchAndIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO\">\n        SELECT * FROM plt_migration_source_record\n        WHERE tenant_id = #{query.tenantId}\n          AND batch_id = #{query.batchId}\n          AND id = #{query.sourceRecordId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectCursorPage",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectCursorPage\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO\">\n        SELECT s.*,\n               CASE\n                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m\n                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                                  AND m.result_type = 'MAPPED' AND m.deleted = b'0') THEN 'MAPPED'\n                   WHEN EXISTS (SELECT 1 FROM plt_migration_issue i\n                                WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id\n                                  AND i.deleted = b'0') THEN 'ISSUE'\n                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m\n                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                                  AND m.result_type = 'RETAINED' AND m.deleted = b'0') THEN 'RETAINED'\n                   ELSE NULL\n               END AS result_type\n        FROM plt_migration_source_record s\n        WHERE s.tenant_id = #{query.tenantId}\n          AND s.batch_id = #{query.batchId}\n          AND s.deleted = b'0'\n          <if test=\"query.afterSourceRecordId != null\">\n              AND s.id &gt; #{query.afterSourceRecordId}\n          </if>\n        ORDER BY s.id ASC\n        LIMIT #{query.limit}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectClassificationSummary",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectClassificationSummary\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationBatchClassificationSummary\">\n        SELECT COUNT(*) AS source_count,\n               COALESCE(SUM(has_mapped), 0) AS mapped_count,\n               COALESCE(SUM(has_issue), 0) AS issue_count,\n               COALESCE(SUM(has_retained), 0) AS retained_count,\n               COALESCE(SUM(has_mapped + has_issue + has_retained = 0), 0) AS unclassified_count,\n               COALESCE(SUM(has_mapped + has_issue + has_retained &gt; 1), 0) AS conflicting_count\n        FROM (\n            SELECT s.id,\n                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)\n                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                             AND m.result_type = 'MAPPED' AND m.deleted = b'0') AS has_mapped,\n                   EXISTS (SELECT 1 FROM plt_migration_issue i FORCE INDEX (uk_plt_migration_issue_key)\n                           WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id\n                             AND i.deleted = b'0') AS has_issue,\n                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)\n                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                             AND m.result_type = 'RETAINED' AND m.deleted = b'0') AS has_retained\n            FROM plt_migration_source_record s FORCE INDEX (idx_plt_migration_source_cursor)\n            WHERE s.tenant_id = #{query.tenantId}\n              AND s.batch_id = #{query.batchId}\n              AND s.deleted = b'0'\n        ) classified\n    </select>\n  \n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.countBatchSources",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"countBatchSources\" resultType=\"long\">\n    SELECT COUNT(*) FROM plt_migration_source_record\n    WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.selectRecordForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectRealProductDO\">\n        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId}\n          AND project_id=#{query.projectId} AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.selectBusinessRecordsForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"selectBusinessRecordsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectRealProductDO\">\n        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND CAST(contract_no AS BINARY) &lt;=&gt; CAST(#{query.contractNo} AS BINARY)\n          AND CAST(project_code AS BINARY) &lt;=&gt; CAST(#{query.projectCode} AS BINARY)\n          AND CAST(execution_no AS BINARY) &lt;=&gt; CAST(#{query.executionNo} AS BINARY)\n          AND CAST(product_category_name AS BINARY) &lt;=&gt; CAST(#{query.productCategoryName} AS BINARY)\n          AND CAST(product_name AS BINARY) &lt;=&gt; CAST(#{query.productName} AS BINARY)\n          AND CAST(product_sub_code AS BINARY) &lt;=&gt; CAST(#{query.productSubCode} AS BINARY)\n          AND CAST(product_sub_model AS BINARY) &lt;=&gt; CAST(#{query.productSubModel} AS BINARY)\n          AND CAST(product_sub_name AS BINARY) &lt;=&gt; CAST(#{query.productSubName} AS BINARY)\n          AND quantity &lt;=&gt; #{query.quantity}\n          AND CAST(memo AS BINARY) &lt;=&gt; CAST(#{query.memo} AS BINARY)\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.selectProjectPage",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"selectProjectPage\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectRealProductDO\">\n        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'\n        ORDER BY id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.countAllProjectRecords",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"countAllProjectRecords\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.countProject",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSource",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSource\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSourceForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectProjectSources",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectProjectSources\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} ORDER BY id\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSnapshot",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSnapshot\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySnapshotDO\">\n    SELECT * FROM proj_legacy_detail_snapshot WHERE tenant_id=#{query.tenantId} AND id=#{query.id}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectBatch",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectBatch\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySnapshotDO\">\n    SELECT * FROM proj_legacy_detail_snapshot WHERE tenant_id=#{query.tenantId} AND source_id=#{query.sourceId} AND batch_key=#{query.batchKey}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.countRecords",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"countRecords\" resultType=\"long\">\n    SELECT COUNT(*) FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" />\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectRecords",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectRecords\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO\">\n    SELECT * FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" /> ORDER BY source_key,id\n    LIMIT #{query.offset},#{query.limit}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSourceLicenseRecords",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSourceLicenseRecords\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO\">\n    SELECT r.* FROM proj_legacy_detail_record r\n    JOIN proj_legacy_detail_snapshot s ON s.id=r.snapshot_id AND s.tenant_id=r.tenant_id\n    WHERE r.tenant_id=#{query.tenantId} AND s.tenant_id=#{query.tenantId} AND s.source_id=#{query.sourceId}\n      AND r.domain_code='licenses'\n    <if test=\"query.afterId != null\">AND r.id&gt;#{query.afterId}</if>\n    ORDER BY r.id LIMIT #{query.limit}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMasterMigrationMapper.selectIdentity",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+      "xml": "<select id=\"selectIdentity\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n    SELECT * FROM proj_project WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND deleted=b'0'\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMasterMigrationMapper.selectIdentityForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+      "xml": "<select id=\"selectIdentityForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n    SELECT * FROM proj_project WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND deleted=b'0' FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMasterMigrationMapper.selectExactCodeIds",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+      "xml": "<select id=\"selectExactCodeIds\" resultType=\"java.lang.Long\">\n    SELECT id FROM proj_project WHERE tenant_id=#{query.tenantId} AND project_code=#{query.projectCode}\n    ORDER BY id\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMasterMigrationMapper.selectRestorationIdentityForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+      "xml": "<select id=\"selectRestorationIdentityForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n    SELECT * FROM proj_project WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMasterMigrationMapper.selectRestorationFingerprint",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+      "xml": "<select id=\"selectRestorationFingerprint\" resultType=\"java.lang.String\">\n    SELECT SHA2(CAST(<include refid=\"restorationSnapshot\" /> AS CHAR),256)\n    FROM proj_project p WHERE p.tenant_id=#{query.tenantId} AND p.id=#{query.projectId}\n      AND p.deleted=b'1' AND p.source_type='MIGRATION' AND p.parent_id IS NULL\n      AND p.root_id=p.id AND p.code_root_id=p.id AND p.assignment_status='UNASSIGNED'\n      AND p.active_plan_version_id IS NULL AND p.lifecycle_template_id IS NULL AND p.manager_id IS NULL\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectMasterMigrationMapper.selectRestorationReferenceCount",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectMasterMigrationMapper.xml",
+      "xml": "<select id=\"selectRestorationReferenceCount\" resultType=\"long\">\n    SELECT (SELECT COUNT(*) FROM `proj_business_result_channel` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_legacy_detail_source` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_node_overdue_completion` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_preparation_confirmation` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_company_department_relation` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_deliverable` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_exit_record` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_gate` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_governance_action` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_lease_product` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_member_assignment` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_milestone` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_node_execution` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_party` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_plan_version` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_portfolio_member` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_product_configuration` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_progress_fact` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_progress_snapshot` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_real_product` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_risk` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_site` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_stage` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_stage_execution_contract` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_stage_snapshot` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_stage_transition` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_task` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_task_responsible` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_project_template_match_history` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_result_evidence_item` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_result_evidence_scan` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_result_subscription` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_result_subscription_candidate` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_task_business_link` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_task_dependency` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_task_tree_path` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM `proj_team_batch_change_item` WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId})\n      +(SELECT COUNT(*) FROM proj_project WHERE tenant_id=#{query.tenantId} AND parent_id=#{query.projectId})\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.selectEndDateForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+      "xml": "<select id=\"selectEndDateForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n        SELECT * FROM proj_project WHERE id = #{query.projectId} AND tenant_id = #{query.tenantId}\n          AND deleted = b'0' FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.selectListByIdsForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+      "xml": "<select id=\"selectListByIdsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n        SELECT *\n        FROM proj_project\n        WHERE id IN\n        <foreach collection=\"ids\" item=\"id\" open=\"(\" separator=\",\" close=\")\">\n            #{id}\n        </foreach>\n          AND deleted = b'0'\n        ORDER BY id\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.selectVisiblePage",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+      "xml": "<select id=\"selectVisiblePage\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n        SELECT p.*\n        FROM proj_project p\n        WHERE p.tenant_id = #{query.tenantId}\n          AND p.deleted = b'0'\n          AND p.id IN\n          <foreach collection=\"query.visibleProjectIds\" item=\"projectId\" open=\"(\" separator=\",\" close=\")\">\n              #{projectId}\n          </foreach>\n          <if test=\"query.projectNameKeyword != null and query.projectNameKeyword != ''\">\n              AND p.project_name LIKE CONCAT('%', #{query.projectNameKeyword}, '%')\n          </if>\n          <if test=\"query.projectCodePrefix != null and query.projectCodePrefix != ''\">\n              AND p.project_code LIKE CONCAT(#{query.projectCodePrefix}, '%')\n          </if>\n          <choose>\n              <when test=\"query.status != null and query.status != '' and query.status.matches('S[0-6]')\">\n                  AND p.current_stage = #{query.status}\n                  AND p.lifecycle_status = 'ACTIVE'\n              </when>\n              <otherwise>\n                  <if test=\"query.status != null and query.status != ''\">\n                      AND p.lifecycle_status = #{query.status}\n                  </if>\n              </otherwise>\n          </choose>\n          <if test=\"query.signingMethod != null and query.signingMethod != ''\">\n              AND p.signing_method = #{query.signingMethod}\n          </if>\n          <if test=\"query.projectCategory != null and query.projectCategory != ''\">\n              AND p.project_category = #{query.projectCategory}\n          </if>\n          <if test=\"query.implementationMode != null and query.implementationMode != ''\">\n              AND p.implementation_mode = #{query.implementationMode}\n          </if>\n          <if test=\"query.majorProjectLevel != null and query.majorProjectLevel != ''\">\n              AND p.major_project_level = #{query.majorProjectLevel}\n          </if>\n          <if test=\"query.contractNoKeyword != null and query.contractNoKeyword != ''\">\n              AND p.contract_no LIKE CONCAT('%', #{query.contractNoKeyword}, '%')\n          </if>\n          <if test=\"query.departmentId != null\">\n              AND p.department_id = #{query.departmentId}\n          </if>\n          <if test=\"query.companyId != null\">\n              AND p.company_id = #{query.companyId}\n          </if>\n          <if test=\"query.createTimeStart != null\">\n              AND p.create_time &gt;= #{query.createTimeStart}\n          </if>\n          <if test=\"query.createTimeEnd != null\">\n              AND p.create_time &lt; #{query.createTimeEnd}\n          </if>\n          <if test=\"query.closeTimeStart != null\">\n              AND p.project_close_time &gt;= #{query.closeTimeStart}\n          </if>\n          <if test=\"query.closeTimeEnd != null\">\n              AND p.project_close_time &lt; #{query.closeTimeEnd}\n          </if>\n          <if test=\"query.refreshTimeStart != null\">\n              AND p.project_refresh_time &gt;= #{query.refreshTimeStart}\n          </if>\n          <if test=\"query.refreshTimeEnd != null\">\n              AND p.project_refresh_time &lt; #{query.refreshTimeEnd}\n          </if>\n          <if test=\"query.agentServiceProviderKeyword != null and query.agentServiceProviderKeyword != ''\">\n              AND EXISTS (\n                  SELECT 1 FROM proj_project_party pp\n                  WHERE pp.project_id = p.id\n                    AND pp.tenant_id = #{query.tenantId}\n                    AND pp.deleted = b'0'\n                    AND pp.status = 'ACTIVE'\n                    AND (pp.effective_from IS NULL OR pp.effective_from &lt;= #{query.effectiveAt})\n                    AND (pp.effective_to IS NULL OR pp.effective_to &gt; #{query.effectiveAt})\n                    AND pp.party_role IN ('AGENT', 'SERVICE_PROVIDER')\n                    AND (pp.party_name LIKE CONCAT('%', #{query.agentServiceProviderKeyword}, '%')\n                      OR pp.party_code LIKE CONCAT('%', #{query.agentServiceProviderKeyword}, '%'))\n              )\n          </if>\n        ORDER BY p.id DESC\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectCurrentResponsibilityForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectCurrentResponsibilityForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO\">\n        SELECT *\n        FROM proj_project_member_assignment\n        WHERE project_id = #{query.projectId}\n          AND member_role = #{query.memberRole}\n          <choose>\n              <when test=\"query.assignmentType == &quot;PRIMARY&quot;\">\n                  AND (assignment_type = 'PRIMARY' OR assignment_type IS NULL)\n              </when>\n              <otherwise>\n                  AND assignment_type = #{query.assignmentType}\n              </otherwise>\n          </choose>\n          AND ((site_id = #{query.siteId}) OR (site_id IS NULL AND #{query.siteId} IS NULL))\n          AND authorization_confirmed = b'1' AND status = 'ACTIVE'\n          AND deleted = b'0'\n          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})\n          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})\n        ORDER BY id\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectActiveByUserForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectActiveByUserForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO\">\n        SELECT *\n        FROM proj_project_member_assignment\n        WHERE tenant_id = #{query.tenantId}\n          AND project_id = #{query.projectId}\n          AND user_id = #{query.userId}\n          AND authorization_confirmed = b'1' AND status = 'ACTIVE'\n          AND deleted = b'0'\n          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})\n          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})\n        ORDER BY id\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectResponsibilityNodeCount",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectResponsibilityNodeCount\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*)\n        FROM proj_project p\n        WHERE <include refid=\"responsibilityNodeWhere\" />\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectResponsibilityNodePage",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectResponsibilityNodePage\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n        SELECT p.id, p.project_code, p.project_name, p.parent_id, p.tree_path, p.tree_depth,\n               p.tree_sort, p.assignment_status\n        FROM proj_project p\n        WHERE <include refid=\"responsibilityNodeWhere\" />\n        ORDER BY p.tree_path, p.tree_sort, p.id\n        LIMIT #{query.limit} OFFSET #{query.offset}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectCurrentServiceManagerAssignments",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectCurrentServiceManagerAssignments\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO\">\n        SELECT id, project_id, user_id, employee_no, member_name, department_id, department_code,\n               department_name, member_role, assignment_type, site_id, change_reason, effective_from\n        FROM proj_project_member_assignment\n        WHERE tenant_id = #{query.tenantId}\n          AND project_id IN\n          <foreach collection=\"query.projectIds\" item=\"projectId\" open=\"(\" separator=\",\" close=\")\">\n              #{projectId}\n          </foreach>\n          AND member_role IN ('SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2')\n          AND authorization_confirmed = b'1' AND status = 'ACTIVE'\n          AND deleted = b'0'\n          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})\n          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})\n        ORDER BY project_id, member_role, site_id, department_id,\n                 CASE WHEN assignment_type = 'PRIMARY' OR assignment_type IS NULL THEN 0 ELSE 1 END,\n                 id\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectParticipantFacts",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectParticipantFacts\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO\">\n        SELECT id, project_id, user_id, member_role, assignment_type, version, tenant_id\n        FROM proj_project_member_assignment\n        WHERE tenant_id = #{query.tenantId}\n          AND project_id = #{query.projectId}\n          <if test=\"query.subjectUserId != null\">\n              AND user_id = #{query.subjectUserId}\n          </if>\n          <choose>\n              <when test=\"query.requiredRoleCodes != null and !query.requiredRoleCodes.isEmpty()\">\n                  AND member_role IN\n                  <foreach collection=\"query.requiredRoleCodes\" item=\"roleCode\" open=\"(\" separator=\",\" close=\")\">\n                      #{roleCode}\n                  </foreach>\n              </when>\n              <otherwise>\n                  AND 1 = 0\n              </otherwise>\n          </choose>\n          AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)\n          AND authorization_confirmed = b'1' AND status = 'ACTIVE'\n          AND deleted = b'0'\n          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})\n          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})\n        ORDER BY user_id, member_role, id\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectParticipantFactsForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectParticipantFactsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO\">\n        SELECT id, project_id, user_id, member_role, assignment_type, version, tenant_id\n        FROM proj_project_member_assignment\n        WHERE tenant_id = #{query.tenantId}\n          AND project_id = #{query.projectId}\n          AND user_id = #{query.userId}\n          <choose>\n              <when test=\"query.requiredRoleCodes != null and !query.requiredRoleCodes.isEmpty()\">\n                  AND member_role IN\n                  <foreach collection=\"query.requiredRoleCodes\" item=\"roleCode\" open=\"(\" separator=\",\" close=\")\">\n                      #{roleCode}\n                  </foreach>\n              </when>\n              <otherwise>\n                  AND 1 = 0\n              </otherwise>\n          </choose>\n          AND (member_role = 'PROJECT_MANAGER' OR assignment_type = 'PRIMARY' OR assignment_type IS NULL)\n          AND authorization_confirmed = b'1' AND status = 'ACTIVE'\n          AND deleted = b'0'\n          AND (effective_from IS NULL OR effective_from &lt;= CURRENT_TIMESTAMP(3))\n          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP(3))\n        ORDER BY user_id, member_role, id\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectProjectManagersForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectProjectManagersForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO\">\n        SELECT * FROM proj_project_member_assignment\n        WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND member_role='PROJECT_MANAGER' AND authorization_confirmed = b'1' AND status='ACTIVE' AND deleted=b'0'\n          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})\n          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMemberAssignmentMapper.selectActiveMemberIdentityForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMemberAssignmentMapper.xml",
+      "xml": "<select id=\"selectActiveMemberIdentityForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMemberAssignmentDO\">\n        SELECT * FROM proj_project_member_assignment\n        WHERE tenant_id = #{query.tenantId} AND project_id = #{query.projectId}\n          AND user_id = #{query.userId}\n          AND member_role IN\n          <foreach collection=\"query.roleCodes\" item=\"roleCode\" open=\"(\" separator=\",\" close=\")\">#{roleCode}</foreach>\n          AND authorization_confirmed = b'1' AND status = 'ACTIVE' AND deleted = b'0'\n          AND (effective_from IS NULL OR effective_from &lt;= #{query.effectiveAt})\n          AND (effective_to IS NULL OR effective_to &gt; #{query.effectiveAt})\n        ORDER BY id FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper.selectLatestActive",
+      "source": "pms-module-project/src/main/resources/mapper/projecttree/ProjectTreeVersionMapper.xml",
+      "xml": "<select id=\"selectLatestActive\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO\">\n        SELECT <include refid=\"columns\" />\n        FROM proj_project_tree_version\n        WHERE root_project_id = #{rootProjectId}\n          AND status = 'ACTIVE'\n          AND deleted = b'0'\n        ORDER BY tree_version DESC, id DESC\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper.selectLatest",
+      "source": "pms-module-project/src/main/resources/mapper/projecttree/ProjectTreeVersionMapper.xml",
+      "xml": "<select id=\"selectLatest\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO\">\n        SELECT <include refid=\"columns\" />\n        FROM proj_project_tree_version\n        WHERE root_project_id = #{rootProjectId}\n          AND deleted = b'0'\n        ORDER BY tree_version DESC, id DESC\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper.selectLatestActiveForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projecttree/ProjectTreeVersionMapper.xml",
+      "xml": "<select id=\"selectLatestActiveForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO\">\n        SELECT <include refid=\"columns\" />\n        FROM proj_project_tree_version\n        WHERE root_project_id = #{rootProjectId}\n          AND status = 'ACTIVE'\n          AND deleted = b'0'\n        ORDER BY tree_version DESC, id DESC\n        LIMIT 1\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projecttree.ProjectTreeVersionMapper.selectLatestForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projecttree/ProjectTreeVersionMapper.xml",
+      "xml": "<select id=\"selectLatestForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projecttree.ProjectTreeVersionDO\">\n        SELECT <include refid=\"columns\" />\n        FROM proj_project_tree_version\n        WHERE root_project_id = #{rootProjectId}\n          AND deleted = b'0'\n        ORDER BY tree_version DESC, id DESC\n        LIMIT 1\n        FOR UPDATE\n    </select>\n"
+    }
+  ]
+}

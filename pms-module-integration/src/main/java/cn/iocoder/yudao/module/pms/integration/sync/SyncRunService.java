@@ -35,6 +35,8 @@ public class SyncRunService {
     private SyncDisplayCacheMapper displayCaches;
     @org.springframework.beans.factory.annotation.Autowired
     private org.springframework.beans.factory.ObjectProvider<DppmsPublishedProjectScopeService> projectScopes;
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.beans.factory.ObjectProvider<DppmsDeliveryCompletionService> deliveryCompletion;
     /** 绑定行的批量直插载体；列集仅覆盖本服务写入的字段，值全部参数绑定。 */
     private static final cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog.Table BINDING_TABLE =
             new cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog.Table(
@@ -134,7 +136,7 @@ public class SyncRunService {
             var task=taskService.required(r.getTaskId());
             timing.start("read");
             var resolved=connections.resolve(d).toBuilder().executionActorId(
-                    d.sources().stream().anyMatch(SyncLocalOwnerReader::reference)?SyncFieldMapper.primaryKey(r.getCreator()):null).build();
+                    d.sources().stream().anyMatch(s->SyncLocalOwnerReader.reference(s)||SyncSecureLicenseReader.reference(s))?SyncFieldMapper.primaryKey(r.getCreator()):null).build();
             var snapshot=r.getPageNumber()==null?reader.read(resolved,task.getCheckpoint(),r.getFullSnapshot()):
                     reader.readPage(resolved,JsonUtils.parseObject(r.getPagingJson(),SyncPagingState.class));
             timing.stop();timing.start("stage");
@@ -154,7 +156,7 @@ public class SyncRunService {
             boolean cacheRefresh=cn.iocoder.yudao.module.pms.integration.sync.generic.GenericCacheRefresh.requested(d);
             if(!cacheRefresh && (d.clearBeforeLoad()||d.resetMappingsBeforeLoad())&&snapshot.objects().stream().allMatch(o->o.rows().isEmpty()))
                 throw new IllegalArgumentException("来源为空，拒绝清空目标组织或重置映射");
-            var adapter=validator.adapter(d);
+            var adapter=validator.adapter(d.toBuilder().executionActorId(resolved.executionActorId()).build());
             List<SyncBindingDO> bindingRows=(d.clearBeforeLoad()||d.resetMappingsBeforeLoad())?List.of():
                     adapter.requiresAllBindings()?bindings.selectTask(new SyncQueries.Task(SyncTaskService.tenant(),task.getId()))
                             :loadPageBindingRows(task.getId(),d,snapshot);
@@ -164,7 +166,8 @@ public class SyncRunService {
             rows=protectNewer(rows,existing,stale);
             var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,r.getFullSnapshot(),d.missingPolicy(),r.getAdoptExisting(),d.loadingMode(),d.clearBeforeLoad());
             if(r.getPreview()) {
-                var preview=adapter.preview(batch);
+                var preview=d.adapter().endsWith("_DIRECT")
+                        ?directPreviewTransaction().execute(status->adapter.preview(batch)):adapter.preview(batch);
                 if(preview.stream().anyMatch(c->"CONFLICT".equals(c.action()))) {
                     saveResult(runId,preview);throw new IllegalArgumentException("存在目标归属或字段冲突，未写入任何业务记录");
                 }
@@ -254,21 +257,24 @@ public class SyncRunService {
             acquired=lock.tryLock(1,TimeUnit.SECONDS);
             if(!acquired)throw new IllegalStateException("目标范围正在由另一任务同步");
             var task=taskService.required(root.getTaskId());
-            var adapter=validator.adapter(d);
+            // Bind the same server-derived actor used by LOCAL_OWNER reads. The frozen
+            // configuration keeps its configured connection identity and contains no runtime actor.
+            var actor=d.sources().stream().anyMatch(s->SyncLocalOwnerReader.reference(s)||SyncSecureLicenseReader.reference(s))?SyncFieldMapper.primaryKey(root.getCreator()):null;
+            var adapter=validator.adapter(d.toBuilder().executionActorId(actor).build());
             if(!adapter.supportsStreaming())throw new IllegalArgumentException("当前业务适配器不支持流式分块执行");
             updateStatus(runId,"READING");
             SyncStreamingState resume=null;
             if("CHECKPOINT_KEY".equals(d.effectiveRestartPolicy())&&root.getPagingJson()!=null)
                 resume=JsonUtils.parseObject(root.getPagingJson(),SyncStreamingState.class);
             var resolved=connections.resolve(d).toBuilder().executionActorId(
-                    d.sources().stream().anyMatch(SyncLocalOwnerReader::reference)?SyncFieldMapper.primaryKey(root.getCreator()):null).build();
+                    d.sources().stream().anyMatch(s->SyncLocalOwnerReader.reference(s)||SyncSecureLicenseReader.reference(s))?SyncFieldMapper.primaryKey(root.getCreator()):null).build();
             var execution=new StreamingExecution(runId,d,task,adapter,
                     new StreamingResultSample(root,root.getPreview()?d.maxRows():50));
             java.util.function.Consumer<SpringJdbcStreamingReader.StreamChunk> consume=chunk->{
                 if(chunk.sourceComplete())advanceStreamingSource(runId,d,chunk);
                 else processStreamingChunk(execution,chunk);
             };
-            if(DppmsInstallationSyncAdapter.ADAPTER.equals(d.adapter())) {
+            if((DppmsInstallationSyncAdapter.ADAPTER.equals(d.adapter()) || DppmsDirectInstallationTask.ADAPTER.equals(d.adapter()))) {
                 if(!root.getFullSnapshot() || resume!=null)throw new IllegalArgumentException("安装历史必须完整读取后按设备处理");
                 try(var installations=new DppmsInstallationStream(resolved)) {
                     streamingReader.stream(resolved,task.getCheckpoint(),true,null,installations::capture);
@@ -287,6 +293,17 @@ public class SyncRunService {
                 var t=taskService.locked(current.getTaskId());
                 if(!Objects.equals(t.getActiveRunId(),runId)||!Objects.equals(t.getVersion(),current.getConfigVersion()))
                     throw new IllegalStateException("流式运行所有权或配置版本变化");
+                if(DppmsDeliveryCompletionService.eligible(d)) {
+                    var completion=deliveryCompletion.getObject().complete(new DppmsDeliveryCompletionService.Completion(current,d));
+                    var totals=new LinkedHashMap<>(JsonUtils.parseMap(current.getSummaryJson()));
+                    totals.put(current.getPreview()?"POST_INPUTS_VALIDATED":"POST_CONTRACTS_UPDATED",
+                            current.getPreview()?1L:completion.changedContracts());
+                    if(!current.getPreview()) {
+                        totals.put("POST_SHIPMENT_REFERENCES_UPDATED",completion.changedShipmentContracts());
+                        totals.put("POST_PACKAGE_REFERENCES_UPDATED",completion.changedPackages());
+                    }
+                    current.setSummaryJson(JsonUtils.toJsonString(totals));
+                }
                 current.setStatus(current.getPreview()?"PREVIEW_READY":"SUCCESS").setFinishedAt(LocalDateTime.now())
                         .setCachePending(!current.getPreview());runs.updateById(current);
                 if(DppmsPublishedProjectScopeService.eligible(d))projectScopes.getObject().publish(
@@ -341,7 +358,7 @@ public class SyncRunService {
             timing.stop();timing.start("transform");
             var rows=fieldMapper.transform(d,snapshot,existing);
             Set<String> stale=new HashSet<>();rows=protectNewer(rows,existing,stale);
-            var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,false,d.missingPolicy(),false,d.loadingMode(),false);
+            var batch=new DataSyncAdapter.Batch(owner(task),rows,existing,d.adapter().endsWith("_DIRECT") && Boolean.TRUE.equals(current.getFullSnapshot()),d.missingPolicy(),false,d.loadingMode(),false);
             // Target validation still runs for every row; source equality alone cannot hide target drift.
             // FULL retains the original staging order. Reuse mode stages only facts not already evidenced.
             boolean reuseEvidence="REUSE_UNCHANGED".equals(d.effectiveEvidencePolicy());
@@ -663,9 +680,13 @@ public class SyncRunService {
         record Update(List<DataSyncAdapter.Change> rows,String json) {}
         private final boolean preview;
         private final int limit;
+        private final boolean directLicenseIssues;
         private List<DataSyncAdapter.Change> rows;
         StreamingResultSample(SyncRunDO run,int limit) {
             this.preview=Boolean.TRUE.equals(run.getPreview());this.limit=limit;
+            String snapshot=run.getConfigSnapshot();
+            this.directLicenseIssues=snapshot!=null && snapshot.contains("\"DPPMS_SECURE_LICENSE_DIRECT\"")
+                    && DppmsDirectLicenseHistoryTemplate.ADAPTER.equals(JsonUtils.parseObject(snapshot,SyncDefinition.class).adapter());
             this.rows=run.getResultJson()==null?List.of():List.copyOf(JsonUtils.parseArray(run.getResultJson(),DataSyncAdapter.Change.class));
         }
         Update prepare(List<DataSyncAdapter.Change> changes) {
@@ -677,9 +698,9 @@ public class SyncRunService {
                     if(sample==null)sample=new ArrayList<>(rows);
                     sample.add(change);size++;replacement=size-1;continue;
                 }
-                if(!preview || !isPreviewProblem(change))continue;
+                if(!preview || !isSampleProblem(change))continue;
                 var current=sample==null?rows:sample;
-                while(replacement>=0 && isPreviewProblem(current.get(replacement)))replacement--;
+                while(replacement>=0 && isSampleProblem(current.get(replacement)))replacement--;
                 if(replacement<0)break;
                 if(sample==null)sample=new ArrayList<>(rows);
                 sample.set(replacement--,change);
@@ -690,6 +711,9 @@ public class SyncRunService {
             return new Update(List.copyOf(JsonUtils.parseArray(json,DataSyncAdapter.Change.class)),json);
         }
         void committed(Update update) {if(update!=null)rows=update.rows();}
+        private boolean isSampleProblem(DataSyncAdapter.Change change) {
+            return isPreviewProblem(change) || directLicenseIssues && DppmsDirectLicenseHistoryTask.hasSourceIssue(change);
+        }
     }
     private static boolean isPreviewProblem(DataSyncAdapter.Change change) {
         return Set.of("ISSUE","CONFLICT","FAILED").contains(change.action());
@@ -702,6 +726,11 @@ public class SyncRunService {
     public static String owner(SyncTaskDO t){return "integration:"+t.getTenantId()+":"+t.getId();}
     private SyncTargetLocks targetLocks(SyncDefinition definition){
         return new SyncTargetLocks(redisson,SyncTaskService.tenant(),definition,validator.adapter(definition));
+    }
+    private TransactionTemplate directPreviewTransaction(){
+        var transaction=new TransactionTemplate(transactionManager);
+        transaction.setIsolationLevel(org.springframework.transaction.TransactionDefinition.ISOLATION_REPEATABLE_READ);
+        return transaction;
     }
     private TransactionTemplate tx(){return new TransactionTemplate(transactionManager);}
     private static String safeError(Exception ex){

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.WarrantyShipmentEligibilityMapper">
+  <select id="selectShipments" resultType="cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.WarrantyShipmentEligibilityMapper$Shipment">
+    SELECT device_sn AS deviceSn,legacy_package_key AS packageSourceKey,rma_no AS rmaNo
+    FROM ast_device_shipment WHERE tenant_id=#{query.tenantId} AND deleted=FALSE AND source_system='DPPMS'
+    <choose><when test="query.deviceSns != null and !query.deviceSns.isEmpty()">
+      AND device_sn IN <foreach collection="query.deviceSns" item="sn" open="(" separator="," close=")">#{sn}</foreach>
+      AND CAST(device_sn AS BINARY) IN <foreach collection="query.deviceSns" item="sn" open="(" separator="," close=")">CAST(#{sn} AS BINARY)</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+    ORDER BY id
+  </select>
+</mapper>

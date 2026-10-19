@@ -4,7 +4,8 @@ import cn.iocoder.yudao.framework.tenant.core.context.TenantContextHolder;
 import cn.iocoder.yudao.module.pms.integration.api.sync.DataSyncAdapter;
 import cn.iocoder.yudao.module.pms.platform.api.migration.PlatformMigrationEvidenceApi;
 import cn.iocoder.yudao.module.pms.platform.api.migration.dto.*;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import java.time.LocalDateTime;
 import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,15 +15,19 @@ import static org.mockito.Mockito.*;
 class SyncEvidenceServiceTest {
     record Identity(Long tenant, String owner, String purpose, String release, String system, String table) {}
 
-    @Test void sharedPhysicalTableKeepsSeparateLogicalEvidenceAndStreamingChunks() {
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void sharedPhysicalTableKeepsSeparateLogicalEvidenceAndStreamingChunks(boolean caseOnlyNames) {
         var api = mock(PlatformMigrationEvidenceApi.class);
         var batches = new LinkedHashMap<Identity, MigrationBatchFact>();
         var claimed = new HashSet<Long>();
         var sourceRecords = new ArrayList<MigrationSourceRecordFact>();
         var completed = new ArrayList<CompleteReconciliationCommand>();
+        var idempotencyKeys = new HashSet<String>();
         when(api.createImportBatch(any())).thenAnswer(inv -> {
             CreateImportBatchCommand c = inv.getArgument(0);
-            var key = new Identity(c.tenantId(), c.ownerContextCode(), c.purposeCode(), c.releaseId(), c.sourceSystem(), c.sourceTable());
+            assertTrue(idempotencyKeys.add(c.idempotencyKey().toLowerCase(Locale.ROOT)), "case-insensitive idempotency collision");
+            var key = new Identity(c.tenantId(), c.ownerContextCode(), c.purposeCode(), c.releaseId().toLowerCase(Locale.ROOT), c.sourceSystem(), c.sourceTable());
             if (batches.containsKey(key)) throw new IllegalStateException("duplicate PLT batch identity");
             var batch = new MigrationBatchFact((long)batches.size()+1, c.tenantId(), c.ownerContextCode(), c.purposeCode(),
                     c.releaseId(), c.sourceSystem(), c.sourceTable(), MigrationBatchStatus.IMPORTING, c.expectedRowCount(),
@@ -52,7 +57,7 @@ class SyncEvidenceServiceTest {
                     MigrationBatchStatus.RECONCILING, batch.sourceCount(), 0, 0, 0, null, 1, batch.createTime()));
         });
         doAnswer(inv -> { completed.add(inv.getArgument(0)); return null; }).when(api).completeReconciliation(any());
-        var objects = List.of("DEPARTMENT", "ehr_department");
+        var objects = caseOnlyNames ? List.of("T_USER_ROLE", "t_user_role") : List.of("DEPARTMENT", "ehr_department");
         var d = SyncDefinition.builder().sourceSystem("DPPMS").adapter("DEPARTMENT")
                 .sources(objects.stream().map(o -> SyncDefinition.Source.builder().object(o).sourceObject("ehr_department").sourceKey("id").build()).toList()).build();
         var snapshot = new MysqlSyncReader.Snapshot(LocalDateTime.of(2026,10,15,0,0), objects.stream()

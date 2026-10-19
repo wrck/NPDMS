@@ -1,0 +1,12 @@
+{
+  "tasks": 24,
+  "implementationsPerTask": 3,
+  "stats": {
+    "implementationRecords": 72,
+    "statements": 1255,
+    "sourceStatements": 152,
+    "insertBindings": 2205,
+    "sourceFieldRows": 861
+  },
+  "extractionWarnings": []
+}

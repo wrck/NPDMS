@@ -1,0 +1,1197 @@
+{
+  "task": "P15",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "com_contract",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "company_id",
+      "parameter": "#{row.target.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "company_code",
+      "parameter": "#{row.target.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "company_name",
+      "parameter": "#{row.target.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "master_source_system",
+      "parameter": "#{row.target.masterSourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "master_source_record_key",
+      "parameter": "#{row.target.masterSourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "master_source_version",
+      "parameter": "#{row.target.masterSourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "contract_type",
+      "parameter": "#{row.target.contractType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "customer_id",
+      "parameter": "#{row.target.customerId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "customer_code",
+      "parameter": "#{row.target.customerCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "customer_name",
+      "parameter": "#{row.target.customerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "contract_name",
+      "parameter": "#{row.target.contractName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "contract_amount",
+      "parameter": "#{row.target.contractAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "currency_code",
+      "parameter": "#{row.target.currencyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "currency_name",
+      "parameter": "#{row.target.currencyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "contract_create_time",
+      "parameter": "#{row.target.contractCreateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "authority_status",
+      "parameter": "#{row.target.authorityStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "source_lifecycle_status",
+      "parameter": "#{row.target.sourceLifecycleStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "effective_date",
+      "parameter": "#{row.target.effectiveDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "expiry_date",
+      "parameter": "#{row.target.expiryDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "project_name",
+      "parameter": "#{row.target.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "project_code",
+      "parameter": "#{row.target.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "market_code",
+      "parameter": "#{row.target.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "market_name",
+      "parameter": "#{row.target.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "department_code",
+      "parameter": "#{row.target.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "department_name",
+      "parameter": "#{row.target.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "system_code",
+      "parameter": "#{row.target.systemCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "system_name",
+      "parameter": "#{row.target.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "expend_code",
+      "parameter": "#{row.target.expendCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "expend_name",
+      "parameter": "#{row.target.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "industry_code",
+      "parameter": "#{row.target.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "industry_name",
+      "parameter": "#{row.target.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "marketing_representative_code",
+      "parameter": "#{row.target.marketingRepresentativeCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "marketing_representative_name",
+      "parameter": "#{row.target.marketingRepresentativeName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "secondary_representative_code",
+      "parameter": "#{row.target.secondaryRepresentativeCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "source_sync_time",
+      "parameter": "#{row.target.sourceSyncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "source_updated_at",
+      "parameter": "#{row.target.sourceUpdatedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_contract",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "contract_id",
+      "parameter": "#{row.target.contractId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "company_id",
+      "parameter": "#{row.target.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "company_code",
+      "parameter": "#{row.target.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "company_name",
+      "parameter": "#{row.target.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "department_id",
+      "parameter": "#{row.target.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "department_code",
+      "parameter": "#{row.target.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "department_name",
+      "parameter": "#{row.target.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "contract_type",
+      "parameter": "#{row.target.contractType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "customer_name",
+      "parameter": "#{row.target.customerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "project_name",
+      "parameter": "#{row.target.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "market_code",
+      "parameter": "#{row.target.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "market_name",
+      "parameter": "#{row.target.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "system_source_key",
+      "parameter": "#{row.target.systemSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "system_code",
+      "parameter": "#{row.target.systemCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "system_name",
+      "parameter": "#{row.target.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "warranty_years",
+      "parameter": "#{row.target.warrantyYears}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "remark",
+      "parameter": "#{row.target.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "mapping_status",
+      "parameter": "#{row.target.mappingStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "source_record_key",
+      "parameter": "#{row.target.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "source_sync_time",
+      "parameter": "#{row.target.sourceSyncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_contract_reference",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "shipment_contract_ref_id",
+      "parameter": "#{row.target.shipmentContractRefId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "package_no",
+      "parameter": "#{row.target.packageNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "shipment_time",
+      "parameter": "#{row.target.shipmentTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "warranty_start_time",
+      "parameter": "#{row.target.warrantyStartTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "warranty_end_time",
+      "parameter": "#{row.target.warrantyEndTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "receiver_name",
+      "parameter": "#{row.target.receiverName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "express_no",
+      "parameter": "#{row.target.expressNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "carrier_name",
+      "parameter": "#{row.target.carrierName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "mapping_status",
+      "parameter": "#{row.target.mappingStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "source_record_key",
+      "parameter": "#{row.target.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "source_sync_time",
+      "parameter": "#{row.target.sourceSyncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "carrier_code",
+      "parameter": "#{row.target.carrierCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "com_shipment_package",
+      "column": "shipment_contract_source_key",
+      "parameter": "#{row.target.shipmentContractSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "device_sn",
+      "parameter": "#{row.target.deviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "shipment_time",
+      "parameter": "#{row.target.shipmentTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "package_no",
+      "parameter": "#{row.target.packageNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "event_type",
+      "parameter": "#{row.target.eventType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "warranty_start_date",
+      "parameter": "#{row.target.warrantyStartDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "warranty_months",
+      "parameter": "#{row.target.warrantyMonths}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "rma_no",
+      "parameter": "#{row.target.rmaNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "related_device_sn",
+      "parameter": "#{row.target.relatedDeviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "source_key",
+      "parameter": "#{row.target.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "source_version",
+      "parameter": "#{row.target.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "source_updated_at",
+      "parameter": "#{row.target.sourceUpdatedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "synced_at",
+      "parameter": "#{row.target.syncedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "sync_status",
+      "parameter": "#{row.target.syncStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "legacy_package_key",
+      "parameter": "#{row.target.legacyPackageKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "rma_related_sn",
+      "parameter": "#{row.target.rmaRelatedSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "rma_marked",
+      "parameter": "#{row.target.rmaMarked}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "order_line_id",
+      "parameter": "#{row.target.orderLineId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "source_payload",
+      "parameter": "#{row.target.sourcePayload}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "order_no",
+      "parameter": "#{row.target.orderNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "line_no",
+      "parameter": "#{row.target.lineNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "product_code",
+      "parameter": "#{row.target.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "secondary_sn",
+      "parameter": "#{row.target.secondarySn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "secondary_item",
+      "parameter": "#{row.target.secondaryItem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "internal_serial_no",
+      "parameter": "#{row.target.internalSerialNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "is_rma",
+      "parameter": "#{row.target.isRma}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "profit_center",
+      "parameter": "#{row.target.profitCenter}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "sole_agent_suffix",
+      "parameter": "#{row.target.soleAgentSuffix}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "sync_time",
+      "parameter": "#{row.target.syncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_shipment",
+      "column": "uuid",
+      "parameter": "#{row.target.uuid}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "source_device_sn",
+      "parameter": "#{row.target.sourceDeviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "target_device_sn",
+      "parameter": "#{row.target.targetDeviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "relationship_type",
+      "parameter": "#{row.target.relationshipType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "effective_from",
+      "parameter": "#{row.target.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "effective_to",
+      "parameter": "#{row.target.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "source_key",
+      "parameter": "#{row.target.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "source_version",
+      "parameter": "#{row.target.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "source_item",
+      "parameter": "#{row.target.sourceItem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_relationship",
+      "column": "target_item",
+      "parameter": "#{row.target.targetItem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"selectContract\" resultMap=\"ContractSource\" resultOrdered=\"true\">SELECT CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR) AS raw_key,o.migration_issue AS issue,o.company_code AS `company_code`,o.contract_no AS `contract_no`,o.customer_code AS `customer_code`,o.customer_name AS `customer_name`,'DPPMS_ERP' AS `master_source_system`,CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR) AS `master_source_record_key`,rr.currency_name AS `currency_name`,rr.currency_name AS `currency_code`,rr.contract_amount AS `contract_amount`,rr.contract_create_time AS `contract_create_time`,COALESCE(ss.project_name,rr.project_name) AS `project_name`,rr.project_code AS `project_code`,COALESCE(ss.market_code,rr.market_code) AS `market_code`,COALESCE(ss.market_name,rr.market_name) AS `market_name`,COALESCE(ss.department_code,rr.department_code) AS `department_code`,rr.department_name AS `department_name`,rr.industry_code AS `industry_code`,rr.industry_name AS `industry_name`,rr.marketing_representative_code AS `marketing_representative_code`,rr.marketing_representative_name AS `marketing_representative_name`,rr.secondary_representative_code AS `secondary_representative_code`,ss.system_name AS `system_name` FROM (\n    SELECT MIN(x.company_code) AS company_code, MIN(x.contract_no) AS contract_no,\n      MIN(NULLIF(x.customer_code,'')) AS customer_code, MIN(NULLIF(x.customer_name,'')) AS customer_name,\n      CASE WHEN MAX(x.customer_code_invalid)=1 THEN 'ERP_CUSTOMER_CODE_FORMAT_INVALID'\n        WHEN COUNT(DISTINCT CAST(NULLIF(x.customer_code,'') AS BINARY))&gt;1\n          OR COUNT(DISTINCT CAST(NULLIF(x.customer_name,'') AS BINARY))&gt;1 THEN 'CONTRACT_CUSTOMER_CONFLICT'\n        ELSE NULL END AS migration_issue\n    FROM (\n      SELECT o.company_code,o.contract_no,o.customer_name,\n        CASE WHEN o.customer_code IS NULL OR o.customer_code='' THEN o.customer_code\n          WHEN o.customer_code REGEXP '^[A-Za-z]'\n            AND CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))&lt;=5\n          THEN CONCAT(LEFT(o.customer_code,1),LPAD(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)),5,'0'))\n          ELSE NULL END AS customer_code,\n        CASE WHEN o.customer_code IS NOT NULL AND o.customer_code&lt;&gt;''\n          AND (NOT(o.customer_code REGEXP '^[A-Za-z]')\n            OR CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))&gt;5)\n          THEN 1 ELSE 0 END AS customer_code_invalid\n      FROM com_sales_order o\n      WHERE o.tenant_id=#{tenantId} AND o.deleted=0\n        AND o.source_system IN ('SAP','D365','SMS')\n        AND o.company_code IS NOT NULL AND o.company_code&lt;&gt;''\n        AND o.contract_no IS NOT NULL AND o.contract_no&lt;&gt;''\n      \n      \n    ) x\n    GROUP BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY)\n    ORDER BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY) \n  ) o LEFT JOIN (SELECT s.tenant_id,s.contract_no,\n SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`project_name` AS CHAR)) END),65) AS `project_name`,\n SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_code` AS CHAR)) END),65) AS `market_code`,\n SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_name` AS CHAR)) END),65) AS `market_name`,\n SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`department_code` AS CHAR)) END),65) AS `department_code`,\n SUBSTRING(MAX(CASE WHEN s.`system_name` IS NOT NULL AND CAST(s.`system_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`system_name` AS CHAR)) END),65) AS `system_name`\nFROM com_shipment_contract_reference s\nJOIN int_base_sync_binding own ON own.tenant_id=s.tenant_id AND own.target_id=s.id AND own.object_key='SHIPMENT_CONTRACT' AND own.deleted=FALSE JOIN int_base_sync_task task ON task.tenant_id=own.tenant_id AND task.id=own.task_id AND task.deleted=FALSE AND task.task_code='BASE_P15' AND task.connection_id=#{parameters.connectionId}\nWHERE s.tenant_id=#{tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'\nGROUP BY s.tenant_id,s.contract_no) ss ON ss.tenant_id=#{tenantId} AND CAST(ss.contract_no AS BINARY)=CAST(o.contract_no AS BINARY) LEFT JOIN (SELECT s.tenant_id,s.contract_no,\n SUBSTRING(MAX(CASE WHEN s.`currency_name` IS NOT NULL AND CAST(s.`currency_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`currency_name` AS CHAR)) END),40) AS `currency_name`,\n SUBSTRING(MAX(CASE WHEN s.`contract_amount` IS NOT NULL AND CAST(s.`contract_amount` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_amount` AS CHAR)) END),40) AS `contract_amount`,\n SUBSTRING(MAX(CASE WHEN s.`contract_create_time` IS NOT NULL AND CAST(s.`contract_create_time` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_create_time` AS CHAR)) END),40) AS `contract_create_time`,\n SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_name` AS CHAR)) END),40) AS `project_name`,\n SUBSTRING(MAX(CASE WHEN s.`project_code` IS NOT NULL AND CAST(s.`project_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_code` AS CHAR)) END),40) AS `project_code`,\n SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_code` AS CHAR)) END),40) AS `market_code`,\n SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_name` AS CHAR)) END),40) AS `market_name`,\n SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_code` AS CHAR)) END),40) AS `department_code`,\n SUBSTRING(MAX(CASE WHEN s.`department_name` IS NOT NULL AND CAST(s.`department_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_name` AS CHAR)) END),40) AS `department_name`,\n SUBSTRING(MAX(CASE WHEN s.`industry_code` IS NOT NULL AND CAST(s.`industry_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_code` AS CHAR)) END),40) AS `industry_code`,\n SUBSTRING(MAX(CASE WHEN s.`industry_name` IS NOT NULL AND CAST(s.`industry_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_name` AS CHAR)) END),40) AS `industry_name`,\n SUBSTRING(MAX(CASE WHEN s.`marketing_representative_code` IS NOT NULL AND CAST(s.`marketing_representative_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_code` AS CHAR)) END),40) AS `marketing_representative_code`,\n SUBSTRING(MAX(CASE WHEN s.`marketing_representative_name` IS NOT NULL AND CAST(s.`marketing_representative_name` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_name` AS CHAR)) END),40) AS `marketing_representative_name`,\n SUBSTRING(MAX(CASE WHEN s.`secondary_representative_code` IS NOT NULL AND CAST(s.`secondary_representative_code` AS CHAR)&lt;&gt;''\n  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`secondary_representative_code` AS CHAR)) END),40) AS `secondary_representative_code`\nFROM com_contract_receivable s\nJOIN int_base_sync_binding own ON own.tenant_id=s.tenant_id AND own.target_id=s.id AND own.object_key='RECEIVABLE' AND own.deleted=FALSE JOIN int_base_sync_task task ON task.tenant_id=own.tenant_id AND task.id=own.task_id AND task.deleted=FALSE AND task.task_code='BASE_P24' AND task.connection_id=#{parameters.connectionId}\nWHERE s.tenant_id=#{tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'\nGROUP BY s.tenant_id,s.contract_no) rr ON rr.tenant_id=#{tenantId} AND CAST(rr.contract_no AS BINARY)=CAST(o.contract_no AS BINARY) LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectContracts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"selectContracts\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Row\">SELECT `id`,`tenant_id`,`company_id`,`company_code`,`company_name`,`contract_no`,`master_source_system`,`master_source_record_key`,`master_source_version`,`contract_type`,`customer_id`,`customer_code`,`customer_name`,`contract_name`,`contract_amount`,`currency_code`,`currency_name`,`contract_create_time`,`authority_status`,`source_lifecycle_status`,`effective_date`,`expiry_date`,`project_name`,`project_code`,`market_code`,`market_name`,`department_code`,`department_name`,`system_code`,`system_name`,`expend_code`,`expend_name`,`industry_code`,`industry_name`,`marketing_representative_code`,`marketing_representative_name`,`secondary_representative_code`,`source_sync_time`,`source_updated_at`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM com_contract WHERE tenant_id=#{query.tenantId} <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND (<foreach collection=\"query.keys\" item=\"key\" separator=\" OR \">(company_code=#{key.companyCode} AND contract_no=#{key.contractNo})</foreach>)</when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<insert id=\"insertContract\">INSERT INTO com_contract (`id`,`tenant_id`,`company_id`,`company_code`,`company_name`,`contract_no`,`master_source_system`,`master_source_record_key`,`master_source_version`,`contract_type`,`customer_id`,`customer_code`,`customer_name`,`contract_name`,`contract_amount`,`currency_code`,`currency_name`,`contract_create_time`,`authority_status`,`source_lifecycle_status`,`effective_date`,`expiry_date`,`project_name`,`project_code`,`market_code`,`market_name`,`department_code`,`department_name`,`system_code`,`system_name`,`expend_code`,`expend_name`,`industry_code`,`industry_name`,`marketing_representative_code`,`marketing_representative_name`,`secondary_representative_code`,`source_sync_time`,`source_updated_at`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.companyId},#{row.target.companyCode},#{row.target.companyName},#{row.target.contractNo},#{row.target.masterSourceSystem},#{row.target.masterSourceRecordKey},#{row.target.masterSourceVersion},#{row.target.contractType},#{row.target.customerId},#{row.target.customerCode},#{row.target.customerName},#{row.target.contractName},#{row.target.contractAmount},#{row.target.currencyCode},#{row.target.currencyName},#{row.target.contractCreateTime},#{row.target.authorityStatus},#{row.target.sourceLifecycleStatus},#{row.target.effectiveDate},#{row.target.expiryDate},#{row.target.projectName},#{row.target.projectCode},#{row.target.marketCode},#{row.target.marketName},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.systemCode},#{row.target.systemName},#{row.target.expendCode},#{row.target.expendName},#{row.target.industryCode},#{row.target.industryName},#{row.target.marketingRepresentativeCode},#{row.target.marketingRepresentativeName},#{row.target.secondaryRepresentativeCode},#{row.target.sourceSyncTime},#{row.target.sourceUpdatedAt},#{row.target.status},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.updateContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<update id=\"updateContract\">UPDATE com_contract SET `company_code`=#{row.target.companyCode},`contract_no`=#{row.target.contractNo},`customer_code`=#{row.target.customerCode},`customer_name`=#{row.target.customerName},`contract_amount`=#{row.target.contractAmount},`currency_code`=#{row.target.currencyCode},`currency_name`=#{row.target.currencyName},`contract_create_time`=#{row.target.contractCreateTime},`project_name`=#{row.target.projectName},`project_code`=#{row.target.projectCode},`market_code`=#{row.target.marketCode},`market_name`=#{row.target.marketName},`department_code`=#{row.target.departmentCode},`department_name`=#{row.target.departmentName},`system_name`=#{row.target.systemName},`industry_code`=#{row.target.industryCode},`industry_name`=#{row.target.industryName},`marketing_representative_code`=#{row.target.marketingRepresentativeCode},`marketing_representative_name`=#{row.target.marketingRepresentativeName},`secondary_representative_code`=#{row.target.secondaryRepresentativeCode},`source_sync_time`=#{row.target.sourceSyncTime},`version`=#{row.target.version},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime} WHERE tenant_id=#{context.tenantId} AND id=#{row.target.id} AND deleted=FALSE AND version=#{row.expectedVersion}</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectShipmentContracts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"selectShipmentContracts\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Row\">SELECT `id`,`tenant_id`,`contract_id`,`contract_no`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`contract_type`,`customer_name`,`project_name`,`market_code`,`market_name`,`system_source_key`,`system_code`,`system_name`,`warranty_years`,`remark`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM com_shipment_contract_reference WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS' <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND source_record_key IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<insert id=\"insertShipmentContract\">INSERT INTO com_shipment_contract_reference (`id`,`tenant_id`,`contract_id`,`contract_no`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`contract_type`,`customer_name`,`project_name`,`market_code`,`market_name`,`system_source_key`,`system_code`,`system_name`,`warranty_years`,`remark`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.contractId},#{row.target.contractNo},#{row.target.companyId},#{row.target.companyCode},#{row.target.companyName},#{row.target.departmentId},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.contractType},#{row.target.customerName},#{row.target.projectName},#{row.target.marketCode},#{row.target.marketName},#{row.target.systemSourceKey},#{row.target.systemCode},#{row.target.systemName},#{row.target.warrantyYears},#{row.target.remark},#{row.target.mappingStatus},#{row.target.sourceSystem},#{row.target.sourceRecordKey},#{row.target.sourceSyncTime},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.updateShipmentContract",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<update id=\"updateShipmentContract\">UPDATE com_shipment_contract_reference SET `contract_no`=#{row.target.contractNo},`department_code`=#{row.target.departmentCode},`contract_type`=#{row.target.contractType},`customer_name`=#{row.target.customerName},`project_name`=#{row.target.projectName},`market_code`=#{row.target.marketCode},`market_name`=#{row.target.marketName},`system_source_key`=#{row.target.systemSourceKey},`system_name`=#{row.target.systemName},`warranty_years`=#{row.target.warrantyYears},`remark`=#{row.target.remark},`source_sync_time`=#{row.target.sourceSyncTime},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime} WHERE tenant_id=#{context.tenantId} AND id=#{row.target.id} AND deleted=FALSE</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectPackages",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"selectPackages\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Row\">SELECT `id`,`tenant_id`,`shipment_contract_ref_id`,`package_no`,`shipment_time`,`warranty_start_time`,`warranty_end_time`,`receiver_name`,`express_no`,`carrier_name`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`carrier_code`,`shipment_contract_source_key` FROM com_shipment_package WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS' <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND (source_record_key IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach> OR package_no IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach>)</when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<insert id=\"insertPackage\">INSERT INTO com_shipment_package (`id`,`tenant_id`,`shipment_contract_ref_id`,`package_no`,`shipment_time`,`warranty_start_time`,`warranty_end_time`,`receiver_name`,`express_no`,`carrier_name`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`carrier_code`,`shipment_contract_source_key`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.shipmentContractRefId},#{row.target.packageNo},#{row.target.shipmentTime},#{row.target.warrantyStartTime},#{row.target.warrantyEndTime},#{row.target.receiverName},#{row.target.expressNo},#{row.target.carrierName},#{row.target.mappingStatus},#{row.target.sourceSystem},#{row.target.sourceRecordKey},#{row.target.sourceSyncTime},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.carrierCode},#{row.target.shipmentContractSourceKey})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.updatePackage",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<update id=\"updatePackage\">UPDATE com_shipment_package SET `shipment_time`=#{row.target.shipmentTime},`warranty_start_time`=#{row.target.warrantyStartTime},`warranty_end_time`=#{row.target.warrantyEndTime},`receiver_name`=#{row.target.receiverName},`express_no`=#{row.target.expressNo},`carrier_name`=#{row.target.carrierName},`source_sync_time`=#{row.target.sourceSyncTime},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime},`carrier_code`=#{row.target.carrierCode},`shipment_contract_source_key`=#{row.target.shipmentContractSourceKey} WHERE tenant_id=#{context.tenantId} AND id=#{row.target.id} AND deleted=FALSE</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectEvents",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"selectEvents\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Row\">SELECT `id`,`device_sn`,`shipment_time`,`package_no`,`contract_no`,`event_type`,`warranty_start_date`,`warranty_months`,`rma_no`,`related_device_sn`,`source_system`,`source_key`,`source_version`,`source_updated_at`,`synced_at`,`sync_status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`legacy_package_key`,`rma_related_sn`,`rma_marked`,`order_line_id`,`source_payload`,`order_no`,`line_no`,`product_code`,`secondary_sn`,`secondary_item`,`internal_serial_no`,`is_rma`,`profit_center`,`sole_agent_suffix`,`sync_time`,`uuid` FROM ast_device_shipment WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS' <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND source_key IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<insert id=\"insertShipmentEvent\">INSERT INTO ast_device_shipment (`id`,`device_sn`,`shipment_time`,`package_no`,`contract_no`,`event_type`,`warranty_start_date`,`warranty_months`,`rma_no`,`related_device_sn`,`source_system`,`source_key`,`source_version`,`source_updated_at`,`synced_at`,`sync_status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`legacy_package_key`,`rma_related_sn`,`rma_marked`,`order_line_id`,`source_payload`,`order_no`,`line_no`,`product_code`,`secondary_sn`,`secondary_item`,`internal_serial_no`,`is_rma`,`profit_center`,`sole_agent_suffix`,`sync_time`,`uuid`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.deviceSn},#{row.target.shipmentTime},#{row.target.packageNo},#{row.target.contractNo},#{row.target.eventType},#{row.target.warrantyStartDate},#{row.target.warrantyMonths},#{row.target.rmaNo},#{row.target.relatedDeviceSn},#{row.target.sourceSystem},#{row.target.sourceKey},#{row.target.sourceVersion},#{row.target.sourceUpdatedAt},#{row.target.syncedAt},#{row.target.syncStatus},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.tenantId},#{row.target.legacyPackageKey},#{row.target.rmaRelatedSn},#{row.target.rmaMarked},#{row.target.orderLineId},#{row.target.sourcePayload},#{row.target.orderNo},#{row.target.lineNo},#{row.target.productCode},#{row.target.secondarySn},#{row.target.secondaryItem},#{row.target.internalSerialNo},#{row.target.isRma},#{row.target.profitCenter},#{row.target.soleAgentSuffix},#{row.target.syncTime},#{row.target.uuid})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectRelationships",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"selectRelationships\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Row\">SELECT `id`,`source_device_sn`,`target_device_sn`,`relationship_type`,`contract_no`,`effective_from`,`effective_to`,`source_system`,`source_key`,`source_version`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`source_item`,`target_item` FROM ast_device_relationship WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS' <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND source_key IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<insert id=\"insertDeviceRelationship\">INSERT INTO ast_device_relationship (`id`,`source_device_sn`,`target_device_sn`,`relationship_type`,`contract_no`,`effective_from`,`effective_to`,`source_system`,`source_key`,`source_version`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`source_item`,`target_item`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.sourceDeviceSn},#{row.target.targetDeviceSn},#{row.target.relationshipType},#{row.target.contractNo},#{row.target.effectiveFrom},#{row.target.effectiveTo},#{row.target.sourceSystem},#{row.target.sourceKey},#{row.target.sourceVersion},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.tenantId},#{row.target.sourceItem},#{row.target.targetItem})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectCarriers",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"selectCarriers\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$Carrier\">SELECT value AS code,label FROM system_dict_data WHERE dict_type='01' AND deleted=FALSE AND status=0</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.packageSourceColumnReady",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"packageSourceColumnReady\" resultType=\"int\">SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='com_shipment_package' AND column_name='shipment_contract_source_key' AND data_type='varchar' AND character_maximum_length&gt;=64</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.latestP24Execution",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml",
+      "xml": "<select id=\"latestP24Execution\" resultType=\"string\">SELECT r.status FROM int_base_sync_run r JOIN int_base_sync_task t ON t.tenant_id=r.tenant_id AND t.id=r.task_id AND t.deleted=FALSE WHERE r.tenant_id=#{query.tenantId} AND r.connection_id=#{query.connectionId} AND r.task_code='BASE_P24' AND r.preview=FALSE AND r.deleted=FALSE ORDER BY r.id DESC LIMIT 1</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$SourceMapper.selectShipmentContract",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml",
+      "xml": "<select id=\"selectShipmentContract\" resultMap=\"ShipmentContractSource\" resultOrdered=\"true\">\nSELECT f.contract_id AS raw_key,f.warranty AS raw_warranty,'DPPMS' AS `source_system`,f.contract_id AS `source_record_key`,f.contract_code AS `contract_no`,f.office_code AS `department_code`,CAST(f.contract_type AS CHAR) AS `contract_type`,f.customer_name AS `customer_name`,f.project_name AS `project_name`,f.marketCode AS `market_code`,f.marketName AS `market_name`,CAST(f.systemId AS CHAR) AS `system_source_key`,f.systemName AS `system_name`,f.remark AS `remark` FROM fb_contract f LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$SourceMapper.selectPackage",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml",
+      "xml": "<select id=\"selectPackage\" resultMap=\"PackageSource\" resultOrdered=\"true\">\nSELECT p.packlist_id AS raw_key,'DPPMS' AS `source_system`,p.packlist_id AS `source_record_key`,p.packlist_id AS `package_no`,p.packdate AS `shipment_time`,p.warrantyStartTime AS `warranty_start_time`,p.warrantyEndTime AS `warranty_end_time`,p.receiveName AS `receiver_name`,p.emsNum AS `express_no`,p.emsCompany AS `carrier_code`,p.con_id AS `shipment_contract_source_key` FROM fb_shipment p LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$SourceMapper.selectShipmentEvent",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml",
+      "xml": "<select id=\"selectShipmentEvent\" resultMap=\"ShipmentEventSource\" resultOrdered=\"true\">\nSELECT CAST(b.id AS CHAR) AS raw_key,'DPPMS' AS `source_system`,CAST(b.id AS CHAR) AS `source_key`,b.barcode AS `device_sn`,p.packdate AS `shipment_time`,b.pack_id AS `package_no`,b.pack_id AS `legacy_package_key`,f.contract_code AS `contract_no`,CASE WHEN COALESCE(b.rma_no,'')&lt;&gt;'' THEN 'UNCLASSIFIED' ELSE 'SHIPMENT' END AS `event_type`,CASE WHEN COALESCE(b.rma_no,'')&lt;&gt;'' THEN 1 ELSE 0 END AS `rma_marked`,b.warrantyStartDate AS `warranty_start_date`,b.warrantyMonth AS `warranty_months`,b.rma_no AS `rma_no`,b.rmaBarcode AS `rma_related_sn`,b.updateTime AS `source_updated_at`,b.orderNumber AS `order_no`,CAST(b.lineNum AS CHAR) AS `line_no`,b.item AS `product_code`,b.barcode2 AS `secondary_sn`,b.item2 AS `secondary_item`,b.com_barcode AS `internal_serial_no`,b.isRMA AS `is_rma`,b.profitCenter AS `profit_center`,b.soleAgentSuffix AS `sole_agent_suffix`,b.syncTime AS `sync_time`,b.uuid AS `uuid` FROM fb_shipment_barcode b LEFT JOIN fb_shipment p ON p.packlist_id=b.pack_id AND CAST(p.packlist_id AS BINARY)=CAST(b.pack_id AS BINARY) LEFT JOIN fb_contract f ON f.contract_id=p.con_id AND CAST(f.contract_id AS BINARY)=CAST(p.con_id AS BINARY) ORDER BY b.id LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$SourceMapper.selectDeviceRelationship",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml",
+      "xml": "<select id=\"selectDeviceRelationship\" resultMap=\"DeviceRelationshipSource\" resultOrdered=\"true\">\nSELECT CAST(r.id AS CHAR) AS raw_key,'DPPMS' AS `source_system`,CAST(r.id AS CHAR) AS `source_key`,r.sn1 AS `source_device_sn`,r.sn2 AS `target_device_sn`,'EXTRA_SN' AS `relationship_type`,r.contract AS `contract_no`,r.createtime AS `effective_from`,r.updatetime AS `source_version`,r.item1 AS `source_item`,r.item2 AS `target_item` FROM fb_shipment_barcode_relation r WHERE r.sn1&lt;&gt;r.sn2 ORDER BY r.id LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$SourceMapper.countShipmentEvents",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml",
+      "xml": "<select id=\"countShipmentEvents\" resultType=\"long\">SELECT COUNT(*) FROM fb_shipment_barcode</select>"
+    }
+  ]
+}

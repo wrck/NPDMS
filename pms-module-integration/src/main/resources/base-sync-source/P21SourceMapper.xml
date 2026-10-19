@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$SourceMapper">
+  <select id="selectLease" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$LeaseCacheSource">
+    SELECT `projectCode` AS `project_code`, `orderExecNumber` AS `execution_no`, `productFirstName` AS `product_category`, `productName` AS `product_type`, `productSubCode` AS `product_code`, `productSubModel` AS `product_model`, `productSubName` AS `product_name`, `num` AS `quantity`, `memo` AS `memo`, `leaseDuration` AS `lease_duration`, `dataSource` AS `data_source` FROM `pm_project_product_lease_line_from_crm` LIMIT #{limit}
+  </select>
+  <select id="selectConfiguration" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$ConfigurationCacheSource">
+    SELECT `projectCode` AS `project_code`, `orderExecNumber` AS `execution_no`, `itemGroup` AS `item_group`, `itemCode` AS `product_code`, `parentCode` AS `parent_code`, `quantity` AS `quantity`, `bomPaths` AS `bom_path`, `itemModel` AS `product_model`, `itemDesc` AS `product_description`, `level` AS `level`, `dataSource` AS `data_source` FROM `pm_project_product_config_level_info_from_crm` LIMIT #{limit}
+  </select>
+</mapper>

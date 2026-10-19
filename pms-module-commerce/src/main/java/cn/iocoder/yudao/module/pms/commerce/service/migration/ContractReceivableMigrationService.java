@@ -45,6 +45,16 @@ public class ContractReceivableMigrationService implements ContractReceivableMig
         users.validateUser(request.actorId());
         if(!permissions.hasAnyPermissions(request.actorId(),"pms:integration:execute")
                 || !permissions.hasAnyPermissions(request.actorId(),"pms:commerce:contract:query")) fail("缺少迁移或合同权限");
+        var contractNos=request.entries().stream().filter(Objects::nonNull).map(Entry::originalFields)
+                .filter(Objects::nonNull).map(fields->fields.get("contract_num")).filter(Objects::nonNull).distinct().toList();
+        var contractIds=new HashMap<String,List<Long>>();
+        for(int offset=0;offset<contractNos.size();offset+=500) {
+            var selected=contractNos.subList(offset,Math.min(offset+500,contractNos.size()));
+            for(var contract:mapper.selectContractIdentities(new ContractReceivableMigrationMapper.ContractsQuery(tenant,selected))) {
+                if(contract.id()==null || contract.id()<=0 || !selected.contains(contract.contractNo()))fail("合同批量回执无效");
+                contractIds.computeIfAbsent(contract.contractNo(),ignored->new ArrayList<>()).add(contract.id());
+            }
+        }
         var result=new ArrayList<Result>();var keys=new HashSet<String>();
         for(var entry:request.entries()) {
             if(entry==null || !keys.add(entry.sourceKey()) || entry.originalFields()==null
@@ -69,7 +79,7 @@ public class ContractReceivableMigrationService implements ContractReceivableMig
                         "mappingStatus","departmentId","systemCode","systemName","expendCode","expendName"))
                     to.setPropertyValue(name,from.getPropertyValue(name));
             } else {
-                var contracts=mapper.selectExactContractIds(new ContractReceivableMigrationMapper.ContractQuery(tenant,incoming.getContractNo()));
+                var contracts=contractIds.getOrDefault(incoming.getContractNo(),List.of());
                 incoming.setContractId(contracts.size()==1?contracts.getFirst():null);
                 incoming.setMappingStatus("PENDING_COMPANY");
             }

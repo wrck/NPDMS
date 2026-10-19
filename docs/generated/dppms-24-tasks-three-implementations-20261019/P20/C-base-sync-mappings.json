@@ -1,0 +1,157 @@
+{
+  "task": "P20",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "proj_project_real_product",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "project_id",
+      "parameter": "#{row.target.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "project_code",
+      "parameter": "#{row.target.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "execution_no",
+      "parameter": "#{row.target.executionNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "product_category_name",
+      "parameter": "#{row.target.productCategoryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "product_name",
+      "parameter": "#{row.target.productName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "product_sub_code",
+      "parameter": "#{row.target.productSubCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "product_sub_model",
+      "parameter": "#{row.target.productSubModel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "product_sub_name",
+      "parameter": "#{row.target.productSubName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "quantity",
+      "parameter": "#{row.target.quantity}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "memo",
+      "parameter": "#{row.target.memo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "data_source",
+      "parameter": "#{row.target.dataSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_real_product",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.selectProjects",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml",
+      "xml": "<select id=\"selectProjects\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$Row\">SELECT id,tenant_id,project_id,contract_no,project_code,execution_no,product_category_name,product_name,product_sub_code,product_sub_model,product_sub_name,quantity,memo,data_source,creator,create_time,updater,update_time,deleted FROM proj_project_real_product WHERE tenant_id=#{query.tenantId}\n<choose><when test=\"query.ids != null and !query.ids.isEmpty()\">AND project_id IN <foreach collection=\"query.ids\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$TargetMapper.insertRealProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P20TargetMapper.xml",
+      "xml": "<insert id=\"insertRealProduct\">INSERT INTO proj_project_real_product (id,tenant_id,project_id,contract_no,project_code,execution_no,product_category_name,product_name,product_sub_code,product_sub_model,product_sub_name,quantity,memo,data_source,creator,create_time,updater,update_time,deleted) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.projectId},#{row.target.contractNo},#{row.target.projectCode},#{row.target.executionNo},#{row.target.productCategoryName},#{row.target.productName},#{row.target.productSubCode},#{row.target.productSubModel},#{row.target.productSubName},#{row.target.quantity},#{row.target.memo},#{row.target.dataSource},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted})</foreach></insert>"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$SourceMapper.selectRealProduct",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P20SourceMapper.xml",
+      "xml": "<select id=\"selectRealProduct\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$Source\">\nSELECT l.id AS sourceId,l.projectId AS originalProjectId,canonical.projectId AS canonicalProjectId,p.projectCode AS originalProjectCode,p.projectType,\nl.contractNo AS contractNo,\nl.projectCode AS projectCode,\nl.orderExecNumber AS executionNo,\nl.productFirstName AS productCategoryName,\nl.productName AS productName,\nl.productSubCode AS productSubCode,\nl.productSubModel AS productSubModel,\nl.productSubName AS productSubName,\nl.num AS quantity,\nl.memo AS memo,u.dataSource,COALESCE(u.matchCount,0) AS upstreamMatchCount,\nu.projectCode AS upstreamProjectCode,\nu.orderExecNumber AS upstreamExecutionNo,\nu.productFirstName AS upstreamProductCategoryName,\nu.productName AS upstreamProductName,\nu.productSubCode AS upstreamProductSubCode,\nu.productSubModel AS upstreamProductSubModel,\nu.productSubName AS upstreamProductSubName,\nu.num AS upstreamQuantity,\nu.memo AS upstreamMemo\nFROM pm_project_product_line_real l\nJOIN pm_project p ON p.projectId=l.projectId\nJOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical\n ON canonical.typeKey=CAST(p.projectType AS BINARY) AND canonical.codeKey=CAST(p.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nLEFT JOIN (\n SELECT MIN(projectCode) AS projectCode,MIN(orderExecNumber) AS orderExecNumber,MIN(productFirstName) AS productFirstName,MIN(productName) AS productName,\n MIN(productSubCode) AS productSubCode,MIN(productSubModel) AS productSubModel,MIN(productSubName) AS productSubName,MIN(num) AS num,MIN(memo) AS memo,\n CASE WHEN COUNT(*)=1 THEN MAX(dataSource) ELSE NULL END AS dataSource,COUNT(*) AS matchCount\n FROM pm_project_real_product_line_from_sms GROUP BY CAST(projectCode AS BINARY),CAST(orderExecNumber AS BINARY),CAST(productFirstName AS BINARY),CAST(productName AS BINARY),CAST(productSubCode AS BINARY),CAST(productSubModel AS BINARY),CAST(productSubName AS BINARY),num,CAST(memo AS BINARY)\n) u ON CAST(u.projectCode AS BINARY) &lt;=&gt; CAST(l.projectCode AS BINARY) AND CAST(u.orderExecNumber AS BINARY) &lt;=&gt; CAST(l.orderExecNumber AS BINARY) AND CAST(u.productFirstName AS BINARY) &lt;=&gt; CAST(l.productFirstName AS BINARY) AND CAST(u.productName AS BINARY) &lt;=&gt; CAST(l.productName AS BINARY) AND CAST(u.productSubCode AS BINARY) &lt;=&gt; CAST(l.productSubCode AS BINARY) AND CAST(u.productSubModel AS BINARY) &lt;=&gt; CAST(l.productSubModel AS BINARY) AND CAST(u.productSubName AS BINARY) &lt;=&gt; CAST(l.productSubName AS BINARY) AND u.num &lt;=&gt; l.num AND CAST(u.memo AS BINARY) &lt;=&gt; CAST(l.memo AS BINARY)\nWHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10'\nORDER BY l.id LIMIT #{limit}\n</select>"
+    }
+  ]
+}

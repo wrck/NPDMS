@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper">
+  <select id="selectInstallationSelectionPage" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
+    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND deleted=FALSE
+      AND object_key='INSTALLATION_HISTORY' AND source_object='pm_project_shipment'
+    <choose><when test="query.deviceSns != null and !query.deviceSns.isEmpty()">
+      AND JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.originalFields.barcode')) IN
+      <foreach collection="query.deviceSns" item="sn" open="(" separator="," close=")">#{sn}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+    <if test="query.afterId != null">AND id &gt; #{query.afterId}</if>
+    ORDER BY id LIMIT 500
+  </select>
   <update id="restoreVerifiedBinding">
     UPDATE int_sync_binding SET deleted=FALSE
     WHERE id=#{original.id} AND tenant_id=#{original.tenantId} AND task_id=#{original.taskId}
@@ -23,7 +33,36 @@
     JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE
     WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE
       AND t.source_system=#{query.sourceSystem} AND t.connection_id=#{query.connectionId}
-      AND t.adapter=#{query.adapter} AND b.source_object=#{query.sourceObject}
+      AND (t.adapter=#{query.adapter}
+        <if test="query.originalOnly and query.adapter == 'DPPMS_USERS'">OR (t.adapter='DPPMS_ACCOUNT_FOUNDATION' AND b.object_key IN ('t_user','t_user_info','fnd_user_info') AND b.source_key NOT LIKE '%:%')</if>
+        <if test="!query.originalOnly">
+        <choose>
+          <when test="query.adapter == 'DPPMS_DEVICE_BOOTSTRAP'">
+            OR (t.adapter='DPPMS_DEVICE_BOOTSTRAP_DIRECT' AND b.object_key='DEVICE_BASE' AND b.source_object='ast_device_shipment')
+          </when>
+          <when test="query.adapter == 'DPPMS_PROJECT_MASTER'">
+            OR (t.adapter='DPPMS_PROJECT_MASTER_DIRECT' AND b.object_key IN ('pm_project_header','pm_project_identity'))
+          </when>
+          <when test="query.adapter == 'DPPMS_ORGANIZATION'">
+            OR (t.adapter='DPPMS_ORGANIZATION_DIRECT' AND b.object_key IN ('COMPANY','DEPARTMENT','fnd_department','ehr_department','COMPANY_REFERENCE'))
+          </when>
+          <when test="query.adapter == 'DPPMS_USERS'">
+            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user','t_user_info','fnd_user_info')
+                AND b.source_key NOT LIKE '%:%')
+          </when>
+          <when test="query.adapter == 'DPPMS_ROLES'">
+            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_ROLE','FND_ROLE'))
+          </when>
+          <when test="query.adapter == 'DPPMS_USER_ROLES'">
+            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_USER_ROLE','FND_USER_ROLE'))
+          </when>
+          <when test="query.adapter == 'DPPMS_USER_SCOPES'">
+            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user_info','fnd_user_info','fnd_user_power')
+                AND b.source_key LIKE '%:%')
+          </when>
+        </choose>
+        </if>
+      ) AND b.source_object=#{query.sourceObject}
     <choose>
       <when test="query.sourceKeys != null and !query.sourceKeys.isEmpty()">
         AND b.source_key IN
@@ -31,6 +70,21 @@
       </when>
       <otherwise>AND 1=0</otherwise>
     </choose>
+    ORDER BY b.id
+  </select>
+  <!-- Verified lineage from the account Owner, never a join to SYSTEM business tables. -->
+  <select id="selectEhrEmployeeUsers" resultType="cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO">
+    SELECT b.* FROM int_sync_binding b
+    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE
+    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE AND t.source_system='DPPMS'
+      AND t.connection_id=#{query.connectionId} AND t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT')
+      <if test="query.originalOnly">AND t.adapter='DPPMS_ACCOUNT_FOUNDATION'</if>
+      AND b.object_key IN ('t_user','fnd_user_info') AND b.object_key=b.source_object
+      AND b.source_key NOT LIKE '%:%'
+    <choose><when test="query.sourceEmployeeIds != null and !query.sourceEmployeeIds.isEmpty()">
+      AND JSON_UNQUOTE(JSON_EXTRACT(b.fields_json,'$._verifiedEhrEmployeeId')) IN
+      <foreach collection="query.sourceEmployeeIds" item="employee" open="(" separator="," close=")">#{employee}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
     ORDER BY b.id
   </select>
   <select id="selectFirstTaskBindingId" resultType="java.lang.Long">

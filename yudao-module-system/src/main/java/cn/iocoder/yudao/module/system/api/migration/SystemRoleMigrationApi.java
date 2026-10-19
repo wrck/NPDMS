@@ -16,6 +16,9 @@ public interface SystemRoleMigrationApi {
     record Request(Long tenantId, String owner, List<Entry> entries, boolean adoptExisting) {}
     record Result(String object, String sourceKey, Role before, Role after, String action, String message) {}
     List<Result> preview(Request request);
+    record AccountPreview(Request request, SystemAccountMigrationPreview preceding) {}
+    /** Only preview may resolve negative actor IDs from preceding account Owner results. */
+    List<Result> previewAfterAccounts(AccountPreview request);
     /** Must participate in the transaction that also commits source bindings and migration evidence. */
     List<Result> apply(Request request);
     record AuditCorrection(Role expectedCurrent, Role restored) {}

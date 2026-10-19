@@ -1,0 +1,217 @@
+{
+  "task": "P25",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "fb_service",
+      "sourceObject": "fb_service",
+      "sourceKey": "renewalSourceKey",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "con_xb",
+          "target": "con_xb"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "barcode",
+          "target": "barcode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "grade",
+          "target": "grade"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "begin_date",
+          "target": "begin_date"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "end_date",
+          "target": "end_date"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "warranty",
+          "target": "warranty"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "remark",
+          "target": "remark"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "isyb",
+          "target": "isyb"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "state",
+          "target": "state"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "device_sn",
+      "parameter": "#{row.deviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "warranty_contract_no",
+      "parameter": "#{row.warrantyContractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "warranty_grade",
+      "parameter": "#{row.warrantyGrade}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "warranty_start_date",
+      "parameter": "#{row.warrantyStartDate}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "warranty_end_date",
+      "parameter": "#{row.warrantyEndDate}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "warranty_months",
+      "parameter": "#{row.warrantyMonths}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "extended",
+      "parameter": "#{row.extended}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "is_latest",
+      "parameter": "#{row.isLatest}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "remark",
+      "parameter": "#{row.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "version",
+      "parameter": "#{row.version}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    },
+    {
+      "table": "ast_device_warranty_renewal_record",
+      "column": "deleted",
+      "parameter": "#{row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.selectForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml",
+      "xml": "<select id=\"selectForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRenewalRecordDO\">\n        SELECT * FROM ast_device_warranty_renewal_record\n        WHERE tenant_id=#{query.tenantId} AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.insertRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml",
+      "xml": "<insert id=\"insertRecord\">\n        INSERT INTO ast_device_warranty_renewal_record\n        (id,tenant_id,device_sn,warranty_contract_no,warranty_grade,warranty_start_date,warranty_end_date,\n         warranty_months,extended,is_latest,remark,version,creator,create_time,updater,update_time,deleted)\n        VALUES (#{row.id},#{row.tenantId},#{row.deviceSn},#{row.warrantyContractNo},#{row.warrantyGrade},\n          #{row.warrantyStartDate},#{row.warrantyEndDate},#{row.warrantyMonths},#{row.extended},#{row.isLatest},\n          #{row.remark},#{row.version},#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted})\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.updateRecord",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml",
+      "xml": "<update id=\"updateRecord\">\n        UPDATE ast_device_warranty_renewal_record\n        SET device_sn=#{command.row.deviceSn},warranty_contract_no=#{command.row.warrantyContractNo},\n            warranty_grade=#{command.row.warrantyGrade},warranty_start_date=#{command.row.warrantyStartDate},\n            warranty_end_date=#{command.row.warrantyEndDate},warranty_months=#{command.row.warrantyMonths},\n            extended=#{command.row.extended},is_latest=#{command.row.isLatest},remark=#{command.row.remark},\n            version=#{command.row.version},updater=#{command.row.updater},update_time=#{command.row.updateTime}\n        WHERE tenant_id=#{command.row.tenantId} AND id=#{command.row.id}\n          AND version=#{command.expectedVersion} AND deleted=FALSE\n    </update>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.count",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml",
+      "xml": "<select id=\"count\" resultType=\"long\">\n        SELECT COUNT(*) FROM ast_device_warranty_renewal_record r WHERE <include refid=\"visibleRecords\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRenewalRecordMapper.selectPage",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRenewalRecordMapper.xml",
+      "xml": "<select id=\"selectPage\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRenewalRecordDO\">\n        SELECT r.* FROM ast_device_warranty_renewal_record r WHERE <include refid=\"visibleRecords\" />\n        ORDER BY r.warranty_start_date DESC,r.id DESC LIMIT #{query.limit} OFFSET #{query.offset}\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.selectMaintenance",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+      "xml": "<select id=\"selectMaintenance\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO\">\n    SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at &lt; #{now}))\n      ORDER BY id LIMIT 100\n  </select>\n"
+    }
+  ]
+}

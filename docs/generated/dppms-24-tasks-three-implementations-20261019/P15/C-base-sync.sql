@@ -1,0 +1,234 @@
+-- 初次汇总未执行本脚本；2026-10-19后续真实API预览及失败/修复结论见../base-sync-13-failures-followup-20261019.md。
+-- P15 / 新虚基类套件 / 2026-10-19 汇总
+-- 只读代码摘录。本轮没有执行以下来源SQL、DML、临时表DDL或任何同步。
+-- MyBatis动态标签以注释说明，参数仍是#{...}/:...；这不是可以整体直接执行的脚本。
+-- 当前源范围、queryRef、业务转换、运行前后置和验证边界见本任务README。
+-- 相关Mapper声明可能服务多个路径，存在声明不等于本任务已调用/已执行；实际调用位置另列。
+
+-- ===== 1. 实际来源查询 / 本地或受控输入 =====
+
+-- [selectContract] ACTUAL_LOCAL_SOURCE_MAPPER; source=pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml
+SELECT CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR) AS raw_key,o.migration_issue AS issue,o.company_code AS `company_code`,o.contract_no AS `contract_no`,o.customer_code AS `customer_code`,o.customer_name AS `customer_name`,'DPPMS_ERP' AS `master_source_system`,CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR) AS `master_source_record_key`,rr.currency_name AS `currency_name`,rr.currency_name AS `currency_code`,rr.contract_amount AS `contract_amount`,rr.contract_create_time AS `contract_create_time`,COALESCE(ss.project_name,rr.project_name) AS `project_name`,rr.project_code AS `project_code`,COALESCE(ss.market_code,rr.market_code) AS `market_code`,COALESCE(ss.market_name,rr.market_name) AS `market_name`,COALESCE(ss.department_code,rr.department_code) AS `department_code`,rr.department_name AS `department_name`,rr.industry_code AS `industry_code`,rr.industry_name AS `industry_name`,rr.marketing_representative_code AS `marketing_representative_code`,rr.marketing_representative_name AS `marketing_representative_name`,rr.secondary_representative_code AS `secondary_representative_code`,ss.system_name AS `system_name` FROM (
+    SELECT MIN(x.company_code) AS company_code, MIN(x.contract_no) AS contract_no,
+      MIN(NULLIF(x.customer_code,'')) AS customer_code, MIN(NULLIF(x.customer_name,'')) AS customer_name,
+      CASE WHEN MAX(x.customer_code_invalid)=1 THEN 'ERP_CUSTOMER_CODE_FORMAT_INVALID'
+        WHEN COUNT(DISTINCT CAST(NULLIF(x.customer_code,'') AS BINARY))>1
+          OR COUNT(DISTINCT CAST(NULLIF(x.customer_name,'') AS BINARY))>1 THEN 'CONTRACT_CUSTOMER_CONFLICT'
+        ELSE NULL END AS migration_issue
+    FROM (
+      SELECT o.company_code,o.contract_no,o.customer_name,
+        CASE WHEN o.customer_code IS NULL OR o.customer_code='' THEN o.customer_code
+          WHEN o.customer_code REGEXP '^[A-Za-z]'
+            AND CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))<=5
+          THEN CONCAT(LEFT(o.customer_code,1),LPAD(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)),5,'0'))
+          ELSE NULL END AS customer_code,
+        CASE WHEN o.customer_code IS NOT NULL AND o.customer_code<>''
+          AND (NOT(o.customer_code REGEXP '^[A-Za-z]')
+            OR CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))>5)
+          THEN 1 ELSE 0 END AS customer_code_invalid
+      FROM com_sales_order o
+      WHERE o.tenant_id=#{tenantId} AND o.deleted=0
+        AND o.source_system IN ('SAP','D365','SMS')
+        AND o.company_code IS NOT NULL AND o.company_code<>''
+        AND o.contract_no IS NOT NULL AND o.contract_no<>''
+      
+      
+    ) x
+    GROUP BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY)
+    ORDER BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY) 
+  ) o LEFT JOIN (SELECT s.tenant_id,s.contract_no,
+ SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`project_name` AS CHAR)) END),65) AS `project_name`,
+ SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_code` AS CHAR)) END),65) AS `market_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_name` AS CHAR)) END),65) AS `market_name`,
+ SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`department_code` AS CHAR)) END),65) AS `department_code`,
+ SUBSTRING(MAX(CASE WHEN s.`system_name` IS NOT NULL AND CAST(s.`system_name` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`system_name` AS CHAR)) END),65) AS `system_name`
+FROM com_shipment_contract_reference s
+JOIN int_base_sync_binding own ON own.tenant_id=s.tenant_id AND own.target_id=s.id AND own.object_key='SHIPMENT_CONTRACT' AND own.deleted=FALSE JOIN int_base_sync_task task ON task.tenant_id=own.tenant_id AND task.id=own.task_id AND task.deleted=FALSE AND task.task_code='BASE_P15' AND task.connection_id=#{parameters.connectionId}
+WHERE s.tenant_id=#{tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'
+GROUP BY s.tenant_id,s.contract_no) ss ON ss.tenant_id=#{tenantId} AND CAST(ss.contract_no AS BINARY)=CAST(o.contract_no AS BINARY) LEFT JOIN (SELECT s.tenant_id,s.contract_no,
+ SUBSTRING(MAX(CASE WHEN s.`currency_name` IS NOT NULL AND CAST(s.`currency_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`currency_name` AS CHAR)) END),40) AS `currency_name`,
+ SUBSTRING(MAX(CASE WHEN s.`contract_amount` IS NOT NULL AND CAST(s.`contract_amount` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_amount` AS CHAR)) END),40) AS `contract_amount`,
+ SUBSTRING(MAX(CASE WHEN s.`contract_create_time` IS NOT NULL AND CAST(s.`contract_create_time` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_create_time` AS CHAR)) END),40) AS `contract_create_time`,
+ SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_name` AS CHAR)) END),40) AS `project_name`,
+ SUBSTRING(MAX(CASE WHEN s.`project_code` IS NOT NULL AND CAST(s.`project_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_code` AS CHAR)) END),40) AS `project_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_code` AS CHAR)) END),40) AS `market_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_name` AS CHAR)) END),40) AS `market_name`,
+ SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_code` AS CHAR)) END),40) AS `department_code`,
+ SUBSTRING(MAX(CASE WHEN s.`department_name` IS NOT NULL AND CAST(s.`department_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_name` AS CHAR)) END),40) AS `department_name`,
+ SUBSTRING(MAX(CASE WHEN s.`industry_code` IS NOT NULL AND CAST(s.`industry_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_code` AS CHAR)) END),40) AS `industry_code`,
+ SUBSTRING(MAX(CASE WHEN s.`industry_name` IS NOT NULL AND CAST(s.`industry_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_name` AS CHAR)) END),40) AS `industry_name`,
+ SUBSTRING(MAX(CASE WHEN s.`marketing_representative_code` IS NOT NULL AND CAST(s.`marketing_representative_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_code` AS CHAR)) END),40) AS `marketing_representative_code`,
+ SUBSTRING(MAX(CASE WHEN s.`marketing_representative_name` IS NOT NULL AND CAST(s.`marketing_representative_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_name` AS CHAR)) END),40) AS `marketing_representative_name`,
+ SUBSTRING(MAX(CASE WHEN s.`secondary_representative_code` IS NOT NULL AND CAST(s.`secondary_representative_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`secondary_representative_code` AS CHAR)) END),40) AS `secondary_representative_code`
+FROM com_contract_receivable s
+JOIN int_base_sync_binding own ON own.tenant_id=s.tenant_id AND own.target_id=s.id AND own.object_key='RECEIVABLE' AND own.deleted=FALSE JOIN int_base_sync_task task ON task.tenant_id=own.tenant_id AND task.id=own.task_id AND task.deleted=FALSE AND task.task_code='BASE_P24' AND task.connection_id=#{parameters.connectionId}
+WHERE s.tenant_id=#{tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'
+GROUP BY s.tenant_id,s.contract_no) rr ON rr.tenant_id=#{tenantId} AND CAST(rr.contract_no AS BINARY)=CAST(o.contract_no AS BINARY) LIMIT #{limit};
+
+-- [selectShipmentContract] ACTUAL_SOURCE_MAPPER; source=pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml
+SELECT f.contract_id AS raw_key,f.warranty AS raw_warranty,'DPPMS' AS `source_system`,f.contract_id AS `source_record_key`,f.contract_code AS `contract_no`,f.office_code AS `department_code`,CAST(f.contract_type AS CHAR) AS `contract_type`,f.customer_name AS `customer_name`,f.project_name AS `project_name`,f.marketCode AS `market_code`,f.marketName AS `market_name`,CAST(f.systemId AS CHAR) AS `system_source_key`,f.systemName AS `system_name`,f.remark AS `remark` FROM fb_contract f LIMIT #{limit};
+
+-- [selectPackage] ACTUAL_SOURCE_MAPPER; source=pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml
+SELECT p.packlist_id AS raw_key,'DPPMS' AS `source_system`,p.packlist_id AS `source_record_key`,p.packlist_id AS `package_no`,p.packdate AS `shipment_time`,p.warrantyStartTime AS `warranty_start_time`,p.warrantyEndTime AS `warranty_end_time`,p.receiveName AS `receiver_name`,p.emsNum AS `express_no`,p.emsCompany AS `carrier_code`,p.con_id AS `shipment_contract_source_key` FROM fb_shipment p LIMIT #{limit};
+
+-- [selectShipmentEvent] ACTUAL_SOURCE_MAPPER; source=pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml
+SELECT CAST(b.id AS CHAR) AS raw_key,'DPPMS' AS `source_system`,CAST(b.id AS CHAR) AS `source_key`,b.barcode AS `device_sn`,p.packdate AS `shipment_time`,b.pack_id AS `package_no`,b.pack_id AS `legacy_package_key`,f.contract_code AS `contract_no`,CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 'UNCLASSIFIED' ELSE 'SHIPMENT' END AS `event_type`,CASE WHEN COALESCE(b.rma_no,'')<>'' THEN 1 ELSE 0 END AS `rma_marked`,b.warrantyStartDate AS `warranty_start_date`,b.warrantyMonth AS `warranty_months`,b.rma_no AS `rma_no`,b.rmaBarcode AS `rma_related_sn`,b.updateTime AS `source_updated_at`,b.orderNumber AS `order_no`,CAST(b.lineNum AS CHAR) AS `line_no`,b.item AS `product_code`,b.barcode2 AS `secondary_sn`,b.item2 AS `secondary_item`,b.com_barcode AS `internal_serial_no`,b.isRMA AS `is_rma`,b.profitCenter AS `profit_center`,b.soleAgentSuffix AS `sole_agent_suffix`,b.syncTime AS `sync_time`,b.uuid AS `uuid` FROM fb_shipment_barcode b LEFT JOIN fb_shipment p ON p.packlist_id=b.pack_id AND CAST(p.packlist_id AS BINARY)=CAST(b.pack_id AS BINARY) LEFT JOIN fb_contract f ON f.contract_id=p.con_id AND CAST(f.contract_id AS BINARY)=CAST(p.con_id AS BINARY) ORDER BY b.id LIMIT #{limit};
+
+-- [selectDeviceRelationship] ACTUAL_SOURCE_MAPPER; source=pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml
+SELECT CAST(r.id AS CHAR) AS raw_key,'DPPMS' AS `source_system`,CAST(r.id AS CHAR) AS `source_key`,r.sn1 AS `source_device_sn`,r.sn2 AS `target_device_sn`,'EXTRA_SN' AS `relationship_type`,r.contract AS `contract_no`,r.createtime AS `effective_from`,r.updatetime AS `source_version`,r.item1 AS `source_item`,r.item2 AS `target_item` FROM fb_shipment_barcode_relation r WHERE r.sn1<>r.sn2 ORDER BY r.id LIMIT #{limit};
+
+-- [countShipmentEvents] ACTUAL_SOURCE_MAPPER; source=pms-module-integration/src/main/resources/base-sync-source/P15SourceMapper.xml
+SELECT COUNT(*) FROM fb_shipment_barcode;
+
+-- ===== 2. 目标/辅助查询与前置 =====
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectContract; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:5; kind=select
+SELECT CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR) AS raw_key,o.migration_issue AS issue,o.company_code AS `company_code`,o.contract_no AS `contract_no`,o.customer_code AS `customer_code`,o.customer_name AS `customer_name`,'DPPMS_ERP' AS `master_source_system`,CAST(JSON_ARRAY(o.company_code,o.contract_no) AS CHAR) AS `master_source_record_key`,rr.currency_name AS `currency_name`,rr.currency_name AS `currency_code`,rr.contract_amount AS `contract_amount`,rr.contract_create_time AS `contract_create_time`,COALESCE(ss.project_name,rr.project_name) AS `project_name`,rr.project_code AS `project_code`,COALESCE(ss.market_code,rr.market_code) AS `market_code`,COALESCE(ss.market_name,rr.market_name) AS `market_name`,COALESCE(ss.department_code,rr.department_code) AS `department_code`,rr.department_name AS `department_name`,rr.industry_code AS `industry_code`,rr.industry_name AS `industry_name`,rr.marketing_representative_code AS `marketing_representative_code`,rr.marketing_representative_name AS `marketing_representative_name`,rr.secondary_representative_code AS `secondary_representative_code`,ss.system_name AS `system_name` FROM (
+    SELECT MIN(x.company_code) AS company_code, MIN(x.contract_no) AS contract_no,
+      MIN(NULLIF(x.customer_code,'')) AS customer_code, MIN(NULLIF(x.customer_name,'')) AS customer_name,
+      CASE WHEN MAX(x.customer_code_invalid)=1 THEN 'ERP_CUSTOMER_CODE_FORMAT_INVALID'
+        WHEN COUNT(DISTINCT CAST(NULLIF(x.customer_code,'') AS BINARY))>1
+          OR COUNT(DISTINCT CAST(NULLIF(x.customer_name,'') AS BINARY))>1 THEN 'CONTRACT_CUSTOMER_CONFLICT'
+        ELSE NULL END AS migration_issue
+    FROM (
+      SELECT o.company_code,o.contract_no,o.customer_name,
+        CASE WHEN o.customer_code IS NULL OR o.customer_code='' THEN o.customer_code
+          WHEN o.customer_code REGEXP '^[A-Za-z]'
+            AND CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))<=5
+          THEN CONCAT(LEFT(o.customer_code,1),LPAD(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)),5,'0'))
+          ELSE NULL END AS customer_code,
+        CASE WHEN o.customer_code IS NOT NULL AND o.customer_code<>''
+          AND (NOT(o.customer_code REGEXP '^[A-Za-z]')
+            OR CHAR_LENGTH(TRIM(LEADING '0' FROM SUBSTRING(o.customer_code,2)))>5)
+          THEN 1 ELSE 0 END AS customer_code_invalid
+      FROM com_sales_order o
+      WHERE o.tenant_id=#{tenantId} AND o.deleted=0
+        AND o.source_system IN ('SAP','D365','SMS')
+        AND o.company_code IS NOT NULL AND o.company_code<>''
+        AND o.contract_no IS NOT NULL AND o.contract_no<>''
+      
+      
+    ) x
+    GROUP BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY)
+    ORDER BY CAST(x.company_code AS BINARY),CAST(x.contract_no AS BINARY) 
+  ) o LEFT JOIN (SELECT s.tenant_id,s.contract_no,
+ SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`project_name` AS CHAR)) END),65) AS `project_name`,
+ SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_code` AS CHAR)) END),65) AS `market_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_name` AS CHAR)) END),65) AS `market_name`,
+ SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`department_code` AS CHAR)) END),65) AS `department_code`,
+ SUBSTRING(MAX(CASE WHEN s.`system_name` IS NOT NULL AND CAST(s.`system_name` AS CHAR)<>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`system_name` AS CHAR)) END),65) AS `system_name`
+FROM com_shipment_contract_reference s
+JOIN int_base_sync_binding own ON own.tenant_id=s.tenant_id AND own.target_id=s.id AND own.object_key='SHIPMENT_CONTRACT' AND own.deleted=FALSE JOIN int_base_sync_task task ON task.tenant_id=own.tenant_id AND task.id=own.task_id AND task.deleted=FALSE AND task.task_code='BASE_P15' AND task.connection_id=#{parameters.connectionId}
+WHERE s.tenant_id=#{tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'
+GROUP BY s.tenant_id,s.contract_no) ss ON ss.tenant_id=#{tenantId} AND CAST(ss.contract_no AS BINARY)=CAST(o.contract_no AS BINARY) LEFT JOIN (SELECT s.tenant_id,s.contract_no,
+ SUBSTRING(MAX(CASE WHEN s.`currency_name` IS NOT NULL AND CAST(s.`currency_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`currency_name` AS CHAR)) END),40) AS `currency_name`,
+ SUBSTRING(MAX(CASE WHEN s.`contract_amount` IS NOT NULL AND CAST(s.`contract_amount` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_amount` AS CHAR)) END),40) AS `contract_amount`,
+ SUBSTRING(MAX(CASE WHEN s.`contract_create_time` IS NOT NULL AND CAST(s.`contract_create_time` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_create_time` AS CHAR)) END),40) AS `contract_create_time`,
+ SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_name` AS CHAR)) END),40) AS `project_name`,
+ SUBSTRING(MAX(CASE WHEN s.`project_code` IS NOT NULL AND CAST(s.`project_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_code` AS CHAR)) END),40) AS `project_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_code` AS CHAR)) END),40) AS `market_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_name` AS CHAR)) END),40) AS `market_name`,
+ SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_code` AS CHAR)) END),40) AS `department_code`,
+ SUBSTRING(MAX(CASE WHEN s.`department_name` IS NOT NULL AND CAST(s.`department_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_name` AS CHAR)) END),40) AS `department_name`,
+ SUBSTRING(MAX(CASE WHEN s.`industry_code` IS NOT NULL AND CAST(s.`industry_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_code` AS CHAR)) END),40) AS `industry_code`,
+ SUBSTRING(MAX(CASE WHEN s.`industry_name` IS NOT NULL AND CAST(s.`industry_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_name` AS CHAR)) END),40) AS `industry_name`,
+ SUBSTRING(MAX(CASE WHEN s.`marketing_representative_code` IS NOT NULL AND CAST(s.`marketing_representative_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_code` AS CHAR)) END),40) AS `marketing_representative_code`,
+ SUBSTRING(MAX(CASE WHEN s.`marketing_representative_name` IS NOT NULL AND CAST(s.`marketing_representative_name` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_name` AS CHAR)) END),40) AS `marketing_representative_name`,
+ SUBSTRING(MAX(CASE WHEN s.`secondary_representative_code` IS NOT NULL AND CAST(s.`secondary_representative_code` AS CHAR)<>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`secondary_representative_code` AS CHAR)) END),40) AS `secondary_representative_code`
+FROM com_contract_receivable s
+JOIN int_base_sync_binding own ON own.tenant_id=s.tenant_id AND own.target_id=s.id AND own.object_key='RECEIVABLE' AND own.deleted=FALSE JOIN int_base_sync_task task ON task.tenant_id=own.tenant_id AND task.id=own.task_id AND task.deleted=FALSE AND task.task_code='BASE_P24' AND task.connection_id=#{parameters.connectionId}
+WHERE s.tenant_id=#{tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'
+GROUP BY s.tenant_id,s.contract_no) rr ON rr.tenant_id=#{tenantId} AND CAST(rr.contract_no AS BINARY)=CAST(o.contract_no AS BINARY) LIMIT #{limit};
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectContracts; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:80; kind=select
+SELECT `id`,`tenant_id`,`company_id`,`company_code`,`company_name`,`contract_no`,`master_source_system`,`master_source_record_key`,`master_source_version`,`contract_type`,`customer_id`,`customer_code`,`customer_name`,`contract_name`,`contract_amount`,`currency_code`,`currency_name`,`contract_create_time`,`authority_status`,`source_lifecycle_status`,`effective_date`,`expiry_date`,`project_name`,`project_code`,`market_code`,`market_name`,`department_code`,`department_name`,`system_code`,`system_name`,`expend_code`,`expend_name`,`industry_code`,`industry_name`,`marketing_representative_code`,`marketing_representative_name`,`secondary_representative_code`,`source_sync_time`,`source_updated_at`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM com_contract WHERE tenant_id=#{query.tenantId}  /* CHOOSE  */ /* WHEN test=query.keys != null and !query.keys.isEmpty() */ AND ( /* FOREACH collection=query.keys; item=key; separator= OR  */ (company_code=#{key.companyCode} AND contract_no=#{key.contractNo}) /* repeat with separator= OR ; END FOREACH */ ) /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  /* IF test=!query.preview */ FOR UPDATE /* END IF */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectShipmentContracts; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:83; kind=select
+SELECT `id`,`tenant_id`,`contract_id`,`contract_no`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`contract_type`,`customer_name`,`project_name`,`market_code`,`market_name`,`system_source_key`,`system_code`,`system_name`,`warranty_years`,`remark`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM com_shipment_contract_reference WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'  /* CHOOSE  */ /* WHEN test=query.keys != null and !query.keys.isEmpty() */ AND source_record_key IN  /* FOREACH collection=query.keys; item=key; open=(; close=); separator=, */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  /* IF test=!query.preview */ FOR UPDATE /* END IF */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectPackages; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:86; kind=select
+SELECT `id`,`tenant_id`,`shipment_contract_ref_id`,`package_no`,`shipment_time`,`warranty_start_time`,`warranty_end_time`,`receiver_name`,`express_no`,`carrier_name`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`carrier_code`,`shipment_contract_source_key` FROM com_shipment_package WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'  /* CHOOSE  */ /* WHEN test=query.keys != null and !query.keys.isEmpty() */ AND (source_record_key IN  /* FOREACH collection=query.keys; item=key; open=(; close=); separator=, */ (#{key}) /* repeat with separator=,; END FOREACH */  OR package_no IN  /* FOREACH collection=query.keys; item=key; open=(; close=); separator=, */ (#{key}) /* repeat with separator=,; END FOREACH */ ) /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  /* IF test=!query.preview */ FOR UPDATE /* END IF */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectEvents; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:89; kind=select
+SELECT `id`,`device_sn`,`shipment_time`,`package_no`,`contract_no`,`event_type`,`warranty_start_date`,`warranty_months`,`rma_no`,`related_device_sn`,`source_system`,`source_key`,`source_version`,`source_updated_at`,`synced_at`,`sync_status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`legacy_package_key`,`rma_related_sn`,`rma_marked`,`order_line_id`,`source_payload`,`order_no`,`line_no`,`product_code`,`secondary_sn`,`secondary_item`,`internal_serial_no`,`is_rma`,`profit_center`,`sole_agent_suffix`,`sync_time`,`uuid` FROM ast_device_shipment WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'  /* CHOOSE  */ /* WHEN test=query.keys != null and !query.keys.isEmpty() */ AND source_key IN  /* FOREACH collection=query.keys; item=key; open=(; close=); separator=, */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  /* IF test=!query.preview */ FOR UPDATE /* END IF */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectRelationships; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:91; kind=select
+SELECT `id`,`source_device_sn`,`target_device_sn`,`relationship_type`,`contract_no`,`effective_from`,`effective_to`,`source_system`,`source_key`,`source_version`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`source_item`,`target_item` FROM ast_device_relationship WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'  /* CHOOSE  */ /* WHEN test=query.keys != null and !query.keys.isEmpty() */ AND source_key IN  /* FOREACH collection=query.keys; item=key; open=(; close=); separator=, */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  /* IF test=!query.preview */ FOR UPDATE /* END IF */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.selectCarriers; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:93; kind=select
+SELECT value AS code,label FROM system_dict_data WHERE dict_type='01' AND deleted=FALSE AND status=0;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.packageSourceColumnReady; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:94; kind=select
+SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='com_shipment_package' AND column_name='shipment_contract_source_key' AND data_type='varchar' AND character_maximum_length>=64;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.latestP24Execution; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:95; kind=select
+SELECT r.status FROM int_base_sync_run r JOIN int_base_sync_task t ON t.tenant_id=r.tenant_id AND t.id=r.task_id AND t.deleted=FALSE WHERE r.tenant_id=#{query.tenantId} AND r.connection_id=#{query.connectionId} AND r.task_code='BASE_P24' AND r.preview=FALSE AND r.deleted=FALSE ORDER BY r.id DESC LIMIT 1;
+
+-- ===== 3. 插入语句与明确标记的动态模板 =====
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertContract; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:81; kind=insert
+INSERT INTO com_contract (`id`,`tenant_id`,`company_id`,`company_code`,`company_name`,`contract_no`,`master_source_system`,`master_source_record_key`,`master_source_version`,`contract_type`,`customer_id`,`customer_code`,`customer_name`,`contract_name`,`contract_amount`,`currency_code`,`currency_name`,`contract_create_time`,`authority_status`,`source_lifecycle_status`,`effective_date`,`expiry_date`,`project_name`,`project_code`,`market_code`,`market_name`,`department_code`,`department_name`,`system_code`,`system_name`,`expend_code`,`expend_name`,`industry_code`,`industry_name`,`marketing_representative_code`,`marketing_representative_name`,`secondary_representative_code`,`source_sync_time`,`source_updated_at`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`) VALUES  /* FOREACH collection=rows; item=row; separator=, */ (#{row.target.id},#{row.target.tenantId},#{row.target.companyId},#{row.target.companyCode},#{row.target.companyName},#{row.target.contractNo},#{row.target.masterSourceSystem},#{row.target.masterSourceRecordKey},#{row.target.masterSourceVersion},#{row.target.contractType},#{row.target.customerId},#{row.target.customerCode},#{row.target.customerName},#{row.target.contractName},#{row.target.contractAmount},#{row.target.currencyCode},#{row.target.currencyName},#{row.target.contractCreateTime},#{row.target.authorityStatus},#{row.target.sourceLifecycleStatus},#{row.target.effectiveDate},#{row.target.expiryDate},#{row.target.projectName},#{row.target.projectCode},#{row.target.marketCode},#{row.target.marketName},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.systemCode},#{row.target.systemName},#{row.target.expendCode},#{row.target.expendName},#{row.target.industryCode},#{row.target.industryName},#{row.target.marketingRepresentativeCode},#{row.target.marketingRepresentativeName},#{row.target.secondaryRepresentativeCode},#{row.target.sourceSyncTime},#{row.target.sourceUpdatedAt},#{row.target.status},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted}) /* repeat with separator=,; END FOREACH */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentContract; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:84; kind=insert
+INSERT INTO com_shipment_contract_reference (`id`,`tenant_id`,`contract_id`,`contract_no`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`contract_type`,`customer_name`,`project_name`,`market_code`,`market_name`,`system_source_key`,`system_code`,`system_name`,`warranty_years`,`remark`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted`) VALUES  /* FOREACH collection=rows; item=row; separator=, */ (#{row.target.id},#{row.target.tenantId},#{row.target.contractId},#{row.target.contractNo},#{row.target.companyId},#{row.target.companyCode},#{row.target.companyName},#{row.target.departmentId},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.contractType},#{row.target.customerName},#{row.target.projectName},#{row.target.marketCode},#{row.target.marketName},#{row.target.systemSourceKey},#{row.target.systemCode},#{row.target.systemName},#{row.target.warrantyYears},#{row.target.remark},#{row.target.mappingStatus},#{row.target.sourceSystem},#{row.target.sourceRecordKey},#{row.target.sourceSyncTime},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted}) /* repeat with separator=,; END FOREACH */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertPackage; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:87; kind=insert
+INSERT INTO com_shipment_package (`id`,`tenant_id`,`shipment_contract_ref_id`,`package_no`,`shipment_time`,`warranty_start_time`,`warranty_end_time`,`receiver_name`,`express_no`,`carrier_name`,`mapping_status`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`carrier_code`,`shipment_contract_source_key`) VALUES  /* FOREACH collection=rows; item=row; separator=, */ (#{row.target.id},#{row.target.tenantId},#{row.target.shipmentContractRefId},#{row.target.packageNo},#{row.target.shipmentTime},#{row.target.warrantyStartTime},#{row.target.warrantyEndTime},#{row.target.receiverName},#{row.target.expressNo},#{row.target.carrierName},#{row.target.mappingStatus},#{row.target.sourceSystem},#{row.target.sourceRecordKey},#{row.target.sourceSyncTime},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.carrierCode},#{row.target.shipmentContractSourceKey}) /* repeat with separator=,; END FOREACH */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertShipmentEvent; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:90; kind=insert
+INSERT INTO ast_device_shipment (`id`,`device_sn`,`shipment_time`,`package_no`,`contract_no`,`event_type`,`warranty_start_date`,`warranty_months`,`rma_no`,`related_device_sn`,`source_system`,`source_key`,`source_version`,`source_updated_at`,`synced_at`,`sync_status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`legacy_package_key`,`rma_related_sn`,`rma_marked`,`order_line_id`,`source_payload`,`order_no`,`line_no`,`product_code`,`secondary_sn`,`secondary_item`,`internal_serial_no`,`is_rma`,`profit_center`,`sole_agent_suffix`,`sync_time`,`uuid`) VALUES  /* FOREACH collection=rows; item=row; separator=, */ (#{row.target.id},#{row.target.deviceSn},#{row.target.shipmentTime},#{row.target.packageNo},#{row.target.contractNo},#{row.target.eventType},#{row.target.warrantyStartDate},#{row.target.warrantyMonths},#{row.target.rmaNo},#{row.target.relatedDeviceSn},#{row.target.sourceSystem},#{row.target.sourceKey},#{row.target.sourceVersion},#{row.target.sourceUpdatedAt},#{row.target.syncedAt},#{row.target.syncStatus},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.tenantId},#{row.target.legacyPackageKey},#{row.target.rmaRelatedSn},#{row.target.rmaMarked},#{row.target.orderLineId},#{row.target.sourcePayload},#{row.target.orderNo},#{row.target.lineNo},#{row.target.productCode},#{row.target.secondarySn},#{row.target.secondaryItem},#{row.target.internalSerialNo},#{row.target.isRma},#{row.target.profitCenter},#{row.target.soleAgentSuffix},#{row.target.syncTime},#{row.target.uuid}) /* repeat with separator=,; END FOREACH */;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.insertDeviceRelationship; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:92; kind=insert
+INSERT INTO ast_device_relationship (`id`,`source_device_sn`,`target_device_sn`,`relationship_type`,`contract_no`,`effective_from`,`effective_to`,`source_system`,`source_key`,`source_version`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`source_item`,`target_item`) VALUES  /* FOREACH collection=rows; item=row; separator=, */ (#{row.target.id},#{row.target.sourceDeviceSn},#{row.target.targetDeviceSn},#{row.target.relationshipType},#{row.target.contractNo},#{row.target.effectiveFrom},#{row.target.effectiveTo},#{row.target.sourceSystem},#{row.target.sourceKey},#{row.target.sourceVersion},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.tenantId},#{row.target.sourceItem},#{row.target.targetItem}) /* repeat with separator=,; END FOREACH */;
+
+-- ===== 4. 条件更新 / 关联后处理 / 缓存删除 =====
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.updateContract; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:82; kind=update
+UPDATE com_contract SET `company_code`=#{row.target.companyCode},`contract_no`=#{row.target.contractNo},`customer_code`=#{row.target.customerCode},`customer_name`=#{row.target.customerName},`contract_amount`=#{row.target.contractAmount},`currency_code`=#{row.target.currencyCode},`currency_name`=#{row.target.currencyName},`contract_create_time`=#{row.target.contractCreateTime},`project_name`=#{row.target.projectName},`project_code`=#{row.target.projectCode},`market_code`=#{row.target.marketCode},`market_name`=#{row.target.marketName},`department_code`=#{row.target.departmentCode},`department_name`=#{row.target.departmentName},`system_name`=#{row.target.systemName},`industry_code`=#{row.target.industryCode},`industry_name`=#{row.target.industryName},`marketing_representative_code`=#{row.target.marketingRepresentativeCode},`marketing_representative_name`=#{row.target.marketingRepresentativeName},`secondary_representative_code`=#{row.target.secondaryRepresentativeCode},`source_sync_time`=#{row.target.sourceSyncTime},`version`=#{row.target.version},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime} WHERE tenant_id=#{context.tenantId} AND id=#{row.target.id} AND deleted=FALSE AND version=#{row.expectedVersion};
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.updateShipmentContract; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:85; kind=update
+UPDATE com_shipment_contract_reference SET `contract_no`=#{row.target.contractNo},`department_code`=#{row.target.departmentCode},`contract_type`=#{row.target.contractType},`customer_name`=#{row.target.customerName},`project_name`=#{row.target.projectName},`market_code`=#{row.target.marketCode},`market_name`=#{row.target.marketName},`system_source_key`=#{row.target.systemSourceKey},`system_name`=#{row.target.systemName},`warranty_years`=#{row.target.warrantyYears},`remark`=#{row.target.remark},`source_sync_time`=#{row.target.sourceSyncTime},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime} WHERE tenant_id=#{context.tenantId} AND id=#{row.target.id} AND deleted=FALSE;
+
+-- cn.iocoder.yudao.module.pms.integration.basesync.task.P15DeliverySyncTask$TargetMapper.updatePackage; pms-module-integration/src/main/resources/mapper/basesync/P15TargetMapper.xml:88; kind=update
+UPDATE com_shipment_package SET `shipment_time`=#{row.target.shipmentTime},`warranty_start_time`=#{row.target.warrantyStartTime},`warranty_end_time`=#{row.target.warrantyEndTime},`receiver_name`=#{row.target.receiverName},`express_no`=#{row.target.expressNo},`carrier_name`=#{row.target.carrierName},`source_sync_time`=#{row.target.sourceSyncTime},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime},`carrier_code`=#{row.target.carrierCode},`shipment_contract_source_key`=#{row.target.shipmentContractSourceKey} WHERE tenant_id=#{context.tenantId} AND id=#{row.target.id} AND deleted=FALSE;
+
+-- ===== 5. 已有运行时临时表语句（仅定义摘录，本轮未执行） =====
+-- 本方式未定位到独立SQL原件；见实际Java/API/ORM路径与本任务处理逻辑，不编造SQL。

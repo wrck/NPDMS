@@ -50,6 +50,16 @@ class SystemRoleMigrationTransactionTest {
     private SystemRoleMigrationApi.Definition definition(String name, String creator) {
         return new SystemRoleMigrationApi.Definition("projectViewer", name, 106, "原角色备注", creator, HISTORY, null, HISTORY);
     }
+    @Test void sameRoundActorCanBePreviewedButCannotBecomeAPersistedNegativeActor() {
+        var input=request(definition("项目查看员","-1"),null,null);
+        var preceding=new SystemAccountMigrationPreview(1L,input.owner(),Set.of(-1L),java.util.Map.of(),Set.of());
+        assertEquals("CREATED",api.previewAfterAccounts(new SystemRoleMigrationApi.AccountPreview(input,preceding)).getFirst().action());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_role",Integer.class));
+        assertThrows(IllegalArgumentException.class,()->api.preview(input));
+        assertThrows(IllegalArgumentException.class,()->tx.execute(status->api.apply(input)));
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterAccounts(new SystemRoleMigrationApi.AccountPreview(input,
+                new SystemAccountMigrationPreview(1L,"integration:1:99",Set.of(-1L),java.util.Map.of(),Set.of()))));
+    }
     private SystemRoleMigrationApi.Request request(SystemRoleMigrationApi.Definition value, Long targetId,
                                                   SystemRoleMigrationApi.Definition previous) {
         return new SystemRoleMigrationApi.Request(1L, "integration:1:12", List.of(

@@ -1,0 +1,192 @@
+{
+  "task": "P13",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "EXECUTION_ORDER",
+      "sourceObject": "pm_project_property_from_sms",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "orderExecNumber",
+          "target": "executionNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "dataSource",
+          "target": "sourceSystem"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectCode",
+          "target": "projectCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectName",
+          "target": "projectName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "salesManCode",
+          "target": "salesRepCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "salesManName",
+          "target": "salesRepName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "marketCode",
+          "target": "marketCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "marketName",
+          "target": "marketName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "systemId",
+          "target": "systemSourceKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "systemName",
+          "target": "systemName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "expendId",
+          "target": "expendSourceKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "expendName",
+          "target": "expendName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "industryId",
+          "target": "industryCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "industryName",
+          "target": "industryName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "officeCode",
+          "target": "departmentCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "officeName",
+          "target": "departmentName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "serviceTypeName",
+          "target": "serviceTypeName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "channelName",
+          "target": "channelName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "engineeFee",
+          "target": "engineeringFeeRaw"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "objId",
+          "target": "sourceObjectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "applyType",
+          "target": "applyType"
+        },
+        {
+          "conversion": "DPPMS_COMPANY_CODE",
+          "source": "corporationCode",
+          "target": "companyCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "customerProjectName",
+          "target": "customerProjectName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "finalCustomerName",
+          "target": "finalCustomerName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "agentName",
+          "target": "agentName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "majorProjectLevel",
+          "target": "majorProjectLevel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectMoney",
+          "target": "projectAmount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "submitTime",
+          "target": "submitTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "predBidDate",
+          "target": "predictedBidTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "linkmanName",
+          "target": "contactName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "linkmanTel",
+          "target": "contactPhone"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper.selectIncoming",
+      "source": "pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml",
+      "xml": "<select id=\"selectIncoming\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO\">\n        SELECT * FROM com_crm_execution_order\n        WHERE tenant_id = #{query.tenantId}\n          AND source_system = #{query.sourceSystem}\n        <choose>\n            <when test=\"query.executionNumbers != null and !query.executionNumbers.isEmpty()\">\n                AND execution_no IN\n                <foreach collection=\"query.executionNumbers\" item=\"number\" open=\"(\" separator=\",\" close=\")\">#{number}</foreach>\n            </when>\n            <otherwise>AND 1 = 0</otherwise>\n        </choose>\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper.selectActiveByExecutionNos",
+      "source": "pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml",
+      "xml": "<select id=\"selectActiveByExecutionNos\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO\">\n        SELECT * FROM com_crm_execution_order\n        WHERE tenant_id = #{query.tenantId} AND deleted = 0 AND status = 'ACTIVE'\n          <choose>\n              <when test=\"query.executionNos != null and !query.executionNos.isEmpty()\">\n                  AND execution_no IN\n                  <foreach collection=\"query.executionNos\" item=\"number\" open=\"(\" separator=\",\" close=\")\">#{number}</foreach>\n              </when>\n              <otherwise>AND 1 = 0</otherwise>\n          </choose>\n        ORDER BY submit_time DESC, id DESC\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper.updatePrimaryProjectIfUnbound",
+      "source": "pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml",
+      "xml": "<update id=\"updatePrimaryProjectIfUnbound\">\n        UPDATE com_crm_execution_order\n        SET primary_project_id = #{query.projectId}, updater = #{query.updater},\n            update_time = CURRENT_TIMESTAMP(3)\n        WHERE tenant_id = #{query.tenantId} AND id = #{query.id} AND deleted = 0 AND status = 'ACTIVE'\n          AND CAST(company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)\n          AND CAST(execution_no AS BINARY) = CAST(#{query.executionNo} AS BINARY)\n          AND CAST(source_system AS BINARY) = CAST(#{query.sourceSystem} AS BINARY)\n          <if test=\"query.companyId != null\">AND company_id = #{query.companyId}</if>\n          AND (primary_project_id IS NULL OR primary_project_id = #{query.projectId})\n    </update>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.executionorder.CrmExecutionOrderMapper.selectActiveForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/executionorder/CrmExecutionOrderMapper.xml",
+      "xml": "<select id=\"selectActiveForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO\">\n        SELECT * FROM com_crm_execution_order\n        WHERE tenant_id = #{query.tenantId} AND deleted = 0 AND status = 'ACTIVE'\n          <choose>\n              <when test=\"query.executionNos != null and !query.executionNos.isEmpty()\">\n                  AND execution_no IN\n                  <foreach collection=\"query.executionNos\" item=\"number\" open=\"(\" separator=\",\" close=\")\">#{number}</foreach>\n              </when>\n              <otherwise>AND 1 = 0</otherwise>\n          </choose>\n        ORDER BY submit_time DESC, id DESC\n        FOR UPDATE\n    </select>\n"
+    }
+  ]
+}

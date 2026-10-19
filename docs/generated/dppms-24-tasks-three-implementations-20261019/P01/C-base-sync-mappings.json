@@ -1,0 +1,238 @@
+{
+  "task": "P01",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "system_company",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "code",
+      "parameter": "#{row.target.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "name",
+      "parameter": "#{row.target.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "code",
+      "parameter": "#{row.target.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "name",
+      "parameter": "#{row.target.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "parent_id",
+      "parameter": "#{row.target.parentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "sort",
+      "parameter": "#{row.target.sort}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "leader_user_id",
+      "parameter": "#{row.target.leaderUserId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "phone",
+      "parameter": "#{row.target.phone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "email",
+      "parameter": "#{row.target.email}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.selectCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml",
+      "xml": "<select id=\"selectCompanies\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Row\">SELECT id,tenant_id,code,name,status,version,creator,create_time,updater,update_time,deleted, 'COMPANY' AS kind FROM system_company WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml",
+      "xml": "<insert id=\"insertCompanies\">INSERT INTO system_company (id,tenant_id,code,name,status,version,creator,create_time,updater,update_time,deleted) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.code},#{row.target.name},#{row.target.status},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.selectDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml",
+      "xml": "<select id=\"selectDepartments\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Row\">SELECT id,tenant_id,code,name,status,version,creator,create_time,updater,update_time,deleted,parent_id,sort,leader_user_id,phone,email, 'DEPARTMENT' AS kind FROM system_dept WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$TargetMapper.insertDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P01TargetMapper.xml",
+      "xml": "<insert id=\"insertDepartments\">INSERT INTO system_dept (id,tenant_id,code,name,status,version,creator,create_time,updater,update_time,deleted,parent_id,sort,leader_user_id,phone,email) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.code},#{row.target.name},#{row.target.status},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.parentId},#{row.target.sort},#{row.target.leaderUserId},#{row.target.phone},#{row.target.email})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$SourceMapper.selectCompanies",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P01SourceMapper.xml",
+      "xml": "<select id=\"selectCompanies\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Company\">SELECT compID AS id,compCode AS code,compName AS name,CAST(isDisabled AS UNSIGNED) AS disabled FROM ehr_company LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$SourceMapper.selectDepartments",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P01SourceMapper.xml",
+      "xml": "<select id=\"selectDepartments\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Department\">SELECT depID AS id,depCode AS code,depName AS name,compID AS companyId,adminID AS parentId,depGrade AS grade,director,depProperty AS property,depNum AS number,xOrder AS sortOrder,remark,depCustom1 AS custom1,depCustom3 AS custom3,depCustom5 AS custom5,CAST(isDisabled AS UNSIGNED) AS disabled FROM ehr_department LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$SourceMapper.selectFnd",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P01SourceMapper.xml",
+      "xml": "<select id=\"selectFnd\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Fnd\">SELECT id,departmentNum AS code,departmentName AS name,status,createTime,updateTime,effectiveFrom,effectiveTo FROM fnd_department LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$SourceMapper.selectCompanyAliases",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P01SourceMapper.xml",
+      "xml": "<select id=\"selectCompanyAliases\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$CompanyAlias\">SELECT id,compCode AS code FROM t_company LIMIT #{limit}</select>\n"
+    }
+  ]
+}

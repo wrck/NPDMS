@@ -1,0 +1,151 @@
+{
+  "task": "P23",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "PLAN",
+      "sourceObject": "pm_pb_plan_from_sms",
+      "sourceKey": "id",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "com_contract_collection_plan",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "contractNo",
+              "target": "contract_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "batchCode",
+              "target": "batch_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "basicDataName",
+              "target": "collection_item_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "referenceEventName",
+              "target": "reference_event_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "eventPlanHappenDate",
+              "target": "event_planned_at",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null,
+              "source": "afterDaysNum",
+              "target": "after_days",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "eventActualFinishDate",
+              "target": "event_actual_finished_at",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "marketingFeedback",
+              "target": "marketing_feedback",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "createBy",
+              "target": "creator",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "createTime",
+              "target": "create_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "updateBy",
+              "target": "updater",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "updateTime",
+              "target": "update_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "effectiveFrom",
+              "target": "effective_from",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "effectiveTo",
+              "target": "effective_to",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "dataSource",
+              "target": "data_source",
+              "values": null
+            }
+          ],
+          "lookups": [],
+          "sameVersionColumns": null
+        }
+      ]
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": []
+}

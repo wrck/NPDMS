@@ -31,7 +31,15 @@ public class SystemRoleMigrationApiImpl implements SystemRoleMigrationApi {
 
     @Override public List<Result> preview(Request request) {
         validateRequest(request);
-        validateActors(request);
+        return previewAfterAccounts(new AccountPreview(request,
+                SystemAccountMigrationPreview.empty(request.tenantId(), request.owner())));
+    }
+
+    @Override public List<Result> previewAfterAccounts(AccountPreview preview) {
+        Request request = preview.request();
+        validateRequest(request);
+        preview.preceding().requireOwner(request.tenantId(), request.owner());
+        validateActors(request, preview.preceding().plannedUserIds());
         return plan(request, roles.selectListForMigration(new RoleMigrationTenantQuery(request.tenantId()))
                 .stream().map(SystemRoleMigrationApiImpl::snapshot).toList());
     }
@@ -45,7 +53,7 @@ public class SystemRoleMigrationApiImpl implements SystemRoleMigrationApi {
         requireRepeatableRead();
         List<Role> current = roles.selectListForMigrationForUpdate(new RoleMigrationTenantQuery(request.tenantId()))
                 .stream().map(SystemRoleMigrationApiImpl::snapshot).toList();
-        validateActors(request);
+        validateActors(request, Set.of());
         List<Result> results = plan(request, current);
         if (results.stream().anyMatch(r -> "CONFLICT".equals(r.action())))
             throw new IllegalArgumentException("角色迁移发生编码、名称、绑定或历史字段冲突，整批未承接");
@@ -151,7 +159,7 @@ public class SystemRoleMigrationApiImpl implements SystemRoleMigrationApi {
             throw new IllegalArgumentException("角色迁移租户、所有权或容量无效");
     }
 
-    private void validateActors(Request request) {
+    private void validateActors(Request request, Set<Long> plannedUserIds) {
         Set<Long> ids = new HashSet<>();
         for (Entry entry : request.entries()) {
             if (entry.referenceOnly() || entry.definition() == null) continue;
@@ -159,6 +167,7 @@ public class SystemRoleMigrationApiImpl implements SystemRoleMigrationApi {
                 if (actor == null || actor.isEmpty()) continue;
                 try {
                     long id = Long.parseLong(actor);
+                    if (id < 0 && plannedUserIds.contains(id) && Long.toString(id).equals(actor)) continue;
                     if (id <= 0 || !Long.toString(id).equals(actor)) throw new NumberFormatException();
                     ids.add(id);
                 } catch (NumberFormatException ex) {

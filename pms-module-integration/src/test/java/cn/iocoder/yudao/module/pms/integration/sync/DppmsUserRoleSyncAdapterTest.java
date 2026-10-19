@@ -77,8 +77,12 @@ class DppmsUserRoleSyncAdapterTest {
     @Test void allOriginalRelationshipFieldsAndNoncredentialAccountColumnsPassReadOnlySqlCompilation() {
         var template=DppmsUserRoleSyncTemplate.create(9L);
         assertEquals("DPPMS_USER_ROLES",template.adapter());assertFalse(template.clearBeforeLoad());assertFalse(template.autoPaging());
-        for(var source:template.sources()) {assertDoesNotThrow(()->MysqlSyncReader.compile(source));assertFalse(source.sql().contains("password"));}
+        for(var source:template.sources()) {
+            if(SyncSourceEvidenceReader.reference(source))assertDoesNotThrow(()->SyncSourceEvidenceReader.validate(template,source));
+            else {assertDoesNotThrow(()->MysqlSyncReader.compile(source));assertFalse(source.sql().contains("password"));}
+        }
         assertTrue(template.sources().getFirst().sql().contains("r.comp_id"));
+        assertEquals("DPPMS_USERS",template.sources().getLast().evidenceAdapter());
         assertTrue(template.sources().getLast().mappings().stream().anyMatch(mapping->"roleIds".equals(mapping.source())));
     }
 }

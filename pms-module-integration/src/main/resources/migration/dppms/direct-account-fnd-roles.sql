@@ -1,0 +1,1 @@
+SELECT r.id,r.roleName,r.roleRemark,r.defaultPage,r.status,r.effectiveFrom,r.effectiveTo,r.createBy,r.createTime,r.updateBy,r.updateTime,100+r.id AS migrationSort,COALESCE(r.updateTime,r.createTime) AS migrationVersion,NULL AS creatorSourceKey,NULL AS updaterSourceKey FROM fnd_roles r WHERE r.status<>0 OR r.status IS NULL

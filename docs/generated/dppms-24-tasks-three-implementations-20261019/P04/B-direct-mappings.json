@@ -1,0 +1,1911 @@
+{
+  "task": "P04",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "t_user",
+      "sourceObject": "t_user",
+      "sourceKey": "user_id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "user_id",
+          "target": "user_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "user_name",
+          "target": "user_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "create_by",
+          "target": "create_by",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "create_time",
+          "target": "create_time",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "update_by",
+          "target": "update_by",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "update_time",
+          "target": "update_time",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "status",
+          "target": "status",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "needChangePwd",
+          "target": "needChangePwd",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "loginErrorCount",
+          "target": "loginErrorCount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "isSysUser",
+          "target": "isSysUser",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "userCustom1",
+          "target": "userCustom1",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "userCustom2",
+          "target": "userCustom2",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "userCustom3",
+          "target": "userCustom3",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "userCustom4",
+          "target": "userCustom4",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "userCustom5",
+          "target": "userCustom5",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginCount",
+          "target": "migrationLoginCount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginEmployeeId",
+          "target": "migrationLoginEmployeeId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginWorkNo",
+          "target": "migrationLoginWorkNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginName",
+          "target": "migrationLoginName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationEmployeeId",
+          "target": "migrationEmployeeId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationEmployeeWorkNo",
+          "target": "migrationEmployeeWorkNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationEmployeeName",
+          "target": "migrationEmployeeName",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "t_user_info",
+      "sourceObject": "t_user_info",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "workNo",
+          "target": "workNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "realName",
+          "target": "realName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "eName",
+          "target": "eName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "compID",
+          "target": "compID",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null,
+          "source": "depID",
+          "target": "depID",
+          "values": {
+            "0": 0,
+            "1": 1,
+            "4": 4,
+            "9": 9,
+            "85": 85,
+            "138": 138,
+            "181": 181,
+            "206": 206,
+            "256": 256,
+            "358": 358,
+            "359": 359,
+            "360": 360,
+            "363": 363,
+            "391": 88,
+            "392": 392,
+            "393": 393,
+            "595": 595,
+            "596": 596,
+            "599": 599,
+            "613": 613,
+            "614": 614,
+            "615": 615
+          }
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "jobID",
+          "target": "jobID",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "reportTo",
+          "target": "reportTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "wfreportTo",
+          "target": "wfreportTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "empStatus",
+          "target": "empStatus",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "jobStatus",
+          "target": "jobStatus",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "empType",
+          "target": "empType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sex",
+          "target": "sex",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "birthday",
+          "target": "birthday",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "email",
+          "target": "email",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "mobile",
+          "target": "mobile",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "telphone",
+          "target": "telphone",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "avatar",
+          "target": "avatar",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "remark",
+          "target": "remark",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "state",
+          "target": "state",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "user_id",
+          "target": "user_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "custom1",
+          "target": "custom1",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "custom2",
+          "target": "custom2",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "custom3",
+          "target": "custom3",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "custom4",
+          "target": "custom4",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "custom5",
+          "target": "custom5",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationCompanyCode",
+          "target": "migrationCompanyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationDepartmentCode",
+          "target": "migrationDepartmentCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationPositionCode",
+          "target": "migrationPositionCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationVerifiedEmployeeId",
+          "target": "migrationVerifiedEmployeeId",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "fnd_user_info",
+      "sourceObject": "fnd_user_info",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "username",
+          "target": "username",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "email",
+          "target": "email",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dpNo",
+          "target": "dpNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "realName",
+          "target": "realName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "roleIds",
+          "target": "roleIds",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "isemail",
+          "target": "isemail",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "status",
+          "target": "status",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "defaultPage",
+          "target": "defaultPage",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "pwdoverdue",
+          "target": "pwdoverdue",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginCount",
+          "target": "migrationLoginCount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginEmployeeId",
+          "target": "migrationLoginEmployeeId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginWorkNo",
+          "target": "migrationLoginWorkNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationLoginName",
+          "target": "migrationLoginName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationEmployeeId",
+          "target": "migrationEmployeeId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationEmployeeWorkNo",
+          "target": "migrationEmployeeWorkNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationEmployeeName",
+          "target": "migrationEmployeeName",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "FND_USER_ROLE",
+      "sourceObject": "fnd_user_info",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "username",
+          "target": "username",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "email",
+          "target": "email",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dpNo",
+          "target": "dpNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "realName",
+          "target": "realName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "roleIds",
+          "target": "roleIds",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "isemail",
+          "target": "isemail",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "status",
+          "target": "status",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "defaultPage",
+          "target": "defaultPage",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "pwdoverdue",
+          "target": "pwdoverdue",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "T_ROLE",
+      "sourceObject": "t_role",
+      "sourceKey": "role_id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "role_id",
+          "target": "sourceRoleId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "role_name",
+          "target": "sourceCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "role_name_zn",
+          "target": "name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationSort",
+          "target": "sort",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "remark",
+          "target": "remark",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null,
+          "source": "status",
+          "target": "status",
+          "values": {
+            "1": 0
+          }
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "create_by",
+          "target": "creatorName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "creatorSourceKey",
+          "target": "creatorSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "update_by",
+          "target": "updaterName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updaterSourceKey",
+          "target": "updaterSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "create_time",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "update_time",
+          "target": "updateTime",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "FND_ROLE",
+      "sourceObject": "fnd_roles",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "sourceRoleId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null,
+          "source": "id",
+          "target": "sourceCode",
+          "values": {
+            "1": "admin",
+            "3": "common",
+            "5": "projectAdmin",
+            "6": "projectViewer",
+            "9": "areaLeader",
+            "10": "engineeManagerLeader",
+            "11": "serviceManager",
+            "12": "programManager",
+            "13": "engineeManager",
+            "14": "callbackPer",
+            "15": "salesPeople",
+            "16": "financialStaff",
+            "17": "presalesStaff",
+            "18": "probAdmin",
+            "19": "probSupporter",
+            "20": "probRD",
+            "21": "warrantyCallbacker",
+            "22": "componentAdmin"
+          }
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "roleName",
+          "target": "name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationSort",
+          "target": "sort",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "roleRemark",
+          "target": "remark",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null,
+          "source": "status",
+          "target": "status",
+          "values": {
+            "1": 0
+          }
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "creatorName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "creatorSourceKey",
+          "target": "creatorSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updaterName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updaterSourceKey",
+          "target": "updaterSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "T_USER_ROLE",
+      "sourceObject": "t_user_role",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "user_id",
+          "target": "user_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "role_id",
+          "target": "role_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "comp_id",
+          "target": "comp_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "username",
+          "target": "username",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "t_user_role",
+      "sourceObject": "t_user_role",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "user_id",
+          "target": "user_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "role_id",
+          "target": "role_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "comp_id",
+          "target": "comp_id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "username",
+          "target": "username",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "migrationCompanyCode",
+          "target": "migrationCompanyCode",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "fnd_user_power",
+      "sourceObject": "fnd_user_power",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "fndUserId",
+          "target": "fndUserId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "username",
+          "target": "username",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "areapower",
+          "target": "areapower",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "system_user_post",
+      "column": "id",
+      "parameter": "#{write.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "tenant_id",
+      "parameter": "#{write.scope.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "user_id",
+      "parameter": "#{write.scope.userId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "post_id",
+      "parameter": "#{write.postId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "creator",
+      "parameter": "#{write.actor}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "create_time",
+      "parameter": "#{write.time}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "updater",
+      "parameter": "#{write.actor}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "update_time",
+      "parameter": "#{write.time}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "id",
+      "parameter": "#{write.relation.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "tenant_id",
+      "parameter": "#{write.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "user_id",
+      "parameter": "#{write.relation.userId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "role_id",
+      "parameter": "#{write.relation.roleId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "creator",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "create_time",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "updater",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "update_time",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "id",
+      "parameter": "#{write.role.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "tenant_id",
+      "parameter": "#{write.role.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "name",
+      "parameter": "#{write.role.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "code",
+      "parameter": "#{write.role.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "sort",
+      "parameter": "#{write.role.sort}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "status",
+      "parameter": "#{write.role.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "type",
+      "parameter": "#{write.role.type}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "data_scope",
+      "parameter": "#{write.role.dataScope}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "remark",
+      "parameter": "#{write.role.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "creator",
+      "parameter": "#{write.audit.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "create_time",
+      "parameter": "#{write.audit.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "updater",
+      "parameter": "#{write.audit.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "update_time",
+      "parameter": "#{write.audit.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "id",
+      "parameter": "#{write.relation.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "tenant_id",
+      "parameter": "#{write.relation.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "user_id",
+      "parameter": "#{write.relation.userId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "company_id",
+      "parameter": "#{write.relation.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "company_code",
+      "parameter": "#{write.relation.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "company_name",
+      "parameter": "#{write.relation.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "department_id",
+      "parameter": "#{write.relation.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "department_code",
+      "parameter": "#{write.relation.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "department_name",
+      "parameter": "#{write.relation.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "scope_role",
+      "parameter": "#{write.relation.scopeRole}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "is_primary",
+      "parameter": "#{write.relation.isPrimary}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "effective_from",
+      "parameter": "#{write.relation.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "effective_to",
+      "parameter": "#{write.relation.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "status",
+      "parameter": "#{write.relation.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "version",
+      "parameter": "#{write.relation.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "creator",
+      "parameter": "#{write.audit.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "create_time",
+      "parameter": "#{write.audit.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "updater",
+      "parameter": "#{write.audit.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "update_time",
+      "parameter": "#{write.audit.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "id",
+      "parameter": "#{write.user.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "tenant_id",
+      "parameter": "#{write.user.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "username",
+      "parameter": "#{write.user.username}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "password",
+      "parameter": "#{write.user.password}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "nickname",
+      "parameter": "#{write.user.nickname}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "remark",
+      "parameter": "#{write.user.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "dept_id",
+      "parameter": "#{write.user.deptId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "post_ids",
+      "parameter": "#{write.user.postIds,typeHandler=com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "email",
+      "parameter": "#{write.user.email}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "mobile",
+      "parameter": "#{write.user.mobile}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "sex",
+      "parameter": "#{write.user.sex}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "avatar",
+      "parameter": "#{write.user.avatar}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "status",
+      "parameter": "#{write.user.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "employee_no",
+      "parameter": "#{write.user.employeeNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "custom_info",
+      "parameter": "#{write.user.customInfo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "creator",
+      "parameter": "#{write.audit.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "create_time",
+      "parameter": "#{write.audit.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "updater",
+      "parameter": "#{write.audit.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "update_time",
+      "parameter": "#{write.audit.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.selectAccountLimit",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml",
+      "xml": "<select id=\"selectAccountLimit\" resultType=\"java.lang.Integer\">\n        SELECT account_count FROM system_tenant WHERE id=#{query.tenantId} AND deleted=FALSE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.selectPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml",
+      "xml": "<select id=\"selectPosts\" resultType=\"java.lang.Long\">\n        SELECT post_id FROM system_user_post WHERE tenant_id=#{query.tenantId} AND user_id=#{query.userId} AND deleted=FALSE ORDER BY id\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.deletePosts",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml",
+      "xml": "<update id=\"deletePosts\">\n        UPDATE system_user_post SET deleted=TRUE WHERE tenant_id=#{write.scope.tenantId} AND user_id=#{write.scope.userId} AND deleted=FALSE\n        <choose><when test=\"write.postIds != null and !write.postIds.isEmpty()\">\n            AND post_id IN <foreach collection=\"write.postIds\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n        </when><otherwise>AND 1=0</otherwise></choose>\n    </update>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.insertPost",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml",
+      "xml": "<insert id=\"insertPost\">\n        INSERT INTO system_user_post(id,tenant_id,user_id,post_id,creator,create_time,updater,update_time,deleted)\n        VALUES(#{write.id},#{write.scope.tenantId},#{write.scope.userId},#{write.postId},#{write.actor},#{write.time},#{write.actor},#{write.time},FALSE)\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper.selectAccessTokens",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountAuxiliaryMapper.xml",
+      "xml": "<select id=\"selectAccessTokens\" resultType=\"java.lang.String\">\n        SELECT access_token FROM system_oauth2_access_token WHERE tenant_id=#{query.tenantId} AND user_id=#{query.userId} AND user_type=2 AND deleted=FALSE ORDER BY id\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.selectRelations",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml",
+      "xml": "<select id=\"selectRelations\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemUserRoleMigrationApi$Relation\">\n        <include refid=\"relations\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.selectRelationsForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml",
+      "xml": "<select id=\"selectRelationsForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemUserRoleMigrationApi$Relation\">\n        <include refid=\"relations\" /> FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.selectUserIds",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml",
+      "xml": "<select id=\"selectUserIds\" resultType=\"java.lang.Long\"><include refid=\"users\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.selectUserIdsForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml",
+      "xml": "<select id=\"selectUserIdsForUpdate\" resultType=\"java.lang.Long\"><include refid=\"users\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.selectRoles",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml",
+      "xml": "<select id=\"selectRoles\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper$RoleReference\"><include refid=\"roles\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.selectRolesForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml",
+      "xml": "<select id=\"selectRolesForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper$RoleReference\"><include refid=\"roles\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountMembershipMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountMembershipMapper.xml",
+      "xml": "<insert id=\"insertHistoricalRelation\">\n        INSERT INTO system_user_role(id,tenant_id,user_id,role_id,creator,create_time,updater,update_time,deleted)\n        VALUES(#{write.relation.id},#{write.tenantId},#{write.relation.userId},#{write.relation.roleId},NULL,NULL,NULL,NULL,FALSE)\n    </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.selectListForMigration",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml",
+      "xml": "<select id=\"selectListForMigration\" resultMap=\"migrationRole\">\n        <include refid=\"migrationInventory\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.selectListForMigrationForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml",
+      "xml": "<select id=\"selectListForMigrationForUpdate\" resultMap=\"migrationRole\">\n        <include refid=\"migrationInventory\" /> FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.selectListHistoricalAuditActorIds",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml",
+      "xml": "<select id=\"selectListHistoricalAuditActorIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n        <choose>\n            <when test=\"query.userIds != null and !query.userIds.isEmpty()\">\n                AND id IN\n                <foreach collection=\"query.userIds\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n            </when>\n            <otherwise>AND 1=0</otherwise>\n        </choose>\n        ORDER BY id\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.insertHistoricalRole",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml",
+      "xml": "<insert id=\"insertHistoricalRole\">\n        INSERT INTO system_role\n            (id, tenant_id, name, code, sort, status, type, data_scope, remark,\n             creator, create_time, updater, update_time, deleted)\n        VALUES (#{write.role.id}, #{write.role.tenantId}, #{write.role.name}, #{write.role.code}, #{write.role.sort},\n                #{write.role.status}, #{write.role.type}, #{write.role.dataScope}, #{write.role.remark},\n                #{write.audit.creator}, #{write.audit.createTime}, #{write.audit.updater}, #{write.audit.updateTime}, FALSE)\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper.updateHistoricalDefinition",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountRoleMapper.xml",
+      "xml": "<update id=\"updateHistoricalDefinition\">\n        UPDATE system_role SET name=#{write.role.name}, sort=#{write.role.sort}, remark=#{write.role.remark},\n            creator=#{write.audit.creator}, create_time=#{write.audit.createTime}, updater=#{write.audit.updater}, update_time=#{write.audit.updateTime}\n        WHERE id=#{write.role.id} AND tenant_id=#{write.role.tenantId} AND code=#{write.role.code} AND deleted=FALSE\n    </update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectRelations",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectRelations\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRows$ScopeRow\"><include refid=\"relations\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectRelationsForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectRelationsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRows$ScopeRow\"><include refid=\"relations\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectUserIds",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectUserIds\" resultType=\"java.lang.Long\"><include refid=\"users\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectUserIdsForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectUserIdsForUpdate\" resultType=\"java.lang.Long\"><include refid=\"users\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectCompanies\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference\"><include refid=\"companies\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectCompaniesForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectCompaniesForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference\"><include refid=\"companies\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectDepartments\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference\"><include refid=\"departments\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectDepartmentsForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectDepartmentsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference\"><include refid=\"departments\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectRoles",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectRoles\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$RoleReference\"><include refid=\"roles\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.selectRolesForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<select id=\"selectRolesForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$RoleReference\"><include refid=\"roles\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.insertHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<insert id=\"insertHistoricalRelation\">\n        INSERT INTO system_user_company_department_scope(id,tenant_id,user_id,company_id,company_code,company_name,\n            department_id,department_code,department_name,scope_role,is_primary,effective_from,effective_to,status,\n            version,creator,create_time,updater,update_time,deleted)\n        VALUES(#{write.relation.id},#{write.relation.tenantId},#{write.relation.userId},#{write.relation.companyId},#{write.relation.companyCode},#{write.relation.companyName},\n            #{write.relation.departmentId},#{write.relation.departmentCode},#{write.relation.departmentName},#{write.relation.scopeRole},#{write.relation.isPrimary},\n            #{write.relation.effectiveFrom},#{write.relation.effectiveTo},#{write.relation.status},#{write.relation.version},#{write.audit.creator},\n            #{write.audit.createTime},#{write.audit.updater},#{write.audit.updateTime},FALSE)\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper.updateHistoricalRelation",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountScopeMapper.xml",
+      "xml": "<update id=\"updateHistoricalRelation\">\n        UPDATE system_user_company_department_scope SET company_name=#{write.relation.companyName},department_name=#{write.relation.departmentName},\n            is_primary=#{write.relation.isPrimary},effective_to=#{write.relation.effectiveTo},status=#{write.relation.status},\n            creator=#{write.audit.creator},create_time=#{write.audit.createTime},updater=#{write.audit.updater},update_time=#{write.audit.updateTime},version=#{write.relation.version}\n        WHERE id=#{write.relation.id} AND tenant_id=#{write.relation.tenantId} AND version=#{write.expectedVersion} AND deleted=FALSE\n    </update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.selectProfiles",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml",
+      "xml": "<select id=\"selectProfiles\" resultMap=\"migrationUser\"><include refid=\"profiles\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.selectProfilesForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml",
+      "xml": "<select id=\"selectProfilesForUpdate\" resultMap=\"migrationUser\"><include refid=\"profiles\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.selectDepartmentIds",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml",
+      "xml": "<select id=\"selectDepartmentIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM system_dept <include refid=\"references\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.selectPostIds",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml",
+      "xml": "<select id=\"selectPostIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM system_post <include refid=\"references\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.insertHistoricalUser",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml",
+      "xml": "<insert id=\"insertHistoricalUser\">\n        INSERT INTO system_users(id,tenant_id,username,password,nickname,remark,dept_id,post_ids,email,mobile,\n            sex,avatar,status,employee_no,custom_info,creator,create_time,updater,update_time,deleted)\n        VALUES(#{write.user.id},#{write.user.tenantId},#{write.user.username},#{write.user.password},#{write.user.nickname},#{write.user.remark},\n            #{write.user.deptId},#{write.user.postIds,typeHandler=com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler},\n            #{write.user.email},#{write.user.mobile},#{write.user.sex},#{write.user.avatar},#{write.user.status},#{write.user.employeeNo},#{write.user.customInfo},\n            #{write.audit.creator},#{write.audit.createTime},#{write.audit.updater},#{write.audit.updateTime},FALSE)\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper.updateHistoricalProfile",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectAccountUserMapper.xml",
+      "xml": "<update id=\"updateHistoricalProfile\">\n        UPDATE system_users SET nickname=#{write.user.nickname},remark=#{write.user.remark},dept_id=#{write.user.deptId},\n            post_ids=#{write.user.postIds,typeHandler=com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler},\n            email=#{write.user.email},mobile=#{write.user.mobile},sex=#{write.user.sex},avatar=#{write.user.avatar},status=#{write.user.status},\n            employee_no=#{write.user.employeeNo},custom_info=#{write.user.customInfo},creator=#{write.audit.creator},\n            create_time=#{write.audit.createTime},updater=#{write.audit.updater},update_time=#{write.audit.updateTime}\n        WHERE id=#{write.user.id} AND tenant_id=#{write.user.tenantId} AND username=#{write.user.username} AND deleted=FALSE\n    </update>\n"
+    }
+  ]
+}

@@ -1,0 +1,516 @@
+{
+  "task": "P14",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "ORDER",
+      "sourceObject": "pm_order_data_from_erp",
+      "sourceKey": "migrationSourceKey",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "order",
+          "table": "com_sales_order",
+          "keys": [
+            "source_system",
+            "company_code",
+            "order_type",
+            "order_no"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [
+            "source_version",
+            "source_updated_at",
+            "source_sync_time",
+            "custom_info",
+            "sales_type",
+            "contract_no",
+            "execution_no",
+            "customer_code",
+            "customer_name",
+            "source_project_name",
+            "order_comment",
+            "order_create_time",
+            "customer_required_time",
+            "source_lifecycle_status",
+            "status",
+            "company_id",
+            "company_name"
+          ],
+          "whenField": null,
+          "newerBy": "source_updated_at",
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "ENUM",
+              "defaultValue": null,
+              "source": "source",
+              "target": "source_system",
+              "values": {
+                "SAP": "SAP",
+                "SMS": "SMS",
+                "D365": "D365"
+              }
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "company_code",
+              "target": "company_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "orderNumber",
+              "target": "order_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "sourceRecordKey",
+              "target": "source_record_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "sourceVersion",
+              "target": "source_version",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "migrationVersion",
+              "target": "source_updated_at",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "syncReceivedAt",
+              "target": "source_sync_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "JSON_TEXT",
+              "defaultValue": null,
+              "source": "customInfo",
+              "target": "custom_info",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "orderType",
+              "target": "order_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "salesType",
+              "target": "sales_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "contractNo",
+              "target": "contract_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "orderExecNumber",
+              "target": "execution_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "customerCode",
+              "target": "customer_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "customerName",
+              "target": "customer_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "projectName",
+              "target": "source_project_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "orderComment",
+              "target": "order_comment",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "orderCreateTime",
+              "target": "order_create_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "customerRequireTime",
+              "target": "customer_required_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "ENUM",
+              "defaultValue": null,
+              "source": "orderType",
+              "target": "source_lifecycle_status",
+              "values": {
+                "0": "ACTIVE",
+                "1": "RETURNED"
+              }
+            },
+            {
+              "constant": null,
+              "conversion": "ENUM",
+              "defaultValue": null,
+              "source": "orderType",
+              "target": "status",
+              "values": {
+                "0": "ENABLED",
+                "1": "DISABLED"
+              }
+            }
+          ],
+          "lookups": [
+            {
+              "table": "system_company",
+              "match": {
+                "code": "company_code"
+              },
+              "outputs": {
+                "company_id": "id",
+                "company_name": "name"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "sameVersionColumns": [
+            "custom_info",
+            "sales_type",
+            "contract_no",
+            "execution_no",
+            "customer_code",
+            "customer_name",
+            "source_project_name",
+            "order_comment",
+            "order_create_time",
+            "customer_required_time",
+            "source_lifecycle_status",
+            "status"
+          ]
+        }
+      ]
+    },
+    {
+      "object": "LINE",
+      "sourceObject": "pm_order_line_from_erp",
+      "sourceKey": "migrationSourceKey",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "line",
+          "table": "com_sales_order_line",
+          "keys": [
+            "order_id",
+            "line_no"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [
+            "source_version",
+            "source_updated_at",
+            "source_sync_time",
+            "custom_info",
+            "line_type",
+            "product_code",
+            "product_desc",
+            "bundle_code",
+            "profit_center",
+            "real_execution_no",
+            "warranty_month",
+            "order_qty",
+            "open_qty",
+            "delivered_qty",
+            "source_lifecycle_status",
+            "status",
+            "company_id",
+            "company_name",
+            "customer_id",
+            "customer_code",
+            "customer_name"
+          ],
+          "whenField": null,
+          "newerBy": "source_updated_at",
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "ENUM",
+              "defaultValue": null,
+              "source": "source",
+              "target": "source_system",
+              "values": {
+                "SAP": "SAP",
+                "SMS": "SMS",
+                "D365": "D365"
+              }
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "company_code",
+              "target": "company_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "orderNumber",
+              "target": "order_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "sourceRecordKey",
+              "target": "source_record_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "sourceVersion",
+              "target": "source_version",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "migrationVersion",
+              "target": "source_updated_at",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "syncReceivedAt",
+              "target": "source_sync_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "JSON_TEXT",
+              "defaultValue": null,
+              "source": "customInfo",
+              "target": "custom_info",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "lineType",
+              "target": "order_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "lineType",
+              "target": "line_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "lineNum",
+              "target": "line_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "itemCode",
+              "target": "product_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "itemDesc",
+              "target": "product_desc",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "bundleCode",
+              "target": "bundle_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "profitCenter",
+              "target": "profit_center",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "realOrderExecNumber",
+              "target": "real_execution_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null,
+              "source": "warrantyMonth",
+              "target": "warranty_month",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DECIMAL",
+              "defaultValue": null,
+              "source": "orderQuantity",
+              "target": "order_qty",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DECIMAL",
+              "defaultValue": null,
+              "source": "openQuantity",
+              "target": "open_qty",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DECIMAL",
+              "defaultValue": null,
+              "source": "deliveredQuantity",
+              "target": "delivered_qty",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "ENUM",
+              "defaultValue": null,
+              "source": "lineType",
+              "target": "source_lifecycle_status",
+              "values": {
+                "0": "ACTIVE",
+                "1": "RETURNED"
+              }
+            },
+            {
+              "constant": null,
+              "conversion": "ENUM",
+              "defaultValue": null,
+              "source": "lineType",
+              "target": "status",
+              "values": {
+                "0": "ENABLED",
+                "1": "DISABLED"
+              }
+            }
+          ],
+          "lookups": [
+            {
+              "table": "com_sales_order",
+              "match": {
+                "order_no": "order_no",
+                "order_type": "order_type",
+                "company_code": "company_code",
+                "source_system": "source_system"
+              },
+              "outputs": {
+                "order_id": "id",
+                "company_id": "company_id",
+                "customer_id": "customer_id",
+                "company_name": "company_name",
+                "customer_code": "customer_code",
+                "customer_name": "customer_name"
+              },
+              "onMissing": "ERROR"
+            }
+          ],
+          "sameVersionColumns": [
+            "custom_info",
+            "line_type",
+            "product_code",
+            "product_desc",
+            "bundle_code",
+            "profit_center",
+            "real_execution_no",
+            "warranty_month",
+            "order_qty",
+            "open_qty",
+            "delivered_qty",
+            "source_lifecycle_status",
+            "status"
+          ]
+        }
+      ]
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": []
+}

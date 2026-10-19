@@ -1,0 +1,50 @@
+{
+  "compiledOn": "2026-10-19",
+  "scope": "Historical original ten project pilot plus separately identified later renewal-ten batch; read-only report generation.",
+  "worktree": "C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "historicalCodeRef": "e21f02d2d",
+  "historicalEnvironment": {
+    "mainBackend": 59282,
+    "frontend": 19082,
+    "mysql": 24306,
+    "redis": 24379,
+    "initialEvidenceStageBackend": 59281
+  },
+  "sourceFiles": [
+    "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\c-users-user-documents-codex-2026\\work\\native-followup-private\\existing-sync-task-inventory-20261013.json",
+    "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\c-users-user-documents-codex-2026\\work\\native-followup-private\\approved-project-master-pilot-state-20261010.json",
+    "C:\\Users\\user\\Documents\\Codex\\2026-10-08\\c-users-user-documents-codex-2026\\work\\native-followup-private\\renewal-ten-final-run-verification-20261013.json"
+  ],
+  "counts": {
+    "originalProjects": 10,
+    "laterRenewalProjects": 10,
+    "businessCategories": 24,
+    "savedTaskSnapshotEntries": 41,
+    "selectedFrozenDefinitionVersions": 27,
+    "safeProofSummaries": 8,
+    "historicalJavaSnapshots": 25,
+    "historicalControllerPostRoutes": 32,
+    "historicalMapperDeclarations": 63
+  },
+  "generationCommands": [
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/collect-pilot.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/supplement-pilot.py"
+  ],
+  "operationsThisTurn": {
+    "businessOrTaskCodeChanges": 0,
+    "taskConfigurationWrites": 0,
+    "databaseOperations": 0,
+    "previews": 0,
+    "realSyncs": 0,
+    "migrations": 0,
+    "serviceOperations": 0
+  },
+  "cautions": [
+    "The original 44-domain material snapshot is not formal business completion.",
+    "No dedicated SyncTask IDs are invented for Owner commands.",
+    "The later renewal-ten project set is separate.",
+    "Historical task snapshot versions/queries may postdate original pilot runs.",
+    "No credentials, plaintext licenses, key material, full business rows or large LOOKUP data are exported."
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "task": "P34",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "fb_soft_version",
+      "sourceObject": "fb_soft_version",
+      "sourceKey": "factoryRowKey",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "serial_number",
+          "target": "serial_number"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conp",
+          "target": "conp"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "cpld",
+          "target": "cpld"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "boot",
+          "target": "boot"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "pcb",
+          "target": "pcb"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMigrationIdentityMapper.selectIdentityForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml",
+      "xml": "<select id=\"selectIdentityForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO\">\n        SELECT * FROM ast_device WHERE tenant_id=#{query.tenantId} AND sn=#{query.deviceSn} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionRecordMapper.selectByIdForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml",
+      "xml": "<select id=\"selectByIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceFactoryVersionRecordDO\">\n        SELECT * FROM ast_device_factory_version_record WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionRecordMapper.selectGlobalRecordForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml",
+      "xml": "<select id=\"selectGlobalRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceFactoryVersionRecordDO\">\n        SELECT * FROM ast_device_factory_version_record\n        WHERE tenant_id=#{query.tenantId} AND project_id IS NULL AND id=#{query.id} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareChangeBatchMapper.selectLegacyForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml",
+      "xml": "<select id=\"selectLegacyForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareLegacyBatchDO\">\n        SELECT * FROM ast_device_software_change_batch WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.recordId} AND deleted=0 FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareChangeBatchMapper.selectRecordForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareChangeBatchDO\">\n        SELECT * FROM ast_device_software_change_batch WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND id=#{query.recordId} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareVersionRecordMapper.selectForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml",
+      "xml": "<select id=\"selectForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareVersionRecordDO\">\n        SELECT *\n        FROM ast_device_software_version_record\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.recordId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareVersionRecordMapper.selectCurrentPredecessor",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml",
+      "xml": "<select id=\"selectCurrentPredecessor\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareVersionRecordDO\">\n    SELECT * FROM ast_device_software_version_record\n    WHERE tenant_id=#{query.tenantId} AND device_id=#{query.deviceId} AND deleted=0\n      AND data_source=#{query.dataSource} AND recorded_at &lt;=&gt; #{query.recordedAt}\n    <if test=\"query.requestKey != null\">AND request_key=#{query.requestKey}</if>\n    ORDER BY create_time DESC, id DESC LIMIT 1\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.ExternalKeyMappingMapper.selectSourcePage",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/ExternalKeyMappingMapper.xml",
+      "xml": "<select id=\"selectSourcePage\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.ExternalKeyMappingDO\">\n        SELECT id,batch_id,source_record_id,result_type,target_context,target_object_type,\n               target_table,target_id,target_role,target_sequence,tenant_id,create_time,\n               update_time,creator,updater,deleted\n        FROM plt_external_key_mapping FORCE INDEX (idx_plt_external_mapping_batch)\n        WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0\n        <choose>\n            <when test=\"query.sourceRecordIds != null and query.sourceRecordIds.size() &gt; 0\">\n                AND source_record_id IN\n                <foreach collection=\"query.sourceRecordIds\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n            </when>\n            <otherwise>AND 1 = 0</otherwise>\n        </choose>\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper.selectByTenantAndIdForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationBatchMapper.xml",
+      "xml": "<select id=\"selectByTenantAndIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO\">\n        SELECT * FROM plt_migration_batch\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.batchId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper.selectNextStagedForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationBatchMapper.xml",
+      "xml": "<select id=\"selectNextStagedForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO\">\n        SELECT * FROM plt_migration_batch\n        WHERE tenant_id = #{query.tenantId}\n          AND owner_context_code = #{query.ownerContextCode}\n          AND purpose_code = #{query.purposeCode}\n          AND batch_status = 'STAGED_READY'\n          AND deleted = b'0'\n          AND source_system IN\n          <foreach collection=\"query.sourceSystems\" item=\"value\" open=\"(\" separator=\",\" close=\")\">\n              #{value}\n          </foreach>\n          AND source_table IN\n          <foreach collection=\"query.sourceTables\" item=\"value\" open=\"(\" separator=\",\" close=\")\">\n              #{value}\n          </foreach>\n        ORDER BY create_time ASC, id ASC\n        LIMIT 1\n        FOR UPDATE SKIP LOCKED\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectByBatchAndIdForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectByBatchAndIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO\">\n        SELECT * FROM plt_migration_source_record\n        WHERE tenant_id = #{query.tenantId}\n          AND batch_id = #{query.batchId}\n          AND id = #{query.sourceRecordId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectCursorPage",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectCursorPage\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO\">\n        SELECT s.*,\n               CASE\n                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m\n                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                                  AND m.result_type = 'MAPPED' AND m.deleted = b'0') THEN 'MAPPED'\n                   WHEN EXISTS (SELECT 1 FROM plt_migration_issue i\n                                WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id\n                                  AND i.deleted = b'0') THEN 'ISSUE'\n                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m\n                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                                  AND m.result_type = 'RETAINED' AND m.deleted = b'0') THEN 'RETAINED'\n                   ELSE NULL\n               END AS result_type\n        FROM plt_migration_source_record s\n        WHERE s.tenant_id = #{query.tenantId}\n          AND s.batch_id = #{query.batchId}\n          AND s.deleted = b'0'\n          <if test=\"query.afterSourceRecordId != null\">\n              AND s.id &gt; #{query.afterSourceRecordId}\n          </if>\n        ORDER BY s.id ASC\n        LIMIT #{query.limit}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectClassificationSummary",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectClassificationSummary\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationBatchClassificationSummary\">\n        SELECT COUNT(*) AS source_count,\n               COALESCE(SUM(has_mapped), 0) AS mapped_count,\n               COALESCE(SUM(has_issue), 0) AS issue_count,\n               COALESCE(SUM(has_retained), 0) AS retained_count,\n               COALESCE(SUM(has_mapped + has_issue + has_retained = 0), 0) AS unclassified_count,\n               COALESCE(SUM(has_mapped + has_issue + has_retained &gt; 1), 0) AS conflicting_count\n        FROM (\n            SELECT s.id,\n                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)\n                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                             AND m.result_type = 'MAPPED' AND m.deleted = b'0') AS has_mapped,\n                   EXISTS (SELECT 1 FROM plt_migration_issue i FORCE INDEX (uk_plt_migration_issue_key)\n                           WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id\n                             AND i.deleted = b'0') AS has_issue,\n                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)\n                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                             AND m.result_type = 'RETAINED' AND m.deleted = b'0') AS has_retained\n            FROM plt_migration_source_record s FORCE INDEX (idx_plt_migration_source_cursor)\n            WHERE s.tenant_id = #{query.tenantId}\n              AND s.batch_id = #{query.batchId}\n              AND s.deleted = b'0'\n        ) classified\n    </select>\n  \n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.countBatchSources",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"countBatchSources\" resultType=\"long\">\n    SELECT COUNT(*) FROM plt_migration_source_record\n    WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0\n  </select>\n"
+    }
+  ]
+}

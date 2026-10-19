@@ -36,18 +36,24 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
 
     @Override
     @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
-    public List<NativeEntityMigrationRow> importSourceHistory(Command command) {
+    public List<NativeEntityMigrationRow> importSourceHistory(Command command) {return executeSourceHistory(command,true).stream().map(SourceOutcome::mapped).toList();}
+    @Override @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
+    public List<Preview> previewSourceHistory(Command command) {
+        if(command==null || command.factories()==null || !command.factories().isEmpty())throw new IllegalArgumentException("SOFTWARE_PREVIEW_REQUIRES_NO_FACTORY");
+        return executeSourceHistory(command,false).stream().map(o->new Preview(o.domain(),o.sourceKey(),o.id())).toList();
+    }
+    private List<SourceOutcome> executeSourceHistory(Command command,boolean apply) {
         requireTenant(command.tenantId());
         if (command.actorId()==null||command.projectId()==null||command.sourceProjectKey()==null
                 ||command.sourceReadAt()==null||command.observations()==null||command.batches()==null||command.factories()==null)
             throw new IllegalArgumentException("DPPMS_SOURCE_HISTORY_COMMAND_INVALID");
         var guard=projectGuard.validate(new ProjectDeviceAssignmentGuardQuery(command.tenantId(),command.projectId(),command.actorId()));
         if (guard==null||!guard.assignable()) throw new IllegalArgumentException("DPPMS_SOURCE_HISTORY_PROJECT_FORBIDDEN");
-        var result=new ArrayList<NativeEntityMigrationRow>();
+        var result=new ArrayList<SourceOutcome>();
         Map<Long,Long> importedBatchIds=new HashMap<>();
         for (var source:command.batches()) {
-            var outcome=importBatch(command,source);result.add(outcome);
-            if (importedBatchIds.put(source.sourceId(),outcome.targets().getFirst().targetId())!=null)
+            var outcome=importBatch(new BatchWrite(command,source,apply));result.add(outcome);
+            if (importedBatchIds.put(source.sourceId(),outcome.id())!=null)
                 throw new IllegalArgumentException("DPPMS_BATCH_SOURCE_IDENTITY_DUPLICATE");
         }
         Set<Long> sourceIds=new HashSet<>(), targetIds=new HashSet<>();
@@ -57,7 +63,10 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
                 throw new IllegalArgumentException("DPPMS_SOFTWARE_HISTORY_IDENTITY_DUPLICATE");
             var resolved=source.mappedBatchId()==null && source.logId()!=null
                     ? source.withMapping(source.mappedRecordId(),importedBatchIds.get(source.logId()),source.extensionDefinitionId()) : source;
-            result.add(importObservation(command,resolved));
+            if(!apply && resolved.mappedBatchId()!=null && resolved.mappedBatchId()<0
+                    && !Objects.equals(importedBatchIds.get(resolved.logId()),resolved.mappedBatchId()))
+                throw new IllegalArgumentException("DPPMS_SOFTWARE_PREVIEW_PARENT_INVALID");
+            result.add(importObservation(new ObservationWrite(command,resolved,false,apply)));
         }
         Set<String> factoryKeys=new HashSet<>();
         Set<Long> factoryIds=new HashSet<>();
@@ -66,23 +75,29 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
                     ||!factoryKeys.add(source.sourceKey()) || (source.mappedRecordId()!=null && !factoryIds.add(source.mappedRecordId())))
                 throw new IllegalArgumentException("DPPMS_FACTORY_SOURCE_IDENTITY_INVALID");
             // Verified historical project association does not require a current device assignment.
-            result.add(importFactory(command,source));
+            var outcome=importFactory(command,source);var target=outcome.targets().getFirst();
+            result.add(new SourceOutcome(outcome.domain(),outcome.sourceKey(),target.targetObjectType(),target.targetTable(),target.targetId(),target.targetRole()));
         }
         return List.copyOf(result);
     }
     NativeEntityMigrationRow importCorrectedObservation(Command command,SoftwareObservation source) {
         return importObservation(command,source,true);
     }
-    private NativeEntityMigrationRow importObservation(Command command,SoftwareObservation source) {
-        return importObservation(command,source,false);
+    private record SourceOutcome(String domain,String sourceKey,String type,String table,Long id,String role) {
+        NativeEntityMigrationRow mapped(){return NativeEntityMigrationRow.mapped(domain,sourceKey,target(type,table,id,role));}
     }
+    private record ObservationWrite(Command command,SoftwareObservation source,boolean approvedExistingId,boolean apply) {}
     private NativeEntityMigrationRow importObservation(Command command,SoftwareObservation source,boolean approvedExistingId) {
+        return importObservation(new ObservationWrite(command,source,approvedExistingId,true)).mapped();
+    }
+    private SourceOutcome importObservation(ObservationWrite write) {
+        var command=write.command();var source=write.source();boolean approvedExistingId=write.approvedExistingId();
         if (source.sourceCreatedAt()==null || source.extensionDefinitionId()==null
                 || source.logId()!=null && source.mappedBatchId()==null || source.logId()==null && source.mappedBatchId()!=null)
             throw new IllegalArgumentException("DPPMS_SOFTWARE_HISTORY_RELATION_OR_DATE_MISSING");
         if (source.customInfo()!=null && !JsonUtils.isJson(source.customInfo()))
             throw new IllegalArgumentException("DPPMS_SOFTWARE_HISTORY_CUSTOM_INFO_INVALID");
-        if (source.mappedBatchId()!=null && batches.selectRecordForUpdate(new DeviceSoftwareBatchIdentityQuery(
+        if (source.mappedBatchId()!=null && (write.apply() || source.mappedBatchId()>0) && batches.selectRecordForUpdate(new DeviceSoftwareBatchIdentityQuery(
                 command.tenantId(),command.projectId(),source.mappedBatchId()))==null)
             throw new IllegalArgumentException("DPPMS_SOFTWARE_HISTORY_BATCH_NOT_IN_PROJECT");
         var incoming=new DeviceSoftwareVersionRecordDO();incoming.setTenantId(command.tenantId());
@@ -100,8 +115,8 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
         incoming.setUpdater(softwareActor(command.tenantId(),source.sourceUpdatedBy()));
         incoming.setUpdateTime(source.sourceUpdatedAt()==null?source.sourceCreatedAt():source.sourceUpdatedAt());incoming.setDeleted(false);
         if (source.mappedRecordId()==null) {
-            incoming.setId(IdWorker.getId());
-            if (observations.insertHistorical(new DeviceSoftwareRecordHistoricalWrite(incoming))!=1) throw new IllegalStateException("DPPMS_SOFTWARE_HISTORY_INSERT_FAILED");
+            incoming.setId(write.apply()?IdWorker.getId():-source.sourceId());
+            if (write.apply() && observations.insertHistorical(new DeviceSoftwareRecordHistoricalWrite(incoming))!=1) throw new IllegalStateException("DPPMS_SOFTWARE_HISTORY_INSERT_FAILED");
         } else {
             if (source.mappedRecordId()<=0) throw new IllegalArgumentException("DPPMS_SOFTWARE_HISTORY_MAPPING_INVALID");
             incoming.setId(source.mappedRecordId());
@@ -115,9 +130,10 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
         attributes.put("boot_bak",source.bootBak());attributes.put("boot_change",source.bootChange());
         attributes.put("cpld_bak",source.cpldBak());attributes.put("cpld_change",source.cpldChange());
         attributes.put("pcb_bak",source.pcbBak());attributes.put("pcb_change",source.pcbChange());
-        legacyExtensions.initialize(command.tenantId(),command.actorId(),incoming.getId(),source.extensionDefinitionId(),attributes);
-        return NativeEntityMigrationRow.mapped("software-versions",String.valueOf(source.sourceId()),
-                target("SoftwareVersionRecord","ast_device_software_version_record",incoming.getId(),"SOFTWARE_VERSION_RECORD"));
+        if(write.apply())legacyExtensions.initialize(command.tenantId(),command.actorId(),incoming.getId(),source.extensionDefinitionId(),attributes);
+        else legacyExtensions.preview(new cn.iocoder.yudao.module.pms.asset.service.version.SoftwareVersionLegacyExtensionService.Preview(
+                command.tenantId(),command.actorId(),incoming.getId(),source.extensionDefinitionId(),attributes));
+        return new SourceOutcome("software-versions",String.valueOf(source.sourceId()),"SoftwareVersionRecord","ast_device_software_version_record",incoming.getId(),"SOFTWARE_VERSION_RECORD");
     }
     private static boolean sameHistory(DeviceSoftwareVersionRecordDO a,DeviceSoftwareVersionRecordDO b) {
         if (b==null) return false;
@@ -144,7 +160,10 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
         if (batches.correctHistoricalAudit(new DeviceSoftwareBatchHistoricalWrite(row))!=1) throw new IllegalStateException("DPPMS_BATCH_AUDIT_CORRECTION_FAILED");
         return importBatch(command,source);
     }
-    private NativeEntityMigrationRow importBatch(Command command,SoftwareBatch source) {
+    private record BatchWrite(Command command,SoftwareBatch source,boolean apply) {}
+    private NativeEntityMigrationRow importBatch(Command command,SoftwareBatch source) {return importBatch(new BatchWrite(command,source,true)).mapped();}
+    private SourceOutcome importBatch(BatchWrite write) {
+        var command=write.command();var source=write.source();
         requireSourceProject(command,source.sourceProjectId(),source.sourceId());
         if (source.sourceCreatedAt()==null || source.latest()!=null && !Set.of(0,1).contains(source.latest())
                 || source.changeVersion()!=null && source.changeVersion().length()>10
@@ -160,9 +179,9 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
         incoming.setDeleted(false);
         DeviceSoftwareChangeBatchDO row;
         if (source.mappedRecordId()==null) {
-            row=incoming;row.setId(IdWorker.getId());
+            row=incoming;row.setId(write.apply()?IdWorker.getId():-source.sourceId());
             // Explicit XML preserves original NULL actors rather than framework auto-fill.
-            if (batches.insertHistorical(new DeviceSoftwareBatchHistoricalWrite(row))!=1) throw new IllegalStateException("DPPMS_BATCH_INSERT_FAILED");
+            if (write.apply() && batches.insertHistorical(new DeviceSoftwareBatchHistoricalWrite(row))!=1) throw new IllegalStateException("DPPMS_BATCH_INSERT_FAILED");
         } else {
             if (source.mappedRecordId()<=0) throw new IllegalArgumentException("DPPMS_BATCH_MAPPING_INVALID");
             incoming.setId(source.mappedRecordId());
@@ -176,7 +195,7 @@ public class DppmsAssetSourceHistoryService implements DppmsAssetSourceHistoryAp
                 throw new IllegalArgumentException("DPPMS_BATCH_TARGET_CHANGED:"+String.join(",",differences));
             }
         }
-        return NativeEntityMigrationRow.mapped("software-changes",key,target("DeviceSoftwareChangeBatch","ast_device_software_change_batch",row.getId(),"SOFTWARE_BATCH"));
+        return new SourceOutcome("software-changes",key,"DeviceSoftwareChangeBatch","ast_device_software_change_batch",row.getId(),"SOFTWARE_BATCH");
     }
     private String batchActor(Long tenant,String original) {
         if (original==null || original.isEmpty()) return original;

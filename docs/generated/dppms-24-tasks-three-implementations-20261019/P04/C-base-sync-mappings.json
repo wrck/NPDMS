@@ -1,0 +1,650 @@
+{
+  "task": "P04",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "system_users",
+      "column": "id",
+      "parameter": "#{row.user.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "username",
+      "parameter": "#{row.user.username}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "nickname",
+      "parameter": "#{row.user.nickname}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "remark",
+      "parameter": "#{row.user.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "dept_id",
+      "parameter": "#{row.user.deptId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "post_ids",
+      "parameter": "#{row.user.postIds}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "email",
+      "parameter": "#{row.user.email}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "mobile",
+      "parameter": "#{row.user.mobile}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "sex",
+      "parameter": "#{row.user.sex}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "avatar",
+      "parameter": "#{row.user.avatar}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "status",
+      "parameter": "#{row.user.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "creator",
+      "parameter": "#{row.user.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "create_time",
+      "parameter": "#{row.user.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "updater",
+      "parameter": "#{row.user.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "update_time",
+      "parameter": "#{row.user.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "deleted",
+      "parameter": "#{row.user.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "tenant_id",
+      "parameter": "#{row.user.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "employee_no",
+      "parameter": "#{row.user.employeeNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "custom_info",
+      "parameter": "#{row.user.customInfo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_users",
+      "column": "password",
+      "parameter": "#{row.user.initialPasswordHash}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "id",
+      "parameter": "#{row.role.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "name",
+      "parameter": "#{row.role.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "code",
+      "parameter": "#{row.role.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "sort",
+      "parameter": "#{row.role.sort}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "data_scope",
+      "parameter": "#{row.role.dataScope}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "data_scope_dept_ids",
+      "parameter": "#{row.role.dataScopeDeptIds}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "status",
+      "parameter": "#{row.role.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "type",
+      "parameter": "#{row.role.type}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "remark",
+      "parameter": "#{row.role.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "creator",
+      "parameter": "#{row.role.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "create_time",
+      "parameter": "#{row.role.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "updater",
+      "parameter": "#{row.role.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "update_time",
+      "parameter": "#{row.role.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "deleted",
+      "parameter": "#{row.role.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_role",
+      "column": "tenant_id",
+      "parameter": "#{row.role.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "id",
+      "parameter": "#{row.membership.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "user_id",
+      "parameter": "#{row.membership.userId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "role_id",
+      "parameter": "#{row.membership.roleId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "creator",
+      "parameter": "#{row.membership.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "create_time",
+      "parameter": "#{row.membership.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "updater",
+      "parameter": "#{row.membership.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "update_time",
+      "parameter": "#{row.membership.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "deleted",
+      "parameter": "#{row.membership.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_role",
+      "column": "tenant_id",
+      "parameter": "#{row.membership.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "id",
+      "parameter": "#{row.scope.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "tenant_id",
+      "parameter": "#{row.scope.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "user_id",
+      "parameter": "#{row.scope.userId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "company_id",
+      "parameter": "#{row.scope.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "company_code",
+      "parameter": "#{row.scope.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "company_name",
+      "parameter": "#{row.scope.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "department_id",
+      "parameter": "#{row.scope.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "department_code",
+      "parameter": "#{row.scope.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "department_name",
+      "parameter": "#{row.scope.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "scope_role",
+      "parameter": "#{row.scope.scopeRole}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "is_primary",
+      "parameter": "#{row.scope.isPrimary}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "effective_from",
+      "parameter": "#{row.scope.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "effective_to",
+      "parameter": "#{row.scope.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "status",
+      "parameter": "#{row.scope.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "version",
+      "parameter": "#{row.scope.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "creator",
+      "parameter": "#{row.scope.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "create_time",
+      "parameter": "#{row.scope.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "updater",
+      "parameter": "#{row.scope.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "update_time",
+      "parameter": "#{row.scope.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_company_department_scope",
+      "column": "deleted",
+      "parameter": "#{row.scope.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "user_id",
+      "parameter": "#{row.userId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "post_id",
+      "parameter": "#{row.postId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "deleted",
+      "parameter": "#{row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    },
+    {
+      "table": "system_user_post",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.selectUsers",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<select id=\"selectUsers\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$UserRow\">SELECT `id`,`username`,`nickname`,`remark`,`dept_id`,`post_ids`,`email`,`mobile`,`sex`,`avatar`,`status`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`employee_no`,`custom_info` FROM system_users WHERE tenant_id=#{query.tenantId}<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<insert id=\"insertUser\">INSERT INTO system_users (`id`,`username`,`nickname`,`remark`,`dept_id`,`post_ids`,`email`,`mobile`,`sex`,`avatar`,`status`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`,`employee_no`,`custom_info`,password) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.user.id},#{row.user.username},#{row.user.nickname},#{row.user.remark},#{row.user.deptId},#{row.user.postIds},#{row.user.email},#{row.user.mobile},#{row.user.sex},#{row.user.avatar},#{row.user.status},#{row.user.creator},#{row.user.createTime},#{row.user.updater},#{row.user.updateTime},#{row.user.deleted},#{row.user.tenantId},#{row.user.employeeNo},#{row.user.customInfo},#{row.user.initialPasswordHash})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.updateUser",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<update id=\"updateUser\">UPDATE system_users SET `nickname`=#{row.user.nickname},`remark`=#{row.user.remark},`dept_id`=#{row.user.deptId},`post_ids`=#{row.user.postIds},`email`=#{row.user.email},`mobile`=#{row.user.mobile},`sex`=#{row.user.sex},`avatar`=#{row.user.avatar},`status`=#{row.user.status},`creator`=#{row.user.creator},`create_time`=#{row.user.createTime},`updater`=#{row.user.updater},`update_time`=#{row.user.updateTime},`employee_no`=#{row.user.employeeNo},`custom_info`=#{row.user.customInfo} WHERE tenant_id=#{context.tenantId} AND id=#{row.user.id} AND deleted=FALSE</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.selectRoles",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<select id=\"selectRoles\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$RoleRow\">SELECT `id`,`name`,`code`,`sort`,`data_scope`,`data_scope_dept_ids`,`status`,`type`,`remark`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id` FROM system_role WHERE tenant_id=#{query.tenantId}<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<insert id=\"insertRole\">INSERT INTO system_role (`id`,`name`,`code`,`sort`,`data_scope`,`data_scope_dept_ids`,`status`,`type`,`remark`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.role.id},#{row.role.name},#{row.role.code},#{row.role.sort},#{row.role.dataScope},#{row.role.dataScopeDeptIds},#{row.role.status},#{row.role.type},#{row.role.remark},#{row.role.creator},#{row.role.createTime},#{row.role.updater},#{row.role.updateTime},#{row.role.deleted},#{row.role.tenantId})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.updateRole",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<update id=\"updateRole\">UPDATE system_role SET `name`=#{row.role.name},`sort`=#{row.role.sort},`remark`=#{row.role.remark},`creator`=#{row.role.creator},`create_time`=#{row.role.createTime},`updater`=#{row.role.updater},`update_time`=#{row.role.updateTime} WHERE tenant_id=#{context.tenantId} AND id=#{row.role.id} AND deleted=FALSE</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.selectMemberships",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<select id=\"selectMemberships\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$MembershipRow\">SELECT `id`,`user_id`,`role_id`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id` FROM system_user_role WHERE tenant_id=#{query.tenantId}<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertMembership",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<insert id=\"insertMembership\">INSERT INTO system_user_role (`id`,`user_id`,`role_id`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.membership.id},#{row.membership.userId},#{row.membership.roleId},#{row.membership.creator},#{row.membership.createTime},#{row.membership.updater},#{row.membership.updateTime},#{row.membership.deleted},#{row.membership.tenantId})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.selectScopes",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<select id=\"selectScopes\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$ScopeRow\">SELECT `id`,`tenant_id`,`user_id`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`scope_role`,`is_primary`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM system_user_company_department_scope WHERE tenant_id=#{query.tenantId}<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertScope",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<insert id=\"insertScope\">INSERT INTO system_user_company_department_scope (`id`,`tenant_id`,`user_id`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`scope_role`,`is_primary`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.scope.id},#{row.scope.tenantId},#{row.scope.userId},#{row.scope.companyId},#{row.scope.companyCode},#{row.scope.companyName},#{row.scope.departmentId},#{row.scope.departmentCode},#{row.scope.departmentName},#{row.scope.scopeRole},#{row.scope.isPrimary},#{row.scope.effectiveFrom},#{row.scope.effectiveTo},#{row.scope.status},#{row.scope.version},#{row.scope.creator},#{row.scope.createTime},#{row.scope.updater},#{row.scope.updateTime},#{row.scope.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.selectDirectory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<select id=\"selectDirectory\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Directory\">SELECT id,code,name,'COMPANY' AS kind FROM system_company WHERE tenant_id=#{query.tenantId} AND deleted=FALSE UNION ALL SELECT id,code,name,'DEPARTMENT' AS kind FROM system_dept WHERE tenant_id=#{query.tenantId} AND deleted=FALSE UNION ALL SELECT id,code,name,'POST' AS kind FROM system_post WHERE tenant_id=#{query.tenantId} AND deleted=FALSE</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.selectAccountQuota",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<select id=\"selectAccountQuota\" resultType=\"long\">SELECT account_count FROM system_tenant WHERE id=#{query.tenantId} AND deleted=FALSE</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.insertPosts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<insert id=\"insertPosts\">INSERT INTO system_user_post (`id`,`user_id`,`post_id`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.id},#{row.userId},#{row.postId},#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted},#{row.tenantId})</foreach></insert>"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$TargetMapper.oneSourcePerTargetIndex",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P04TargetMapper.xml",
+      "xml": "<select id=\"oneSourcePerTargetIndex\" resultType=\"int\">SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='int_base_sync_binding' AND index_name='uk_int_base_sync_binding_target' AND non_unique=0</select>"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectLegacyUsers",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectLegacyUsers\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Account\">SELECT user_id AS id,user_name AS username,create_by AS creator,create_time AS createTime,update_by AS updater,update_time AS updateTime,status,CAST(needChangePwd AS UNSIGNED) AS needChangePwd,loginErrorCount,isSysUser,userCustom1,userCustom2,userCustom3,userCustom4,userCustom5,0 AS fnd FROM t_user LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectFndUsers",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectFndUsers\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Account\">SELECT id,username,email,dpNo,realName,roleIds,isemail,status,defaultPage,pwdoverdue,createBy AS creator,createTime,updateBy AS updater,updateTime,effectiveFrom,effectiveTo,customInfo,1 AS fnd FROM fnd_user_info LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectEmployments",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectEmployments\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Employment\">SELECT `id` AS id,`workNo` AS workNo,`realName` AS realName,`eName` AS eName,`compID` AS compID,`depID` AS depID,`jobID` AS jobID,`reportTo` AS reportTo,`wfreportTo` AS wfreportTo,`empStatus` AS empStatus,`jobStatus` AS jobStatus,`empType` AS empType,`sex` AS sex,`birthday` AS birthday,`email` AS email,`mobile` AS mobile,`telphone` AS telphone,`avatar` AS avatar,`remark` AS remark,`state` AS state,`user_id` AS userId,`custom1` AS custom1,`custom2` AS custom2,`custom3` AS custom3,`custom4` AS custom4,`custom5` AS custom5 FROM t_user_info LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectLegacyRoles",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectLegacyRoles\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$RawRole\">SELECT role_id AS id,role_name AS rawCode,role_name_zn AS name,remark,priority,status,create_by AS creator,create_time AS createTime,update_by AS updater,update_time AS updateTime,0 AS fnd FROM t_role LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectFndRoles",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectFndRoles\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$RawRole\">SELECT id,roleName AS name,roleRemark AS remark,status,createBy AS creator,createTime,updateBy AS updater,updateTime,1 AS fnd FROM fnd_roles LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectMemberships",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectMemberships\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$RawMembership\">SELECT id,user_id,role_id,comp_id AS companyId FROM t_user_role LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectPowers",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectPowers\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Power\">SELECT id,fndUserId,username,areapower,createBy AS creator,createTime,updateBy AS updater,updateTime,effectiveFrom,effectiveTo FROM fnd_user_power LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectLogins",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectLogins\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Login\">SELECT account,empID AS employeeId,workNo,name FROM ehr_login LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectEmployees",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectEmployees\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Employee\">SELECT empID AS id,workNo,name FROM ehr_employee LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectDepartments",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectDepartments\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Directory\">SELECT depID AS id,depCode AS code,depName AS name FROM ehr_department LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectJobs",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectJobs\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Directory\">SELECT jobID AS id,jobCode AS code,jobName AS name FROM ehr_job LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$SourceMapper.selectCompanies",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P04SourceMapper.xml",
+      "xml": "<select id=\"selectCompanies\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P04AccountSyncTask$Directory\">SELECT id,compCode AS code,compName AS name FROM t_company LIMIT #{limit}</select>\n"
+    }
+  ]
+}

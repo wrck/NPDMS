@@ -41,6 +41,20 @@ class SystemUserRoleMigrationTransactionTest {
     }
     @AfterEach void close() {context.close();TenantContextHolder.clear();}
     private Request request(Long target) {return new Request(1L,"integration:1:12",List.of(new Entry("T_USER_ROLE","271",1L,2L,"user",target)));}
+    @Test void sameRoundPreviewUsesPlannedReferencesWithoutWritingOrWeakeningApply() {
+        var input=new Request(1L,"integration:1:12",List.of(new Entry("T_USER_ROLE","271",-1L,-2L,"projectViewer",null),
+                new Entry("FND_USER_ROLE","82:6",-1L,-2L,"projectViewer",null)));
+        var preceding=new SystemAccountMigrationPreview(1L,input.owner(),Set.of(-1L),Map.of(-2L,"projectViewer"),Set.of());
+        var result=api.previewAfterFoundation(new FoundationPreview(input,preceding));
+        assertEquals(result.getFirst().after(),result.getLast().after());assertNull(result.getFirst().after().id());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_user_role",Integer.class));
+        assertThrows(IllegalArgumentException.class,()->api.preview(input));
+        assertThrows(IllegalArgumentException.class,()->tx.execute(status->api.apply(input)));
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterFoundation(new FoundationPreview(request(null),
+                new SystemAccountMigrationPreview(2L,input.owner(),Set.of(-1L),Map.of(),Set.of()))));
+        jdbc.update("UPDATE system_users SET tenant_id=2 WHERE id=1");
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterFoundation(new FoundationPreview(request(null),preceding)));
+    }
     @Test void aliasesCreateOneFormalRelationWithNoFabricatedAuditOrOfficeAuthorization() {
         var input=new Request(1L,"integration:1:12",List.of(new Entry("T_USER_ROLE","271",1L,2L,"user",null),new Entry("FND_USER_ROLE","82:3",1L,2L,"user",null)));
         var results=tx.execute(status->api.apply(input));

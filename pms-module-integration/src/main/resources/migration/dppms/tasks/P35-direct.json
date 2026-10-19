@@ -1,0 +1,263 @@
+{
+  "adapter": "DPPMS_SOFTWARE_HISTORY_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 25,
+  "clearBeforeLoad": false,
+  "connectionId": 2110305954295414785,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 25,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 10000,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "filters": [],
+      "groupKey": "_groupKey",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectId",
+          "target": "projectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "changeVersion",
+          "target": "changeVersion"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "changeRemark",
+          "target": "changeRemark"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "latest",
+          "target": "latest"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createBy",
+          "target": "createBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateBy",
+          "target": "updateBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectType",
+          "target": "projectType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectCode",
+          "target": "originalProjectCode"
+        }
+      ],
+      "object": "SOFTWARE_BATCH",
+      "parameters": {
+        "extensionDefinitionId": ""
+      },
+      "publishedProjectMatch": "ID",
+      "readMode": "SQL",
+      "rowProjection": "_sourceRows",
+      "sourceKey": "id",
+      "sourceObject": "pm_project_soft_change_logs",
+      "sql": "SELECT l.id AS _groupKey,l.projectId,\r\nJSON_MERGE_PRESERVE(\r\n JSON_ARRAY(JSON_OBJECT('object','SOFTWARE_BATCH','fields',JSON_OBJECT('id',l.`id`,'projectId',l.`projectId`,'changeVersion',l.`changeVersion`,'changeRemark',l.`changeRemark`,'latest',l.`latest`,'createBy',l.`createBy`,'createTime',l.`createTime`,'updateBy',l.`updateBy`,'updateTime',l.`updateTime`))),\r\n COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('object','SOFTWARE_VERSION','fields',JSON_OBJECT('id',v.`id`,'projectId',v.`projectId`,'logId',v.`logId`,'contractNo',v.`contractNo`,'itemCode',v.`itemCode`,'barCode',v.`barCode`,'conp',v.`conp`,'conpType',v.`conpType`,'conpSeries',v.`conpSeries`,'conpMark',v.`conpMark`,'conpBak',v.`conpBak`,'conpChange',v.`conpChange`,'cpld',v.`cpld`,'cpldBak',v.`cpldBak`,'cpldChange',v.`cpldChange`,'boot',v.`boot`,'bootBak',v.`bootBak`,'bootChange',v.`bootChange`,'pcb',v.`pcb`,'pcbBak',v.`pcbBak`,'pcbChange',v.`pcbChange`,'executeTime',v.`executeTime`,'datastate',v.`datastate`,'createTime',v.`createTime`,'createBy',v.`createBy`,'updateTime',v.`updateTime`,'updateBy',v.`updateBy`,'customInfo',v.`customInfo`)))\r\n FROM pm_project_soft_version v WHERE v.logId=l.id),JSON_ARRAY())) AS _sourceRows\r\nFROM pm_project_soft_change_logs l",
+      "syncPrimaryKey": false
+    },
+    {
+      "columns": [],
+      "filters": [],
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectId",
+          "target": "projectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "logId",
+          "target": "logId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contractNo",
+          "target": "contractNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "itemCode",
+          "target": "itemCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "barCode",
+          "target": "barCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conp",
+          "target": "conp"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conpType",
+          "target": "conpType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conpSeries",
+          "target": "conpSeries"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conpMark",
+          "target": "conpMark"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conpBak",
+          "target": "conpBak"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "conpChange",
+          "target": "conpChange"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "cpld",
+          "target": "cpld"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "cpldBak",
+          "target": "cpldBak"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "cpldChange",
+          "target": "cpldChange"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "boot",
+          "target": "boot"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "bootBak",
+          "target": "bootBak"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "bootChange",
+          "target": "bootChange"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "pcb",
+          "target": "pcb"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "pcbBak",
+          "target": "pcbBak"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "pcbChange",
+          "target": "pcbChange"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "executeTime",
+          "target": "executeTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "datastate",
+          "target": "datastate"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createBy",
+          "target": "createBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateBy",
+          "target": "updateBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "customInfo",
+          "target": "customInfo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectType",
+          "target": "projectType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectCode",
+          "target": "originalProjectCode"
+        }
+      ],
+      "object": "SOFTWARE_VERSION",
+      "parameters": {},
+      "queryRef": "SOFTWARE_BATCH",
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "sourceObject": "pm_project_soft_version",
+      "syncPrimaryKey": false
+    }
+  ],
+  "taskKey": "P35_DIRECT"
+}

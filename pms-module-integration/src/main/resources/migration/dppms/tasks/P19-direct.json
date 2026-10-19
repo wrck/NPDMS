@@ -1,0 +1,290 @@
+{
+  "adapter": "DPPMS_PROJECT_FACTS_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 500,
+  "clearBeforeLoad": false,
+  "connectionId": null,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 1000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 8388608,
+  "maxRows": 500,
+  "mergedIntoTaskId": null,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": null,
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "partyRole",
+          "target": "partyRole",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "partyCode",
+          "target": "partyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "partyName",
+          "target": "partyName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "id",
+          "target": "_expectedFingerprint",
+          "values": {}
+        }
+      ],
+      "object": "pm_project_related_party",
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "primaryTarget": null,
+      "queryRef": null,
+      "readMode": "SQL",
+      "rowProjection": null,
+      "sourceKey": "id",
+      "sourceKeyColumns": null,
+      "sourceObject": "pm_project_related_party",
+      "sql": "SELECT r.*, p.projectCode AS originalProjectCode, p.projectType\nFROM pm_project_related_party r\nJOIN (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p ON p.projectId=r.projectId\nWHERE FIND_IN_SET(p.projectType,:projectTypes)",
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    },
+    {
+      "columns": [],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": null,
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectPlanState",
+          "target": "projectPlanState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectplanTime",
+          "target": "projectplanTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "shipmentState",
+          "target": "shipmentState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "shipmentTime",
+          "target": "shipmentTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "executionState",
+          "target": "executionState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "executionStateTime",
+          "target": "executionStateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "closeProcessState",
+          "target": "closeProcessState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "closeProcessStateTime",
+          "target": "closeProcessStateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "CONSTANT",
+          "defaultValue": null,
+          "source": null,
+          "target": "_definitionId",
+          "values": null
+        }
+      ],
+      "object": "pm_project_state",
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "primaryTarget": null,
+      "queryRef": null,
+      "readMode": "SQL",
+      "rowProjection": null,
+      "sourceKey": "projectId",
+      "sourceKeyColumns": null,
+      "sourceObject": "pm_project_state",
+      "sql": "SELECT s.*, p.projectCode AS originalProjectCode, p.projectType\nFROM pm_project_state s\nJOIN (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p ON p.projectId=s.projectId\nWHERE FIND_IN_SET(p.projectType,:projectTypes)\n  AND p.projectId=p.canonicalProjectId",
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    }
+  ],
+  "taskKey": "P19_DIRECT"
+}

@@ -5,7 +5,10 @@ import java.util.List;
 /** INT-owned source identity reference, never a replacement for formal project business data. */
 public interface DppmsProjectBindingApi {
     record Query(Long tenantId,Long sourceConnectionId,String sourceProjectKey) {}
-    record BatchQuery(Long tenantId,Long sourceConnectionId,List<String> sourceProjectKeys) {}
+    record BatchQuery(Long tenantId,Long sourceConnectionId,List<String> sourceProjectKeys,boolean originalOnly) {
+        public BatchQuery(Long tenantId,Long sourceConnectionId,List<String> sourceProjectKeys) {this(tenantId,sourceConnectionId,sourceProjectKeys,false);}
+        public BatchQuery originalLine() {return new BatchQuery(tenantId,sourceConnectionId,sourceProjectKeys,true);}
+    }
     record ProjectBinding(Long sourceConnectionId,String sourceProjectKey,Long projectId,
                           String projectType,String originalProjectCode,String projectCode) {}
     List<ProjectBinding> resolve(BatchQuery query);

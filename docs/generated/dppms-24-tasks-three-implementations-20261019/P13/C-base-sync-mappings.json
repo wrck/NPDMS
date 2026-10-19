@@ -1,0 +1,361 @@
+{
+  "task": "P13",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "com_crm_execution_order",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "update_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "execution_no",
+      "parameter": "#{row.target.executionNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "project_code",
+      "parameter": "#{row.target.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "project_name",
+      "parameter": "#{row.target.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "sales_rep_code",
+      "parameter": "#{row.target.salesRepCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "sales_rep_name",
+      "parameter": "#{row.target.salesRepName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "market_code",
+      "parameter": "#{row.target.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "market_name",
+      "parameter": "#{row.target.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "system_source_key",
+      "parameter": "#{row.target.systemSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "system_name",
+      "parameter": "#{row.target.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "expend_source_key",
+      "parameter": "#{row.target.expendSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "expend_name",
+      "parameter": "#{row.target.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "industry_code",
+      "parameter": "#{row.target.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "industry_name",
+      "parameter": "#{row.target.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "department_id",
+      "parameter": "#{row.target.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "department_code",
+      "parameter": "#{row.target.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "department_name",
+      "parameter": "#{row.target.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "service_type_name",
+      "parameter": "#{row.target.serviceTypeName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "channel_name",
+      "parameter": "#{row.target.channelName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "engineering_fee_raw",
+      "parameter": "#{row.target.engineeringFeeRaw}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "engineering_fee",
+      "parameter": "#{row.target.engineeringFee}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "source_object_id",
+      "parameter": "#{row.target.sourceObjectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "apply_type",
+      "parameter": "#{row.target.applyType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "company_id",
+      "parameter": "#{row.target.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "company_code",
+      "parameter": "#{row.target.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "company_name",
+      "parameter": "#{row.target.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "customer_project_name",
+      "parameter": "#{row.target.customerProjectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "final_customer_name",
+      "parameter": "#{row.target.finalCustomerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "agent_name",
+      "parameter": "#{row.target.agentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "major_project_level",
+      "parameter": "#{row.target.majorProjectLevel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "project_amount",
+      "parameter": "#{row.target.projectAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "submit_time",
+      "parameter": "#{row.target.submitTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "predicted_bid_time",
+      "parameter": "#{row.target.predictedBidTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "contact_name",
+      "parameter": "#{row.target.contactName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "contact_phone",
+      "parameter": "#{row.target.contactPhone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "source_sync_time",
+      "parameter": "#{row.target.sourceSyncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "af_evidence_status",
+      "parameter": "#{row.target.afEvidenceStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.selectExisting",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml",
+      "xml": "<select id=\"selectExisting\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$Row\">SELECT id, tenant_id, version, creator, updater, create_time, update_time, deleted, source_system, execution_no, project_code, project_name, primary_project_id, sales_rep_code, sales_rep_name, sales_rep_phone, market_code, market_name, system_source_key, system_code, system_name, expend_source_key, expend_code, expend_name, industry_code, industry_name, department_id, department_code, department_name, service_type_name, channel_name, engineering_fee_raw, engineering_fee, source_object_id, apply_type, company_id, company_code, company_name, customer_project_name, final_customer_name, agent_name, project_manager_code, project_manager_name, decision_path, required_in_date, receiver_name, receiver_contact, receiver_address, loan_reason, project_type, major_project_level, project_amount, af_project_amount, submit_time, predicted_bid_time, contact_name, contact_phone, af_evidence_status, source_sync_time, status FROM com_crm_execution_order WHERE tenant_id=#{query.tenantId}\n<choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND (<foreach collection=\"query.keys\" item=\"key\" separator=\" OR \">(source_system=#{key.sourceSystem} AND execution_no=#{key.executionNo})</foreach>)</when><otherwise>AND 1=0</otherwise></choose>\n<if test=\"!query.preview\">FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.insertExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml",
+      "xml": "<insert id=\"insertExecutionOrder\">INSERT INTO com_crm_execution_order (id,tenant_id,version,creator,updater,create_time,update_time,deleted,source_system,execution_no,project_code,project_name,sales_rep_code,sales_rep_name,market_code,market_name,system_source_key,system_name,expend_source_key,expend_name,industry_code,industry_name,department_id,department_code,department_name,service_type_name,channel_name,engineering_fee_raw,engineering_fee,source_object_id,apply_type,company_id,company_code,company_name,customer_project_name,final_customer_name,agent_name,major_project_level,project_amount,submit_time,predicted_bid_time,contact_name,contact_phone,source_sync_time,status,af_evidence_status) VALUES\n<foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},0,#{row.target.creator},#{row.target.updater},#{row.target.createTime},#{row.target.createTime},FALSE,#{row.target.sourceSystem},#{row.target.executionNo},#{row.target.projectCode},#{row.target.projectName},#{row.target.salesRepCode},#{row.target.salesRepName},#{row.target.marketCode},#{row.target.marketName},#{row.target.systemSourceKey},#{row.target.systemName},#{row.target.expendSourceKey},#{row.target.expendName},#{row.target.industryCode},#{row.target.industryName},#{row.target.departmentId},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.serviceTypeName},#{row.target.channelName},#{row.target.engineeringFeeRaw},#{row.target.engineeringFee},#{row.target.sourceObjectId},#{row.target.applyType},#{row.target.companyId},#{row.target.companyCode},#{row.target.companyName},#{row.target.customerProjectName},#{row.target.finalCustomerName},#{row.target.agentName},#{row.target.majorProjectLevel},#{row.target.projectAmount},#{row.target.submitTime},#{row.target.predictedBidTime},#{row.target.contactName},#{row.target.contactPhone},#{row.target.sourceSyncTime},#{row.target.status},#{row.target.afEvidenceStatus})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.updateExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml",
+      "xml": "<update id=\"updateExecutionOrder\">UPDATE com_crm_execution_order <set>\n<if test=\"row.target.sourceSystem != null\">source_system=#{row.target.sourceSystem},</if>\n<if test=\"row.target.executionNo != null\">execution_no=#{row.target.executionNo},</if>\n<if test=\"row.target.projectCode != null\">project_code=#{row.target.projectCode},</if>\n<if test=\"row.target.projectName != null\">project_name=#{row.target.projectName},</if>\n<if test=\"row.target.salesRepCode != null\">sales_rep_code=#{row.target.salesRepCode},</if>\n<if test=\"row.target.salesRepName != null\">sales_rep_name=#{row.target.salesRepName},</if>\n<if test=\"row.target.marketCode != null\">market_code=#{row.target.marketCode},</if>\n<if test=\"row.target.marketName != null\">market_name=#{row.target.marketName},</if>\n<if test=\"row.target.systemSourceKey != null\">system_source_key=#{row.target.systemSourceKey},</if>\n<if test=\"row.target.systemName != null\">system_name=#{row.target.systemName},</if>\n<if test=\"row.target.expendSourceKey != null\">expend_source_key=#{row.target.expendSourceKey},</if>\n<if test=\"row.target.expendName != null\">expend_name=#{row.target.expendName},</if>\n<if test=\"row.target.industryCode != null\">industry_code=#{row.target.industryCode},</if>\n<if test=\"row.target.industryName != null\">industry_name=#{row.target.industryName},</if>\n<if test=\"row.target.departmentId != null\">department_id=#{row.target.departmentId},</if>\n<if test=\"row.target.departmentCode != null\">department_code=#{row.target.departmentCode},</if>\n<if test=\"row.target.departmentName != null\">department_name=#{row.target.departmentName},</if>\n<if test=\"row.target.serviceTypeName != null\">service_type_name=#{row.target.serviceTypeName},</if>\n<if test=\"row.target.channelName != null\">channel_name=#{row.target.channelName},</if>\n<if test=\"row.target.engineeringFeeRaw != null\">engineering_fee_raw=#{row.target.engineeringFeeRaw},</if>\n<if test=\"row.target.engineeringFee != null\">engineering_fee=#{row.target.engineeringFee},</if>\n<if test=\"row.target.sourceObjectId != null\">source_object_id=#{row.target.sourceObjectId},</if>\n<if test=\"row.target.applyType != null\">apply_type=#{row.target.applyType},</if>\n<if test=\"row.target.companyId != null\">company_id=#{row.target.companyId},</if>\n<if test=\"row.target.companyCode != null\">company_code=#{row.target.companyCode},</if>\n<if test=\"row.target.companyName != null\">company_name=#{row.target.companyName},</if>\n<if test=\"row.target.customerProjectName != null\">customer_project_name=#{row.target.customerProjectName},</if>\n<if test=\"row.target.finalCustomerName != null\">final_customer_name=#{row.target.finalCustomerName},</if>\n<if test=\"row.target.agentName != null\">agent_name=#{row.target.agentName},</if>\n<if test=\"row.target.majorProjectLevel != null\">major_project_level=#{row.target.majorProjectLevel},</if>\n<if test=\"row.target.projectAmount != null\">project_amount=#{row.target.projectAmount},</if>\n<if test=\"row.target.submitTime != null\">submit_time=#{row.target.submitTime},</if>\n<if test=\"row.target.predictedBidTime != null\">predicted_bid_time=#{row.target.predictedBidTime},</if>\n<if test=\"row.target.contactName != null\">contact_name=#{row.target.contactName},</if>\n<if test=\"row.target.contactPhone != null\">contact_phone=#{row.target.contactPhone},</if>\n<if test=\"row.target.sourceSyncTime != null\">source_sync_time=#{row.target.sourceSyncTime},</if>\nversion=#{row.target.version},updater=#{row.target.updater},update_time=#{row.target.updateTime}\n</set> WHERE tenant_id=#{row.target.tenantId} AND id=#{row.target.id} AND version=#{row.expectedVersion} AND deleted=FALSE\nAND source_system=#{row.target.sourceSystem} AND execution_no=#{row.target.executionNo}\n</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$TargetMapper.oneSourcePerTargetIndex",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P13TargetMapper.xml",
+      "xml": "<select id=\"oneSourcePerTargetIndex\" resultType=\"int\">SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='int_base_sync_binding' AND index_name='uk_int_base_sync_binding_target' AND non_unique=0</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$SourceMapper.selectExecutionOrder",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P13SourceMapper.xml",
+      "xml": "<select id=\"selectExecutionOrder\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$Source\">\nSELECT r.id AS sourceId,r.projectCode AS rawProjectCode, latest.id AS canonicalSourceId,\nlatest.`dataSource` AS sourceSystem,\nlatest.`orderExecNumber` AS executionNo,\nlatest.`projectCode` AS projectCode,\nlatest.`projectName` AS projectName,\nlatest.`salesManCode` AS salesRepCode,\nlatest.`salesManName` AS salesRepName,\nlatest.`marketCode` AS marketCode,\nlatest.`marketName` AS marketName,\nlatest.`systemId` AS systemSourceKey,\nlatest.`systemName` AS systemName,\nlatest.`expendId` AS expendSourceKey,\nlatest.`expendName` AS expendName,\nlatest.`industryId` AS industryCode,\nlatest.`industryName` AS industryName,\nlatest.`officeCode` AS departmentCode,\nlatest.`officeName` AS departmentName,\nlatest.`serviceTypeName` AS serviceTypeName,\nlatest.`channelName` AS channelName,\nlatest.`engineeFee` AS engineeringFeeRaw,\nlatest.`objId` AS sourceObjectId,\nlatest.`applyType` AS applyType,\nlatest.`corporationCode` AS companyCode,\nlatest.`customerProjectName` AS customerProjectName,\nlatest.`finalCustomerName` AS finalCustomerName,\nlatest.`agentName` AS agentName,\nlatest.`majorProjectLevel` AS majorProjectLevel,\nlatest.`projectMoney` AS projectAmount,\nlatest.`submitTime` AS submitTime,\nlatest.`predBidDate` AS predictedBidTime,\nlatest.`linkmanName` AS contactName,\nlatest.`linkmanTel` AS contactPhone\nFROM pm_project_property_from_sms r\nJOIN (SELECT CAST(dataSource AS BINARY) AS systemKey,CAST(orderExecNumber AS BINARY) AS executionKey,MAX(id) AS canonicalId\n FROM pm_project_property_from_sms GROUP BY CAST(dataSource AS BINARY),CAST(orderExecNumber AS BINARY)) chosen\n ON chosen.systemKey &lt;=&gt; CAST(r.dataSource AS BINARY) AND chosen.executionKey &lt;=&gt; CAST(r.orderExecNumber AS BINARY)\nJOIN pm_project_property_from_sms latest ON latest.id=chosen.canonicalId\nORDER BY r.id LIMIT #{limit}\n</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P13ExecutionOrderSyncTask$SourceMapper.selectProjectPrefixes",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P13SourceMapper.xml",
+      "xml": "<select id=\"selectProjectPrefixes\" resultType=\"java.lang.String\">\nSELECT DISTINCT SUBSTRING_INDEX(p.projectCode,'-',1)\nFROM pm_project p\nJOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS canonicalId\n FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) chosen\n ON chosen.canonicalId=p.projectId\nWHERE p.disabled=0 AND p.effectiveTo IS NULL AND p.projectType='10' AND p.projectCode IS NOT NULL\nLIMIT #{limit}\n</select>"
+    }
+  ]
+}

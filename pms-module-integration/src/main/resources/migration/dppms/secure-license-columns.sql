@@ -1,0 +1,1 @@
+SHOW FULL COLUMNS FROM pm_project_license_info_from_license

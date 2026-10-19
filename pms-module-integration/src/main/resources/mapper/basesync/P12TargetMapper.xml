@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$TargetMapper">
+  
+  
+  <select id="selectSupplementTargets" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P12SupplementProductSyncTask$ProductSyncRow">
+    SELECT product_code, product_model, product_name, product_desc, id, tenant_id, source_system, source_key, source_version, status, version, synced_at, creator, updater, create_time, update_time, deleted FROM ast_product_official_info
+    WHERE tenant_id=#{query.tenantId}
+    <choose><when test="query.productCodes != null and !query.productCodes.isEmpty()">
+      AND product_code IN <foreach collection="query.productCodes" item="code" open="(" close=")" separator=",">#{code}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose>
+    <if test="!query.preview">FOR UPDATE</if>
+  </select>
+  <insert id="insertSupplementProduct">
+    INSERT INTO ast_product_official_info
+      (product_code, product_model, product_name, product_desc, id, tenant_id, source_system, source_key, source_version, status, version, synced_at, creator, updater, create_time, update_time, deleted, sync_status)
+    VALUES
+    <foreach collection="rows" item="row" separator=",">(#{row.productCode}, #{row.productModel}, #{row.productName}, #{row.productDesc}, #{row.id}, #{row.tenantId}, #{row.sourceSystem}, #{row.sourceKey}, #{row.sourceVersion}, #{row.status}, #{row.version}, #{row.syncedAt}, #{row.creator}, #{row.updater}, #{row.createTime}, #{row.updateTime}, #{row.deleted}, 'SUCCESS')</foreach>
+  </insert>
+  
+</mapper>

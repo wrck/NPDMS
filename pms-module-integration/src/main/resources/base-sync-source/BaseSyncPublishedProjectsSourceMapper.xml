@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$SourceMapper">
+  <select id="selectPreviewScope" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$Member">
+    SELECT CAST(p.projectId AS CHAR) AS source_key,chosen.projectId AS project_id,p.projectType AS project_type,
+           p.projectCode AS original_project_code,current_project.projectCode AS project_code,NULL AS fingerprint
+    FROM pm_project p
+    JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId
+          FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) chosen
+      ON chosen.typeKey=CAST(p.projectType AS BINARY) AND chosen.codeKey=CAST(p.projectCode AS BINARY)
+    JOIN pm_project current_project ON current_project.projectId=chosen.projectId
+    WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0
+      AND current_project.effectiveTo IS NULL AND current_project.projectType='10'
+    ORDER BY p.projectId LIMIT #{limit}
+  </select>
+</mapper>

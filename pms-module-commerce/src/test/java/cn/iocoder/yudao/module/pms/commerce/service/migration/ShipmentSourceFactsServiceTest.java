@@ -20,17 +20,19 @@ class ShipmentSourceFactsServiceTest {
             assertThrows(IllegalArgumentException.class,()->service.read(new Query(9L,2L,List.of("P1"))));
             assertThrows(org.springframework.security.access.AccessDeniedException.class,()->service.read(new Query(1L,3L,List.of("P1"))));
             assertTrue(service.read(new Query(1L,2L,List.of())).isEmpty());verifyNoInteractions(mapper);
-            var fact=new Fact("P1",null,"C1");when(mapper.selectFacts(any())).thenReturn(List.of(fact,fact));
+            var fact=new ShipmentSourceFactsMapper.ResolvedFact("P1",null,"C1",false);when(mapper.selectFacts(any())).thenReturn(List.of(fact,fact));
+            assertThrows(IllegalArgumentException.class,()->service.read(new Query(1L,2L,List.of("P1"))));
+            when(mapper.selectFacts(any())).thenReturn(List.of(new ShipmentSourceFactsMapper.ResolvedFact("P1",null,"C1",true)));
             assertThrows(IllegalArgumentException.class,()->service.read(new Query(1L,2L,List.of("P1"))));
         } finally {TenantContextHolder.clear();}
     }
     @Test void actualQueryUsesSourceParentAndTenantAndEmptyScopeIsEmpty() throws Exception {
         var ds=new org.h2.jdbcx.JdbcDataSource();ds.setURL("jdbc:h2:mem:shipmentFacts"+UUID.randomUUID()+";MODE=MySQL;DB_CLOSE_DELAY=-1");
         var jdbc=new org.springframework.jdbc.core.JdbcTemplate(ds);
-        jdbc.execute("CREATE TABLE com_shipment_package(tenant_id BIGINT,deleted BOOLEAN,source_system VARCHAR(20),source_record_key VARCHAR(128),shipment_time TIMESTAMP,shipment_contract_source_key VARCHAR(128))");
-        jdbc.execute("CREATE TABLE com_shipment_contract_reference(tenant_id BIGINT,deleted BOOLEAN,source_system VARCHAR(20),source_record_key VARCHAR(128),contract_no VARCHAR(128))");
-        jdbc.update("INSERT INTO com_shipment_package VALUES(1,0,'DPPMS','P1','2020-01-01 12:00:00','RAW-1'),(2,0,'DPPMS','P1','2022-01-01 12:00:00','RAW-1')");
-        jdbc.update("INSERT INTO com_shipment_contract_reference VALUES(1,0,'DPPMS','RAW-1','C1'),(1,0,'DPPMS','RAW-2','C2'),(2,0,'DPPMS','RAW-1','TENANT-2')");
+        jdbc.execute("CREATE TABLE com_shipment_package(tenant_id BIGINT,deleted BOOLEAN,source_system VARCHAR(20),source_record_key VARCHAR(128),shipment_time TIMESTAMP,shipment_contract_source_key VARCHAR(128),shipment_contract_ref_id BIGINT)");
+        jdbc.execute("CREATE TABLE com_shipment_contract_reference(tenant_id BIGINT,deleted BOOLEAN,source_system VARCHAR(20),source_record_key VARCHAR(128),contract_no VARCHAR(128),id BIGINT,contract_type VARCHAR(32))");
+        jdbc.update("INSERT INTO com_shipment_package VALUES(1,0,'DPPMS','P1','2020-01-01 12:00:00','RAW-1',1),(2,0,'DPPMS','P1','2022-01-01 12:00:00','RAW-1',1),(1,0,'DPPMS','OLD','2019-01-01 12:00:00',NULL,2),(1,0,'DPPMS','CONFLICT','2019-01-01 12:00:00','RAW-1',2)");
+        jdbc.update("INSERT INTO com_shipment_contract_reference VALUES(1,0,'DPPMS','RAW-1','C1',1,'0'),(1,0,'DPPMS','RAW-2','C2',2,'11'),(2,0,'DPPMS','RAW-1','TENANT-2',1,'9')");
         var configuration=new org.apache.ibatis.session.Configuration(new org.apache.ibatis.mapping.Environment("test",new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory(),ds));
         String resource="mapper/migration/ShipmentSourceFactsMapper.xml";
         try(var in=new org.springframework.core.io.ClassPathResource(resource).getInputStream()) {
@@ -39,8 +41,11 @@ class ShipmentSourceFactsServiceTest {
         try(var session=new org.apache.ibatis.session.SqlSessionFactoryBuilder().build(configuration).openSession()) {
             var mapper=session.getMapper(ShipmentSourceFactsMapper.class);
             var rows=mapper.selectFacts(new ShipmentSourceFactsMapper.Query(1L,List.of("P1")));
-            assertEquals(1,rows.size());assertEquals("C1",rows.getFirst().contractNo());
-            assertEquals(2020,rows.getFirst().shipmentTime().getYear());
+            assertEquals(1,rows.size());assertEquals("C1",rows.getFirst().contractNo());assertEquals("0",rows.getFirst().contractType());
+            assertEquals(2020,rows.getFirst().shipmentTime().getYear());assertFalse(rows.getFirst().parentConflict());
+            var old=mapper.selectFacts(new ShipmentSourceFactsMapper.Query(1L,List.of("OLD"))).getFirst();
+            assertEquals("C2",old.contractNo());assertFalse(old.parentConflict());
+            assertTrue(mapper.selectFacts(new ShipmentSourceFactsMapper.Query(1L,List.of("CONFLICT"))).getFirst().parentConflict());
             assertTrue(mapper.selectFacts(new ShipmentSourceFactsMapper.Query(1L,List.of())).isEmpty());
             assertTrue(mapper.selectFacts(new ShipmentSourceFactsMapper.Query(1L,List.of("MISSING"))).isEmpty());
         }

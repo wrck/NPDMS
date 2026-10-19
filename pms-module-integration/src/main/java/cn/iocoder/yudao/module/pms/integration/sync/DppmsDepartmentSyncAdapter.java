@@ -24,6 +24,9 @@ public class DppmsDepartmentSyncAdapter implements DataSyncAdapter {
     @Override public List<Change> preview(Batch batch){return execute(new Execution(batch,false,null));}
     List<Change> previewAfterOrganization(DppmsConsolidation.OrganizationPreviewBatch preview){return execute(new Execution(preview.batch(),false,preview));}
     @Override public List<Change> apply(Batch batch){return execute(new Execution(batch,true,null));}
+    List<Change> executeCanonical(DppmsOrganizationCanonical.ComponentBatch input){
+        return execute(new Execution(input.batch(),input.apply(),new DppmsConsolidation.OrganizationPreviewBatch(input.batch(),input.preceding(),input.winners())));
+    }
     @Override public void refreshCaches(){departments.refreshCaches();}
     private List<Change> execute(Execution execution) {
         var batch=execution.batch();boolean apply=execution.apply();
@@ -57,6 +60,8 @@ public class DppmsDepartmentSyncAdapter implements DataSyncAdapter {
             entries.add(new Entry(row.object(),row.sourceKey(),code,text(row,"departmentName"),parent,status,created,updated,row.targetId(),last,
                     previous!=null && Boolean.TRUE.equals(previous.lastFields().get("_referenceOnly"))));
         }
+        if(execution.preview()!=null && execution.preview().canonicalWinners()!=null)
+            entries.removeIf(entry->!execution.preview().canonicalWinners().contains(entry.object()+":"+entry.sourceKey()));
         var request=new Request(tenant,batch.owner(),entries);
         var results=apply?departments.apply(request):execution.preview()==null?departments.preview(request):
                 departments.previewAfterOrganization(new OrganizationPreview(request,execution.preview().preceding()));

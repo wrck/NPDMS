@@ -51,7 +51,7 @@ class GenericCacheRefreshTest {
             var source=definition.sources().getFirst();
             var fields=new LinkedHashMap<String,Object>();
             source.columns().forEach(column->fields.put(column,null));
-            fields.put(GenericCacheRefresh.ROW_KEY,1L);
+            fields.put(source.sourceKey(),1L);
             var snapshot=new MysqlSyncReader.Snapshot(java.time.LocalDateTime.now(),
                     List.of(new MysqlSyncReader.SourceRows(source.object(),source.sourceObject(),List.of(fields))),0);
             var rows=new SyncFieldMapper().transform(definition,snapshot,List.of());

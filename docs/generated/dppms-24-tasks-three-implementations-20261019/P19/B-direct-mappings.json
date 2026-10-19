@@ -1,0 +1,404 @@
+{
+  "task": "P19",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "pm_project_related_party",
+      "sourceObject": "pm_project_related_party",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "partyRole",
+          "target": "partyRole",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "partyCode",
+          "target": "partyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "partyName",
+          "target": "partyName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "id",
+          "target": "_expectedFingerprint",
+          "values": {}
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "pm_project_state",
+      "sourceObject": "pm_project_state",
+      "sourceKey": "projectId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectPlanState",
+          "target": "projectPlanState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectplanTime",
+          "target": "projectplanTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "shipmentState",
+          "target": "shipmentState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "shipmentTime",
+          "target": "shipmentTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "executionState",
+          "target": "executionState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "executionStateTime",
+          "target": "executionStateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "closeProcessState",
+          "target": "closeProcessState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "closeProcessStateTime",
+          "target": "closeProcessStateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "CONSTANT",
+          "defaultValue": null,
+          "source": null,
+          "target": "_definitionId",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "proj_project_party",
+      "column": "id",
+      "parameter": "#{command.row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "tenant_id",
+      "parameter": "#{command.row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "project_id",
+      "parameter": "#{command.row.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_role",
+      "parameter": "#{command.row.partyRole}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_code",
+      "parameter": "#{command.row.partyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_name",
+      "parameter": "#{command.row.partyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "contact_name",
+      "parameter": "#{command.row.contactName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "phone",
+      "parameter": "#{command.row.phone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_system",
+      "parameter": "#{command.row.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_table",
+      "parameter": "#{command.row.sourceTable}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_record_key",
+      "parameter": "#{command.row.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "effective_from",
+      "parameter": "#{command.row.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "effective_to",
+      "parameter": "#{command.row.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "status",
+      "parameter": "#{command.row.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "version",
+      "parameter": "#{command.row.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "creator",
+      "parameter": "#{command.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "create_time",
+      "parameter": "#{command.row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "updater",
+      "parameter": "#{command.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "update_time",
+      "parameter": "#{command.row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "deleted",
+      "parameter": "#{command.row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSource",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSource\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSourceForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectRecords",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectRecords\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRecordRow\">\n    SELECT * FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" /> ORDER BY source_key,id\n    LIMIT #{query.offset},#{query.limit}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.selectMigrationSourceForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml",
+      "xml": "<select id=\"selectMigrationSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyRow\">\n        SELECT * FROM proj_project_party WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n          AND source_table=#{query.sourceTable} AND source_record_key=#{query.sourceKey} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.insertMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml",
+      "xml": "<insert id=\"insertMigrationParty\">\n        INSERT INTO proj_project_party (id, tenant_id, project_id, party_role, party_code, party_name, contact_name, phone, source_system, source_table, source_record_key, effective_from, effective_to, status, version, creator, create_time, updater, update_time, deleted)\n        VALUES (#{command.row.id}, #{command.row.tenantId}, #{command.row.projectId}, #{command.row.partyRole}, #{command.row.partyCode}, #{command.row.partyName}, #{command.row.contactName}, #{command.row.phone}, #{command.row.sourceSystem}, #{command.row.sourceTable}, #{command.row.sourceRecordKey}, #{command.row.effectiveFrom}, #{command.row.effectiveTo}, #{command.row.status}, #{command.row.version}, #{command.creator}, #{command.row.createTime}, #{command.updater}, #{command.row.updateTime}, #{command.row.deleted})\n    </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectPartyMapper.updateMigrationParty",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectPartyMapper.xml",
+      "xml": "<update id=\"updateMigrationParty\">\n        UPDATE proj_project_party SET project_id=#{command.row.projectId}, party_role=#{command.row.partyRole}, party_code=#{command.row.partyCode}, party_name=#{command.row.partyName}, contact_name=#{command.row.contactName}, phone=#{command.row.phone}, source_system=#{command.row.sourceSystem}, source_table=#{command.row.sourceTable}, source_record_key=#{command.row.sourceRecordKey}, effective_from=#{command.row.effectiveFrom}, effective_to=#{command.row.effectiveTo}, status=#{command.row.status}, version=#{command.row.version}, creator=#{command.creator}, create_time=#{command.row.createTime}, updater=#{command.updater}, update_time=#{command.row.updateTime}, deleted=#{command.row.deleted}\n        WHERE tenant_id=#{command.row.tenantId} AND id=#{command.row.id} AND deleted=FALSE\n    </update>\n"
+    }
+  ]
+}

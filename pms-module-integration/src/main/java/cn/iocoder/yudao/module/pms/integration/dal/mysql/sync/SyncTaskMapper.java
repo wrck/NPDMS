@@ -10,6 +10,11 @@ import java.util.Comparator;
 import java.util.List;
 @Mapper
 public interface SyncTaskMapper extends BaseMapperX<SyncTaskDO> {
+    default List<SyncTaskDO> selectSourceAdapter(SyncQueries.SourceAdapter query) {
+        return selectList(new LambdaQueryWrapperX<SyncTaskDO>().eq(SyncTaskDO::getTenantId,query.tenantId())
+                .eq(SyncTaskDO::getConnectionId,query.connectionId()).eq(SyncTaskDO::getSourceSystem,query.sourceSystem())
+                .eq(SyncTaskDO::getAdapter,query.adapter()));
+    }
     default SyncTaskDO selectIdentity(SyncQueries.TaskIdentity query) {
         return selectOne(new LambdaQueryWrapperX<SyncTaskDO>().eq(SyncTaskDO::getTenantId,query.tenantId())
                 .eq(SyncTaskDO::getSourceSystem,query.sourceSystem()).eq(SyncTaskDO::getAdapter,query.adapter()));

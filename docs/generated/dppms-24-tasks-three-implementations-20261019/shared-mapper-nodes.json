@@ -1,0 +1,441 @@
+[
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.createTask",
+    "id": "createTask",
+    "kind": "insert",
+    "sql": "INSERT INTO int_base_sync_task(id,tenant_id,name,connection_id,task_code,source_system,batch_size,max_rows,creator,updater)\n    VALUES(#{row.id},#{row.tenantId},#{row.name},#{row.config.connectionId},#{row.config.taskCode},#{row.sourceSystem},\n           #{row.config.batchSize},#{row.config.maxRows},#{row.actor},#{row.actor})",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 4,
+    "tables": [
+      "int_base_sync_task"
+    ],
+    "xml": "<insert id=\"createTask\">\n    INSERT INTO int_base_sync_task(id,tenant_id,name,connection_id,task_code,source_system,batch_size,max_rows,creator,updater)\n    VALUES(#{row.id},#{row.tenantId},#{row.name},#{row.config.connectionId},#{row.config.taskCode},#{row.sourceSystem},\n           #{row.config.batchSize},#{row.config.maxRows},#{row.actor},#{row.actor})\n  </insert>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.selectTask",
+    "id": "selectTask",
+    "kind": "select",
+    "sql": "SELECT id,connection_id,task_code,batch_size,max_rows,active_run_id FROM int_base_sync_task\n    WHERE tenant_id=#{query.tenantId} AND id=#{query.taskId} AND deleted=FALSE\n     /* IF test=query.lock */ FOR UPDATE /* END IF */",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 9,
+    "tables": [
+      "int_base_sync_task"
+    ],
+    "xml": "<select id=\"selectTask\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper$TaskRow\">\n    SELECT id,connection_id,task_code,batch_size,max_rows,active_run_id FROM int_base_sync_task\n    WHERE tenant_id=#{query.tenantId} AND id=#{query.taskId} AND deleted=FALSE\n    <if test=\"query.lock\">FOR UPDATE</if>\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.createRun",
+    "id": "createRun",
+    "kind": "insert",
+    "sql": "INSERT INTO int_base_sync_run(id,tenant_id,task_id,request_key,status,preview,task_code,connection_id,batch_size,max_rows,started_at,creator,updater)\n    VALUES(#{row.id},#{row.tenantId},#{row.taskId},#{row.requestKey},'READING',#{row.preview},#{row.config.taskCode},\n           #{row.config.connectionId},#{row.config.batchSize},#{row.config.maxRows},CURRENT_TIMESTAMP(3),#{row.actor},#{row.actor})",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 14,
+    "tables": [
+      "int_base_sync_run"
+    ],
+    "xml": "<insert id=\"createRun\">\n    INSERT INTO int_base_sync_run(id,tenant_id,task_id,request_key,status,preview,task_code,connection_id,batch_size,max_rows,started_at,creator,updater)\n    VALUES(#{row.id},#{row.tenantId},#{row.taskId},#{row.requestKey},'READING',#{row.preview},#{row.config.taskCode},\n           #{row.config.connectionId},#{row.config.batchSize},#{row.config.maxRows},CURRENT_TIMESTAMP(3),#{row.actor},#{row.actor})\n  </insert>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.selectRun",
+    "id": "selectRun",
+    "kind": "select",
+    "sql": "SELECT id,preview,status,started_at FROM int_base_sync_run\n    WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND id=#{query.runId} AND deleted=FALSE",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 19,
+    "tables": [
+      "int_base_sync_run"
+    ],
+    "xml": "<select id=\"selectRun\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper$RunState\">\n    SELECT id,preview,status,started_at FROM int_base_sync_run\n    WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND id=#{query.runId} AND deleted=FALSE\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.claimTask",
+    "id": "claimTask",
+    "kind": "update",
+    "sql": "UPDATE int_base_sync_task SET active_run_id=#{row.id}\n    WHERE tenant_id=#{row.tenantId} AND id=#{row.taskId} AND active_run_id IS NULL AND deleted=FALSE\n      AND task_code=#{row.config.taskCode} AND connection_id=#{row.config.connectionId}\n      AND batch_size=#{row.config.batchSize} AND max_rows=#{row.config.maxRows}",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 23,
+    "tables": [
+      "int_base_sync_task"
+    ],
+    "xml": "<update id=\"claimTask\">\n    UPDATE int_base_sync_task SET active_run_id=#{row.id}\n    WHERE tenant_id=#{row.tenantId} AND id=#{row.taskId} AND active_run_id IS NULL AND deleted=FALSE\n      AND task_code=#{row.config.taskCode} AND connection_id=#{row.config.connectionId}\n      AND batch_size=#{row.config.batchSize} AND max_rows=#{row.config.maxRows}\n  </update>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.finishRun",
+    "id": "finishRun",
+    "kind": "update",
+    "sql": "UPDATE int_base_sync_run SET status=#{command.status},read_count=#{command.counts.read},\n      inserted_count=#{command.counts.inserted},updated_count=#{command.counts.updated},\n      unchanged_count=#{command.counts.unchanged},deleted_count=#{command.counts.deleted},\n      error_message=#{command.error},finished_at=CURRENT_TIMESTAMP(3)\n    WHERE tenant_id=#{command.tenantId} AND task_id=#{command.taskId} AND id=#{command.runId} AND status='READING' AND deleted=FALSE",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 29,
+    "tables": [
+      "int_base_sync_run"
+    ],
+    "xml": "<update id=\"finishRun\">\n    UPDATE int_base_sync_run SET status=#{command.status},read_count=#{command.counts.read},\n      inserted_count=#{command.counts.inserted},updated_count=#{command.counts.updated},\n      unchanged_count=#{command.counts.unchanged},deleted_count=#{command.counts.deleted},\n      error_message=#{command.error},finished_at=CURRENT_TIMESTAMP(3)\n    WHERE tenant_id=#{command.tenantId} AND task_id=#{command.taskId} AND id=#{command.runId} AND status='READING' AND deleted=FALSE\n  </update>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.releaseTask",
+    "id": "releaseTask",
+    "kind": "update",
+    "sql": "UPDATE int_base_sync_task SET active_run_id=NULL WHERE tenant_id=#{command.tenantId} AND id=#{command.taskId}\n      AND active_run_id=#{command.runId} AND deleted=FALSE",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 36,
+    "tables": [
+      "int_base_sync_task"
+    ],
+    "xml": "<update id=\"releaseTask\">\n    UPDATE int_base_sync_task SET active_run_id=NULL WHERE tenant_id=#{command.tenantId} AND id=#{command.taskId}\n      AND active_run_id=#{command.runId} AND deleted=FALSE\n  </update>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.selectBindings",
+    "id": "selectBindings",
+    "kind": "select",
+    "sql": "SELECT source_key,target_id,fingerprint FROM int_base_sync_binding\n    WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND object_key=#{query.object} AND deleted=FALSE\n     /* CHOOSE  */ /* WHEN test=query.sourceKeys != null and !query.sourceKeys.isEmpty() */ AND source_key IN\n       /* FOREACH collection=query.sourceKeys; item=key; open=(; close=); separator=, */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */ \n     /* IF test=!query.preview */ FOR UPDATE /* END IF */",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 40,
+    "tables": [
+      "int_base_sync_binding"
+    ],
+    "xml": "<select id=\"selectBindings\" resultType=\"cn.iocoder.yudao.module.pms.integration.api.basesync.SyncIdentityStore$Identity\">\n    SELECT source_key,target_id,fingerprint FROM int_base_sync_binding\n    WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND object_key=#{query.object} AND deleted=FALSE\n    <choose><when test=\"query.sourceKeys != null and !query.sourceKeys.isEmpty()\">AND source_key IN\n      <foreach collection=\"query.sourceKeys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    <if test=\"!query.preview\">FOR UPDATE</if>\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.insertBinding",
+    "id": "insertBinding",
+    "kind": "insert",
+    "sql": "INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id,creator,updater)\n    VALUES(#{row.id},#{row.tenantId},#{row.taskId},#{row.object},#{row.sourceKey},#{row.targetId},\n           #{row.fingerprint},#{row.runId},#{row.actor},#{row.actor})",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 48,
+    "tables": [
+      "int_base_sync_binding"
+    ],
+    "xml": "<insert id=\"insertBinding\">\n    INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id,creator,updater)\n    VALUES(#{row.id},#{row.tenantId},#{row.taskId},#{row.object},#{row.sourceKey},#{row.targetId},\n           #{row.fingerprint},#{row.runId},#{row.actor},#{row.actor})\n  </insert>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.basesync.BaseSyncMetadataMapper.updateBinding",
+    "id": "updateBinding",
+    "kind": "update",
+    "sql": "UPDATE int_base_sync_binding SET fingerprint=#{row.fingerprint},last_run_id=#{row.runId},updater=#{row.actor}\n    WHERE tenant_id=#{row.tenantId} AND task_id=#{row.taskId} AND object_key=#{row.object} AND source_key=#{row.sourceKey}\n      AND target_id=#{row.targetId} AND fingerprint=#{row.previousFingerprint} AND deleted=FALSE",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncMetadataMapper.xml",
+    "line": 53,
+    "tables": [
+      "int_base_sync_binding"
+    ],
+    "xml": "<update id=\"updateBinding\">\n    UPDATE int_base_sync_binding SET fingerprint=#{row.fingerprint},last_run_id=#{row.runId},updater=#{row.actor}\n    WHERE tenant_id=#{row.tenantId} AND task_id=#{row.taskId} AND object_key=#{row.object} AND source_key=#{row.sourceKey}\n      AND target_id=#{row.targetId} AND fingerprint=#{row.previousFingerprint} AND deleted=FALSE\n  </update>\n",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncReferences$ReferenceMapper.selectAuditUserCatalogue",
+    "id": "selectAuditUserCatalogue",
+    "kind": "select",
+    "sql": "SELECT id,username FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncReferencesMapper.xml",
+    "line": 4,
+    "tables": [
+      "system_users"
+    ],
+    "xml": "<select id=\"selectAuditUserCatalogue\" resultType=\"cn.iocoder.yudao.module.pms.integration.api.basesync.SyncReferences$AuditUser\">\n    SELECT id,username FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncReferences$ReferenceMapper.selectAuditUsers",
+    "id": "selectAuditUsers",
+    "kind": "select",
+    "sql": "SELECT id,username FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n     /* CHOOSE  */ /* WHEN test=query.usernames != null and !query.usernames.isEmpty() */ AND username IN  /* FOREACH collection=query.usernames; item=name; open=(; separator=,; close=) */ (#{name}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */ \n    ORDER BY id",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncReferencesMapper.xml",
+    "line": 7,
+    "tables": [
+      "system_users"
+    ],
+    "xml": "<select id=\"selectAuditUsers\" resultType=\"cn.iocoder.yudao.module.pms.integration.api.basesync.SyncReferences$AuditUser\">\n    SELECT id,username FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n    <choose><when test=\"query.usernames != null and !query.usernames.isEmpty()\">\n      AND username IN <foreach collection=\"query.usernames\" item=\"name\" open=\"(\" separator=\",\" close=\")\">#{name}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY id\n  </select>\n",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncProjectReferences$ReferenceMapper.selectFormal",
+    "id": "selectFormal",
+    "kind": "select",
+    "sql": "SELECT s.source_project_key AS source_key,p.id,p.tenant_id,p.version,p.project_code,p.project_type,p.company_id,p.company_code,p.company_name,p.lifecycle_status,p.deleted FROM proj_legacy_detail_source s  JOIN proj_project p ON p.tenant_id=s.tenant_id AND p.id=s.project_id\nWHERE s.tenant_id=#{query.tenantId} AND s.source_system='DPPMS'\n /* CHOOSE  */ /* WHEN test=query.canonicalKeys != null and !query.canonicalKeys.isEmpty() */ AND s.source_project_key IN  /* FOREACH collection=query.canonicalKeys; item=key; open=(; separator=,; close=) */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  /* IF test=!query.preview */ FOR UPDATE /* END IF */",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncProjectReferencesMapper.xml",
+    "line": 4,
+    "tables": [
+      "proj_legacy_detail_source",
+      "proj_project"
+    ],
+    "xml": "<select id=\"selectFormal\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncProjectReferences$Identity\">SELECT s.source_project_key AS source_key,p.id,p.tenant_id,p.version,p.project_code,p.project_type,p.company_id,p.company_code,p.company_name,p.lifecycle_status,p.deleted FROM proj_legacy_detail_source s  JOIN proj_project p ON p.tenant_id=s.tenant_id AND p.id=s.project_id\nWHERE s.tenant_id=#{query.tenantId} AND s.source_system='DPPMS'\n<choose><when test=\"query.canonicalKeys != null and !query.canonicalKeys.isEmpty()\">AND s.source_project_key IN <foreach collection=\"query.canonicalKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n",
+    "joins": true
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncProjectReferences$ReferenceMapper.selectIndependent",
+    "id": "selectIndependent",
+    "kind": "select",
+    "sql": "SELECT s.source_key AS source_key,p.id,p.tenant_id,p.version,p.project_code,p.project_type,p.company_id,p.company_code,p.company_name,p.lifecycle_status,p.deleted FROM int_base_sync_binding s JOIN int_base_sync_task t ON t.tenant_id=s.tenant_id AND t.id=s.task_id JOIN proj_project p ON p.tenant_id=s.tenant_id AND p.id=s.target_id\nWHERE s.tenant_id=#{query.tenantId} AND s.object_key='PROJECT_MASTER' AND s.deleted=FALSE AND t.deleted=FALSE AND t.task_code='BASE_P16' AND t.connection_id=#{query.connectionId}\n /* CHOOSE  */ /* WHEN test=query.canonicalKeys != null and !query.canonicalKeys.isEmpty() */ AND s.source_key IN  /* FOREACH collection=query.canonicalKeys; item=key; open=(; separator=,; close=) */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  /* IF test=!query.preview */ FOR UPDATE /* END IF */",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncProjectReferencesMapper.xml",
+    "line": 7,
+    "tables": [
+      "int_base_sync_binding",
+      "int_base_sync_task",
+      "proj_project"
+    ],
+    "xml": "<select id=\"selectIndependent\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncProjectReferences$Identity\">SELECT s.source_key AS source_key,p.id,p.tenant_id,p.version,p.project_code,p.project_type,p.company_id,p.company_code,p.company_name,p.lifecycle_status,p.deleted FROM int_base_sync_binding s JOIN int_base_sync_task t ON t.tenant_id=s.tenant_id AND t.id=s.task_id JOIN proj_project p ON p.tenant_id=s.tenant_id AND p.id=s.target_id\nWHERE s.tenant_id=#{query.tenantId} AND s.object_key='PROJECT_MASTER' AND s.deleted=FALSE AND t.deleted=FALSE AND t.task_code='BASE_P16' AND t.connection_id=#{query.connectionId}\n<choose><when test=\"query.canonicalKeys != null and !query.canonicalKeys.isEmpty()\">AND s.source_key IN <foreach collection=\"query.canonicalKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n",
+    "joins": true
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncProjectReferences$ReferenceMapper.selectCurrentProjects",
+    "id": "selectCurrentProjects",
+    "kind": "select",
+    "sql": "SELECT CAST(p.id AS CHAR) AS source_key,p.id,p.tenant_id,p.version,p.project_code,p.project_type,p.company_id,p.company_code,p.company_name,p.lifecycle_status,p.deleted FROM proj_project p WHERE p.tenant_id=#{query.tenantId}  /* CHOOSE  */ /* WHEN test=query.ids != null and !query.ids.isEmpty() */ AND p.id IN  /* FOREACH collection=query.ids; item=id; open=(; close=); separator=, */ (#{id}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */  ORDER BY p.id  /* IF test=!query.preview */ FOR UPDATE /* END IF */",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncProjectReferencesMapper.xml",
+    "line": 10,
+    "tables": [
+      "proj_project"
+    ],
+    "xml": "<select id=\"selectCurrentProjects\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncProjectReferences$Identity\">SELECT CAST(p.id AS CHAR) AS source_key,p.id,p.tenant_id,p.version,p.project_code,p.project_type,p.company_id,p.company_code,p.company_name,p.lifecycle_status,p.deleted FROM proj_project p WHERE p.tenant_id=#{query.tenantId} <choose><when test=\"query.ids != null and !query.ids.isEmpty()\">AND p.id IN <foreach collection=\"query.ids\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose> ORDER BY p.id <if test=\"!query.preview\">FOR UPDATE</if></select>",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$ReferenceMapper.selectCompleted",
+    "id": "selectCompleted",
+    "kind": "select",
+    "sql": "SELECT r.id AS run_id,r.read_count FROM int_base_sync_run r JOIN int_base_sync_task t ON t.tenant_id=r.tenant_id AND t.id=r.task_id\nWHERE r.tenant_id=#{query.tenantId} AND r.connection_id=#{query.connectionId} AND t.connection_id=#{query.connectionId}\nAND t.task_code='BASE_P16' AND r.task_code='BASE_P16' AND t.deleted=FALSE AND r.deleted=FALSE AND r.preview=FALSE AND r.status='COMPLETED'\nORDER BY r.id DESC LIMIT 1",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncPublishedProjectsMapper.xml",
+    "line": 4,
+    "tables": [
+      "int_base_sync_run",
+      "int_base_sync_task"
+    ],
+    "xml": "<select id=\"selectCompleted\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$Completed\">\nSELECT r.id AS run_id,r.read_count FROM int_base_sync_run r JOIN int_base_sync_task t ON t.tenant_id=r.tenant_id AND t.id=r.task_id\nWHERE r.tenant_id=#{query.tenantId} AND r.connection_id=#{query.connectionId} AND t.connection_id=#{query.connectionId}\nAND t.task_code='BASE_P16' AND r.task_code='BASE_P16' AND t.deleted=FALSE AND r.deleted=FALSE AND r.preview=FALSE AND r.status='COMPLETED'\nORDER BY r.id DESC LIMIT 1</select>\n",
+    "joins": true
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$ReferenceMapper.countMasters",
+    "id": "countMasters",
+    "kind": "select",
+    "sql": "SELECT COUNT(*) FROM int_base_sync_binding b JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id\nWHERE b.tenant_id=#{query.tenantId} AND t.connection_id=#{query.connectionId} AND t.task_code='BASE_P16' AND t.deleted=FALSE\nAND b.deleted=FALSE AND b.last_run_id=#{query.publicationId} AND b.object_key='PROJECT_MASTER'",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncPublishedProjectsMapper.xml",
+    "line": 9,
+    "tables": [
+      "int_base_sync_binding",
+      "int_base_sync_task"
+    ],
+    "xml": "<select id=\"countMasters\" resultType=\"long\">\nSELECT COUNT(*) FROM int_base_sync_binding b JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id\nWHERE b.tenant_id=#{query.tenantId} AND t.connection_id=#{query.connectionId} AND t.task_code='BASE_P16' AND t.deleted=FALSE\nAND b.deleted=FALSE AND b.last_run_id=#{query.publicationId} AND b.object_key='PROJECT_MASTER'</select>\n",
+    "joins": true
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$ReferenceMapper.selectPage",
+    "id": "selectPage",
+    "kind": "select",
+    "sql": "SELECT b.source_key,p.id AS project_id,p.project_type,p.project_code AS original_project_code,p.project_code,b.fingerprint\nFROM int_base_sync_binding b JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id\nJOIN proj_project p ON p.tenant_id=b.tenant_id AND p.id=b.target_id\nWHERE b.tenant_id=#{query.tenantId} AND t.connection_id=#{query.connectionId} AND t.task_code='BASE_P16' AND t.deleted=FALSE\nAND b.deleted=FALSE AND p.deleted=FALSE AND b.last_run_id=#{query.publicationId} AND b.object_key='PROJECT_ALIAS'\nAND b.source_key > #{query.afterKey} ORDER BY b.source_key LIMIT 500",
+    "source": "pms-module-integration/src/main/resources/mapper/basesync/BaseSyncPublishedProjectsMapper.xml",
+    "line": 13,
+    "tables": [
+      "int_base_sync_binding",
+      "int_base_sync_task",
+      "proj_project"
+    ],
+    "xml": "<select id=\"selectPage\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$Member\">\nSELECT b.source_key,p.id AS project_id,p.project_type,p.project_code AS original_project_code,p.project_code,b.fingerprint\nFROM int_base_sync_binding b JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id\nJOIN proj_project p ON p.tenant_id=b.tenant_id AND p.id=b.target_id\nWHERE b.tenant_id=#{query.tenantId} AND t.connection_id=#{query.connectionId} AND t.task_code='BASE_P16' AND t.deleted=FALSE\nAND b.deleted=FALSE AND p.deleted=FALSE AND b.last_run_id=#{query.publicationId} AND b.object_key='PROJECT_ALIAS'\nAND b.source_key &gt; #{query.afterKey} ORDER BY b.source_key LIMIT 500</select>\n",
+    "joins": true
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncDisplayCacheMapper.clearCurrent",
+    "id": "clearCurrent",
+    "kind": "delete",
+    "sql": "DELETE FROM\n     /* CHOOSE  */ /* WHEN test=query.cache.name() == 'PROJECT_LEASE' */ proj_project_lease_product /* END WHEN */ \n       /* WHEN test=query.cache.name() == 'PROJECT_CONFIGURATION' */ proj_project_product_configuration /* END WHEN */ \n       /* OTHERWISE  */ com_contract_collection_plan /* END OTHERWISE */ /* END CHOOSE */ \n    WHERE tenant_id=#{query.tenantId}",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncDisplayCacheMapper.xml",
+    "line": 4,
+    "tables": [
+      "proj_project_lease_product"
+    ],
+    "xml": "<delete id=\"clearCurrent\">\n    DELETE FROM\n    <choose>\n      <when test=\"query.cache.name() == 'PROJECT_LEASE'\">proj_project_lease_product</when>\n      <when test=\"query.cache.name() == 'PROJECT_CONFIGURATION'\">proj_project_product_configuration</when>\n      <otherwise>com_contract_collection_plan</otherwise>\n    </choose>\n    WHERE tenant_id=#{query.tenantId}\n  </delete>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncDisplayCacheMapper.retireBindings",
+    "id": "retireBindings",
+    "kind": "update",
+    "sql": "UPDATE int_sync_binding SET deleted=1 WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND deleted=0",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncDisplayCacheMapper.xml",
+    "line": 13,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<update id=\"retireBindings\">\n    UPDATE int_sync_binding SET deleted=1 WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND deleted=0\n  </update>\n",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectInstallationSelectionPage",
+    "id": "selectInstallationSelectionPage",
+    "kind": "select",
+    "sql": "SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND deleted=FALSE\n      AND object_key='INSTALLATION_HISTORY' AND source_object='pm_project_shipment'\n     /* CHOOSE  */ /* WHEN test=query.deviceSns != null and !query.deviceSns.isEmpty() */ AND JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.originalFields.barcode')) IN\n       /* FOREACH collection=query.deviceSns; item=sn; open=(; separator=,; close=) */ (#{sn}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */ \n     /* IF test=query.afterId != null */ AND id > #{query.afterId} /* END IF */ \n    ORDER BY id LIMIT 500",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 4,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<select id=\"selectInstallationSelectionPage\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND deleted=FALSE\n      AND object_key='INSTALLATION_HISTORY' AND source_object='pm_project_shipment'\n    <choose><when test=\"query.deviceSns != null and !query.deviceSns.isEmpty()\">\n      AND JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.originalFields.barcode')) IN\n      <foreach collection=\"query.deviceSns\" item=\"sn\" open=\"(\" separator=\",\" close=\")\">#{sn}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    <if test=\"query.afterId != null\">AND id &gt; #{query.afterId}</if>\n    ORDER BY id LIMIT 500\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.restoreVerifiedBinding",
+    "id": "restoreVerifiedBinding",
+    "kind": "update",
+    "sql": "UPDATE int_sync_binding SET deleted=FALSE\n    WHERE id=#{original.id} AND tenant_id=#{original.tenantId} AND task_id=#{original.taskId}\n      AND object_key=#{original.objectKey} AND source_object=#{original.sourceObject}\n      AND source_key=#{original.sourceKey} AND target_id=#{original.targetId} AND deleted=TRUE\n      AND last_run_id <=> #{original.lastRunId}\n      AND target_shared <=> #{original.targetShared}\n      AND fields_json=CAST(#{original.fieldsJson} AS JSON)",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 14,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<update id=\"restoreVerifiedBinding\">\n    UPDATE int_sync_binding SET deleted=FALSE\n    WHERE id=#{original.id} AND tenant_id=#{original.tenantId} AND task_id=#{original.taskId}\n      AND object_key=#{original.objectKey} AND source_object=#{original.sourceObject}\n      AND source_key=#{original.sourceKey} AND target_id=#{original.targetId} AND deleted=TRUE\n      AND last_run_id &lt;=&gt; #{original.lastRunId}\n      AND target_shared &lt;=&gt; #{original.targetShared}\n      AND fields_json=CAST(#{original.fieldsJson} AS JSON)\n  </update>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectRetiredSourceKeysForUpdate",
+    "id": "selectRetiredSourceKeysForUpdate",
+    "kind": "select",
+    "sql": "SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key=#{query.object} AND source_object=#{query.sourceObject} AND deleted=TRUE\n     /* CHOOSE  */ /* WHEN test=query.sourceKeys != null and !query.sourceKeys.isEmpty() */ AND source_key IN  /* FOREACH collection=query.sourceKeys; item=key; open=(; separator=,; close=) */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */ \n    ORDER BY id FOR UPDATE",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 23,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<select id=\"selectRetiredSourceKeysForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key=#{query.object} AND source_object=#{query.sourceObject} AND deleted=TRUE\n    <choose><when test=\"query.sourceKeys != null and !query.sourceKeys.isEmpty()\">\n      AND source_key IN <foreach collection=\"query.sourceKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY id FOR UPDATE\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectIdentitySources",
+    "id": "selectIdentitySources",
+    "kind": "select",
+    "sql": "SELECT b.* FROM int_sync_binding b\n    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE\n    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE\n      AND t.source_system=#{query.sourceSystem} AND t.connection_id=#{query.connectionId}\n      AND (t.adapter=#{query.adapter}\n         /* IF test=query.originalOnly and query.adapter == 'DPPMS_USERS' */ OR (t.adapter='DPPMS_ACCOUNT_FOUNDATION' AND b.object_key IN ('t_user','t_user_info','fnd_user_info') AND b.source_key NOT LIKE '%:%') /* END IF */ \n         /* IF test=!query.originalOnly */ /* CHOOSE  */ /* WHEN test=query.adapter == 'DPPMS_DEVICE_BOOTSTRAP' */ OR (t.adapter='DPPMS_DEVICE_BOOTSTRAP_DIRECT' AND b.object_key='DEVICE_BASE' AND b.source_object='ast_device_shipment') /* END WHEN */ \n           /* WHEN test=query.adapter == 'DPPMS_PROJECT_MASTER' */ OR (t.adapter='DPPMS_PROJECT_MASTER_DIRECT' AND b.object_key IN ('pm_project_header','pm_project_identity')) /* END WHEN */ \n           /* WHEN test=query.adapter == 'DPPMS_ORGANIZATION' */ OR (t.adapter='DPPMS_ORGANIZATION_DIRECT' AND b.object_key IN ('COMPANY','DEPARTMENT','fnd_department','ehr_department','COMPANY_REFERENCE')) /* END WHEN */ \n           /* WHEN test=query.adapter == 'DPPMS_USERS' */ OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user','t_user_info','fnd_user_info')\n                AND b.source_key NOT LIKE '%:%') /* END WHEN */ \n           /* WHEN test=query.adapter == 'DPPMS_ROLES' */ OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_ROLE','FND_ROLE')) /* END WHEN */ \n           /* WHEN test=query.adapter == 'DPPMS_USER_ROLES' */ OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_USER_ROLE','FND_USER_ROLE')) /* END WHEN */ \n           /* WHEN test=query.adapter == 'DPPMS_USER_SCOPES' */ OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user_info','fnd_user_info','fnd_user_power')\n                AND b.source_key LIKE '%:%') /* END WHEN */ /* END CHOOSE */ /* END IF */ \n      ) AND b.source_object=#{query.sourceObject}\n     /* CHOOSE  */ /* WHEN test=query.sourceKeys != null and !query.sourceKeys.isEmpty() */ AND b.source_key IN\n         /* FOREACH collection=query.sourceKeys; item=key; open=(; separator=,; close=) */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */ \n       /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */ \n    ORDER BY b.id",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 31,
+    "tables": [
+      "int_sync_binding",
+      "int_sync_task"
+    ],
+    "xml": "<select id=\"selectIdentitySources\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT b.* FROM int_sync_binding b\n    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE\n    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE\n      AND t.source_system=#{query.sourceSystem} AND t.connection_id=#{query.connectionId}\n      AND (t.adapter=#{query.adapter}\n        <if test=\"query.originalOnly and query.adapter == 'DPPMS_USERS'\">OR (t.adapter='DPPMS_ACCOUNT_FOUNDATION' AND b.object_key IN ('t_user','t_user_info','fnd_user_info') AND b.source_key NOT LIKE '%:%')</if>\n        <if test=\"!query.originalOnly\">\n        <choose>\n          <when test=\"query.adapter == 'DPPMS_DEVICE_BOOTSTRAP'\">\n            OR (t.adapter='DPPMS_DEVICE_BOOTSTRAP_DIRECT' AND b.object_key='DEVICE_BASE' AND b.source_object='ast_device_shipment')\n          </when>\n          <when test=\"query.adapter == 'DPPMS_PROJECT_MASTER'\">\n            OR (t.adapter='DPPMS_PROJECT_MASTER_DIRECT' AND b.object_key IN ('pm_project_header','pm_project_identity'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_ORGANIZATION'\">\n            OR (t.adapter='DPPMS_ORGANIZATION_DIRECT' AND b.object_key IN ('COMPANY','DEPARTMENT','fnd_department','ehr_department','COMPANY_REFERENCE'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_USERS'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user','t_user_info','fnd_user_info')\n                AND b.source_key NOT LIKE '%:%')\n          </when>\n          <when test=\"query.adapter == 'DPPMS_ROLES'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_ROLE','FND_ROLE'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_USER_ROLES'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_USER_ROLE','FND_USER_ROLE'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_USER_SCOPES'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user_info','fnd_user_info','fnd_user_power')\n                AND b.source_key LIKE '%:%')\n          </when>\n        </choose>\n        </if>\n      ) AND b.source_object=#{query.sourceObject}\n    <choose>\n      <when test=\"query.sourceKeys != null and !query.sourceKeys.isEmpty()\">\n        AND b.source_key IN\n        <foreach collection=\"query.sourceKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach>\n      </when>\n      <otherwise>AND 1=0</otherwise>\n    </choose>\n    ORDER BY b.id\n  </select>\n  \n  ",
+    "joins": true
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectEhrEmployeeUsers",
+    "id": "selectEhrEmployeeUsers",
+    "kind": "select",
+    "sql": "SELECT b.* FROM int_sync_binding b\n    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE\n    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE AND t.source_system='DPPMS'\n      AND t.connection_id=#{query.connectionId} AND t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT')\n       /* IF test=query.originalOnly */ AND t.adapter='DPPMS_ACCOUNT_FOUNDATION' /* END IF */ \n      AND b.object_key IN ('t_user','fnd_user_info') AND b.object_key=b.source_object\n      AND b.source_key NOT LIKE '%:%'\n     /* CHOOSE  */ /* WHEN test=query.sourceEmployeeIds != null and !query.sourceEmployeeIds.isEmpty() */ AND JSON_UNQUOTE(JSON_EXTRACT(b.fields_json,'$._verifiedEhrEmployeeId')) IN\n       /* FOREACH collection=query.sourceEmployeeIds; item=employee; open=(; separator=,; close=) */ (#{employee}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */ \n    ORDER BY b.id",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 76,
+    "tables": [
+      "int_sync_binding",
+      "int_sync_task"
+    ],
+    "xml": "<select id=\"selectEhrEmployeeUsers\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT b.* FROM int_sync_binding b\n    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE\n    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE AND t.source_system='DPPMS'\n      AND t.connection_id=#{query.connectionId} AND t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT')\n      <if test=\"query.originalOnly\">AND t.adapter='DPPMS_ACCOUNT_FOUNDATION'</if>\n      AND b.object_key IN ('t_user','fnd_user_info') AND b.object_key=b.source_object\n      AND b.source_key NOT LIKE '%:%'\n    <choose><when test=\"query.sourceEmployeeIds != null and !query.sourceEmployeeIds.isEmpty()\">\n      AND JSON_UNQUOTE(JSON_EXTRACT(b.fields_json,'$._verifiedEhrEmployeeId')) IN\n      <foreach collection=\"query.sourceEmployeeIds\" item=\"employee\" open=\"(\" separator=\",\" close=\")\">#{employee}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY b.id\n  </select>\n  ",
+    "joins": true
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectFirstTaskBindingId",
+    "id": "selectFirstTaskBindingId",
+    "kind": "select",
+    "sql": "SELECT id FROM int_sync_binding\n    WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE\n    LIMIT 1",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 90,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<select id=\"selectFirstTaskBindingId\" resultType=\"java.lang.Long\">\n    SELECT id FROM int_sync_binding\n    WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE\n    LIMIT 1\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.updateLastRun",
+    "id": "updateLastRun",
+    "kind": "update",
+    "sql": "UPDATE int_sync_binding SET last_run_id=#{runId},updater='data_sync',update_time=#{updatedAt}\n    WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE\n     /* CHOOSE  */ /* WHEN test=ids != null and !ids.isEmpty() */ AND id IN  /* FOREACH collection=ids; item=id; open=(; separator=,; close=) */ (#{id}) /* repeat with separator=,; END FOREACH */ /* END WHEN */ \n       /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 95,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<update id=\"updateLastRun\">\n    UPDATE int_sync_binding SET last_run_id=#{runId},updater='data_sync',update_time=#{updatedAt}\n    WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE\n    <choose>\n      <when test=\"ids != null and !ids.isEmpty()\">\n        AND id IN <foreach collection=\"ids\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n      </when>\n      <otherwise>AND 1=0</otherwise>\n    </choose>\n  </update>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.deleteTaskBindings",
+    "id": "deleteTaskBindings",
+    "kind": "delete",
+    "sql": "DELETE FROM int_sync_binding WHERE tenant_id=#{tenantId} AND task_id=#{taskId}",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 105,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<delete id=\"deleteTaskBindings\">\n    DELETE FROM int_sync_binding WHERE tenant_id=#{tenantId} AND task_id=#{taskId}\n  </delete>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.deleteAdapterBindings",
+    "id": "deleteAdapterBindings",
+    "kind": "delete",
+    "sql": "DELETE FROM int_sync_binding WHERE tenant_id=#{tenantId} AND task_id IN\n      (SELECT id FROM int_sync_task WHERE tenant_id=#{tenantId} AND adapter=#{adapter})",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 108,
+    "tables": [
+      "int_sync_binding",
+      "int_sync_task"
+    ],
+    "xml": "<delete id=\"deleteAdapterBindings\">\n    DELETE FROM int_sync_binding WHERE tenant_id=#{tenantId} AND task_id IN\n      (SELECT id FROM int_sync_task WHERE tenant_id=#{tenantId} AND adapter=#{adapter})\n  </delete>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectObsoleteOrderLinesForUpdate",
+    "id": "selectObsoleteOrderLinesForUpdate",
+    "kind": "select",
+    "sql": "SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key='LINE' AND source_object='pm_order_line_from_erp' AND deleted=FALSE\n      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.companyCode')) AS BINARY)=CAST('01' AS BINARY)\n     /* CHOOSE  */ /* WHEN test=query.sourceKeys != null and !query.sourceKeys.isEmpty() */ AND source_key IN  /* FOREACH collection=query.sourceKeys; item=key; open=(; separator=,; close=) */ (#{key}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */ \n    ORDER BY id FOR UPDATE",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 112,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<select id=\"selectObsoleteOrderLinesForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key='LINE' AND source_object='pm_order_line_from_erp' AND deleted=FALSE\n      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.companyCode')) AS BINARY)=CAST('01' AS BINARY)\n    <choose><when test=\"query.sourceKeys != null and !query.sourceKeys.isEmpty()\">\n      AND source_key IN <foreach collection=\"query.sourceKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY id FOR UPDATE\n  </select>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.deleteObsoleteOrderLines",
+    "id": "deleteObsoleteOrderLines",
+    "kind": "delete",
+    "sql": "DELETE FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key='LINE' AND source_object='pm_order_line_from_erp' AND deleted=FALSE\n      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.companyCode')) AS BINARY)=CAST('01' AS BINARY)\n     /* CHOOSE  */ /* WHEN test=query.bindingIds != null and !query.bindingIds.isEmpty() */ AND id IN  /* FOREACH collection=query.bindingIds; item=id; open=(; separator=,; close=) */ (#{id}) /* repeat with separator=,; END FOREACH */ /* END WHEN */  /* OTHERWISE  */ AND 1=0 /* END OTHERWISE */ /* END CHOOSE */",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+    "line": 121,
+    "tables": [
+      "int_sync_binding"
+    ],
+    "xml": "<delete id=\"deleteObsoleteOrderLines\">\n    DELETE FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key='LINE' AND source_object='pm_order_line_from_erp' AND deleted=FALSE\n      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.companyCode')) AS BINARY)=CAST('01' AS BINARY)\n    <choose><when test=\"query.bindingIds != null and !query.bindingIds.isEmpty()\">\n      AND id IN <foreach collection=\"query.bindingIds\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n  </delete>\n",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.markCacheRefreshed",
+    "id": "markCacheRefreshed",
+    "kind": "update",
+    "sql": "UPDATE int_sync_run SET cache_pending=FALSE,update_time=CURRENT_TIMESTAMP(3)\n    WHERE tenant_id=#{tenantId} AND id=#{id} AND status='SUCCESS' AND deleted=FALSE",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "line": 4,
+    "tables": [
+      "int_sync_run"
+    ],
+    "xml": "<update id=\"markCacheRefreshed\">\n    UPDATE int_sync_run SET cache_pending=FALSE,update_time=CURRENT_TIMESTAMP(3)\n    WHERE tenant_id=#{tenantId} AND id=#{id} AND status='SUCCESS' AND deleted=FALSE\n  </update>\n  ",
+    "joins": false
+  },
+  {
+    "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.selectMaintenance",
+    "id": "selectMaintenance",
+    "kind": "select",
+    "sql": "SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at < #{now}))\n      ORDER BY id LIMIT 100",
+    "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+    "line": 8,
+    "tables": [
+      "int_sync_run"
+    ],
+    "xml": "<select id=\"selectMaintenance\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO\">\n    SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at &lt; #{now}))\n      ORDER BY id LIMIT 100\n  </select>\n",
+    "joins": false
+  }
+]

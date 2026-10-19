@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountAuxiliaryMapper">
+    <select id="selectAccountLimit" resultType="java.lang.Integer">
+        SELECT account_count FROM system_tenant WHERE id=#{query.tenantId} AND deleted=FALSE
+    </select>
+    <select id="selectPosts" resultType="java.lang.Long">
+        SELECT post_id FROM system_user_post WHERE tenant_id=#{query.tenantId} AND user_id=#{query.userId} AND deleted=FALSE ORDER BY id
+    </select>
+    <update id="deletePosts">
+        UPDATE system_user_post SET deleted=TRUE WHERE tenant_id=#{write.scope.tenantId} AND user_id=#{write.scope.userId} AND deleted=FALSE
+        <choose><when test="write.postIds != null and !write.postIds.isEmpty()">
+            AND post_id IN <foreach collection="write.postIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+    </update>
+    <insert id="insertPost">
+        INSERT INTO system_user_post(id,tenant_id,user_id,post_id,creator,create_time,updater,update_time,deleted)
+        VALUES(#{write.id},#{write.scope.tenantId},#{write.scope.userId},#{write.postId},#{write.actor},#{write.time},#{write.actor},#{write.time},FALSE)
+    </insert>
+    <select id="selectAccessTokens" resultType="java.lang.String">
+        SELECT access_token FROM system_oauth2_access_token WHERE tenant_id=#{query.tenantId} AND user_id=#{query.userId} AND user_type=2 AND deleted=FALSE ORDER BY id
+    </select>
+</mapper>

@@ -31,26 +31,39 @@ class DppmsConsolidatedTemplateTest {
             assertFalse(bound.fields().containsKey("_sourcePrimaryKey"));assertEquals(9007L,bound.targetId());
         }
     }
-    @Test void organizationAndDictionaryUseOneSqlWithAllOriginalOwnerObjects() {
+    @Test void organizationAndDictionaryShareTheirGroupedSqlAndCompanyAliasesUseOneAdditionalRead() {
         var tasks=mock(SyncTaskService.class);var runs=mock(SyncRunMapper.class);var bindings=mock(SyncBindingMapper.class);
         var departments=mock(SystemDepartmentMigrationApi.class);var users=mock(SystemUserMigrationApi.class);
         List<DataSyncAdapter> adapters=List.of(new EhrOrganizationAdapter(mock(ManagedOrganizationApi.class)),
                 new DppmsDepartmentSyncAdapter(departments,tasks),new DppmsEhrDepartmentCompletionAdapter(departments,tasks,runs,bindings),
+                new DppmsCompanyReferenceSyncAdapter(mock(ManagedOrganizationApi.class),tasks),
                 new DppmsDictionaryTypeSyncAdapter(mock(SystemDictionaryTypeMigrationApi.class),users,tasks,runs),
                 new DppmsDictionaryDataSyncAdapter(mock(SystemDictionaryDataMigrationApi.class),users,tasks,runs));
         var validator=new SyncDefinitionValidator(adapters);
         for(String key:List.of("P01","P08")) {
             var d=DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request(key,18L));
             assertDoesNotThrow(()->validator.validate(d));
-            assertEquals(1,d.sources().stream().filter(s->s.sql()!=null).count());
+            assertEquals("P01".equals(key)?2:1,d.sources().stream().filter(s->s.sql()!=null).count());
             assertTrue(d.sources().getFirst().sql().contains("UNION ALL"));
             assertFalse(d.clearBeforeLoad());assertFalse(d.resetMappingsBeforeLoad());
         }
     }
-    @Test void commerceUnionHasNoRepeatedContractWriteAndRetainsNullableLookups() {
+    @Test void deliveryInitialConfigurationUsesLocalOrdersAndRawRemoteFactsWithoutChangingOldResource() throws Exception {
         var d=DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P15",18L));
-        assertEquals(5,d.sources().size());assertDoesNotThrow(()->MysqlSyncReader.compile(d.sources().getFirst()));
-        assertEquals(1,d.sources().stream().flatMap(s->s.targets().stream()).filter(t->t.table().equals("com_contract")).count());
-        assertTrue(d.sources().get(1).targets().getFirst().lookups().stream().anyMatch(l->l.table().equals("com_contract") && l.onMissing().equals("RETAIN")));
+        assertEquals(5,d.sources().size());assertEquals("LOCAL_OWNER",d.sources().getFirst().readMode());
+        assertEquals("com_sales_order",d.sources().getFirst().sourceObject());assertNull(d.sources().getFirst().sql());
+        var engine=new cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine(
+                new cn.iocoder.yudao.module.pms.integration.sync.generic.GenericTargetCatalog(),mock(GenericSyncJdbcStore.class),mock(org.springframework.context.ApplicationEventPublisher.class));
+        var validator=new SyncDefinitionValidator(List.of());org.springframework.test.util.ReflectionTestUtils.setField(validator,"genericEngine",engine);
+        assertDoesNotThrow(()->validator.validate(d));
+        assertEquals(1,d.sources().stream().flatMap(source->source.targets().stream()).filter(target->target.table().equals("com_contract")).count());
+        for(var source:d.sources().subList(1,5)) {
+            assertDoesNotThrow(()->MysqlSyncReader.compile(source));assertFalse(source.sql().contains("JOIN"));
+        }
+        assertTrue(d.sources().get(2).targets().getFirst().mappings().stream().anyMatch(mapping->"con_id".equals(mapping.source()) && "shipment_contract_source_key".equals(mapping.target())));
+        try(var input=new org.springframework.core.io.ClassPathResource("migration/dppms/tasks/P15.json").getInputStream()) {
+            var original=cn.iocoder.yudao.framework.common.util.json.JsonUtils.parseObject(new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8),SyncDefinition.class);
+            assertEquals("pm_order_data_from_erp",original.sources().getFirst().sourceObject());
+        }
     }
 }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$ReferenceMapper">
+<select id="selectCompleted" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$Completed">
+SELECT r.id AS run_id,r.read_count FROM int_base_sync_run r JOIN int_base_sync_task t ON t.tenant_id=r.tenant_id AND t.id=r.task_id
+WHERE r.tenant_id=#{query.tenantId} AND r.connection_id=#{query.connectionId} AND t.connection_id=#{query.connectionId}
+AND t.task_code='BASE_P16' AND r.task_code='BASE_P16' AND t.deleted=FALSE AND r.deleted=FALSE AND r.preview=FALSE AND r.status='COMPLETED'
+ORDER BY r.id DESC LIMIT 1</select>
+<select id="countMasters" resultType="long">
+SELECT COUNT(*) FROM int_base_sync_binding b JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id
+WHERE b.tenant_id=#{query.tenantId} AND t.connection_id=#{query.connectionId} AND t.task_code='BASE_P16' AND t.deleted=FALSE
+AND b.deleted=FALSE AND b.last_run_id=#{query.publicationId} AND b.object_key='PROJECT_MASTER'</select>
+<select id="selectPage" resultType="cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncPublishedProjects$Member">
+SELECT b.source_key,p.id AS project_id,p.project_type,p.project_code AS original_project_code,p.project_code,b.fingerprint
+FROM int_base_sync_binding b JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id
+JOIN proj_project p ON p.tenant_id=b.tenant_id AND p.id=b.target_id
+WHERE b.tenant_id=#{query.tenantId} AND t.connection_id=#{query.connectionId} AND t.task_code='BASE_P16' AND t.deleted=FALSE
+AND b.deleted=FALSE AND p.deleted=FALSE AND b.last_run_id=#{query.publicationId} AND b.object_key='PROJECT_ALIAS'
+AND b.source_key &gt; #{query.afterKey} ORDER BY b.source_key LIMIT 500</select>
+</mapper>

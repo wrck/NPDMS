@@ -1,0 +1,160 @@
+{
+  "task": "P23",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "com_contract_collection_plan",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "batch_code",
+      "parameter": "#{row.target.batchCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "collection_item_name",
+      "parameter": "#{row.target.collectionItemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "reference_event_name",
+      "parameter": "#{row.target.referenceEventName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "event_planned_at",
+      "parameter": "#{row.target.eventPlannedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "after_days",
+      "parameter": "#{row.target.afterDays}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "event_actual_finished_at",
+      "parameter": "#{row.target.eventActualFinishedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "marketing_feedback",
+      "parameter": "#{row.target.marketingFeedback}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "effective_from",
+      "parameter": "#{row.target.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "effective_to",
+      "parameter": "#{row.target.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "data_source",
+      "parameter": "#{row.target.dataSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_collection_plan",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.selectCollectionPlanIds",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml",
+      "xml": "<select id=\"selectCollectionPlanIds\" resultType=\"java.lang.Long\">SELECT id FROM com_contract_collection_plan WHERE tenant_id=#{query.tenantId} <if test=\"!query.preview\">FOR UPDATE</if></select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.deleteCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml",
+      "xml": "<delete id=\"deleteCollectionPlan\">DELETE FROM com_contract_collection_plan WHERE tenant_id=#{query.tenantId}</delete>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.insertCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml",
+      "xml": "<insert id=\"insertCollectionPlan\">INSERT INTO com_contract_collection_plan (`id`, `tenant_id`, `contract_no`, `batch_code`, `collection_item_name`, `reference_event_name`, `event_planned_at`, `after_days`, `event_actual_finished_at`, `marketing_feedback`, `creator`, `create_time`, `updater`, `update_time`, `effective_from`, `effective_to`, `data_source`, `deleted`) VALUES\n    <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id}, #{row.target.tenantId}, #{row.target.contractNo}, #{row.target.batchCode}, #{row.target.collectionItemName}, #{row.target.referenceEventName}, #{row.target.eventPlannedAt}, #{row.target.afterDays}, #{row.target.eventActualFinishedAt}, #{row.target.marketingFeedback}, #{row.target.creator}, #{row.target.createTime}, #{row.target.updater}, #{row.target.updateTime}, #{row.target.effectiveFrom}, #{row.target.effectiveTo}, #{row.target.dataSource}, #{row.target.deleted})</foreach>\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$TargetMapper.nullableColumns",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P23TargetMapper.xml",
+      "xml": "<select id=\"nullableColumns\" resultType=\"java.lang.String\">SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='com_contract_collection_plan' AND column_name IN ('create_time','update_time') AND is_nullable='YES'</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$SourceMapper.selectCollectionPlan",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P23SourceMapper.xml",
+      "xml": "<select id=\"selectCollectionPlan\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P23CollectionPlanSyncTask$CollectionPlanCacheSource\">\n    SELECT `contractNo` AS `contract_no`, `batchCode` AS `batch_code`, `basicDataName` AS `collection_item_name`, `referenceEventName` AS `reference_event_name`, `eventPlanHappenDate` AS `event_planned_at`, `afterDaysNum` AS `after_days`, `eventActualFinishDate` AS `event_actual_finished_at`, `marketingFeedback` AS `marketing_feedback`, `createBy` AS `creator`, `createTime` AS `create_time`, `updateBy` AS `updater`, `updateTime` AS `update_time`, `effectiveFrom` AS `effective_from`, `effectiveTo` AS `effective_to`, `dataSource` AS `data_source` FROM `pm_pb_plan_from_sms` LIMIT #{limit}\n  </select>\n"
+    }
+  ]
+}

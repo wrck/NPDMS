@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper">
+    <insert id="insertHistorical">
+        INSERT INTO ast_device_software_change_batch
+        (id,tenant_id,project_id,change_version,change_remark,latest,creator,create_time,updater,update_time,deleted)
+        VALUES (#{row.values.id},#{row.values.tenantId},#{row.values.projectId},#{row.values.changeVersion},#{row.values.changeRemark},#{row.values.latest},
+                #{row.values.creator},#{row.values.createTime},#{row.values.updater},#{row.values.updateTime},#{row.values.deleted})
+    </insert>
+    <select id="selectRecordForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchRow">
+        SELECT * FROM ast_device_software_change_batch WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND id=#{query.recordId} FOR UPDATE
+    </select>
+</mapper>

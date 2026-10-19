@@ -1,6 +1,8 @@
 # 许可历史整表方案
 
-状态：WHOLE_TABLE_APPROVED / PILOT_LOCAL_VERIFIED / PRODUCTION_BASELINE_PENDING。2026-10-11用户明确批准16列及上述处理整表。批准时未建表、写入或读取许可码原值；原表全部8列已通过SHOW FULL COLUMNS核实，全量475468条。旧刷新SQL从dptech_v_liccode_info读取7项属性，原页面按合同查询；原id是刷新缓存自增身份，不当作业务编码。
+2026-10-17独立P37空许可码补充裁决：用户明确允许原ID472122的许可码按原始空字符串认证加密保留并登记问题，不填占位、不跳过记录。此裁决仅覆盖本轮475468条整表独立直写任务的空字符串处理，替代下文旧的空码阻断规则；NULL不转空串，原任务及原试点加密规则不变。新P37预览保留CREATED/UNCHANGED动作，同时登记LICENSE_CODE_EMPTY来源问题，并保留问题样本可查。该裁决授权修复及全量真实预览，不授权执行迁移或修改来源数据；自动迁移保持关闭，59191不操作。
+
+状态：WHOLE_TABLE_APPROVED / PILOT_LOCAL_VERIFIED / INDEPENDENT_FULL_PREVIEW_VERIFIED / PRODUCTION_BASELINE_PENDING。2026-10-11用户明确批准16列及上述处理整表。批准时未建表、写入或读取许可码原值；原表全部8列已通过SHOW FULL COLUMNS核实，全量475468条。旧刷新SQL从dptech_v_liccode_info读取7项属性，原页面按合同查询；原id是刷新缓存自增身份，不当作业务编码。2026-10-17新P37 Run2111308333476732929已完成475468条真实全量预览及浏览器终态检查，空码原行按本次补充裁决加密保留并登记问题；当前正式许可0条，未执行该全量迁移，见[实测记录](2026-10-13-dppms-migration-mapping/P37-direct-write.md)。
 
 按整表批准由AST持有正式ast_device_license_record，最终16列。许可是设备/产品使用权资料。AST负责AES-256-GCM认证加密封装验证，复用此前审查过的加密实现，未依赖其他模块biz类；PLT通过稳定公开API保存来源绑定、命令回执和保护基线。密文封装包含密钥版本，不提供解密接口，日志与页面不含许可码原值。
 

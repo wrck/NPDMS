@@ -1,0 +1,588 @@
+{
+  "adapter": "DPPMS_PROJECT_MASTER_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 250,
+  "clearBeforeLoad": false,
+  "connectionId": null,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 1000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 10000,
+  "mergedIntoTaskId": null,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [
+        "projectId",
+        "projectType",
+        "projectCode",
+        "projectName",
+        "projectState",
+        "isback",
+        "column001",
+        "column002",
+        "column003",
+        "column004",
+        "column005",
+        "column006",
+        "column007",
+        "column008",
+        "column009",
+        "column010",
+        "column011",
+        "column012",
+        "columno12_readonly",
+        "column013",
+        "column014",
+        "customerProjectName",
+        "salesType",
+        "majorProjectLevel",
+        "compId",
+        "createTime",
+        "createBy",
+        "updateTime",
+        "updateBy",
+        "effectiveFrom",
+        "effectiveTo",
+        "disabled",
+        "projectStartTime",
+        "projectRefreshTime",
+        "projectCloseTime",
+        "customInfo",
+        "customConfig",
+        "creatorFndSourceKey",
+        "creatorTSourceKey",
+        "updaterFndSourceKey",
+        "updaterTSourceKey",
+        "creatorFndMatchCount",
+        "creatorTMatchCount",
+        "updaterFndMatchCount",
+        "updaterTMatchCount",
+        "creatorFndSourceKeys",
+        "updaterFndSourceKeys",
+        "migrationCompanyCode"
+      ],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": "_groupKey",
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "projectName",
+          "target": "projectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "projectState",
+          "target": "projectState",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "isback",
+          "target": "isback",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column001",
+          "target": "column001",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column002",
+          "target": "column002",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column003",
+          "target": "column003",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column004",
+          "target": "column004",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column005",
+          "target": "column005",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column006",
+          "target": "column006",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column007",
+          "target": "column007",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column008",
+          "target": "column008",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "column009",
+          "target": "column009",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column010",
+          "target": "column010",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column011",
+          "target": "column011",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column012",
+          "target": "column012",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "columno12_readonly",
+          "target": "columno12_readonly",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column013",
+          "target": "column013",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "column014",
+          "target": "column014",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "customerProjectName",
+          "target": "customerProjectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "salesType",
+          "target": "salesType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "majorProjectLevel",
+          "target": "majorProjectLevel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "compId",
+          "target": "compId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "BOOLEAN",
+          "defaultValue": null,
+          "source": "disabled",
+          "target": "disabled",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "projectStartTime",
+          "target": "projectStartTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "projectRefreshTime",
+          "target": "projectRefreshTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "projectCloseTime",
+          "target": "projectCloseTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "customConfig",
+          "target": "customConfig",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "creatorFndSourceKey",
+          "target": "creatorFndSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "creatorTSourceKey",
+          "target": "creatorTSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "updaterFndSourceKey",
+          "target": "updaterFndSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "updaterTSourceKey",
+          "target": "updaterTSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "creatorFndMatchCount",
+          "target": "creatorFndMatchCount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "creatorTMatchCount",
+          "target": "creatorTMatchCount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "updaterFndMatchCount",
+          "target": "updaterFndMatchCount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "updaterTMatchCount",
+          "target": "updaterTMatchCount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "creatorFndSourceKeys",
+          "target": "creatorFndSourceKeys",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "updaterFndSourceKeys",
+          "target": "updaterFndSourceKeys",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "migrationCompanyCode",
+          "target": "migrationCompanyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "expectedProjectVersion",
+          "values": {}
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "migrationCodeAllocation",
+          "values": {}
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "creatorHistoricalCode",
+          "values": {
+            "sys": "sys",
+            "jiangyating": "jiangyating"
+          }
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updaterHistoricalCode",
+          "values": {
+            "sys": "sys",
+            "jiangyating": "jiangyating"
+          }
+        }
+      ],
+      "object": "pm_project_header",
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10",
+        "excludedFndActorIds": ""
+      },
+      "primaryTarget": null,
+      "queryRef": null,
+      "readMode": "SQL",
+      "rowProjection": "_sourceRows",
+      "sourceKey": "projectId",
+      "sourceKeyColumns": null,
+      "sourceObject": "pm_project_header",
+      "sql": "SELECT CAST(p.projectId AS CHAR) AS _groupKey,\n  CAST(JSON_MERGE_PRESERVE(\n    JSON_ARRAY(JSON_OBJECT('object','pm_project_header','fields',JSON_OBJECT(\n      'projectId',p.projectId,\n      'projectType',p.projectType,\n      'projectCode',p.projectCode,\n      'projectName',p.projectName,\n      'projectState',p.projectState,\n      'isback',p.isback,\n      'column001',p.column001,\n      'column002',p.column002,\n      'column003',p.column003,\n      'column004',p.column004,\n      'column005',p.column005,\n      'column006',p.column006,\n      'column007',p.column007,\n      'column008',p.column008,\n      'column009',p.column009,\n      'column010',p.column010,\n      'column011',p.column011,\n      'column012',p.column012,\n      'columno12_readonly',p.columno12_readonly,\n      'column013',p.column013,\n      'column014',p.column014,\n      'customerProjectName',p.customerProjectName,\n      'salesType',p.salesType,\n      'majorProjectLevel',p.majorProjectLevel,\n      'compId',p.compId,\n      'createTime',p.createTime,\n      'createBy',p.createBy,\n      'updateTime',p.updateTime,\n      'updateBy',p.updateBy,\n      'effectiveFrom',p.effectiveFrom,\n      'effectiveTo',p.effectiveTo,\n      'disabled',CAST(p.disabled AS UNSIGNED),\n      'projectStartTime',p.projectStartTime,\n      'projectRefreshTime',p.projectRefreshTime,\n      'projectCloseTime',p.projectCloseTime,\n      'customInfo',p.customInfo,\n      'customConfig',p.customConfig,\n      'creatorFndSourceKey',MAX(CASE WHEN audit_role.kind=0 THEN actors.fndId END),\n      'creatorTSourceKey',MAX(CASE WHEN audit_role.kind=0 THEN actors.tId END),\n      'updaterFndSourceKey',MAX(CASE WHEN audit_role.kind=1 THEN actors.fndId END),\n      'updaterTSourceKey',MAX(CASE WHEN audit_role.kind=1 THEN actors.tId END),\n      'creatorFndMatchCount',COALESCE(MAX(CASE WHEN audit_role.kind=0 THEN actors.fndCount END),0),\n      'creatorTMatchCount',COALESCE(MAX(CASE WHEN audit_role.kind=0 THEN actors.tCount END),0),\n      'updaterFndMatchCount',COALESCE(MAX(CASE WHEN audit_role.kind=1 THEN actors.fndCount END),0),\n      'updaterTMatchCount',COALESCE(MAX(CASE WHEN audit_role.kind=1 THEN actors.tCount END),0),\n      'creatorFndSourceKeys',MAX(CASE WHEN audit_role.kind=0 THEN actors.fndIds END),\n      'updaterFndSourceKeys',MAX(CASE WHEN audit_role.kind=1 THEN actors.fndIds END),\n      'migrationCompanyCode',MAX(c.compCode)))),\n    CAST(MAX(CAST(canonical.originalRows AS CHAR)) AS JSON)\n  ) AS CHAR) AS _sourceRows\nFROM pm_project p\nJOIN (\n  SELECT MAX(projectId) AS projectId,\n    JSON_ARRAYAGG(CAST(CASE WHEN disabled=0 AND effectiveTo IS NULL THEN\n      JSON_OBJECT('object','pm_project_identity','fields',JSON_OBJECT(\n        'originalProjectId',projectId,'projectType',projectType,'projectCode',projectCode))\n      ELSE 'null' END AS JSON)) AS originalRows\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.projectId=p.projectId\nLEFT JOIN t_company c ON c.id=p.compId\nJOIN (SELECT 0 AS kind UNION ALL SELECT 1) audit_role\nLEFT JOIN (\n  SELECT loginKey,\n    SUM(origin='FND') AS fndCount,SUM(origin='T') AS tCount,\n    CASE WHEN SUM(origin='FND')=1 THEN MAX(CASE WHEN origin='FND' THEN actorId END) END AS fndId,\n    CASE WHEN SUM(origin='T')=1 THEN MAX(CASE WHEN origin='T' THEN actorId END) END AS tId,\n    GROUP_CONCAT(CASE WHEN origin='FND' THEN actorId END ORDER BY actorId) AS fndIds\n  FROM (\n    SELECT CAST(username AS BINARY) AS loginKey,'FND' AS origin,id AS actorId\n    FROM fnd_user_info WHERE NOT FIND_IN_SET(id,:excludedFndActorIds)\n    UNION ALL\n    SELECT CAST(user_name AS BINARY),'T',user_id FROM t_user\n  ) source_actors GROUP BY loginKey\n) actors ON actors.loginKey=CAST(CASE WHEN audit_role.kind=0 THEN p.createBy ELSE p.updateBy END AS BINARY)\nWHERE p.disabled=0 AND p.effectiveTo IS NULL\n  AND FIND_IN_SET(p.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(p.projectId,:projectIds))\nGROUP BY p.projectId",
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    },
+    {
+      "columns": [
+        "originalProjectId",
+        "projectType",
+        "projectCode",
+        "canonicalProjectId"
+      ],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": null,
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "originalProjectId",
+          "target": "originalProjectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "_groupKey",
+          "target": "canonicalProjectId",
+          "values": null
+        }
+      ],
+      "object": "pm_project_identity",
+      "parameters": {},
+      "primaryTarget": null,
+      "queryRef": "pm_project_header",
+      "readMode": "SQL",
+      "rowProjection": null,
+      "sourceKey": "originalProjectId",
+      "sourceKeyColumns": null,
+      "sourceObject": "pm_project",
+      "sql": null,
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    }
+  ],
+  "taskKey": "P16_DIRECT"
+}

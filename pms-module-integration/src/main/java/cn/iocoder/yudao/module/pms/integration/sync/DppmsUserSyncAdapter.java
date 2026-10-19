@@ -51,7 +51,7 @@ public class DppmsUserSyncAdapter implements DataSyncAdapter {
         if (owner.length != 3 || !"integration".equals(owner[0]) || !Long.toString(tenant).equals(owner[1]))
             throw new IllegalArgumentException("用户迁移所有权无效");
         var task = tasks.required(Long.parseLong(owner[2]));
-        if (!"DPPMS".equals(task.getSourceSystem()) || !"DPPMS_USERS".equals(task.getAdapter()))
+        if (!"DPPMS".equals(task.getSourceSystem()) || !DppmsConsolidation.accepts(task, "DPPMS_USERS"))
             throw new IllegalArgumentException("用户迁移不能混用来源任务");
         Map<String, Row> sources = new LinkedHashMap<>();
         Map<String, Binding> prior = new HashMap<>();

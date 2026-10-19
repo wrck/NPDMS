@@ -49,15 +49,7 @@ public class SoftwareVersionLegacyExtensionService {
 
     @Transactional(propagation=Propagation.MANDATORY, rollbackFor=Exception.class)
     public EntityExtensionApi.Values initialize(Long tenant, Long actor, Long recordId, Long definitionId, Map<String,Object> values) {
-        if (values == null || !values.keySet().equals(CODES)) throw new IllegalArgumentException("All eight legacy version attributes are required");
-        for (var entry : values.entrySet()) {
-            var value = entry.getValue();
-            if (value == null) continue;
-            if (entry.getKey().endsWith("_bak") && !(value instanceof String)
-                    || entry.getKey().endsWith("_change") && (!(value instanceof Number n) || n.intValue() < 0 || n.intValue() > 1
-                    || new java.math.BigDecimal(n.toString()).compareTo(java.math.BigDecimal.valueOf(n.intValue())) != 0))
-                throw new IllegalArgumentException("Legacy software attribute type or flag invalid");
-        }
+        validateValues(values);
         var ref = new EntityRef(tenant, "AST", "SoftwareVersionRecord", recordId);
         var target = EntityDataRef.current(ref);
         var entityActor = new EntityActor(tenant, actor, "DPPMS_SOFTWARE_HISTORY_IMPORT");
@@ -72,6 +64,31 @@ public class SoftwareVersionLegacyExtensionService {
             return extensions.save(new EntityExtensionApi.Save(target, entityActor, 0L, 0, definitionId,
                     Collections.unmodifiableMap(new LinkedHashMap<>(values))));
         });
+    }
+    public record Preview(Long tenant,Long actor,Long recordId,Long definitionId,Map<String,Object> values) {}
+    @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
+    public void preview(Preview command) {
+        validateValues(command.values());
+        var ref=new EntityRef(command.tenant(),"AST","SoftwareVersionRecord",command.recordId()>0?command.recordId():1L);
+        var actor=new EntityActor(command.tenant(),command.actor(),"DPPMS_SOFTWARE_HISTORY_IMPORT");
+        requireDefinition(command.tenant(),extensions.definition(command.definitionId(),ref,actor));
+        if(command.recordId()>0)SoftwareVersionRecordEntityProvider.initialize(ref,()->{
+            var existing=extensions.read(EntityDataRef.current(ref),actor);
+            if(existing.version()!=0 && (!Objects.equals(existing.definitionRevisionId(),command.definitionId()) || !same(existing.fields(),command.values())))
+                throw new IllegalStateException("Immutable legacy software extensions differ from the replay");
+            return existing;
+        });
+    }
+    private static void validateValues(Map<String,Object> values) {
+        if (values == null || !values.keySet().equals(CODES)) throw new IllegalArgumentException("All eight legacy version attributes are required");
+        for (var entry : values.entrySet()) {
+            var value = entry.getValue();
+            if (value == null) continue;
+            if (entry.getKey().endsWith("_bak") && !(value instanceof String)
+                    || entry.getKey().endsWith("_change") && (!(value instanceof Number n) || n.intValue() < 0 || n.intValue() > 1
+                    || new java.math.BigDecimal(n.toString()).compareTo(java.math.BigDecimal.valueOf(n.intValue())) != 0))
+                throw new IllegalArgumentException("Legacy software attribute type or flag invalid");
+        }
     }
     private boolean same(Map<String,Object> a, Map<String,Object> b) {
         if (!a.keySet().equals(b.keySet())) return false;

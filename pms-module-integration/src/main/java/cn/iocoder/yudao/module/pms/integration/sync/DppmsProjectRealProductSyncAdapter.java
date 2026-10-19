@@ -57,7 +57,7 @@ public class DppmsProjectRealProductSyncAdapter implements DataSyncAdapter {
         }
         var references=new HashMap<String,DppmsProjectBindingApi.ProjectBinding>();var keys=new ArrayList<>(sourceKeys);
         for(int offset=0;offset<keys.size();offset+=500)
-            for(var ref:bindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(keys.subList(offset,Math.min(offset+500,keys.size()))))))
+            for(var ref:bindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(keys.subList(offset,Math.min(offset+500,keys.size())))).originalLine()))
                 if(references.put(ref.sourceProjectKey(),ref)!=null)fail("项目身份多义");
         if(!sourceKeys.containsAll(references.keySet()))fail("返回了范围外项目绑定");
         var changes=new HashMap<String,Change>();

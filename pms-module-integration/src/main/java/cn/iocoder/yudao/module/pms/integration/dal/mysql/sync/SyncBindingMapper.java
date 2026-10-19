@@ -8,9 +8,24 @@ import java.util.List;
 @Mapper
 public interface SyncBindingMapper extends BaseMapperX<SyncBindingDO> {
     List<SyncBindingDO> selectRetiredSourceKeysForUpdate(@org.apache.ibatis.annotations.Param("query") SyncQueries.SourceKeys query);
+    List<SyncBindingDO> selectInstallationSelectionPage(@org.apache.ibatis.annotations.Param("query") SyncQueries.InstallationSelection query);
     int restoreVerifiedBinding(@org.apache.ibatis.annotations.Param("original") SyncBindingDO original);
     List<SyncBindingDO> selectObsoleteOrderLinesForUpdate(@org.apache.ibatis.annotations.Param("query") SyncQueries.ObsoleteOrderLines query);
     int deleteObsoleteOrderLines(@org.apache.ibatis.annotations.Param("query") SyncQueries.ObsoleteOrderLineDelete query);
+    default List<SyncBindingDO> selectDeliveryProjectionPage(SyncQueries.DeliveryProjectionBindings query) {
+        return selectPage(new com.baomidou.mybatisplus.extension.plugins.pagination.Page<SyncBindingDO>(1,500,false),
+                new LambdaQueryWrapperX<SyncBindingDO>().eq(SyncBindingDO::getTenantId,query.tenantId())
+                        .eq(SyncBindingDO::getTaskId,query.taskId()).eq(SyncBindingDO::getLastRunId,query.runId())
+                        .eq(SyncBindingDO::getObjectKey,query.object()).eq(SyncBindingDO::getSourceObject,query.sourceObject())
+                        .gtIfPresent(SyncBindingDO::getId,query.afterId()).orderByAsc(SyncBindingDO::getId)
+                        .select(SyncBindingDO::getId,SyncBindingDO::getTargetId,SyncBindingDO::getFieldsJson)).getRecords();
+    }
+    default List<SyncBindingDO> selectDeliveryInputs(SyncQueries.DeliveryBindings query) {
+        return selectList(new LambdaQueryWrapperX<SyncBindingDO>()
+                .eq(SyncBindingDO::getTenantId,query.tenantId()).eq(SyncBindingDO::getTaskId,query.taskId())
+                .eq(SyncBindingDO::getObjectKey,query.object()).eq(SyncBindingDO::getSourceObject,query.sourceObject())
+                .eqIfPresent(SyncBindingDO::getLastRunId,query.runId()).select(SyncBindingDO::getTargetId));
+    }
     default boolean hasTaskBindings(SyncQueries.Task query) {
         return selectFirstTaskBindingId(query) != null;
     }
@@ -24,6 +39,7 @@ public interface SyncBindingMapper extends BaseMapperX<SyncBindingDO> {
     }
     int deleteAdapterBindings(SyncQueries.AdapterScope query);
     List<SyncBindingDO> selectIdentitySources(@org.apache.ibatis.annotations.Param("query") SyncQueries.IdentitySources query);
+    List<SyncBindingDO> selectEhrEmployeeUsers(@org.apache.ibatis.annotations.Param("query") SyncQueries.EhrEmployeeUsers query);
     int deleteTaskBindings(SyncQueries.Task query);
     int updateLastRun(SyncQueries.BindingRun query);
     default SyncBindingDO selectScoped(SyncQueries.Id query) {

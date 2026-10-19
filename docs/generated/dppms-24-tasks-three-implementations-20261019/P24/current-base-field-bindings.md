@@ -1,0 +1,102 @@
+# P24 新虚基类实际读写字段衔接
+
+2026-10-19最新修订：见[原用户名及原项目ID规则](../base-sync-original-identifiers-preview-20261019.md)；本页早期流程描述按该修订解释。
+
+左侧是实际来源SELECT表达式和结果别名；右侧是实际INSERT列与运行参数。Java转换/合并/关联在两者之间执行，本表不宣称同名就是原值直写。
+
+| 来源语句 | 原表达式 | 查询别名 |
+|---|---|---|
+| selectReceivable | r.`id` | source_id |
+| selectReceivable | r.`contract_num` | contract_no |
+| selectReceivable | r.`batch_code` | source_batch_code |
+| selectReceivable | r.`project_name` | project_name |
+| selectReceivable | r.`order_num` | source_order_no |
+| selectReceivable | r.`client_supplier_code` | customer_code |
+| selectReceivable | r.`client_supplier_name` | customer_name |
+| selectReceivable | r.`contract_money_amount` | contract_amount |
+| selectReceivable | r.`delivered_money_amount` | delivered_amount |
+| selectReceivable | r.`collected_money_amount` | collected_amount |
+| selectReceivable | r.`collected_money_ratio` | collected_ratio |
+| selectReceivable | r.`receivables_money_amount` | receivable_amount |
+| selectReceivable | r.`over_due_money_amount` | overdue_amount |
+| selectReceivable | r.`maketing_department_name` | market_name |
+| selectReceivable | r.`office_name` | department_name |
+| selectReceivable | r.`industry_name` | industry_name |
+| selectReceivable | r.`marketing_representative_name` | marketing_representative_name |
+| selectReceivable | r.`currency_name` | currency_name |
+| selectReceivable | r.`create_by` | source_creator |
+| selectReceivable | r.`create_time` | create_time |
+| selectReceivable | r.`update_by` | source_updater |
+| selectReceivable | r.`update_time` | update_time |
+| selectReceivable | r.`effective_from` | source_effective_from |
+| selectReceivable | r.`effective_to` | source_effective_to |
+| selectReceivable | r.`import_batch_num` | import_batch_no |
+| selectReceivable | r.`contract_create_date` | contract_create_time |
+| selectReceivable | r.`projectCode` | project_code |
+| selectReceivable | r.`marketCode` | market_code |
+| selectReceivable | r.`systemId` | system_source_key |
+| selectReceivable | r.`industryId` | industry_code |
+| selectReceivable | r.`officeCode` | department_code |
+| selectReceivable | r.`expendId` | expend_source_key |
+| selectReceivable | r.`usernamec` | marketing_representative_code |
+| selectReceivable | r.`latest_ship_date` | latest_ship_time |
+| selectReceivable | r.`usernamec2` | secondary_representative_code |
+| selectReceivable | r.`systemid_o` | original_system_source_key |
+| selectReceivable | r.`expendid_o` | original_expend_source_key |
+| selectReceivable | r.`industry_name_o` | original_industry_name |
+| selectReceivable | r.`dataSource` | source_system |
+
+| 正式表.列 | 实际写入参数 | INSERT语句 |
+|---|---|---|
+| com_contract_receivable.id | #{row.target.id} | insertReceivable |
+| com_contract_receivable.tenant_id | #{row.target.tenantId} | insertReceivable |
+| com_contract_receivable.contract_id | #{row.target.contractId} | insertReceivable |
+| com_contract_receivable.contract_no | #{row.target.contractNo} | insertReceivable |
+| com_contract_receivable.company_id | #{row.target.companyId} | insertReceivable |
+| com_contract_receivable.company_code | #{row.target.companyCode} | insertReceivable |
+| com_contract_receivable.company_name | #{row.target.companyName} | insertReceivable |
+| com_contract_receivable.company_resolution_source | #{row.target.companyResolutionSource} | insertReceivable |
+| com_contract_receivable.mapping_status | #{row.target.mappingStatus} | insertReceivable |
+| com_contract_receivable.project_name | #{row.target.projectName} | insertReceivable |
+| com_contract_receivable.source_order_no | #{row.target.sourceOrderNo} | insertReceivable |
+| com_contract_receivable.customer_code | #{row.target.customerCode} | insertReceivable |
+| com_contract_receivable.customer_name | #{row.target.customerName} | insertReceivable |
+| com_contract_receivable.contract_amount | #{row.target.contractAmount} | insertReceivable |
+| com_contract_receivable.delivered_amount | #{row.target.deliveredAmount} | insertReceivable |
+| com_contract_receivable.collected_amount | #{row.target.collectedAmount} | insertReceivable |
+| com_contract_receivable.collected_ratio | #{row.target.collectedRatio} | insertReceivable |
+| com_contract_receivable.receivable_amount | #{row.target.receivableAmount} | insertReceivable |
+| com_contract_receivable.overdue_amount | #{row.target.overdueAmount} | insertReceivable |
+| com_contract_receivable.currency_name | #{row.target.currencyName} | insertReceivable |
+| com_contract_receivable.market_code | #{row.target.marketCode} | insertReceivable |
+| com_contract_receivable.market_name | #{row.target.marketName} | insertReceivable |
+| com_contract_receivable.department_id | #{row.target.departmentId} | insertReceivable |
+| com_contract_receivable.department_code | #{row.target.departmentCode} | insertReceivable |
+| com_contract_receivable.department_name | #{row.target.departmentName} | insertReceivable |
+| com_contract_receivable.industry_name | #{row.target.industryName} | insertReceivable |
+| com_contract_receivable.marketing_representative_name | #{row.target.marketingRepresentativeName} | insertReceivable |
+| com_contract_receivable.source_batch_code | #{row.target.sourceBatchCode} | insertReceivable |
+| com_contract_receivable.import_batch_no | #{row.target.importBatchNo} | insertReceivable |
+| com_contract_receivable.project_code | #{row.target.projectCode} | insertReceivable |
+| com_contract_receivable.system_source_key | #{row.target.systemSourceKey} | insertReceivable |
+| com_contract_receivable.system_code | #{row.target.systemCode} | insertReceivable |
+| com_contract_receivable.system_name | #{row.target.systemName} | insertReceivable |
+| com_contract_receivable.industry_code | #{row.target.industryCode} | insertReceivable |
+| com_contract_receivable.expend_source_key | #{row.target.expendSourceKey} | insertReceivable |
+| com_contract_receivable.expend_code | #{row.target.expendCode} | insertReceivable |
+| com_contract_receivable.expend_name | #{row.target.expendName} | insertReceivable |
+| com_contract_receivable.marketing_representative_code | #{row.target.marketingRepresentativeCode} | insertReceivable |
+| com_contract_receivable.secondary_representative_code | #{row.target.secondaryRepresentativeCode} | insertReceivable |
+| com_contract_receivable.original_division_values | #{row.target.originalDivisionValues} | insertReceivable |
+| com_contract_receivable.source_effective_from | #{row.target.sourceEffectiveFrom} | insertReceivable |
+| com_contract_receivable.source_effective_to | #{row.target.sourceEffectiveTo} | insertReceivable |
+| com_contract_receivable.contract_create_time | #{row.target.contractCreateTime} | insertReceivable |
+| com_contract_receivable.latest_ship_time | #{row.target.latestShipTime} | insertReceivable |
+| com_contract_receivable.source_system | #{row.target.sourceSystem} | insertReceivable |
+| com_contract_receivable.source_record_key | #{row.target.sourceRecordKey} | insertReceivable |
+| com_contract_receivable.source_sync_time | #{row.target.sourceSyncTime} | insertReceivable |
+| com_contract_receivable.creator | #{row.target.creator} | insertReceivable |
+| com_contract_receivable.create_time | #{row.target.createTime} | insertReceivable |
+| com_contract_receivable.updater | #{row.target.updater} | insertReceivable |
+| com_contract_receivable.update_time | #{row.target.updateTime} | insertReceivable |
+| com_contract_receivable.deleted | #{row.target.deleted} | insertReceivable |

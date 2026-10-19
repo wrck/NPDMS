@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$SourceMapper">
+<select id="selectCustomer" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P10CrmCustomerSyncTask$CustomerSource">SELECT TOP (#{limit}) CONVERT(varchar(128),[AccountId]) AS [source_key],
+LTRIM(RTRIM([AccountNumber])) AS [code],
+LTRIM(RTRIM([erpCustomerCode])) AS [erp_customer_code],
+LTRIM(RTRIM([Name])) AS [name],
+LTRIM(RTRIM([Telephone1])) AS [contact_phone],
+LTRIM(RTRIM([EMailAddress1])) AS [contact_email],
+LTRIM(RTRIM([Address1_Composite])) AS [address],
+CONVERT(varchar(128),[new_mkt_unit_id]) AS [department_code],
+LTRIM(RTRIM([new_mkt_unit_idName])) AS [department_name],
+CONVERT(varchar(128),[new_industry_level1_id]) AS [market_code],
+LTRIM(RTRIM([new_industry_level1_idName])) AS [market_name],
+CONVERT(varchar(128),[new_industry_level2_id]) AS [system_code],
+LTRIM(RTRIM([new_industry_level2_idName])) AS [system_name],
+CONVERT(varchar(128),[new_industry_level3_id]) AS [expend_code],
+LTRIM(RTRIM([new_industry_level3_idName])) AS [expend_name],
+CONVERT(varchar(128),[new_industry_level4_id]) AS [industry_code],
+LTRIM(RTRIM([new_industry_level4_idName])) AS [industry_name],
+CASE StateCode WHEN 0 THEN 'ENABLED' WHEN 1 THEN 'DISABLED' ELSE NULL END AS lifecycle_status, CONVERT(varchar(33),ModifiedOn,126) AS source_version, ModifiedOn AS data_as_of, CASE WHEN Name IS NULL OR LTRIM(RTRIM(Name))='' THEN 'MISSING_CUSTOMER_NAME' WHEN LEN(Name)>128 THEN 'CUSTOMER_NAME_TOO_LONG' WHEN COUNT(*) OVER (PARTITION BY LTRIM(RTRIM(AccountNumber)))>1 THEN 'DUPLICATE_CUSTOMER_CODE' ELSE NULL END AS migration_issue FROM DPtech_v_account ORDER BY AccountId</select>
+</mapper>

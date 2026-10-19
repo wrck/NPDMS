@@ -141,6 +141,20 @@ export const getColumns = (id: Id, table: string) =>
 export const getAdapters = () => request.get<Adapter[]>({ url: base + '/adapters' })
 export const getEhrTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/ehr', params: { connectionId } })
+export const getDppmsOrganizationTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-organization', params: { connectionId } })
+export const getDppmsDirectOrganizationTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-organization-direct', params: { connectionId } })
+export const getDppmsAccountFoundationTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-account-foundation', params: { connectionId } })
+export const getDppmsDirectAccountTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-account-foundation-direct', params: { connectionId } })
+export const getDppmsDirectDictionaryTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-dictionaries-direct', params: { connectionId } })
+export const getCrmDirectCustomerTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/crm-customers-direct', params: { connectionId } })
+export const getDppmsDirectProductTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + '/templates/dppms-products-direct', params: { connectionId } })
 export const getDppmsCollectionPlanTemplate = (connectionId: Id) =>
   request.get<Definition>({ url: base + '/templates/dppms-collection-plans', params: { connectionId } })
 export const getDppmsOrderTemplate = (connectionId: Id) =>
@@ -314,3 +328,40 @@ export const getDppmsObsoleteOrderLineTemplate = (connectionId: Id, originalTask
   request.get<Definition>({ url: base + '/templates/dppms-obsolete-order-line-bindings', params: { connectionId, originalTaskId } })
 export const configureDppmsProjectFactsDefinition = (existingRevisionId?: Id) =>
   request.post<Id>({ url: base + '/templates/dppms-project-facts-definition', data: { existingRevisionId } })
+
+export const getDppmsDirectExecutionOrderTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-execution-orders-direct", params: { connectionId } })
+
+export const getDppmsDirectReceivableTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-receivables-direct", params: { connectionId } })
+
+export const getDppmsDirectWarrantyTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-warranty-renewals-direct", params: { connectionId } })
+
+export const getDppmsDirectProjectTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-projects-direct", params: { connectionId } })
+
+export const getDppmsDirectProjectRelationTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-project-contract-relations-direct", params: { connectionId } })
+
+export const getDppmsDirectProjectFactsTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-project-facts-direct", params: { connectionId } })
+
+export const getDppmsDirectProductScopeTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-product-scopes-direct", params: { connectionId } })
+
+export const getDppmsDirectRealProductTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-real-products-direct", params: { connectionId } })
+
+export const getDppmsDirectDeviceBaseTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-device-base-direct", params: { connectionId } })
+export const getDppmsDirectMemberHistoryTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-member-history-direct", params: { connectionId } })
+export const getDppmsDirectInstallationTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-installations-direct", params: { connectionId } })
+export const getDppmsDirectFactoryHistoryTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-factory-history-direct", params: { connectionId } })
+export const getDppmsDirectSoftwareHistoryTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-software-history-direct", params: { connectionId } })
+export const getDppmsDirectLicenseHistoryTemplate = (connectionId: Id) =>
+  request.get<Definition>({ url: base + "/templates/dppms-secure-license-direct", params: { connectionId } })

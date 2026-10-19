@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRootMapper">
+  <select id="lockRoot" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRow">
+    SELECT id,tenant_id,parent_id,root_id FROM proj_project
+    WHERE tenant_id=#{query.tenantId} AND id=#{query.projectId} AND deleted=FALSE FOR UPDATE
+  </select>
+  <select id="selectActiveVersion" resultType="java.lang.Long">
+    SELECT tree_version FROM proj_project_tree_version
+    WHERE tenant_id=#{query.tenantId} AND root_project_id=#{query.projectId} AND status='ACTIVE' AND deleted=FALSE
+    ORDER BY tree_version DESC,id DESC LIMIT 1 FOR UPDATE
+  </select>
+  <select id="selectRootNodes" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRow">
+    SELECT id,tenant_id,parent_id,root_id FROM proj_project
+    WHERE tenant_id=#{query.tenantId} AND root_id=#{query.projectId} AND deleted=FALSE
+  </select>
+  <insert id="insertBuilding" useGeneratedKeys="true" keyProperty="row.id">
+    INSERT INTO proj_project_tree_version(root_project_id,tree_version,status,change_batch_id,node_count,path_count,version,
+      creator,updater,create_time,update_time,deleted,tenant_id)
+    VALUES(#{row.rootProjectId},1,'BUILDING',#{row.changeBatchId},0,0,0,
+      #{row.actor},#{row.actor},CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,FALSE,#{row.tenantId})
+  </insert>
+  <insert id="insertSelfPath">
+    INSERT INTO proj_project_tree_path(id,tenant_id,tree_version,root_project_id,ancestor_project_id,descendant_project_id,
+      distance,version,creator,updater,create_time,update_time,deleted)
+    VALUES(#{row.id},#{row.tenantId},1,#{row.projectId},#{row.projectId},#{row.projectId},0,0,
+      #{row.actor},#{row.actor},CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,FALSE)
+  </insert>
+  <update id="activate">
+    UPDATE proj_project_tree_version SET status='ACTIVE',node_count=1,path_count=1,activated_at=CURRENT_TIMESTAMP,
+      failed_reason=NULL,updater=#{row.actor},update_time=CURRENT_TIMESTAMP
+    WHERE id=#{row.id} AND tenant_id=#{row.tenantId} AND root_project_id=#{row.rootProjectId}
+      AND tree_version=1 AND status='BUILDING' AND deleted=FALSE
+  </update>
+</mapper>

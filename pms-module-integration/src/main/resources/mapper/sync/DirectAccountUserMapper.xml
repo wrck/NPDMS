@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountUserMapper">
+    <resultMap id="migrationUser" type="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRows$UserRow" autoMapping="true">
+        <id column="id" property="id"/>
+        <result column="post_ids" property="postIds" javaType="java.util.Set"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler"/>
+    </resultMap>
+    <sql id="profiles">
+        SELECT id,tenant_id,username,nickname,remark,dept_id,post_ids,email,mobile,sex,avatar,status,
+               employee_no,custom_info,creator,create_time,updater,update_time
+        FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id
+    </sql>
+    <select id="selectProfiles" resultMap="migrationUser"><include refid="profiles"/></select>
+    <select id="selectProfilesForUpdate" resultMap="migrationUser"><include refid="profiles"/> FOR UPDATE</select>
+    <sql id="references">
+        WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose>
+            <when test="query.ids != null and !query.ids.isEmpty()">
+                AND id IN <foreach collection="query.ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+    </sql>
+    <select id="selectDepartmentIds" resultType="java.lang.Long">
+        SELECT id FROM system_dept <include refid="references"/>
+    </select>
+    <select id="selectPostIds" resultType="java.lang.Long">
+        SELECT id FROM system_post <include refid="references"/>
+    </select>
+    <insert id="insertHistoricalUser">
+        INSERT INTO system_users(id,tenant_id,username,password,nickname,remark,dept_id,post_ids,email,mobile,
+            sex,avatar,status,employee_no,custom_info,creator,create_time,updater,update_time,deleted)
+        VALUES(#{write.user.id},#{write.user.tenantId},#{write.user.username},#{write.user.password},#{write.user.nickname},#{write.user.remark},
+            #{write.user.deptId},#{write.user.postIds,typeHandler=com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler},
+            #{write.user.email},#{write.user.mobile},#{write.user.sex},#{write.user.avatar},#{write.user.status},#{write.user.employeeNo},#{write.user.customInfo},
+            #{write.audit.creator},#{write.audit.createTime},#{write.audit.updater},#{write.audit.updateTime},FALSE)
+    </insert>
+    <update id="updateHistoricalProfile">
+        UPDATE system_users SET nickname=#{write.user.nickname},remark=#{write.user.remark},dept_id=#{write.user.deptId},
+            post_ids=#{write.user.postIds,typeHandler=com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler},
+            email=#{write.user.email},mobile=#{write.user.mobile},sex=#{write.user.sex},avatar=#{write.user.avatar},status=#{write.user.status},
+            employee_no=#{write.user.employeeNo},custom_info=#{write.user.customInfo},creator=#{write.audit.creator},
+            create_time=#{write.audit.createTime},updater=#{write.audit.updater},update_time=#{write.audit.updateTime}
+        WHERE id=#{write.user.id} AND tenant_id=#{write.user.tenantId} AND username=#{write.user.username} AND deleted=FALSE
+    </update>
+</mapper>

@@ -1,0 +1,167 @@
+{
+  "adapter": "DPPMS_PROJECT_PRODUCT_SCOPE_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 200,
+  "clearBeforeLoad": false,
+  "connectionId": null,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 1000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 10000,
+  "mergedIntoTaskId": null,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": null,
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemCode",
+          "target": "itemCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemName",
+          "target": "itemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectQuantity",
+          "target": "projectQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderQuantity",
+          "target": "orderQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "deliverQuantity",
+          "target": "deliverQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "openQuantity",
+          "target": "openQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderNumber",
+          "target": "orderNumber",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "lineNum",
+          "target": "lineNum",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "id",
+          "target": "baseline",
+          "values": {}
+        }
+      ],
+      "object": "pm_project_product_line",
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10"
+      },
+      "primaryTarget": null,
+      "queryRef": null,
+      "readMode": "SQL",
+      "rowProjection": null,
+      "sourceKey": "id",
+      "sourceKeyColumns": null,
+      "sourceObject": "pm_project_product_line",
+      "sql": "SELECT l.*,p.projectCode AS originalProjectCode,p.projectType\nFROM pm_project_product_line l\nJOIN (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) p ON p.projectId=l.projectId\nWHERE (p.projectId IS NULL OR FIND_IN_SET(p.projectType,:projectTypes))",
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    }
+  ],
+  "taskKey": "P22_DIRECT"
+}

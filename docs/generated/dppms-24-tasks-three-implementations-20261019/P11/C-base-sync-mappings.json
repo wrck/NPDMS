@@ -1,0 +1,269 @@
+{
+  "task": "P11",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "ast_product_official_info",
+      "column": "product_code",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_model",
+      "parameter": "#{row.productModel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_name",
+      "parameter": "#{row.productName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_desc",
+      "parameter": "#{row.productDesc}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "technical_spec",
+      "parameter": "#{row.technicalSpec}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_category",
+      "parameter": "#{row.productCategory}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_type",
+      "parameter": "#{row.productType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "list_price",
+      "parameter": "#{row.listPrice}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "crm_status",
+      "parameter": "#{row.crmStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "business_unit",
+      "parameter": "#{row.businessUnit}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_line",
+      "parameter": "#{row.productLine}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "org_id",
+      "parameter": "#{row.orgId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_created_at",
+      "parameter": "#{row.sourceCreatedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_updated_at",
+      "parameter": "#{row.sourceUpdatedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "crm_state_code",
+      "parameter": "#{row.crmStateCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "crm_status_code",
+      "parameter": "#{row.crmStatusCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_stage",
+      "parameter": "#{row.productStage}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "end_of_sale_date",
+      "parameter": "#{row.endOfSaleDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "end_of_support_date",
+      "parameter": "#{row.endOfSupportDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "end_of_life_date",
+      "parameter": "#{row.endOfLifeDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "last_renewal_date",
+      "parameter": "#{row.lastRenewalDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "tenant_id",
+      "parameter": "#{context.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_system",
+      "parameter": "'CRM'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_key",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_version",
+      "parameter": "#{row.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "status",
+      "parameter": "CASE WHEN #{row.crmStateCode}=0 THEN 'ACTIVE' ELSE 'INACTIVE' END",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "synced_at",
+      "parameter": "#{context.startedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "creator",
+      "parameter": "#{context.actorId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "updater",
+      "parameter": "#{context.actorId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "create_time",
+      "parameter": "#{context.startedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "update_time",
+      "parameter": "#{context.startedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "sync_status",
+      "parameter": "'SUCCESS'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.selectCrmTargets",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml",
+      "xml": "<select id=\"selectCrmTargets\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$ProductSyncRow\">\n    SELECT product_code, product_model, product_name, product_desc, technical_spec, product_category, product_type, list_price, crm_status, business_unit, product_line, org_id, source_created_at, source_updated_at, crm_state_code, crm_status_code, product_stage, end_of_sale_date, end_of_support_date, end_of_life_date, last_renewal_date, id, tenant_id, source_system, source_key, source_version, status, version, synced_at, creator, updater, create_time, update_time, deleted FROM ast_product_official_info\n    WHERE tenant_id=#{query.tenantId}\n    <choose><when test=\"query.productCodes != null and !query.productCodes.isEmpty()\">\n      AND product_code IN <foreach collection=\"query.productCodes\" item=\"code\" open=\"(\" close=\")\" separator=\",\">#{code}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    <if test=\"!query.preview\">FOR UPDATE</if>\n  </select>\n  \n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$TargetMapper.insertCrmProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P11TargetMapper.xml",
+      "xml": "<insert id=\"insertCrmProduct\">\n    INSERT INTO ast_product_official_info\n      (product_code, product_model, product_name, product_desc, technical_spec, product_category, product_type, list_price, crm_status, business_unit, product_line, org_id, source_created_at, source_updated_at, crm_state_code, crm_status_code, product_stage, end_of_sale_date, end_of_support_date, end_of_life_date, last_renewal_date, id, tenant_id, source_system, source_key, source_version, status, version, synced_at, creator, updater, create_time, update_time, deleted, sync_status)\n    VALUES\n    <foreach collection=\"rows\" item=\"row\" separator=\",\">\n      (#{row.productCode}, #{row.productModel}, #{row.productName}, #{row.productDesc}, #{row.technicalSpec}, #{row.productCategory}, #{row.productType}, #{row.listPrice}, #{row.crmStatus}, #{row.businessUnit}, #{row.productLine}, #{row.orgId}, #{row.sourceCreatedAt}, #{row.sourceUpdatedAt}, #{row.crmStateCode}, #{row.crmStatusCode}, #{row.productStage}, #{row.endOfSaleDate}, #{row.endOfSupportDate}, #{row.endOfLifeDate}, #{row.lastRenewalDate}, #{row.id}, #{context.tenantId}, 'CRM', #{row.productCode}, #{row.sourceVersion}, CASE WHEN #{row.crmStateCode}=0 THEN 'ACTIVE' ELSE 'INACTIVE' END, 0, #{context.startedAt}, #{context.actorId}, #{context.actorId}, #{context.startedAt}, #{context.startedAt}, FALSE, 'SUCCESS')\n    </foreach> AS incoming\n    ON DUPLICATE KEY UPDATE\n      \n      id=CASE WHEN ast_product_official_info.tenant_id=incoming.tenant_id\n        AND CAST(ast_product_official_info.product_code AS BINARY)=CAST(incoming.product_code AS BINARY)\n        AND ast_product_official_info.deleted=FALSE\n        AND CAST(ast_product_official_info.source_system AS BINARY) IN (CAST('CRM' AS BINARY),CAST('DPPMS' AS BINARY))\n        THEN ast_product_official_info.id ELSE NULL END,\n      product_model=COALESCE(incoming.product_model,ast_product_official_info.product_model),\n      product_name=COALESCE(incoming.product_name,ast_product_official_info.product_name),\n      product_desc=COALESCE(incoming.product_desc,ast_product_official_info.product_desc),\n      technical_spec=COALESCE(incoming.technical_spec,ast_product_official_info.technical_spec),\n      product_category=COALESCE(incoming.product_category,ast_product_official_info.product_category),\n      product_type=COALESCE(incoming.product_type,ast_product_official_info.product_type),\n      list_price=COALESCE(incoming.list_price,ast_product_official_info.list_price),\n      crm_status=COALESCE(incoming.crm_status,ast_product_official_info.crm_status),\n      business_unit=COALESCE(incoming.business_unit,ast_product_official_info.business_unit),\n      product_line=COALESCE(incoming.product_line,ast_product_official_info.product_line),\n      org_id=COALESCE(incoming.org_id,ast_product_official_info.org_id),\n      source_created_at=COALESCE(incoming.source_created_at,ast_product_official_info.source_created_at),\n      source_updated_at=COALESCE(incoming.source_updated_at,ast_product_official_info.source_updated_at),\n      crm_state_code=COALESCE(incoming.crm_state_code,ast_product_official_info.crm_state_code),\n      crm_status_code=COALESCE(incoming.crm_status_code,ast_product_official_info.crm_status_code),\n      product_stage=COALESCE(incoming.product_stage,ast_product_official_info.product_stage),\n      end_of_sale_date=COALESCE(incoming.end_of_sale_date,ast_product_official_info.end_of_sale_date),\n      end_of_support_date=COALESCE(incoming.end_of_support_date,ast_product_official_info.end_of_support_date),\n      end_of_life_date=COALESCE(incoming.end_of_life_date,ast_product_official_info.end_of_life_date),\n      last_renewal_date=COALESCE(incoming.last_renewal_date,ast_product_official_info.last_renewal_date),\n      source_system=incoming.source_system,\n      source_key=incoming.source_key,\n      source_version=incoming.source_version,\n      status=incoming.status,\n      synced_at=incoming.synced_at,\n      updater=incoming.updater,\n      update_time=incoming.update_time,\n      sync_status=incoming.sync_status,\n      version=ast_product_official_info.version+1\n  </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$SourceMapper.selectCrmProduct",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P11SourceMapper.xml",
+      "xml": "<select id=\"selectCrmProduct\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P11CrmProductSyncTask$ProductSyncRow\">\n    SELECT TOP (#{limit})\n  LTRIM(RTRIM(t.[itemCode])) AS [product_code],\n  t.[itemModel] AS [product_model],\n  t.[itemDesc] AS [product_name],\n  t.[itemDesc] AS [product_desc],\n  t.[remark] AS [technical_spec],\n  t.[productCode] AS [product_category],\n  t.[productSubCode] AS [product_type],\n  t.[listPrice] AS [list_price],\n  t.[status] AS [crm_status],\n  t.[BU] AS [business_unit],\n  t.[productLine] AS [product_line],\n  t.[orgId] AS [org_id],\n  t.[createTime] AS [source_created_at],\n  t.[updateTime] AS [source_updated_at],\n  t.[statecode] AS [crm_state_code],\n  t.[statuscode] AS [crm_status_code],\n  t.[productStage] AS [product_stage],\n  t.[endOfSaleDate] AS [end_of_sale_date],\n  t.[endOfSupportDate] AS [end_of_support_date],\n  t.[endOfLifeDate] AS [end_of_life_date],\n  t.[lastRenewalDate] AS [last_renewal_date]\n    FROM DPtech_v_product_info_single t\n    ORDER BY t.[itemCode]\n  </select>\n"
+    }
+  ]
+}

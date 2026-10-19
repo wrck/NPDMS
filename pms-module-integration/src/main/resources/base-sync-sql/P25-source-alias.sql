@@ -1,0 +1,1 @@
+SELECT `id` AS `source_id`, `con_xb` AS `warranty_contract_no`, `barcode` AS `device_sn`, `grade` AS `warranty_grade`, `begin_date` AS `warranty_start_date`, `end_date` AS `warranty_end_date`, `warranty` AS `warranty_years`, `remark` AS `remark`, `isyb` AS `extended`, `state` AS `is_latest` FROM fb_service;

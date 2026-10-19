@@ -1,0 +1,683 @@
+{
+  "task": "P35",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "SOFTWARE_BATCH",
+      "sourceObject": "pm_project_soft_change_logs",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "changeVersion",
+          "target": "changeVersion",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "changeRemark",
+          "target": "changeRemark",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "latest",
+          "target": "latest",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "SOFTWARE_VERSION",
+      "sourceObject": "pm_project_soft_version",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "logId",
+          "target": "logId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemCode",
+          "target": "itemCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "barCode",
+          "target": "barCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "conp",
+          "target": "conp",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "conpType",
+          "target": "conpType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "conpSeries",
+          "target": "conpSeries",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "conpMark",
+          "target": "conpMark",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "conpBak",
+          "target": "conpBak",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "conpChange",
+          "target": "conpChange",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "cpld",
+          "target": "cpld",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "cpldBak",
+          "target": "cpldBak",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "cpldChange",
+          "target": "cpldChange",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "boot",
+          "target": "boot",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "bootBak",
+          "target": "bootBak",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "bootChange",
+          "target": "bootChange",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "pcb",
+          "target": "pcb",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "pcbBak",
+          "target": "pcbBak",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "pcbChange",
+          "target": "pcbChange",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "executeTime",
+          "target": "executeTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "datastate",
+          "target": "datastate",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customInfo",
+          "target": "customInfo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "id",
+      "parameter": "#{row.values.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "tenant_id",
+      "parameter": "#{row.values.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "project_id",
+      "parameter": "#{row.values.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "change_version",
+      "parameter": "#{row.values.changeVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "change_remark",
+      "parameter": "#{row.values.changeRemark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "latest",
+      "parameter": "#{row.values.latest}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "creator",
+      "parameter": "#{row.values.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "create_time",
+      "parameter": "#{row.values.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "updater",
+      "parameter": "#{row.values.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "update_time",
+      "parameter": "#{row.values.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_change_batch",
+      "column": "deleted",
+      "parameter": "#{row.values.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "id",
+      "parameter": "#{row.values.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "tenant_id",
+      "parameter": "#{row.values.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "device_id",
+      "parameter": "#{row.values.deviceId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "device_sn",
+      "parameter": "#{row.values.deviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "project_id",
+      "parameter": "#{row.values.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "previous_record_id",
+      "parameter": "#{row.values.previousRecordId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "conp_version",
+      "parameter": "#{row.values.conpVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "conp_type",
+      "parameter": "#{row.values.conpType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "conp_series",
+      "parameter": "#{row.values.conpSeries}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "conp_mark",
+      "parameter": "#{row.values.conpMark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "boot_version",
+      "parameter": "#{row.values.bootVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "cpld_version",
+      "parameter": "#{row.values.cpldVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "pcb_version",
+      "parameter": "#{row.values.pcbVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "customized",
+      "parameter": "#{row.values.customized}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "release_date",
+      "parameter": "#{row.values.releaseDate}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "version_desc",
+      "parameter": "#{row.values.versionDesc}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "recorded_at",
+      "parameter": "#{row.values.recordedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "data_source",
+      "parameter": "#{row.values.dataSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "parsed_fact_id",
+      "parameter": "#{row.values.parsedFactId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "request_key",
+      "parameter": "#{row.values.requestKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "change_batch_id",
+      "parameter": "#{row.values.changeBatchId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "contract_no",
+      "parameter": "#{row.values.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "product_code",
+      "parameter": "#{row.values.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "execute_time",
+      "parameter": "#{row.values.executeTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "data_state",
+      "parameter": "#{row.values.dataState}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "custom_info",
+      "parameter": "#{row.values.customInfo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "creator",
+      "parameter": "#{row.values.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "create_time",
+      "parameter": "#{row.values.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "updater",
+      "parameter": "#{row.values.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "update_time",
+      "parameter": "#{row.values.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    },
+    {
+      "table": "ast_device_software_version_record",
+      "column": "deleted",
+      "parameter": "#{row.values.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSource",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSource\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSourceForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectRecords",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectRecords\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRecordRow\">\n    SELECT * FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" /> ORDER BY source_key,id\n    LIMIT #{query.offset},#{query.limit}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n        INSERT INTO ast_device_software_change_batch\n        (id,tenant_id,project_id,change_version,change_remark,latest,creator,create_time,updater,update_time,deleted)\n        VALUES (#{row.values.id},#{row.values.tenantId},#{row.values.projectId},#{row.values.changeVersion},#{row.values.changeRemark},#{row.values.latest},\n                #{row.values.creator},#{row.values.createTime},#{row.values.updater},#{row.values.updateTime},#{row.values.deleted})\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchMapper.selectRecordForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareBatchMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareBatchRow\">\n        SELECT * FROM ast_device_software_change_batch WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND id=#{query.recordId} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n        INSERT INTO ast_device_software_version_record\n        (id,tenant_id,device_id,device_sn,project_id,previous_record_id,conp_version,conp_type,conp_series,conp_mark,\n         boot_version,cpld_version,pcb_version,customized,release_date,version_desc,recorded_at,data_source,\n         parsed_fact_id,request_key,change_batch_id,contract_no,product_code,execute_time,data_state,custom_info,\n         creator,create_time,updater,update_time,deleted)\n        VALUES (#{row.values.id},#{row.values.tenantId},#{row.values.deviceId},#{row.values.deviceSn},#{row.values.projectId},#{row.values.previousRecordId},\n         #{row.values.conpVersion},#{row.values.conpType},#{row.values.conpSeries},#{row.values.conpMark},#{row.values.bootVersion},#{row.values.cpldVersion},\n         #{row.values.pcbVersion},#{row.values.customized},#{row.values.releaseDate},#{row.values.versionDesc},#{row.values.recordedAt},#{row.values.dataSource},\n         #{row.values.parsedFactId},#{row.values.requestKey},#{row.values.changeBatchId},#{row.values.contractNo},#{row.values.productCode},#{row.values.executeTime},\n         #{row.values.dataState},#{row.values.customInfo},#{row.values.creator},#{row.values.createTime},#{row.values.updater},#{row.values.updateTime},#{row.values.deleted})\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryMapper.selectForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectSoftwareHistoryMapper.xml",
+      "xml": "<select id=\"selectForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectSoftwareHistoryRow\">\n        SELECT *\n        FROM ast_device_software_version_record\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.recordId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n"
+    }
+  ]
+}

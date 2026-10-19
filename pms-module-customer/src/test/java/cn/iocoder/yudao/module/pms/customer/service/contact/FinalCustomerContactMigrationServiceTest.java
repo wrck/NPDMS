@@ -28,6 +28,12 @@ class FinalCustomerContactMigrationServiceTest {
         when(mapper.insertHistorical(any())).thenAnswer(i->{rows.add(i.getArgument(0,FinalCustomerContactMigrationMapper.HistoricalInsert.class).values());return 1;});
     }
     @AfterEach void clear(){TenantContextHolder.clear();}
+    @Test void previewValidatesTheSameSourceRulesWithoutInserting(){
+        owner.validateContacts(command(source()));assertTrue(rows.isEmpty());
+        var missing=new HistoricalContact("256075","51922","10","60","","董颖","13500802833","","2",null,"22",null,null,original,null);
+        assertThrows(IllegalArgumentException.class,()->owner.validateContacts(command(missing)));
+        verify(mapper,never()).insertHistorical(any());
+    }
     @Test void carriesOriginalContactWithoutBuyerMasterPrimaryOrAuditFabrication(){
         var result=owner.carry(command(source()));var row=rows.getFirst();
         assertNull(row.getCustomerId());assertNull(row.getCustomerContactId());assertEquals(99L,row.getProjectPartyId());

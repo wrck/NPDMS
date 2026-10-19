@@ -9,7 +9,7 @@ final class DppmsCustomerCodeTransition {
     record Input(SyncDefinition definition, GenericTargetStep step, Map<String,Object> original,
                  Map<String,Object> stored, Map<String,Object> incoming) {}
     static boolean allowed(Input input) {
-        if(!"DPPMS".equals(input.definition().sourceSystem()) || !"sales-orders-full-sync".equals(input.definition().taskKey())
+        if(!"DPPMS".equals(input.definition().sourceSystem()) || !"sales-orders-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(input.definition()))
                 || !"com_sales_order".equals(input.step().table())
                 || input.step().mappings().stream().noneMatch(m->"customer_code".equals(m.target())
                     && "migrationCustomerCode".equals(m.source()) && "STRING".equals(m.conversion())))return false;

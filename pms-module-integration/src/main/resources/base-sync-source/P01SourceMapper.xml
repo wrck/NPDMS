@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$SourceMapper">
+<select id="selectCompanies" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Company">SELECT compID AS id,compCode AS code,compName AS name,CAST(isDisabled AS UNSIGNED) AS disabled FROM ehr_company LIMIT #{limit}</select>
+<select id="selectDepartments" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Department">SELECT depID AS id,depCode AS code,depName AS name,compID AS companyId,adminID AS parentId,depGrade AS grade,director,depProperty AS property,depNum AS number,xOrder AS sortOrder,remark,depCustom1 AS custom1,depCustom3 AS custom3,depCustom5 AS custom5,CAST(isDisabled AS UNSIGNED) AS disabled FROM ehr_department LIMIT #{limit}</select>
+<select id="selectFnd" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$Fnd">SELECT id,departmentNum AS code,departmentName AS name,status,createTime,updateTime,effectiveFrom,effectiveTo FROM fnd_department LIMIT #{limit}</select>
+<select id="selectCompanyAliases" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P01OrganizationSyncTask$CompanyAlias">SELECT id,compCode AS code FROM t_company LIMIT #{limit}</select>
+</mapper>

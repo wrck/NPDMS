@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper">
+<select id="selectSource" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow">
+    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'
+      AND source_project_key=#{query.sourceProjectKey}
+  </select>
+<select id="selectSourceForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow">
+    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'
+      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE
+  </select>
+<sql id="recordScope">
+    tenant_id=#{query.tenantId} AND snapshot_id=#{query.snapshotId} AND domain_code=#{query.domainCode}
+    <if test="query.sourceKey != null">AND source_key=#{query.sourceKey}</if>
+    <if test="query.parentDomain != null">AND parent_domain=#{query.parentDomain} AND parent_source_key=#{query.parentSourceKey}</if>
+  </sql>
+<select id="selectRecords" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRecordRow">
+    SELECT * FROM proj_legacy_detail_record WHERE <include refid="recordScope"/> ORDER BY source_key,id
+    LIMIT #{query.offset},#{query.limit}
+  </select>
+</mapper>

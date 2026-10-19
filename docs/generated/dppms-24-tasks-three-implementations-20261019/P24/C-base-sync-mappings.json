@@ -1,0 +1,393 @@
+{
+  "task": "P24",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "com_contract_receivable",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_id",
+      "parameter": "#{row.target.contractId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_id",
+      "parameter": "#{row.target.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_code",
+      "parameter": "#{row.target.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_name",
+      "parameter": "#{row.target.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_resolution_source",
+      "parameter": "#{row.target.companyResolutionSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "mapping_status",
+      "parameter": "#{row.target.mappingStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "project_name",
+      "parameter": "#{row.target.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_order_no",
+      "parameter": "#{row.target.sourceOrderNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "customer_code",
+      "parameter": "#{row.target.customerCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "customer_name",
+      "parameter": "#{row.target.customerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_amount",
+      "parameter": "#{row.target.contractAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "delivered_amount",
+      "parameter": "#{row.target.deliveredAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "collected_amount",
+      "parameter": "#{row.target.collectedAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "collected_ratio",
+      "parameter": "#{row.target.collectedRatio}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "receivable_amount",
+      "parameter": "#{row.target.receivableAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "overdue_amount",
+      "parameter": "#{row.target.overdueAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "currency_name",
+      "parameter": "#{row.target.currencyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "market_code",
+      "parameter": "#{row.target.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "market_name",
+      "parameter": "#{row.target.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "department_id",
+      "parameter": "#{row.target.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "department_code",
+      "parameter": "#{row.target.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "department_name",
+      "parameter": "#{row.target.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "industry_name",
+      "parameter": "#{row.target.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "marketing_representative_name",
+      "parameter": "#{row.target.marketingRepresentativeName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_batch_code",
+      "parameter": "#{row.target.sourceBatchCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "import_batch_no",
+      "parameter": "#{row.target.importBatchNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "project_code",
+      "parameter": "#{row.target.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "system_source_key",
+      "parameter": "#{row.target.systemSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "system_code",
+      "parameter": "#{row.target.systemCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "system_name",
+      "parameter": "#{row.target.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "industry_code",
+      "parameter": "#{row.target.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "expend_source_key",
+      "parameter": "#{row.target.expendSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "expend_code",
+      "parameter": "#{row.target.expendCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "expend_name",
+      "parameter": "#{row.target.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "marketing_representative_code",
+      "parameter": "#{row.target.marketingRepresentativeCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "secondary_representative_code",
+      "parameter": "#{row.target.secondaryRepresentativeCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "original_division_values",
+      "parameter": "#{row.target.originalDivisionValues}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_effective_from",
+      "parameter": "#{row.target.sourceEffectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_effective_to",
+      "parameter": "#{row.target.sourceEffectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_create_time",
+      "parameter": "#{row.target.contractCreateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "latest_ship_time",
+      "parameter": "#{row.target.latestShipTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_record_key",
+      "parameter": "#{row.target.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_sync_time",
+      "parameter": "#{row.target.sourceSyncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.selectExisting",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml",
+      "xml": "<select id=\"selectExisting\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$ReceivableSyncRow\">\n    SELECT `id`,`tenant_id`,`contract_id`,`contract_no`,`company_id`,`company_code`,`company_name`,`company_resolution_source`,`mapping_status`,`project_name`,`source_order_no`,`customer_code`,`customer_name`,`contract_amount`,`delivered_amount`,`collected_amount`,`collected_ratio`,`receivable_amount`,`overdue_amount`,`currency_name`,`market_code`,`market_name`,`department_id`,`department_code`,`department_name`,`industry_name`,`marketing_representative_name`,`source_batch_code`,`import_batch_no`,`project_code`,`system_source_key`,`system_code`,`system_name`,`industry_code`,`expend_source_key`,`expend_code`,`expend_name`,`marketing_representative_code`,`secondary_representative_code`,`original_division_values`,`source_effective_from`,`source_effective_to`,`contract_create_time`,`latest_ship_time`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM com_contract_receivable WHERE tenant_id=#{query.tenantId}\n    <choose><when test=\"query.keys != null and !query.keys.isEmpty()\">\n      AND <foreach collection=\"query.keys\" item=\"key\" open=\"(\" separator=\" OR \" close=\")\">\n        (source_system=#{key.system} AND source_record_key=#{key.key})\n      </foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    <if test=\"!query.preview\">FOR UPDATE</if>\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.insertReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml",
+      "xml": "<insert id=\"insertReceivable\">\n    INSERT INTO com_contract_receivable (`id`,`tenant_id`,`contract_id`,`contract_no`,`company_id`,`company_code`,`company_name`,`company_resolution_source`,`mapping_status`,`project_name`,`source_order_no`,`customer_code`,`customer_name`,`contract_amount`,`delivered_amount`,`collected_amount`,`collected_ratio`,`receivable_amount`,`overdue_amount`,`currency_name`,`market_code`,`market_name`,`department_id`,`department_code`,`department_name`,`industry_name`,`marketing_representative_name`,`source_batch_code`,`import_batch_no`,`project_code`,`system_source_key`,`system_code`,`system_name`,`industry_code`,`expend_source_key`,`expend_code`,`expend_name`,`marketing_representative_code`,`secondary_representative_code`,`original_division_values`,`source_effective_from`,`source_effective_to`,`contract_create_time`,`latest_ship_time`,`source_system`,`source_record_key`,`source_sync_time`,`creator`,`create_time`,`updater`,`update_time`,`deleted`)\n    VALUES\n    <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.contractId},#{row.target.contractNo},#{row.target.companyId},#{row.target.companyCode},#{row.target.companyName},#{row.target.companyResolutionSource},#{row.target.mappingStatus},#{row.target.projectName},#{row.target.sourceOrderNo},#{row.target.customerCode},#{row.target.customerName},#{row.target.contractAmount},#{row.target.deliveredAmount},#{row.target.collectedAmount},#{row.target.collectedRatio},#{row.target.receivableAmount},#{row.target.overdueAmount},#{row.target.currencyName},#{row.target.marketCode},#{row.target.marketName},#{row.target.departmentId},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.industryName},#{row.target.marketingRepresentativeName},#{row.target.sourceBatchCode},#{row.target.importBatchNo},#{row.target.projectCode},#{row.target.systemSourceKey},#{row.target.systemCode},#{row.target.systemName},#{row.target.industryCode},#{row.target.expendSourceKey},#{row.target.expendCode},#{row.target.expendName},#{row.target.marketingRepresentativeCode},#{row.target.secondaryRepresentativeCode},#{row.target.originalDivisionValues},#{row.target.sourceEffectiveFrom},#{row.target.sourceEffectiveTo},#{row.target.contractCreateTime},#{row.target.latestShipTime},#{row.target.sourceSystem},#{row.target.sourceRecordKey},#{row.target.sourceSyncTime},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted})</foreach>\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$TargetMapper.updateReceivable",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P24TargetMapper.xml",
+      "xml": "<update id=\"updateReceivable\">\n    UPDATE com_contract_receivable SET\n      `contract_id`=#{row.target.contractId}, `contract_no`=#{row.target.contractNo}, `company_id`=#{row.target.companyId}, `company_code`=#{row.target.companyCode}, `company_name`=#{row.target.companyName}, `company_resolution_source`=#{row.target.companyResolutionSource}, `mapping_status`=#{row.target.mappingStatus}, `project_name`=#{row.target.projectName}, `source_order_no`=#{row.target.sourceOrderNo}, `customer_code`=#{row.target.customerCode}, `customer_name`=#{row.target.customerName}, `contract_amount`=#{row.target.contractAmount}, `delivered_amount`=#{row.target.deliveredAmount}, `collected_amount`=#{row.target.collectedAmount}, `collected_ratio`=#{row.target.collectedRatio}, `receivable_amount`=#{row.target.receivableAmount}, `overdue_amount`=#{row.target.overdueAmount}, `currency_name`=#{row.target.currencyName}, `market_code`=#{row.target.marketCode}, `market_name`=#{row.target.marketName}, `department_id`=#{row.target.departmentId}, `department_code`=#{row.target.departmentCode}, `department_name`=#{row.target.departmentName}, `industry_name`=#{row.target.industryName}, `marketing_representative_name`=#{row.target.marketingRepresentativeName}, `source_batch_code`=#{row.target.sourceBatchCode}, `import_batch_no`=#{row.target.importBatchNo}, `project_code`=#{row.target.projectCode}, `system_source_key`=#{row.target.systemSourceKey}, `system_code`=#{row.target.systemCode}, `system_name`=#{row.target.systemName}, `industry_code`=#{row.target.industryCode}, `expend_source_key`=#{row.target.expendSourceKey}, `expend_code`=#{row.target.expendCode}, `expend_name`=#{row.target.expendName}, `marketing_representative_code`=#{row.target.marketingRepresentativeCode}, `secondary_representative_code`=#{row.target.secondaryRepresentativeCode}, `original_division_values`=#{row.target.originalDivisionValues}, `source_effective_from`=#{row.target.sourceEffectiveFrom}, `source_effective_to`=#{row.target.sourceEffectiveTo}, `contract_create_time`=#{row.target.contractCreateTime}, `latest_ship_time`=#{row.target.latestShipTime}, `source_system`=#{row.target.sourceSystem}, `source_record_key`=#{row.target.sourceRecordKey}, `source_sync_time`=#{row.target.sourceSyncTime}, `creator`=#{row.target.creator}, `create_time`=#{row.target.createTime}, `updater`=#{row.target.updater}, `update_time`=#{row.target.updateTime}\n    WHERE tenant_id=#{row.target.tenantId} AND id=#{row.target.id} AND source_system=#{row.target.sourceSystem}\n      AND source_record_key=#{row.target.sourceRecordKey} AND deleted=FALSE\n  </update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$SourceMapper.selectReceivable",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P24SourceMapper.xml",
+      "xml": "<select id=\"selectReceivable\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P24ReceivableSyncTask$ReceivableSyncSource\">\nSELECT\n  r.`id` AS `source_id`,\n  r.`contract_num` AS `contract_no`,\n  r.`batch_code` AS `source_batch_code`,\n  r.`project_name` AS `project_name`,\n  r.`order_num` AS `source_order_no`,\n  r.`client_supplier_code` AS `customer_code`,\n  r.`client_supplier_name` AS `customer_name`,\n  r.`contract_money_amount` AS `contract_amount`,\n  r.`delivered_money_amount` AS `delivered_amount`,\n  r.`collected_money_amount` AS `collected_amount`,\n  r.`collected_money_ratio` AS `collected_ratio`,\n  r.`receivables_money_amount` AS `receivable_amount`,\n  r.`over_due_money_amount` AS `overdue_amount`,\n  r.`maketing_department_name` AS `market_name`,\n  r.`office_name` AS `department_name`,\n  r.`industry_name` AS `industry_name`,\n  r.`marketing_representative_name` AS `marketing_representative_name`,\n  r.`currency_name` AS `currency_name`,\n  r.`create_by` AS `source_creator`,\n  r.`create_time` AS `create_time`,\n  r.`update_by` AS `source_updater`,\n  r.`update_time` AS `update_time`,\n  r.`effective_from` AS `source_effective_from`,\n  r.`effective_to` AS `source_effective_to`,\n  r.`import_batch_num` AS `import_batch_no`,\n  r.`contract_create_date` AS `contract_create_time`,\n  r.`projectCode` AS `project_code`,\n  r.`marketCode` AS `market_code`,\n  r.`systemId` AS `system_source_key`,\n  r.`industryId` AS `industry_code`,\n  r.`officeCode` AS `department_code`,\n  r.`expendId` AS `expend_source_key`,\n  r.`usernamec` AS `marketing_representative_code`,\n  r.`latest_ship_date` AS `latest_ship_time`,\n  r.`usernamec2` AS `secondary_representative_code`,\n  r.`systemid_o` AS `original_system_source_key`,\n  r.`expendid_o` AS `original_expend_source_key`,\n  r.`industry_name_o` AS `original_industry_name`,\n  r.`dataSource` AS `source_system`\nFROM sms_ofst_contract_head_sap r ORDER BY r.id LIMIT #{limit}\n  </select>\n"
+    }
+  ]
+}

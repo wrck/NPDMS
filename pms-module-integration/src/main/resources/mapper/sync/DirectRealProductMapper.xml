@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectRealProductMapper">
+    <select id="selectRecordForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectRealProductRow">
+        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId}
+          AND project_id=#{query.projectId} AND id=#{query.id} FOR UPDATE
+    </select>
+    <select id="selectBusinessRecordsForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectRealProductRow">
+        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+          AND CAST(contract_no AS BINARY) &lt;=> CAST(#{query.contractNo} AS BINARY)
+          AND CAST(project_code AS BINARY) &lt;=> CAST(#{query.projectCode} AS BINARY)
+          AND CAST(execution_no AS BINARY) &lt;=> CAST(#{query.executionNo} AS BINARY)
+          AND CAST(product_category_name AS BINARY) &lt;=> CAST(#{query.productCategoryName} AS BINARY)
+          AND CAST(product_name AS BINARY) &lt;=> CAST(#{query.productName} AS BINARY)
+          AND CAST(product_sub_code AS BINARY) &lt;=> CAST(#{query.productSubCode} AS BINARY)
+          AND CAST(product_sub_model AS BINARY) &lt;=> CAST(#{query.productSubModel} AS BINARY)
+          AND CAST(product_sub_name AS BINARY) &lt;=> CAST(#{query.productSubName} AS BINARY)
+          AND quantity &lt;=> #{query.quantity}
+          AND CAST(memo AS BINARY) &lt;=> CAST(#{query.memo} AS BINARY)
+        ORDER BY id FOR UPDATE
+    </select>
+    <select id="countAllProjectRecords" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}
+    </select>
+    <insert id="insert">INSERT INTO proj_project_real_product (id,tenant_id,project_id,contract_no,project_code,execution_no,product_category_name,product_name,product_sub_code,product_sub_model,product_sub_name,quantity,memo,data_source,creator,create_time,updater,update_time,deleted) VALUES (#{row.id},#{row.tenantId},#{row.projectId},#{row.contractNo},#{row.projectCode},#{row.executionNo},#{row.productCategoryName},#{row.productName},#{row.productSubCode},#{row.productSubModel},#{row.productSubName},#{row.quantity},#{row.memo},#{row.dataSource},#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted})</insert>
+</mapper>

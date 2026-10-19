@@ -1,0 +1,1472 @@
+{
+  "gitRef": "e21f02d2d",
+  "snapshots": [
+    {
+      "source": "pms-module-asset/src/main/java/cn/iocoder/yudao/module/pms/asset/service/license/DppmsLicenseRecordService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/DppmsLicenseRecordService.java.txt",
+      "methods": [
+        {
+          "name": "Saved",
+          "line": 37
+        },
+        {
+          "name": "Entry",
+          "line": 38
+        },
+        {
+          "name": "preview",
+          "line": 41
+        },
+        {
+          "name": "apply",
+          "line": 47
+        },
+        {
+          "name": "prepare",
+          "line": 70
+        },
+        {
+          "name": "create",
+          "line": 130
+        },
+        {
+          "name": "verifyCurrent",
+          "line": 143
+        },
+        {
+          "name": "appendBindings",
+          "line": 157
+        },
+        {
+          "name": "page",
+          "line": 181
+        },
+        {
+          "name": "authorize",
+          "line": 198
+        },
+        {
+          "name": "sourcePk",
+          "line": 204
+        },
+        {
+          "name": "length",
+          "line": 205
+        },
+        {
+          "name": "fail",
+          "line": 206
+        }
+      ]
+    },
+    {
+      "source": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsContractCollectionPlanSyncAdapter.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/DppmsContractCollectionPlanSyncAdapter.java.txt",
+      "methods": [
+        {
+          "name": "supportsStreaming",
+          "line": 23
+        },
+        {
+          "name": "requiresAllBindings",
+          "line": 24
+        },
+        {
+          "name": "refreshCaches",
+          "line": 25
+        },
+        {
+          "name": "descriptor",
+          "line": 26
+        },
+        {
+          "name": "preview",
+          "line": 38
+        },
+        {
+          "name": "apply",
+          "line": 39
+        },
+        {
+          "name": "execute",
+          "line": 40
+        },
+        {
+          "name": "resolveActors",
+          "line": 94
+        },
+        {
+          "name": "actor",
+          "line": 133
+        },
+        {
+          "name": "approvedUnlinkedActor",
+          "line": 141
+        },
+        {
+          "name": "fndKeys",
+          "line": 147
+        },
+        {
+          "name": "original",
+          "line": 157
+        },
+        {
+          "name": "sameOriginal",
+          "line": 170
+        },
+        {
+          "name": "nullValue",
+          "line": 175
+        },
+        {
+          "name": "encode",
+          "line": 178
+        },
+        {
+          "name": "text",
+          "line": 195
+        },
+        {
+          "name": "time",
+          "line": 196
+        },
+        {
+          "name": "date",
+          "line": 197
+        },
+        {
+          "name": "optionalId",
+          "line": 198
+        },
+        {
+          "name": "integer",
+          "line": 199
+        }
+      ]
+    },
+    {
+      "source": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectContractRelationSyncAdapter.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/DppmsProjectContractRelationSyncAdapter.java.txt",
+      "methods": [
+        {
+          "name": "supportsStreaming",
+          "line": 26
+        },
+        {
+          "name": "requiresAllBindings",
+          "line": 27
+        },
+        {
+          "name": "descriptor",
+          "line": 28
+        },
+        {
+          "name": "refreshCaches",
+          "line": 35
+        },
+        {
+          "name": "sharesTargetAcrossSources",
+          "line": 37
+        },
+        {
+          "name": "preview",
+          "line": 39
+        },
+        {
+          "name": "apply",
+          "line": 41
+        },
+        {
+          "name": "execute",
+          "line": 42
+        },
+        {
+          "name": "approvedHistorical",
+          "line": 204
+        },
+        {
+          "name": "auditValue",
+          "line": 210
+        },
+        {
+          "name": "fieldDecisions",
+          "line": 219
+        },
+        {
+          "name": "approvedExclusion",
+          "line": 231
+        },
+        {
+          "name": "validSourceKey",
+          "line": 252
+        },
+        {
+          "name": "requireConfiguredDecision",
+          "line": 258
+        },
+        {
+          "name": "original",
+          "line": 268
+        },
+        {
+          "name": "sameOriginal",
+          "line": 277
+        },
+        {
+          "name": "encode",
+          "line": 281
+        },
+        {
+          "name": "decode",
+          "line": 289
+        },
+        {
+          "name": "actor",
+          "line": 293
+        },
+        {
+          "name": "time",
+          "line": 297
+        },
+        {
+          "name": "positive",
+          "line": 298
+        },
+        {
+          "name": "nonnegative",
+          "line": 299
+        },
+        {
+          "name": "text",
+          "line": 302
+        },
+        {
+          "name": "fail",
+          "line": 303
+        }
+      ]
+    },
+    {
+      "source": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectIdentitySyncAdapter.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/DppmsProjectIdentitySyncAdapter.java.txt",
+      "methods": [
+        {
+          "name": "supportsStreaming",
+          "line": 21
+        },
+        {
+          "name": "requiresAllBindings",
+          "line": 22
+        },
+        {
+          "name": "sharesTargetAcrossSources",
+          "line": 23
+        },
+        {
+          "name": "refreshCaches",
+          "line": 24
+        },
+        {
+          "name": "descriptor",
+          "line": 25
+        },
+        {
+          "name": "preview",
+          "line": 29
+        },
+        {
+          "name": "apply",
+          "line": 31
+        },
+        {
+          "name": "execute",
+          "line": 32
+        },
+        {
+          "name": "text",
+          "line": 94
+        },
+        {
+          "name": "fail",
+          "line": 95
+        }
+      ]
+    },
+    {
+      "source": "pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/sync/DppmsProjectMasterSyncAdapter.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/DppmsProjectMasterSyncAdapter.java.txt",
+      "methods": [
+        {
+          "name": "supportsStreaming",
+          "line": 26
+        },
+        {
+          "name": "requiresAllBindings",
+          "line": 27
+        },
+        {
+          "name": "refreshCaches",
+          "line": 28
+        },
+        {
+          "name": "descriptor",
+          "line": 29
+        },
+        {
+          "name": "preview",
+          "line": 43
+        },
+        {
+          "name": "apply",
+          "line": 44
+        },
+        {
+          "name": "execute",
+          "line": 46
+        },
+        {
+          "name": "companyCode",
+          "line": 100
+        },
+        {
+          "name": "resolveActors",
+          "line": 108
+        },
+        {
+          "name": "actor",
+          "line": 145
+        },
+        {
+          "name": "historicalCode",
+          "line": 152
+        },
+        {
+          "name": "fndKeys",
+          "line": 158
+        },
+        {
+          "name": "original",
+          "line": 167
+        },
+        {
+          "name": "evidence",
+          "line": 175
+        },
+        {
+          "name": "sameOriginal",
+          "line": 180
+        },
+        {
+          "name": "encode",
+          "line": 189
+        },
+        {
+          "name": "time",
+          "line": 214
+        },
+        {
+          "name": "text",
+          "line": 217
+        },
+        {
+          "name": "number",
+          "line": 218
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectLegacyEntityMigrationController.java.txt",
+      "methods": [
+        {
+          "name": "previewFinalContacts",
+          "line": 42
+        },
+        {
+          "name": "importFinalContacts",
+          "line": 49
+        },
+        {
+          "name": "previewMemberImport",
+          "line": 57
+        },
+        {
+          "name": "importMemberHistory",
+          "line": 64
+        },
+        {
+          "name": "previewMemberHistory",
+          "line": 72
+        },
+        {
+          "name": "previewLicenses",
+          "line": 79
+        },
+        {
+          "name": "importLicenses",
+          "line": 86
+        },
+        {
+          "name": "previewShipmentReferences",
+          "line": 93
+        },
+        {
+          "name": "correctShipmentReferences",
+          "line": 100
+        },
+        {
+          "name": "previewSoftwareEventWithdrawal",
+          "line": 107
+        },
+        {
+          "name": "withdrawSoftwareEvents",
+          "line": 114
+        },
+        {
+          "name": "previewSoftwareHistory",
+          "line": 121
+        },
+        {
+          "name": "correctSoftwareHistory",
+          "line": 128
+        },
+        {
+          "name": "previewLeaseProduct",
+          "line": 135
+        },
+        {
+          "name": "reconcileLeaseProduct",
+          "line": 142
+        },
+        {
+          "name": "previewProductConfiguration",
+          "line": 150
+        },
+        {
+          "name": "reconcileProductConfiguration",
+          "line": 157
+        },
+        {
+          "name": "previewRealProducts",
+          "line": 164
+        },
+        {
+          "name": "importRealProducts",
+          "line": 171
+        },
+        {
+          "name": "previewInstallationRecords",
+          "line": 178
+        },
+        {
+          "name": "reconcileInstallationRecords",
+          "line": 185
+        },
+        {
+          "name": "reconcileFactoryRecords",
+          "line": 192
+        },
+        {
+          "name": "reconcileExecutionFields",
+          "line": 199
+        },
+        {
+          "name": "previewProductScopes",
+          "line": 206
+        },
+        {
+          "name": "reconcileProductScopes",
+          "line": 213
+        },
+        {
+          "name": "reconcileOrderFields",
+          "line": 220
+        },
+        {
+          "name": "reconcileProjectHeader",
+          "line": 227
+        },
+        {
+          "name": "reconcileCollectionPlans",
+          "line": 234
+        },
+        {
+          "name": "migrate",
+          "line": 241
+        },
+        {
+          "name": "correctFactoryVersions",
+          "line": 248
+        },
+        {
+          "name": "correctCarrierNames",
+          "line": 255
+        },
+        {
+          "name": "correctInstallationCandidates",
+          "line": 262
+        },
+        {
+          "name": "status",
+          "line": 268
+        },
+        {
+          "name": "records",
+          "line": 275
+        },
+        {
+          "name": "actor",
+          "line": 282
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectContractCollectionPlanReconciliationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectContractCollectionPlanReconciliationService.java.txt",
+      "methods": [
+        {
+          "name": "reconcile",
+          "line": 31
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectExecutionFieldReconciliationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectExecutionFieldReconciliationService.java.txt",
+      "methods": [
+        {
+          "name": "reconcile",
+          "line": 27
+        },
+        {
+          "name": "value",
+          "line": 75
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectFactoryRecordImportService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectFactoryRecordImportService.java.txt",
+      "methods": [
+        {
+          "name": "command",
+          "line": 16
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectFactoryRecordReconciliationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectFactoryRecordReconciliationService.java.txt",
+      "methods": [
+        {
+          "name": "reconcile",
+          "line": 25
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectFinalCustomerContactImportService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectFinalCustomerContactImportService.java.txt",
+      "methods": [
+        {
+          "name": "Preview",
+          "line": 32
+        },
+        {
+          "name": "Report",
+          "line": 33
+        },
+        {
+          "name": "Result",
+          "line": 34
+        },
+        {
+          "name": "preview",
+          "line": 37
+        },
+        {
+          "name": "migrate",
+          "line": 47
+        },
+        {
+          "name": "originals",
+          "line": 81
+        },
+        {
+          "name": "actorCode",
+          "line": 93
+        },
+        {
+          "name": "mapping",
+          "line": 96
+        },
+        {
+          "name": "fail",
+          "line": 97
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectInstallationRecordReconciliationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectInstallationRecordReconciliationService.java.txt",
+      "methods": [
+        {
+          "name": "Prepared",
+          "line": 29
+        },
+        {
+          "name": "prepare",
+          "line": 30
+        },
+        {
+          "name": "preview",
+          "line": 63
+        },
+        {
+          "name": "reconcile",
+          "line": 68
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLeaseProductImportService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectLeaseProductImportService.java.txt",
+      "methods": [
+        {
+          "name": "Entry",
+          "line": 29
+        },
+        {
+          "name": "Plan",
+          "line": 30
+        },
+        {
+          "name": "Result",
+          "line": 31
+        },
+        {
+          "name": "prepare",
+          "line": 33
+        },
+        {
+          "name": "apply",
+          "line": 94
+        },
+        {
+          "name": "validateCurrent",
+          "line": 116
+        },
+        {
+          "name": "validateCurrent",
+          "line": 119
+        },
+        {
+          "name": "read",
+          "line": 132
+        },
+        {
+          "name": "validate",
+          "line": 149
+        },
+        {
+          "name": "invalid",
+          "line": 152
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLegacyEntityMigrationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectLegacyEntityMigrationService.java.txt",
+      "methods": [
+        {
+          "name": "DomainSummary",
+          "line": 64
+        },
+        {
+          "name": "Report",
+          "line": 66
+        },
+        {
+          "name": "Result",
+          "line": 68
+        },
+        {
+          "name": "FactoryCorrectionTarget",
+          "line": 69
+        },
+        {
+          "name": "FactoryCorrectionReport",
+          "line": 70
+        },
+        {
+          "name": "FactoryCorrectionResult",
+          "line": 74
+        },
+        {
+          "name": "CorrectionTarget",
+          "line": 79
+        },
+        {
+          "name": "CorrectionReport",
+          "line": 82
+        },
+        {
+          "name": "CorrectionResult",
+          "line": 85
+        },
+        {
+          "name": "ShipmentIdentity",
+          "line": 89
+        },
+        {
+          "name": "migrate",
+          "line": 96
+        },
+        {
+          "name": "correctProjectHeader",
+          "line": 119
+        },
+        {
+          "name": "correctFactoryVersions",
+          "line": 157
+        },
+        {
+          "name": "importFactoryCorrection",
+          "line": 200
+        },
+        {
+          "name": "correctCarrierNames",
+          "line": 230
+        },
+        {
+          "name": "correctInstallationCandidates",
+          "line": 266
+        },
+        {
+          "name": "carrierCorrectionReport",
+          "line": 296
+        },
+        {
+          "name": "targetMatches",
+          "line": 323
+        },
+        {
+          "name": "requireFullSource",
+          "line": 330
+        },
+        {
+          "name": "status",
+          "line": 357
+        },
+        {
+          "name": "rowStatuses",
+          "line": 366
+        },
+        {
+          "name": "importEntities",
+          "line": 381
+        },
+        {
+          "name": "importParty",
+          "line": 520
+        },
+        {
+          "name": "load",
+          "line": 617
+        },
+        {
+          "name": "source",
+          "line": 634
+        },
+        {
+          "name": "snapshot",
+          "line": 638
+        },
+        {
+          "name": "report",
+          "line": 643
+        },
+        {
+          "name": "add",
+          "line": 660
+        },
+        {
+          "name": "carrierName",
+          "line": 667
+        },
+        {
+          "name": "identityText",
+          "line": 671
+        },
+        {
+          "name": "materialValue",
+          "line": 672
+        },
+        {
+          "name": "syncText",
+          "line": 679
+        },
+        {
+          "name": "assertProject",
+          "line": 685
+        },
+        {
+          "name": "validateActor",
+          "line": 688
+        },
+        {
+          "name": "fail",
+          "line": 692
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectLicenseRecordMigrationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectLicenseRecordMigrationService.java.txt",
+      "methods": [
+        {
+          "name": "Request",
+          "line": 35
+        },
+        {
+          "name": "Report",
+          "line": 37
+        },
+        {
+          "name": "Result",
+          "line": 38
+        },
+        {
+          "name": "preview",
+          "line": 41
+        },
+        {
+          "name": "migrate",
+          "line": 46
+        },
+        {
+          "name": "page",
+          "line": 101
+        },
+        {
+          "name": "fail",
+          "line": 128
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectMasterMigrationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectMasterMigrationService.java.txt",
+      "methods": [
+        {
+          "name": "preview",
+          "line": 57
+        },
+        {
+          "name": "apply",
+          "line": 60
+        },
+        {
+          "name": "inspectBindings",
+          "line": 63
+        },
+        {
+          "name": "verifyBindings",
+          "line": 87
+        },
+        {
+          "name": "lockBindings",
+          "line": 90
+        },
+        {
+          "name": "verifyBindings",
+          "line": 92
+        },
+        {
+          "name": "execute",
+          "line": 112
+        },
+        {
+          "name": "requireHistoricalActor",
+          "line": 270
+        },
+        {
+          "name": "issue",
+          "line": 323
+        },
+        {
+          "name": "withVersion",
+          "line": 359
+        },
+        {
+          "name": "withIdentity",
+          "line": 362
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectMemberHistoryImportService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectMemberHistoryImportService.java.txt",
+      "methods": [
+        {
+          "name": "Preview",
+          "line": 43
+        },
+        {
+          "name": "Target",
+          "line": 47
+        },
+        {
+          "name": "Report",
+          "line": 48
+        },
+        {
+          "name": "Result",
+          "line": 51
+        },
+        {
+          "name": "preview",
+          "line": 54
+        },
+        {
+          "name": "migrate",
+          "line": 76
+        },
+        {
+          "name": "accountIdentities",
+          "line": 182
+        },
+        {
+          "name": "actorCode",
+          "line": 188
+        },
+        {
+          "name": "isPrimary",
+          "line": 192
+        },
+        {
+          "name": "approvedClosures",
+          "line": 196
+        },
+        {
+          "name": "primary",
+          "line": 219
+        },
+        {
+          "name": "current",
+          "line": 226
+        },
+        {
+          "name": "sameProject",
+          "line": 233
+        },
+        {
+          "name": "requireProject",
+          "line": 243
+        },
+        {
+          "name": "fail",
+          "line": 246
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectMemberHistoryMigrationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectMemberHistoryMigrationService.java.txt",
+      "methods": [
+        {
+          "name": "CurrentMember",
+          "line": 31
+        },
+        {
+          "name": "Candidate",
+          "line": 33
+        },
+        {
+          "name": "Report",
+          "line": 35
+        },
+        {
+          "name": "preview",
+          "line": 39
+        },
+        {
+          "name": "fail",
+          "line": 116
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectOrderFieldReconciliationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectOrderFieldReconciliationService.java.txt",
+      "methods": [
+        {
+          "name": "reconcile",
+          "line": 28
+        },
+        {
+          "name": "value",
+          "line": 83
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectProductConfigurationImportService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectProductConfigurationImportService.java.txt",
+      "methods": [
+        {
+          "name": "Entry",
+          "line": 29
+        },
+        {
+          "name": "Plan",
+          "line": 30
+        },
+        {
+          "name": "Result",
+          "line": 31
+        },
+        {
+          "name": "prepare",
+          "line": 33
+        },
+        {
+          "name": "apply",
+          "line": 90
+        },
+        {
+          "name": "validateCurrent",
+          "line": 112
+        },
+        {
+          "name": "validateCurrent",
+          "line": 115
+        },
+        {
+          "name": "read",
+          "line": 128
+        },
+        {
+          "name": "validate",
+          "line": 145
+        },
+        {
+          "name": "invalid",
+          "line": 148
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectProductScopeReconciliationService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectProductScopeReconciliationService.java.txt",
+      "methods": [
+        {
+          "name": "preview",
+          "line": 26
+        },
+        {
+          "name": "reconcile",
+          "line": 31
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectRealProductImportService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectRealProductImportService.java.txt",
+      "methods": [
+        {
+          "name": "Entry",
+          "line": 34
+        },
+        {
+          "name": "Plan",
+          "line": 35
+        },
+        {
+          "name": "Result",
+          "line": 36
+        },
+        {
+          "name": "prepare",
+          "line": 38
+        },
+        {
+          "name": "apply",
+          "line": 98
+        },
+        {
+          "name": "validateCurrent",
+          "line": 119
+        },
+        {
+          "name": "read",
+          "line": 132
+        },
+        {
+          "name": "validate",
+          "line": 151
+        },
+        {
+          "name": "invalid",
+          "line": 154
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectShipmentReferenceCorrectionService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectShipmentReferenceCorrectionService.java.txt",
+      "methods": [
+        {
+          "name": "PreviewRequest",
+          "line": 30
+        },
+        {
+          "name": "CorrectionRequest",
+          "line": 32
+        },
+        {
+          "name": "Report",
+          "line": 34
+        },
+        {
+          "name": "Result",
+          "line": 35
+        },
+        {
+          "name": "preview",
+          "line": 38
+        },
+        {
+          "name": "correct",
+          "line": 43
+        },
+        {
+          "name": "inventoryTransaction",
+          "line": 101
+        },
+        {
+          "name": "target",
+          "line": 105
+        },
+        {
+          "name": "fail",
+          "line": 112
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectSoftwareHistoryCorrectionService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectSoftwareHistoryCorrectionService.java.txt",
+      "methods": [
+        {
+          "name": "CorrectionRequest",
+          "line": 28
+        },
+        {
+          "name": "preview",
+          "line": 31
+        },
+        {
+          "name": "correct",
+          "line": 36
+        },
+        {
+          "name": "prepare",
+          "line": 61
+        }
+      ]
+    },
+    {
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/service/legacydetail/ProjectSoftwareLegacyEventWithdrawalService.java",
+      "gitRef": "e21f02d2d",
+      "export": "historical-code/ProjectSoftwareLegacyEventWithdrawalService.java.txt",
+      "methods": [
+        {
+          "name": "PreviewRequest",
+          "line": 29
+        },
+        {
+          "name": "WithdrawalRequest",
+          "line": 30
+        },
+        {
+          "name": "Report",
+          "line": 32
+        },
+        {
+          "name": "Result",
+          "line": 33
+        },
+        {
+          "name": "preview",
+          "line": 37
+        },
+        {
+          "name": "withdraw",
+          "line": 43
+        },
+        {
+          "name": "fail",
+          "line": 102
+        }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/final-customer-contact-previews",
+      "call": "finalContacts.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 39
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/final-customer-contact-imports",
+      "call": "finalContacts.migrate",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 46
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/member-import-previews",
+      "call": "memberImports.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 54
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/member-history-imports",
+      "call": "memberImports.migrate",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 61
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/member-history-previews",
+      "call": "memberHistory.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 69
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/license-previews",
+      "call": "licenses.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 76
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/license-imports",
+      "call": "licenses.migrate",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 83
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/shipment-reference-previews",
+      "call": "shipmentReferences.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 90
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/shipment-reference-corrections",
+      "call": "shipmentReferences.correct",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 97
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/software-event-withdrawal-previews",
+      "call": "softwareEventWithdrawal.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 104
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/software-event-withdrawals",
+      "call": "softwareEventWithdrawal.withdraw",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 111
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/software-history-correction-previews",
+      "call": "softwareHistory.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 118
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/software-history-corrections",
+      "call": "softwareHistory.correct",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 125
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/lease-product-previews",
+      "call": "leaseProducts.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 132
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/lease-product-imports",
+      "call": "leaseProducts.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 139
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/product-configuration-previews",
+      "call": "productConfigurations.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 147
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/product-configuration-imports",
+      "call": "productConfigurations.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 154
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/real-product-previews",
+      "call": "realProducts.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 161
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/real-product-imports",
+      "call": "realProducts.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 168
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/installation-record-previews",
+      "call": "installationRecords.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 175
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/installation-record-corrections",
+      "call": "installationRecords.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 182
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/factory-record-corrections",
+      "call": "factoryRecords.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 189
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/execution-field-corrections",
+      "call": "executionFields.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 196
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/product-scope-previews",
+      "call": "productScopes.preview",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 203
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/product-scope-corrections",
+      "call": "productScopes.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 210
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/order-field-corrections",
+      "call": "orderFields.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 217
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/project-header-corrections",
+      "call": "service.correctProjectHeader",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 224
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/collection-plan-corrections",
+      "call": "collectionPlans.reconcile",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 231
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/native-imports",
+      "call": "service.migrate",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 238
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/factory-corrections",
+      "call": "service.correctFactoryVersions",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 245
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/carrier-corrections",
+      "call": "service.correctCarrierNames",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 252
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/pms/projects/{projectId}/legacy-detail/installation-candidate-corrections",
+      "call": "service.correctInstallationCandidates",
+      "source": "pms-module-project/src/main/java/cn/iocoder/yudao/module/pms/project/controller/admin/legacydetail/ProjectLegacyEntityMigrationController.java",
+      "line": 259
+    }
+  ],
+  "mapperDeclarations": 63,
+  "missingSelectedClasses": [
+    "DppmsProjectAssociatedProductSyncAdapter",
+    "DppmsProjectProductScopeSyncAdapter",
+    "DppmsProjectRealProductSyncAdapter"
+  ]
+}

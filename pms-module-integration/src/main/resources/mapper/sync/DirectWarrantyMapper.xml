@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectWarrantyMapper">
+    <select id="selectForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectWarrantyRow">
+        SELECT * FROM ast_device_warranty_renewal_record
+        WHERE tenant_id=#{query.tenantId} AND id=#{query.id} FOR UPDATE
+    </select>
+    <insert id="insertRecord">
+        INSERT INTO ast_device_warranty_renewal_record
+        (id,tenant_id,device_sn,warranty_contract_no,warranty_grade,warranty_start_date,warranty_end_date,
+         warranty_months,extended,is_latest,remark,version,creator,create_time,updater,update_time,deleted)
+        VALUES (#{row.id},#{row.tenantId},#{row.deviceSn},#{row.warrantyContractNo},#{row.warrantyGrade},
+          #{row.warrantyStartDate},#{row.warrantyEndDate},#{row.warrantyMonths},#{row.extended},#{row.isLatest},
+          #{row.remark},#{row.version},#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},#{row.deleted})
+    </insert>
+    <update id="updateRecord">
+        UPDATE ast_device_warranty_renewal_record
+        SET device_sn=#{command.row.deviceSn},warranty_contract_no=#{command.row.warrantyContractNo},
+            warranty_grade=#{command.row.warrantyGrade},warranty_start_date=#{command.row.warrantyStartDate},
+            warranty_end_date=#{command.row.warrantyEndDate},warranty_months=#{command.row.warrantyMonths},
+            extended=#{command.row.extended},is_latest=#{command.row.isLatest},remark=#{command.row.remark},
+            version=#{command.row.version},updater=#{command.row.updater},update_time=#{command.row.updateTime}
+        WHERE tenant_id=#{command.row.tenantId} AND id=#{command.row.id}
+          AND version=#{command.expectedVersion} AND deleted=FALSE
+    </update>
+</mapper>

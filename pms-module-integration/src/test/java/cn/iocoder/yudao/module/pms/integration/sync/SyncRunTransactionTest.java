@@ -76,6 +76,29 @@ class SyncRunTransactionTest {
         runner.execute(id);return id;
     }
     Map<String,Object> streamingRaw;
+    @Test void directSnapshotPreviewRunsInsideRepeatableReadAndDoesNotApply() throws Exception {
+        var validator=context.getBean(SyncDefinitionValidator.class);
+        var original=validator.adapter(EhrSyncTemplate.create(1L));
+        var direct=new DataSyncAdapter() {
+            public Descriptor descriptor(){var d=original.descriptor();return new Descriptor("TEST_DIRECT",d.label(),d.objects(),d.missingPolicies(),d.loadingModes(),false);}
+            public java.util.List<Change> preview(Batch batch){
+                assertTrue(batch.full());
+                assertTrue(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+                var connection=org.springframework.jdbc.datasource.DataSourceUtils.getConnection(context.getBean(DataSource.class));
+                try {assertEquals(java.sql.Connection.TRANSACTION_REPEATABLE_READ,connection.getTransactionIsolation());}
+                catch(java.sql.SQLException e){throw new IllegalStateException(e);}
+                finally {org.springframework.jdbc.datasource.DataSourceUtils.releaseConnection(connection,context.getBean(DataSource.class));}
+                return List.of();
+            }
+            public java.util.List<Change> apply(Batch batch){throw new AssertionError("preview must never call apply");}
+            public void refreshCaches(){}
+        };
+        var field=SyncDefinitionValidator.class.getDeclaredField("adapters");field.setAccessible(true);
+        @SuppressWarnings("unchecked") var adapters=new LinkedHashMap<String,DataSyncAdapter>((Map<String,DataSyncAdapter>)field.get(validator));adapters.put("TEST_DIRECT",direct);field.set(validator,Collections.unmodifiableMap(adapters));
+        var definition=EhrSyncTemplate.create(1L).toBuilder().adapter("TEST_DIRECT").build();
+        taskId=context.getBean(SyncTaskService.class).save(new SyncTaskService.Save(null,null,"事务预览",definition));
+        assertEquals("PREVIEW_READY",runner.required(run(true)).getStatus());
+    }
     @Test void streamingStateOmitsSampleAndPartialUpdatesPreserveItWithAtomicRollback() {
         Long id=runner.start(new SyncRunService.Start(taskId,context.getBean(SyncTaskService.class).required(taskId).getVersion(),UUID.randomUUID().toString(),true,true,false,null,false));
         var mapper=context.getBean(SyncRunMapper.class);
@@ -91,12 +114,15 @@ class SyncRunTransactionTest {
         }));
         var after=mapper.selectScoped(new SyncQueries.Id(1L,id));assertEquals(2,after.getReadCount());assertEquals(original,after.getResultJson());
     }
-    void configureStreamingEvidence(String policy) throws Exception {
+    void configureStreamingEvidence(String policy) throws Exception {configureStreamingEvidence(policy,false);}
+    void configureStreamingEvidence(String policy,boolean delivery) throws Exception {
+        String object=delivery?"CONTRACT":"ITEM",sourceObject=delivery?"com_sales_order":"legacy_item";
         streamingRaw=new LinkedHashMap<>(Map.of("id",42,"title","原始内容"));
+        if(delivery)streamingRaw.put("migrationKey","42");
         jdbc.execute("CREATE TABLE test_stream_item(id BIGINT PRIMARY KEY,title VARCHAR(100))");
         DataSyncAdapter adapter=new DataSyncAdapter() {
             public Descriptor descriptor() {return new Descriptor("TABLE_MAPPING","流式测试",List.of(
-                    new ObjectDescriptor("ITEM","条目",List.of(),"TEST","Item","test_stream_item",false)),
+                    new ObjectDescriptor(object,"条目",List.of(),"TEST","Item","test_stream_item",false)),
                     List.of("RETAIN"),List.of("UPSERT"),false);}
             public boolean supportsStreaming(){return true;}
             public boolean sharesTargetAcrossSources(){return true;}
@@ -120,21 +146,42 @@ class SyncRunTransactionTest {
             public void refreshCaches(){}
         };
         when(context.getBean(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class).bind(any())).thenReturn(adapter);
-        var definition=EhrSyncTemplate.create(1L).toBuilder().adapter("TABLE_MAPPING").taskKey("stream-evidence")
-                .sourceSystem("STREAM_TEST").mode("SNAPSHOT").missingPolicy("RETAIN").readStrategy("STREAMING_CURSOR")
-                .evidencePolicy(policy).sources(List.of(SyncDefinition.Source.builder().object("ITEM").sourceObject("legacy_item")
-                        .readMode("TABLE").table("legacy_item").sourceKey("id").columns(List.of("id","title"))
+        var definition=EhrSyncTemplate.create(1L).toBuilder().adapter("TABLE_MAPPING").taskKey(delivery?"delivery-full-sync":"stream-evidence")
+                .sourceSystem(delivery?"DPPMS":"STREAM_TEST").mode(delivery?"ONCE":"SNAPSHOT").missingPolicy("RETAIN").readStrategy("STREAMING_CURSOR")
+                .evidencePolicy(policy).sources(List.of(SyncDefinition.Source.builder().object(object).sourceObject(sourceObject)
+                        .readMode(delivery?"LOCAL_OWNER":"TABLE").table(delivery?null:"legacy_item").sourceKey(delivery?"migrationKey":"id").columns(delivery?List.of():List.of("id","title"))
                         .filters(List.of()).mappings(List.of()).build())).build();
         taskId=context.getBean(SyncTaskService.class).save(new SyncTaskService.Save(null,null,"流式证据测试",definition));
         when(context.getBean(SpringJdbcStreamingReader.class).stream(any(),any(),anyBoolean(),any(),any())).thenAnswer(call->{
             java.util.function.Consumer<SpringJdbcStreamingReader.StreamChunk> consumer=call.getArgument(4);
-            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,object,sourceObject,
                     List.of(new LinkedHashMap<>(streamingRaw)),42,100,false,1));
-            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,"ITEM","legacy_item",List.of(),42,0,true,1));
+            consumer.accept(new SpringJdbcStreamingReader.StreamChunk(upper,0,object,sourceObject,List.of(),42,0,true,1));
             return new SpringJdbcStreamingReader.StreamResult(upper,1,1);
         });
         when(context.getBean(SyncEvidenceService.class).stage(any(),any(),any(),anyString(),anyString()))
-                .thenReturn(List.of(new SyncEvidenceService.Evidence("ITEM","legacy_item",1L,Map.of("42",1L))));
+                .thenReturn(List.of(new SyncEvidenceService.Evidence(object,sourceObject,1L,Map.of("42",1L))));
+    }
+    @Test void deliveryPostFailureCannotPublishSuccessAndRuntimeActorIsNotPersisted() throws Exception {
+        configureStreamingEvidence("FULL",true);
+        jdbc.execute("CREATE TABLE test_post_completion(id BIGINT PRIMARY KEY)");
+        DppmsDeliveryCompletionService completion=org.springframework.test.util.AopTestUtils.getUltimateTargetObject(context.getBean(DppmsDeliveryCompletionService.class));
+        when(completion.complete(any())).thenAnswer(call->{
+            assertTrue(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            jdbc.update("INSERT INTO test_post_completion VALUES(1)");
+            throw new IllegalStateException("post completion failure");
+        });
+        Long id=runner.start(new SyncRunService.Start(taskId,context.getBean(SyncTaskService.class).required(taskId).getVersion(),
+                UUID.randomUUID().toString(),false,true,false,null,false));
+        assertThrows(IllegalStateException.class,()->runner.execute(id));
+        assertEquals("FAILED",runner.required(id).getStatus());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_post_completion",Integer.class));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM test_stream_item",Integer.class));
+        assertNull(context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
+        var definitions=org.mockito.ArgumentCaptor.forClass(SyncDefinition.class);
+        verify(context.getBean(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class),atLeastOnce()).bind(definitions.capture());
+        assertTrue(definitions.getAllValues().stream().anyMatch(d->Objects.equals(1L,d.executionActorId())));
+        assertNull(JsonUtils.parseObject(runner.required(id).getConfigSnapshot(),SyncDefinition.class).executionActorId());
     }
     @Test void streamingReuseChecksTargetsButDoesNotAppendEvidenceOrTouchBindingOnReplay() throws Exception {
         configureStreamingEvidence("REUSE_UNCHANGED");
@@ -262,6 +309,34 @@ class SyncRunTransactionTest {
         assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM test_installation_group",Integer.class));
         assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
         assertEquals(upper,context.getBean(SyncTaskService.class).required(taskId).getCheckpoint());
+    }
+    @Test void secureLicenseRuntimeActorIsTransientAndSnapshotContainsOnlyProtectedFields()throws Exception {
+        configureSecureLicense(false);
+        Long id=runner.start(new SyncRunService.Start(taskId,context.getBean(SyncTaskService.class).required(taskId).getVersion(),UUID.randomUUID().toString(),true,true,false,null,false));
+        runner.execute(id);assertEquals("PREVIEW_READY",runner.required(id).getStatus());
+        assertFalse(runner.required(id).getConfigSnapshot().contains("executionActorId"));
+        assertFalse(context.getBean(SyncTaskService.class).required(taskId).getDefinition().contains("executionActorId"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_secure_license",Integer.class));
+    }
+    @Test void secureLicenseOwnerFailureCannotCommitHistoryBindingOrSuccess()throws Exception {
+        configureSecureLicense(true);
+        Long id=runner.start(new SyncRunService.Start(taskId,context.getBean(SyncTaskService.class).required(taskId).getVersion(),UUID.randomUUID().toString(),false,true,false,null,false));
+        assertThrows(IllegalStateException.class,()->runner.execute(id));assertEquals("FAILED",runner.required(id).getStatus());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM test_secure_license",Integer.class));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM int_sync_binding WHERE task_id=?",Integer.class,taskId));
+    }
+    void configureSecureLicense(boolean fail)throws Exception {
+        jdbc.execute("CREATE TABLE test_secure_license(id BIGINT PRIMARY KEY)");
+        var status=fail?"FAIL":"RAW";
+        var definition=DppmsSecureLicenseSyncTemplate.create(new DppmsSecureLicenseSyncTemplate.Request(1L,100L,List.of(new DppmsSecureLicenseSyncTemplate.Approved("201","SN",null,"C",null,null,status))));
+        taskId=context.getBean(SyncTaskService.class).save(new SyncTaskService.Save(null,null,"受控许可历史",definition));
+        doAnswer(call->{
+            var resolved=call.<SyncDefinition>getArgument(0);assertEquals(1L,resolved.executionActorId());
+            var fields=new LinkedHashMap<String,Object>();DppmsSecureLicenseSyncTemplate.COLUMNS.forEach(n->fields.put(n,null));
+            fields.put("id","201");fields.put("sn","SN");fields.put("contract","C");fields.put("status",status);
+            fields.put("ciphertext","ENCRYPTED");fields.put("keyId","TEST-V1");fields.put("codeMac","a".repeat(64));
+            return new MysqlSyncReader.Snapshot(upper,List.of(new MysqlSyncReader.SourceRows(DppmsSecureLicenseSyncTemplate.OBJECT,DppmsSecureLicenseSyncTemplate.TABLE,List.of(fields))),100);
+        }).when(context.getBean(MysqlSyncReader.class)).read(any(),any(),anyBoolean());
     }
     @Test void installationOwnerFailureRollsBackWholeDeviceBindingsAndCheckpoint() throws Exception {
         configureInstallationGroup(true);
@@ -706,6 +781,7 @@ class SyncRunTransactionTest {
         @Bean cn.iocoder.yudao.module.system.api.dict.DictDataApi dictDataApi(){return mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class);}
         @Bean cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi shipmentSourceFactsApi(){return mock(cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.class);}
         @Bean GenericSyncJdbcStore jdbcStore(DataSource source){return new GenericSyncJdbcStore(source);}
+        @Bean DppmsDeliveryCompletionService deliveryCompletion(){return mock(DppmsDeliveryCompletionService.class);}
         @Bean SpringJdbcStreamingReader streamingReader(){return mock(SpringJdbcStreamingReader.class);}
         @Bean cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine genericEngine() {return mock(cn.iocoder.yudao.module.pms.integration.sync.generic.GenericSyncEngine.class);}
         @Bean cn.hutool.extra.spring.SpringUtil springUtil(){return new cn.hutool.extra.spring.SpringUtil();}
@@ -754,9 +830,20 @@ class SyncRunTransactionTest {
                 public boolean sharesTargetAcrossSources() { return true; }
             };
         }
+        @Bean DataSyncAdapter protectedLicenseOwnerAdapter(DataSource dataSource) {
+            var jdbc=new JdbcTemplate(dataSource);
+            return new DataSyncAdapter() {
+                public Descriptor descriptor(){return new DppmsSecureLicenseSyncAdapter(null,null,null).descriptor();}
+                public List<Change> preview(Batch batch){return batch.rows().stream().map(row->new Change(row.object(),row.sourceKey(),500001L,"CREATED",Map.of(),Map.of("id",row.sourceKey()),null)).toList();}
+                public List<Change> apply(Batch batch){jdbc.update("INSERT INTO test_secure_license(id) VALUES (?)",500001L);
+                    if(batch.rows().stream().anyMatch(row->"FAIL".equals(row.fields().get("status"))))throw new IllegalStateException("SYNTHETIC_OWNER_FAILURE");return preview(batch);}
+                public void refreshCaches(){}
+            };
+        }
         @Bean SyncBatchLauncher launcher(){return mock(SyncBatchLauncher.class);}
         @Bean SyncEvidenceService evidence(){var e=mock(SyncEvidenceService.class);when(e.stage(any(),any(),any())).thenReturn(List.of());return e;}
         @Bean MysqlSyncReader reader(){return mock(MysqlSyncReader.class);}
+        @Bean SyncSecureLicenseReader secureLicenseReader(){return mock(SyncSecureLicenseReader.class);}
         @Bean SyncSourceEvidenceReader sourceEvidenceReader(){return mock(SyncSourceEvidenceReader.class);}
         @Bean SyncConnectionService connections(){var c=mock(SyncConnectionService.class);when(c.resolve(any())).thenAnswer(i->i.getArgument(0));return c;}
         @Bean RedissonClient redisson()throws Exception{

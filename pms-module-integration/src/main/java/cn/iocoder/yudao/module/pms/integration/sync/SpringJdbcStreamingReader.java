@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 public class SpringJdbcStreamingReader {
     private final Optional<ExternalDataSourceApi> sources;
     @Autowired private org.springframework.beans.factory.ObjectProvider<SyncLocalOwnerReader> localOwners;
+    @Autowired private org.springframework.beans.factory.ObjectProvider<DirectSecureLicenseStream> directLicenses;
 
     // 双构造并存时 Spring 无法自动选定注入构造器，缺 @Autowired 会退化为默认构造器实例化而启动失败。
     @Autowired
@@ -36,6 +37,8 @@ public class SpringJdbcStreamingReader {
 
     public StreamResult stream(SyncDefinition definition, LocalDateTime lower, boolean full,
                                SyncStreamingState resume, Consumer<StreamChunk> consumer) throws SQLException {
+        if(DirectSecureLicenseStream.requested(definition) && (!full || resume!=null))
+            throw new IllegalArgumentException("受控许可须从头完整读取批准范围");
         if(definition.sources().stream().anyMatch(SyncLocalOwnerReader::reference) && (!full || resume!=null))
             throw new IllegalArgumentException("本地Owner来源须从头完整读取");
         if(definition.sources().stream().allMatch(SyncLocalOwnerReader::reference)) {
@@ -76,7 +79,14 @@ public class SpringJdbcStreamingReader {
             for(int sourceIndex=startSource;sourceIndex<definition.sources().size();sourceIndex++) {
                 var source=definition.sources().get(sourceIndex);
                 Object checkpoint=resume!=null&&sourceIndex==resume.sourceIndex()?resume.lastKey():null;
-                if(SyncLocalOwnerReader.reference(source)) {
+                if(DirectSecureLicenseStream.requested(definition)) {
+                    verifyTransactionalTables(connection,DppmsMigrationSql.initial("direct-secure-license-select"),new HashSet<>());
+                    final int index=sourceIndex;
+                    directLicenses.getObject().stream(new DirectSecureLicenseStream.Input(definition,source,connection),captured->{
+                        var rows=captured.rows();Object last=rows.getLast().get(source.sourceKey());
+                        emit(upper,index,source,rows,last,rows.stream().mapToLong(SpringJdbcStreamingReader::estimateBytes).sum(),sequence,totalRows,consumer);
+                    });
+                } else if(SyncLocalOwnerReader.reference(source)) {
                     streamLocal(new LocalRead(definition,source,sourceIndex,upper,sequence,totalRows,consumer));
                 } else if (!SyncSourceProjection.reference(source))
                     streamSource(jdbc,connection,definition,source,sourceIndex,lower,upper,full,checkpoint,sequence,totalRows,consumer);
@@ -110,6 +120,8 @@ public class SpringJdbcStreamingReader {
                               int sourceIndex,LocalDateTime lower,LocalDateTime upper,boolean full,Object checkpoint,
                               int[] sequence,long[] totalRows,Consumer<StreamChunk> consumer)throws SQLException {
         var scope=new PublishedProjectScopeRows(source);
+        boolean composite=source.sourceKeyColumns()!=null && !source.sourceKeyColumns().isEmpty();
+        var compositeKeys=new MysqlSyncReader.CompositeRowKeys(source);
         var base=compile(connection,source);
         verifyTransactionalTables(connection,base.sql(),new HashSet<>());
         List<Object> values=new ArrayList<>(base.values());
@@ -129,8 +141,27 @@ public class SpringJdbcStreamingReader {
         }
         String sql="SELECT * FROM ("+base.sql()+") sync_source";
         if(!predicates.isEmpty())sql+=" WHERE "+String.join(" AND ",predicates);
-        // Stable source-key ordering keeps duplicate detection O(1) and makes chunk boundaries deterministic.
-        sql+=" ORDER BY "+key;
+        // P25 full restarts do not resume at chunk boundaries. Sorting all renewal TEXT payloads prevents
+        // MySQL 5.7 from returning a first row within its query limit; retain keys, not payloads, for duplicate checks.
+        boolean renewalFullRestart=full && "RESTART_ALL".equals(definition.effectiveRestartPolicy())
+                && DppmsDirectWarrantyTemplate.ADAPTER.equals(definition.adapter())
+                && DppmsDirectWarrantyTemplate.OBJECT.equals(source.object()) && !composite;
+        // The independent P15 line already emits one complete business group per row. Do not sort
+        // its final JSON payload; verify phase dependencies and every original group key instead.
+        boolean deliveryFullRestart=full && "ONCE".equals(definition.mode())
+                && "RESTART_ALL".equals(definition.effectiveRestartPolicy()) && !composite
+                && "TABLE_MAPPING".equals(definition.adapter()) && "DPPMS".equals(definition.sourceSystem())
+                && "P15_DIRECT".equals(definition.taskKey()) && "CONTRACT".equals(source.object())
+                && "pm_order_data_from_erp".equals(source.sourceObject())
+                && "_groupKey".equals(source.groupKey()) && "_sourceRows".equals(source.rowProjection());
+        // Wrapping a phase UNION in a derived table materializes every phase on MySQL 5.7
+        // before the first cursor row. This full-restart-only path has no resume predicates.
+        if(deliveryFullRestart)sql=base.sql();
+        boolean unorderedFullRestart=renewalFullRestart || deliveryFullRestart;
+        Set<String> unorderedKeys=unorderedFullRestart?new HashSet<>():null;
+        final int[] deliveryPhase={-1};
+        // All other streams retain their existing stable ordering and O(1) duplicate detection.
+        if(!composite && !unorderedFullRestart)sql+=" ORDER BY "+key;
         final String query=sql;
         final List<Object> args=Collections.unmodifiableList(new ArrayList<>(values));
         final int fetchSize=jdbcFetchSize(connection,definition.effectiveFetchSize());
@@ -159,13 +190,26 @@ public class SpringJdbcStreamingReader {
                 while(rs.next()) {
                     Map<String,Object> row=new LinkedHashMap<>();
                     for(int i=1;i<=metadata.getColumnCount();i++)row.put(names.get(i-1),normalize(rs.getObject(i)));
+                    compositeKeys.assign(row);
                     row=scope.apply(row);
                     if(row==null)continue;
                     Object rawKey=row.get(SyncSourceProjection.readKey(source));
                     if(rawKey==null||rawKey.toString().isBlank()||rawKey.toString().length()>128)
                         throw new IllegalArgumentException("来源主键缺失或无效: "+source.object());
                     String sourceKey=rawKey.toString();
-                    if(Objects.equals(previous[0],sourceKey))throw new IllegalArgumentException("来源主键重复: "+source.object());
+                    if(deliveryFullRestart) {
+                        if(sourceKey.length()<3 || sourceKey.charAt(1)!=':'
+                                || sourceKey.charAt(0)<'0' || sourceKey.charAt(0)>'4'
+                                || sourceKey.charAt(0)-'0'<deliveryPhase[0])
+                            throw new IllegalArgumentException("P15来源阶段顺序无效");
+                        int phase=sourceKey.charAt(0)-'0';
+                        if(phase>deliveryPhase[0]) {
+                            // Earlier phases can never return: their prefix would fail the guard above.
+                            unorderedKeys.clear();deliveryPhase[0]=phase;
+                        }
+                    }
+                    if(unorderedKeys!=null ? !unorderedKeys.add(sourceKey) : Objects.equals(previous[0],sourceKey))
+                        throw new IllegalArgumentException("来源主键重复: "+source.object());
                     previous[0]=sourceKey;
                     if("INCREMENTAL".equals(definition.mode()) && row.get(source.updatedAt())==null)
                         throw new IllegalArgumentException("增量时间字段不可为空");

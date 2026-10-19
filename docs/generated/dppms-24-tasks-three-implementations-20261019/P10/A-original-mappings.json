@@ -1,0 +1,156 @@
+{
+  "task": "P10",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "CUSTOMER",
+      "sourceObject": "DPtech_v_account",
+      "sourceKey": "AccountId",
+      "mappings": [
+        {
+          "target": "customerCode",
+          "source": "AccountNumber",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "erpCustomerCode",
+          "source": "erpCustomerCode",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "customerName",
+          "source": "Name",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "contactPhone",
+          "source": "Telephone1",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "contactEmail",
+          "source": "EMailAddress1",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "address",
+          "source": "Address1_Composite",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "departmentCode",
+          "source": "new_mkt_unit_id",
+          "conversion": "STRING"
+        },
+        {
+          "target": "departmentName",
+          "source": "new_mkt_unit_idName",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "marketCode",
+          "source": "new_industry_level1_id",
+          "conversion": "STRING"
+        },
+        {
+          "target": "marketName",
+          "source": "new_industry_level1_idName",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "systemCode",
+          "source": "new_industry_level2_id",
+          "conversion": "STRING"
+        },
+        {
+          "target": "systemName",
+          "source": "new_industry_level2_idName",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "expendCode",
+          "source": "new_industry_level3_id",
+          "conversion": "STRING"
+        },
+        {
+          "target": "expendName",
+          "source": "new_industry_level3_idName",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "industryCode",
+          "source": "new_industry_level4_id",
+          "conversion": "STRING"
+        },
+        {
+          "target": "industryName",
+          "source": "new_industry_level4_idName",
+          "conversion": "TRIM"
+        },
+        {
+          "target": "lifecycleStatus",
+          "source": "StateCode",
+          "conversion": "ENUM",
+          "values": {
+            "0": "ENABLED",
+            "1": "DISABLED"
+          }
+        },
+        {
+          "target": "sourceVersion",
+          "source": "ModifiedOn",
+          "conversion": "STRING"
+        },
+        {
+          "target": "dataAsOf",
+          "source": "ModifiedOn",
+          "conversion": "DATETIME"
+        },
+        {
+          "target": "migrationIssue",
+          "source": "migrationIssue",
+          "conversion": "TRIM"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper.selectIncludingDeletedForUpdate",
+      "source": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+      "xml": "<select id=\"selectIncludingDeletedForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO\">\n        SELECT * FROM cus_customer_master WHERE tenant_id=#{tenantId} AND id=#{id} FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper.updatePlatformFieldsByVersion",
+      "source": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+      "xml": "<update id=\"updatePlatformFieldsByVersion\">\n        UPDATE cus_customer_master\n        <set>\n            <if test=\"query.updateName\">\n                name = #{query.name},\n            </if>\n            <if test=\"query.updateShortName\">\n                short_name = #{query.shortName},\n            </if>\n            <if test=\"query.updateRemark\">\n                remark = #{query.remark},\n            </if>\n            <if test=\"query.updateCustomerLevel\">\n                customer_level = #{query.customerLevel},\n            </if>\n            <if test=\"query.updateClassification\">\n                department_code = #{query.departmentCode},\n                department_name = #{query.departmentName},\n                market_code = #{query.marketCode},\n                market_name = #{query.marketName},\n                system_code = #{query.systemCode},\n                system_name = #{query.systemName},\n                expend_code = #{query.expendCode},\n                expend_name = #{query.expendName},\n                industry_code = #{query.industryCode},\n                industry_name = #{query.industryName},\n            </if>\n            version = version + 1,\n            update_time = CURRENT_TIMESTAMP\n        </set>\n        WHERE id = #{query.customerId}\n          AND tenant_id = #{query.tenantId}\n          AND version = #{query.expectedVersion}\n          AND deleted = b'0'\n    </update>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper.selectIncludingDeleted",
+      "source": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+      "xml": "<select id=\"selectIncludingDeleted\" resultType=\"cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO\">\n        SELECT *\n        FROM cus_customer_master\n        WHERE tenant_id = #{tenantId}\n          AND id = #{id}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper.updateLifecycleByVersion",
+      "source": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+      "xml": "<update id=\"updateLifecycleByVersion\">\n        UPDATE cus_customer_master\n        SET lifecycle_status = #{query.targetStatus},\n            deleted = #{query.targetDeleted},\n            version = version + 1,\n            update_time = CURRENT_TIMESTAMP\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.customerId}\n          AND lifecycle_status = #{query.expectedStatus}\n          AND version = #{query.expectedVersion}\n          AND deleted = #{query.expectedDeleted}\n    </update>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper.selectVisibleById",
+      "source": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+      "xml": "<select id=\"selectVisibleById\" resultType=\"cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO\">\n        SELECT *\n        FROM cus_customer_master\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.customerId}\n          AND deleted = b'0'\n        <if test=\"!query.allScope\">\n            AND (\n            <foreach collection=\"query.scopeSlices\" item=\"slice\" separator=\" OR \">\n                (\n                1 = 1\n                <if test=\"!slice.departmentCodes.isEmpty()\">\n                    AND department_code IN\n                    <foreach collection=\"slice.departmentCodes\" item=\"code\" open=\"(\" separator=\",\" close=\")\">\n                        #{code}\n                    </foreach>\n                </if>\n                <if test=\"!slice.marketCodes.isEmpty()\">\n                    AND market_code IN\n                    <foreach collection=\"slice.marketCodes\" item=\"code\" open=\"(\" separator=\",\" close=\")\">\n                        #{code}\n                    </foreach>\n                </if>\n                <if test=\"!slice.systemCodes.isEmpty()\">\n                    AND system_code IN\n                    <foreach collection=\"slice.systemCodes\" item=\"code\" open=\"(\" separator=\",\" close=\")\">\n                        #{code}\n                    </foreach>\n                </if>\n                <if test=\"!slice.expendCodes.isEmpty()\">\n                    AND expend_code IN\n                    <foreach collection=\"slice.expendCodes\" item=\"code\" open=\"(\" separator=\",\" close=\")\">\n                        #{code}\n                    </foreach>\n                </if>\n                <if test=\"!slice.industryCodes.isEmpty()\">\n                    AND industry_code IN\n                    <foreach collection=\"slice.industryCodes\" item=\"code\" open=\"(\" separator=\",\" close=\")\">\n                        #{code}\n                    </foreach>\n                </if>\n                )\n            </foreach>\n            )\n        </if>\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper.selectVisibleCount",
+      "source": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+      "xml": "<select id=\"selectVisibleCount\" resultType=\"long\">\n        SELECT COUNT(*)\n        FROM cus_customer_master\n        WHERE <include refid=\"visibleConditions\" />\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.customer.dal.mysql.customer.CustomerMasterMapper.selectVisibleList",
+      "source": "pms-module-customer/src/main/resources/mapper/customer/CustomerMasterMapper.xml",
+      "xml": "<select id=\"selectVisibleList\" resultType=\"cn.iocoder.yudao.module.pms.customer.dal.dataobject.customer.CustomerMasterDO\">\n        <bind name=\"pageOffset\" value=\"(query.pageParam.pageNo - 1) * query.pageParam.pageSize\" />\n        SELECT *\n        FROM cus_customer_master\n        WHERE <include refid=\"visibleConditions\" />\n        ORDER BY id DESC\n        LIMIT #{pageOffset}, #{query.pageParam.pageSize}\n    </select>\n\n"
+    }
+  ]
+}

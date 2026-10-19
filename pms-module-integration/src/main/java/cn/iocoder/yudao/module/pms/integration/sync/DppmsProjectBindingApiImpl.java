@@ -23,14 +23,14 @@ public class DppmsProjectBindingApiImpl implements DppmsProjectBindingApi {
         if(query.sourceProjectKeys().isEmpty()) return List.of();
         Map<String,ProjectBinding> result=new LinkedHashMap<>();
         for(var row:bindings.selectIdentitySources(new SyncQueries.IdentitySources(query.tenantId(),"DPPMS",
-                query.sourceConnectionId(),"DPPMS_PROJECT_MASTER","pm_project_header",query.sourceProjectKeys()))) {
+                query.sourceConnectionId(),"DPPMS_PROJECT_MASTER","pm_project_header",query.sourceProjectKeys()).forLine(query.originalOnly()))) {
             if(!query.sourceProjectKeys().contains(row.getSourceKey()))throw new IllegalArgumentException("DPPMS_PROJECT_BINDING_EVIDENCE_INVALID");
             add(result,masterBinding(row,query.tenantId(),query.sourceConnectionId()));
         }
         var aliases=new ArrayList<SyncBindingDO>();
         for(String adapter:List.of(DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectIdentitySyncTemplate.ADAPTER))
             aliases.addAll(bindings.selectIdentitySources(new SyncQueries.IdentitySources(query.tenantId(),"DPPMS",query.sourceConnectionId(),
-                    adapter,"pm_project",query.sourceProjectKeys())));
+                    adapter,"pm_project",query.sourceProjectKeys()).forLine(query.originalOnly())));
         var canonicalKeys=new LinkedHashSet<String>();
         for(var row:aliases){
             var saved=row.getFieldsJson()==null?null:JsonUtils.parseMap(row.getFieldsJson());
@@ -47,7 +47,7 @@ public class DppmsProjectBindingApiImpl implements DppmsProjectBindingApi {
         if(!canonicalKeys.isEmpty()){
             var canonical=new LinkedHashMap<String,ProjectBinding>();
             for(var row:bindings.selectIdentitySources(new SyncQueries.IdentitySources(query.tenantId(),"DPPMS",query.sourceConnectionId(),
-                    DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectMasterSyncTemplate.OBJECT,List.copyOf(canonicalKeys))))
+                    DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectMasterSyncTemplate.OBJECT,List.copyOf(canonicalKeys)).forLine(query.originalOnly())))
                 add(canonical,masterBinding(row,query.tenantId(),query.sourceConnectionId()));
             if(!canonical.keySet().equals(canonicalKeys))throw new IllegalArgumentException("DPPMS_PROJECT_ALIAS_MASTER_MISSING");
             for(var row:aliases){

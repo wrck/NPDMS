@@ -1,0 +1,346 @@
+{
+  "task": "P08",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "fnd_basic_data_type",
+      "sourceObject": "fnd_basic_data_type",
+      "sourceKey": "dataTypeCode",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "dataTypeCode",
+          "target": "dataTypeCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "dataTypeName",
+          "target": "dataTypeName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "status",
+          "target": "status"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createBy",
+          "target": "createBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateBy",
+          "target": "updateBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveFrom",
+          "target": "effectiveFrom"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveTo",
+          "target": "effectiveTo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "definitionMissing",
+          "target": "definitionMissing"
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "fnd_basic_data",
+      "sourceObject": "fnd_basic_data",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "dataTypeCode",
+          "target": "dataTypeCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "basicDataId",
+          "target": "basicDataId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "basicDataName",
+          "target": "basicDataName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "basicDataAttri1",
+          "target": "basicDataAttri1"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "sortId",
+          "target": "sortId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createBy",
+          "target": "createBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateBy",
+          "target": "updateBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveFrom",
+          "target": "effectiveFrom"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveTo",
+          "target": "effectiveTo"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "system_dict_data",
+      "column": "id",
+      "parameter": "#{command.row.id}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "sort",
+      "parameter": "#{command.row.sort}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "label",
+      "parameter": "#{command.row.label}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "value",
+      "parameter": "#{command.row.value}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "dict_type",
+      "parameter": "#{command.row.dictType}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "status",
+      "parameter": "#{command.row.status}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "color_type",
+      "parameter": "#{command.row.colorType}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "css_class",
+      "parameter": "#{command.row.cssClass}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "remark",
+      "parameter": "#{command.row.remark}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "creator",
+      "parameter": "#{command.row.creator}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "create_time",
+      "parameter": "#{command.row.createTime}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "updater",
+      "parameter": "#{command.row.updater}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "update_time",
+      "parameter": "#{command.row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "deleted",
+      "parameter": "#{command.row.deleted}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "id",
+      "parameter": "#{command.row.id}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "name",
+      "parameter": "#{command.row.name}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "type",
+      "parameter": "#{command.row.type}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "status",
+      "parameter": "#{command.row.status}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "remark",
+      "parameter": "#{command.row.remark}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "creator",
+      "parameter": "#{command.row.creator}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "create_time",
+      "parameter": "#{command.row.createTime}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "updater",
+      "parameter": "#{command.row.updater}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "update_time",
+      "parameter": "#{command.row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "deleted",
+      "parameter": "#{command.row.deleted}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "deleted_time",
+      "parameter": "#{command.row.deletedTime}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.selectMaintenance",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+      "xml": "<select id=\"selectMaintenance\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO\">\n    SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at &lt; #{now}))\n      ORDER BY id LIMIT 100\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.selectConflictingValuesForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml",
+      "xml": "<select id=\"selectConflictingValuesForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDictionaryDataMigrationApi$Item\">\n        SELECT id,sort,label,value,dict_type,status,color_type,css_class,remark,creator,create_time,updater,update_time,deleted\n        FROM system_dict_data\n        WHERE (deleted=b'0' AND dict_type=#{query.dictType} AND value=#{query.value})\n        <if test=\"query.targetId != null\">OR id=#{query.targetId}</if>\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.selectTypesForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml",
+      "xml": "<select id=\"selectTypesForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDictionaryTypeMigrationApi$Type\">\n        SELECT id,name,type,status,remark,creator,create_time,updater,update_time,deleted,deleted_time\n        FROM system_dict_type WHERE type=#{query.type} AND deleted=b'0' ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryDataMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryDataMigrationMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n        INSERT INTO system_dict_data\n            (id,sort,label,value,dict_type,status,color_type,css_class,remark,creator,create_time,updater,update_time,deleted)\n        VALUES (#{command.row.id},#{command.row.sort},#{command.row.label},#{command.row.value},#{command.row.dictType},\n            #{command.row.status},#{command.row.colorType},#{command.row.cssClass},#{command.row.remark},#{command.row.creator},\n            #{command.row.createTime},#{command.row.updater},#{command.row.updateTime},#{command.row.deleted})\n    </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.selectConflictingDefinitionsForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml",
+      "xml": "<select id=\"selectConflictingDefinitionsForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDictionaryTypeMigrationApi$Type\">\n        SELECT id,name,type,status,remark,creator,create_time,updater,update_time,deleted,deleted_time\n        FROM system_dict_type\n        WHERE (deleted=b'0' AND (type=#{query.type} OR name=#{query.name}))\n        <if test=\"query.targetId != null\">OR id=#{query.targetId}</if>\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dict.DictionaryTypeMigrationMapper.insertHistorical",
+      "source": "yudao-module-system/src/main/resources/mapper/dict/DictionaryTypeMigrationMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n        INSERT INTO system_dict_type\n            (id,name,type,status,remark,creator,create_time,updater,update_time,deleted,deleted_time)\n        VALUES (#{command.row.id},#{command.row.name},#{command.row.type},#{command.row.status},#{command.row.remark},\n            #{command.row.creator},#{command.row.createTime},#{command.row.updater},#{command.row.updateTime},\n            #{command.row.deleted},#{command.row.deletedTime})\n    </insert>\n"
+    }
+  ]
+}

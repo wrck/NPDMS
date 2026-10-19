@@ -1,0 +1,358 @@
+[
+  {
+    "key": "P01",
+    "name": "公司/部门及主管",
+    "taskIds": [
+      "2101562667583217666",
+      "2108524501517955073",
+      "2108538095265562625"
+    ],
+    "entry": "EHR_ORGANIZATION、DPPMS_DEPARTMENTS、DPPMS_EHR_DEPARTMENT_COMPLETION",
+    "source": "EHR公司/部门；fnd_department；ehr_department",
+    "target": "system_company、system_dept",
+    "result": "共用基础目录；历史已补28个FND部门及8个EHR补全部门。这不是仅迁10行或全组织迁完。",
+    "before": "原公司、父部门及已批准编码范围；来源/正式同码和后续人工值保护。",
+    "processing": "先由原公司ID取业务编码，再精确正式公司/父部门；EHR与FND按已审定主从关系合并，不凭部门猜公司。主管需正式账号来源身份。",
+    "after": "保存组织来源绑定；主管缺正式账号时保持待关联，不造人；原16列保护。",
+    "evidence": "2026-10-09-dppms-system-dept-eight-missing-table-decision.md"
+  },
+  {
+    "key": "P04",
+    "name": "账号、角色、公司部门范围",
+    "taskIds": [
+      "2108524822998773762",
+      "2108554583850524673",
+      "2108568095503093761",
+      "2108569376783273985"
+    ],
+    "entry": "DPPMS_USERS → DPPMS_ROLES → DPPMS_USER_ROLES → DPPMS_USER_SCOPES",
+    "source": "t_user/t_user_info/fnd_user_info；角色、关系、fnd_user_power",
+    "target": "system_users、system_role、system_user_role、system_user_company_department_scope",
+    "result": "1176账号；31角色来源=25新建+6复用；1932来源关系→1927新增对；9492范围绑定→9477新增范围。均为共享IAM范围，非10项目专属人数。",
+    "before": "既定账号白名单、FND优先、重名/姓名例外、精确EHR工号和已批准角色资格；不读旧密码。",
+    "processing": "按精确登录账号合并，先账号与组织，再角色，再用户角色和公司部门范围；空公司不生成公司授权。原NULL审计不自动变管理员。isSysUser在当时承接仍有缺口，新C修复不反向算作历史已保存。",
+    "after": "保留各原ID绑定；限定557处更新人、13角色25处审计纠正各有独立任务/回执；不覆盖其他字段。",
+    "evidence": "2026-10-09-dppms-identity-table-decision.md"
+  },
+  {
+    "key": "P08",
+    "name": "基础字典",
+    "taskIds": [
+      "2109351154645135362",
+      "2109371486114320385"
+    ],
+    "entry": "DPPMS_DICTIONARY_TYPES / DPPMS_DICTIONARY_DATA",
+    "source": "fnd_basic_data_type、fnd_basic_data",
+    "target": "system_dict_type、system_dict_data",
+    "result": "80类型=31原类型+49缺失分组；531字典项；原ID114明确排除；各自重放未变化。",
+    "before": "获批缺失类型派生规则、原NULL/排序、精确审计人员和租户。",
+    "processing": "先承接类型，字典项按原类型和值关联；已存在系统字典不任意覆盖。",
+    "after": "维护来源绑定并刷新对应字典缓存；80/531是共用字典验证，不是10项目记录数。",
+    "evidence": "2026-10-12-dppms-system-dictionary-table-proposal.md"
+  },
+  {
+    "key": "P10",
+    "name": "CRM客户",
+    "taskIds": [
+      "2102221608959250434"
+    ],
+    "entry": "CRM_CUSTOMER",
+    "source": "CRM正式来源",
+    "target": "cus_customer_master及外部身份映射",
+    "result": "历史已有独立客户同步任务；本次所查10项目回执不能单独证明客户整表迁入。",
+    "before": "CRM外部ID、客户编码、租户及源版本的既有权威规则。",
+    "processing": "按外部身份/业务编码由CUS Owner处理，不能因项目客户名称相同创建或合并客户。",
+    "after": "客户映射、来源及人工字段保护；任务存在与10项目验收分开记录。",
+    "evidence": "2026-10-13-dppms-migration-mapping/README.md"
+  },
+  {
+    "key": "P11",
+    "name": "CRM产品",
+    "taskIds": [
+      "2102221608179109889"
+    ],
+    "entry": "TABLE_MAPPING",
+    "source": "CRM产品来源视图",
+    "target": "ast_product_official_info",
+    "result": "历史已有CRM产品任务；不把后续59284的8441/8443预览回填为此批试点成绩。",
+    "before": "正式产品编码、来源系统、版本及保护列。",
+    "processing": "读取原任务保存SQL，经原TABLE_MAPPING映射目录；此历史配置与新虚基类SQL Server查询分别保留。",
+    "after": "维护产品来源绑定；不据任务清单推断此次10项目新增产品。",
+    "evidence": "2026-10-09-dppms-official-product-table-decision.md"
+  },
+  {
+    "key": "P12",
+    "name": "DPPMS产品目录补充",
+    "taskIds": [
+      "2108534088732168194"
+    ],
+    "entry": "DPPMS_PRODUCT_CATALOG",
+    "source": "fb_items",
+    "target": "ast_product_official_info；当时批准的PLT扩展",
+    "result": "原试点104编码，包含补5；后来8418已有产品承接是另一次较大范围，不能加算进10项目。",
+    "before": "精确编码、原4字段、已有目录21列/来源与扩展定义版本保护。",
+    "processing": "原item映射产品编码、itemname/describe_按当时正式型号/名称裁决；当时使用过原标签扩展，后续新P12取消扩展不改写这段历史。",
+    "after": "保存正式目录及当时来源/扩展回执；不新增其他未获批编码。",
+    "evidence": "2026-10-09-dppms-official-product-table-decision.md"
+  },
+  {
+    "key": "P13",
+    "name": "CRM执行单",
+    "taskIds": [
+      "2101625228492091393"
+    ],
+    "entry": "DPPMS_CRM_EXECUTION_ORDER；旧/execution-field-corrections",
+    "source": "pm_project_property_from_sms",
+    "target": "com_crm_execution_order",
+    "result": "原10项目执行单来源及字段纠正有专项记录；10/13全源102520的更新是后续共享处理，不等同原试点。",
+    "before": "原任务指定执行单ID/项目关联、公司码、完整原32列和正式前值。",
+    "processing": "按正式执行单身份受保护承接原字段；不以源记录覆盖主项目、当前状态或人工字段。早期专用纠正入口与后续参数化整表任务分别留证。",
+    "after": "保存旧回执/来源身份；重复对账不改当前正式业务事实。",
+    "evidence": "2026-10-09-dppms-crm-execution-order-table-decision.md"
+  },
+  {
+    "key": "P14",
+    "name": "销售订单/订单行",
+    "taskIds": [
+      "2101587859478949890"
+    ],
+    "entry": "DPPMS_ERP_ORDER；旧/order-field-corrections",
+    "source": "pm_order_data_from_erp、pm_order_line_from_erp",
+    "target": "com_sales_order、com_sales_order_line",
+    "result": "原105试点订单行已承接；不能将既有表计数16头/27行等保护范围当本次新增数。",
+    "before": "来源ERP类别、公司01→001等已裁决转换、订单号/类型/行号、完整原列与正式前值。",
+    "processing": "先表头后行，精确父订单身份；旧发货行lineNum与ERP inventTransId的专门关联另走40条引用纠正。未知单位/产品不猜。",
+    "after": "保留订单权威状态、人工字段及数量完成事实；原回执不可改写。",
+    "evidence": "2026-10-09-dppms-sales-order-line-table-decision.md"
+  },
+  {
+    "key": "P15",
+    "name": "合同/发货/装箱与物流",
+    "taskIds": [
+      "2107037031219654657",
+      "2101891886242299906"
+    ],
+    "entry": "TABLE_MAPPING；旧/native-imports及/carrier-corrections",
+    "source": "fb_contract、fb_shipment、fb_shipment_barcode、物流/产品视图",
+    "target": "com_contract、com_shipment_contract_reference、com_shipment_package、ast_device_shipment",
+    "result": "原10项目1284条发货事实、19条包件物流的原字段核对完成；120638发货合同引用属于共用处理范围。",
+    "before": "明确原合同/订单/发货记录ID及包件范围，原合同号派生规则，真实公司/客户和正式父关联。",
+    "processing": "当时通用五来源映射及PROJ迁移编排调用COM/AST Owner；名称与承运人编码分列，发货事实不当收货/验收完成。",
+    "after": "来源绑定、正式字段和旧回执保护；后续2条保修年数纠正使用独立任务2108799116748152833，不把当前A/P15新增本地Owner收尾追认为旧逻辑。",
+    "evidence": "2026-10-09-dppms-shipment-package-table-decision.md"
+  },
+  {
+    "key": "P16",
+    "name": "项目主档及全部原身份",
+    "taskIds": [
+      "2108608417343934465",
+      "2109622534918856706"
+    ],
+    "entry": "DPPMS_PROJECT_MASTER → DPPMS_PROJECT_IDENTITY",
+    "source": "早期pm_project_header；后改pm_project及规范身份查询",
+    "target": "proj_project、proj_project_party；INT来源身份",
+    "result": "原10项目37原字段纠正/重放完成；身份10条完整预览、执行、重放。51922后续结束日期2026-10-14保持。",
+    "before": "原→正式项目绑定和全字段基线；正常创建/公司部门范围；不把当前后续版本当作原预览基线。",
+    "processing": "早期10ID曾在保存SQL中；10/12整表化后同类型+同编码取最大projectId，10ID只作参数。Owner处理历史状态初始化，非普通创建模板，不生成当前任务或审批事实。",
+    "after": "保留所有原ID→规范主档→正式ID；身份任务不再次创建项目；旧日期/来源JSON和已变更结束日期受保护。",
+    "evidence": "2026-10-12-dppms-migration-consolidation-handoff.md"
+  },
+  {
+    "key": "P18",
+    "name": "项目合同关系",
+    "taskIds": [
+      "2109363204544983041"
+    ],
+    "entry": "DPPMS_PROJECT_CONTRACT_RELATION",
+    "source": "pm_project_contract、pm_project_group_relationship、pm_project_group、pm_project",
+    "target": "com_project_contract_relation",
+    "result": "原10条关系；v1完整预览、执行、重放均10 UNCHANGED，补10个有序来源绑定共用既有目标。",
+    "before": "正式项目/合同与公司授权、组成员完整性、原7字段及展开26字段、既有17列前值。",
+    "processing": "按原项目组/成员桥解释关联；-his为历史关系。此时正式身份跨组全面归并尚未闭合，不能把后续已批准规则称作当时已经全覆盖。",
+    "after": "历史关系进入正式合同区，但不授当前绑定/合同权限；原关系和旧绑定/回执保持。",
+    "evidence": "2026-10-12-dppms-migration-consolidation-handoff.md"
+  },
+  {
+    "key": "P19",
+    "name": "相关方和过程状态",
+    "taskIds": [
+      "2109968219214897153"
+    ],
+    "entry": "DPPMS_PROJECT_FACTS",
+    "source": "pm_project_related_party、pm_project_state",
+    "target": "proj_project_party、PRJ/project正式四属性扩展",
+    "result": "原10项目读65：55相关方更新+10状态扩展；23条NULL更新人另纠正；最终重放65 UNCHANGED。",
+    "before": "正式项目身份、原相关方全20列前值和扩展定义/修订。",
+    "processing": "11原字段入现有相关方列；shipment/execution状态及各更新时间入四属性扩展，不推动项目生命周期。NULL更新时间用创建时间，NULL审计显式保存。",
+    "after": "保护contact_name/phone/原JSON及其他状态；计划过程暂缓、审批过程不迁。",
+    "evidence": "2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md"
+  },
+  {
+    "key": "P20",
+    "name": "真实产品清单",
+    "taskIds": [
+      "2109865269478027265"
+    ],
+    "entry": "DPPMS_PROJECT_REAL_PRODUCT；早期/real-product-imports",
+    "source": "pm_project_product_line_real及SMS上游",
+    "target": "proj_project_real_product",
+    "result": "原10项目0条；实现/空来源与非空承接分开。",
+    "before": "精确项目编码与上游关联；不按产品编码吞掉重复原清单。",
+    "processing": "当时19列清单Owner保留全部原业务字段；必须已有正式项目，不凭原数字ID造父关联。",
+    "after": "不产生设备/库存分配，不把0行成功算非空样本已验收。",
+    "evidence": "2026-10-10-dppms-real-product-table-decision.md"
+  },
+  {
+    "key": "P21",
+    "name": "租赁产品/配置层级",
+    "taskIds": [
+      "2109865270430134273"
+    ],
+    "entry": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS；早期/lease-product-imports、/product-configuration-imports",
+    "source": "两张CRM项目产品缓存",
+    "target": "proj_project_lease_product、proj_project_product_configuration",
+    "result": "原10项目两表均0条；19列正式承载及规则已实现，非空全历史未迁。",
+    "before": "原基础项目编码、类型和全部字段，层级路径及缺父节点原值。",
+    "processing": "保留重复原行及空值，原租赁期限按月数、原配置层级/路径原样；不补造父节点或用当前产品替换原值。",
+    "after": "不生成当前项目产品分配/新父关系；无稳定源键的持续刷新不从空样本推断。",
+    "evidence": "2026-10-10-dppms-product-configuration-table-decision.md"
+  },
+  {
+    "key": "P22",
+    "name": "项目产品实施范围",
+    "taskIds": [
+      "2109829769958453249"
+    ],
+    "entry": "DPPMS_PROJECT_PRODUCT_SCOPE；早期/product-scope-corrections",
+    "source": "pm_project_product_line",
+    "target": "com_delivery_scope、com_delivery_scope_detail",
+    "result": "105范围+补齐105条21列产品数量明细；10命令重放REPLAY_COMPLETED，父范围和29旧明细保护。",
+    "before": "105原11字段、已有父范围及正式订单行/办事处，全字段前值和项目/范围版本。",
+    "processing": "每条无SN历史范围配1条产品数量明细，使用原项目数量/已批准订单数量回退；serial_no=NULL，allocation_confirmed=false，不制造设备或当前占用。",
+    "after": "保存新明细实际ID及Owner完整结果；不改父数量/审计/版本水位，不发布分配/验收事件。",
+    "evidence": "2026-10-10-dppms-equipment-association-repair-decision.md"
+  },
+  {
+    "key": "P23",
+    "name": "合同回款计划",
+    "taskIds": [
+      "2108574253093683202"
+    ],
+    "entry": "DPPMS_CONTRACT_COLLECTION_PLAN；早期/collection-plan-corrections",
+    "source": "pm_pb_plan_from_sms",
+    "target": "com_contract_collection_plan",
+    "result": "原10条19列；v3预览、执行、重放均10 UNCHANGED，旧计划/项目/绑定/回执保护。",
+    "before": "原16字段、合同关系、审计例外l01663及原NULL时间；完整现存前值。",
+    "processing": "正式计划承接，和实际回款信息分表；10/12改参数化整表SQL，planIds只保存在运行参数。",
+    "after": "保存来源绑定及受保护结果；不生成实际收款/验收动作，不用回款信息表代替计划。",
+    "evidence": "2026-10-09-dppms-contract-collection-plan-table-decision.md"
+  },
+  {
+    "key": "P24",
+    "name": "合同实际回款信息",
+    "taskIds": [
+      "2109967339937804289"
+    ],
+    "entry": "DPPMS_CONTRACT_RECEIVABLE",
+    "source": "sms_ofst_contract_head_sap",
+    "target": "com_contract_receivable",
+    "result": "原10项目10条实际承接，39原列/52正式列核对；重放10 UNCHANGED。",
+    "before": "原合同号、金额/比例无损精度、审计及52列前值；空合同号沿已批准7条排除。",
+    "processing": "合同号精确唯一才回填正式contract_id，否则NULL；保持原业务码，不猜公司，实际回款不等于合同收款动作完成。",
+    "after": "正常合同区沿已授权项目合同号查询；不覆盖合同主档权威金额/客户。",
+    "evidence": "2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md"
+  },
+  {
+    "key": "P25",
+    "name": "逐次续保",
+    "taskIds": [
+      "2110010787726274561"
+    ],
+    "entry": "DPPMS_WARRANTY_RENEWAL",
+    "source": "fb_service",
+    "target": "ast_device_warranty_renewal_record",
+    "result": "原10项目无非空续保样本；后来单条正例+另一批十项目222条共223实体另列。既有149维保记录不是fb_service承接数。",
+    "before": "限定合格原来源、原id+SN、10原字段；不把计算维保投影当续保原记录。",
+    "processing": "年数×12仅为参考月数，NULL与0分别保留、原起止日期不重算；不以当前设备唯一归属限制历史展示。",
+    "after": "按来源身份保留每次记录，不覆盖现存149维保和31当前投影；新十项目的重放另列，不伪装成旧十项目非空验收。",
+    "evidence": "2026-10-13-dppms-renewal-multi-contract-validation.md"
+  },
+  {
+    "key": "P30",
+    "name": "设备基础/项目链及引用修复",
+    "taskIds": [],
+    "entry": "旧/native-imports；/shipment-reference-previews、/shipment-reference-corrections",
+    "source": "正式发货/原SN和当时材料中的项目关联",
+    "target": "ast_device、ast_device_shipment既有引用",
+    "result": "不存在后来P30独立统一任务；已限定修复40条order_line_id和11处失效shipment_record_id，NEW及两次REPLAY_COMPLETED。",
+    "before": "40发货39列、40设备53列、原19字段和两条ERP行全部核对；正式源D365/公司001/订单/行号/产品身份。",
+    "processing": "通过AST Owner只修引用，40发货按inventTransId关联正式行（24/16）；29正确设备引用不动，原line_no不改，不凭子产品造订单行。",
+    "after": "设备清单按实施范围订单产品显示，SN页仍保留40设备；不改变当前设备资料或授权。",
+    "evidence": "2026-10-10-dppms-equipment-association-repair-decision.md"
+  },
+  {
+    "key": "P31",
+    "name": "成员历史/批准授权/最终客户联系人",
+    "taskIds": [],
+    "entry": "旧/member-import-previews → /member-history-imports；/final-customer-contact-previews → /final-customer-contact-imports",
+    "source": "pm_project_member 70行15列",
+    "target": "proj_project_member_assignment、cus_project_customer_contact_relation",
+    "result": "61成员=23确认授权+38未确认历史；结束6管理员区间、原84其余保持；10项目重放。9联系人经CUS承接，旧17全局联系人保持。",
+    "before": "逐项目主责批准、SYSTEM角色/公司资格、精确账号、完整来源及项目/成员前值；role60独立CUS规则。",
+    "processing": "当时专用Owner在明确批准下为闭环项目补成员授权，不放开普通ACTIVE校验；不合格/过期/无账号留未确认历史；69300仅服务经理、不补项目经理角色。联系人精确挂正式FINAL_CUSTOMER。",
+    "after": "6管理员结束区间留历史，主责仅按逐项目批准；原70行和生命周期保持。此许可不能扩到后来的全历史默认成员任务。",
+    "evidence": "2026-10-11-dppms-project-member-table-decision.md"
+  },
+  {
+    "key": "P33",
+    "name": "安装历史/获准当前位置",
+    "taskIds": [],
+    "entry": "旧/installation-record-previews → /installation-record-corrections",
+    "source": "pm_project_shipment",
+    "target": "imp_eng_installation、ast_device_location、ast_address",
+    "result": "948正式安装；20较新位置保留，补928空位置；298普通记录保护。",
+    "before": "真实正式设备、项目与地址Owner权限、原21字段及已有安装/位置全部基线。",
+    "processing": "有安装地址认定已安装status2；createTime→install_time/effective_from，旧历史结束取较新生效时间。地址经正式快照API，不能凭相同文本猜当前地址ID。",
+    "after": "不覆盖20较新当前位置，审计NULL原样；后续串货/工程过程按裁决不迁，不依据初次10项目推广全历史关系。",
+    "evidence": "2026-10-10-dppms-existing-installation-table-decision.md"
+  },
+  {
+    "key": "P34",
+    "name": "出厂软件版本记录",
+    "taskIds": [],
+    "entry": "旧/factory-record-corrections；原/native-imports",
+    "source": "fb_soft_version",
+    "target": "ast_device_factory_version_record；既有出厂主档保护",
+    "result": "19条最终13列，5个有数据项目对账及重放、10项目正式接口；主档23列不变。",
+    "before": "五原字段、租户、原绑定targetID和本批项目关联；无源主键/时间，不任选最新。",
+    "processing": "serial_number及conp/boot/cpld/pcb写正式同名业务字段；完整内容+重复出现次数只作技术来源身份。记录完整保留，冲突不覆盖唯一出厂主档。",
+    "after": "12条可由当前设备链确认，另7条仍保留已批准原项目引用；不补造设备，持续刷新身份另有边界。",
+    "evidence": "2026-10-10-dppms-factory-version-record-table-decision.md"
+  },
+  {
+    "key": "P35",
+    "name": "软件变更批次/版本历史",
+    "taskIds": [],
+    "entry": "旧/native-imports；/software-history-correction-previews、/software-history-corrections",
+    "source": "pm_project_soft_change_logs、pm_project_soft_version",
+    "target": "ast_device_software_change_batch、ast_device_software_version_record、正式实体扩展",
+    "result": "6批次+659版本历史+5272个原Bak/Change属性承接；635条误生成旧事件已限定撤回，不计升级完成。",
+    "before": "完整原批次/版本、源logId父链、AST正式八属性定义、已有31列/审计/关联和后续业务保护。",
+    "processing": "先批次后版本，四版本与原业务日期原样；八个Bak/Change进入当时正式扩展。不把旧日志/标志转成当前升级动作或解析完成。",
+    "after": "仅历史Owner保存及回放核对；软件正常维护和解析链保持独立，旧错误事件撤回回执单列。",
+    "evidence": "2026-10-10-dppms-existing-software-history-table-decision.md"
+  },
+  {
+    "key": "P37",
+    "name": "许可历史",
+    "taskIds": [],
+    "entry": "旧/license-previews → /license-imports",
+    "source": "pm_project_license_info_from_license；批准153原ID/7非秘密值",
+    "target": "ast_device_license_record",
+    "result": "153条×16列，10 NEW+10 REPLAY_COMPLETED，受控内存解密/MAC比对及两页详情验证；缺设备/合同关联各0。",
+    "before": "本批各项目授权上下文、冻结材料/153原许可身份、正式运行人/租户与独立受控密钥；不是任取项目代表整表。",
+    "processing": "采集侧内存AES-256-GCM，原明文不入普通快照/日志；AST Owner核验封装和身份，按可核实SN/合同关联；正式license_code_ciphertext保存封装。",
+    "after": "通过PLT保存绑定/命令回执；项目查询覆盖历次来源绑定而非只查最新快照；界面只显示非秘密字段。475468整表预览与空码批准是后来独立任务，不改变原试点记录。",
+    "evidence": "2026-10-11-dppms-license-record-table-decision.md"
+  }
+]

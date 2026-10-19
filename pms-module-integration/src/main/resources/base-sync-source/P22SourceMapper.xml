@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$SourceMapper"><select id="selectProductScope" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$Source">SELECT STRAIGHT_JOIN l.id AS sourceId,l.projectId AS originalProjectId,canonical.projectId AS canonicalProjectId,p.projectCode AS originalProjectCode,current_project.compId AS originalCompanyId,current_project.projectName AS originalProjectName,p.column001 AS originalDepartmentCode,p.projectType,l.contractNo,l.itemCode,l.itemName,l.projectQuantity,l.orderQuantity,l.deliverQuantity,l.openQuantity,l.orderNumber,l.lineNum FROM pm_project_product_line l
+JOIN pm_project p ON p.projectId=l.projectId
+JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical
+ ON canonical.typeKey=CAST(p.projectType AS BINARY) AND canonical.codeKey=CAST(p.projectCode AS BINARY)
+JOIN pm_project current_project ON current_project.projectId=canonical.projectId
+WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10' ORDER BY l.id LIMIT #{limit}</select><select id="selectCompanies" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$Company">SELECT id,compCode AS code FROM t_company LIMIT #{limit}</select>
+</mapper>

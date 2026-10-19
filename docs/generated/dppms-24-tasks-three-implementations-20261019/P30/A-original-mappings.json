@@ -1,0 +1,269 @@
+{
+  "task": "P30",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "DEVICE_BASE",
+      "sourceObject": "ast_device_shipment",
+      "sourceKey": "deviceSn",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "deviceSn",
+          "target": "deviceSn"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "shipmentId",
+          "target": "shipmentId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "shipmentSourceKey",
+          "target": "shipmentSourceKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contractNo",
+          "target": "contractNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "packageNo",
+          "target": "packageNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "shipmentTime",
+          "target": "shipmentTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productCode",
+          "target": "productCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productModel",
+          "target": "productModel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productName",
+          "target": "productName"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "ast_device_project_relationship",
+      "column": "device_sn",
+      "parameter": "#{deviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "project_id",
+      "parameter": "#{projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "relationship_type",
+      "parameter": "#{relationshipType}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "effective_from",
+      "parameter": "#{effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "effective_to",
+      "parameter": "#{effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "assignment_version",
+      "parameter": "#{assignmentVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "reason",
+      "parameter": "#{reason}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "operation_id",
+      "parameter": "#{operationId}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "source_system",
+      "parameter": "#{sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "source_key",
+      "parameter": "#{sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "source_version",
+      "parameter": "#{sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "version",
+      "parameter": "#{version}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    },
+    {
+      "table": "ast_device_project_relationship",
+      "column": "tenant_id",
+      "parameter": "#{tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectDeviceForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectDeviceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO\">\n        SELECT id,\n               sn,\n               project_id,\n               project_assignment_version,\n               customer_id,\n               customer_assignment_version,\n               tenant_id\n        FROM ast_device\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.deviceId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCurrentProject",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCurrentProject\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceProjectRelationshipDO\">\n        SELECT id,\n               device_sn,\n               project_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_project_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = (\n              SELECT sn\n              FROM ast_device\n              WHERE tenant_id = #{query.tenantId}\n                AND id = #{query.deviceId}\n                AND deleted = b'0'\n          )\n          AND relationship_type = 'DIRECT'\n          AND effective_to IS NULL\n          AND deleted = b'0'\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.closeCurrentProject",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<update id=\"closeCurrentProject\">\n        UPDATE ast_device_project_relationship r\n        JOIN ast_device d\n          ON d.tenant_id = r.tenant_id\n         AND d.sn = r.device_sn\n        SET r.effective_to = #{effectiveTo},\n            r.assignment_version = #{assignmentVersion}\n        WHERE r.tenant_id = #{tenantId}\n          AND d.id = #{deviceId}\n          AND r.relationship_type = 'DIRECT'\n          AND r.effective_to IS NULL\n          AND r.deleted = b'0'\n    </update>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.insertProjectRelationship",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<insert id=\"insertProjectRelationship\" useGeneratedKeys=\"true\" keyProperty=\"id\">\n        INSERT INTO ast_device_project_relationship (\n            device_sn,\n            project_id,\n            relationship_type,\n            effective_from,\n            effective_to,\n            assignment_version,\n            reason,\n            operation_id,\n            source_system,\n            source_key,\n            source_version,\n            version,\n            tenant_id\n        ) VALUES (\n            #{deviceSn},\n            #{projectId},\n            #{relationshipType},\n            #{effectiveFrom},\n            #{effectiveTo},\n            #{assignmentVersion},\n            #{reason},\n            #{operationId},\n            #{sourceSystem},\n            #{sourceKey},\n            #{sourceVersion},\n            #{version},\n            #{tenantId}\n        )\n    </insert>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.updateDeviceProjectIfMatch",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<update id=\"updateDeviceProjectIfMatch\">\n        UPDATE ast_device\n        SET project_id = #{update.projectId},\n            project_assignment_version = #{update.newAssignmentVersion}\n        WHERE tenant_id = #{update.tenantId}\n          AND id = #{update.deviceId}\n          AND project_assignment_version = #{update.expectedAssignmentVersion}\n          AND deleted = b'0'\n    </update>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCurrentCustomer",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCurrentCustomer\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceCustomerRelationshipDO\">\n        SELECT id,\n               device_sn,\n               customer_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_customer_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = (\n              SELECT sn\n              FROM ast_device\n              WHERE tenant_id = #{query.tenantId}\n                AND id = #{query.deviceId}\n                AND deleted = b'0'\n          )\n          AND relationship_type = 'DIRECT'\n          AND effective_to IS NULL\n          AND deleted = b'0'\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.closeCurrentCustomer",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<update id=\"closeCurrentCustomer\">\n        UPDATE ast_device_customer_relationship r\n        JOIN ast_device d\n          ON d.tenant_id = r.tenant_id\n         AND d.sn = r.device_sn\n        SET r.effective_to = #{effectiveTo},\n            r.assignment_version = #{assignmentVersion}\n        WHERE r.tenant_id = #{tenantId}\n          AND d.id = #{deviceId}\n          AND r.relationship_type = 'DIRECT'\n          AND r.effective_to IS NULL\n          AND r.deleted = b'0'\n    </update>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.updateDeviceCustomerIfMatch",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<update id=\"updateDeviceCustomerIfMatch\">\n        UPDATE ast_device\n        SET customer_id = #{update.customerId},\n            customer_assignment_version = #{update.newAssignmentVersion}\n        WHERE tenant_id = #{update.tenantId}\n          AND id = #{update.deviceId}\n          AND customer_assignment_version = #{update.expectedAssignmentVersion}\n          AND deleted = b'0'\n    </update>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectProjectHistoryList",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectProjectHistoryList\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceProjectRelationshipDO\">\n        SELECT id,\n               device_sn,\n               project_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_project_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND relationship_type = 'DIRECT'\n          AND deleted = b'0'\n        ORDER BY effective_from DESC,\n                 id DESC\n        LIMIT #{query.limit} OFFSET #{query.offset}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectProjectHistoryCount",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectProjectHistoryCount\" resultType=\"long\">\n        SELECT COUNT(*)\n        FROM ast_device_project_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND relationship_type = 'DIRECT'\n          AND deleted = b'0'\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCustomerRelationshipList",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCustomerRelationshipList\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceCustomerRelationshipDO\">\n        SELECT id,\n               device_sn,\n               customer_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_customer_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n        ORDER BY effective_from DESC,\n                 id DESC\n        LIMIT #{query.limit} OFFSET #{query.offset}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCustomerRelationshipCount",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCustomerRelationshipCount\" resultType=\"long\">\n        SELECT COUNT(*)\n        FROM ast_device_customer_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectProjectionDeviceForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectProjectionDeviceForUpdate\" resultType=\"long\">\n        SELECT id\n        FROM ast_device\n        WHERE tenant_id = #{tenantId}\n          AND sn = #{deviceSn}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.existsAncestorProjectionOperation",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"existsAncestorProjectionOperation\" resultType=\"boolean\">\n        SELECT EXISTS(\n            SELECT 1\n            FROM ast_device_ancestor_projection_operation\n            WHERE tenant_id = #{tenantId}\n              AND event_id = #{eventId}\n              AND deleted = b'0'\n        )\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectLatestAncestorProjectionOperation",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectLatestAncestorProjectionOperation\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceAncestorProjectionOperationDO\">\n        SELECT id,\n               event_id,\n               operation_id,\n               device_sn,\n               project_id,\n               tree_version,\n               assignment_version,\n               tenant_id\n        FROM ast_device_ancestor_projection_operation\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n        ORDER BY assignment_version DESC,\n                 tree_version DESC,\n                 id DESC\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMigrationIdentityMapper.selectIdentityForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml",
+      "xml": "<select id=\"selectIdentityForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO\">\n        SELECT * FROM ast_device WHERE tenant_id=#{query.tenantId} AND sn=#{query.deviceSn} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceOrganizationMapper.selectBatchForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/device/DeviceOrganizationMapper.xml",
+      "xml": "<select id=\"selectBatchForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO\">\n    SELECT id,tenant_id,project_id,contract_no,company_id,company_name,department_id,department_code,department_name,organization_source,organization_updated_at\n    <include refid=\"selection\" /> FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceOrganizationMapper.selectStoredOrganizations",
+      "source": "pms-module-asset/src/main/resources/mapper/device/DeviceOrganizationMapper.xml",
+      "xml": "<select id=\"selectStoredOrganizations\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO\">\n    SELECT id,company_id,company_name,department_id,department_code,department_name,organization_source\n    <include refid=\"selection\" />\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceOrganizationMapper.updateOrganizationBatch",
+      "source": "pms-module-asset/src/main/resources/mapper/device/DeviceOrganizationMapper.xml",
+      "xml": "<update id=\"updateOrganizationBatch\">\n    UPDATE ast_device SET company_id=#{query.companyId},company_name=#{query.companyName},\n      department_id=#{query.departmentId},department_code=#{query.departmentCode},department_name=#{query.departmentName},\n      organization_source=#{query.source},organization_updated_at=CURRENT_TIMESTAMP(3)\n    WHERE tenant_id=#{query.tenantId} AND deleted=0\n      AND id IN <foreach collection=\"deviceIds\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach>\n  </update>\n  \n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceOrganizationMapper.updateOrganizationRows",
+      "source": "pms-module-asset/src/main/resources/mapper/device/DeviceOrganizationMapper.xml",
+      "xml": "<update id=\"updateOrganizationRows\">\n    <choose>\n      <when test=\"rows != null and !rows.isEmpty()\">\n        UPDATE ast_device SET\n          company_id=CASE id\n            <foreach collection=\"rows\" item=\"row\">WHEN #{row.deviceId} THEN #{row.companyId}</foreach>\n            ELSE company_id END,\n          company_name=CASE id\n            <foreach collection=\"rows\" item=\"row\">WHEN #{row.deviceId} THEN #{row.companyName}</foreach>\n            ELSE company_name END,\n          department_id=CASE id\n            <foreach collection=\"rows\" item=\"row\">WHEN #{row.deviceId} THEN #{row.departmentId}</foreach>\n            ELSE department_id END,\n          department_code=CASE id\n            <foreach collection=\"rows\" item=\"row\">WHEN #{row.deviceId} THEN #{row.departmentCode}</foreach>\n            ELSE department_code END,\n          department_name=CASE id\n            <foreach collection=\"rows\" item=\"row\">WHEN #{row.deviceId} THEN #{row.departmentName}</foreach>\n            ELSE department_name END,\n          organization_source=CASE id\n            <foreach collection=\"rows\" item=\"row\">WHEN #{row.deviceId} THEN #{row.source}</foreach>\n            ELSE organization_source END,\n          organization_updated_at=CURRENT_TIMESTAMP(3)\n        WHERE tenant_id=#{tenantId} AND deleted=0\n          AND id IN <foreach collection=\"rows\" item=\"row\" open=\"(\" close=\")\" separator=\",\">#{row.deviceId}</foreach>\n      </when>\n      <otherwise>\n        UPDATE ast_device SET id=id WHERE tenant_id=#{tenantId} AND 1=0\n      </otherwise>\n    </choose>\n  </update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.shipment.DeviceShipmentMapper.selectLatest",
+      "source": "pms-module-asset/src/main/resources/mapper/shipment/DeviceShipmentMapper.xml",
+      "xml": "<select id=\"selectLatest\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.shipment.DeviceShipmentDO\">\n        SELECT id,\n               device_sn,\n               legacy_package_key,\n               rma_related_sn,\n               rma_marked,\n               order_no,\n               line_no,\n               order_line_id,\n               source_payload,\n               product_code,\n               secondary_sn,\n               secondary_item,\n               internal_serial_no,\n               is_rma,\n               profit_center,\n               sole_agent_suffix,\n               sync_time,\n               uuid,\n               shipment_time,\n               package_no,\n               contract_no,\n               event_type,\n               warranty_start_date,\n               warranty_months,\n               rma_no,\n               related_device_sn,\n               source_system,\n               source_key,\n               source_version,\n               source_updated_at,\n               synced_at,\n               sync_status,\n               version,\n               creator,\n               create_time,\n               updater,\n               update_time,\n               deleted,\n               tenant_id\n        FROM ast_device_shipment\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n        ORDER BY shipment_time DESC, id DESC\n        LIMIT 1\n    </select>\n\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionMapper.selectIdentity",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionMapper.xml",
+      "xml": "<select id=\"selectIdentity\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceFactoryVersionDO\">\n        SELECT * FROM ast_device_factory_version WHERE tenant_id=#{query.tenantId} AND device_sn=#{query.deviceSn} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRecordMapper.selectSourceIdentity",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRecordMapper.xml",
+      "xml": "<select id=\"selectSourceIdentity\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRecordDO\">\n        SELECT * FROM ast_device_warranty_record\n        WHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem} AND source_key=#{query.sourceKey}\n     FOR UPDATE\n    </select>\n"
+    }
+  ]
+}

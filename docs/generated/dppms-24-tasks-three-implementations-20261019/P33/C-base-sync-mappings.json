@@ -1,0 +1,246 @@
+{
+  "task": "P33",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "imp_eng_installation",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "project_id",
+      "parameter": "#{row.target.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "code",
+      "parameter": "#{row.target.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "equipment_id",
+      "parameter": "#{row.target.equipmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "install_location",
+      "parameter": "#{row.target.installLocation}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "address_id",
+      "parameter": "#{row.target.addressId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "address_version",
+      "parameter": "#{row.target.addressVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_id",
+      "parameter": "#{row.target.siteId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_version",
+      "parameter": "#{row.target.siteVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_location_id",
+      "parameter": "#{row.target.siteLocationId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "site_location_version",
+      "parameter": "#{row.target.siteLocationVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "location_resolution_status",
+      "parameter": "#{row.target.locationResolutionStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "address_snapshot",
+      "parameter": "#{row.target.addressSnapshot}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "location_snapshot",
+      "parameter": "#{row.target.locationSnapshot}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "effective_from",
+      "parameter": "#{row.target.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "effective_to",
+      "parameter": "#{row.target.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "install_time",
+      "parameter": "#{row.target.installTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "installer_user_id",
+      "parameter": "#{row.target.installerUserId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "environment_check",
+      "parameter": "#{row.target.environmentCheck}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "spec_check",
+      "parameter": "#{row.target.specCheck}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "photo_url",
+      "parameter": "#{row.target.photoUrl}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "result",
+      "parameter": "#{row.target.result}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "remark",
+      "parameter": "#{row.target.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    },
+    {
+      "table": "imp_eng_installation",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.selectDevices",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml",
+      "xml": "<select id=\"selectDevices\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$Device\">SELECT id,sn FROM ast_device WHERE tenant_id=#{query.tenantId} AND deleted=FALSE <choose><when test=\"query.serials != null and !query.serials.isEmpty()\">AND sn IN <foreach collection=\"query.serials\" item=\"sn\" open=\"(\" close=\")\" separator=\",\">#{sn}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.selectExisting",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml",
+      "xml": "<select id=\"selectExisting\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$Row\">SELECT `id`,`project_id`,`code`,`equipment_id`,`install_location`,`address_id`,`address_version`,`site_id`,`site_version`,`site_location_id`,`site_location_version`,`location_resolution_status`,`address_snapshot`,`location_snapshot`,`effective_from`,`effective_to`,`current_equipment_id`,`install_time`,`installer_user_id`,`environment_check`,`spec_check`,`photo_url`,`result`,`status`,`remark`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id` FROM imp_eng_installation WHERE tenant_id=#{query.tenantId} AND (1=0 <if test=\"query.projectIds != null and !query.projectIds.isEmpty()\">OR project_id IN <foreach collection=\"query.projectIds\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach></if><if test=\"query.equipmentIds != null and !query.equipmentIds.isEmpty()\">OR equipment_id IN <foreach collection=\"query.equipmentIds\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach></if>) ORDER BY id LIMIT #{query.limit}<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$TargetMapper.insertInstallation",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P33TargetMapper.xml",
+      "xml": "<insert id=\"insertInstallation\">INSERT INTO imp_eng_installation (`id`,`project_id`,`code`,`equipment_id`,`install_location`,`address_id`,`address_version`,`site_id`,`site_version`,`site_location_id`,`site_location_version`,`location_resolution_status`,`address_snapshot`,`location_snapshot`,`effective_from`,`effective_to`,`install_time`,`installer_user_id`,`environment_check`,`spec_check`,`photo_url`,`result`,`status`,`remark`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`tenant_id`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.projectId},#{row.target.code},#{row.target.equipmentId},#{row.target.installLocation},#{row.target.addressId},#{row.target.addressVersion},#{row.target.siteId},#{row.target.siteVersion},#{row.target.siteLocationId},#{row.target.siteLocationVersion},#{row.target.locationResolutionStatus},#{row.target.addressSnapshot},#{row.target.locationSnapshot},#{row.target.effectiveFrom},#{row.target.effectiveTo},#{row.target.installTime},#{row.target.installerUserId},#{row.target.environmentCheck},#{row.target.specCheck},#{row.target.photoUrl},#{row.target.result},#{row.target.status},#{row.target.remark},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted},#{row.target.tenantId})</foreach></insert>"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$SourceMapper.selectInstallation",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P33SourceMapper.xml",
+      "xml": "<select id=\"selectInstallation\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P33InstallationSyncTask$Source\">SELECT `id` AS sourceId,`projectId` AS originalProjectId,`barcode` AS barcode,`itemCode` AS itemCode,`itemModel` AS itemModel,`itemName` AS itemName,`receiveName` AS receiveName,`emsNum` AS emsNum,`emsCompany` AS emsCompany,`packdate` AS packdate,`contractNo` AS contractNo,`installAddress` AS installAddress,`chProjectId` AS chProjectId,`chContractNo` AS chContractNo,`transferProjectId` AS transferProjectId,`transferContractNo` AS transferContractNo,`transferFlag` AS transferFlag,`createTime` AS createTime,`createBy` AS source_creator,`updateTime` AS updateTime,`updateBy` AS source_updater FROM pm_project_shipment <choose><when test=\"projectKeys != null and !projectKeys.isEmpty()\">WHERE projectId IN <foreach collection=\"projectKeys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>WHERE 1=0</otherwise></choose> ORDER BY id LIMIT #{limit}</select>"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+SELECT l.id AS _groupKey,l.projectId,
+JSON_MERGE_PRESERVE(
+ JSON_ARRAY(JSON_OBJECT('object','SOFTWARE_BATCH','fields',JSON_OBJECT('id',l.`id`,'projectId',l.`projectId`,'changeVersion',l.`changeVersion`,'changeRemark',l.`changeRemark`,'latest',l.`latest`,'createBy',l.`createBy`,'createTime',l.`createTime`,'updateBy',l.`updateBy`,'updateTime',l.`updateTime`))),
+ COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('object','SOFTWARE_VERSION','fields',JSON_OBJECT('id',v.`id`,'projectId',v.`projectId`,'logId',v.`logId`,'contractNo',v.`contractNo`,'itemCode',v.`itemCode`,'barCode',v.`barCode`,'conp',v.`conp`,'conpType',v.`conpType`,'conpSeries',v.`conpSeries`,'conpMark',v.`conpMark`,'conpBak',v.`conpBak`,'conpChange',v.`conpChange`,'cpld',v.`cpld`,'cpldBak',v.`cpldBak`,'cpldChange',v.`cpldChange`,'boot',v.`boot`,'bootBak',v.`bootBak`,'bootChange',v.`bootChange`,'pcb',v.`pcb`,'pcbBak',v.`pcbBak`,'pcbChange',v.`pcbChange`,'executeTime',v.`executeTime`,'datastate',v.`datastate`,'createTime',v.`createTime`,'createBy',v.`createBy`,'updateTime',v.`updateTime`,'updateBy',v.`updateBy`,'customInfo',v.`customInfo`)))
+ FROM pm_project_soft_version v WHERE v.logId=l.id),JSON_ARRAY())) AS _sourceRows
+FROM pm_project_soft_change_logs l

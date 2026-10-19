@@ -1,0 +1,54 @@
+package cn.iocoder.yudao.module.pms.integration.dal.mysql.sync;
+
+import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import cn.iocoder.yudao.module.pms.platform.support.entity.BaseBusinessEntity;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@TableName("com_delivery_scope")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class DirectDeliveryScopeRow extends BaseBusinessEntity {
+    private Long projectId;
+    private String projectCode;
+    private String projectName;
+    private String projectCompanyCode;
+    private String projectCompanyName;
+    private String projectDepartmentCode;
+    private String projectDepartmentName;
+    private String projectCustomerCode;
+    private String projectCustomerName;
+    private String projectManagerEmployeeNo;
+    private String projectManagerName;
+    private Long orderLineId;
+    private String orderSourceSystem;
+    private String orderCompanyCode;
+    private String orderCompanyName;
+    private String orderType;
+    private String orderNo;
+    private String lineNo;
+    private String productCode;
+    private String productDesc;
+    private BigDecimal allocatedQty;
+    /** Whether this scope has been confirmed to consume order allocation capacity. */
+    private Boolean allocationConfirmed;
+    /** Historical order delivery figures carried by this project's scope; not acceptance facts. */
+    private BigDecimal deliveredQuantity;
+    private BigDecimal openQuantity;
+    private String scopeStatus;
+    private Long allocationVersion;
+    private String allocationSource;
+    private String changeReason;
+    private Long departmentId;
+    private String departmentCode;
+    private String departmentName;
+    private Integer departmentVersion;
+    private String sourceEvidence;
+    private LocalDateTime effectiveFrom;
+    private LocalDateTime effectiveTo;
+    private String status;
+}

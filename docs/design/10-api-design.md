@@ -926,3 +926,126 @@ Command复用既有迁入对象并补实际sourceConnectionId，旧调用保留�
 2026-10-13剩余业务承接：INT通过`ContractReceivableMigrationApi`向COM写既有52列回款信息，原39列完整映射、空合同号按裁决过滤；通过`ProjectFactsMigrationApi`向PROJ写既有20列相关方及已批准的四项正式状态扩展。PROJ的`ProjectEntityFieldProvider`复用正常项目读写授权、租户和版本锁，不生成内容修订或流程完成。显式审计写入使用场景命令，防止实体自动填充覆盖原NULL。整表SQL、验证参数、完整字段及实际运行见[承接清单](../generated/2026-10-13-dppms-migration-mapping/remaining-carry-implementation.md)。
 
 INT旧01绑定清理只读COM公开`OrderLineMigrationPresenceApi`确认目标不存在，再删除自身已裁决的绑定；存在正式目标、原任务正在运行、租户/连接不符或空筛选均不能扩大删除范围。旧运行回执和有效绑定保持。
+
+2026-10-16账号基础任务的合并预览：SYSTEM角色、用户角色关系和公司部门范围迁入API追加带`SystemAccountMigrationPreview`的预览入口，依次复用同轮账号、角色、关系Owner的成功预览结果。上下文仅在内存中属于同一tenant/owner；新对象使用负数临时引用，既有正数身份仍经数据库校验，不能用预览上下文替换现存身份。公司、部门、历史前值、角色状态及正式授权规则不变。正式`apply`不接收此上下文，必须在同一事务中按账号→角色→关系→范围依次校验并写入真实对象；临时引用不得成为正式ID或来源绑定。旧独立任务入口保持原行为；本轮任一阶段冲突阻断后续阶段，预览不调用写入后回滚。
+
+P01追加`t_company`原ID/原公司码的只读来源别名组件。该引用沿P04既有`DPPMS_COMPANY_CODE`转换精确关联SYSTEM正式公司，仅登记INT来源绑定；P01的EHR公司主档仍保持其既有TRIM映射，不套用该引用转换。缺失、重复或已变化的正式公司不能新增临时公司或改绑。P04通过INT本地别名及SYSTEM当前组织目录批量重验公司/部门类型、ID和编码；未完成P01别名时阻断，不在P04重读原公司/部门。INT来源绑定查询对旧账号、角色、关系和范围适配器增加P04合并任务别名解析，保留原查询结果并按对象类型隔离，租户、连接、来源系统、删除和空集合限制不变；历史来源回执不覆盖。
+
+
+### 2026-10-16 P04 独立直写任务入口
+
+`GET /api/v1/pms/integration/templates/dppms-account-foundation-direct?connectionId=...` 沿用配置权限与连接校验，返回 `DPPMS_ACCOUNT_FOUNDATION_DIRECT` 独立任务类型；原 P04 模板和入口保留。仅返回模板，不保存或执行。新类型复用已有账号、角色、关系及范围的来源解释和裁决，使用专用 MyBatis XML 直接持久化；不调用原迁移 Owner 的写入接口。原公开组织查询与凭据撤销能力继续按原契约使用。正式执行仍由统一运行服务控制权限、租户、配置版本、事务、绑定和证据。
+
+`GET /api/v1/pms/integration/templates/dppms-dictionaries-direct?connectionId=...` 沿用配置权限与连接校验，仅返回 `DPPMS_DICTIONARIES_DIRECT` 独立模板。原字典类型/字典项和归并入口保留。直写任务复用既有审计人员精确关联、缺失分组、空记录114排除及不接管全局字典的裁决，通过专用 XML 顺序承接类型与字典项；预览只在当前调用内使用已验证的拟建类型，不写正式字典。正式写入要求活动的 REPEATABLE_READ 事务，类型、项及统一运行回执失败整体回滚，仍要求原迁移执行和系统字典创建权限。
+
+新模板各来源以原自增主键读取，任职/账号及关系在本轮完整快照内核对；共享来源只读一次供相关对象使用，不按业务码或修改时间排序。保持 ONCE/UPSERT/RETAIN、不清表、不重置绑定、全量核验及原容量限制。预览不写业务表；账号、角色、角色关系、公司部门范围及运行回执同事务提交，失败整体回滚。新旧任务别名保持独立；既有消费者可按租户、连接、对象类型和原键查询新直写绑定，歧义仍拒绝。P01 主管仅使用已核实 EHR 账号回执，不因新增类型扩大人员关联范围。
+
+### 2026-10-16 P15 本地合同派生与发货收尾
+
+`GET /api/v1/pms/integration/templates/dppms-delivery?connectionId=...` 要求原配置权限并校验连接，仅返回已批准的五对象配置，不保存或执行任务。合同经 `DppmsLocalContractSourceApi` 读取本地权威订单；四类远端原始发货事实沿指定来源连接读取。原模板资源、原任务定义和历史运行保留。运行执行人仅由服务端运行创建人传递，既不保存进配置，也不写回冻结运行快照。
+
+`DppmsContractCompletionApi.complete` 是 COM 内部受控收尾接口，要求既有迁移执行权限、真实执行人、租户一致和现有事务。INT 只提供已限定的本轮合同、发货合同引用、包裹 ID，以及完整可用的本地发货/回款输入 ID；COM 不读取 INT 绑定表，INT 不直接更新 COM 业务表。SYSTEM 正式组织目录经既有公开 API 一次读取，COM 在同一事务连接创建本轮组织和唯一合同临时目录，批量回填引用后对发货、回款各汇总一次。字段优先级、逐字段最新非空排序、唯一合同限定及不清空未匹配引用的规则保持已批准 SQL；临时表在 `finally` 释放。
+
+P15 全部来源完成且无未承接或冲突行之后才允许收尾；P24 输入必须来自同租户、同连接、当前配置的完整成功根运行，运行中、失败、部分读取和合同范围过滤均不能作为完整输入。既有符合条件的本地 P24 快照直接复用，不为消费而重跑生产者。新事件补齐本地精确父链后冻结来源投影；旧不可变事件沿既存父快照验证，同时逐项校验全部原始字段，不能用当前父记录改写历史。`readProjection` 只允许三类 COM 对象及最多 500 个正式 ID；收尾后 INT 仅刷新本轮最新绑定的 `_postCompletion` 投影，原始来源、旧运行和审计证据不改写。正式变更由既有 Asset Owner 刷新设备组织投影；收尾或投影失败不标记运行成功。
+
+### 2026-10-16 P01 公司部门直写任务入口
+
+`GET /api/v1/pms/integration/templates/dppms-organization-direct?connectionId=...` 沿用 `pms:integration:configure` 权限，仅返回独立的 `DPPMS_ORGANIZATION_DIRECT` 配置，不保存任务、不启动同步。用户已批准此 P01 入口直接通过 INT 的专用 Mapper 写 `system_company/system_dept`，原 `DPPMS_ORGANIZATION` 与已验证模板不变。来源主键、映射裁决和原来源别名保持；读取采用 ONCE/SNAPSHOT，禁止清表、重置绑定和拆树分块提交。任务保存、预览、执行及运行审计沿用现有接口和权限；目标写入、绑定及证据同事务提交，现有正式定义不覆盖，仅允许在本任务创建的部门上续补空主管。其他迁移任务不因本入口改变写入边界。
+
+P01 双线入口补充：`GET /api/v1/pms/integration/templates/dppms-organization` 原样返回既有 P01 归并模板（`DPPMS_ORGANIZATION`），与直写入口 `dppms-organization-direct`（`DPPMS_ORGANIZATION_DIRECT`）并列，均要求原配置权限并校验来源连接。既有 `/templates/ehr`、`/templates/dppms-departments`、`/templates/dppms-ehr-departments` 保留。前端“任务类型”分别加载对应模板；新增直写任务沿用现有独立任务身份规则，不自动替换原任务或转换历史绑定。
+
+
+### P30 设备基础与显式项目指派入口
+
+`GET /api/v1/pms/integration/templates/dppms-device-bootstrap` 只返回基础承接定义，要求配置权限，不保存配置。普通同步仅由 Asset Owner 承接本地发货及正式产品目录，不自动赋项目。
+
+`POST /api/v1/pms/integration/device-assignments/preview` 和 `/apply` 是同一 P30 任务的显式一次性指派阶段，要求执行权限及实际登录用户。请求包括 taskId、expectedVersion、非空且至多500个唯一 deviceSns、明确 effectiveAt；apply 还须提交 preview 返回的 expectedDigest。该范围和时间不进入任务默认配置。
+
+INT 锁定 P30 与同连接唯一 P33 任务，要求 P33 当前配置最近正式根批次完整成功且没有 ISSUE/CONFLICT/SKIPPED，核对冻结来源定义，分页读取 INT 自有安装绑定。按 P16 当前发布范围解析原项目身份，经 Project Owner 检查及锁定、Engineering Owner 核验不可变安装历史，再调用既有 Asset 指派 Owner；不回读 pm_project_shipment，不跨模块查表。缺建档、缺安装历史、多项目、失效身份或摘要变化均拒绝，整组正式指派在同一事务内完成。原安装合同逐条接受最新发货与既有归属校验，不按后写顺序抢占归属。
+
+preview 不写业务，apply 重算并比较涵盖来源批次、身份发布、原历史、当前设备版本和生效时间的摘要；新旧归属历史及正式命令幂等审计由既有 Asset/平台 Owner 保存。该入口独立于普通同步 SUCCESS，调用方不能把基础承接成功理解为项目指派完成。
+
+
+### P31 成员与最终客户联系人历史 Owner
+
+`GET /api/v1/pms/integration/templates/dppms-member-history` 要求配置权限，只返回候选定义。适配器 `DPPMS_MEMBER_HISTORY` 只读一次 `pm_project_member`，本地按角色互斥路由 `MEMBER_HISTORY` 和 `CONTACT_HISTORY`，两者保持独立目标及来源映射。项目范围和别名由 P16 当前完整发布提供；保留原 projectType 为 originalProjectType，先核验原类型、原项目编码及正式项目身份，不能用补齐值掩盖原类型冲突。
+
+PROJ `ProjectMemberSourceHistoryApi` 接收 tenant、actor、formal projectId 与最多200条原15字段及历史目标基线，必须加入INT事务。默认历史承接不授当前权限、不选择主责、不关闭现有区间、不更新项目经理。原10/20/30复用正式角色定义、精确历史账号及既有区间规则；无账号历史允许 userId=NULL，原审计账号仍须精确解析，NULL/空串保持。已绑定历史只核对全部正式字段，人工修改或删除拒绝覆盖。
+
+role60 调用既有 CUS 最终客户联系人 Owner，完整校验原联系人、项目最终客户关系和审计，保存 CUS 正式联系事实，不创建账号角色或客户主档。CUS 增加 `validateContacts(Command)`，与 `carry` 共用完整来源验证，预览不插入；重放由原 `verify` 核对正式指纹。当前授权或主责变更继续走既有正式成员加入/经理指派，或原逐项目、带明确批准及前值检查的专用迁入命令；未授权历史不原地转为授权，原试点裁决不放入日常任务配置。
+
+
+### P35 软件批次与版本历史统一入口
+
+`POST /api/v1/pms/integration/templates/dppms-software-history` 要求配置权限，接收 connectionId 与已发布 extensionDefinitionId，只返回定义，不创建扩展定义或保存任务；缺少定义时可生成未补齐前置的离线候选，运行必须拒绝。AST仍校验定义属于本租户、AST/SoftwareVersionRecord及准确的八个原备份/变化属性。
+
+适配器 `DPPMS_SOFTWARE_HISTORY` 一份父批次查询归集其原logId子版本，两类对象共享来源读取及P16范围，不重读pm_project。根批次范围由P16完整发布前置筛选，父子原projectId必须一致；读取器补齐的原项目编码与类型沿本组传给内层原字段，INT再次向当前P16及Project Owner核验身份。父9列、子28列分别保留不可变原始快照；空父子、跨项目和原字段变化不凭旧ID兜底。
+
+`DppmsAssetSourceHistoryApi.previewSourceHistory` 与原正式组合命令共用Owner规则，返回专用临时Preview，负数只表示本轮新对象，不进入正式ExternalTargetMapping或绑定。预览不INSERT父子、不写扩展值、不发布定义；旧正式及纠正调用保持原正数目标契约。八属性校验复用SoftwareVersionLegacyExtensionService，已有不可变扩展必须一致。
+
+正式命令在本次父子组事务中先建立或核对父批次，再按原logId解析本次正式父ID和承接版本。历史记录不改变当前设备软件投影，不发送升级完成事件；原审计、全部正式字段、扩展值与既有删除/授权保护继续由AST Owner校验。
+
+
+### P37 受控许可读取与统一Owner入口
+
+`POST /api/v1/pms/integration/templates/dppms-secure-license` 要求配置权限、关闭请求体日志，只返回一次性候选定义。请求包括connectionId、现有许可Owner所需ownerProjectId和明确批准的许可原ID及七项非敏感冻结字段；不接收licenseCode、密钥或Secret。Owner项目上下文用于现有授权及合同解析，不加到许可来源SQL或P16项目范围，也不作为许可事实归属。
+
+新增专用 `SECURE_LICENSE` 只允许 `DPPMS_SECURE_LICENSE / ONCE / SNAPSHOT / RETAIN`，单次至多200条，禁止清空、重置、通用SQL、任意字段映射及空范围退化全量。批准原ID与冻结字段须一致，读取前核对执行者、精确八列来源Schema；在既有同一只读一致性事务中按approvedLicenseIds参数化读取，不按项目查询来源。缺少明确范围、Owner上下文、真实Secret配置或Schema不一致必须阻断。
+
+专用读取器只在受控内存接触许可码，随后按原Python捕获及现有Asset密码器的固定初次捕获命名空间 `DPPMS-LICENSE|tenant|1|sourceId` 生成AES-256-GCM密文及HMAC；可变缓冲区在成功或失败后清零。密钥仅使用既有 `pms.license-history` Secret配置，不进入任务。通用快照、PLT证据和映射接收到的只有七项非敏感字段及密文/keyId/MAC；错误不保留敏感原因。运行结果与绑定不展示密文或明文，记录不可变原字段与MAC。重放比较原非敏感事实和MAC，随机nonce变化不当作许可业务变化。
+
+INT批量调用现有Commerce精确合同解析及Asset许可Owner，保留项目授权、来源幂等、全字段和密文认证及删除保护。ownerProjectId不是新增来源过滤门槛。未唯一匹配的设备/合同沿原Owner明确保存pendingAssociations，运行成功只表示历史承接，不能表述关联已完成；不猜配目标ID。许可Owner及INT绑定写入在同一事务内，失败不发布SUCCESS。临时执行actor不写入保存定义或冻结配置。
+
+### 2026-10-16 P10/P12 独立直写模板入口
+
+`GET /api/v1/pms/integration/templates/crm-customers-direct?connectionId=...` 返回独立 `CRM_CUSTOMER_DIRECT`；`GET /api/v1/pms/integration/templates/dppms-products-direct?connectionId=...` 返回独立 `DPPMS_PRODUCT_CATALOG_DIRECT`。两者要求 `pms:integration:configure` 并校验连接，只返回模板，不保存或执行。原CRM客户和DPPMS产品模板保留。P10通过私有专用XML承接CRM客户及来源映射，保留源版本和平台字段保护；P12仅补齐缺失正式产品，不覆盖既有CRM目录。正式写入仍经过原任务执行权限、租户、活动运行/配置版本及实际REPEATABLE_READ事务，正式变更与统一绑定回执保持原框架原子性。
+
+### 2026-10-16 P13 独立执行单直写模板入口
+
+`GET /api/v1/pms/integration/templates/dppms-execution-orders-direct?connectionId=...` 要求原配置权限并校验连接，返回独立 `DPPMS_CRM_EXECUTION_ORDER_DIRECT`，不保存或执行。来源沿用已审核P13整表最新修订和有效项目范围，根游标使用原id。私有INT实现和专用XML承接原执行单头字段，原COM入口保持。组织引用使用公开组织查询；原组织缺失时保留来源码及已批准九个部门别名转换。正式写入要求原执行权限、有效租户/任务/运行/配置版本及REPEATABLE_READ事务，保护已有状态、AF证据、主项目及非本来源字段。
+
+### 2026-10-16 P24 独立合同回款信息直写模板入口
+
+`GET /api/v1/pms/integration/templates/dppms-receivables-direct?connectionId=...` 要求原配置权限并校验连接，返回独立 `DPPMS_CONTRACT_RECEIVABLE_DIRECT`，不保存或执行。源SQL沿用已审核有效项目及合同范围，读取按原id；39原字段和52正式字段并发保护不变。INT私有持久化及XML承接原已批准规则，原COM入口保持。正式写入保留执行及合同查询权限、原审计关联、空合同号过滤、原基线保护和当前主数据关联；实际事务中失败回滚，不生成收款或验收完成动作。
+
+### 2026-10-16 P25 独立设备维保延期直写模板入口
+
+`GET /api/v1/pms/integration/templates/dppms-warranty-renewals-direct?connectionId=...` 沿用配置权限和连接校验，返回独立 `DPPMS_WARRANTY_RENEWAL_DIRECT`，不保存或执行。INT私有类及XML承接既有十字段、参考年数转月数、实际日期保持、原ID与SN组合身份、完整基线和乐观版本保护；原AST入口保留。fb_service无主键或自增列，已审核的组合身份读取保持。正式写入仍要求迁移及设备资料权限、有效运行和实际REPEATABLE_READ事务，写入失败整批回滚，不改变设备当前业务状态。
+
+### P16 项目主档直写配置入口（2026-10-16）
+
+`GET /api/v1/pms/integration/templates/dppms-projects-direct?connectionId=...` 沿用配置权限及连接校验，返回独立 `DPPMS_PROJECT_MASTER_DIRECT`，不保存或执行。源SQL与已审核原37列、按原projectId读取、规范主档及全来源身份聚合保持。INT私有类和XML承接原项目创建、基线保护及裁决恢复规则；创建根项目时在同一事务写入首版树版本、自身路径并追加平台规则重算事件，任一失败整体回滚。历史状态仅按已批准的迁移初始化规则承接，不生成当前任务、审批或分配完成事实。既有项目继续通过公开项目范围契约校验管理权限；恢复复用原ID并核对撤回回执、全字段指纹、原版本及业务引用。原PROJ入口与模板保留。来源绑定查询允许这一独立直写适配器的两种项目对象，租户、来源连接、原键及冲突校验不变。
+
+### P18 项目合同关系直写配置入口（2026-10-16）
+
+`GET /api/v1/pms/integration/templates/dppms-project-contract-relations-direct?connectionId=...` 沿用配置权限和连接校验，返回独立 `DPPMS_PROJECT_CONTRACT_RELATION_DIRECT`。源SQL、完整项目桥、重复关系裁决与原组合身份保持；INT私有持久化直接承接关系，17列前值、正式合同公司授权、项目身份版本、历史审计、限定纠正和恢复保护不变。不保存或执行任务，原COM功能保持。
+
+### P19 项目相关方及状态直写配置入口（2026-10-16）
+
+`GET /api/v1/pms/integration/templates/dppms-project-facts-direct?connectionId=...` 沿用配置权限和连接校验，返回独立 `DPPMS_PROJECT_FACTS_DIRECT`。相关方由INT专用XML直写，状态四字段通过原平台扩展契约承接，保留定义、属性版本、完整前值及项目范围保护。原项目相关方和状态Owner入口保持，不发布扩展定义、不生成当前审批或计划完成事实。
+
+### P22 项目产品实施范围直写配置入口（2026-10-16）
+
+`GET /api/v1/pms/integration/templates/dppms-product-scopes-direct?connectionId=...` 沿用配置权限和连接校验，返回独立 `DPPMS_PROJECT_PRODUCT_SCOPE_DIRECT`。INT私有SQL在实际事务中承接原11字段、范围和产品数量明细，保留精确合同/订单行、数量及原审计基线保护；现有范围未变时仅按原规则补缺失明细。不确认分配、推进额度或制造SN，原COM功能保持。上述三个入口均只返回定义，不保存或执行。
+
+`GET /api/v1/pms/integration/templates/dppms-real-products-direct?connectionId=...` 沿用配置权限和连接校验，仅返回独立 `DPPMS_PROJECT_REAL_PRODUCT_DIRECT` 定义，不保存或执行。任务私有SQL承接真实产品清单，保留原12字段、唯一上游10字段、整数数量、完整前值及已有清单禁止追加未绑定记录规则；原PROJ入口保持。
+
+以下独立模板GET均沿用 `pms:integration:configure` 及连接校验，只返回定义，不保存或执行：
+
+| `/api/v1/pms/integration/templates/` 后缀 | 独立适配器 |
+|---|---|
+| `dppms-device-base-direct` | `DPPMS_DEVICE_BOOTSTRAP_DIRECT` |
+| `dppms-member-history-direct` | `DPPMS_MEMBER_HISTORY_DIRECT` |
+| `dppms-installations-direct` | `DPPMS_INSTALLATION_HISTORY_DIRECT` |
+| `dppms-factory-history-direct` | `DPPMS_FACTORY_HISTORY_DIRECT` |
+| `dppms-software-history-direct` | `DPPMS_SOFTWARE_HISTORY_DIRECT` |
+| `dppms-secure-license-direct` | `DPPMS_SECURE_LICENSE_DIRECT` |
+
+`DppmsSoftwareHistoryExtensionApi` 是AST公开的迁移扩展初始化接口，仅接受 `Initialization(tenantId, actorId, recordId, definitionId, values)` 对象；`preview`验证定义与原值，`initialize`经原SoftwareVersionLegacyExtensionService的专用Provider上下文初始化八属性。两者必须加入调用事务，保留原授权、实体版本与定义版本校验，不导入软件主记录、不发布定义、不提供普通可编辑历史入口。INT私有SQL负责主批次及版本，基础扩展存储继续由PLT契约维护。
+
+
+### 原迁移任务的来源隔离与续保资格读取（2026-10-17）
+
+`DppmsProjectBindingApi.BatchQuery.originalLine()` 显式限定原任务来源绑定；原任务消费者不得以独立直写任务的回执替代本线前置。既有未限定调用保留双线兼容行为，独立任务身份及入口保持。INT内部 `IdentitySources/EhrEmployeeUsers` 使用相同显式限定，并保留租户、连接、来源对象、空集合与冲突保护。
+
+`WarrantyShipmentEligibilityApi.resolve(Query(tenantId, actorId, deviceSns))` 是AST只读批量接口，每次最多500个SN、空集合返回空。AST读取本地DPPMS逐次发货的原 `rma_no` 与包裹来源键，再调用COM `ShipmentSourceFactsApi` 获取精确父链合同类型（Fact新增可空 `contractType`，既有三字段构造继续可用）。仅原RMA号为NULL、空串或字符串null且合同类型0/11的本地事实满足资格；缺发货或父链返回明确issue，不猜配，不做项目授权、指派或续保写入。P25原任务远端只采集fb_service，再按本地资格交回既有续保Owner；已绑定来源资格变化拒绝覆盖。

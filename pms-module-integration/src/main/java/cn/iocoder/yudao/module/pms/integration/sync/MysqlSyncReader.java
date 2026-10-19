@@ -22,6 +22,8 @@ public class MysqlSyncReader {
     private final ExternalDataSourceApi sources;
     @org.springframework.beans.factory.annotation.Autowired
     private SyncSourceEvidenceReader evidenceReader;
+    @org.springframework.beans.factory.annotation.Autowired
+    private SyncSecureLicenseReader secureLicenses;
     public record SourceRows(String object, String sourceObject, List<Map<String,Object>> rows) {}
     public record Snapshot(LocalDateTime upper, List<SourceRows> objects, long bytes) {}
     public record Column(String name, String type, boolean nullable) {}
@@ -115,6 +117,13 @@ public class MysqlSyncReader {
             var completed=new HashMap<String,cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO>();
             var selected=page==null?definition.sources():List.of(definition.sources().get(page.sourceIndex()));
             for(var source:selected) {
+                if(SyncSecureLicenseReader.reference(source)) {
+                    verifyTransactionalTables(c,DppmsMigrationSql.initial("secure-license-select"),new HashSet<>());
+                    var captured=secureLicenses.read(new SyncSecureLicenseReader.Input(definition,source,c));
+                    count+=captured.rows().size();bytes+=JsonUtils.toJsonString(captured.rows()).getBytes(StandardCharsets.UTF_8).length;
+                    if(count>definition.maxRows() || bytes>definition.maxBytes())throw new IllegalArgumentException("LICENSE_SOURCE_SIZE_LIMIT");
+                    result.add(captured);continue;
+                }
                 if(SyncSourceEvidenceReader.reference(source)) {
                     var reused=evidenceReader.read(new SyncSourceEvidenceReader.Input(definition,source,completed));
                     count+=reused.rows().size();bytes+=JsonUtils.toJsonString(reused.rows()).getBytes(StandardCharsets.UTF_8).length;
@@ -134,7 +143,9 @@ public class MysqlSyncReader {
                     values.add(Timestamp.valueOf(lower.minusSeconds(definition.overlapSeconds())));
                     values.add(Timestamp.valueOf(upper));
                 }
-                if(!cacheSnapshot)sql+=" ORDER BY "+(source.rowProjection()==null&&source.updatedAt()!=null&&!source.updatedAt().isBlank()
+                boolean syntheticCacheKey=cacheSnapshot && cn.iocoder.yudao.module.pms.integration.sync.generic.GenericCacheRefresh.ROW_KEY.equals(source.sourceKey());
+                if(cacheSnapshot && !syntheticCacheKey)sql+=" ORDER BY "+identifier(source.sourceKey());
+                else if(!cacheSnapshot)sql+=" ORDER BY "+(source.rowProjection()==null&&source.updatedAt()!=null&&!source.updatedAt().isBlank()
                         ?identifier(source.updatedAt())+", ":"")+(compositeKeys.columns.isEmpty()?identifier(SyncSourceProjection.readKey(source)):
                         String.join(",",compositeKeys.columns.stream().map(MysqlSyncReader::identifier).toList()));
                 if(page!=null) { var paged=pageSql(source,page,definition.maxRows());sql=paged.sql();values=paged.values(); }
@@ -142,7 +153,7 @@ public class MysqlSyncReader {
                 Set<String> keys=new HashSet<>();
                 try(PreparedStatement s=prepare(c,new BoundSql(sql,values))) {
                     s.setQueryTimeout(60);
-                    // Cache rows have only snapshot-local ordinals. Keep the byte budget, never truncate a full cache by page size.
+                    // Keep the byte budget, never truncate a full cache by page size.
                     if(!wholeSource && !PublishedProjectScopeRows.requested(source))s.setMaxRows(definition.maxRows()+1);
                     else s.setFetchSize(definition.effectiveFetchSize());
                     try(ResultSet r=s.executeQuery()) {
@@ -161,7 +172,7 @@ public class MysqlSyncReader {
                             }
                             row=scope.apply(row);
                             if(row==null)continue;
-                            if(cacheSnapshot)row.put(source.sourceKey(),Long.toString(rows.size()+1L));
+                            if(syntheticCacheKey)row.put(source.sourceKey(),Long.toString(rows.size()+1L));
                             else compositeKeys.assign(row);
                             Object key=row.get(SyncSourceProjection.readKey(source));
                             if(page!=null) pagingKey(key);

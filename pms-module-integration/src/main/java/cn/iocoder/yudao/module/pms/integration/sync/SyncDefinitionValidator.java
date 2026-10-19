@@ -90,6 +90,10 @@ public class SyncDefinitionValidator {
         SyncSourceProjection.validate(d);
         Set<String> objects=new HashSet<>();
         Map<String,String> sourceObjects=new HashMap<>();
+        if((DppmsSoftwareHistorySyncTemplate.ADAPTER.equals(d.adapter()) || DppmsDirectSoftwareHistoryTemplate.ADAPTER.equals(d.adapter())))DppmsSoftwareHistorySyncTemplate.validateDefinition(d);
+        if((DppmsMemberHistorySyncTemplate.ADAPTER.equals(d.adapter()) || DppmsDirectMemberHistoryTemplate.ADAPTER.equals(d.adapter()))
+                && !Objects.equals(d.sources(),DppmsMemberHistorySyncTemplate.create(d.connectionId()).sources()))
+            throw new IllegalArgumentException("成员历史两分支必须共享批准的唯一原来源读取");
         for(var s:d.sources()) {
             if(d.resetMappingsBeforeLoad()&&!s.syncPrimaryKey())
                 throw new IllegalArgumentException("仅重置映射后追加更新，须对所有来源对象启用源主键同步");
@@ -97,16 +101,24 @@ public class SyncDefinitionValidator {
                     ||s.sourceObject().isBlank())
                 throw new IllegalArgumentException("来源对象身份重复或无效");
             String previousObject=sourceObjects.putIfAbsent(s.sourceObject(),s.object());
-            if(previousObject!=null && !("DPPMS_ORGANIZATION".equals(d.adapter()) && "ehr_department".equals(s.sourceObject())
-                    && Set.of(previousObject,s.object()).equals(Set.of("DEPARTMENT","ehr_department"))))
-                throw new IllegalArgumentException("来源表重复；仅获准的EHR部门合并可保留两类原绑定身份");
+            if(previousObject!=null && !(Set.of("DPPMS_ORGANIZATION", DppmsDirectOrganizationTemplate.ADAPTER).contains(d.adapter()) && "ehr_department".equals(s.sourceObject())
+                    && Set.of(previousObject,s.object()).equals(Set.of("DEPARTMENT","ehr_department")))
+                    && !(Set.of("DPPMS_ACCOUNT_FOUNDATION",DppmsDirectAccountTemplate.ADAPTER).contains(d.adapter())
+                    && ("fnd_user_info".equals(s.sourceObject()) && Set.of(previousObject,s.object()).equals(Set.of("fnd_user_info","FND_USER_ROLE"))
+                    || "t_user_role".equals(s.sourceObject()) && Set.of(previousObject,s.object()).equals(Set.of("T_USER_ROLE","t_user_role"))))
+                    && !(DppmsDirectDictionaryTemplate.ADAPTER.equals(d.adapter()) && "fnd_basic_data".equals(s.sourceObject())
+                        && Set.of(previousObject,s.object()).equals(Set.of(DppmsDirectDictionaryTemplate.MISSING_TYPE,"fnd_basic_data")))
+                    && !((DppmsMemberHistorySyncTemplate.ADAPTER.equals(d.adapter()) || DppmsDirectMemberHistoryTemplate.ADAPTER.equals(d.adapter())) && "pm_project_member".equals(s.sourceObject())
+                        && Set.of(previousObject,s.object()).equals(Set.of(DppmsMemberHistorySyncTemplate.MEMBERS,DppmsMemberHistorySyncTemplate.CONTACTS))))
+                throw new IllegalArgumentException("来源表重复；仅已批准的共享来源分支可保留不同原绑定身份");
             var object=descriptor.objects().stream().filter(o->o.name().equals(s.object())).findFirst()
                     .orElseThrow(()->new IllegalArgumentException("对象不属于适配器"));
             if(SyncLocalOwnerReader.reference(s))SyncLocalOwnerReader.validate(new SyncLocalOwnerReader.Input(d,s));
+            else if(SyncSecureLicenseReader.reference(s))SyncSecureLicenseReader.validate(d,s);
             else if(SyncSourceEvidenceReader.reference(s))SyncSourceEvidenceReader.validate(d,s);
             else if (!SyncSourceProjection.reference(s)) MysqlSyncReader.compile(s);
             if(s.sourceKeyColumns()!=null && !s.sourceKeyColumns().isEmpty()
-                    && (!"ONCE".equals(d.mode()) || !"SNAPSHOT".equals(readStrategy) || d.autoPaging() || s.syncPrimaryKey()))
+                    && (!"ONCE".equals(d.mode()) || !("SNAPSHOT".equals(readStrategy) || DppmsDirectFactoryHistoryTemplate.ADAPTER.equals(d.adapter()) && "STREAMING_CURSOR".equals(readStrategy) && "RESTART_ALL".equals(d.effectiveRestartPolicy())) || d.autoPaging() || s.syncPrimaryKey()))
                 throw new IllegalArgumentException("无主键来源的完整字段身份仅支持一次性整批读取，不支持源主键覆盖或游标恢复");
             if(s.syncPrimaryKey()&&!object.supportsSourcePrimaryKey())
                 throw new IllegalArgumentException("该业务对象不支持同步源主键");

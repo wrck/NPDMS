@@ -38,10 +38,15 @@ public class SyncEvidenceService {
             String payload=JsonUtils.toJsonString(source.rows()),digest=sha(payload);
             // A consolidated query may project the same physical table into several logical objects.
             // PLT identity includes releaseId and sourceTable, so retain the logical object there too.
-            String releaseId=correlation+":"+source.object();
+            // MySQL evidence keys are case-insensitive. P04 has both T_USER_ROLE and t_user_role.
+            // Preserve existing keys unless logical names collide under that comparison.
+            boolean caseCollision=d.sources().stream().anyMatch(s -> !s.object().equals(source.object())
+                    && s.object().equalsIgnoreCase(source.object()));
+            String objectKey=caseCollision ? HexFormat.of().formatHex(source.object().getBytes(StandardCharsets.UTF_8)) : source.object();
+            String releaseId=correlation+":"+objectKey;
             var batch=api.createImportBatch(new CreateImportBatchCommand(tenant,"INT",purpose,releaseId,
                     d.sourceSystem(),source.sourceObject(),"SYNC_V1",source.rows().size(),digest,snapshot.upper(),
-                    null,null,purpose+":"+source.object()+":"+unitKey,correlation));
+                    null,null,purpose+":"+objectKey+":"+unitKey,correlation));
             Map<String,Long> ids=new LinkedHashMap<>();
             List<AppendMigrationSourceRecordCommand> sourceCommands=new ArrayList<>();
             for(var row:source.rows()) {

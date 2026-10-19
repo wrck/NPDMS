@@ -1,0 +1,454 @@
+{
+  "task": "P10",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "CUSTOMER",
+      "sourceObject": "DPtech_v_account",
+      "sourceKey": "AccountId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "AccountNumber",
+          "target": "customerCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "erpCustomerCode",
+          "target": "erpCustomerCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "Name",
+          "target": "customerName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "Telephone1",
+          "target": "contactPhone",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "EMailAddress1",
+          "target": "contactEmail",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "Address1_Composite",
+          "target": "address",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "new_mkt_unit_id",
+          "target": "departmentCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "new_mkt_unit_idName",
+          "target": "departmentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "new_industry_level1_id",
+          "target": "marketCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "new_industry_level1_idName",
+          "target": "marketName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "new_industry_level2_id",
+          "target": "systemCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "new_industry_level2_idName",
+          "target": "systemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "new_industry_level3_id",
+          "target": "expendCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "new_industry_level3_idName",
+          "target": "expendName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "new_industry_level4_id",
+          "target": "industryCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "new_industry_level4_idName",
+          "target": "industryName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "ENUM",
+          "defaultValue": null,
+          "source": "StateCode",
+          "target": "lifecycleStatus",
+          "values": {
+            "0": "ENABLED",
+            "1": "DISABLED"
+          }
+        },
+        {
+          "constant": null,
+          "conversion": "STRING",
+          "defaultValue": null,
+          "source": "ModifiedOn",
+          "target": "sourceVersion",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DATETIME",
+          "defaultValue": null,
+          "source": "ModifiedOn",
+          "target": "dataAsOf",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "TRIM",
+          "defaultValue": null,
+          "source": "migrationIssue",
+          "target": "migrationIssue",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "cus_customer_master",
+      "column": "code",
+      "parameter": "#{row.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "erp_customer_code",
+      "parameter": "#{row.erpCustomerCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "name",
+      "parameter": "#{row.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "short_name",
+      "parameter": "#{row.shortName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "contact_phone",
+      "parameter": "#{row.contactPhone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "contact_email",
+      "parameter": "#{row.contactEmail}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "address",
+      "parameter": "#{row.address}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "department_code",
+      "parameter": "#{row.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "department_name",
+      "parameter": "#{row.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "market_code",
+      "parameter": "#{row.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "market_name",
+      "parameter": "#{row.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "system_code",
+      "parameter": "#{row.systemCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "system_name",
+      "parameter": "#{row.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "expend_code",
+      "parameter": "#{row.expendCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "expend_name",
+      "parameter": "#{row.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "industry_code",
+      "parameter": "#{row.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "industry_name",
+      "parameter": "#{row.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "lifecycle_status",
+      "parameter": "#{row.lifecycleStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "source_key",
+      "parameter": "#{row.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "source_version",
+      "parameter": "#{row.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "data_as_of",
+      "parameter": "#{row.dataAsOf}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "source_type",
+      "parameter": "#{row.sourceType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "sync_status",
+      "parameter": "#{row.syncStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "reconciliation_pending",
+      "parameter": "#{row.reconciliationPending}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_master",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "customer_id",
+      "parameter": "#{row.customerId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "source_system",
+      "parameter": "#{row.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "source_key",
+      "parameter": "#{row.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "source_version",
+      "parameter": "#{row.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "effective_from",
+      "parameter": "#{row.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    },
+    {
+      "table": "cus_customer_external_mapping",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.selectCurrentMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml",
+      "xml": "<select id=\"selectCurrentMapping\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMappingRow\">\n    SELECT * FROM cus_customer_external_mapping WHERE tenant_id=#{query.tenantId} AND source_system='CRM'\n      AND source_key=#{query.sourceKey} AND effective_to IS NULL AND deleted=FALSE FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.selectCustomerForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml",
+      "xml": "<select id=\"selectCustomerForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerRow\">\n    SELECT code,erp_customer_code,name,short_name,customer_level,lifecycle_status,source_type,source_key,source_version,sync_status,data_as_of,reconciliation_pending,temporary_reason,contact_phone,contact_email,department_code,department_name,market_code,market_name,system_code,system_name,expend_code,expend_name,industry_code,industry_name,address,remark,id,tenant_id,version,creator,create_time,updater,update_time,deleted FROM cus_customer_master WHERE tenant_id=#{query.tenantId} AND id=#{query.customerId} FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.selectCodeForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml",
+      "xml": "<select id=\"selectCodeForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerRow\">\n    SELECT code,erp_customer_code,name,short_name,customer_level,lifecycle_status,source_type,source_key,source_version,sync_status,data_as_of,reconciliation_pending,temporary_reason,contact_phone,contact_email,department_code,department_name,market_code,market_name,system_code,system_name,expend_code,expend_name,industry_code,industry_name,address,remark,id,tenant_id,version,creator,create_time,updater,update_time,deleted FROM cus_customer_master WHERE tenant_id=#{query.tenantId} AND code=#{query.code} FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml",
+      "xml": "<insert id=\"insertCustomer\" useGeneratedKeys=\"true\" keyProperty=\"row.id\">\n    INSERT INTO cus_customer_master (code,erp_customer_code,name,short_name,contact_phone,contact_email,address,department_code,department_name,market_code,market_name,system_code,system_name,expend_code,expend_name,industry_code,industry_name,lifecycle_status,source_key,source_version,data_as_of,source_type,sync_status,reconciliation_pending,version,tenant_id,deleted)\n    VALUES (#{row.code},#{row.erpCustomerCode},#{row.name},#{row.shortName},#{row.contactPhone},#{row.contactEmail},#{row.address},#{row.departmentCode},#{row.departmentName},#{row.marketCode},#{row.marketName},#{row.systemCode},#{row.systemName},#{row.expendCode},#{row.expendName},#{row.industryCode},#{row.industryName},#{row.lifecycleStatus},#{row.sourceKey},#{row.sourceVersion},#{row.dataAsOf},#{row.sourceType},#{row.syncStatus},#{row.reconciliationPending},0,#{row.tenantId},FALSE)\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.insertMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml",
+      "xml": "<insert id=\"insertMapping\" useGeneratedKeys=\"true\" keyProperty=\"row.id\">\n    INSERT INTO cus_customer_external_mapping(customer_id,source_system,source_key,source_version,effective_from,tenant_id,deleted)\n    VALUES(#{row.customerId},#{row.sourceSystem},#{row.sourceKey},#{row.sourceVersion},#{row.effectiveFrom},#{row.tenantId},FALSE)\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.updateCustomer",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml",
+      "xml": "<update id=\"updateCustomer\">\n    UPDATE cus_customer_master <set>\n      <if test=\"command.row.code != null\">code=#{command.row.code},</if>\n      erp_customer_code=#{command.row.erpCustomerCode},\n      <if test=\"command.row.name != null\">name=#{command.row.name},</if>\n      <if test=\"command.row.shortName != null\">short_name=#{command.row.shortName},</if>\n      <if test=\"command.row.contactPhone != null\">contact_phone=#{command.row.contactPhone},</if>\n      <if test=\"command.row.contactEmail != null\">contact_email=#{command.row.contactEmail},</if>\n      <if test=\"command.row.address != null\">address=#{command.row.address},</if>\n      <if test=\"command.row.departmentCode != null\">department_code=#{command.row.departmentCode},</if>\n      <if test=\"command.row.departmentName != null\">department_name=#{command.row.departmentName},</if>\n      <if test=\"command.row.marketCode != null\">market_code=#{command.row.marketCode},</if>\n      <if test=\"command.row.marketName != null\">market_name=#{command.row.marketName},</if>\n      <if test=\"command.row.systemCode != null\">system_code=#{command.row.systemCode},</if>\n      <if test=\"command.row.systemName != null\">system_name=#{command.row.systemName},</if>\n      <if test=\"command.row.expendCode != null\">expend_code=#{command.row.expendCode},</if>\n      <if test=\"command.row.expendName != null\">expend_name=#{command.row.expendName},</if>\n      <if test=\"command.row.industryCode != null\">industry_code=#{command.row.industryCode},</if>\n      <if test=\"command.row.industryName != null\">industry_name=#{command.row.industryName},</if>\n      <if test=\"command.row.lifecycleStatus != null\">lifecycle_status=#{command.row.lifecycleStatus},</if>\n      <if test=\"command.row.sourceKey != null\">source_key=#{command.row.sourceKey},</if>\n      <if test=\"command.row.sourceVersion != null\">source_version=#{command.row.sourceVersion},</if>\n      <if test=\"command.row.dataAsOf != null\">data_as_of=#{command.row.dataAsOf},</if>\n      version=version+1\n    </set> WHERE tenant_id=#{command.row.tenantId} AND id=#{command.row.id} AND version=#{command.expectedVersion} AND deleted=FALSE\n  </update>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectCustomerMapper.updateMapping",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectCustomerMapper.xml",
+      "xml": "<update id=\"updateMapping\">\n    UPDATE cus_customer_external_mapping SET source_version=#{command.newVersion}\n    WHERE tenant_id=#{command.tenantId} AND id=#{command.mappingId} AND source_system='CRM'\n      AND source_version=#{command.expectedVersion} AND effective_to IS NULL AND deleted=FALSE\n  </update>\n"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P25WarrantySyncTask$TargetMapper">
+  <select id="selectExisting" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P25WarrantySyncTask$WarrantySyncRow">SELECT `id`, `tenant_id`, `device_sn`, `warranty_contract_no`, `warranty_grade`, `warranty_start_date`, `warranty_end_date`, `warranty_months`, `extended`, `is_latest`, `remark`, `version`, `creator`, `create_time`, `updater`, `update_time`, `deleted` FROM ast_device_warranty_renewal_record
+    WHERE tenant_id=#{query.tenantId}
+    <choose><when test="query.ids != null and !query.ids.isEmpty()">AND id IN
+      <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview">FOR UPDATE</if>
+  </select>
+  <insert id="insertWarranty">INSERT INTO ast_device_warranty_renewal_record (`id`, `tenant_id`, `device_sn`, `warranty_contract_no`, `warranty_grade`, `warranty_start_date`, `warranty_end_date`, `warranty_months`, `extended`, `is_latest`, `remark`, `version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+    <foreach collection="rows" item="row" separator=",">(#{row.target.id}, #{row.target.tenantId}, #{row.target.deviceSn}, #{row.target.warrantyContractNo}, #{row.target.warrantyGrade}, #{row.target.warrantyStartDate}, #{row.target.warrantyEndDate}, #{row.target.warrantyMonths}, #{row.target.extended}, #{row.target.isLatest}, #{row.target.remark}, #{row.target.version}, #{row.target.creator}, #{row.target.createTime}, #{row.target.updater}, #{row.target.updateTime}, #{row.target.deleted})</foreach>
+  </insert>
+  <update id="updateWarranty">UPDATE ast_device_warranty_renewal_record SET `device_sn`=#{row.target.deviceSn}, `warranty_contract_no`=#{row.target.warrantyContractNo}, `warranty_grade`=#{row.target.warrantyGrade}, `warranty_start_date`=#{row.target.warrantyStartDate}, `warranty_end_date`=#{row.target.warrantyEndDate}, `warranty_months`=#{row.target.warrantyMonths}, `extended`=#{row.target.extended}, `is_latest`=#{row.target.isLatest}, `remark`=#{row.target.remark}, `version`=#{row.target.version}, `updater`=#{row.target.updater}, `update_time`=#{row.target.updateTime} WHERE tenant_id=#{row.target.tenantId} AND id=#{row.target.id} AND version=#{row.expectedVersion} AND deleted=FALSE</update>
+</mapper>

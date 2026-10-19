@@ -1,0 +1,216 @@
+{
+  "task": "P30",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "ast_device",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "shipment_record_id",
+      "parameter": "#{row.target.shipmentRecordId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "project_assignment_version",
+      "parameter": "#{row.target.projectAssignmentVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "customer_assignment_version",
+      "parameter": "#{row.target.customerAssignmentVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "sn",
+      "parameter": "#{row.target.sn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "name",
+      "parameter": "#{row.target.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "product_name",
+      "parameter": "#{row.target.productName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "product_model",
+      "parameter": "#{row.target.productModel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "product_code",
+      "parameter": "#{row.target.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "package_no",
+      "parameter": "#{row.target.packageNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "contract_no",
+      "parameter": "#{row.target.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "source_key",
+      "parameter": "#{row.target.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "source_version",
+      "parameter": "#{row.target.sourceVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "sync_status",
+      "parameter": "#{row.target.syncStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "remark",
+      "parameter": "#{row.target.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "shipment_time",
+      "parameter": "#{row.target.shipmentTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "synced_at",
+      "parameter": "#{row.target.syncedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    },
+    {
+      "table": "ast_device",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.selectDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml",
+      "xml": "<select id=\"selectDeviceBase\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$DeviceSource\">SELECT MIN(device_sn) AS device_sn FROM ast_device_shipment WHERE tenant_id=#{tenantId} AND deleted=FALSE AND source_system='DPPMS' GROUP BY CAST(device_sn AS BINARY) ORDER BY CAST(device_sn AS BINARY) LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.selectLatestShipments",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml",
+      "xml": "<select id=\"selectLatestShipments\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$Shipment\">SELECT id,tenant_id,device_sn,source_system,source_key,contract_no,package_no,shipment_time,product_code FROM (SELECT s.*,ROW_NUMBER() OVER(PARTITION BY CAST(device_sn AS BINARY) ORDER BY shipment_time DESC,id DESC) latest_rank FROM ast_device_shipment s WHERE tenant_id=#{query.tenantId} AND deleted=FALSE <choose><when test=\"query.serials != null and !query.serials.isEmpty()\">AND device_sn IN <foreach collection=\"query.serials\" item=\"sn\" open=\"(\" close=\")\" separator=\",\">#{sn}</foreach></when><otherwise>AND 1=0</otherwise></choose>) ranked WHERE latest_rank=1</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.selectProducts",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml",
+      "xml": "<select id=\"selectProducts\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$Product\">SELECT product_code,product_model,product_name FROM ast_product_official_info WHERE tenant_id=#{query.tenantId} AND deleted=FALSE</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.selectExisting",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml",
+      "xml": "<select id=\"selectExisting\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$DeviceRow\">SELECT `id`,`tenant_id`,`version`,`shipment_record_id`,`project_assignment_version`,`customer_assignment_version`,`sn`,`name`,`product_name`,`product_model`,`product_code`,`package_no`,`contract_no`,`status`,`source_system`,`source_key`,`source_version`,`sync_status`,`remark`,`creator`,`updater`,`shipment_time`,`synced_at`,`create_time`,`update_time`,`deleted` FROM ast_device WHERE tenant_id=#{query.tenantId} <choose><when test=\"query.serials != null and !query.serials.isEmpty()\">AND sn IN <foreach collection=\"query.serials\" item=\"sn\" open=\"(\" close=\")\" separator=\",\">#{sn}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\">FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P30DeviceBaseSyncTask$TargetMapper.insertDeviceBase",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P30TargetMapper.xml",
+      "xml": "<insert id=\"insertDeviceBase\">INSERT INTO ast_device (`id`,`tenant_id`,`version`,`shipment_record_id`,`project_assignment_version`,`customer_assignment_version`,`sn`,`name`,`product_name`,`product_model`,`product_code`,`package_no`,`contract_no`,`status`,`source_system`,`source_key`,`source_version`,`sync_status`,`remark`,`creator`,`updater`,`shipment_time`,`synced_at`,`create_time`,`update_time`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.version},#{row.target.shipmentRecordId},#{row.target.projectAssignmentVersion},#{row.target.customerAssignmentVersion},#{row.target.sn},#{row.target.name},#{row.target.productName},#{row.target.productModel},#{row.target.productCode},#{row.target.packageNo},#{row.target.contractNo},#{row.target.status},#{row.target.sourceSystem},#{row.target.sourceKey},#{row.target.sourceVersion},#{row.target.syncStatus},#{row.target.remark},#{row.target.creator},#{row.target.updater},#{row.target.shipmentTime},#{row.target.syncedAt},#{row.target.createTime},#{row.target.updateTime},#{row.target.deleted})</foreach></insert>\n"
+    }
+  ]
+}

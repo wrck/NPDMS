@@ -1,0 +1,514 @@
+{
+  "task": "P08",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "fnd_basic_data_type",
+      "sourceObject": "fnd_basic_data_type",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataTypeCode",
+          "target": "dataTypeCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataTypeName",
+          "target": "dataTypeName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "status",
+          "target": "status",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "definitionMissing",
+          "target": "definitionMissing",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "fnd_basic_data_missing_type",
+      "sourceObject": "fnd_basic_data",
+      "sourceKey": "sourceId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataTypeCode",
+          "target": "dataTypeCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataTypeName",
+          "target": "dataTypeName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "status",
+          "target": "status",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "definitionMissing",
+          "target": "definitionMissing",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sourceId",
+          "target": "sourceId",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "fnd_basic_data",
+      "sourceObject": "fnd_basic_data",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataTypeCode",
+          "target": "dataTypeCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "basicDataId",
+          "target": "basicDataId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "basicDataName",
+          "target": "basicDataName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "basicDataAttri1",
+          "target": "basicDataAttri1",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sortId",
+          "target": "sortId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "system_dict_data",
+      "column": "id",
+      "parameter": "#{command.row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "sort",
+      "parameter": "#{command.row.sort}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "label",
+      "parameter": "#{command.row.label}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "value",
+      "parameter": "#{command.row.value}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "dict_type",
+      "parameter": "#{command.row.dictType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "status",
+      "parameter": "#{command.row.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "color_type",
+      "parameter": "#{command.row.colorType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "css_class",
+      "parameter": "#{command.row.cssClass}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "remark",
+      "parameter": "#{command.row.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "creator",
+      "parameter": "#{command.row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "create_time",
+      "parameter": "#{command.row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "updater",
+      "parameter": "#{command.row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "update_time",
+      "parameter": "#{command.row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_data",
+      "column": "deleted",
+      "parameter": "#{command.row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "id",
+      "parameter": "#{command.row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "name",
+      "parameter": "#{command.row.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "type",
+      "parameter": "#{command.row.type}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "status",
+      "parameter": "#{command.row.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "remark",
+      "parameter": "#{command.row.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "creator",
+      "parameter": "#{command.row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "create_time",
+      "parameter": "#{command.row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "updater",
+      "parameter": "#{command.row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "update_time",
+      "parameter": "#{command.row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "deleted",
+      "parameter": "#{command.row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    },
+    {
+      "table": "system_dict_type",
+      "column": "deleted_time",
+      "parameter": "#{command.row.deletedTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.selectConflictingValuesForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml",
+      "xml": "<select id=\"selectConflictingValuesForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDictionaryDataMigrationApi$Item\">\n        SELECT id,sort,label,value,dict_type,status,color_type,css_class,remark,creator,create_time,updater,update_time,deleted\n        FROM system_dict_data\n        WHERE (deleted=FALSE AND dict_type=#{query.dictType} AND value=#{query.value})\n        <if test=\"query.targetId != null\">OR id=#{query.targetId}</if>\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.selectTypesForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml",
+      "xml": "<select id=\"selectTypesForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDictionaryTypeMigrationApi$Type\">\n        SELECT id,name,type,status,remark,creator,create_time,updater,update_time,deleted,deleted_time\n        FROM system_dict_type WHERE type=#{query.type} AND deleted=FALSE ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryDataMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryDataMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n        INSERT INTO system_dict_data\n            (id,sort,label,value,dict_type,status,color_type,css_class,remark,creator,create_time,updater,update_time,deleted)\n        VALUES (#{command.row.id},#{command.row.sort},#{command.row.label},#{command.row.value},#{command.row.dictType},\n            #{command.row.status},#{command.row.colorType},#{command.row.cssClass},#{command.row.remark},#{command.row.creator},\n            #{command.row.createTime},#{command.row.updater},#{command.row.updateTime},#{command.row.deleted})\n    </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.selectConflictingDefinitionsForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml",
+      "xml": "<select id=\"selectConflictingDefinitionsForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDictionaryTypeMigrationApi$Type\">\n        SELECT id,name,type,status,remark,creator,create_time,updater,update_time,deleted,deleted_time\n        FROM system_dict_type\n        WHERE (deleted=FALSE AND (type=#{query.type} OR name=#{query.name}))\n        <if test=\"query.targetId != null\">OR id=#{query.targetId}</if>\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDictionaryTypeMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectDictionaryTypeMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n        INSERT INTO system_dict_type\n            (id,name,type,status,remark,creator,create_time,updater,update_time,deleted,deleted_time)\n        VALUES (#{command.row.id},#{command.row.name},#{command.row.type},#{command.row.status},#{command.row.remark},\n            #{command.row.creator},#{command.row.createTime},#{command.row.updater},#{command.row.updateTime},\n            #{command.row.deleted},#{command.row.deletedTime})\n    </insert>\n"
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper">
+    <sql id="relations">
+        SELECT id,tenant_id,user_id,company_id,company_code,company_name,department_id,department_code,
+               department_name,scope_role,is_primary,effective_from,effective_to,status,version,
+               creator,create_time,updater,update_time,deleted
+        FROM system_user_company_department_scope WHERE tenant_id=#{query.tenantId} AND deleted=FALSE ORDER BY id
+    </sql>
+    <select id="selectRelations" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRows$ScopeRow"><include refid="relations"/></select>
+    <select id="selectRelationsForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRows$ScopeRow"><include refid="relations"/> FOR UPDATE</select>
+    <sql id="users">
+        SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose><when test="query.userIds != null and !query.userIds.isEmpty()">
+            AND id IN <foreach collection="query.userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose> ORDER BY id
+    </sql>
+    <select id="selectUserIds" resultType="java.lang.Long"><include refid="users"/></select>
+    <select id="selectUserIdsForUpdate" resultType="java.lang.Long"><include refid="users"/> FOR UPDATE</select>
+    <sql id="companies">
+        SELECT id,code,name FROM system_company WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose><when test="query.companyIds != null and !query.companyIds.isEmpty()">
+            AND id IN <foreach collection="query.companyIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose> ORDER BY id
+    </sql>
+    <select id="selectCompanies" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference"><include refid="companies"/></select>
+    <select id="selectCompaniesForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference"><include refid="companies"/> FOR UPDATE</select>
+    <sql id="departments">
+        SELECT id,code,name FROM system_dept WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose><when test="query.departmentIds != null and !query.departmentIds.isEmpty()">
+            AND id IN <foreach collection="query.departmentIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose> ORDER BY id
+    </sql>
+    <select id="selectDepartments" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference"><include refid="departments"/></select>
+    <select id="selectDepartmentsForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$DirectoryReference"><include refid="departments"/> FOR UPDATE</select>
+    <sql id="roles">
+        SELECT ur.user_id,r.code FROM system_user_role ur
+        INNER JOIN system_role r ON r.id=ur.role_id AND r.tenant_id=ur.tenant_id AND r.deleted=FALSE AND r.status=0
+        WHERE ur.tenant_id=#{query.tenantId} AND ur.deleted=FALSE
+        <choose><when test="query.userIds != null and !query.userIds.isEmpty()">
+            AND ur.user_id IN <foreach collection="query.userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose>
+        <choose><when test="query.roleCodes != null and !query.roleCodes.isEmpty()">
+            AND r.code IN <foreach collection="query.roleCodes" item="code" open="(" separator="," close=")">#{code}</foreach>
+        </when><otherwise>AND 1=0</otherwise></choose> ORDER BY ur.user_id,r.id,ur.id
+    </sql>
+    <select id="selectRoles" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$RoleReference"><include refid="roles"/></select>
+    <select id="selectRolesForUpdate" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountScopeMapper$RoleReference"><include refid="roles"/> FOR UPDATE</select>
+    <insert id="insertHistoricalRelation">
+        INSERT INTO system_user_company_department_scope(id,tenant_id,user_id,company_id,company_code,company_name,
+            department_id,department_code,department_name,scope_role,is_primary,effective_from,effective_to,status,
+            version,creator,create_time,updater,update_time,deleted)
+        VALUES(#{write.relation.id},#{write.relation.tenantId},#{write.relation.userId},#{write.relation.companyId},#{write.relation.companyCode},#{write.relation.companyName},
+            #{write.relation.departmentId},#{write.relation.departmentCode},#{write.relation.departmentName},#{write.relation.scopeRole},#{write.relation.isPrimary},
+            #{write.relation.effectiveFrom},#{write.relation.effectiveTo},#{write.relation.status},#{write.relation.version},#{write.audit.creator},
+            #{write.audit.createTime},#{write.audit.updater},#{write.audit.updateTime},FALSE)
+    </insert>
+    <update id="updateHistoricalRelation">
+        UPDATE system_user_company_department_scope SET company_name=#{write.relation.companyName},department_name=#{write.relation.departmentName},
+            is_primary=#{write.relation.isPrimary},effective_to=#{write.relation.effectiveTo},status=#{write.relation.status},
+            creator=#{write.audit.creator},create_time=#{write.audit.createTime},updater=#{write.audit.updater},update_time=#{write.audit.updateTime},version=#{write.relation.version}
+        WHERE id=#{write.relation.id} AND tenant_id=#{write.relation.tenantId} AND version=#{write.expectedVersion} AND deleted=FALSE
+    </update>
+</mapper>

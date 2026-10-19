@@ -1,0 +1,996 @@
+{
+  "date": "2026-10-19",
+  "worktree": "C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "initialFailedTasks": [
+    "P08",
+    "P10",
+    "P14",
+    "P15",
+    "P16",
+    "P18",
+    "P19",
+    "P20",
+    "P21",
+    "P22",
+    "P31",
+    "P33",
+    "P35"
+  ],
+  "repairedTask": "P21",
+  "remainingFailureCount": 12,
+  "current24StatusCounts": {
+    "PREVIEW_READY": 12,
+    "FAILED": 12
+  },
+  "records": [
+    {
+      "task": "P08",
+      "classification": "正式审计账号输入",
+      "historicalLogic": "旧字典Owner按精确正式账号保存原审计；原ID542/system及空114只是既定窄例外。不能推广为任何缺失人员都填admin。",
+      "currentGap": "本次仍缺w02611；已核w02611、x01861均无正式账号。九个已审核审计账号当前均未找到，需正式P04账号结果。",
+      "disposition": "保留；当前数据前置，不新增账号、不删原审计、不扩大例外。",
+      "historicalTaskIds": [
+        "2109351154645135362",
+        "2109371486114320385"
+      ],
+      "historicalResult": "80类型=31原类型+49缺失分组；531字典项；原ID114明确排除；各自重放未变化。",
+      "initialPreview": {
+        "key": "P08",
+        "taskId": 2111470471713304577,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051432817598465,
+          "task_id": 2111470471713304577,
+          "task_code": "BASE_P08",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "原审计人员缺少已核实的平台账号，禁止猜配：w02611",
+          "started_at": "2026-10-19 13:21:16.264000",
+          "finished_at": "2026-10-19 13:21:16.326000"
+        },
+        "seconds": 0.223
+      },
+      "latestPreview": {
+        "key": "P08",
+        "taskId": 2111470471713304577,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051432817598465,
+          "task_id": 2111470471713304577,
+          "task_code": "BASE_P08",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "原审计人员缺少已核实的平台账号，禁止猜配：w02611",
+          "started_at": "2026-10-19 13:21:16.264000",
+          "finished_at": "2026-10-19 13:21:16.326000"
+        },
+        "seconds": 0.223
+      },
+      "currentRun": {
+        "id": 2112051432817598465,
+        "task_id": 2111470471713304577,
+        "task_code": "BASE_P08",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "原审计人员缺少已核实的平台账号，禁止猜配：w02611",
+        "started_at": "2026-10-19 13:21:16.264000",
+        "finished_at": "2026-10-19 13:21:16.326000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P10",
+      "classification": "目标结构",
+      "historicalLogic": "旧客户任务是共用前置，十项目材料不能证明CRM整表迁入；新任务必须完整承接已审核ERP客户码。",
+      "currentGap": "cus_customer_master.erp_customer_code仍不存在。实际目标查询/INSERT需要该列，不能只取消前置后宣称目标校验通过。",
+      "disposition": "保留；等待既有批准结构到位，未执行V481或任何DDL。",
+      "historicalTaskIds": [
+        "2102221608959250434"
+      ],
+      "historicalResult": "历史已有独立客户同步任务；本次所查10项目回执不能单独证明客户整表迁入。",
+      "initialPreview": {
+        "key": "P10",
+        "taskId": 2111470474389270529,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051433660653569,
+          "task_id": 2111470474389270529,
+          "task_code": "BASE_P10",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P10目标缺少已审核列cus_customer_master.erp_customer_code；不执行迁移",
+          "started_at": "2026-10-19 13:21:16.463000",
+          "finished_at": "2026-10-19 13:21:16.474000"
+        },
+        "seconds": 0.13
+      },
+      "latestPreview": {
+        "key": "P10",
+        "taskId": 2111470474389270529,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051433660653569,
+          "task_id": 2111470474389270529,
+          "task_code": "BASE_P10",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P10目标缺少已审核列cus_customer_master.erp_customer_code；不执行迁移",
+          "started_at": "2026-10-19 13:21:16.463000",
+          "finished_at": "2026-10-19 13:21:16.474000"
+        },
+        "seconds": 0.13
+      },
+      "currentRun": {
+        "id": 2112051433660653569,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P10目标缺少已审核列cus_customer_master.erp_customer_code；不执行迁移",
+        "started_at": "2026-10-19 13:21:16.463000",
+        "finished_at": "2026-10-19 13:21:16.474000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P14",
+      "classification": "来源冲突",
+      "historicalLogic": "旧十项目10订单/105订单行精确唯一，保留版本与完整载荷保护；没有由旧成功导出的整表任取冲突行规则。",
+      "currentGap": "本次全源核对：91572表头原行→91239业务键，其中169键载荷冲突；380605明细原行→379522键，其中10个冲突键的40行缺订单号。",
+      "disposition": "保留；由来源权威修正或提供已有逐键消歧依据，不拼接多个MAX、不占位、不跳过。当前MAX聚合仅在payloadVariants=1时可接受，冲突仍拒绝。",
+      "historicalTaskIds": [
+        "2101587859478949890"
+      ],
+      "historicalResult": "原105试点订单行已承接；不能将既有表计数16头/27行等保护范围当本次新增数。",
+      "initialPreview": {
+        "key": "P14",
+        "taskId": 2111504179094777858,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051434155581442,
+          "task_id": 2111504179094777858,
+          "task_code": "BASE_P14",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+          "started_at": "2026-10-19 13:21:16.580000",
+          "finished_at": "2026-10-19 13:21:30.684000"
+        },
+        "seconds": 14.213
+      },
+      "latestPreview": {
+        "key": "P14",
+        "taskId": 2111504179094777858,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051434155581442,
+          "task_id": 2111504179094777858,
+          "task_code": "BASE_P14",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+          "started_at": "2026-10-19 13:21:16.580000",
+          "finished_at": "2026-10-19 13:21:30.684000"
+        },
+        "seconds": 14.213
+      },
+      "currentRun": {
+        "id": 2112051434155581442,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+        "started_at": "2026-10-19 13:21:16.580000",
+        "finished_at": "2026-10-19 13:21:30.684000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P15",
+      "classification": "目标结构、容量和正式P24输入",
+      "historicalLogic": "旧试点合同/发货/包件及回款已经正式存在；B旧五阶段预览不验证C本地合同输入。真实父来源键及完整回款是必要事实。",
+      "currentGap": "缺com_shipment_package.shipment_contract_source_key；源条码4283326条，任务max_rows=1000000且库CHECK上限100万；同源BASE_P24无非预览COMPLETED回执。",
+      "disposition": "保留；已批准列/容量CHECK到位后才可配置500万；还须另行获准的P24正式输入。本轮不修改任务容量绕过CHECK。",
+      "historicalTaskIds": [
+        "2107037031219654657",
+        "2101891886242299906"
+      ],
+      "historicalResult": "原10项目1284条发货事实、19条包件物流的原字段核对完成；120638发货合同引用属于共用处理范围。",
+      "initialPreview": {
+        "key": "P15",
+        "taskId": 2111504249399701506,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051493786001409,
+          "task_id": 2111504249399701506,
+          "task_code": "BASE_P15",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P15_TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key",
+          "started_at": "2026-10-19 13:21:30.798000",
+          "finished_at": "2026-10-19 13:21:30.815000"
+        },
+        "seconds": 0.127
+      },
+      "latestPreview": {
+        "key": "P15",
+        "taskId": 2111504249399701506,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051493786001409,
+          "task_id": 2111504249399701506,
+          "task_code": "BASE_P15",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P15_TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key",
+          "started_at": "2026-10-19 13:21:30.798000",
+          "finished_at": "2026-10-19 13:21:30.815000"
+        },
+        "seconds": 0.127
+      },
+      "currentRun": {
+        "id": 2112051493786001409,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P15_TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key",
+        "started_at": "2026-10-19 13:21:30.798000",
+        "finished_at": "2026-10-19 13:21:30.815000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P16",
+      "classification": "正式P04来源身份",
+      "historicalLogic": "旧十项目已有正式账号与来源映射，再由主档Owner保留37列和全部原身份；预览不产生账号来源事实。",
+      "currentGap": "本次精确缺USER_FND:79:x00270；新套件来源绑定0、P04非预览完成0。普通82个项目不等于已核实DPPMS身份，不能套原数字ID。",
+      "disposition": "保留；需本套件正式P04输入。多来源目标唯一索引仍是实际写入前置，预览已按此前修复仅警告。",
+      "historicalTaskIds": [
+        "2108608417343934465",
+        "2109622534918856706"
+      ],
+      "historicalResult": "原10项目37原字段纠正/重放完成；身份10条完整预览、执行、重放。51922后续结束日期2026-10-14保持。",
+      "initialPreview": {
+        "key": "P16",
+        "taskId": 2111504250456666113,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051494360621058,
+          "task_id": 2111504250456666113,
+          "task_code": "BASE_P16",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P16_FORMAL_ACCOUNT_SOURCE_BINDING_MISSING:USER_FND:79:x00270",
+          "started_at": "2026-10-19 13:21:30.934000",
+          "finished_at": "2026-10-19 13:21:32.683000"
+        },
+        "seconds": 1.863
+      },
+      "latestPreview": {
+        "key": "P16",
+        "taskId": 2111504250456666113,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051494360621058,
+          "task_id": 2111504250456666113,
+          "task_code": "BASE_P16",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P16_FORMAL_ACCOUNT_SOURCE_BINDING_MISSING:USER_FND:79:x00270",
+          "started_at": "2026-10-19 13:21:30.934000",
+          "finished_at": "2026-10-19 13:21:32.683000"
+        },
+        "seconds": 1.863
+      },
+      "currentRun": {
+        "id": 2112051494360621058,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P16_FORMAL_ACCOUNT_SOURCE_BINDING_MISSING:USER_FND:79:x00270",
+        "started_at": "2026-10-19 13:21:30.934000",
+        "finished_at": "2026-10-19 13:21:32.683000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P18",
+      "classification": "正式账号及项目/合同输入",
+      "historicalLogic": "旧关系Owner要求正式项目/合同、精确审计和组织范围；整组已裁决归并保留每条原桥身份。",
+      "currentGap": "首个缺x00270。九个缺失审计账号均在已有P04范围：j01441、j05517、t04026、w02611、w02799、x00270、x01861、x05179、y00439。随后仍须真实项目、合同及公司授权。",
+      "disposition": "保留；不是新账号范围待裁决。新套件组装/归并与既有四查询拆分保留，实际写入另需多来源索引结构。",
+      "historicalTaskIds": [
+        "2109363204544983041"
+      ],
+      "historicalResult": "原10条关系；v1完整预览、执行、重放均10 UNCHANGED，补10个有序来源绑定共用既有目标。",
+      "initialPreview": {
+        "key": "P18",
+        "taskId": 2111504251568156674,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051502157832193,
+          "task_id": 2111504251568156674,
+          "task_code": "BASE_P18",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "原审计人员缺少已核实的平台账号，禁止猜配：x00270",
+          "started_at": "2026-10-19 13:21:32.794000",
+          "finished_at": "2026-10-19 13:21:40.726000"
+        },
+        "seconds": 8.038
+      },
+      "latestPreview": {
+        "key": "P18",
+        "taskId": 2111504251568156674,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051502157832193,
+          "task_id": 2111504251568156674,
+          "task_code": "BASE_P18",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "原审计人员缺少已核实的平台账号，禁止猜配：x00270",
+          "started_at": "2026-10-19 13:21:32.794000",
+          "finished_at": "2026-10-19 13:21:40.726000"
+        },
+        "seconds": 8.038
+      },
+      "currentRun": {
+        "id": 2112051502157832193,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "原审计人员缺少已核实的平台账号，禁止猜配：x00270",
+        "started_at": "2026-10-19 13:21:32.794000",
+        "finished_at": "2026-10-19 13:21:40.726000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P19",
+      "classification": "正式项目及四属性定义",
+      "historicalLogic": "旧十项目55相关方和10组状态均有正式项目；四状态属性是正式扩展，不是项目生命周期。",
+      "currentGap": "本次缺正式项目来源身份；proj_legacy_detail_source=0、新套件绑定0。定义目录仅SOL/REQUIREMENT_ANALYSIS，缺PRJ/project四属性及有效配置ID。",
+      "disposition": "保留；需要正式项目身份、shipment_status、shipment_status_updated_at、execution_status、execution_status_updated_at定义和pms.base-sync.project-state-definition-id。未发布定义或写状态机。",
+      "historicalTaskIds": [
+        "2109968219214897153"
+      ],
+      "historicalResult": "原10项目读65：55相关方更新+10状态扩展；23条NULL更新人另纠正；最终重放65 UNCHANGED。",
+      "initialPreview": {
+        "key": "P19",
+        "taskId": 2111504252700618753,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051535838093313,
+          "task_id": 2111504252700618753,
+          "task_code": "BASE_P19",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:76,75,83,87,86,85,84,81,6864,6892,7875,7879",
+          "started_at": "2026-10-19 13:21:40.822000",
+          "finished_at": "2026-10-19 13:21:50.110000"
+        },
+        "seconds": 9.401
+      },
+      "latestPreview": {
+        "key": "P19",
+        "taskId": 2111504252700618753,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051535838093313,
+          "task_id": 2111504252700618753,
+          "task_code": "BASE_P19",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:76,75,83,87,86,85,84,81,6864,6892,7875,7879",
+          "started_at": "2026-10-19 13:21:40.822000",
+          "finished_at": "2026-10-19 13:21:50.110000"
+        },
+        "seconds": 9.401
+      },
+      "currentRun": {
+        "id": 2112051535838093313,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:76,75,83,87,86,85,84,81,6864,6892,7875,7879",
+        "started_at": "2026-10-19 13:21:40.822000",
+        "finished_at": "2026-10-19 13:21:50.110000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P20",
+      "classification": "正式项目父关联",
+      "historicalLogic": "旧十项目真实产品来源为0，仅证明空输入不造数据；不能用空样本证明整表非空清单已承接。",
+      "currentGap": "本次来源已读到22945、24284等项目键，正式身份解析失败；目标project_id是必要父引用，不能去掉或用原项目ID替代。",
+      "disposition": "保留；待正式项目/身份到位，继续核完整上游来源、数量、重复及不可变清单。未凭缺前置推定后续检查通过。",
+      "historicalTaskIds": [
+        "2109865269478027265"
+      ],
+      "historicalResult": "原10项目0条；实现/空来源与非空承接分开。",
+      "initialPreview": {
+        "key": "P20",
+        "taskId": 2111504298947014658,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051575306493953,
+          "task_id": 2111504298947014658,
+          "task_code": "BASE_P20",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:22945,24284,28998,27490,26918,29967,36237,33718,33382,34863,34779,36979",
+          "started_at": "2026-10-19 13:21:50.235000",
+          "finished_at": "2026-10-19 13:22:01.147000"
+        },
+        "seconds": 11.021
+      },
+      "latestPreview": {
+        "key": "P20",
+        "taskId": 2111504298947014658,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051575306493953,
+          "task_id": 2111504298947014658,
+          "task_code": "BASE_P20",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:22945,24284,28998,27490,26918,29967,36237,33718,33382,34863,34779,36979",
+          "started_at": "2026-10-19 13:21:50.235000",
+          "finished_at": "2026-10-19 13:22:01.147000"
+        },
+        "seconds": 11.021
+      },
+      "currentRun": {
+        "id": 2112051575306493953,
+        "task_id": 2111504298947014658,
+        "task_code": "BASE_P20",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:22945,24284,28998,27490,26918,29967,36237,33718,33382,34863,34779,36979",
+        "started_at": "2026-10-19 13:21:50.235000",
+        "finished_at": "2026-10-19 13:22:01.147000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P21",
+      "classification": "已修复的预览流程；正式执行仍缺结构",
+      "historicalLogic": "旧十项目两缓存来源均0；展示缓存不需要虚构project_id。当前全源非空，仍应原字段、重复行完整预览。",
+      "currentGap": "修复前把project_id可空结构校验用于所有运行，导致只读预览未读源即失败。该结构确实挡真实写入，但不需要阻止无DML预览。",
+      "disposition": "只调整新P21：执行分支仍在清理前拒绝；预览登记P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable后继续。454租赁+736配置=1190全量真实预览通过，无缓存或绑定写入。",
+      "historicalTaskIds": [
+        "2109865270430134273"
+      ],
+      "historicalResult": "原10项目两表均0条；19列正式承载及规则已实现，非空全历史未迁。",
+      "initialPreview": {
+        "key": "P21",
+        "taskId": 2111463419926470657,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051621519335425,
+          "task_id": 2111463419926470657,
+          "task_code": "BASE_P21",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P21：已审核可空列尚未就绪；禁止补造关联ID或原时间",
+          "started_at": "2026-10-19 13:22:01.254000",
+          "finished_at": "2026-10-19 13:22:01.271000"
+        },
+        "seconds": 0.12
+      },
+      "latestPreview": {
+        "taskId": 2111463419926470657,
+        "key": "P21",
+        "apiCode": 0,
+        "counts": {
+          "read": 1190,
+          "inserted": 1190,
+          "updated": 0,
+          "unchanged": 0,
+          "deleted": 0
+        },
+        "publicError": null,
+        "run": {
+          "id": 2112053188930744321,
+          "task_id": 2111463419926470657,
+          "task_code": "BASE_P21",
+          "status": "PREVIEW_READY",
+          "preview": "01",
+          "read_count": 1190,
+          "inserted_count": 1190,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+          "started_at": "2026-10-19 13:28:14.959000",
+          "finished_at": "2026-10-19 13:28:15.153000"
+        },
+        "seconds": 0.4
+      },
+      "currentRun": {
+        "id": 2112053188930744321,
+        "task_id": 2111463419926470657,
+        "task_code": "BASE_P21",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+        "started_at": "2026-10-19 13:28:14.959000",
+        "finished_at": "2026-10-19 13:28:15.153000"
+      },
+      "stillFailed": false
+    },
+    {
+      "task": "P22",
+      "classification": "正式项目及范围引用",
+      "historicalLogic": "旧十项目105范围+105配套明细基于正式项目、合同关系、订单行和办事处快照；未确认历史不等于当前分配。",
+      "currentGap": "本次缺正式项目身份。目标还需精确合同/订单行组合、数量及办事处版本，当前未走到这些后续检查。",
+      "disposition": "保留；正式P16输入后按既有合同、行、办事处契约核验；allocationConfirmed仍false，不凭旧试点审批扩大分配。",
+      "historicalTaskIds": [
+        "2109829769958453249"
+      ],
+      "historicalResult": "105范围+补齐105条21列产品数量明细；10命令重放REPLAY_COMPLETED，父范围和29旧明细保护。",
+      "initialPreview": {
+        "key": "P22",
+        "taskId": 2111504342123180033,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051622005874690,
+          "task_id": 2111504342123180033,
+          "task_code": "BASE_P22",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:37400,38882,38883,41315,41931,41953,41954,42167,42500,42878,42879,42880",
+          "started_at": "2026-10-19 13:22:01.368000",
+          "finished_at": "2026-10-19 13:22:06.426000"
+        },
+        "seconds": 5.154
+      },
+      "latestPreview": {
+        "key": "P22",
+        "taskId": 2111504342123180033,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051622005874690,
+          "task_id": 2111504342123180033,
+          "task_code": "BASE_P22",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:37400,38882,38883,41315,41931,41953,41954,42167,42500,42878,42879,42880",
+          "started_at": "2026-10-19 13:22:01.368000",
+          "finished_at": "2026-10-19 13:22:06.426000"
+        },
+        "seconds": 5.154
+      },
+      "currentRun": {
+        "id": 2112051622005874690,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "FORMAL_PROJECT_SOURCE_IDENTITY_MISSING:37400,38882,38883,41315,41931,41953,41954,42167,42500,42878,42879,42880",
+        "started_at": "2026-10-19 13:22:01.368000",
+        "finished_at": "2026-10-19 13:22:06.426000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P31",
+      "classification": "本套件完整正式P16范围",
+      "historicalLogic": "旧成员/联系人命令指定已正式承接的十项目；23条确认授权是当时逐项目批准，不扩展到整表历史。",
+      "currentGap": "缺BASE_P16完整非预览COMPLETED范围。新套件不再读取旧发布表，当前自身绑定和正式完成回执均0。联系人后续还需正式FINAL_CUSTOMER。",
+      "disposition": "保留；新独立完整范围及当前项目管理范围为必要前置。历史成员不确认当前授权，联系人不接管主联系人。",
+      "historicalTaskIds": [],
+      "historicalResult": "61成员=23确认授权+38未确认历史；结束6管理员区间、原84其余保持；10项目重放。9联系人经CUS承接，旧17全局联系人保持。",
+      "initialPreview": {
+        "key": "P31",
+        "taskId": 2111504367108648961,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051643648483330,
+          "task_id": 2111504367108648961,
+          "task_code": "BASE_P31",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+          "started_at": "2026-10-19 13:22:06.529000",
+          "finished_at": "2026-10-19 13:22:06.542000"
+        },
+        "seconds": 0.124
+      },
+      "latestPreview": {
+        "key": "P31",
+        "taskId": 2111504367108648961,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051643648483330,
+          "task_id": 2111504367108648961,
+          "task_code": "BASE_P31",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+          "started_at": "2026-10-19 13:22:06.529000",
+          "finished_at": "2026-10-19 13:22:06.542000"
+        },
+        "seconds": 0.124
+      },
+      "currentRun": {
+        "id": 2112051643648483330,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+        "started_at": "2026-10-19 13:22:06.529000",
+        "finished_at": "2026-10-19 13:22:06.542000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P33",
+      "classification": "本套件完整正式范围及设备/位置上下文",
+      "historicalLogic": "旧948安装历史以正式项目、SN设备和不可变地址为依据；20既有较新位置保持，只补928缺位置。",
+      "currentGap": "本次先缺新P16完整正式范围。之后仍需正式SN设备、合法项目设备选择及地址契约；当前DPPMS正式发货0，不能据3条其他发货造设备链。",
+      "disposition": "保留；没有重新引入旧试点Owner或旧发布依赖，不猜设备ID，不接管已有当前位置。后续依赖未到达不计已验证。",
+      "historicalTaskIds": [],
+      "historicalResult": "948正式安装；20较新位置保留，补928空位置；298普通记录保护。",
+      "initialPreview": {
+        "key": "P33",
+        "taskId": 2111504368203362306,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051644151799809,
+          "task_id": 2111504368203362306,
+          "task_code": "BASE_P33",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+          "started_at": "2026-10-19 13:22:06.649000",
+          "finished_at": "2026-10-19 13:22:06.660000"
+        },
+        "seconds": 0.122
+      },
+      "latestPreview": {
+        "key": "P33",
+        "taskId": 2111504368203362306,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051644151799809,
+          "task_id": 2111504368203362306,
+          "task_code": "BASE_P33",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+          "started_at": "2026-10-19 13:22:06.649000",
+          "finished_at": "2026-10-19 13:22:06.660000"
+        },
+        "seconds": 0.122
+      },
+      "currentRun": {
+        "id": 2112051644151799809,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+        "started_at": "2026-10-19 13:22:06.649000",
+        "finished_at": "2026-10-19 13:22:06.660000"
+      },
+      "stillFailed": true
+    },
+    {
+      "task": "P35",
+      "classification": "本套件完整范围及八属性定义",
+      "historicalLogic": "旧6批次/659版本/5272属性有正式项目与对应正式扩展；原Bak/Change不丢、不转升级完成事件。",
+      "currentGap": "本次先缺新P16完整正式范围；另无AST/SoftwareVersionRecord八属性正式定义，仅存在SOL/REQUIREMENT_ANALYSIS。",
+      "disposition": "保留；所需conp/boot/cpld/pcb各自_bak/_change定义及pms.base-sync.software-history-definition-id不能用其他实体代替。批次父ID仍在本次执行后处理中传递，已有原生测试证明，不误判为缺失实现。",
+      "historicalTaskIds": [],
+      "historicalResult": "6批次+659版本历史+5272个原Bak/Change属性承接；635条误生成旧事件已限定撤回，不计升级完成。",
+      "initialPreview": {
+        "key": "P35",
+        "taskId": 2111504369105137665,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051644671893506,
+          "task_id": 2111504369105137665,
+          "task_code": "BASE_P35",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+          "started_at": "2026-10-19 13:22:06.772000",
+          "finished_at": "2026-10-19 13:22:06.783000"
+        },
+        "seconds": 0.124
+      },
+      "latestPreview": {
+        "key": "P35",
+        "taskId": 2111504369105137665,
+        "apiCode": 500,
+        "apiSucceeded": false,
+        "publicError": "系统异常",
+        "run": {
+          "id": 2112051644671893506,
+          "task_id": 2111504369105137665,
+          "task_code": "BASE_P35",
+          "status": "FAILED",
+          "preview": "01",
+          "read_count": 0,
+          "inserted_count": 0,
+          "updated_count": 0,
+          "unchanged_count": 0,
+          "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+          "started_at": "2026-10-19 13:22:06.772000",
+          "finished_at": "2026-10-19 13:22:06.783000"
+        },
+        "seconds": 0.124
+      },
+      "currentRun": {
+        "id": 2112051644671893506,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "COMPLETE_FORMAL_BASE_P16_SCOPE_REQUIRED",
+        "started_at": "2026-10-19 13:22:06.772000",
+        "finished_at": "2026-10-19 13:22:06.783000"
+      },
+      "stillFailed": true
+    }
+  ],
+  "tests": [
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncIsolationTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/p21-20261019T132433.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncMapperWiringTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/p21-20261019T132433.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.CacheSourceNullabilityTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/p21-20261019T132433.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.ProjectCachePreviewMySqlTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/p21-20261019T132433.log"
+    }
+  ],
+  "runtime": {
+    "pid": 46176,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\runtime-candidate-p21\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms_reverify_20261014",
+    "redisDatabase": 14,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\runtime-sanitized.log",
+    "startedAt": "2026-10-19T13:27:04.633209"
+  },
+  "protectionEvidence": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/final-proof.json",
+  "operations": {
+    "initialPreviewRequests": 13,
+    "affectedPreviewRetries": 1,
+    "only59284Reloads": 1,
+    "realSyncs": 0,
+    "migrations": 0,
+    "originalTaskOperations": 0,
+    "businessOrDefinitionWrites": 0,
+    "service59191Operations": 0
+  },
+  "scope": "All findings based on existing approved rules and current read-only evidence; no dual-line business run or new approval request."
+}

@@ -1,0 +1,612 @@
+{
+  "task": "P37",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "LICENSE_HISTORY",
+      "sourceObject": "pm_project_license_info_from_license",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "sn",
+          "target": "sn"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "specModel",
+          "target": "specModel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contract",
+          "target": "contract"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contractType",
+          "target": "contractType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "item",
+          "target": "item"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "status",
+          "target": "status"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "ciphertext",
+          "target": "ciphertext"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "keyId",
+          "target": "keyId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "codeMac",
+          "target": "codeMac"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectDeviceForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectDeviceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO\">\n        SELECT id,\n               sn,\n               project_id,\n               project_assignment_version,\n               customer_id,\n               customer_assignment_version,\n               tenant_id\n        FROM ast_device\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.deviceId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCurrentProject",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCurrentProject\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceProjectRelationshipDO\">\n        SELECT id,\n               device_sn,\n               project_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_project_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = (\n              SELECT sn\n              FROM ast_device\n              WHERE tenant_id = #{query.tenantId}\n                AND id = #{query.deviceId}\n                AND deleted = b'0'\n          )\n          AND relationship_type = 'DIRECT'\n          AND effective_to IS NULL\n          AND deleted = b'0'\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCurrentCustomer",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCurrentCustomer\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceCustomerRelationshipDO\">\n        SELECT id,\n               device_sn,\n               customer_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_customer_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = (\n              SELECT sn\n              FROM ast_device\n              WHERE tenant_id = #{query.tenantId}\n                AND id = #{query.deviceId}\n                AND deleted = b'0'\n          )\n          AND relationship_type = 'DIRECT'\n          AND effective_to IS NULL\n          AND deleted = b'0'\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectProjectHistoryList",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectProjectHistoryList\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceProjectRelationshipDO\">\n        SELECT id,\n               device_sn,\n               project_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_project_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND relationship_type = 'DIRECT'\n          AND deleted = b'0'\n        ORDER BY effective_from DESC,\n                 id DESC\n        LIMIT #{query.limit} OFFSET #{query.offset}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectProjectHistoryCount",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectProjectHistoryCount\" resultType=\"long\">\n        SELECT COUNT(*)\n        FROM ast_device_project_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND relationship_type = 'DIRECT'\n          AND deleted = b'0'\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCustomerRelationshipList",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCustomerRelationshipList\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceCustomerRelationshipDO\">\n        SELECT id,\n               device_sn,\n               customer_id,\n               relationship_type,\n               effective_from,\n               effective_to,\n               assignment_version,\n               reason,\n               operation_id,\n               source_system,\n               source_key,\n               source_version,\n               version,\n               tenant_id\n        FROM ast_device_customer_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n        ORDER BY effective_from DESC,\n                 id DESC\n        LIMIT #{query.limit} OFFSET #{query.offset}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectCustomerRelationshipCount",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectCustomerRelationshipCount\" resultType=\"long\">\n        SELECT COUNT(*)\n        FROM ast_device_customer_relationship\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectProjectionDeviceForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectProjectionDeviceForUpdate\" resultType=\"long\">\n        SELECT id\n        FROM ast_device\n        WHERE tenant_id = #{tenantId}\n          AND sn = #{deviceSn}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.existsAncestorProjectionOperation",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"existsAncestorProjectionOperation\" resultType=\"boolean\">\n        SELECT EXISTS(\n            SELECT 1\n            FROM ast_device_ancestor_projection_operation\n            WHERE tenant_id = #{tenantId}\n              AND event_id = #{eventId}\n              AND deleted = b'0'\n        )\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.assignment.DeviceAssignmentMapper.selectLatestAncestorProjectionOperation",
+      "source": "pms-module-asset/src/main/resources/mapper/assignment/DeviceAssignmentMapper.xml",
+      "xml": "<select id=\"selectLatestAncestorProjectionOperation\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.assignment.DeviceAncestorProjectionOperationDO\">\n        SELECT id,\n               event_id,\n               operation_id,\n               device_sn,\n               project_id,\n               tree_version,\n               assignment_version,\n               tenant_id\n        FROM ast_device_ancestor_projection_operation\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n        ORDER BY assignment_version DESC,\n                 tree_version DESC,\n                 id DESC\n        LIMIT 1\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.device.DeviceMigrationIdentityMapper.selectIdentityForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/device/DeviceMigrationIdentityMapper.xml",
+      "xml": "<select id=\"selectIdentityForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.device.DeviceDO\">\n        SELECT * FROM ast_device WHERE tenant_id=#{query.tenantId} AND sn=#{query.deviceSn} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.license.DeviceLicenseRecordMapper.selectRecordForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/license/DeviceLicenseRecordMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.license.DeviceLicenseRecordDO\">\n        SELECT * FROM ast_device_license_record WHERE tenant_id=#{query.tenantId} AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.license.DeviceLicenseRecordMapper.selectVisiblePage",
+      "source": "pms-module-asset/src/main/resources/mapper/license/DeviceLicenseRecordMapper.xml",
+      "xml": "<select id=\"selectVisiblePage\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.license.DeviceLicenseRecordDO\">\n        SELECT id,tenant_id,device_id,device_sn,contract_id,contract_no,contract_type,product_code,product_model,\n            license_status,creator,create_time,updater,update_time,deleted\n        FROM ast_device_license_record WHERE <include refid=\"visible\" />\n        ORDER BY id LIMIT #{query.limit} OFFSET #{query.offset}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.license.DeviceLicenseRecordMapper.countVisible",
+      "source": "pms-module-asset/src/main/resources/mapper/license/DeviceLicenseRecordMapper.xml",
+      "xml": "<select id=\"countVisible\" resultType=\"long\">\n        SELECT COUNT(*) FROM ast_device_license_record WHERE <include refid=\"visible\" />\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.shipment.DeviceShipmentMapper.selectLatest",
+      "source": "pms-module-asset/src/main/resources/mapper/shipment/DeviceShipmentMapper.xml",
+      "xml": "<select id=\"selectLatest\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.shipment.DeviceShipmentDO\">\n        SELECT id,\n               device_sn,\n               legacy_package_key,\n               rma_related_sn,\n               rma_marked,\n               order_no,\n               line_no,\n               order_line_id,\n               source_payload,\n               product_code,\n               secondary_sn,\n               secondary_item,\n               internal_serial_no,\n               is_rma,\n               profit_center,\n               sole_agent_suffix,\n               sync_time,\n               uuid,\n               shipment_time,\n               package_no,\n               contract_no,\n               event_type,\n               warranty_start_date,\n               warranty_months,\n               rma_no,\n               related_device_sn,\n               source_system,\n               source_key,\n               source_version,\n               source_updated_at,\n               synced_at,\n               sync_status,\n               version,\n               creator,\n               create_time,\n               updater,\n               update_time,\n               deleted,\n               tenant_id\n        FROM ast_device_shipment\n        WHERE tenant_id = #{query.tenantId}\n          AND device_sn = #{query.deviceSn}\n          AND deleted = b'0'\n        ORDER BY shipment_time DESC, id DESC\n        LIMIT 1\n    </select>\n\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionMapper.selectIdentity",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionMapper.xml",
+      "xml": "<select id=\"selectIdentity\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceFactoryVersionDO\">\n        SELECT * FROM ast_device_factory_version WHERE tenant_id=#{query.tenantId} AND device_sn=#{query.deviceSn} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionRecordMapper.selectByIdForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml",
+      "xml": "<select id=\"selectByIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceFactoryVersionRecordDO\">\n        SELECT * FROM ast_device_factory_version_record WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceFactoryVersionRecordMapper.selectGlobalRecordForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceFactoryVersionRecordMapper.xml",
+      "xml": "<select id=\"selectGlobalRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceFactoryVersionRecordDO\">\n        SELECT * FROM ast_device_factory_version_record\n        WHERE tenant_id=#{query.tenantId} AND project_id IS NULL AND id=#{query.id} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareChangeBatchMapper.selectLegacyForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml",
+      "xml": "<select id=\"selectLegacyForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareLegacyBatchDO\">\n        SELECT * FROM ast_device_software_change_batch WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.recordId} AND deleted=0 FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareChangeBatchMapper.selectRecordForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareChangeBatchMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareChangeBatchDO\">\n        SELECT * FROM ast_device_software_change_batch WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND id=#{query.recordId} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareVersionRecordMapper.selectForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml",
+      "xml": "<select id=\"selectForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareVersionRecordDO\">\n        SELECT *\n        FROM ast_device_software_version_record\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.recordId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.version.DeviceSoftwareVersionRecordMapper.selectCurrentPredecessor",
+      "source": "pms-module-asset/src/main/resources/mapper/version/DeviceSoftwareVersionRecordMapper.xml",
+      "xml": "<select id=\"selectCurrentPredecessor\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.version.DeviceSoftwareVersionRecordDO\">\n    SELECT * FROM ast_device_software_version_record\n    WHERE tenant_id=#{query.tenantId} AND device_id=#{query.deviceId} AND deleted=0\n      AND data_source=#{query.dataSource} AND recorded_at &lt;=&gt; #{query.recordedAt}\n    <if test=\"query.requestKey != null\">AND request_key=#{query.requestKey}</if>\n    ORDER BY create_time DESC, id DESC LIMIT 1\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyChangeRecordMapper.selectSourceForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyChangeRecordMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyChangeRecordDO\">\n        SELECT * FROM ast_device_warranty_change_record WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n          AND source_table=#{query.sourceTable} AND source_key=#{query.sourceKey}\n          AND source_checksum=#{query.sourceChecksum} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyChangeRecordMapper.selectProjectPage",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyChangeRecordMapper.xml",
+      "xml": "<select id=\"selectProjectPage\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyChangeRecordDO\">\n        SELECT f.*\n        FROM ast_device_warranty_change_record f\n        JOIN ast_device_warranty_fact_project r ON r.tenant_id=f.tenant_id AND r.fact_id=f.id\n          AND r.fact_type='CHANGE' AND r.deleted=0\n        WHERE f.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId} AND f.deleted=0\n        ORDER BY f.id LIMIT #{query.offset}, #{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyChangeRecordMapper.countProject",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyChangeRecordMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*)\n        FROM ast_device_warranty_change_record f\n        JOIN ast_device_warranty_fact_project r ON r.tenant_id=f.tenant_id AND r.fact_id=f.id\n          AND r.fact_type='CHANGE' AND r.deleted=0\n        WHERE f.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId} AND f.deleted=0\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyFactProjectMapper.selectProjectRelationForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyFactProjectMapper.xml",
+      "xml": "<select id=\"selectProjectRelationForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyFactProjectDO\">\n        SELECT * FROM ast_device_warranty_fact_project WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND fact_type=#{query.factType} AND fact_id=#{query.factId} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRecordMapper.selectSourceIdentity",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRecordMapper.xml",
+      "xml": "<select id=\"selectSourceIdentity\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRecordDO\">\n        SELECT * FROM ast_device_warranty_record\n        WHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem} AND source_key=#{query.sourceKey}\n     FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRegistrationMapper.selectSourceForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRegistrationMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRegistrationDO\">\n        SELECT * FROM ast_device_warranty_registration WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n          AND source_table=#{query.sourceTable} AND source_key=#{query.sourceKey}\n          AND source_checksum=#{query.sourceChecksum} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRegistrationMapper.selectProjectPage",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRegistrationMapper.xml",
+      "xml": "<select id=\"selectProjectPage\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyRegistrationDO\">\n        SELECT f.*\n        FROM ast_device_warranty_registration f\n        JOIN ast_device_warranty_fact_project r ON r.tenant_id=f.tenant_id AND r.fact_id=f.id\n          AND r.fact_type='REGISTRATION' AND r.deleted=0\n        WHERE f.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId} AND f.deleted=0\n        ORDER BY f.id LIMIT #{query.offset}, #{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyRegistrationMapper.countProject",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyRegistrationMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*)\n        FROM ast_device_warranty_registration f\n        JOIN ast_device_warranty_fact_project r ON r.tenant_id=f.tenant_id AND r.fact_id=f.id\n          AND r.fact_type='REGISTRATION' AND r.deleted=0\n        WHERE f.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId} AND f.deleted=0\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyServiceRecordMapper.selectSourceForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyServiceRecordMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyServiceRecordDO\">\n        SELECT * FROM ast_device_warranty_service_record WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n          AND source_table=#{query.sourceTable} AND source_key=#{query.sourceKey}\n          AND source_checksum=#{query.sourceChecksum} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyServiceRecordMapper.selectProjectPage",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyServiceRecordMapper.xml",
+      "xml": "<select id=\"selectProjectPage\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.warranty.DeviceWarrantyServiceRecordDO\">\n        SELECT f.*\n        FROM ast_device_warranty_service_record f\n        JOIN ast_device_warranty_fact_project r ON r.tenant_id=f.tenant_id AND r.fact_id=f.id\n          AND r.fact_type='SERVICE' AND r.deleted=0\n        WHERE f.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId} AND f.deleted=0\n        ORDER BY f.id LIMIT #{query.offset}, #{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.warranty.DeviceWarrantyServiceRecordMapper.countProject",
+      "source": "pms-module-asset/src/main/resources/mapper/warranty/DeviceWarrantyServiceRecordMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*)\n        FROM ast_device_warranty_service_record f\n        JOIN ast_device_warranty_fact_project r ON r.tenant_id=f.tenant_id AND r.fact_id=f.id\n          AND r.fact_type='SERVICE' AND r.deleted=0\n        WHERE f.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId} AND f.deleted=0\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectExecutionForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectExecutionForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO\">\n        SELECT * FROM com_crm_execution_order WHERE tenant_id=#{query.tenantId} AND id=#{query.id}\n          AND primary_project_id=#{query.projectId} AND deleted=0\n          AND CAST(source_system AS BINARY)=CAST(#{query.sourceSystem} AS BINARY)\n          AND CAST(execution_no AS BINARY)=CAST(#{query.executionNo} AS BINARY) FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectOrderForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectOrderForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT * FROM com_sales_order WHERE tenant_id=#{query.tenantId} AND id=#{query.id} AND deleted=0 FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectLineForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectLineForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO\">\n        SELECT * FROM com_sales_order_line WHERE tenant_id=#{query.tenantId} AND id=#{query.id} AND deleted=0 FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectPackageForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectPackageForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.associated.ShipmentPackageDO\">\n        SELECT DISTINCT p.* <include refid=\"packageScope\" /> AND p.source_system='DPPMS' AND p.package_no=#{query.packageNo}\n          AND EXISTS (SELECT 1 FROM com_contract c WHERE c.id=sr.contract_id\n              AND c.tenant_id=p.tenant_id AND c.deleted=0 AND c.contract_no=#{query.contractNo}) FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectPackageContractIdentity",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectPackageContractIdentity\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper$PackageContractIdentity\">\n        SELECT r.source_system AS sourceSystem,r.source_record_key AS sourceRecordKey\n        FROM com_shipment_package p JOIN com_shipment_contract_reference r\n          ON r.id=p.shipment_contract_ref_id AND r.tenant_id=p.tenant_id AND r.deleted=0\n        WHERE p.tenant_id=#{query.tenantId} AND p.id=#{query.id} AND p.deleted=0 FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectPlans",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectPlans\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.associated.ContractCollectionPlanDO\">\n        SELECT p.* <include refid=\"planContractScope\" />\n        ORDER BY p.id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.countPlans",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"countPlans\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) <include refid=\"planContractScope\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectPackages",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectPackages\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.associated.ShipmentPackageDO\">\n        SELECT DISTINCT p.* <include refid=\"packageScope\" /> ORDER BY p.id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.countPackages",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"countPackages\" resultType=\"java.lang.Long\">\n        SELECT COUNT(DISTINCT p.id) <include refid=\"packageScope\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectExecutions",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectExecutions\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.executionorder.CrmExecutionOrderDO\">\n        SELECT * FROM com_crm_execution_order WHERE tenant_id=#{query.tenantId}\n          AND primary_project_id=#{query.projectId} AND deleted=0\n        ORDER BY id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.countExecutions",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"countExecutions\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM com_crm_execution_order WHERE tenant_id=#{query.tenantId}\n          AND primary_project_id=#{query.projectId} AND deleted=0\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectOrders",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectOrders\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n      SELECT o.* FROM com_sales_order o WHERE <include refid=\"orderProjectScope\" />\n      ORDER BY o.id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.countOrders",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"countOrders\" resultType=\"java.lang.Long\">\n      SELECT COUNT(*) FROM com_sales_order o WHERE <include refid=\"orderProjectScope\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.selectLines",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"selectLines\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO\">\n      SELECT l.* FROM com_sales_order_line l JOIN com_sales_order o ON o.id=l.order_id AND o.tenant_id=l.tenant_id\n      WHERE <include refid=\"orderProjectScope\" /> AND l.deleted=0\n      ORDER BY l.id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceDetailMapper.countLines",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceDetailMapper.xml",
+      "xml": "<select id=\"countLines\" resultType=\"java.lang.Long\">\n      SELECT COUNT(*) FROM com_sales_order_line l JOIN com_sales_order o ON o.id=l.order_id AND o.tenant_id=l.tenant_id\n      WHERE <include refid=\"orderProjectScope\" /> AND l.deleted=0\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectShipmentLineForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectShipmentLineForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO\">\n        SELECT * FROM com_sales_order_line WHERE tenant_id=#{query.tenantId} AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectContractIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectContractIds\" resultType=\"java.lang.Long\">\n        SELECT DISTINCT c.id FROM com_contract c\n        JOIN com_project_contract_relation r ON r.contract_id=c.id AND r.tenant_id=c.tenant_id\n        WHERE c.tenant_id=#{query.tenantId} AND r.project_id=#{query.projectId} AND c.contract_no=#{query.contractNo}\n          AND c.deleted=b'0' AND r.deleted=b'0' AND r.status='ACTIVE'\n          AND (r.effective_from IS NULL OR r.effective_from &lt;= #{query.at})\n          AND (r.effective_to IS NULL OR r.effective_to &gt; #{query.at})\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectOrderIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectOrderIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM com_sales_order WHERE tenant_id=#{query.tenantId}\n          AND (source_system='ERP' OR (source_system IN ('SAP','D365','SMS')\n            AND source_record_key LIKE CONCAT('DPPMS|',source_system,'|%')))\n          AND source_record_key=#{query.sourceKey} AND deleted=b'0'\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectLineIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectLineIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM com_sales_order_line WHERE tenant_id=#{query.tenantId}\n          AND (source_system='ERP' OR (source_system IN ('SAP','D365','SMS')\n            AND source_record_key LIKE CONCAT('DPPMS|',source_system,'|%')))\n          AND source_record_key=#{query.sourceKey} AND deleted=b'0'\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectExecutionIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectExecutionIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM com_crm_execution_order WHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem}\n          AND execution_no=#{query.executionNo} AND primary_project_id=#{query.projectId} AND deleted=b'0'\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectPackageIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectPackageIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM com_shipment_package WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n          AND package_no=#{query.packageNo} AND deleted=b'0'\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectAssociatedOrderIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectAssociatedOrderIds\" resultType=\"java.lang.Long\">\n        SELECT DISTINCT o.id FROM com_sales_order o\n        JOIN com_contract c ON c.tenant_id=o.tenant_id AND c.deleted=0 AND c.contract_no=#{query.contractNo}\n        JOIN com_project_contract_relation pcr ON pcr.contract_id=c.id AND pcr.tenant_id=o.tenant_id AND pcr.deleted=0\n        WHERE o.tenant_id=#{query.tenantId} AND pcr.project_id=#{query.projectId}\n          AND o.deleted=0 AND o.status='ENABLED' AND (o.source_system='ERP' OR o.source_system=#{query.source})\n          AND o.order_no=#{query.number} AND o.order_type=#{query.type}\n          AND pcr.status='ACTIVE'\n          AND (pcr.effective_from IS NULL OR pcr.effective_from &lt;= #{query.at})\n          AND (pcr.effective_to IS NULL OR pcr.effective_to &gt; #{query.at})\n          AND (\n            (CAST(o.contract_no AS BINARY)=CAST(c.contract_no AS BINARY) AND CAST(o.company_code AS BINARY)=CAST(c.company_code AS BINARY))\n            OR EXISTS (SELECT 1 FROM com_order_contract_relation r\n                WHERE r.tenant_id=o.tenant_id AND r.order_id=o.id AND r.contract_id=c.id AND r.deleted=0\n                  AND r.effective_from &lt;= #{query.at} AND (r.effective_to IS NULL OR r.effective_to &gt; #{query.at}))\n          )\n          AND CAST(o.company_code AS BINARY)=CAST(#{query.companyCode} AS BINARY)\n          \n          AND (o.source_record_key=CONCAT('DPPMS|',#{query.source},'|',#{query.companyCode},'|',#{query.type},'|',#{query.number})\n            OR o.source_record_key=CONCAT('DPPMS|',#{query.source},'|',#{query.rawCompanyCode},'|',#{query.type},'|',#{query.number}))\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsCommerceEntityMapper.selectAssociatedLineIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/DppmsCommerceEntityMapper.xml",
+      "xml": "<select id=\"selectAssociatedLineIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM com_sales_order_line WHERE tenant_id=#{query.tenantId} AND order_id=#{query.orderId}\n          AND line_no=#{query.lineNo} AND deleted=0\n          AND (source_system='ERP' OR (source_system IN ('SAP','D365','SMS')\n            AND source_record_key LIKE CONCAT('DPPMS|',source_system,'|%')))\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper.selectBySourceForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+      "xml": "<select id=\"selectBySourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO\">\n        SELECT * FROM com_sales_order_line\n        WHERE tenant_id = #{query.tenantId}\n          AND source_system = #{query.sourceSystem}\n          AND source_record_key = #{query.sourceRecordKey}\n          AND deleted = 0\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper.selectByCompanyScope",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+      "xml": "<select id=\"selectByCompanyScope\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO\">\n        SELECT l.* FROM com_sales_order_line l\n        WHERE l.tenant_id = #{query.tenantId} AND l.deleted = 0\n          AND (\n          <if test=\"query.companyCodes != null and query.companyCodes.size() &gt; 0\">\n            CAST(l.company_code AS BINARY) IN\n            <foreach collection=\"query.companyCodes\" item=\"companyCode\" open=\"(\" separator=\",\" close=\")\">CAST(#{companyCode} AS BINARY)</foreach>\n          </if>\n          <if test=\"query.companyCodes != null and query.companyCodes.size() &gt; 0 and query.projectIds != null and query.projectIds.size() &gt; 0\"> OR </if>\n          <if test=\"query.projectIds != null and query.projectIds.size() &gt; 0\">\n            EXISTS (SELECT 1 FROM com_order_contract_relation ocr\n                    JOIN com_project_contract_relation pcr ON pcr.tenant_id = ocr.tenant_id\n                     AND pcr.contract_id = ocr.contract_id AND pcr.deleted = 0\n                     AND pcr.status = 'ACTIVE' AND pcr.effective_to IS NULL\n                   WHERE ocr.tenant_id = l.tenant_id AND ocr.order_id = l.order_id AND ocr.deleted = 0\n                     AND pcr.project_id IN\n                     <foreach collection=\"query.projectIds\" item=\"projectId\" open=\"(\" separator=\",\" close=\")\">#{projectId}</foreach>)\n          </if>\n          )\n        <if test=\"query.orderId != null\">\n          AND l.order_id = #{query.orderId}\n        </if>\n        <if test=\"query.companyCode != null and query.companyCode != ''\">AND CAST(l.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)</if>\n        <if test=\"query.orderType != null and query.orderType != ''\">AND l.order_type = #{query.orderType}</if>\n        <if test=\"query.orderNo != null and query.orderNo != ''\">AND l.order_no = #{query.orderNo}</if>\n        <if test=\"query.lineNo != null and query.lineNo != ''\">AND l.line_no = #{query.lineNo}</if>\n        <if test=\"query.productCode != null and query.productCode != ''\">AND l.product_code = #{query.productCode}</if>\n        <if test=\"query.quantityStatus != null and query.quantityStatus != ''\">AND l.quantity_status = #{query.quantityStatus}</if>\n        <if test=\"query.status != null and query.status != ''\">AND l.status = #{query.status}</if>\n        ORDER BY l.order_id, l.line_no, l.id\n        LIMIT #{query.offset}, #{query.limit}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper.selectByIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+      "xml": "<select id=\"selectByIds\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO\">\n        SELECT * FROM com_sales_order_line\n        WHERE tenant_id = #{query.tenantId}\n          AND deleted = 0\n          AND id IN\n          <foreach collection=\"query.orderLineIds\" item=\"orderLineId\" open=\"(\" separator=\",\" close=\")\">\n              #{orderLineId}\n          </foreach>\n        ORDER BY id ASC\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper.selectCountByCompanyScope",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+      "xml": "<select id=\"selectCountByCompanyScope\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM com_sales_order_line l\n        WHERE l.tenant_id = #{query.tenantId} AND l.deleted = 0\n          AND (\n          <if test=\"query.companyCodes != null and query.companyCodes.size() &gt; 0\">\n            CAST(l.company_code AS BINARY) IN\n            <foreach collection=\"query.companyCodes\" item=\"companyCode\" open=\"(\" separator=\",\" close=\")\">CAST(#{companyCode} AS BINARY)</foreach>\n          </if>\n          <if test=\"query.companyCodes != null and query.companyCodes.size() &gt; 0 and query.projectIds != null and query.projectIds.size() &gt; 0\"> OR </if>\n          <if test=\"query.projectIds != null and query.projectIds.size() &gt; 0\">\n            EXISTS (SELECT 1 FROM com_order_contract_relation ocr\n                    JOIN com_project_contract_relation pcr ON pcr.tenant_id = ocr.tenant_id\n                     AND pcr.contract_id = ocr.contract_id AND pcr.deleted = 0\n                     AND pcr.status = 'ACTIVE' AND pcr.effective_to IS NULL\n                   WHERE ocr.tenant_id = l.tenant_id AND ocr.order_id = l.order_id AND ocr.deleted = 0\n                     AND pcr.project_id IN\n                     <foreach collection=\"query.projectIds\" item=\"projectId\" open=\"(\" separator=\",\" close=\")\">#{projectId}</foreach>)\n          </if>\n          )\n        <if test=\"query.orderId != null\">\n          AND l.order_id = #{query.orderId}\n        </if>\n        <if test=\"query.companyCode != null and query.companyCode != ''\">AND CAST(l.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)</if>\n        <if test=\"query.orderType != null and query.orderType != ''\">AND l.order_type = #{query.orderType}</if>\n        <if test=\"query.orderNo != null and query.orderNo != ''\">AND l.order_no = #{query.orderNo}</if>\n        <if test=\"query.lineNo != null and query.lineNo != ''\">AND l.line_no = #{query.lineNo}</if>\n        <if test=\"query.productCode != null and query.productCode != ''\">AND l.product_code = #{query.productCode}</if>\n        <if test=\"query.quantityStatus != null and query.quantityStatus != ''\">AND l.quantity_status = #{query.quantityStatus}</if>\n        <if test=\"query.status != null and query.status != ''\">AND l.status = #{query.status}</if>\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper.selectByIdsForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+      "xml": "<select id=\"selectByIdsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderLineDO\">\n        SELECT * FROM com_sales_order_line\n        WHERE tenant_id = #{query.tenantId}\n          AND deleted = 0\n          AND id IN\n          <foreach collection=\"query.orderLineIds\" item=\"orderLineId\" open=\"(\" separator=\",\" close=\")\">\n              #{orderLineId}\n          </foreach>\n        ORDER BY id ASC\n        FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper.selectDistinctRealExecutionNos",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+      "xml": "<select id=\"selectDistinctRealExecutionNos\" resultType=\"java.lang.String\">\n        SELECT DISTINCT l.real_execution_no FROM com_sales_order_line l\n        WHERE l.tenant_id = #{query.tenantId} AND l.deleted = 0\n          AND l.real_execution_no IS NOT NULL\n          AND l.order_id IN\n          <foreach collection=\"query.orderIds\" item=\"orderId\" open=\"(\" separator=\",\" close=\")\">#{orderId}</foreach>\n        ORDER BY l.real_execution_no\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderLineMapper.selectMigrationTargetIdsForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderLineMapper.xml",
+      "xml": "<select id=\"selectMigrationTargetIdsForUpdate\" resultType=\"java.lang.Long\">\n        SELECT id FROM com_sales_order_line WHERE tenant_id=#{query.tenantId}\n        <choose>\n            <when test=\"query.targetIds != null and !query.targetIds.isEmpty()\">\n                AND id IN <foreach collection=\"query.targetIds\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n            </when>\n            <otherwise>AND 1=0</otherwise>\n        </choose>\n        FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectBySourceForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectBySourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT * FROM com_sales_order\n        WHERE tenant_id = #{query.tenantId}\n          AND source_system = #{query.sourceSystem}\n          AND source_record_key = #{query.sourceRecordKey}\n          AND deleted = 0\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectByCompanyScope",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectByCompanyScope\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT o.* FROM com_sales_order o\n        WHERE o.tenant_id = #{query.tenantId}\n          AND o.deleted = 0\n          <include refid=\"rootReadScope\" />\n        <if test=\"query.companyCode != null and query.companyCode != ''\">\n          AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)\n        </if>\n        <if test=\"query.orderNo != null and query.orderNo != ''\">\n          AND o.order_no LIKE CONCAT('%', #{query.orderNo}, '%')\n        </if>\n        <if test=\"query.orderType != null and query.orderType != ''\">\n          AND o.order_type = #{query.orderType}\n        </if>\n        <if test=\"query.customerKeyword != null and query.customerKeyword != ''\">\n          AND (o.customer_code LIKE CONCAT('%', #{query.customerKeyword}, '%')\n            OR o.customer_name LIKE CONCAT('%', #{query.customerKeyword}, '%'))\n        </if>\n        <if test=\"query.status != null and query.status != ''\">\n          AND o.status = #{query.status}\n        </if>\n        ORDER BY o.order_no, o.id\n        LIMIT #{query.offset}, #{query.limit}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectCountByCompanyScope",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectCountByCompanyScope\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM com_sales_order o\n        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0\n          <include refid=\"rootReadScope\" />\n        <if test=\"query.companyCode != null and query.companyCode != ''\">AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY)</if>\n        <if test=\"query.orderNo != null and query.orderNo != ''\">\n          AND o.order_no LIKE CONCAT('%', #{query.orderNo}, '%')\n        </if>\n        <if test=\"query.orderType != null and query.orderType != ''\">AND o.order_type = #{query.orderType}</if>\n        <if test=\"query.customerKeyword != null and query.customerKeyword != ''\">AND (o.customer_code LIKE CONCAT('%', #{query.customerKeyword}, '%') OR o.customer_name LIKE CONCAT('%', #{query.customerKeyword}, '%'))</if>\n        <if test=\"query.status != null and query.status != ''\">AND o.status = #{query.status}</if>\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectRelatedByContract",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectRelatedByContract\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT o.* FROM com_sales_order o\n        JOIN com_order_contract_relation r ON r.tenant_id = o.tenant_id AND r.order_id = o.id AND r.deleted = 0\n        WHERE o.tenant_id = #{query.tenantId} AND r.contract_id = #{query.contractId} AND o.deleted = 0\n        ORDER BY o.order_no, o.id\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectCreationOrdersByContract",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectCreationOrdersByContract\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT o.* FROM com_sales_order o\n        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0\n          AND o.status = 'ENABLED' AND o.order_type = '0'\n          AND (\n          <if test=\"query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''\">\n            (o.contract_no IS NOT NULL\n            AND CAST(o.contract_no AS BINARY) = CAST(#{query.contractNo} AS BINARY)\n            AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY))\n          </if>\n          <if test=\"query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''\"> OR </if>\n          EXISTS (SELECT 1 FROM com_order_contract_relation r\n                  WHERE r.tenant_id = o.tenant_id AND r.order_id = o.id AND r.deleted = 0\n                    AND r.contract_id = #{query.contractId}\n                    AND r.effective_from &lt;= CURRENT_TIMESTAMP\n                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP))\n          )\n        ORDER BY o.order_create_time, o.order_no, o.id\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectRootReadPage",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectRootReadPage\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT o.* FROM com_sales_order o\n        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0\n        <include refid=\"rootReadScope\" />\n        <if test=\"query.afterId != null\">\n          AND (o.order_no &gt; #{query.afterCode}\n            OR (o.order_no = #{query.afterCode} AND o.id &gt; #{query.afterId}))\n        </if>\n        ORDER BY o.order_no, o.id\n        LIMIT #{query.limit}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectDetailByCompanyScope",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectDetailByCompanyScope\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT o.* FROM com_sales_order o\n        WHERE o.tenant_id = #{query.tenantId} AND o.id = #{query.orderId} AND o.deleted = 0\n        <include refid=\"rootReadScope\" />\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectCreationOrdersForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectCreationOrdersForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.order.SalesOrderDO\">\n        SELECT o.* FROM com_sales_order o\n        WHERE o.tenant_id = #{query.tenantId} AND o.deleted = 0\n          AND o.status = 'ENABLED' AND o.order_type = '0'\n          AND (\n          <if test=\"query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''\">\n            (o.contract_no IS NOT NULL\n            AND CAST(o.contract_no AS BINARY) = CAST(#{query.contractNo} AS BINARY)\n            AND CAST(o.company_code AS BINARY) = CAST(#{query.companyCode} AS BINARY))\n          </if>\n          <if test=\"query.contractNo != null and query.contractNo != '' and query.companyCode != null and query.companyCode != ''\"> OR </if>\n          EXISTS (SELECT 1 FROM com_order_contract_relation r\n                  WHERE r.tenant_id = o.tenant_id AND r.order_id = o.id AND r.deleted = 0\n                    AND r.contract_id = #{query.contractId}\n                    AND r.effective_from &lt;= CURRENT_TIMESTAMP\n                    AND (r.effective_to IS NULL OR r.effective_to &gt; CURRENT_TIMESTAMP))\n          )\n        ORDER BY o.order_create_time, o.order_no, o.id\n        FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectCreationRelationsByContract",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectCreationRelationsByContract\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO\">\n        SELECT * FROM com_order_contract_relation\n        WHERE tenant_id = #{query.tenantId} AND contract_id = #{query.contractId}\n          AND deleted = 0 AND effective_from &lt;= CURRENT_TIMESTAMP\n          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP)\n        ORDER BY id\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.order.SalesOrderMapper.selectCreationRelationsForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/order/SalesOrderMapper.xml",
+      "xml": "<select id=\"selectCreationRelationsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.authority.SalesOrderContractRelationDO\">\n        SELECT * FROM com_order_contract_relation\n        WHERE tenant_id = #{query.tenantId} AND contract_id = #{query.contractId}\n          AND deleted = 0 AND effective_from &lt;= CURRENT_TIMESTAMP\n          AND (effective_to IS NULL OR effective_to &gt; CURRENT_TIMESTAMP)\n        ORDER BY id\n        FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.ExternalKeyMappingMapper.selectSourcePage",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/ExternalKeyMappingMapper.xml",
+      "xml": "<select id=\"selectSourcePage\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.ExternalKeyMappingDO\">\n        SELECT id,batch_id,source_record_id,result_type,target_context,target_object_type,\n               target_table,target_id,target_role,target_sequence,tenant_id,create_time,\n               update_time,creator,updater,deleted\n        FROM plt_external_key_mapping FORCE INDEX (idx_plt_external_mapping_batch)\n        WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0\n        <choose>\n            <when test=\"query.sourceRecordIds != null and query.sourceRecordIds.size() &gt; 0\">\n                AND source_record_id IN\n                <foreach collection=\"query.sourceRecordIds\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n            </when>\n            <otherwise>AND 1 = 0</otherwise>\n        </choose>\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper.selectByTenantAndIdForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationBatchMapper.xml",
+      "xml": "<select id=\"selectByTenantAndIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO\">\n        SELECT * FROM plt_migration_batch\n        WHERE tenant_id = #{query.tenantId}\n          AND id = #{query.batchId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationBatchMapper.selectNextStagedForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationBatchMapper.xml",
+      "xml": "<select id=\"selectNextStagedForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationBatchDO\">\n        SELECT * FROM plt_migration_batch\n        WHERE tenant_id = #{query.tenantId}\n          AND owner_context_code = #{query.ownerContextCode}\n          AND purpose_code = #{query.purposeCode}\n          AND batch_status = 'STAGED_READY'\n          AND deleted = b'0'\n          AND source_system IN\n          <foreach collection=\"query.sourceSystems\" item=\"value\" open=\"(\" separator=\",\" close=\")\">\n              #{value}\n          </foreach>\n          AND source_table IN\n          <foreach collection=\"query.sourceTables\" item=\"value\" open=\"(\" separator=\",\" close=\")\">\n              #{value}\n          </foreach>\n        ORDER BY create_time ASC, id ASC\n        LIMIT 1\n        FOR UPDATE SKIP LOCKED\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectByBatchAndIdForUpdate",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectByBatchAndIdForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO\">\n        SELECT * FROM plt_migration_source_record\n        WHERE tenant_id = #{query.tenantId}\n          AND batch_id = #{query.batchId}\n          AND id = #{query.sourceRecordId}\n          AND deleted = b'0'\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectCursorPage",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectCursorPage\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.dataobject.migration.MigrationSourceRecordDO\">\n        SELECT s.*,\n               CASE\n                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m\n                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                                  AND m.result_type = 'MAPPED' AND m.deleted = b'0') THEN 'MAPPED'\n                   WHEN EXISTS (SELECT 1 FROM plt_migration_issue i\n                                WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id\n                                  AND i.deleted = b'0') THEN 'ISSUE'\n                   WHEN EXISTS (SELECT 1 FROM plt_external_key_mapping m\n                                WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                                  AND m.result_type = 'RETAINED' AND m.deleted = b'0') THEN 'RETAINED'\n                   ELSE NULL\n               END AS result_type\n        FROM plt_migration_source_record s\n        WHERE s.tenant_id = #{query.tenantId}\n          AND s.batch_id = #{query.batchId}\n          AND s.deleted = b'0'\n          <if test=\"query.afterSourceRecordId != null\">\n              AND s.id &gt; #{query.afterSourceRecordId}\n          </if>\n        ORDER BY s.id ASC\n        LIMIT #{query.limit}\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.selectClassificationSummary",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"selectClassificationSummary\" resultType=\"cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.query.MigrationBatchClassificationSummary\">\n        SELECT COUNT(*) AS source_count,\n               COALESCE(SUM(has_mapped), 0) AS mapped_count,\n               COALESCE(SUM(has_issue), 0) AS issue_count,\n               COALESCE(SUM(has_retained), 0) AS retained_count,\n               COALESCE(SUM(has_mapped + has_issue + has_retained = 0), 0) AS unclassified_count,\n               COALESCE(SUM(has_mapped + has_issue + has_retained &gt; 1), 0) AS conflicting_count\n        FROM (\n            SELECT s.id,\n                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)\n                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                             AND m.result_type = 'MAPPED' AND m.deleted = b'0') AS has_mapped,\n                   EXISTS (SELECT 1 FROM plt_migration_issue i FORCE INDEX (uk_plt_migration_issue_key)\n                           WHERE i.tenant_id = s.tenant_id AND i.source_record_id = s.id\n                             AND i.deleted = b'0') AS has_issue,\n                   EXISTS (SELECT 1 FROM plt_external_key_mapping m FORCE INDEX (uk_plt_external_mapping_result)\n                           WHERE m.tenant_id = s.tenant_id AND m.source_record_id = s.id\n                             AND m.result_type = 'RETAINED' AND m.deleted = b'0') AS has_retained\n            FROM plt_migration_source_record s FORCE INDEX (idx_plt_migration_source_cursor)\n            WHERE s.tenant_id = #{query.tenantId}\n              AND s.batch_id = #{query.batchId}\n              AND s.deleted = b'0'\n        ) classified\n    </select>\n  \n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.platform.dal.mysql.migration.MigrationSourceRecordMapper.countBatchSources",
+      "source": "pms-module-platform/src/main/resources/mapper/migration/MigrationSourceRecordMapper.xml",
+      "xml": "<select id=\"countBatchSources\" resultType=\"long\">\n    SELECT COUNT(*) FROM plt_migration_source_record\n    WHERE tenant_id = #{query.tenantId} AND batch_id = #{query.batchId} AND deleted = 0\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectLeaseProductMapper.selectRecordForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectLeaseProductDO\">\n        SELECT * FROM proj_project_lease_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectLeaseProductMapper.selectBusinessRecordsForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+      "xml": "<select id=\"selectBusinessRecordsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectLeaseProductDO\">\n        SELECT * FROM proj_project_lease_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND CAST(project_code AS BINARY) &lt;=&gt; CAST(#{query.projectCode} AS BINARY)\n          AND CAST(execution_no AS BINARY) &lt;=&gt; CAST(#{query.executionNo} AS BINARY)\n          AND CAST(product_category AS BINARY) &lt;=&gt; CAST(#{query.productCategory} AS BINARY)\n          AND CAST(product_type AS BINARY) &lt;=&gt; CAST(#{query.productType} AS BINARY)\n          AND CAST(product_code AS BINARY) &lt;=&gt; CAST(#{query.productCode} AS BINARY)\n          AND CAST(product_model AS BINARY) &lt;=&gt; CAST(#{query.productModel} AS BINARY)\n          AND CAST(product_name AS BINARY) &lt;=&gt; CAST(#{query.productName} AS BINARY)\n          AND quantity &lt;=&gt; #{query.quantity}\n          AND CAST(memo AS BINARY) &lt;=&gt; CAST(#{query.memo} AS BINARY)\n          AND lease_duration &lt;=&gt; #{query.leaseDuration}\n          AND CAST(data_source AS BINARY) &lt;=&gt; CAST(#{query.dataSource} AS BINARY)\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectLeaseProductMapper.countAllProjectRecords",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+      "xml": "<select id=\"countAllProjectRecords\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM proj_project_lease_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectLeaseProductMapper.selectProjectPage",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+      "xml": "<select id=\"selectProjectPage\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectLeaseProductDO\">\n        SELECT c.* <include refid=\"displayCacheScope\" />\n        ORDER BY c.execution_no,c.product_code,c.id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectLeaseProductMapper.countProject",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectLeaseProductMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) <include refid=\"displayCacheScope\" />\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectProductConfigurationMapper.selectRecordForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO\">\n        SELECT * FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectProductConfigurationMapper.selectBusinessRecordsForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+      "xml": "<select id=\"selectBusinessRecordsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO\">\n        SELECT * FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND CAST(project_code AS BINARY) &lt;=&gt; CAST(#{query.projectCode} AS BINARY)\n          AND CAST(execution_no AS BINARY) &lt;=&gt; CAST(#{query.executionNo} AS BINARY)\n          AND item_group &lt;=&gt; #{query.itemGroup}\n          AND CAST(product_code AS BINARY) &lt;=&gt; CAST(#{query.productCode} AS BINARY)\n          AND CAST(parent_code AS BINARY) &lt;=&gt; CAST(#{query.parentCode} AS BINARY)\n          AND quantity &lt;=&gt; #{query.quantity}\n          AND CAST(bom_path AS BINARY) &lt;=&gt; CAST(#{query.bomPath} AS BINARY)\n          AND CAST(product_model AS BINARY) &lt;=&gt; CAST(#{query.productModel} AS BINARY)\n          AND CAST(product_description AS BINARY) &lt;=&gt; CAST(#{query.productDescription} AS BINARY)\n          AND level &lt;=&gt; #{query.level}\n          AND CAST(data_source AS BINARY) &lt;=&gt; CAST(#{query.dataSource} AS BINARY)\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectProductConfigurationMapper.countAllProjectRecords",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+      "xml": "<select id=\"countAllProjectRecords\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectProductConfigurationMapper.selectProjectPage",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+      "xml": "<select id=\"selectProjectPage\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO\">\n        SELECT c.* <include refid=\"displayCacheScope\" />\n        ORDER BY c.execution_no,c.item_group,c.bom_path,c.id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectProductConfigurationMapper.countProject",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) <include refid=\"displayCacheScope\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectProductConfigurationMapper.selectPathNodes",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectProductConfigurationMapper.xml",
+      "xml": "<select id=\"selectPathNodes\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectProductConfigurationDO\">\n        SELECT * FROM proj_project_product_configuration\n        WHERE tenant_id=#{query.tenantId} AND deleted=b'0'\n          AND project_code=#{query.sourceProjectCode}\n          AND CAST(project_code AS BINARY)=CAST(#{query.sourceProjectCode} AS BINARY)\n        <choose>\n            <when test=\"query.paths.size() &gt; 0\">\n                AND (\n                <foreach collection=\"query.paths\" item=\"path\" separator=\" OR \">\n                    (CAST(project_code AS BINARY) &lt;=&gt; CAST(#{path.projectCode} AS BINARY)\n                     AND CAST(execution_no AS BINARY) &lt;=&gt; CAST(#{path.executionNo} AS BINARY)\n                     AND item_group &lt;=&gt; #{path.itemGroup}\n                     AND CAST(bom_path AS BINARY) &lt;=&gt; CAST(#{path.bomPath} AS BINARY))\n                </foreach>\n                )\n            </when>\n            <otherwise>AND 1=0</otherwise>\n        </choose>\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.selectRecordForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"selectRecordForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectRealProductDO\">\n        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId}\n          AND project_id=#{query.projectId} AND id=#{query.id} FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.selectBusinessRecordsForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"selectBusinessRecordsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectRealProductDO\">\n        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n          AND CAST(contract_no AS BINARY) &lt;=&gt; CAST(#{query.contractNo} AS BINARY)\n          AND CAST(project_code AS BINARY) &lt;=&gt; CAST(#{query.projectCode} AS BINARY)\n          AND CAST(execution_no AS BINARY) &lt;=&gt; CAST(#{query.executionNo} AS BINARY)\n          AND CAST(product_category_name AS BINARY) &lt;=&gt; CAST(#{query.productCategoryName} AS BINARY)\n          AND CAST(product_name AS BINARY) &lt;=&gt; CAST(#{query.productName} AS BINARY)\n          AND CAST(product_sub_code AS BINARY) &lt;=&gt; CAST(#{query.productSubCode} AS BINARY)\n          AND CAST(product_sub_model AS BINARY) &lt;=&gt; CAST(#{query.productSubModel} AS BINARY)\n          AND CAST(product_sub_name AS BINARY) &lt;=&gt; CAST(#{query.productSubName} AS BINARY)\n          AND quantity &lt;=&gt; #{query.quantity}\n          AND CAST(memo AS BINARY) &lt;=&gt; CAST(#{query.memo} AS BINARY)\n        ORDER BY id FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.selectProjectPage",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"selectProjectPage\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.associated.ProjectRealProductDO\">\n        SELECT * FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'\n        ORDER BY id LIMIT #{query.offset},#{query.limit}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.countAllProjectRecords",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"countAllProjectRecords\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId}\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.associated.ProjectRealProductMapper.countProject",
+      "source": "pms-module-project/src/main/resources/mapper/associated/ProjectRealProductMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"java.lang.Long\">\n        SELECT COUNT(*) FROM proj_project_real_product WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSource",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSource\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSourceForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectProjectSources",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectProjectSources\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySourceDO\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} ORDER BY id\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSnapshot",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSnapshot\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySnapshotDO\">\n    SELECT * FROM proj_legacy_detail_snapshot WHERE tenant_id=#{query.tenantId} AND id=#{query.id}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectBatch",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectBatch\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacySnapshotDO\">\n    SELECT * FROM proj_legacy_detail_snapshot WHERE tenant_id=#{query.tenantId} AND source_id=#{query.sourceId} AND batch_key=#{query.batchKey}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.countRecords",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"countRecords\" resultType=\"long\">\n    SELECT COUNT(*) FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" />\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectRecords",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectRecords\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO\">\n    SELECT * FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" /> ORDER BY source_key,id\n    LIMIT #{query.offset},#{query.limit}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.legacydetail.ProjectLegacyDetailMapper.selectSourceLicenseRecords",
+      "source": "pms-module-project/src/main/resources/mapper/legacydetail/ProjectLegacyDetailMapper.xml",
+      "xml": "<select id=\"selectSourceLicenseRecords\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.legacydetail.ProjectLegacyRecordDO\">\n    SELECT r.* FROM proj_legacy_detail_record r\n    JOIN proj_legacy_detail_snapshot s ON s.id=r.snapshot_id AND s.tenant_id=r.tenant_id\n    WHERE r.tenant_id=#{query.tenantId} AND s.tenant_id=#{query.tenantId} AND s.source_id=#{query.sourceId}\n      AND r.domain_code='licenses'\n    <if test=\"query.afterId != null\">AND r.id&gt;#{query.afterId}</if>\n    ORDER BY r.id LIMIT #{query.limit}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.selectEndDateForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+      "xml": "<select id=\"selectEndDateForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n        SELECT * FROM proj_project WHERE id = #{query.projectId} AND tenant_id = #{query.tenantId}\n          AND deleted = b'0' FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.selectListByIdsForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+      "xml": "<select id=\"selectListByIdsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n        SELECT *\n        FROM proj_project\n        WHERE id IN\n        <foreach collection=\"ids\" item=\"id\" open=\"(\" separator=\",\" close=\")\">\n            #{id}\n        </foreach>\n          AND deleted = b'0'\n        ORDER BY id\n        FOR UPDATE\n    </select>\n\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMasterMapper.selectVisiblePage",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectMasterMapper.xml",
+      "xml": "<select id=\"selectVisiblePage\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectMasterDO\">\n        SELECT p.*\n        FROM proj_project p\n        WHERE p.tenant_id = #{query.tenantId}\n          AND p.deleted = b'0'\n          AND p.id IN\n          <foreach collection=\"query.visibleProjectIds\" item=\"projectId\" open=\"(\" separator=\",\" close=\")\">\n              #{projectId}\n          </foreach>\n          <if test=\"query.projectNameKeyword != null and query.projectNameKeyword != ''\">\n              AND p.project_name LIKE CONCAT('%', #{query.projectNameKeyword}, '%')\n          </if>\n          <if test=\"query.projectCodePrefix != null and query.projectCodePrefix != ''\">\n              AND p.project_code LIKE CONCAT(#{query.projectCodePrefix}, '%')\n          </if>\n          <choose>\n              <when test=\"query.status != null and query.status != '' and query.status.matches('S[0-6]')\">\n                  AND p.current_stage = #{query.status}\n                  AND p.lifecycle_status = 'ACTIVE'\n              </when>\n              <otherwise>\n                  <if test=\"query.status != null and query.status != ''\">\n                      AND p.lifecycle_status = #{query.status}\n                  </if>\n              </otherwise>\n          </choose>\n          <if test=\"query.signingMethod != null and query.signingMethod != ''\">\n              AND p.signing_method = #{query.signingMethod}\n          </if>\n          <if test=\"query.projectCategory != null and query.projectCategory != ''\">\n              AND p.project_category = #{query.projectCategory}\n          </if>\n          <if test=\"query.implementationMode != null and query.implementationMode != ''\">\n              AND p.implementation_mode = #{query.implementationMode}\n          </if>\n          <if test=\"query.majorProjectLevel != null and query.majorProjectLevel != ''\">\n              AND p.major_project_level = #{query.majorProjectLevel}\n          </if>\n          <if test=\"query.contractNoKeyword != null and query.contractNoKeyword != ''\">\n              AND p.contract_no LIKE CONCAT('%', #{query.contractNoKeyword}, '%')\n          </if>\n          <if test=\"query.departmentId != null\">\n              AND p.department_id = #{query.departmentId}\n          </if>\n          <if test=\"query.companyId != null\">\n              AND p.company_id = #{query.companyId}\n          </if>\n          <if test=\"query.createTimeStart != null\">\n              AND p.create_time &gt;= #{query.createTimeStart}\n          </if>\n          <if test=\"query.createTimeEnd != null\">\n              AND p.create_time &lt; #{query.createTimeEnd}\n          </if>\n          <if test=\"query.closeTimeStart != null\">\n              AND p.project_close_time &gt;= #{query.closeTimeStart}\n          </if>\n          <if test=\"query.closeTimeEnd != null\">\n              AND p.project_close_time &lt; #{query.closeTimeEnd}\n          </if>\n          <if test=\"query.refreshTimeStart != null\">\n              AND p.project_refresh_time &gt;= #{query.refreshTimeStart}\n          </if>\n          <if test=\"query.refreshTimeEnd != null\">\n              AND p.project_refresh_time &lt; #{query.refreshTimeEnd}\n          </if>\n          <if test=\"query.agentServiceProviderKeyword != null and query.agentServiceProviderKeyword != ''\">\n              AND EXISTS (\n                  SELECT 1 FROM proj_project_party pp\n                  WHERE pp.project_id = p.id\n                    AND pp.tenant_id = #{query.tenantId}\n                    AND pp.deleted = b'0'\n                    AND pp.status = 'ACTIVE'\n                    AND (pp.effective_from IS NULL OR pp.effective_from &lt;= #{query.effectiveAt})\n                    AND (pp.effective_to IS NULL OR pp.effective_to &gt; #{query.effectiveAt})\n                    AND pp.party_role IN ('AGENT', 'SERVICE_PROVIDER')\n                    AND (pp.party_name LIKE CONCAT('%', #{query.agentServiceProviderKeyword}, '%')\n                      OR pp.party_code LIKE CONCAT('%', #{query.agentServiceProviderKeyword}, '%'))\n              )\n          </if>\n        ORDER BY p.id DESC\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper.selectSourceForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectPartyDO\">\n        SELECT * FROM proj_project_party\n        WHERE tenant_id = #{query.tenantId} AND source_system = #{query.sourceSystem}\n          AND source_table = #{query.sourceTable} AND source_record_key = #{query.sourceRecordKey}\n          AND party_role = #{query.partyRole}\n        FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectPartyMapper.selectMigrationSourceForUpdate",
+      "source": "pms-module-project/src/main/resources/mapper/projectmanual/ProjectPartyMapper.xml",
+      "xml": "<select id=\"selectMigrationSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.project.dal.dataobject.projectmanual.ProjectPartyDO\">\n        SELECT * FROM proj_project_party WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n          AND source_table=#{query.sourceTable} AND source_record_key=#{query.sourceKey} FOR UPDATE\n    </select>\n    "
+    }
+  ]
+}

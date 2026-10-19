@@ -2407,6 +2407,8 @@ RESOLVED（2026-10-11）：用户批准仅应用既有V398的version BIGINT NOT 
 
 ### DPPMS-LICENSE-RECORD-20261011 — 许可历史正式实体整表结构
 
+2026-10-17独立P37空码裁决已明确：用户允许按原始空字符串认证加密保留原ID472122并登记问题，不填占位、不跳过记录。仅新独立P37使用该处理，NULL仍拒绝，原任务与原试点不变；按既有整表475468条范围完成真实预览，不执行迁移、不修改来源、保持自动迁移关闭、不操作59191。此前空码阻断已由本次明确裁决解决，不再列作待确认；实测进展见[P37记录](../generated/2026-10-13-dppms-migration-mapping/P37-direct-write.md)。
+
 状态：WHOLE_TABLE_APPROVED / IMPLEMENTATION_IN_PROGRESS。用户明确回复“16列及上述处理整表批准”，批准ast_device_license_record及8原列完整映射，见[整表方案](../generated/2026-10-11-dppms-license-record-table-decision.md)。AST Owner代码、受控加密、迁移/同步入口和安全查询正在验证，尚未执行真实许可迁入。旧缓存刷新会清空重建自增ID，本轮历史迁入，持续刷新身份另行裁决；不据旧状态激活许可、不创建虚假对象，缺少当前设备/合同关系保留NULL及原业务值并登记。
 
 密钥配置：此前私有DPAPI文件在当前Windows上下文通过Python及.NET均无法解封。没有覆盖或替换旧文件，没有读取真实许可码。已向需求方询问首次承接是否生成独立受控密钥，或指定原密钥的可用配置；真实加密采集和迁入等待答复。
@@ -2487,3 +2489,38 @@ RESOLVED（2026-10-11）：用户批准仅应用既有V398的version BIGINT NOT 
 - Decision: 两份客户编码冲突合同统一使用用户指定的C00013；各ERP订单原客户编码保持。另两份按用户“创建主档”裁决，仅承接从旧关系和项目公司精确取得的公司、合同号，其他主档业务值保持NULL。
 - Execution: 沿既有合同迁移任务2107037031219654657的CONTRACT来源及正式com_contract映射；客户例外和允许补建的合同号均为任务参数。补建关系来源用独立带类型的来源键和DPPMS类别，不冒充ERP订单；采用既有合同目标默认PENDING_AUTHORITY，不新增表列、不生成合同批准或履约完成事实。已建立的来源身份及旧绑定保持。
 - Boundary: 本次仅四份合同。其他缺来源或客户冲突不因本次裁决自动放行。关系的原审计仍由既有项目合同关系任务承接，不用关系创建时间冒充合同签订时间。
+
+
+### Q-DPPMS-P04-UNMIGRATED-DEPARTMENT-20261016 — 合规账号引用 P01 范围外部门
+
+- Status: RESOLVED / IMPLEMENTATION_CORRECTION_REQUIRED。
+- Evidence: P04 直写任务 2110802629025939458 的真实预览 2110804955614785538 读取 5,015 条后，被本地组织身份校验阻断。合规账号任职资料引用 ehr_department.depID=391，编码 310500001，名称安全服务部，depGrade=3，compID=1，adminID=88。
+- Conflict: 已审核 P01 基础部门限定 depGrade<=2 且编码长度为6，并仅补入指定部门；391 不在本轮正式部门与别名范围。其他所需公司别名和20项部门别名均已存在。
+- Pending decision: 确定该任职资料应保留待处理、另行审核补入该部门，或明确批准映射到某一已迁入部门。未裁决前，不创建额外部门，不推断上级归属，不绕过账号归属校验。
+- Boundary: 本次仅预览，未迁入 P04。原任务与绑定保持；唯一账号行变化来自核查期间 API 登录审计的 login_date/update_time，不是迁移写入。其他业务行未变。59191 未操作。
+
+- 2026-10-16当前会话裁决：用户明确将账号原部门391归属到已迁入上级部门88。已仅修改新P04直写任务配置为显式ENUM映射，原始来源证据仍保留391，任务版本1；预览2110806235645063169进入范围阶段后被缺失范围部门阻断。
+- 复核纠正：用户要求先查既有裁决。生产任务文档 `docs/generated/2026-10-13-dppms-migration-mapping/production-tasks/tasks/P02.md` 已明确批准29码（含163130），并注明不得只复制单码参数。本轮P01直写模板漏了28码，属于实施遗漏，不能继续作为未裁决问题请求用户放弃范围。29码及父级、两项EHR停用例外已进入直写修复；真实源只读验证返回29条且原生主键唯一。既有P01正式运行与历史不改写，当前仅允许预览，未补写部门。
+
+### Q-BASE-P04-TYPED-EMPLOYMENT-20261018 — 新独立账号任务的任职关系承载
+
+- Status: CORRECTED / EXISTING_APPROVAL_LOCATED。下列 Evidence/Missing contract/Implementation boundary 保留为首次判断历史，已由本条末尾复核纠正取代，不再作为当前阻断。
+- Evidence: 新任务 2111504175751917570 的真实只读预检确认选中账号有330条 `t_user_info` 任职资料。旧 `DppmsUserCustomInfo.assemble` 将公司、部门、岗位、员工及汇报人员引用等组装成 `custom_info.employmentAssignments`；当前用户提供的 AGENTS 规则禁止用 JSON 保存固定业务关系。
+- Missing contract: 尚未发现获批准且能完整承接这些任职关系的具名列或关系表。`system_user_post` 仅承接用户岗位，`system_user_company_department_scope` 是授权范围，不能冒充原始任职及汇报关系历史。需要正式的承载模型/映射以同时满足原字段保留与当前持久化规则；本轮不自行造表、丢关系或写回旧 JSON。
+- Implementation boundary: `P04AccountSyncTask` 目前仅完成独立来源预检和明确阻断，不能记为账号导入实现完成。未读取源密码、未调用原任务/Owner、未写账号或权限、未执行迁移。不改变既定账号范围、391→88等既有裁决，不重问这些事项。
+
+- 2026-10-18复核纠正：已追溯到 `Q-LEGACY-IDENTITY-USERS-TABLE-20261009-008` 两列及账号属性最终裁决，以及 `Q-LEGACY-IDENTITY-USERS-EMPLOYMENT-20261009-011`。用户已明确批准历史任职资料由 `system_users.custom_info.employmentAssignments` 承接；正式 `employee_no/custom_info` 列当前均存在。首次未追溯该具体裁决便要求新建任职表，判断不充分，现撤回整体规格阻断。新 BASE_P04 按既有具体裁决独立实现账号、历史任职、角色、成员关系及公司部门范围；不把任职历史解释为当前EHR任职、审批链或项目授权，不调用旧任务或Owner。
+
+### Q-BASE-P04-SYSTEM-PRESET-20261018 — 原系统预设用户标志
+
+- Status: USER_RULE_CONFIRMED / PREVIEW_VERIFIED。
+- User decision: 本轮用户明确“`isSysUser` 为系统预设用户”。结合既有账号扩展属性承载批准，在新 BASE_P04 将原 `t_user.isSysUser` 原值写入 `system_users.custom_info.systemPresetUser`；NULL、0及其他原数值不擅自改写，不根据该标志转换账号范围或授予管理员/超级管理员权限。
+- Boundary: 只修改新套件映射和本轮决定记录；旧字段清单仍保留其历史日期的未决事实。该属性不新增认证能力，不迁入源密码，不运行真实同步或迁移。真实预览结果在 `docs/generated/standalone-base-sync-20261017.md` 本轮复核中登记。
+
+- 2026-10-18真实预览：新P04 Run 2111517837875126273 为PREVIEW_READY；1176个逻辑账号、330条任职进入独立规划，329个入选t_user的isSysUser原值均为0。四步read12632为候选行计数，未写入账号、角色、关系或来源绑定。执行仍受现有多来源目标唯一索引结构前置约束，本轮不执行迁移或真实同步。
+
+### Q-BASE-P22-MISSING-DEPARTMENT-20261019 — 原部门空值登记待回填
+
+- Status: ADJUDICATED。
+- User decision: 对新P22的14293条正数量原部门编码缺项，用户明确选择“保留空值、登记缺项，继续预览（建议）”。原查询直接带入原项目`pm_project.column001`，NULL/空字符串保留原样；`department_id=-1`，无法派生的部门名称/版本保持待定，登记缺项且继续预览，不填占位部门、不跳过这些正数量记录。
+- Boundary: 仅独立新BASE_P22。非空编码仍必须匹配同租户精确部门码；部门目录变更、已有身份和不可变来源保护保留。已有DPPMS-SCOPE-039零数量待处理裁决继续适用。已知部门仍按当前独立运行绑定统一后置回填，空编码保持待定。正式结构不支持待定值时仍阻止真实写入；本次不执行DDL、迁移、真实同步或原任务操作，不操作59191。

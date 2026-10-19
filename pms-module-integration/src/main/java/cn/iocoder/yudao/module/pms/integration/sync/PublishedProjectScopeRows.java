@@ -59,8 +59,8 @@ final class PublishedProjectScopeRows {
         if(mode==null)return row;
         ProjectBinding project;
         if("CODE".equals(mode)) {
-            String raw=text(row.get("member_projectCode"));
-            var key=new Code(text(row.get("group_projectType")),raw==null?null:raw.replace("-his",""));
+            String raw=text(row.get(row.containsKey("member_projectCode")?"member_projectCode":"originalProjectCode"));
+            var key=new Code(text(row.get(row.containsKey("group_projectType")?"group_projectType":"projectType")),raw==null?null:raw.replace("-his",""));
             if(ambiguous.contains(key))throw new IllegalArgumentException("DPPMS_PROJECT_SCOPE_CODE_AMBIGUOUS");
             project=codes.get(key);
         } else project=identities.get(text(row.get("projectId")));

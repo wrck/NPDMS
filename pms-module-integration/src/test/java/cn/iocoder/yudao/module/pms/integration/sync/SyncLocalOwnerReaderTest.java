@@ -46,10 +46,12 @@ class SyncLocalOwnerReaderTest {
         assertThrows(IllegalArgumentException.class,()->reader().stream(d,null,false,null,c->{}));
         verifyNoInteractions(devices,remote,contracts);
     }
-    @Test void contractIdentityUsesBothCompanyAndContractAndRetainsConflictEvidence() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"delivery-full-sync","P15_DIRECT"})
+    void contractIdentityUsesBothCompanyAndContractAndRetainsConflictEvidence(String taskKey) {
         var source=SyncDefinition.Source.builder().object("CONTRACT").sourceObject("com_sales_order")
                 .readMode("LOCAL_OWNER").sourceKey("migrationKey").parameters(Map.of("contractNos","C1")).build();
-        var d=definition();d.adapter("TABLE_MAPPING");d.taskKey("delivery-full-sync");d.sources(List.of(source));
+        var d=definition();d.adapter("TABLE_MAPPING");d.taskKey(taskKey);d.sources(List.of(source));
         when(contracts.read(any())).thenReturn(List.of(new DppmsLocalContractSourceApi.Contract("A","C1",null,null,"CONTRACT_CUSTOMER_CONFLICT"),
                 new DppmsLocalContractSourceApi.Contract("B","C1","C00001","Customer",null)));
         var rows=owner.read(new SyncLocalOwnerReader.Input(d,source));

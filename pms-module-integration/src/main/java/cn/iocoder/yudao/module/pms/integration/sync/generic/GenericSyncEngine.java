@@ -62,7 +62,7 @@ public class GenericSyncEngine {
                 if (!MODES.contains(step.mode()) || !Set.of("IGNORE","OVERWRITE").contains(step.nullPolicy())) throw new IllegalArgumentException("写入方式或空值策略无效");
                 if (step.updateColumns()==null || !table.updateColumns().containsAll(step.updateColumns()) || !Collections.disjoint(step.keys(),step.updateColumns())) throw new IllegalArgumentException("包含禁止更新的字段或业务键");
                 if("com_contract".equals(step.table()) && !Collections.disjoint(step.updateColumns(),List.of("customer_code","customer_name"))
-                        && !("DPPMS".equals(d.sourceSystem()) && "delivery-full-sync".equals(d.taskKey())
+                        && !("DPPMS".equals(d.sourceSystem()) && "delivery-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(d))
                         && "LOCAL_OWNER".equals(source.readMode()) && "com_sales_order".equals(source.sourceObject())))
                     throw new IllegalArgumentException("合同客户字段只允许按本地订单的已批准归并结果更新");
                 if (step.mappings()==null || step.mappings().isEmpty()) throw new IllegalArgumentException("缺少目标字段映射");
@@ -71,7 +71,7 @@ public class GenericSyncEngine {
                     if (!table.columns().contains(mapping.target()) || !mapped.add(mapping.target()) || table.insertDefaults().containsKey(mapping.target())) throw new IllegalArgumentException("目标字段未开放、重复或由系统初始化: "+mapping.target());
                     if(!CONVERSIONS.contains(mapping.conversion()) && !"LOCAL_CARRIER_NAME".equals(mapping.conversion())) throw new IllegalArgumentException("字段转换无效");
                     if("LOCAL_CARRIER_NAME".equals(mapping.conversion()) && !("DPPMS".equals(d.sourceSystem())
-                            && "delivery-full-sync".equals(d.taskKey()) && "com_shipment_package".equals(step.table())
+                            && "delivery-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(d)) && "com_shipment_package".equals(step.table())
                             && "carrier_name".equals(mapping.target()) && "emsCompany".equals(mapping.source())))
                         throw new IllegalArgumentException("本地物流名称仅用于已批准的包裹物流映射");
                     if (DppmsWarrantyYearsConverter.CONVERSION.equals(mapping.conversion())
@@ -114,6 +114,27 @@ public class GenericSyncEngine {
         private final SyncDefinition definition;
         private final Map<String,SyncDefinition.Source> sourceByObject = new HashMap<>();
         private volatile Map<String,Map<String,GenericSyncJdbcStore.Column>> schemas;
+        // One bound P15 execution only; previews never write their planned parents to the database.
+        private final Map<String,Map<String,Object>> previewParents=new HashMap<>();
+        private long nextPreviewId=-1;
+        private Map<String,String> deliveryCarrierNames;
+        private final Set<String> ambiguousCarriers=new HashSet<>();
+        private Map<String,String> carrierNames() {
+            if(deliveryCarrierNames!=null)return deliveryCarrierNames;
+            Map<String,String> names=new HashMap<>();
+            for(var item:dictionaries.getDictDataList("01")) {
+                if(!"01".equals(item.getDictType()) || !present(item.getValue()) || !present(item.getLabel()))continue;
+                var previous=names.putIfAbsent(item.getValue(),item.getLabel());
+                if(previous!=null && !previous.equals(item.getLabel()))ambiguousCarriers.add(item.getValue());
+            }
+            ambiguousCarriers.forEach(names::remove);
+            deliveryCarrierNames=Map.copyOf(names);
+            return deliveryCarrierNames;
+        }
+        private boolean localDelivery() {
+            return "DPPMS".equals(definition.sourceSystem()) && "delivery-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(definition))
+                    && definition.sources().stream().anyMatch(s->"LOCAL_OWNER".equals(s.readMode()));
+        }
         Execution(SyncDefinition definition) {
             this.definition=definition;
             definition.sources().forEach(source -> sourceByObject.put(source.object(),source));
@@ -154,36 +175,54 @@ public class GenericSyncEngine {
             if(!TransactionSynchronizationManager.isActualTransactionActive()) throw new IllegalStateException("目标写入必须位于同步分块事务中");
             return execute(batch,true);
         }
-        private Map<String,cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.Fact> localShipmentFacts(Batch batch) {
-            if(!"DPPMS".equals(definition.sourceSystem()) || !"delivery-full-sync".equals(definition.taskKey())
-                    || definition.sources().stream().noneMatch(s->"LOCAL_OWNER".equals(s.readMode())))return Map.of();
-            var keys=batch.rows().stream().filter(r->"DEVICE_SN".equals(r.object())).map(r->r.fields().get("pack_id"))
+        private Map<String,cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.Fact> localShipmentFacts(Batch batch,boolean apply,Map<String,Map<String,Object>> overlay) {
+            if(!localDelivery())return Map.of();
+            var eventTable=catalog.required("ast_device_shipment");
+            var keys=batch.rows().stream().filter(r->"DEVICE_SN".equals(r.object()))
+                    .filter(r->overlay.get(cacheKey(eventTable,Map.of("source_system",definition.sourceSystem(),"source_key",r.sourceKey())))==null)
+                    .map(r->r.fields().get("pack_id"))
                     .filter(Objects::nonNull).map(Object::toString).distinct().toList();
             var result=new HashMap<String,cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.Fact>();
-            for(int offset=0;offset<keys.size();offset+=500)
+            var missing=new ArrayList<String>();
+            for(var key:keys) {
+                var packageTable=catalog.required("com_shipment_package");
+                var planned=apply?null:previewParents.get(cacheKey(packageTable,Map.of("source_system","DPPMS","source_record_key",key)));
+                if(planned==null || !(planned.get("id") instanceof Number id) || id.longValue()>0) {missing.add(key);continue;}
+                Object parentKey=planned.get("shipment_contract_source_key");
+                Map<String,Object> parent=null;
+                if(present(parentKey))parent=previewParents.get(cacheKey(catalog.required("com_shipment_contract_reference"),
+                        Map.of("source_system","DPPMS","source_record_key",parentKey)));
+                if(parent!=null && planned.get("shipment_contract_ref_id")!=null
+                        && !equal(parent.get("id"),planned.get("shipment_contract_ref_id")))
+                    throw new IllegalArgumentException("预览包裹的原合同键与目标父引用不一致");
+                if(parent==null) {missing.add(key);continue;}
+                var shipmentTime=planned.get("shipment_time");
+                result.put(key,new cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.Fact(
+                        key,shipmentTime==null?null:time(shipmentTime),Objects.toString(parent.get("contract_no"),null)));
+            }
+            for(int offset=0;offset<missing.size();offset+=500)
                 for(var fact:shipmentFacts.read(new cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.Query(
-                        TenantContextHolder.getRequiredTenantId(),definition.executionActorId(),keys.subList(offset,Math.min(offset+500,keys.size())))))
+                        TenantContextHolder.getRequiredTenantId(),definition.executionActorId(),missing.subList(offset,Math.min(offset+500,missing.size())))))
                     if(result.putIfAbsent(fact.packageSourceKey(),fact)!=null)throw new IllegalArgumentException("本地包裹父来源身份不唯一");
             return result;
         }
         private List<Change> execute(Batch batch,boolean apply) {
             if(batch.adoptExisting()||batch.clearBeforeLoad())throw new IllegalArgumentException("通用任务不能接管或清空目标");
             long tenant=TenantContextHolder.getRequiredTenantId();
-            long previewId=-1;
             var schemas=schemas();
             Map<String,Map<String,Object>> overlay=new HashMap<>();
             prefillOverlay(definition,batch,overlay,apply,schemas);
+            if(!apply && localDelivery())overlay.putAll(previewParents);
             List<Mutation> mutations=new ArrayList<>();List<Change> changes=new ArrayList<>();
-            var localShipmentFacts=localShipmentFacts(batch);
+            var localShipmentFacts=localShipmentFacts(batch,apply,overlay);
+            Map<SourceIdentity,Binding> priorBindings=new HashMap<>();
+            if(localDelivery())for(var binding:batch.bindings())
+                if(priorBindings.putIfAbsent(new SourceIdentity(binding.object(),binding.sourceKey()),binding)!=null)
+                    throw new IllegalArgumentException("P15来源绑定重复");
             Map<String,String> carrierNames=null;
             if(definition.sources().stream().flatMap(s->s.targets().stream()).flatMap(s->s.mappings().stream())
                     .anyMatch(m->"LOCAL_CARRIER_NAME".equals(m.conversion()))) {
-                carrierNames=new HashMap<>();
-                for(var item:dictionaries.getDictDataList("01")) {
-                    if(!"01".equals(item.getDictType()) || item.getValue()==null || item.getLabel()==null
-                            || carrierNames.putIfAbsent(item.getValue(),item.getLabel())!=null)
-                        throw new IllegalArgumentException("本地物流字典身份不唯一或不完整");
-                }
+                carrierNames=carrierNames();
             }
             for(var row:batch.rows()) {
                 var source=Objects.requireNonNull(sourceByObject.get(row.object()),"Unknown source object");
@@ -195,12 +234,23 @@ public class GenericSyncEngine {
                 variables.put("$SOURCE_KEY",row.sourceKey());variables.put("$SOURCE_SYSTEM",definition.sourceSystem());variables.put("$ROW",row.fields().getOrDefault("_syncSourcePayload",row.fields()));
                 Map<String,Object> beforeValues=new LinkedHashMap<>(),afterValues=new LinkedHashMap<>();
                 List<String> warnings=new ArrayList<>();Long primary=null;String action="UNCHANGED";
+                String frozenEventPayload=null;
                 try {
-                    if("DEVICE_SN".equals(row.object()) && "delivery-full-sync".equals(definition.taskKey())
+                    if("DEVICE_SN".equals(row.object()) && "delivery-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(definition))
                             && definition.sources().stream().anyMatch(s->"LOCAL_OWNER".equals(s.readMode()))) {
-                        var fact=localShipmentFacts.get(String.valueOf(row.fields().get("pack_id")));
-                        if(fact==null || fact.shipmentTime()==null)throw new IllegalArgumentException("本地包裹或原发货时间缺失，保留来源待处理");
-                        variables.put("shipment_time",fact.shipmentTime());variables.put("contract_no",fact.contractNo());
+                        var existing=find(catalog.required("ast_device_shipment"),Map.of("source_system",definition.sourceSystem(),"source_key",row.sourceKey()),overlay,local,apply,schemas);
+                        if(existing!=null) {
+                            var frozen=frozenEvent(new HistoricalEvent(row,priorBindings.get(new SourceIdentity(row.object(),row.sourceKey())),existing,primaryStep));
+                            variables.put("shipment_time",frozen.shipmentTime());variables.put("contract_no",frozen.contractNo());
+                            frozenEventPayload=frozen.payload();
+                        } else {
+                            var fact=localShipmentFacts.get(String.valueOf(row.fields().get("pack_id")));
+                            if(fact==null || fact.shipmentTime()==null)throw new IllegalArgumentException("本地包裹或原发货时间缺失，保留来源待处理");
+                            variables.put("shipment_time",fact.shipmentTime());variables.put("contract_no",fact.contractNo());
+                            var payload=payloadMap(row.fields().getOrDefault("_syncSourcePayload",row.fields()));
+                            payload.put("shipment_time",fact.shipmentTime());payload.put("contract_no",fact.contractNo());
+                            variables.put("$ROW",payload);
+                        }
                     }
                     if(source.issueField()!=null && !row.fields().containsKey(source.issueField()))throw new IllegalArgumentException("来源缺少预检字段: "+source.issueField());
                     if(source.issueField()!=null && present(row.fields().get(source.issueField()))) throw new IllegalArgumentException(row.fields().get(source.issueField()).toString());
@@ -211,7 +261,11 @@ public class GenericSyncEngine {
                             if(!"CONSTANT".equals(mapping.conversion()) && !variables.containsKey(mapping.source())) throw new IllegalArgumentException("来源缺少映射字段: "+mapping.source());
                             Object value="CONSTANT".equals(mapping.conversion())?mapping.constant():variables.get(mapping.source());
                             if(value==null)value=mapping.defaultValue();
-                            values.put(mapping.target(),"LOCAL_CARRIER_NAME".equals(mapping.conversion())
+                            if("LOCAL_CARRIER_NAME".equals(mapping.conversion()) && value!=null && ambiguousCarriers.contains(value.toString()))
+                                warnings.add("本地物流名称有歧义，保留原物流编码: "+value);
+                            boolean frozenPayload=frozenEventPayload!=null && "ast_device_shipment".equals(step.table())
+                                    && "source_payload".equals(mapping.target()) && "JSON".equals(mapping.conversion());
+                            values.put(mapping.target(),frozenPayload?frozenEventPayload:"LOCAL_CARRIER_NAME".equals(mapping.conversion())
                                     ?value==null?null:carrierNames.getOrDefault(value.toString(),value.toString())
                                     :convert(value,mapping));
                         }
@@ -254,7 +308,7 @@ public class GenericSyncEngine {
                         Map<String,Object> delta=new LinkedHashMap<>();
                         if(old==null) {
                             values.forEach((k,v)->{if(v!=null || "OVERWRITE".equals(step.nullPolicy()))next.put(k,v);});
-                            next.putAll(table.insertDefaults());next.put("id",apply?IdWorker.getId():previewId--);next.put("tenant_id",tenant);
+                            next.putAll(table.insertDefaults());next.put("id",apply?IdWorker.getId():nextPreviewId--);next.put("tenant_id",tenant);
                             next.put("creator","data_sync");next.put("updater","data_sync");next.put("create_time",LocalDateTime.now());next.put("update_time",LocalDateTime.now());next.put("deleted",false);
                             if(table.versioned())next.put("version",0);
                             store.validateValues(schemas.get(table.table()),next,true);
@@ -285,7 +339,7 @@ public class GenericSyncEngine {
                                 // P14 may receive its exact local parent/product after the source row was
                                 // already carried. Fill only a missing reference at the same source version;
                                 // unchanged/stale source payloads do not acquire general overwrite permission.
-                                boolean fillReference="sales-orders-full-sync".equals(definition.taskKey())
+                                boolean fillReference="sales-orders-full-sync".equals(cn.iocoder.yudao.module.pms.integration.sync.GenericDirectTaskLine.businessKey(definition))
                                         && Set.of("com_sales_order","com_sales_order_line").contains(step.table())
                                         && Set.of("order_id","product_id","company_id","company_name").contains(col)
                                         && old.get(col)==null && value!=null && step.newerBy()!=null
@@ -331,6 +385,9 @@ public class GenericSyncEngine {
                     }
                     if(row.targetId()!=null && primary!=null && !row.targetId().equals(primary))throw new Conflict("来源已经绑定另一目标，禁止改换业务身份");
                     Map<String,Object> after=new LinkedHashMap<>(row.fields());after.put("_targets",refs);after.putAll(afterValues);
+                    var prior=priorBindings.get(new SourceIdentity(row.object(),row.sourceKey()));
+                    if(prior!=null && prior.lastFields().containsKey("_postCompletion"))
+                        after.put("_postCompletion",prior.lastFields().get("_postCompletion"));
                     if(!warnings.isEmpty())after.put("_warnings",warnings);
                     if(!apply)after.put("_previewVirtualIds",true);
                     changes.add(new Change(row.object(),row.sourceKey(),primary!=null&&primary>0?primary:null,primary==null?"SKIPPED":action,beforeValues,after,warnings.isEmpty()?null:String.join("; ",warnings)));
@@ -375,6 +432,16 @@ public class GenericSyncEngine {
                 if (!mutations.isEmpty()) events.publishEvent(new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged(
                         tenant, mutations.stream().map(m -> new cn.iocoder.yudao.module.pms.integration.api.sync.GenericSyncTargetsChanged.Target(
                                 m.table().table(),m.before()==null ? Map.of() : m.before(),m.values())).toList()));
+            }
+            if(!apply && localDelivery() && changes.stream().noneMatch(c->"CONFLICT".equals(c.action()))) {
+                Map<String,Map<String,Object>> parents=new HashMap<>();
+                var parentTables=Set.of("system_company","system_dept","com_contract","com_shipment_contract_reference","com_shipment_package");
+                overlay.forEach((key,value)->{if(parentTables.contains(key.substring(0,key.indexOf(':'))))parents.put(key,value);});
+                if(TransactionSynchronizationManager.isSynchronizationActive())
+                    TransactionSynchronizationManager.registerSynchronization(new org.springframework.transaction.support.TransactionSynchronization() {
+                        @Override public void afterCommit(){previewParents.putAll(parents);}
+                    });
+                else previewParents.putAll(parents);
             }
             return changes;
         }
@@ -558,6 +625,51 @@ public class GenericSyncEngine {
             case "BOOLEAN" -> {if(!Set.of("true","false","0","1").contains(value.toString()))throw new IllegalArgumentException();yield Set.of("true","1").contains(value.toString());}
             default -> throw new IllegalArgumentException();
         };}catch(RuntimeException e){throw new IllegalArgumentException("字段转换失败: "+mapping.target());}
+    }
+    private record SourceIdentity(String object,String sourceKey) {}
+    private record HistoricalEvent(DataSyncAdapter.Row row,DataSyncAdapter.Binding binding,Map<String,Object> target,String step) {}
+    private record FrozenEvent(Object shipmentTime,Object contractNo,String payload) {}
+    private static FrozenEvent frozenEvent(HistoricalEvent input) {
+        var prior=input.binding()==null?null:input.binding().lastFields();
+        Object stored=prior==null?input.target().get("source_payload"):prior.get(input.step()+".source_payload");
+        if(stored==null)throw new Conflict("不可变事件缺少原始来源快照");
+        var frozen=payloadMap(stored);
+        var raw=payloadMap(input.row().fields().getOrDefault("_syncSourcePayload",input.row().fields()));
+        var parentFields=Set.of("shipment_time","contract_no");
+        for(var key:frozen.keySet())if(!parentFields.contains(key) && !raw.containsKey(key))
+            throw new Conflict("不可变事件原始字段缺失: "+key);
+        for(var entry:raw.entrySet())if(!parentFields.contains(entry.getKey()) && !sameOriginalEventField(frozen.get(entry.getKey()),entry.getValue()))
+            throw new Conflict("不可变事件原始字段变化: "+entry.getKey());
+        Object shipmentTime=prior!=null?prior.get(input.step()+".shipment_time"):
+                frozen.containsKey("shipment_time")?frozen.get("shipment_time"):input.target().get("shipment_time");
+        Object contractNo=prior!=null?prior.get(input.step()+".contract_no"):
+                frozen.containsKey("contract_no")?frozen.get("contract_no"):input.target().get("contract_no");
+        return new FrozenEvent(shipmentTime,contractNo,stored instanceof String text?text:JsonUtils.toJsonString(stored));
+    }
+    private static Map<String,Object> payloadMap(Object value) {
+        if(value instanceof Map<?,?> map) {
+            var result=new LinkedHashMap<String,Object>();
+            for(var entry:map.entrySet()) {
+                if(!(entry.getKey() instanceof String key))throw new Conflict("不可变事件来源快照字段无效");
+                result.put(key,entry.getValue());
+            }
+            return result;
+        }
+        var result=value==null?null:JsonUtils.parseMap(value.toString());
+        if(result==null)throw new Conflict("不可变事件来源快照无效");
+        return new LinkedHashMap<>(result);
+    }
+    private static boolean sameOriginalEventField(Object frozen,Object incoming) {
+        if(equal(frozen,incoming))return true;
+        if(frozen==null || incoming==null)return false;
+        // Only proven JDBC temporal representations are normalized; all ordinary source strings stay exact.
+        try {
+            if(incoming instanceof java.sql.Timestamp timestamp)return time(frozen).equals(timestamp.toLocalDateTime());
+            if(incoming instanceof LocalDateTime timestamp)return time(frozen).equals(timestamp);
+            if(incoming instanceof java.sql.Date date)return LocalDate.parse(frozen.toString()).equals(date.toLocalDate());
+            if(incoming instanceof LocalDate date)return LocalDate.parse(frozen.toString()).equals(date);
+        }catch(java.time.format.DateTimeParseException invalid) {return false;}
+        return false;
     }
     private record Mutation(GenericTargetCatalog.Table table,Map<String,Object> before,Map<String,Object> values) {}
     private static class AmbiguousLookup extends IllegalArgumentException {AmbiguousLookup(String message){super(message);}}

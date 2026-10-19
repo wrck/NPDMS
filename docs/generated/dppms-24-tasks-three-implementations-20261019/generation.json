@@ -1,0 +1,140 @@
+{
+  "compiledOn": "2026-10-19",
+  "worktree": "C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "HEAD": "7907c8117bce8eae3dc2b3b3dde68f88ffc543d4",
+  "workingTree": "existing mixed uncommitted changes preserved; report reads current files",
+  "sources": {
+    "taskCount": 24,
+    "implementations": [
+      "A-original",
+      "B-direct",
+      "C-base-sync"
+    ],
+    "oldFieldInventory": "2026-10-14",
+    "currentACommands": "D:/CodexTaskArtifacts/project-detail-followup/config-correction-20261015/candidate-commands",
+    "BState": "D:/CodexTaskArtifacts/project-detail-followup/dual-track-audit-20261017/owned-only-status.json",
+    "CReceiptPaths": {
+      "P01": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-next13-20261017/P01-result.json",
+      "P04": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018-wave9/P04-result.json",
+      "P08": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P08-wave5-result.json",
+      "P10": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P10-wave4-result.json",
+      "P11": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-real-preview-20261017/P11-preview-result-v2.json",
+      "P12": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-real-preview-20261017/P12-preview-result-v2.json",
+      "P13": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018/P13-result.json",
+      "P14": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-next13-20261017/P14-result.json",
+      "P15": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018/P15-result.json",
+      "P16": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018-wave9/P16-result.json",
+      "P18": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018-wave9/P18-result.json",
+      "P19": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-next13-20261017/P19-result.json",
+      "P20": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-next13-20261017/P20-result.json",
+      "P21": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P21-result.json",
+      "P22": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-next13-20261017/P22-result.json",
+      "P23": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P23-wave2-result.json",
+      "P24": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P24-wave5-result.json",
+      "P25": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P25-wave5-result.json",
+      "P30": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P30-wave6-result.json",
+      "P31": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018-wave9/P31-result.json",
+      "P33": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018-wave9/P33-result.json",
+      "P34": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P34-wave5-result.json",
+      "P35": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-blockers-20261018-wave9/P35-result.json",
+      "P37": "D:/CodexTaskArtifacts/project-detail-followup/base-sync-remaining-20261017/P37-wave5-result.json"
+    }
+  },
+  "generationCommands": [
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/collect.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/collect-tests.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/generate.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/enrich.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/collect-pilot.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/supplement-pilot.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/integrate-pilot.py",
+    "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/validate.py"
+  ],
+  "curationInput": "D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019/curation.json",
+  "artifactFolder": "D:/CodexTaskArtifacts/project-detail-followup/three-implementations-inventory-20261019",
+  "operationsThisCompilation": {
+    "businessCodeChanges": 0,
+    "taskConfigurationSaves": 0,
+    "testsRun": 0,
+    "previewsRun": 0,
+    "realSyncs": 0,
+    "databaseOperations": 0,
+    "migrations": 0,
+    "serviceOperations": 0
+  },
+  "cautions": [
+    "SQL exports contain MyBatis placeholders/branch comments and are not directly executable scripts.",
+    "ORM/dynamic templates and raw single-table review projections are not runtime SQL evidence.",
+    "Prior receipts do not certify later current candidate changes.",
+    "Counters are preview actions unless a historical non-preview run is expressly identified."
+  ],
+  "historicalTenProjectSupplement": {
+    "index": "pilot-ten-projects/README.md",
+    "processing": "pilot-ten-projects/tasks-and-processing.md",
+    "originalProjectCount": 10,
+    "laterRenewalProjectCount": 10,
+    "savedTaskSnapshotCount": 41,
+    "businessCategoryCount": 24,
+    "sourceManifest": "pilot-ten-projects/generation.json",
+    "scope": "historical task/Owner logic and dated completion evidence; does not change current A/B/C acceptance or perform runtime actions"
+  },
+  "followup20261019": {
+    "report": "base-sync-13-failures-followup-20261019.md",
+    "proof": "base-sync-13-failures-followup-20261019.json",
+    "current24StatusCounts": {
+      "PREVIEW_READY": 12,
+      "FAILED": 12
+    },
+    "reportGenerationCommand": "python -X utf8 D:/CodexTaskArtifacts/project-detail-followup/base-sync-pilot-audit-20261019/render_followup.py",
+    "operations": {
+      "initialPreviewRequests": 13,
+      "affectedPreviewRetries": 1,
+      "only59284Reloads": 1,
+      "realSyncs": 0,
+      "migrations": 0,
+      "originalTaskOperations": 0,
+      "businessOrDefinitionWrites": 0,
+      "service59191Operations": 0
+    }
+  },
+  "originalIdentifierFollowup": {
+    "report": "base-sync-original-identifiers-preview-20261019.md",
+    "proof": "base-sync-original-identifiers-preview-20261019.json",
+    "current24StatusCounts": {
+      "PREVIEW_READY": 14,
+      "FAILED": 10
+    },
+    "reportGenerationCommand": "python -X utf8 D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\render_policy.py",
+    "operations": {
+      "newSuitePreviewRequests": 14,
+      "only59284Reloads": 2,
+      "originalTaskOperations": 0,
+      "realSyncs": 0,
+      "migrations": 0,
+      "businessOrDefinitionWrites": 0,
+      "service59191Operations": 0
+    }
+  },
+  "departmentCodeFollowup": {
+    "report": "base-sync-department-code-preview-20261019.md",
+    "proof": "base-sync-department-code-preview-20261019.json",
+    "current24StatusCounts": {
+      "PREVIEW_READY": 14,
+      "FAILED": 10
+    },
+    "reportGenerationCommand": "python -X utf8 D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-deferred-extensions-20261019\\render_report.py",
+    "operations": {
+      "newPreviewRequests": 4,
+      "only59284Reloads": 1,
+      "formalSchemaColumnAdditions": 1,
+      "flywayOrOtherMigrations": 0,
+      "realSyncs": 0,
+      "formalBusinessDml": 0,
+      "extensionWrites": 0,
+      "departmentIdBackfills": 0,
+      "originalTaskOperations": 0,
+      "service59191Operations": 0
+    }
+  }
+}

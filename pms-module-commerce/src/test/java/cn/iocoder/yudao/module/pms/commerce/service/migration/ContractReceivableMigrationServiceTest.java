@@ -76,4 +76,35 @@ class ContractReceivableMigrationServiceTest {
         assertThrows(IllegalArgumentException.class,()->service.preview(request(entry(source(),null,null))));
         verifyNoInteractions(mapper);
     }
+    @Test void resolvesContractsAsOneSetAndRetainsAmbiguousOrMissingAsUnresolved() {
+        var first=source();var second=new java.util.HashMap<>(source());second.put("id","12");second.put("contract_num","C-2");
+        var third=new java.util.HashMap<>(source());third.put("id","13");third.put("contract_num","C-3");
+        String no=first.get("contract_num");
+        when(mapper.selectContractIdentities(any())).thenReturn(List.of(
+            new ContractReceivableMigrationMapper.ContractIdentity(91L,no),
+            new ContractReceivableMigrationMapper.ContractIdentity(92L,"C-2"),new ContractReceivableMigrationMapper.ContractIdentity(93L,"C-2")));
+        var input=List.of(entry(first,null,null),new Entry("12",second,"91","crmapp",null,null),new Entry("13",third,"91","crmapp",null,null));
+        var result=service.preview(new Request(1L,7L,"integration:1:9",input));
+        assertEquals(91L,result.getFirst().fields().get("contractId"));
+        assertEquals(tools.jackson.databind.node.NullNode.getInstance(),result.get(1).fields().get("contractId"));assertEquals(tools.jackson.databind.node.NullNode.getInstance(),result.get(2).fields().get("contractId"));
+        verify(mapper,times(1)).selectContractIdentities(any());verify(mapper,never()).selectExactContractIds(any());
+        verify(mapper,never()).insertReceipt(any());
+    }
+    @Test void actualBatchQueryRetainsExactCodeTenantDeletionAndEmptySetBoundaries() throws Exception {
+        var ds=new org.h2.jdbcx.JdbcDataSource();ds.setURL("jdbc:h2:mem:receiptContracts"+UUID.randomUUID()+";MODE=MySQL");
+        var jdbc=new org.springframework.jdbc.core.JdbcTemplate(ds);
+        try(var keeper=ds.getConnection()) {
+            jdbc.execute("CREATE TABLE com_contract(id BIGINT,tenant_id BIGINT,deleted BOOLEAN,contract_no VARCHAR(64))");
+            jdbc.update("INSERT INTO com_contract VALUES(1,1,FALSE,'C1'),(2,1,FALSE,'C1'),(3,2,FALSE,'C1'),(4,1,TRUE,'C1'),(5,1,FALSE,'c1')");
+            var config=new org.apache.ibatis.session.Configuration(new org.apache.ibatis.mapping.Environment("test",new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory(),ds));
+            String resource="mapper/migration/ContractReceivableMigrationMapper.xml";
+            try(var in=new org.springframework.core.io.ClassPathResource(resource).getInputStream()){new org.apache.ibatis.builder.xml.XMLMapperBuilder(in,config,resource,config.getSqlFragments()).parse();}
+            try(var session=new org.apache.ibatis.session.SqlSessionFactoryBuilder().build(config).openSession()) {
+                var actual=session.getMapper(ContractReceivableMigrationMapper.class);
+                assertEquals(List.of(1L,2L),actual.selectContractIdentities(new ContractReceivableMigrationMapper.ContractsQuery(1L,List.of("C1"))).stream().map(ContractReceivableMigrationMapper.ContractIdentity::id).toList());
+                assertTrue(actual.selectContractIdentities(new ContractReceivableMigrationMapper.ContractsQuery(1L,List.of())).isEmpty());
+                assertEquals(List.of(5L),actual.selectContractIdentities(new ContractReceivableMigrationMapper.ContractsQuery(1L,List.of("c1"))).stream().map(ContractReceivableMigrationMapper.ContractIdentity::id).toList());
+            }
+        }
+    }
 }

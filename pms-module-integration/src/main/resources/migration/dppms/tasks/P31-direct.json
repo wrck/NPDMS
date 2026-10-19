@@ -1,0 +1,226 @@
+{
+  "adapter": "DPPMS_MEMBER_HISTORY_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 200,
+  "clearBeforeLoad": false,
+  "connectionId": 2110305954295414785,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 200,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 200,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "filters": [],
+      "groupKey": "id",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectId",
+          "target": "projectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectType",
+          "target": "projectType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "memberRole",
+          "target": "memberRole"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "memberCode",
+          "target": "memberCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "memberName",
+          "target": "memberName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "phoneNum",
+          "target": "phoneNum"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "email",
+          "target": "email"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "fromFlag",
+          "target": "fromFlag"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createBy",
+          "target": "createBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateBy",
+          "target": "updateBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveFrom",
+          "target": "effectiveFrom"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveTo",
+          "target": "effectiveTo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectType",
+          "target": "originalProjectType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectCode",
+          "target": "originalProjectCode"
+        }
+      ],
+      "object": "MEMBER_HISTORY",
+      "parameters": {},
+      "publishedProjectMatch": "ID",
+      "readMode": "SQL",
+      "rowProjection": "memberHistoryBranches",
+      "sourceKey": "id",
+      "sourceObject": "pm_project_member",
+      "sql": "SELECT m.*,m.projectType AS originalProjectType FROM pm_project_member m",
+      "syncPrimaryKey": false
+    },
+    {
+      "columns": [],
+      "filters": [],
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectId",
+          "target": "projectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectType",
+          "target": "projectType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "memberRole",
+          "target": "memberRole"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "memberCode",
+          "target": "memberCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "memberName",
+          "target": "memberName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "phoneNum",
+          "target": "phoneNum"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "email",
+          "target": "email"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "fromFlag",
+          "target": "fromFlag"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createBy",
+          "target": "createBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateBy",
+          "target": "updateBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveFrom",
+          "target": "effectiveFrom"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveTo",
+          "target": "effectiveTo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectType",
+          "target": "originalProjectType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectCode",
+          "target": "originalProjectCode"
+        }
+      ],
+      "object": "CONTACT_HISTORY",
+      "parameters": {},
+      "queryRef": "MEMBER_HISTORY",
+      "readMode": "SQL",
+      "sourceKey": "id",
+      "sourceObject": "pm_project_member",
+      "syncPrimaryKey": false
+    }
+  ],
+  "taskKey": "P31_DIRECT"
+}

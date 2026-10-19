@@ -1,0 +1,660 @@
+{
+  "task": "P22",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "pm_project_product_line",
+      "sourceObject": "pm_project_product_line",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contractNo",
+          "target": "contractNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemCode",
+          "target": "itemCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemName",
+          "target": "itemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectQuantity",
+          "target": "projectQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderQuantity",
+          "target": "orderQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "deliverQuantity",
+          "target": "deliverQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "openQuantity",
+          "target": "openQuantity",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderNumber",
+          "target": "orderNumber",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "lineNum",
+          "target": "lineNum",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "LOOKUP",
+          "defaultValue": null,
+          "source": "id",
+          "target": "baseline",
+          "values": {}
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "delivery_scope_id",
+      "parameter": "#{row.deliveryScopeId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "detail_sequence",
+      "parameter": "1",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "serial_no",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "product_code",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "product_name",
+      "parameter": "#{row.productName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "device_type_code",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "device_type_name",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "delivery_batch_no",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "source_record_key",
+      "parameter": "#{row.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "allocated_qty",
+      "parameter": "#{row.allocatedQty}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "detail_status",
+      "parameter": "'ACTIVE'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "source_snapshot",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "remark",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope_detail",
+      "column": "deleted",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_id",
+      "parameter": "#{row.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_code",
+      "parameter": "#{row.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_name",
+      "parameter": "#{row.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_company_code",
+      "parameter": "#{row.projectCompanyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_company_name",
+      "parameter": "#{row.projectCompanyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_department_code",
+      "parameter": "#{row.projectDepartmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_department_name",
+      "parameter": "#{row.projectDepartmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_customer_code",
+      "parameter": "#{row.projectCustomerCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_customer_name",
+      "parameter": "#{row.projectCustomerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_manager_employee_no",
+      "parameter": "#{row.projectManagerEmployeeNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "project_manager_name",
+      "parameter": "#{row.projectManagerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "order_line_id",
+      "parameter": "#{row.orderLineId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "order_source_system",
+      "parameter": "#{row.orderSourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "order_company_code",
+      "parameter": "#{row.orderCompanyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "order_company_name",
+      "parameter": "#{row.orderCompanyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "order_type",
+      "parameter": "#{row.orderType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "order_no",
+      "parameter": "#{row.orderNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "line_no",
+      "parameter": "#{row.lineNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "product_code",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "product_desc",
+      "parameter": "#{row.productDesc}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "allocated_qty",
+      "parameter": "#{row.allocatedQty}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "allocation_confirmed",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "delivered_quantity",
+      "parameter": "#{row.deliveredQuantity}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "open_quantity",
+      "parameter": "#{row.openQuantity}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "scope_status",
+      "parameter": "'ACTIVE'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "allocation_version",
+      "parameter": "#{row.allocationVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "allocation_source",
+      "parameter": "'DPPMS'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "change_reason",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "department_id",
+      "parameter": "#{row.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "department_code",
+      "parameter": "#{row.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "department_name",
+      "parameter": "#{row.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "department_version",
+      "parameter": "#{row.departmentVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "source_evidence",
+      "parameter": "#{row.sourceEvidence}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "effective_from",
+      "parameter": "#{row.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "effective_to",
+      "parameter": "NULL",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "status",
+      "parameter": "'ENABLED'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    },
+    {
+      "table": "com_delivery_scope",
+      "column": "deleted",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.countProject",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<select id=\"countProject\" resultType=\"long\">\n        SELECT COUNT(*) FROM com_delivery_scope s\n        JOIN com_sales_order_line l ON l.id=s.order_line_id AND l.tenant_id=s.tenant_id\n        JOIN com_sales_order o ON o.id=l.order_id AND o.tenant_id=l.tenant_id\n        WHERE s.tenant_id=#{query.tenantId} AND s.project_id=#{query.projectId} AND s.deleted=0\n          AND s.allocation_source='DPPMS' AND s.allocation_confirmed=0\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.selectAssociatedLines",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<select id=\"selectAssociatedLines\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeOrderLineRow\">\n        <include refid=\"associatedLines\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.lockAssociatedLines",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<select id=\"lockAssociatedLines\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeOrderLineRow\">\n        <include refid=\"associatedLines\" /> FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.selectIdentity",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<select id=\"selectIdentity\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDeliveryScopeRow\">\n        <include refid=\"identity\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.lockIdentity",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<select id=\"lockIdentity\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDeliveryScopeRow\">\n        <include refid=\"identity\" /> FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.selectProductDetails",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<select id=\"selectProductDetails\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeDetailRow\">\n        <include refid=\"productDetails\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.selectProductDetailsForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<select id=\"selectProductDetailsForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeDetailRow\">\n        <include refid=\"productDetails\" /> FOR UPDATE\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalProductDetail",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<insert id=\"insertHistoricalProductDetail\">\n        INSERT INTO com_delivery_scope_detail\n          (id,tenant_id,delivery_scope_id,detail_sequence,serial_no,product_code,product_name,\n           device_type_code,device_type_name,delivery_batch_no,source_record_key,allocated_qty,detail_status,\n           source_snapshot,remark,version,creator,create_time,updater,update_time,deleted)\n        VALUES\n          (#{row.id},#{row.tenantId},#{row.deliveryScopeId},1,NULL,#{row.productCode},#{row.productName},\n           NULL,NULL,NULL,#{row.sourceRecordKey},#{row.allocatedQty},'ACTIVE',NULL,NULL,0,\n           #{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},0)\n    </insert>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductScopeMapper.insertHistoricalScope",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductScopeMapper.xml",
+      "xml": "<insert id=\"insertHistoricalScope\">\n        INSERT INTO com_delivery_scope\n          (id,tenant_id,project_id,project_code,project_name,project_company_code,project_company_name,\n           project_department_code,project_department_name,project_customer_code,project_customer_name,\n           project_manager_employee_no,project_manager_name,order_line_id,order_source_system,order_company_code,\n           order_company_name,order_type,order_no,line_no,product_code,product_desc,allocated_qty,\n           allocation_confirmed,delivered_quantity,open_quantity,scope_status,allocation_version,allocation_source,\n           change_reason,department_id,department_code,department_name,department_version,source_evidence,\n           effective_from,effective_to,status,version,creator,create_time,updater,update_time,deleted)\n        VALUES\n          (#{row.id},#{row.tenantId},#{row.projectId},#{row.projectCode},#{row.projectName},#{row.projectCompanyCode},#{row.projectCompanyName},\n           #{row.projectDepartmentCode},#{row.projectDepartmentName},#{row.projectCustomerCode},#{row.projectCustomerName},\n           #{row.projectManagerEmployeeNo},#{row.projectManagerName},#{row.orderLineId},#{row.orderSourceSystem},#{row.orderCompanyCode},\n           #{row.orderCompanyName},#{row.orderType},#{row.orderNo},#{row.lineNo},#{row.productCode},#{row.productDesc},#{row.allocatedQty},\n           0,#{row.deliveredQuantity},#{row.openQuantity},'ACTIVE',#{row.allocationVersion},'DPPMS',\n           NULL,#{row.departmentId},#{row.departmentCode},#{row.departmentName},#{row.departmentVersion},#{row.sourceEvidence},\n           #{row.effectiveFrom},NULL,'ENABLED',0,#{row.creator},#{row.createTime},#{row.updater},#{row.updateTime},0)\n    </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSource",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSource\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSourceForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectRecords",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectRecords\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRecordRow\">\n    SELECT * FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" /> ORDER BY source_key,id\n    LIMIT #{query.offset},#{query.limit}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeLookupMapper.selectById",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectScopeLookupMapper.xml",
+      "xml": "<select id=\"selectById\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDeliveryScopeRow\">\n  SELECT * FROM com_delivery_scope WHERE tenant_id=#{query.tenantId} AND id=#{query.id} AND deleted=FALSE\n </select>\n "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeLookupMapper.current",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectScopeLookupMapper.xml",
+      "xml": "<select id=\"current\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeVersionRow\"><include refid=\"projectVersion\" /></select>\n "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeLookupMapper.lockExisting",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectScopeLookupMapper.xml",
+      "xml": "<select id=\"lockExisting\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeVersionRow\"><include refid=\"projectVersion\" /> FOR UPDATE</select>\n"
+    }
+  ]
+}

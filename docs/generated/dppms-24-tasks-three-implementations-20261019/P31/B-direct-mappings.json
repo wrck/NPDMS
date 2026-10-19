@@ -1,0 +1,767 @@
+{
+  "task": "P31",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "MEMBER_HISTORY",
+      "sourceObject": "pm_project_member",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "memberRole",
+          "target": "memberRole",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "memberCode",
+          "target": "memberCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "memberName",
+          "target": "memberName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "phoneNum",
+          "target": "phoneNum",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "email",
+          "target": "email",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "fromFlag",
+          "target": "fromFlag",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectType",
+          "target": "originalProjectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "CONTACT_HISTORY",
+      "sourceObject": "pm_project_member",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectId",
+          "target": "projectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectType",
+          "target": "projectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "memberRole",
+          "target": "memberRole",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "memberCode",
+          "target": "memberCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "memberName",
+          "target": "memberName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "phoneNum",
+          "target": "phoneNum",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "email",
+          "target": "email",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "fromFlag",
+          "target": "fromFlag",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createTime",
+          "target": "createTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "createBy",
+          "target": "createBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateTime",
+          "target": "updateTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "updateBy",
+          "target": "updateBy",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveFrom",
+          "target": "effectiveFrom",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effectiveTo",
+          "target": "effectiveTo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectType",
+          "target": "originalProjectType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "originalProjectCode",
+          "target": "originalProjectCode",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "id",
+      "parameter": "#{entry.values.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "project_id",
+      "parameter": "#{entry.values.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "customer_id",
+      "parameter": "#{entry.values.customerId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "customer_contact_id",
+      "parameter": "#{entry.values.customerContactId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "name",
+      "parameter": "#{entry.values.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "department",
+      "parameter": "#{entry.values.department}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "title",
+      "parameter": "#{entry.values.title}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "mobile",
+      "parameter": "#{entry.values.mobile}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "phone",
+      "parameter": "#{entry.values.phone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "email",
+      "parameter": "#{entry.values.email}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "primary_flag",
+      "parameter": "#{entry.values.primaryFlag}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "primary_set_time",
+      "parameter": "#{entry.values.primarySetTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "status",
+      "parameter": "#{entry.values.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "remark",
+      "parameter": "#{entry.values.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "version",
+      "parameter": "#{entry.values.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "creator",
+      "parameter": "#{entry.values.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "create_time",
+      "parameter": "#{entry.values.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "updater",
+      "parameter": "#{entry.values.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "update_time",
+      "parameter": "#{entry.values.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "deleted",
+      "parameter": "#{entry.values.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "deleted_by",
+      "parameter": "#{entry.values.deletedBy}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "deleted_at",
+      "parameter": "#{entry.values.deletedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "tenant_id",
+      "parameter": "#{entry.values.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "project_party_id",
+      "parameter": "#{entry.values.projectPartyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "contact_code",
+      "parameter": "#{entry.values.contactCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "registration_source",
+      "parameter": "#{entry.values.registrationSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "effective_from",
+      "parameter": "#{entry.values.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "cus_project_customer_contact_relation",
+      "column": "effective_to",
+      "parameter": "#{entry.values.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "id",
+      "parameter": "#{entry.values.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "tenant_id",
+      "parameter": "#{entry.values.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "project_id",
+      "parameter": "#{entry.values.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "user_id",
+      "parameter": "#{entry.values.userId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "employee_no",
+      "parameter": "#{entry.values.employeeNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "member_name",
+      "parameter": "#{entry.values.memberName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "company_id",
+      "parameter": "#{entry.values.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "company_code",
+      "parameter": "#{entry.values.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "company_name",
+      "parameter": "#{entry.values.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "department_id",
+      "parameter": "#{entry.values.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "department_code",
+      "parameter": "#{entry.values.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "department_name",
+      "parameter": "#{entry.values.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "member_role",
+      "parameter": "#{entry.values.memberRole}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "assignment_type",
+      "parameter": "#{entry.values.assignmentType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "site_id",
+      "parameter": "#{entry.values.siteId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "responsibility",
+      "parameter": "#{entry.values.responsibility}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "change_reason",
+      "parameter": "#{entry.values.changeReason}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "remark",
+      "parameter": "#{entry.values.remark}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "end_reason",
+      "parameter": "#{entry.values.endReason}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "effective_from",
+      "parameter": "#{entry.values.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "effective_to",
+      "parameter": "#{entry.values.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "status",
+      "parameter": "#{entry.values.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "version",
+      "parameter": "#{entry.values.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "creator",
+      "parameter": "#{entry.values.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "create_time",
+      "parameter": "#{entry.values.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "updater",
+      "parameter": "#{entry.values.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "update_time",
+      "parameter": "#{entry.values.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "deleted",
+      "parameter": "b'0'",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "deleted_time",
+      "parameter": "#{entry.values.deletedTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "member_code",
+      "parameter": "#{entry.values.memberCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "phone_number",
+      "parameter": "#{entry.values.phoneNumber}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "email",
+      "parameter": "#{entry.values.email}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "registration_source",
+      "parameter": "#{entry.values.registrationSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    },
+    {
+      "table": "proj_project_member_assignment",
+      "column": "authorization_confirmed",
+      "parameter": "#{entry.values.authorizationConfirmed}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.selectProjectForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml",
+      "xml": "<select id=\"selectProjectForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryRow\">\n    SELECT * FROM cus_project_customer_contact_relation\n    WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectContactHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectContactHistoryMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n    INSERT INTO cus_project_customer_contact_relation\n    (id,project_id,customer_id,customer_contact_id,name,department,title,mobile,phone,email,primary_flag,primary_set_time,\n     status,remark,version,creator,create_time,updater,update_time,deleted,deleted_by,deleted_at,tenant_id,\n     project_party_id,contact_code,registration_source,effective_from,effective_to)\n    VALUES\n    (#{entry.values.id},#{entry.values.projectId},#{entry.values.customerId},#{entry.values.customerContactId},\n     #{entry.values.name},#{entry.values.department},#{entry.values.title},#{entry.values.mobile},#{entry.values.phone},#{entry.values.email},\n     #{entry.values.primaryFlag},#{entry.values.primarySetTime},#{entry.values.status},#{entry.values.remark},#{entry.values.version},\n     #{entry.values.creator},#{entry.values.createTime},#{entry.values.updater},#{entry.values.updateTime},#{entry.values.deleted},\n     #{entry.values.deletedBy},#{entry.values.deletedAt},#{entry.values.tenantId},#{entry.values.projectPartyId},#{entry.values.contactCode},\n     #{entry.values.registrationSource},#{entry.values.effectiveFrom},#{entry.values.effectiveTo})\n  </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.selectProjectForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml",
+      "xml": "<select id=\"selectProjectForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryRow\">\n    SELECT * FROM proj_project_member_assignment\n    WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=b'0'\n    ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectMemberHistoryMapper.insertHistorical",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectMemberHistoryMapper.xml",
+      "xml": "<insert id=\"insertHistorical\">\n    INSERT INTO proj_project_member_assignment\n    (id,tenant_id,project_id,user_id,employee_no,member_name,company_id,company_code,company_name,\n     department_id,department_code,department_name,member_role,assignment_type,site_id,responsibility,\n     change_reason,remark,end_reason,effective_from,effective_to,status,version,creator,create_time,\n     updater,update_time,deleted,deleted_time,member_code,phone_number,email,registration_source,authorization_confirmed)\n    VALUES\n    (#{entry.values.id},#{entry.values.tenantId},#{entry.values.projectId},#{entry.values.userId},#{entry.values.employeeNo},#{entry.values.memberName},\n     #{entry.values.companyId},#{entry.values.companyCode},#{entry.values.companyName},#{entry.values.departmentId},#{entry.values.departmentCode},\n     #{entry.values.departmentName},#{entry.values.memberRole},#{entry.values.assignmentType},#{entry.values.siteId},#{entry.values.responsibility},\n     #{entry.values.changeReason},#{entry.values.remark},#{entry.values.endReason},#{entry.values.effectiveFrom},#{entry.values.effectiveTo},#{entry.values.status},\n     #{entry.values.version},#{entry.values.creator},#{entry.values.createTime},#{entry.values.updater},#{entry.values.updateTime},b'0',#{entry.values.deletedTime},#{entry.values.memberCode},\n     #{entry.values.phoneNumber},#{entry.values.email},#{entry.values.registrationSource},#{entry.values.authorizationConfirmed})\n  </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSource",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSource\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey}\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectSourceForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectSourceRow\">\n    SELECT * FROM proj_legacy_detail_source WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS'\n      AND source_project_key=#{query.sourceProjectKey} FOR UPDATE\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectEvidenceMapper.selectRecords",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProjectEvidenceMapper.xml",
+      "xml": "<select id=\"selectRecords\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProjectRecordRow\">\n    SELECT * FROM proj_legacy_detail_record WHERE <include refid=\"recordScope\" /> ORDER BY source_key,id\n    LIMIT #{query.offset},#{query.limit}\n  </select>\n"
+    }
+  ]
+}

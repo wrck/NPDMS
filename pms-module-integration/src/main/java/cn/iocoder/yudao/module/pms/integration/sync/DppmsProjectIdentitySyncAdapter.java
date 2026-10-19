@@ -78,7 +78,7 @@ public class DppmsProjectIdentitySyncAdapter implements DataSyncAdapter {
                     if(canonical.put(master.sourceKey(),master.after())!=null)fail("本块规范主档重复");
             }
         } else if(!canonicalKeys.isEmpty())for(var binding:bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",task.getConnectionId(),
-                DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectMasterSyncTemplate.OBJECT,List.copyOf(canonicalKeys)))){
+                DppmsProjectMasterSyncTemplate.ADAPTER,DppmsProjectMasterSyncTemplate.OBJECT,List.copyOf(canonicalKeys)).originalLine())){
             DppmsProjectBindingApiImpl.masterBinding(binding,tenant,task.getConnectionId());
             var saved=JsonUtils.parseMap(binding.getFieldsJson());var prior=canonical.putIfAbsent(binding.getSourceKey(),saved);
             if(prior!=null && !JsonUtils.parseTree(JsonUtils.toJsonString(prior)).equals(JsonUtils.parseTree(binding.getFieldsJson())))fail("规范主档绑定存在差异");

@@ -24,12 +24,20 @@ public class SystemUserScopeMigrationApiImpl implements SystemUserScopeMigration
     private final DataSource dataSource;
 
     @Override public List<Result> preview(Request request) {
-        validate(request,false);
+        if(request==null)throw new IllegalArgumentException("范围迁移请求缺失");
+        return previewAfterFoundation(new FoundationPreview(request,
+                SystemAccountMigrationPreview.empty(request.tenantId(), request.owner())));
+    }
+    @Override public List<Result> previewAfterFoundation(FoundationPreview preview) {
+        Request request = preview.request();
+        preview.preceding().requireOwner(request.tenantId(), request.owner());
+        validate(new Validation(request, false, preview.preceding()));
         return plan(request,relations.selectRelations(new UserScopeMigrationTenantQuery(request.tenantId())),false);
     }
     @Override @Transactional(propagation=Propagation.MANDATORY,rollbackFor=Exception.class)
     public List<Result> apply(Request request) {
-        requireRepeatableRead(); validate(request,true);
+        requireRepeatableRead();
+        validate(new Validation(request, true, SystemAccountMigrationPreview.empty(request.tenantId(), request.owner())));
         List<Result> results=plan(request,relations.selectRelationsForUpdate(new UserScopeMigrationTenantQuery(request.tenantId())),true);
         Set<Long> saved=new HashSet<>();
         for (Result result:results) if (saved.add(result.after().id())) {
@@ -40,7 +48,9 @@ public class SystemUserScopeMigrationApiImpl implements SystemUserScopeMigration
         }
         return results;
     }
-    private void validate(Request request,boolean lock) {
+    private record Validation(Request request, boolean lock, SystemAccountMigrationPreview preceding) {}
+    private void validate(Validation validation) {
+        Request request = validation.request(); boolean lock = validation.lock();
         if (request==null || !Objects.equals(TenantContextHolder.getRequiredTenantId(),request.tenantId())
                 || request.owner()==null || request.owner().isBlank() || request.entries()==null || request.entries().size()>10000)
             throw new IllegalArgumentException("范围迁移租户、所有权或容量无效");
@@ -63,10 +73,13 @@ public class SystemUserScopeMigrationApiImpl implements SystemUserScopeMigration
             userIds.add(scope.userId());companyIds.add(scope.companyId());roleCodes.add(scope.scopeRole());
             if (scope.departmentId()!=null)departmentIds.add(scope.departmentId());
             for (String actor:Arrays.asList(audit.creator(),audit.updater())) if (actor!=null && !actor.isEmpty()) {
+                if (actor.matches("-[1-9][0-9]*") && actor.length() <= 20
+                        && validation.preceding().plannedUserIds().contains(Long.valueOf(actor))) continue;
                 if (!actor.matches("[1-9][0-9]*") || actor.length()>19)throw new IllegalArgumentException("范围历史操作者必须先关联正式账号");
                 userIds.add(Long.valueOf(actor));
             }
         }
+        userIds.removeAll(validation.preceding().plannedUserIds());
         var query=new UserScopeMigrationReferenceQuery(request.tenantId(),userIds,companyIds,departmentIds,roleCodes);
         if (!Set.copyOf(lock?relations.selectUserIdsForUpdate(query):relations.selectUserIds(query)).equals(userIds))
             throw new IllegalArgumentException("范围账号或审计人员不存在、已删除或跨租户");
@@ -74,6 +87,7 @@ public class SystemUserScopeMigrationApiImpl implements SystemUserScopeMigration
         Map<Long,DirectoryReference> departments=index(lock?relations.selectDepartmentsForUpdate(query):relations.selectDepartments(query));
         Set<String> roles=new HashSet<>();
         (lock?relations.selectRolesForUpdate(query):relations.selectRoles(query)).forEach(role->roles.add(role.userId()+":"+role.code()));
+        validation.preceding().plannedMemberships().forEach(role -> roles.add(role.userId()+":"+role.roleCode()));
         for (Entry entry:request.entries()) {
             Scope scope=entry.scope();DirectoryReference company=companies.get(scope.companyId()),department=departments.get(scope.departmentId());
             if (company==null || !company.code().equals(scope.companyCode()) || !company.name().equals(scope.companyName()))

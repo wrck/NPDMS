@@ -1,0 +1,230 @@
+package cn.iocoder.yudao.module.pms.integration.basesync.task;
+
+import cn.iocoder.yudao.module.pms.integration.api.basesync.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.apache.ibatis.session.ResultHandler;
+import org.apache.ibatis.executor.result.DefaultResultContext;
+import java.math.BigDecimal;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+import static org.mockito.AdditionalAnswers.delegatesTo;
+
+/** Native tenant/code matching and postfill; all DML stays in connection-local temporary tables. */
+class P22DepartmentPostfillMySqlTest extends RemainingTaskMySqlSupport {
+    P22ProductScopeSyncTask.TargetMapper mapper;
+    @BeforeEach void scopeFixture() throws Exception {
+        jdbc.execute("CREATE TEMPORARY TABLE proj_project(id BIGINT,tenant_id BIGINT,version BIGINT,project_code VARCHAR(64),project_name VARCHAR(100),company_code VARCHAR(64),company_name VARCHAR(100),customer_code VARCHAR(64),customer_name VARCHAR(100),manager_employee_no VARCHAR(64),manager_name VARCHAR(100),department_id BIGINT,department_code VARCHAR(64),deleted BOOLEAN,PRIMARY KEY(tenant_id,id))");
+        jdbc.execute("CREATE TEMPORARY TABLE com_delivery_scope_project_version(id BIGINT,tenant_id BIGINT,project_id BIGINT,scope_version BIGINT,deleted BOOLEAN)");
+        try(var in=new org.springframework.core.io.ClassPathResource("basesync/p22-pending-department-scope-mysql.sql").getInputStream()){
+            for(var sql:new String(in.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).split(";\\s*(?:\\r?\\n|$)"))if(!sql.isBlank()){
+                if(!sql.startsWith("CREATE TEMPORARY TABLE "))throw new IllegalStateException("Only connection-local temporary DDL permitted");
+                jdbc.execute(sql);
+            }
+        }
+        jdbc.update("INSERT INTO system_dept(id,tenant_id,code,name,status,version) VALUES(7,1,'OFFICE','office',0,3),(8,2,'OTHER','other tenant',0,3)");
+        jdbc.update("INSERT INTO int_base_sync_task(id,tenant_id,name,task_code,source_system,connection_id,batch_size,max_rows,active_run_id) VALUES(1,1,'scope','BASE_P22','DPPMS',3,1,100,10),(2,1,'other connection','BASE_P22','DPPMS',4,1,100,10),(3,1,'other task','BASE_P20','DPPMS',3,1,100,10),(4,2,'other tenant','BASE_P22','DPPMS',3,1,100,10)");
+        // MySQL temporary tables cannot be reopened through two aliases in one UPDATE.
+        // Substitute only the second metadata table names; copy current fixture data before each statement.
+        jdbc.execute("CREATE TEMPORARY TABLE int_base_sync_binding_order_test LIKE int_base_sync_binding");
+        jdbc.execute("CREATE TEMPORARY TABLE int_base_sync_task_order_test LIKE int_base_sync_task");
+        jdbc.execute("CREATE TEMPORARY TABLE int_base_sync_run(id BIGINT,tenant_id BIGINT,task_id BIGINT,connection_id BIGINT,task_code VARCHAR(16),status VARCHAR(32),preview BOOLEAN,deleted BOOLEAN)");
+        jdbc.update("INSERT INTO t_company(id,compCode) VALUES(1,'01')");
+        var config=new org.apache.ibatis.session.Configuration();config.setMapUnderscoreToCamelCase(true);config.setEnvironment(session.getConfiguration().getEnvironment());
+        for(var resource:List.of("mapper/basesync/P22TargetMapper.xml","base-sync-source/P22SourceMapper.xml"))try(var input=new org.springframework.core.io.ClassPathResource(resource).getInputStream()){
+            String xml=new String(input.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8).replace("int_base_sync_binding ob","int_base_sync_binding_order_test ob").replace("int_base_sync_task ot","int_base_sync_task_order_test ot");
+            new org.apache.ibatis.builder.xml.XMLMapperBuilder(new java.io.StringReader(xml),config,resource,config.getSqlFragments()).parse();
+        }
+        session=new org.mybatis.spring.SqlSessionTemplate(new org.apache.ibatis.session.SqlSessionFactoryBuilder().build(config));
+        mapper=mock(P22ProductScopeSyncTask.TargetMapper.class,delegatesTo(session.getMapper(P22ProductScopeSyncTask.TargetMapper.class)));
+        // This compatible pending-reference TEMPORARY schema has no formal schema effect.
+        doReturn(1).when(mapper).pendingOrderSchemaReady();
+        doReturn(1).when(mapper).pendingDepartmentSchemaReady();
+        doAnswer(call->{copyOrderMetadata();return session.getMapper(P22ProductScopeSyncTask.TargetMapper.class).backfillOrderLineIds(call.getArgument(0));}).when(mapper).backfillOrderLineIds(any());
+        var ids=new AtomicLong(100);
+        doAnswer(call->{for(var v:call.<List<SyncIdentityStore.Save>>getArgument(0)){
+            var old=saved.get(v.object()+":"+v.sourceKey());
+            if(old==null)jdbc.update("INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id) VALUES(?,1,1,?,?,?,?,10)",ids.incrementAndGet(),v.object(),v.sourceKey(),v.targetId(),v.fingerprint());
+            else jdbc.update("UPDATE int_base_sync_binding SET fingerprint=?,last_run_id=10 WHERE task_id=1 AND object_key=? AND source_key=?",v.fingerprint(),v.object(),v.sourceKey());
+            saved.put(v.object()+":"+v.sourceKey(),new SyncIdentityStore.Identity(v.sourceKey(),v.targetId(),v.fingerprint()));
+        }return null;}).when(identities).saveAll(any());
+    }
+    P22ProductScopeSyncTask.Source row(long id,String code){return new P22ProductScopeSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setCanonicalProjectId(1L).setOriginalCompanyId(1L).setOriginalProjectCode("P-1").setOriginalProjectName("original project").setOriginalDepartmentCode(code).setProjectType("10").setContractNo("C").setOrderNumber("O").setLineNum("1").setItemCode("ITEM").setItemName("item").setProjectQuantity(BigDecimal.ONE).setOrderQuantity(BigDecimal.ONE);}
+    P22ProductScopeSyncTask task(List<P22ProductScopeSyncTask.Source> rows,Runnable afterRead){return new P22ProductScopeSyncTask(mapper,projects){
+        @Override protected String targetMapperNamespace(){return P22ProductScopeSyncTask.TargetMapper.class.getName();}
+        @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){for(var row:rows){var r=new DefaultResultContext<Source>();r.nextResultObject(row);handler.handleResult(r);}afterRead.run();}
+    };}
+    void copyOrderMetadata(){
+        jdbc.update("DELETE FROM int_base_sync_binding_order_test");jdbc.update("INSERT INTO int_base_sync_binding_order_test SELECT * FROM int_base_sync_binding");
+        jdbc.update("DELETE FROM int_base_sync_task_order_test");jdbc.update("INSERT INTO int_base_sync_task_order_test SELECT * FROM int_base_sync_task");
+    }
+    @Test void previewUsesOneTenantCodeCatalogueWithoutAFormalProjectOfficeAndKeepsMinusOne() {
+        var rows=List.of(row(1,"OFFICE"),row(2,"OFFICE"));var c=context(true);
+        assertEquals(2,transaction.execute(status->task(rows,()->{}).execute(c)).inserted());
+        for(var r:rows){assertEquals(-1L,r.getTarget().getDepartmentId());assertEquals("OFFICE",r.getTarget().getDepartmentCode());assertEquals(3,r.getTarget().getDepartmentVersion());}
+        assertTrue(c.runState().warnings().contains("P22_DEPARTMENT_ID_POSTFILL_PENDING:-1"));
+        verify(mapper,times(1)).selectDepartments(new P22ProductScopeSyncTask.DepartmentCatalogueQuery(1));
+        verify(mapper,never()).backfillDepartmentIds(any());verify(mapper,never()).countUnresolvedCodedDepartments(any());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));assertTrue(saved.isEmpty());
+    }
+    @Test void rawScopePreviewDoesNotRequireOrReadFormalOrderLines() {
+        var source=row(1,"OFFICE").setContractNo(null).setProjectQuantity(null).setOrderQuantity(new BigDecimal("3.25"));
+        assertEquals(1,run(task(List.of(source),()->{}),true).inserted());
+        assertEquals(-1L,source.getTarget().getOrderLineId());
+        assertEquals(0,new BigDecimal("3.25").compareTo(source.getTarget().getAllocatedQty()));
+        verify(mapper,never()).selectOwnedOrderLines(any());
+        verify(mapper,never()).backfillOrderLineIds(any());
+        assertTrue(saved.isEmpty());
+    }
+    @Test void exactCaseAndTenantRemainRequiredForDepartmentMatching() {
+        for(var code:List.of("office","OTHER"))assertTrue(assertThrows(IllegalArgumentException.class,()->run(task(List.of(row(1,code)),()->{}),true)).getMessage().contains("DEPARTMENT_CODE_UNRESOLVED"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));
+    }
+    @Test void previewPreservesNullAndEmptyDepartmentCodesAsPendingWithoutDroppingRows() {
+        var rows=List.of(row(1,null),row(2,""));var c=context(true);
+        var counts=transaction.execute(status->task(rows,()->{}).execute(c));
+        assertEquals(2,counts.read());assertEquals(2,counts.inserted());
+        assertNull(rows.getFirst().getTarget().getDepartmentCode());
+        assertEquals("",rows.getLast().getTarget().getDepartmentCode());
+        for(var row:rows){
+            assertEquals(-1L,row.getTarget().getDepartmentId());
+            assertNull(row.getTarget().getDepartmentName());assertNull(row.getTarget().getDepartmentVersion());
+            assertEquals(row.getOriginalDepartmentCode(),row.getTarget().getProjectDepartmentCode());
+            assertNull(row.getTarget().getProjectDepartmentName());assertEquals(-1L,row.getTarget().getOrderLineId());
+        }
+        assertTrue(c.runState().warnings().contains("P22_DEPARTMENT_SOURCE_MISSING_PENDING:2"));
+        verify(mapper,times(1)).selectDepartments(new P22ProductScopeSyncTask.DepartmentCatalogueQuery(1));
+        verify(mapper,never()).selectOwnedOrderLines(any());verify(mapper,never()).backfillDepartmentIds(any());
+        assertTrue(saved.isEmpty());assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));
+    }
+    @Test void onePostfillKeepsOriginalAuditAndReplayBaselineButRejectsAChangedDerivedId() {
+        var task=task(List.of(row(1,"OFFICE"),row(2,"OFFICE")),()->{});
+        assertEquals(2,run(task,false).inserted());
+        assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE department_id=7 AND update_time=?",Integer.class,at));
+        assertEquals(2,run(task,true).unchanged());
+        verify(mapper,times(1)).backfillDepartmentIds(any());
+        jdbc.update("UPDATE com_delivery_scope SET department_id=88,update_time=update_time");
+        assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("DEPARTMENT_IDENTITY_CHANGED"));
+    }
+    @Test void nullableFixtureKeepsMissingDepartmentsPendingWhileKnownCodesPostfillAndReplay() {
+        var rows=List.of(row(1,"OFFICE"),row(2,null),row(3,""));var c=context(false);
+        assertEquals(3,transaction.execute(status->task(rows,()->{}).execute(c)).inserted());
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE department_id=7 AND department_code='OFFICE'",Integer.class));
+        assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE department_id=-1 AND (department_code IS NULL OR department_code='') AND department_name IS NULL AND department_version IS NULL",Integer.class));
+        assertEquals(0,mapper.countUnresolvedCodedDepartments(new P22ProductScopeSyncTask.CurrentRunQuery(1,3)));
+        assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE update_time=?",Integer.class,at));
+        for(var table:List.of("com_delivery_scope","com_delivery_scope_detail","int_base_sync_binding"))assertEquals(3,jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class));
+        assertTrue(c.runState().warnings().contains("P22_DEPARTMENT_SOURCE_MISSING_PENDING:2"));
+        verify(mapper,times(1)).backfillDepartmentIds(any());
+        assertEquals(3,run(task(rows,()->{}),true).unchanged());
+        jdbc.update("UPDATE com_delivery_scope SET department_id=88,update_time=update_time WHERE department_code IS NULL");
+        assertTrue(assertThrows(IllegalArgumentException.class,()->run(task(rows,()->{}),true)).getMessage().contains("DEPARTMENT_IDENTITY_CHANGED"));
+    }
+    @Test void actualNonnullableDepartmentsWarnPreviewAndRejectMissingSourceBeforeWriting() {
+        assertEquals(0,session.getMapper(P22ProductScopeSyncTask.TargetMapper.class).pendingDepartmentSchemaReady());
+        doReturn(0).when(mapper).pendingDepartmentSchemaReady();var c=context(true);
+        assertEquals(1,transaction.execute(status->task(List.of(row(1,null)),()->{}).execute(c)).inserted());
+        assertTrue(c.runState().warnings().contains("P22_EXECUTION_SCHEMA_REQUIRED:department_pending_reference"));
+        assertTrue(assertThrows(IllegalArgumentException.class,()->run(task(List.of(row(1,null)),()->{}),false)).getMessage().contains("EXECUTION_SCHEMA_REQUIRED:department_pending_reference"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));assertTrue(saved.isEmpty());
+    }
+    void insertScope(long id,long tenant,long task,long run,long departmentId,String code) {
+        var s=row(id,code).setFormalProjectId(1000L);var p=new P22ProductScopeSyncTask.Snapshot().setProjectCode("P-1").setCompanyCode("001").setDepartmentCode(code).setDepartmentName("office").setDepartmentVersion(3).setScopeVersion(0L);
+        var c=context(false).forParameters(new P22ProductScopeSyncTask.Parameters()).forData("ProductScope",false,true);
+        s.setTarget(P22ProductScopeSyncTask.build(new P22ProductScopeSyncTask.Plan(s,p,BigDecimal.ONE,c)).setId(id).setTenantId(tenant).setDepartmentId(departmentId));
+        session.getMapper(P22ProductScopeSyncTask.TargetMapper.class).insertProductScope(new SyncBatch<>(c,List.of(s)));
+        jdbc.update("INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id) VALUES(?,?,?,'PRODUCT_SCOPE',?,?,'a',?)",id,tenant,task,Long.toString(id),id,run);
+    }
+    @Test void nativePostfillUpdatesOnlyMinusOneInsideTheCurrentNewTaskRunTenantAndConnection() throws Exception {
+        insertScope(201,1,1,10,-1,"OFFICE");insertScope(202,1,1,9,-1,"OFFICE");insertScope(203,1,2,10,-1,"OFFICE");
+        insertScope(204,1,1,10,88,"OFFICE");insertScope(205,2,4,10,-1,"OFFICE");insertScope(206,1,3,10,-1,"OFFICE");
+        insertScope(207,1,1,10,-1,"office");
+        var q=new P22ProductScopeSyncTask.CurrentRunQuery(1,3);
+        assertEquals(1,mapper.backfillDepartmentIds(q));assertEquals(7L,jdbc.queryForObject("SELECT department_id FROM com_delivery_scope WHERE id=201",Long.class));
+        assertEquals(5,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE department_id=-1",Integer.class));
+        assertEquals(88L,jdbc.queryForObject("SELECT department_id FROM com_delivery_scope WHERE id=204",Long.class));assertEquals(1,mapper.countUnresolvedCodedDepartments(q));
+        var config=session.getConfiguration();for(var name:List.of("backfillDepartmentIds","countUnresolvedCodedDepartments"))assertNotNull(com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(config.getMappedStatement(P22ProductScopeSyncTask.TargetMapper.class.getName()+"."+name).getBoundSql(Map.of("query",q)).getSql()));
+    }
+    @Test void catalogueChangeDuringTheRunRollsBackScopeDetailsAndNewBindings() {
+        var task=task(List.of(row(1,"OFFICE")),()->jdbc.update("UPDATE system_dept SET version=4 WHERE tenant_id=1 AND id=7"));
+        assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("DEPARTMENT_POSTFILL_UNRESOLVED"));
+        for(var table:List.of("com_delivery_scope","com_delivery_scope_detail","int_base_sync_binding"))assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class));
+        assertEquals(3,jdbc.queryForObject("SELECT version FROM system_dept WHERE tenant_id=1 AND id=7",Integer.class));
+    }
+    void orderLine(long id,String system,String type,boolean ownBinding){
+        if(jdbc.queryForObject("SELECT COUNT(*) FROM int_base_sync_task WHERE id=5",Integer.class)==0){
+            jdbc.update("INSERT INTO int_base_sync_task(id,tenant_id,name,task_code,source_system,connection_id,batch_size,max_rows) VALUES(5,1,'orders','BASE_P14','DPPMS',3,1,100)");
+            jdbc.update("INSERT INTO int_base_sync_run VALUES(20,1,5,3,'BASE_P14','COMPLETED',FALSE,FALSE)");
+        }
+        jdbc.update("INSERT INTO com_sales_order(id,tenant_id,source_system,company_code,order_type,order_no,status,creator,updater) VALUES(?,1,?,'001',?,'O','ENABLED','original','original')",50000+id,system,type);
+        jdbc.update("INSERT INTO com_sales_order_line(id,tenant_id,order_id,source_system,source_record_key,source_version,company_code,order_type,order_no,line_no,product_code,order_qty,unit_scale,quantity_status,status,creator,updater) VALUES(?,1,?,?,?,'v1','001',?,'O','1','ITEM',1,6,'PENDING_AUTHORITY','ENABLED','original','original')",id,50000+id,system,"DPPMS|"+system+"|001|"+type+"|O|1",type);
+        if(ownBinding)jdbc.update("INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id) VALUES(?,1,5,'SALES_LINE',SHA2(CAST(JSON_ARRAY(?,'001',?,'O','1') AS CHAR),256),?,'a',20)",id,system,type,id);
+        copyOrderMetadata();
+    }
+    @Test void rawInsertPrecedesOneOwnedOrderPostfillAndReplayProtectsDerivedIdentity(){
+        orderLine(50,"SAP","0",true);
+        var rows=List.of(row(1,"OFFICE"),row(2,"OFFICE"));var task=task(rows,()->assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE order_line_id=-1",Integer.class)));
+        assertEquals(2,run(task,false).inserted());
+        assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE order_line_id=50 AND order_source_system='SAP' AND order_type='0' AND update_time=?",Integer.class,at));
+        verify(mapper,times(1)).backfillOrderLineIds(any());
+        assertEquals(2,run(task(rows,()->{}),true).unchanged());
+        jdbc.update("UPDATE com_delivery_scope SET order_line_id=88,update_time=update_time");
+        assertTrue(assertThrows(IllegalArgumentException.class,()->run(task(rows,()->{}),true)).getMessage().contains("ORDER_LINE_IDENTITY_CHANGED"));
+    }
+    @Test void orderPostfillCannotTouchOtherTenantsTasksRunsConnectionsOrPositiveIds() throws Exception {
+        orderLine(50,"SAP","0",true);
+        insertScope(201,1,1,10,-1,"OFFICE");insertScope(202,1,1,9,-1,"OFFICE");insertScope(203,1,2,10,-1,"OFFICE");
+        insertScope(204,1,1,10,-1,"OFFICE");insertScope(205,2,4,10,-1,"OFFICE");insertScope(206,1,3,10,-1,"OFFICE");insertScope(207,1,1,10,-1,"OFFICE");
+        jdbc.update("UPDATE com_delivery_scope SET order_line_id=88,update_time=update_time WHERE id=204");
+        jdbc.update("UPDATE com_delivery_scope SET order_no='o',update_time=update_time WHERE id=207");
+        var q=new P22ProductScopeSyncTask.CurrentRunQuery(1,3);
+        assertEquals(1,mapper.backfillOrderLineIds(q));assertEquals(50L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope WHERE id=201",Long.class));
+        assertEquals(5,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope WHERE order_line_id=-1",Integer.class));assertEquals(88L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope WHERE id=204",Long.class));
+        assertNotNull(com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal.parse(session.getConfiguration().getMappedStatement(P22ProductScopeSyncTask.TargetMapper.class.getName()+".backfillOrderLineIds").getBoundSql(Map.of("query",q)).getSql()));
+    }
+    @Test void missingOrAmbiguousOrderReferencesStayMinusOneWithoutLosingRawRows(){
+        orderLine(50,"SAP","0",true);orderLine(51,"D365","0",true);
+        var c=context(false);assertEquals(1,transaction.execute(status->task(List.of(row(1,"OFFICE")),()->{}).execute(c)).inserted());
+        assertEquals(-1L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope",Long.class));assertTrue(c.runState().warnings().contains("P22_ORDER_LINE_POSTFILL_UNRESOLVED:1"));
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope_detail",Integer.class));
+        assertTrue(mapper.selectOwnedOrderLines(new P22ProductScopeSyncTask.OwnedLinesQuery(1,3,List.of(new P22ProductScopeSyncTask.OrderKey("001","O","1","ITEM")),true)).isEmpty());
+    }
+    @Test void orderPostfillRequiresAnOwnCompletedNonpreviewP14Binding(){
+        orderLine(50,"SAP","0",false);insertScope(201,1,1,10,-1,"OFFICE");var q=new P22ProductScopeSyncTask.CurrentRunQuery(1,3);
+        assertEquals(0,mapper.backfillOrderLineIds(q));
+        jdbc.update("INSERT INTO int_base_sync_binding(id,tenant_id,task_id,object_key,source_key,target_id,fingerprint,last_run_id) VALUES(50,1,5,'SALES_LINE',SHA2(CAST(JSON_ARRAY('SAP','001','0','O','1') AS CHAR),256),50,'a',20)");
+        jdbc.update("UPDATE int_base_sync_binding SET source_key='wrong-business-key' WHERE id=50");assertEquals(0,mapper.backfillOrderLineIds(q));
+        jdbc.update("UPDATE int_base_sync_binding SET source_key=SHA2(CAST(JSON_ARRAY('SAP','001','0','O','1') AS CHAR),256) WHERE id=50");
+        jdbc.update("UPDATE int_base_sync_run SET status='PREVIEW_READY',preview=TRUE WHERE id=20");assertEquals(0,mapper.backfillOrderLineIds(q));
+        jdbc.update("UPDATE int_base_sync_run SET status='COMPLETED',preview=FALSE WHERE id=20");jdbc.update("UPDATE int_base_sync_task SET connection_id=4 WHERE id=5");assertEquals(0,mapper.backfillOrderLineIds(q));
+        jdbc.update("UPDATE int_base_sync_task SET connection_id=3 WHERE id=5");assertEquals(1,mapper.backfillOrderLineIds(q));
+        assertEquals(50L,jdbc.queryForObject("SELECT order_line_id FROM com_delivery_scope",Long.class));
+    }
+    @Test void actualSchemaRestrictionWarnsPreviewAndStopsExecutionBeforeAnyWrite(){
+        assertEquals(0,session.getMapper(P22ProductScopeSyncTask.TargetMapper.class).pendingOrderSchemaReady());
+        doReturn(0).when(mapper).pendingOrderSchemaReady();var c=context(true);
+        assertEquals(1,transaction.execute(status->task(List.of(row(1,"OFFICE")),()->{}).execute(c)).inserted());
+        assertTrue(c.runState().warnings().contains("P22_EXECUTION_SCHEMA_REQUIRED:order_line_pending_reference"));
+        assertTrue(assertThrows(IllegalArgumentException.class,()->run(task(List.of(row(1,"OFFICE")),()->{}),false)).getMessage().contains("EXECUTION_SCHEMA_REQUIRED"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));assertTrue(saved.isEmpty());
+    }
+    @Test void lateOrderPostfillFailureRollsBackScopeDetailsAndOwnBindings(){
+        doThrow(new IllegalStateException("postfill failed")).when(mapper).backfillOrderLineIds(any());
+        assertThrows(IllegalStateException.class,()->run(task(List.of(row(1,"OFFICE")),()->{}),false));
+        for(var table:List.of("com_delivery_scope","com_delivery_scope_detail","int_base_sync_binding"))assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class));
+    }
+    @Test void reviewedZeroQuantityRowsRemainCountedAndPendingWithoutForeignReferenceOrTargetWrites(){
+        var zero=row(2,null).setCanonicalProjectId(999L).setProjectQuantity(BigDecimal.ZERO).setOrderQuantity(BigDecimal.TEN).setOrderNumber(null);
+        var c=context(true);var counts=transaction.execute(status->task(List.of(row(1,"OFFICE"),zero),()->{}).execute(c));
+        assertEquals(2,counts.read());assertEquals(1,counts.inserted());assertEquals(0,counts.unchanged());
+        assertTrue(c.runState().warnings().contains("P22_ZERO_QUANTITY_PENDING:1"));
+        verify(projects,times(1)).resolve(argThat(q->q.canonicalKeys().equals(List.of("1"))));
+        assertTrue(saved.isEmpty());assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));
+    }
+    @Test void zeroPendingDoesNotRelaxNegativeQuantityProtection(){
+        assertTrue(assertThrows(IllegalArgumentException.class,()->run(task(List.of(row(1,"OFFICE").setProjectQuantity(BigDecimal.ONE.negate())),()->{}),true)).getMessage().contains("POSITIVE_QUANTITY_REQUIRED"));
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM com_delivery_scope",Integer.class));assertTrue(saved.isEmpty());
+    }
+}

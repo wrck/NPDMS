@@ -51,6 +51,21 @@ class SystemUserScopeMigrationTransactionTest {
     private Scope scope(){return new Scope(1L,2L,"001","公司",3L,"162023","办事处","user",true,historical,null,0);}
     private Audit audit(){return new Audit("1",historical,null,historical);}
     private Request request(Long target,Relation last){return new Request(1L,"integration:1:12",List.of(new Entry("fnd_user_power","470:001:162023:user",scope(),audit(),target,last)));}
+    @Test void plannedAccountAndMembershipPreviewKeepsDirectoryGuardsAndMakesNoGrant() {
+        var planned=new Scope(-1L,2L,"001","公司",3L,"162023","办事处","user",true,historical,null,0);
+        var input=new Request(1L,"integration:1:12",List.of(new Entry("fnd_user_info","10:OWN:001:162023:user",planned,
+                new Audit("-1",historical,null,historical),null,null)));
+        var preceding=new SystemAccountMigrationPreview(1L,input.owner(),Set.of(-1L),Map.of(),
+                Set.of(new SystemAccountMigrationPreview.Membership(-1L,"user")));
+        assertNull(api.previewAfterFoundation(new FoundationPreview(input,preceding)).getFirst().after().id());
+        assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM system_user_company_department_scope",Integer.class));
+        assertThrows(IllegalArgumentException.class,()->api.preview(input));
+        assertThrows(IllegalArgumentException.class,()->tx.execute(status->api.apply(input)));
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterFoundation(new FoundationPreview(input,
+                new SystemAccountMigrationPreview(1L,input.owner(),Set.of(-1L),Map.of(),Set.of()))));
+        jdbc.update("UPDATE system_company SET tenant_id=2 WHERE id=2");
+        assertThrows(IllegalArgumentException.class,()->api.previewAfterFoundation(new FoundationPreview(input,preceding)));
+    }
     @Test void historicalDatesAndNullAuditAreKeptWithOneRelationForExactAliases() {
         var regular=new cn.iocoder.yudao.module.system.dal.dataobject.permission.UserCompanyDepartmentScopeDO();
         regular.setTenantId(1L);regular.setUserId(1L);regular.setCompanyId(2L);regular.setCompanyCode("001");regular.setCompanyName("公司");

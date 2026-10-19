@@ -7,6 +7,8 @@ import java.util.List;
 public interface FinalCustomerContactMigrationApi {
     Preview preview(Query query);
     Result carry(Command command);
+    /** Full source validation without inserting historical contacts. */
+    void validateContacts(Command command);
     void verify(Query query, Result result);
 
     record Query(Long tenantId, Long actorId, Long projectId, Long expectedProjectVersion) { }

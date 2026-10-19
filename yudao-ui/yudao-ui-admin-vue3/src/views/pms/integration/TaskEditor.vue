@@ -35,7 +35,7 @@
           <el-form-item label="来源系统标识"
             ><el-input v-model="draft.definition.sourceSystem" placeholder="例如 DPPMS"
           /></el-form-item>
-          <el-form-item label="同步方式"
+          <el-form-item label="任务类型"
             ><el-select v-model="draft.definition.adapter" @change="changeAdapter"
               ><el-option
                 v-for="a in adapters"
@@ -350,6 +350,139 @@ const open = async (id?: api.Id) => {
 const changeAdapter = async () => {
   if (!draft.value || !selectedAdapter.value) return
   draft.value.definition.evidencePolicy = 'FULL'
+  if (selectedAdapter.value.key === 'EHR_ORGANIZATION') {
+    draft.value.definition = await api.getEhrTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'EHR 公司与部门同步'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_ORGANIZATION') {
+    draft.value.definition = await api.getDppmsOrganizationTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P01 公司与部门同步（原任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_ORGANIZATION_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectOrganizationTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P01 公司与部门同步（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_ACCOUNT_FOUNDATION') {
+    draft.value.definition = await api.getDppmsAccountFoundationTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P04 账号、角色及范围同步（原任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_ACCOUNT_FOUNDATION_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectAccountTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P04 账号、角色及范围同步（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_DICTIONARIES_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectDictionaryTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P08 基础字典同步（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'CRM_CUSTOMER_DIRECT') {
+    draft.value.definition = await api.getCrmDirectCustomerTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P10 CRM客户同步（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PRODUCT_CATALOG_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectProductTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P12 缺失产品补齐（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_CRM_EXECUTION_ORDER_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectExecutionOrderTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P13 执行单主档（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_CONTRACT_RECEIVABLE_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectReceivableTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P24 合同应收信息（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_CONTRACT_RELATION_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectProjectRelationTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P18 项目合同关系（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_FACTS_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectProjectFactsTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P19 项目相关方与状态（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_DEVICE_BOOTSTRAP_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectDeviceBaseTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P30 设备基础（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_MEMBER_HISTORY_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectMemberHistoryTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P31 成员与联系人历史（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_INSTALLATION_HISTORY_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectInstallationTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P33 普通安装历史（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_FACTORY_HISTORY_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectFactoryHistoryTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P34 出厂版本历史（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_SOFTWARE_HISTORY_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectSoftwareHistoryTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P35 软件批次与版本历史（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_SECURE_LICENSE_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectLicenseHistoryTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P37 受控许可历史（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_REAL_PRODUCT_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectRealProductTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P20 项目真实产品清单（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_PRODUCT_SCOPE_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectProductScopeTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P22 项目产品实施范围（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_PROJECT_MASTER_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectProjectTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P16 项目主档与来源身份（直写任务）'
+    normalizePerformance()
+    return
+  }
+  if (selectedAdapter.value.key === 'DPPMS_WARRANTY_RENEWAL_DIRECT') {
+    draft.value.definition = await api.getDppmsDirectWarrantyTemplate(draft.value.definition.connectionId)
+    draft.value.name = 'P25 设备续保记录（直写任务）'
+    normalizePerformance()
+    return
+  }
+
   if (selectedAdapter.value.key === 'TABLE_MAPPING') {
     const templates = await api.getGenericTemplates(draft.value.definition.connectionId)
     draft.value.definition = templates[0].definition

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.DppmsContractCompletionMapper">
+ <update id="createScope">CREATE TEMPORARY TABLE tmp_dppms_contract_completion_scope (tenant_id BIGINT NOT NULL,kind VARCHAR(20) NOT NULL,target_id BIGINT NOT NULL,PRIMARY KEY(tenant_id,kind,target_id))</update>
+ <insert id="insertScope">INSERT INTO tmp_dppms_contract_completion_scope(tenant_id,kind,target_id) VALUES
+ <foreach collection="query.rows" item="row" separator=",">(#{query.tenantId},#{row.kind},#{row.id})</foreach>
+ </insert>
+ <!-- MySQL cannot reopen one TEMPORARY table through company and department aliases. -->
+ <update id="createCompanies">CREATE TEMPORARY TABLE tmp_dppms_review_unique_company (tenant_id BIGINT NOT NULL,code VARCHAR(128) NOT NULL,org_id BIGINT NOT NULL,name VARCHAR(255),PRIMARY KEY(tenant_id,code))</update>
+ <update id="createDepartments">CREATE TEMPORARY TABLE tmp_dppms_review_unique_department (tenant_id BIGINT NOT NULL,code VARCHAR(128) NOT NULL,org_id BIGINT NOT NULL,name VARCHAR(255),PRIMARY KEY(tenant_id,code))</update>
+ <insert id="insertCompanies">INSERT INTO tmp_dppms_review_unique_company(tenant_id,code,org_id,name) VALUES
+ <foreach collection="query.rows" item="row" separator=",">(#{query.tenantId},#{row.code},#{row.id},#{row.name})</foreach>
+ </insert>
+ <insert id="insertDepartments">INSERT INTO tmp_dppms_review_unique_department(tenant_id,code,org_id,name) VALUES
+ <foreach collection="query.rows" item="row" separator=",">(#{query.tenantId},#{row.code},#{row.id},#{row.name})</foreach>
+ </insert>
+ <update id="createUniqueContracts">CREATE TEMPORARY TABLE tmp_dppms_review_unique_contract AS
+ SELECT tenant_id,contract_no,MIN(id) AS contract_id,MIN(company_code) AS company_code FROM com_contract
+ WHERE tenant_id=#{query.tenantId} AND deleted=0 GROUP BY tenant_id,contract_no HAVING COUNT(*)=1
+ </update>
+ <select id="selectContractsForUpdate" resultType="long">
+ SELECT c.id FROM com_contract c JOIN tmp_dppms_contract_completion_scope b
+ ON b.tenant_id=c.tenant_id AND b.target_id=c.id AND b.kind='CONTRACT'
+ WHERE c.tenant_id=#{query.tenantId} AND c.deleted=0 AND c.master_source_system='DPPMS_ERP'
+ ORDER BY c.id FOR UPDATE
+ </select>
+ <select id="countValidInputs" resultType="long">
+ SELECT COUNT(*) FROM tmp_dppms_contract_completion_scope b WHERE b.tenant_id=#{query.tenantId} AND (
+ (b.kind='CONTRACT' AND EXISTS(SELECT 1 FROM com_contract c WHERE c.tenant_id=b.tenant_id AND c.id=b.target_id AND c.deleted=0 AND c.master_source_system='DPPMS_ERP')) OR
+ (b.kind IN ('SHIPMENT','CURRENT_SHIPMENT') AND EXISTS(SELECT 1 FROM com_shipment_contract_reference s WHERE s.tenant_id=b.tenant_id AND s.id=b.target_id AND s.deleted=0 AND s.source_system='DPPMS')) OR
+ (b.kind='PACKAGE' AND EXISTS(SELECT 1 FROM com_shipment_package p WHERE p.tenant_id=b.tenant_id AND p.id=b.target_id AND p.deleted=0 AND p.source_system='DPPMS')) OR
+ (b.kind='RECEIVABLE' AND EXISTS(SELECT 1 FROM com_contract_receivable r WHERE r.tenant_id=b.tenant_id AND r.id=b.target_id AND r.deleted=0 AND r.source_system='DPPMS')))
+ </select>
+ <select id="selectAffectedContractNumbers" resultType="string">
+ SELECT DISTINCT COALESCE(c.contract_no,s.contract_no,parent.contract_no)
+ FROM tmp_dppms_contract_completion_scope b
+ LEFT JOIN com_contract c ON b.kind='CONTRACT' AND c.tenant_id=b.tenant_id AND c.id=b.target_id
+  AND c.deleted=0 AND c.master_source_system='DPPMS_ERP'
+ LEFT JOIN com_shipment_contract_reference s ON b.kind='CURRENT_SHIPMENT' AND s.tenant_id=b.tenant_id
+  AND s.id=b.target_id AND s.deleted=0 AND s.source_system='DPPMS'
+ LEFT JOIN com_shipment_package p ON b.kind='PACKAGE' AND p.tenant_id=b.tenant_id AND p.id=b.target_id
+  AND p.deleted=0 AND p.source_system='DPPMS'
+ LEFT JOIN com_shipment_contract_reference parent ON parent.tenant_id=p.tenant_id AND parent.source_system=p.source_system
+  AND parent.source_record_key=p.shipment_contract_source_key AND parent.deleted=0
+ WHERE b.tenant_id=#{query.tenantId} AND b.kind IN ('CONTRACT','CURRENT_SHIPMENT','PACKAGE')
+ </select>
+ <select id="selectCompanyChangeNumbers" resultType="string">SELECT t.contract_no FROM com_contract t
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=t.tenant_id AND b.target_id=t.id AND b.kind='CONTRACT'
+JOIN tmp_dppms_review_unique_company c ON c.tenant_id=t.tenant_id AND c.code=t.company_code
+WHERE t.tenant_id=#{query.tenantId} AND t.deleted=0 AND t.master_source_system='DPPMS_ERP'
+ AND (NOT(t.company_id &lt;=> c.org_id) OR NOT(t.company_name &lt;=> c.name))</select>
+ <select id="selectFieldChangeNumbers" resultType="string">SELECT c.contract_no FROM com_contract c
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=c.tenant_id AND b.target_id=c.id AND b.kind='CONTRACT'
+JOIN tmp_dppms_review_unique_contract u ON u.tenant_id=c.tenant_id AND u.contract_id=c.id
+LEFT JOIN tmp_dppms_contract_shipment_fields s ON s.tenant_id=c.tenant_id AND s.contract_no=c.contract_no
+LEFT JOIN tmp_dppms_contract_receivable_fields r ON r.tenant_id=c.tenant_id AND r.contract_no=c.contract_no
+WHERE c.tenant_id=#{query.tenantId} AND c.deleted=b'0' AND c.master_source_system='DPPMS_ERP'
+ AND (NOT(c.currency_name &lt;=> COALESCE(r.currency_name,c.currency_name))
+ OR NOT(c.currency_code &lt;=> COALESCE(r.currency_name,c.currency_code))
+ OR NOT(c.contract_amount &lt;=> COALESCE(r.contract_amount,c.contract_amount))
+ OR NOT(c.contract_create_time &lt;=> COALESCE(r.contract_create_time,c.contract_create_time))
+ OR NOT(c.project_name &lt;=> COALESCE(s.project_name,r.project_name,c.project_name))
+ OR NOT(c.project_code &lt;=> COALESCE(r.project_code,c.project_code))
+ OR NOT(c.market_code &lt;=> COALESCE(s.market_code,r.market_code,c.market_code))
+ OR NOT(c.market_name &lt;=> COALESCE(s.market_name,r.market_name,c.market_name))
+ OR NOT(c.department_code &lt;=> COALESCE(s.department_code,r.department_code,c.department_code))
+ OR NOT(c.department_name &lt;=> COALESCE(r.department_name,c.department_name))
+ OR NOT(c.industry_code &lt;=> COALESCE(r.industry_code,c.industry_code))
+ OR NOT(c.industry_name &lt;=> COALESCE(r.industry_name,c.industry_name))
+ OR NOT(c.marketing_representative_code &lt;=> COALESCE(r.marketing_representative_code,c.marketing_representative_code))
+ OR NOT(c.marketing_representative_name &lt;=> COALESCE(r.marketing_representative_name,c.marketing_representative_name))
+ OR NOT(c.secondary_representative_code &lt;=> COALESCE(r.secondary_representative_code,c.secondary_representative_code))
+ OR NOT(c.system_name &lt;=> COALESCE(s.system_name,c.system_name)))</select>
+ <select id="countShipmentChanges" resultType="long">SELECT COUNT(*) FROM com_shipment_contract_reference s
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=s.tenant_id AND b.target_id=s.id AND b.kind='CURRENT_SHIPMENT'
+LEFT JOIN tmp_dppms_review_unique_contract c ON c.tenant_id=s.tenant_id AND c.contract_no=s.contract_no
+LEFT JOIN tmp_dppms_review_unique_company co ON co.tenant_id=s.tenant_id AND co.code=c.company_code
+LEFT JOIN tmp_dppms_review_unique_department d ON d.tenant_id=s.tenant_id AND d.code=s.department_code
+WHERE s.tenant_id=#{query.tenantId} AND s.deleted=0 AND s.source_system='DPPMS'
+ AND (NOT(s.contract_id &lt;=> COALESCE(c.contract_id,s.contract_id))
+ OR NOT(s.company_code &lt;=> COALESCE(c.company_code,s.company_code))
+ OR NOT(s.company_id &lt;=> COALESCE(co.org_id,s.company_id))
+ OR (co.org_id IS NOT NULL AND NOT(s.company_name &lt;=> co.name))
+ OR NOT(s.department_id &lt;=> COALESCE(d.org_id,s.department_id))
+ OR (d.org_id IS NOT NULL AND NOT(s.department_name &lt;=> d.name)))</select>
+ <select id="countPackageChanges" resultType="long">SELECT COUNT(*) FROM com_shipment_package p
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=p.tenant_id AND b.target_id=p.id AND b.kind='PACKAGE'
+JOIN com_shipment_contract_reference c ON c.tenant_id=p.tenant_id AND c.source_system=p.source_system
+ AND c.source_record_key=p.shipment_contract_source_key AND c.deleted=0
+WHERE p.tenant_id=#{query.tenantId} AND p.deleted=0 AND p.source_system='DPPMS' AND NOT(p.shipment_contract_ref_id &lt;=> c.id)</select>
+ <update id="updateContractCompanies">UPDATE com_contract t
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=t.tenant_id AND b.target_id=t.id AND b.kind='CONTRACT'
+JOIN tmp_dppms_review_unique_company c ON c.tenant_id=t.tenant_id AND c.code=t.company_code
+SET t.company_id=c.org_id,t.company_name=c.name,t.version=t.version+1
+WHERE t.tenant_id=#{query.tenantId} AND t.deleted=0 AND t.master_source_system='DPPMS_ERP'
+ AND (NOT(t.company_id &lt;=> c.org_id) OR NOT(t.company_name &lt;=> c.name))</update>
+ <update id="updateShipmentReferences">UPDATE com_shipment_contract_reference s
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=s.tenant_id AND b.target_id=s.id AND b.kind='CURRENT_SHIPMENT'
+LEFT JOIN tmp_dppms_review_unique_contract c ON c.tenant_id=s.tenant_id AND c.contract_no=s.contract_no
+LEFT JOIN tmp_dppms_review_unique_company co ON co.tenant_id=s.tenant_id AND co.code=c.company_code
+LEFT JOIN tmp_dppms_review_unique_department d ON d.tenant_id=s.tenant_id AND d.code=s.department_code
+SET s.contract_id=COALESCE(c.contract_id,s.contract_id),
+ s.company_code=COALESCE(c.company_code,s.company_code),s.company_id=COALESCE(co.org_id,s.company_id),
+ s.company_name=CASE WHEN co.org_id IS NOT NULL THEN co.name ELSE s.company_name END,
+ s.department_id=COALESCE(d.org_id,s.department_id),
+ s.department_name=CASE WHEN d.org_id IS NOT NULL THEN d.name ELSE s.department_name END
+WHERE s.tenant_id=#{query.tenantId} AND s.deleted=0 AND s.source_system='DPPMS'
+ AND (NOT(s.contract_id &lt;=> COALESCE(c.contract_id,s.contract_id))
+ OR NOT(s.company_code &lt;=> COALESCE(c.company_code,s.company_code))
+ OR NOT(s.company_id &lt;=> COALESCE(co.org_id,s.company_id))
+ OR (co.org_id IS NOT NULL AND NOT(s.company_name &lt;=> co.name))
+ OR NOT(s.department_id &lt;=> COALESCE(d.org_id,s.department_id))
+ OR (d.org_id IS NOT NULL AND NOT(s.department_name &lt;=> d.name)))</update>
+ <update id="updatePackageReferences">UPDATE com_shipment_package p
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=p.tenant_id AND b.target_id=p.id AND b.kind='PACKAGE'
+JOIN com_shipment_contract_reference c ON c.tenant_id=p.tenant_id AND c.source_system=p.source_system
+ AND c.source_record_key=p.shipment_contract_source_key AND c.deleted=0
+SET p.shipment_contract_ref_id=c.id
+WHERE p.tenant_id=#{query.tenantId} AND p.deleted=0 AND p.source_system='DPPMS' AND NOT(p.shipment_contract_ref_id &lt;=> c.id)</update>
+ <update id="createShipmentFields">CREATE TEMPORARY TABLE tmp_dppms_contract_shipment_fields AS
+SELECT s.tenant_id,s.contract_no,
+ SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)&lt;>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`project_name` AS CHAR)) END),65) AS `project_name`,
+ SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)&lt;>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_code` AS CHAR)) END),65) AS `market_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)&lt;>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`market_name` AS CHAR)) END),65) AS `market_name`,
+ SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)&lt;>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`department_code` AS CHAR)) END),65) AS `department_code`,
+ SUBSTRING(MAX(CASE WHEN s.`system_name` IS NOT NULL AND CAST(s.`system_name` AS CHAR)&lt;>''
+  THEN CONCAT(RPAD(s.source_record_key,64,' '),CAST(s.`system_name` AS CHAR)) END),65) AS `system_name`
+FROM com_shipment_contract_reference s
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=s.tenant_id AND b.target_id=s.id AND b.kind='SHIPMENT'
+WHERE s.tenant_id=#{query.tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'
+GROUP BY s.tenant_id,s.contract_no</update>
+ <update id="createReceivableFields">CREATE TEMPORARY TABLE tmp_dppms_contract_receivable_fields AS
+SELECT s.tenant_id,s.contract_no,
+ SUBSTRING(MAX(CASE WHEN s.`currency_name` IS NOT NULL AND CAST(s.`currency_name` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`currency_name` AS CHAR)) END),40) AS `currency_name`,
+ SUBSTRING(MAX(CASE WHEN s.`contract_amount` IS NOT NULL AND CAST(s.`contract_amount` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_amount` AS CHAR)) END),40) AS `contract_amount`,
+ SUBSTRING(MAX(CASE WHEN s.`contract_create_time` IS NOT NULL AND CAST(s.`contract_create_time` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`contract_create_time` AS CHAR)) END),40) AS `contract_create_time`,
+ SUBSTRING(MAX(CASE WHEN s.`project_name` IS NOT NULL AND CAST(s.`project_name` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_name` AS CHAR)) END),40) AS `project_name`,
+ SUBSTRING(MAX(CASE WHEN s.`project_code` IS NOT NULL AND CAST(s.`project_code` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`project_code` AS CHAR)) END),40) AS `project_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_code` IS NOT NULL AND CAST(s.`market_code` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_code` AS CHAR)) END),40) AS `market_code`,
+ SUBSTRING(MAX(CASE WHEN s.`market_name` IS NOT NULL AND CAST(s.`market_name` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`market_name` AS CHAR)) END),40) AS `market_name`,
+ SUBSTRING(MAX(CASE WHEN s.`department_code` IS NOT NULL AND CAST(s.`department_code` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_code` AS CHAR)) END),40) AS `department_code`,
+ SUBSTRING(MAX(CASE WHEN s.`department_name` IS NOT NULL AND CAST(s.`department_name` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`department_name` AS CHAR)) END),40) AS `department_name`,
+ SUBSTRING(MAX(CASE WHEN s.`industry_code` IS NOT NULL AND CAST(s.`industry_code` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_code` AS CHAR)) END),40) AS `industry_code`,
+ SUBSTRING(MAX(CASE WHEN s.`industry_name` IS NOT NULL AND CAST(s.`industry_name` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`industry_name` AS CHAR)) END),40) AS `industry_name`,
+ SUBSTRING(MAX(CASE WHEN s.`marketing_representative_code` IS NOT NULL AND CAST(s.`marketing_representative_code` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_code` AS CHAR)) END),40) AS `marketing_representative_code`,
+ SUBSTRING(MAX(CASE WHEN s.`marketing_representative_name` IS NOT NULL AND CAST(s.`marketing_representative_name` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`marketing_representative_name` AS CHAR)) END),40) AS `marketing_representative_name`,
+ SUBSTRING(MAX(CASE WHEN s.`secondary_representative_code` IS NOT NULL AND CAST(s.`secondary_representative_code` AS CHAR)&lt;>''
+  THEN CONCAT(CONCAT(COALESCE(LEFT(CAST(s.source_sync_time AS CHAR),19),'1000-01-01 00:00:00'),LPAD(s.source_record_key,20,'0')),CAST(s.`secondary_representative_code` AS CHAR)) END),40) AS `secondary_representative_code`
+FROM com_contract_receivable s
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=s.tenant_id AND b.target_id=s.id AND b.kind='RECEIVABLE'
+WHERE s.tenant_id=#{query.tenantId} AND s.deleted=b'0' AND s.source_system='DPPMS'
+GROUP BY s.tenant_id,s.contract_no</update>
+ <update id="updateContractFields">UPDATE com_contract c
+JOIN tmp_dppms_contract_completion_scope b ON b.tenant_id=c.tenant_id AND b.target_id=c.id AND b.kind='CONTRACT'
+JOIN tmp_dppms_review_unique_contract u ON u.tenant_id=c.tenant_id AND u.contract_id=c.id
+LEFT JOIN tmp_dppms_contract_shipment_fields s ON s.tenant_id=c.tenant_id AND s.contract_no=c.contract_no
+LEFT JOIN tmp_dppms_contract_receivable_fields r ON r.tenant_id=c.tenant_id AND r.contract_no=c.contract_no
+SET c.currency_name=COALESCE(r.currency_name,c.currency_name),
+ c.currency_code=COALESCE(r.currency_name,c.currency_code),
+ c.contract_amount=COALESCE(r.contract_amount,c.contract_amount),
+ c.contract_create_time=COALESCE(r.contract_create_time,c.contract_create_time),
+ c.project_name=COALESCE(s.project_name,r.project_name,c.project_name),
+ c.project_code=COALESCE(r.project_code,c.project_code),
+ c.market_code=COALESCE(s.market_code,r.market_code,c.market_code),
+ c.market_name=COALESCE(s.market_name,r.market_name,c.market_name),
+ c.department_code=COALESCE(s.department_code,r.department_code,c.department_code),
+ c.department_name=COALESCE(r.department_name,c.department_name),
+ c.industry_code=COALESCE(r.industry_code,c.industry_code),
+ c.industry_name=COALESCE(r.industry_name,c.industry_name),
+ c.marketing_representative_code=COALESCE(r.marketing_representative_code,c.marketing_representative_code),
+ c.marketing_representative_name=COALESCE(r.marketing_representative_name,c.marketing_representative_name),
+ c.secondary_representative_code=COALESCE(r.secondary_representative_code,c.secondary_representative_code),
+ c.system_name=COALESCE(s.system_name,c.system_name),c.version=c.version+1
+WHERE c.tenant_id=#{query.tenantId} AND c.deleted=b'0' AND c.master_source_system='DPPMS_ERP'
+ AND (NOT(c.currency_name &lt;=> COALESCE(r.currency_name,c.currency_name))
+ OR NOT(c.currency_code &lt;=> COALESCE(r.currency_name,c.currency_code))
+ OR NOT(c.contract_amount &lt;=> COALESCE(r.contract_amount,c.contract_amount))
+ OR NOT(c.contract_create_time &lt;=> COALESCE(r.contract_create_time,c.contract_create_time))
+ OR NOT(c.project_name &lt;=> COALESCE(s.project_name,r.project_name,c.project_name))
+ OR NOT(c.project_code &lt;=> COALESCE(r.project_code,c.project_code))
+ OR NOT(c.market_code &lt;=> COALESCE(s.market_code,r.market_code,c.market_code))
+ OR NOT(c.market_name &lt;=> COALESCE(s.market_name,r.market_name,c.market_name))
+ OR NOT(c.department_code &lt;=> COALESCE(s.department_code,r.department_code,c.department_code))
+ OR NOT(c.department_name &lt;=> COALESCE(r.department_name,c.department_name))
+ OR NOT(c.industry_code &lt;=> COALESCE(r.industry_code,c.industry_code))
+ OR NOT(c.industry_name &lt;=> COALESCE(r.industry_name,c.industry_name))
+ OR NOT(c.marketing_representative_code &lt;=> COALESCE(r.marketing_representative_code,c.marketing_representative_code))
+ OR NOT(c.marketing_representative_name &lt;=> COALESCE(r.marketing_representative_name,c.marketing_representative_name))
+ OR NOT(c.secondary_representative_code &lt;=> COALESCE(r.secondary_representative_code,c.secondary_representative_code))
+ OR NOT(c.system_name &lt;=> COALESCE(s.system_name,c.system_name)))</update>
+ <select id="selectProjection" resultType="cn.iocoder.yudao.module.pms.commerce.api.migration.DppmsContractCompletionApi$Projection">
+ <choose>
+ <when test="query.target.name() == 'CONTRACT'">
+ SELECT id,company_id AS companyId,company_code AS companyCode,company_name AS companyName,
+ department_code AS departmentCode,department_name AS departmentName,version,
+ currency_name AS currencyName,currency_code AS currencyCode,contract_amount AS contractAmount,contract_create_time AS contractCreateTime,
+ project_name AS projectName,project_code AS projectCode,market_code AS marketCode,market_name AS marketName,
+ industry_code AS industryCode,industry_name AS industryName,marketing_representative_code AS marketingRepresentativeCode,
+ marketing_representative_name AS marketingRepresentativeName,secondary_representative_code AS secondaryRepresentativeCode,system_name AS systemName
+ FROM com_contract WHERE tenant_id=#{query.tenantId} AND deleted=0 AND master_source_system='DPPMS_ERP'
+ </when>
+ <when test="query.target.name() == 'SHIPMENT_CONTRACT'">
+ SELECT id,company_id AS companyId,company_code AS companyCode,company_name AS companyName,contract_id AS contractId,
+ department_id AS departmentId,department_code AS departmentCode,department_name AS departmentName
+ FROM com_shipment_contract_reference WHERE tenant_id=#{query.tenantId} AND deleted=0 AND source_system='DPPMS'
+ </when>
+ <otherwise>
+ SELECT id,shipment_contract_ref_id AS shipmentContractReferenceId FROM com_shipment_package
+ WHERE tenant_id=#{query.tenantId} AND deleted=0 AND source_system='DPPMS'
+ </otherwise>
+ </choose>
+ <choose><when test="query.ids != null and !query.ids.isEmpty()">AND id IN
+ <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach>
+ </when><otherwise>AND 1=0</otherwise></choose>
+ </select>
+ <update id="dropReceivableFields">DROP TEMPORARY TABLE IF EXISTS tmp_dppms_contract_receivable_fields</update>
+ <update id="dropShipmentFields">DROP TEMPORARY TABLE IF EXISTS tmp_dppms_contract_shipment_fields</update>
+ <update id="dropUniqueContracts">DROP TEMPORARY TABLE IF EXISTS tmp_dppms_review_unique_contract</update>
+ <update id="dropDepartments">DROP TEMPORARY TABLE IF EXISTS tmp_dppms_review_unique_department</update>
+ <update id="dropCompanies">DROP TEMPORARY TABLE IF EXISTS tmp_dppms_review_unique_company</update>
+ <update id="dropScope">DROP TEMPORARY TABLE IF EXISTS tmp_dppms_contract_completion_scope</update>
+</mapper>

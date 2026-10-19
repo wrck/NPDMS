@@ -49,7 +49,8 @@ public final class GenericCacheRefresh implements DataSyncAdapter {
                     || source.parameters()!=null && !source.parameters().isEmpty()
                     || source.filters()!=null && !source.filters().isEmpty()
                     || source.syncPrimaryKey() || source.sourceKeyColumns()!=null && !source.sourceKeyColumns().isEmpty()
-                    || !ROW_KEY.equals(source.sourceKey()) || source.updatedAt()!=null || source.issueField()!=null
+                    || !("pm_pb_plan_from_sms".equals(source.sourceObject())?"id":ROW_KEY).equals(source.sourceKey())
+                    || source.updatedAt()!=null || source.issueField()!=null
                     || source.columns()==null || source.columns().isEmpty() || source.columns().contains(ROW_KEY)
                     || step.keys()==null || !step.keys().isEmpty() || !"INSERT_ONLY".equals(step.mode())
                     || !"OVERWRITE".equals(step.nullPolicy()) || step.updateColumns()==null || !step.updateColumns().isEmpty()

@@ -27,6 +27,9 @@ public class DppmsEhrDepartmentCompletionAdapter implements DataSyncAdapter {
     @Override public List<Change> preview(Batch batch){return execute(new Execution(batch,false,null));}
     List<Change> previewAfterOrganization(DppmsConsolidation.OrganizationPreviewBatch preview){return execute(new Execution(preview.batch(),false,preview));}
     @Override public List<Change> apply(Batch batch){return execute(new Execution(batch,true,null));}
+    List<Change> executeCanonical(DppmsOrganizationCanonical.ComponentBatch input){
+        return execute(new Execution(input.batch(),input.apply(),new DppmsConsolidation.OrganizationPreviewBatch(input.batch(),input.preceding(),input.winners())));
+    }
     @Override public void refreshCaches(){departments.refreshCaches();}
     private List<Change> execute(Execution execution) {
         var batch=execution.batch();boolean apply=execution.apply();
@@ -45,6 +48,8 @@ public class DppmsEhrDepartmentCompletionAdapter implements DataSyncAdapter {
         LocalDateTime migrationTime=run.getStartedAt().withNano(0);
         Map<String,Binding> prior=new HashMap<>();for(var b:batch.bindings())if(prior.put(b.object()+":"+b.sourceKey(),b)!=null)throw new IllegalArgumentException("目录来源绑定重复");
         var entries=new ArrayList<Entry>();var pending=new HashMap<String,String>();var seen=new HashSet<String>();
+        boolean canonical=execution.preview()!=null && execution.preview().canonicalWinners()!=null;
+        Map<String,Long> localLeaders=canonical?localLeaders(new LocalLeaderQuery(batch,tenant,task.getConnectionId())):Map.of();
         for(var row:batch.rows()) {
             if(!"ehr_department".equals(row.object()) || !row.fields().keySet().containsAll(DppmsEhrDepartmentCompletionTemplate.columns()) || !Objects.equals(row.sourceKey(),text(row,"depID")))
                 throw new IllegalArgumentException("EHR完整原字段、FND参考或来源主键缺失");
@@ -62,18 +67,34 @@ public class DppmsEhrDepartmentCompletionAdapter implements DataSyncAdapter {
             Department last=previous==null?null:JsonUtils.getObjectMapper().convertValue(previous.lastFields().get("department"),Department.class);
             LocalDateTime created=fnd?SyncFieldMapper.sourceTime(row.fields().get("migrationFnd_createTime")):last==null?migrationTime:last.createTime();
             LocalDateTime updated=fnd?(row.fields().get("migrationFnd_updateTime")==null?created:SyncFieldMapper.sourceTime(row.fields().get("migrationFnd_updateTime"))):migrationTime;
-            Long leader=resolveLeader(row,tenant,task.getConnectionId());
+            Long leader=canonical?localLeaders.get(Objects.toString(row.fields().get("director"),null)):resolveLeader(row,tenant,task.getConnectionId());
             if(leader==null && row.fields().get("director")!=null)pending.put(row.sourceKey(),"主管原EHR员工"+text(row,"director")+"尚无唯一已迁入用户绑定，保持待关联");
             entries.add(new Entry(row.object(),row.sourceKey(),code,name,parent,status,created,updated,row.targetId(),last,
                     previous!=null && Boolean.TRUE.equals(previous.lastFields().get("_referenceOnly")),fnd?null:actor,fnd?null:actor,leader));
         }
         if(seen.size()!=DppmsEhrDepartmentCompletionTemplate.CODES.size())throw new IllegalArgumentException("已批准八项原部门缺项，未写入目录");
+        if(execution.preview()!=null && execution.preview().canonicalWinners()!=null)
+            entries.removeIf(entry->!execution.preview().canonicalWinners().contains(entry.object()+":"+entry.sourceKey()));
         var request=new Request(tenant,batch.owner(),entries);
         var results=apply?departments.apply(request):execution.preview()==null?departments.preview(request):
                 departments.previewAfterOrganization(new OrganizationPreview(request,execution.preview().preceding()));
         return results.stream().map(r->new Change(r.object(),r.sourceKey(),r.after().id(),r.action(),fields(r.before(),false),
                 fields(r.after(),"REFERENCED".equals(r.action())),"现有16列正式承接；11缺项及7全空字段按用户裁决不迁入；"+pending.getOrDefault(r.sourceKey(),"主管已精确关联或原空")
                         +(r.after().parentId()==null?"；父部门来自同批已校验的拟建组织，目标ID待正式迁入生成":""))).toList();
+    }
+    private record LocalLeaderQuery(Batch batch,long tenant,Long connection) {}
+    private Map<String,Long> localLeaders(LocalLeaderQuery query){
+        Set<String> employees=new HashSet<>();query.batch().rows().forEach(row->{Object value=row.fields().get("director");if(value!=null)employees.add(value.toString());});
+        if(employees.isEmpty())return Map.of();
+        Map<String,Set<Long>> matches=new HashMap<>();
+        for(var binding:bindings.selectEhrEmployeeUsers(new SyncQueries.EhrEmployeeUsers(query.tenant(),query.connection(),employees).originalLine())){
+            var fields=JsonUtils.parseMap(binding.getFieldsJson());String employee=Objects.toString(fields.get("_verifiedEhrEmployeeId"),null);
+            if(!employees.contains(employee) || binding.getTargetId()==null || binding.getTargetId()<=0 || Boolean.TRUE.equals(fields.get("_auditOnly")))
+                throw new IllegalArgumentException("本地EHR核实账号回执无效，不按原人员ID关联主管");
+            matches.computeIfAbsent(employee,ignored->new HashSet<>()).add(binding.getTargetId());
+        }
+        Map<String,Long> result=new HashMap<>();matches.forEach((employee,ids)->{if(ids.size()==1)result.put(employee,ids.iterator().next());});
+        return result;
     }
     private Long resolveLeader(Row row,long tenant,Long connection) {
         if(row.fields().get("director")==null)return null;
@@ -87,7 +108,7 @@ public class DppmsEhrDepartmentCompletionAdapter implements DataSyncAdapter {
             object="t_user";id=text(row,"migrationDirectorTId");
         }
         if(id==null)return null;
-        var matches=bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",connection,"DPPMS_USERS",object,List.of(id)));
+        var matches=bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",connection,"DPPMS_USERS",object,List.of(id)).originalLine());
         var ids=matches.stream().map(b->b.getTargetId()).filter(Objects::nonNull).distinct().toList();
         if(ids.size()>1)throw new IllegalArgumentException("主管已迁入用户绑定冲突，须裁决");
         return ids.isEmpty()?null:ids.getFirst();

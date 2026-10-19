@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRoleMapper">
+    <resultMap id="migrationRole" type="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectAccountRows$RoleRow" autoMapping="true">
+        <id column="id" property="id"/>
+        <result column="data_scope_dept_ids" property="dataScopeDeptIds" javaType="java.util.Set"
+                typeHandler="com.baomidou.mybatisplus.extension.handlers.Jackson3TypeHandler"/>
+    </resultMap>
+    <sql id="migrationInventory">
+        SELECT * FROM system_role
+        WHERE tenant_id = #{query.tenantId} AND deleted = FALSE
+        ORDER BY id
+    </sql>
+    <select id="selectListForMigration" resultMap="migrationRole">
+        <include refid="migrationInventory"/>
+    </select>
+    <select id="selectListForMigrationForUpdate" resultMap="migrationRole">
+        <include refid="migrationInventory"/> FOR UPDATE
+    </select>
+    <select id="selectListHistoricalAuditActorIds" resultType="java.lang.Long">
+        SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE
+        <choose>
+            <when test="query.userIds != null and !query.userIds.isEmpty()">
+                AND id IN
+                <foreach collection="query.userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+            </when>
+            <otherwise>AND 1=0</otherwise>
+        </choose>
+        ORDER BY id
+    </select>
+    <insert id="insertHistoricalRole">
+        INSERT INTO system_role
+            (id, tenant_id, name, code, sort, status, type, data_scope, remark,
+             creator, create_time, updater, update_time, deleted)
+        VALUES (#{write.role.id}, #{write.role.tenantId}, #{write.role.name}, #{write.role.code}, #{write.role.sort},
+                #{write.role.status}, #{write.role.type}, #{write.role.dataScope}, #{write.role.remark},
+                #{write.audit.creator}, #{write.audit.createTime}, #{write.audit.updater}, #{write.audit.updateTime}, FALSE)
+    </insert>
+    <update id="updateHistoricalDefinition">
+        UPDATE system_role SET name=#{write.role.name}, sort=#{write.role.sort}, remark=#{write.role.remark},
+            creator=#{write.audit.creator}, create_time=#{write.audit.createTime}, updater=#{write.audit.updater}, update_time=#{write.audit.updateTime}
+        WHERE id=#{write.role.id} AND tenant_id=#{write.role.tenantId} AND code=#{write.role.code} AND deleted=FALSE
+    </update>
+</mapper>

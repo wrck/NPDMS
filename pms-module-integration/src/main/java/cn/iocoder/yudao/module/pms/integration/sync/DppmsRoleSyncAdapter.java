@@ -31,11 +31,14 @@ public class DppmsRoleSyncAdapter implements DataSyncAdapter {
                 List.of("RETAIN"), List.of("UPSERT"), false);
     }
     @Override public boolean sharesTargetAcrossSources() { return true; }
-    @Override public List<Change> preview(Batch batch) { return execute(batch, false); }
-    @Override public List<Change> apply(Batch batch) { return execute(batch, true); }
+    @Override public List<Change> preview(Batch batch) { return execute(new DppmsAccountFoundationContext.Execution(batch, false, null)); }
+    @Override public List<Change> apply(Batch batch) { return execute(new DppmsAccountFoundationContext.Execution(batch, true, null)); }
+    List<Change> afterAccounts(DppmsAccountFoundationContext.Execution execution) { return execute(execution); }
     @Override public void refreshCaches() { roles.refreshCaches(); }
 
-    private List<Change> execute(Batch batch, boolean apply) {
+    private List<Change> execute(DppmsAccountFoundationContext.Execution execution) {
+        var batch = execution.batch(); boolean apply = execution.apply();
+        if (execution.preceding() != null) execution.preceding().requireExecution(execution);
         if (batch.clearBeforeLoad() || !"UPSERT".equals(batch.loadingMode()) || !"RETAIN".equals(batch.missingPolicy()))
             throw new IllegalArgumentException("角色迁移只支持追加更新并保留来源缺失，不支持清空或重编号");
         long tenant = TenantContextHolder.getRequiredTenantId();
@@ -43,12 +46,13 @@ public class DppmsRoleSyncAdapter implements DataSyncAdapter {
         if (owner.length != 3 || !"integration".equals(owner[0]) || !Long.toString(tenant).equals(owner[1]))
             throw new IllegalArgumentException("角色迁移运行所有权无效");
         var task = tasks.required(Long.parseLong(owner[2]));
-        if (!"DPPMS".equals(task.getSourceSystem()) || !"DPPMS_ROLES".equals(task.getAdapter()))
+        if (!"DPPMS".equals(task.getSourceSystem()) || !DppmsConsolidation.accepts(task, "DPPMS_ROLES"))
             throw new IllegalArgumentException("角色迁移不能混用其他来源任务");
         Map<String, Binding> prior = new HashMap<>();
         batch.bindings().forEach(binding -> prior.put(binding.object() + ":" + binding.sourceKey(), binding));
         List<SystemRoleMigrationApi.Entry> entries = new ArrayList<>();
-        Map<String, Long> actors = actors(batch, tenant, task.getConnectionId());
+        Map<String, Long> actors = execution.preceding() == null ? actors(batch, tenant, task.getConnectionId())
+                : currentActors(execution);
         for (Row row : batch.rows()) {
             var fields = row.fields();
             boolean fnd = "FND_ROLE".equals(row.object());
@@ -75,7 +79,8 @@ public class DppmsRoleSyncAdapter implements DataSyncAdapter {
                     previous == null ? null : lastDefinition(previous.lastFields()), reference));
         }
         var request = new SystemRoleMigrationApi.Request(tenant, batch.owner(), entries, batch.adoptExisting());
-        var results = apply ? roles.apply(request) : roles.preview(request);
+        var results = apply ? roles.apply(request) : execution.preceding() == null ? roles.preview(request)
+                : roles.previewAfterAccounts(new SystemRoleMigrationApi.AccountPreview(request, execution.preceding().preview()));
         Map<String, Row> sources = new HashMap<>();
         batch.rows().forEach(row -> sources.put(row.object() + ":" + row.sourceKey(), row));
         return results.stream().map(result -> {
@@ -87,6 +92,26 @@ public class DppmsRoleSyncAdapter implements DataSyncAdapter {
             return new Change(result.object(), result.sourceKey(), result.after() == null ? null : result.after().id(),
                     result.action(), fields(result.before()), after, result.message());
         }).toList();
+    }
+
+    private Map<String,Long> currentActors(DppmsAccountFoundationContext.Execution execution) {
+        Map<String,Long> result = new HashMap<>();
+        for (var row : execution.batch().rows()) {
+            if (DppmsRoleCodes.reference(row.object(), string(row.fields(), "sourceCode"))) continue;
+            String table = "FND_ROLE".equals(row.object()) ? "fnd_user_info" : "t_user";
+            for (String kind : List.of("creator", "updater")) {
+                String name = string(row.fields(), kind+"Name");
+                if (name == null || name.isEmpty()) continue;
+                String key = string(row.fields(), kind+"SourceKey");
+                if (key == null) throw new IllegalArgumentException("角色历史操作者来源身份不唯一");
+                var reference = execution.preceding().user(table+":"+key, false);
+                var profile = (Map<?,?>) reference.fields().get("profile");
+                if (profile == null || !Objects.equals(name, profile.get("username")))
+                    throw new IllegalArgumentException("角色历史操作者与同轮账号回执不同");
+                result.put(table+":"+key, reference.id());
+            }
+        }
+        return result;
     }
 
     private Map<String, Long> actors(Batch batch, long tenant, Long connectionId) {

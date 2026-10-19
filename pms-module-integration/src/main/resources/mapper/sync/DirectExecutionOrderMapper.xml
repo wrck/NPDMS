@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper">
+<select id="selectIncoming" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderRow">
+SELECT id, tenant_id, version, creator, updater, create_time, update_time, deleted, source_system, execution_no, project_code, project_name, primary_project_id, sales_rep_code, sales_rep_name, sales_rep_phone, market_code, market_name, system_source_key, system_code, system_name, expend_source_key, expend_code, expend_name, industry_code, industry_name, department_id, department_code, department_name, service_type_name, channel_name, engineering_fee_raw, engineering_fee, source_object_id, apply_type, company_id, company_code, company_name, customer_project_name, final_customer_name, agent_name, project_manager_code, project_manager_name, decision_path, required_in_date, receiver_name, receiver_contact, receiver_address, loan_reason, project_type, major_project_level, project_amount, af_project_amount, submit_time, predicted_bid_time, contact_name, contact_phone, af_evidence_status, source_sync_time, status FROM com_crm_execution_order
+WHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem}
+<choose><when test="query.executionNumbers != null and !query.executionNumbers.isEmpty()">AND execution_no IN
+<foreach collection="query.executionNumbers" item="number" open="(" separator="," close=")">#{number}</foreach>
+</when><otherwise>AND 1=0</otherwise></choose> FOR UPDATE
+</select>
+<insert id="insertRow" useGeneratedKeys="true" keyProperty="row.id">
+INSERT INTO com_crm_execution_order (tenant_id,version,creator,updater,create_time,update_time,deleted,source_system,execution_no,project_code,project_name,sales_rep_code,sales_rep_name,market_code,market_name,system_source_key,system_name,expend_source_key,expend_name,industry_code,industry_name,department_id,department_code,department_name,service_type_name,channel_name,engineering_fee_raw,engineering_fee,source_object_id,apply_type,company_id,company_code,company_name,customer_project_name,final_customer_name,agent_name,major_project_level,project_amount,submit_time,predicted_bid_time,contact_name,contact_phone,source_sync_time,status,af_evidence_status)
+VALUES (#{row.tenantId},0,#{row.creator},#{row.updater},CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,FALSE,#{row.sourceSystem},#{row.executionNo},#{row.projectCode},#{row.projectName},#{row.salesRepCode},#{row.salesRepName},#{row.marketCode},#{row.marketName},#{row.systemSourceKey},#{row.systemName},#{row.expendSourceKey},#{row.expendName},#{row.industryCode},#{row.industryName},#{row.departmentId},#{row.departmentCode},#{row.departmentName},#{row.serviceTypeName},#{row.channelName},#{row.engineeringFeeRaw},#{row.engineeringFee},#{row.sourceObjectId},#{row.applyType},#{row.companyId},#{row.companyCode},#{row.companyName},#{row.customerProjectName},#{row.finalCustomerName},#{row.agentName},#{row.majorProjectLevel},#{row.projectAmount},#{row.submitTime},#{row.predictedBidTime},#{row.contactName},#{row.contactPhone},#{row.sourceSyncTime},#{row.status},#{row.afEvidenceStatus})
+</insert>
+<update id="updateRow">UPDATE com_crm_execution_order <set>
+<if test="row.sourceSystem != null">source_system=#{row.sourceSystem},</if>
+<if test="row.executionNo != null">execution_no=#{row.executionNo},</if>
+<if test="row.projectCode != null">project_code=#{row.projectCode},</if>
+<if test="row.projectName != null">project_name=#{row.projectName},</if>
+<if test="row.salesRepCode != null">sales_rep_code=#{row.salesRepCode},</if>
+<if test="row.salesRepName != null">sales_rep_name=#{row.salesRepName},</if>
+<if test="row.marketCode != null">market_code=#{row.marketCode},</if>
+<if test="row.marketName != null">market_name=#{row.marketName},</if>
+<if test="row.systemSourceKey != null">system_source_key=#{row.systemSourceKey},</if>
+<if test="row.systemName != null">system_name=#{row.systemName},</if>
+<if test="row.expendSourceKey != null">expend_source_key=#{row.expendSourceKey},</if>
+<if test="row.expendName != null">expend_name=#{row.expendName},</if>
+<if test="row.industryCode != null">industry_code=#{row.industryCode},</if>
+<if test="row.industryName != null">industry_name=#{row.industryName},</if>
+<if test="row.departmentId != null">department_id=#{row.departmentId},</if>
+<if test="row.departmentCode != null">department_code=#{row.departmentCode},</if>
+<if test="row.departmentName != null">department_name=#{row.departmentName},</if>
+<if test="row.serviceTypeName != null">service_type_name=#{row.serviceTypeName},</if>
+<if test="row.channelName != null">channel_name=#{row.channelName},</if>
+<if test="row.engineeringFeeRaw != null">engineering_fee_raw=#{row.engineeringFeeRaw},</if>
+<if test="row.engineeringFee != null">engineering_fee=#{row.engineeringFee},</if>
+<if test="row.sourceObjectId != null">source_object_id=#{row.sourceObjectId},</if>
+<if test="row.applyType != null">apply_type=#{row.applyType},</if>
+<if test="row.companyId != null">company_id=#{row.companyId},</if>
+<if test="row.companyCode != null">company_code=#{row.companyCode},</if>
+<if test="row.companyName != null">company_name=#{row.companyName},</if>
+<if test="row.customerProjectName != null">customer_project_name=#{row.customerProjectName},</if>
+<if test="row.finalCustomerName != null">final_customer_name=#{row.finalCustomerName},</if>
+<if test="row.agentName != null">agent_name=#{row.agentName},</if>
+<if test="row.majorProjectLevel != null">major_project_level=#{row.majorProjectLevel},</if>
+<if test="row.projectAmount != null">project_amount=#{row.projectAmount},</if>
+<if test="row.submitTime != null">submit_time=#{row.submitTime},</if>
+<if test="row.predictedBidTime != null">predicted_bid_time=#{row.predictedBidTime},</if>
+<if test="row.contactName != null">contact_name=#{row.contactName},</if>
+<if test="row.contactPhone != null">contact_phone=#{row.contactPhone},</if>
+<if test="row.sourceSyncTime != null">source_sync_time=#{row.sourceSyncTime},</if>
+version=version+1,updater=#{row.updater},update_time=CURRENT_TIMESTAMP
+</set> WHERE tenant_id=#{row.tenantId} AND id=#{row.id} AND version=#{row.version} AND deleted=FALSE
+AND source_system=#{row.sourceSystem} AND execution_no=#{row.executionNo}
+</update>
+</mapper>

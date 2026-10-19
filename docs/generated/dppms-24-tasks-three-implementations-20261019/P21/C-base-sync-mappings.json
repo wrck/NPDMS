@@ -1,0 +1,306 @@
+{
+  "task": "P21",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "proj_project_lease_product",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "project_code",
+      "parameter": "#{row.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "execution_no",
+      "parameter": "#{row.executionNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "product_category",
+      "parameter": "#{row.productCategory}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "product_type",
+      "parameter": "#{row.productType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "product_code",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "product_model",
+      "parameter": "#{row.productModel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "product_name",
+      "parameter": "#{row.productName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "quantity",
+      "parameter": "#{row.quantity}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "memo",
+      "parameter": "#{row.memo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "lease_duration",
+      "parameter": "#{row.leaseDuration}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "data_source",
+      "parameter": "#{row.dataSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_lease_product",
+      "column": "deleted",
+      "parameter": "#{row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "project_code",
+      "parameter": "#{row.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "execution_no",
+      "parameter": "#{row.executionNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "item_group",
+      "parameter": "#{row.itemGroup}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "product_code",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "parent_code",
+      "parameter": "#{row.parentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "quantity",
+      "parameter": "#{row.quantity}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "bom_path",
+      "parameter": "#{row.bomPath}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "product_model",
+      "parameter": "#{row.productModel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "product_description",
+      "parameter": "#{row.productDescription}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "level",
+      "parameter": "#{row.level}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "data_source",
+      "parameter": "#{row.dataSource}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_product_configuration",
+      "column": "deleted",
+      "parameter": "#{row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.selectLeaseIds",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+      "xml": "<select id=\"selectLeaseIds\" resultType=\"java.lang.Long\">SELECT id FROM proj_project_lease_product WHERE tenant_id=#{query.tenantId} <if test=\"!query.preview\">FOR UPDATE</if></select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.deleteLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+      "xml": "<delete id=\"deleteLease\">DELETE FROM proj_project_lease_product WHERE tenant_id=#{query.tenantId}</delete>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertLease",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+      "xml": "<insert id=\"insertLease\">INSERT INTO proj_project_lease_product (`id`, `tenant_id`, `project_code`, `execution_no`, `product_category`, `product_type`, `product_code`, `product_model`, `product_name`, `quantity`, `memo`, `lease_duration`, `data_source`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES\n    <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.id}, #{row.tenantId}, #{row.projectCode}, #{row.executionNo}, #{row.productCategory}, #{row.productType}, #{row.productCode}, #{row.productModel}, #{row.productName}, #{row.quantity}, #{row.memo}, #{row.leaseDuration}, #{row.dataSource}, #{row.creator}, #{row.createTime}, #{row.updater}, #{row.updateTime}, #{row.deleted})</foreach>\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.selectConfigurationIds",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+      "xml": "<select id=\"selectConfigurationIds\" resultType=\"java.lang.Long\">SELECT id FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId} <if test=\"!query.preview\">FOR UPDATE</if></select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.deleteConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+      "xml": "<delete id=\"deleteConfiguration\">DELETE FROM proj_project_product_configuration WHERE tenant_id=#{query.tenantId}</delete>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.insertConfiguration",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+      "xml": "<insert id=\"insertConfiguration\">INSERT INTO proj_project_product_configuration (`id`, `tenant_id`, `project_code`, `execution_no`, `item_group`, `product_code`, `parent_code`, `quantity`, `bom_path`, `product_model`, `product_description`, `level`, `data_source`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES\n    <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.id}, #{row.tenantId}, #{row.projectCode}, #{row.executionNo}, #{row.itemGroup}, #{row.productCode}, #{row.parentCode}, #{row.quantity}, #{row.bomPath}, #{row.productModel}, #{row.productDescription}, #{row.level}, #{row.dataSource}, #{row.creator}, #{row.createTime}, #{row.updater}, #{row.updateTime}, #{row.deleted})</foreach>\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$TargetMapper.nullableColumns",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P21TargetMapper.xml",
+      "xml": "<select id=\"nullableColumns\" resultType=\"java.lang.Integer\">SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND (table_name='proj_project_lease_product' OR table_name='proj_project_product_configuration') AND column_name='project_id' AND is_nullable='YES'</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$SourceMapper.selectLease",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P21SourceMapper.xml",
+      "xml": "<select id=\"selectLease\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$LeaseCacheSource\">\n    SELECT `projectCode` AS `project_code`, `orderExecNumber` AS `execution_no`, `productFirstName` AS `product_category`, `productName` AS `product_type`, `productSubCode` AS `product_code`, `productSubModel` AS `product_model`, `productSubName` AS `product_name`, `num` AS `quantity`, `memo` AS `memo`, `leaseDuration` AS `lease_duration`, `dataSource` AS `data_source` FROM `pm_project_product_lease_line_from_crm` LIMIT #{limit}\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$SourceMapper.selectConfiguration",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P21SourceMapper.xml",
+      "xml": "<select id=\"selectConfiguration\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P21ProjectCacheSyncTask$ConfigurationCacheSource\">\n    SELECT `projectCode` AS `project_code`, `orderExecNumber` AS `execution_no`, `itemGroup` AS `item_group`, `itemCode` AS `product_code`, `parentCode` AS `parent_code`, `quantity` AS `quantity`, `bomPaths` AS `bom_path`, `itemModel` AS `product_model`, `itemDesc` AS `product_description`, `level` AS `level`, `dataSource` AS `data_source` FROM `pm_project_product_config_level_info_from_crm` LIMIT #{limit}\n  </select>\n"
+    }
+  ]
+}

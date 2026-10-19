@@ -27,8 +27,8 @@ public class ShipmentSourceFactsService implements ShipmentSourceFactsApi {
         if(query.packageSourceKeys().isEmpty())return List.of();
         var facts=mapper.selectFacts(new ShipmentSourceFactsMapper.Query(query.tenantId(),query.packageSourceKeys()));
         var seen=new HashSet<String>();
-        for(var fact:facts)if(!query.packageSourceKeys().contains(fact.packageSourceKey())||!seen.add(fact.packageSourceKey()))
+        for(var fact:facts)if(fact.parentConflict() || !query.packageSourceKeys().contains(fact.packageSourceKey())||!seen.add(fact.packageSourceKey()))
             throw new IllegalArgumentException("SHIPMENT_SOURCE_FACTS_AMBIGUOUS");
-        return List.copyOf(facts);
+        return facts.stream().map(fact->new Fact(fact.packageSourceKey(),fact.shipmentTime(),fact.contractNo(),fact.contractType())).toList();
     }
 }

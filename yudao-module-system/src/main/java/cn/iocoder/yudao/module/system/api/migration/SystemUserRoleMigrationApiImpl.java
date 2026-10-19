@@ -24,13 +24,20 @@ public class SystemUserRoleMigrationApiImpl implements SystemUserRoleMigrationAp
     private final DataSource dataSource;
     private final CacheManager caches;
     @Override public List<Result> preview(Request request) {
-        validate(request,false);
+        if(request==null)throw new IllegalArgumentException("角色关系迁移请求缺失");
+        return previewAfterFoundation(new FoundationPreview(request,
+                SystemAccountMigrationPreview.empty(request.tenantId(), request.owner())));
+    }
+    @Override public List<Result> previewAfterFoundation(FoundationPreview preview) {
+        Request request = preview.request();
+        preview.preceding().requireOwner(request.tenantId(), request.owner());
+        validate(new Validation(request, false, preview.preceding()));
         return plan(request, relations.selectRelations(new RoleMigrationTenantQuery(request.tenantId())), false);
     }
     @Override @Transactional(propagation=Propagation.MANDATORY, rollbackFor=Exception.class)
     public List<Result> apply(Request request) {
         requireRepeatableRead();
-        validate(request,true);
+        validate(new Validation(request, true, SystemAccountMigrationPreview.empty(request.tenantId(), request.owner())));
         // Same tenant catalogue lock protects absent user-role pairs, which have no unique index.
         List<Relation> current = relations.selectRelationsForUpdate(new RoleMigrationTenantQuery(request.tenantId()));
         List<Result> results = plan(request,current,true);
@@ -43,7 +50,9 @@ public class SystemUserRoleMigrationApiImpl implements SystemUserRoleMigrationAp
         var cache = caches.getCache(RedisKeyConstants.USER_ROLE_ID_LIST);
         if (cache!=null) cache.clear();
     }
-    private void validate(Request request,boolean lock) {
+    private record Validation(Request request, boolean lock, SystemAccountMigrationPreview preceding) {}
+    private void validate(Validation validation) {
+        Request request = validation.request(); boolean lock = validation.lock();
         if (request==null || !Objects.equals(TenantContextHolder.getRequiredTenantId(),request.tenantId())
                 || request.owner()==null || request.owner().isBlank() || request.entries()==null || request.entries().size()>10000)
             throw new IllegalArgumentException("角色关系迁移租户、所有权或容量无效");
@@ -54,11 +63,14 @@ public class SystemUserRoleMigrationApiImpl implements SystemUserRoleMigrationAp
                 throw new IllegalArgumentException("角色关系来源身份、正式用户或角色缺失/重复");
             userIds.add(entry.userId()); roleIds.add(entry.roleId());
         }
+        userIds.removeAll(validation.preceding().plannedUserIds());
+        roleIds.removeAll(validation.preceding().plannedRoleCodes().keySet());
         var query = new UserRoleMigrationQuery(request.tenantId(),userIds,roleIds);
         if (!Set.copyOf(lock?relations.selectUserIdsForUpdate(query):relations.selectUserIds(query)).equals(userIds))
             throw new IllegalArgumentException("关系引用账号不存在或跨租户");
         Map<Long,String> codes = new HashMap<>(); (lock?relations.selectRolesForUpdate(query):relations.selectRoles(query))
                 .forEach(role -> codes.put(role.id(),role.code()));
+        codes.putAll(validation.preceding().plannedRoleCodes());
         for (Entry entry : request.entries()) if (!entry.expectedRoleCode().equals(codes.get(entry.roleId())))
             throw new IllegalArgumentException("角色未迁入当前租户、停用或业务编码与批准映射不同");
     }

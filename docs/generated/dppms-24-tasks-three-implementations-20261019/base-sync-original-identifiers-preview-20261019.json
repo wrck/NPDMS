@@ -1,0 +1,465 @@
+{
+  "date": "2026-10-19",
+  "worktree": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "decision": "Use raw usernames for string audit fields and original canonical project IDs; preserve approved grouping and original-task isolation.",
+  "initialFailedTasks": [
+    "P08",
+    "P10",
+    "P14",
+    "P15",
+    "P16",
+    "P18",
+    "P19",
+    "P20",
+    "P21",
+    "P22",
+    "P31",
+    "P33",
+    "P35"
+  ],
+  "clearedInitialFailures": [
+    "P08",
+    "P20",
+    "P21"
+  ],
+  "remainingFailureCount": 10,
+  "current24StatusCounts": {
+    "PREVIEW_READY": 14,
+    "FAILED": 10
+  },
+  "records": [
+    {
+      "task": "P08",
+      "run": {
+        "id": 2112057345712537601,
+        "task_id": 2111470471713304577,
+        "task_code": "BASE_P08",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "error_message": null,
+        "started_at": "2026-10-19 13:44:46.012000",
+        "finished_at": "2026-10-19 13:44:46.238000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\P08-preview.json",
+      "result": "已解除账号回查阻断；612条预览通过。",
+      "disposition": "creator/updater原样保留用户名；本项不再依赖P04正式账号。",
+      "failed": false
+    },
+    {
+      "task": "P10",
+      "run": {
+        "id": 2112051433660653569,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P10目标缺少已审核列cus_customer_master.erp_customer_code；不执行迁移",
+        "started_at": "2026-10-19 13:21:16.463000",
+        "finished_at": "2026-10-19 13:21:16.474000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\P10-current-preview.json",
+      "result": "目标结构缺项。",
+      "disposition": "cus_customer_master.erp_customer_code仍不存在；需既有批准结构到位，本轮不迁移。",
+      "failed": true
+    },
+    {
+      "task": "P14",
+      "run": {
+        "id": 2112051434155581442,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+        "started_at": "2026-10-19 13:21:16.580000",
+        "finished_at": "2026-10-19 13:21:30.684000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\P14-current-preview.json",
+      "result": "原表业务键载荷冲突。",
+      "disposition": "本轮源核对169个表头键、10个明细键冲突，后者40行缺订单号。需来源权威逐键修正或提供已有可执行消歧依据，不能任取、拼接、占位或跳过。",
+      "failed": true
+    },
+    {
+      "task": "P15",
+      "run": {
+        "id": 2112051493786001409,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P15_TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key",
+        "started_at": "2026-10-19 13:21:30.798000",
+        "finished_at": "2026-10-19 13:21:30.815000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\P15-current-preview.json",
+      "result": "目标列、容量及必要正式回款输入。",
+      "disposition": "缺shipment_contract_source_key；4283326条源条码超过100万库约束；新P24预览81547不产生正式回款输入。已批准结构/CHECK及正式输入到位后才可解除。",
+      "failed": true
+    },
+    {
+      "task": "P16",
+      "run": {
+        "id": 2112057425274290177,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P16_PROJECT_ID_ALREADY_OWNED",
+        "started_at": "2026-10-19 13:45:04.976000",
+        "finished_at": "2026-10-19 13:45:08.361000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\P16-preview.json",
+      "result": "原ID与既存其他项目碰撞。",
+      "disposition": "1001至1040共40个原主档ID已被不同编码的项目占用；拒绝覆盖、接管或改号。需目标数据维护方解除占用，真实写入另保留多来源索引前置。",
+      "failed": true
+    },
+    {
+      "task": "P18",
+      "run": {
+        "id": 2112059597156204546,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PROJECT_FORMAL_IDENTITY_INVALID",
+        "started_at": "2026-10-19 13:53:42.800000",
+        "finished_at": "2026-10-19 13:53:54.709000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\P18-preview.json",
+      "result": "原ID命中的既存项目身份不符。",
+      "disposition": "同一批低段ID已属于其他编码/类型；原用户名回查已取消，原公司码按已批准转换并核公司范围，未绕过当前项目权限或正式合同前置。需先解除碰撞，后续合同输入仍单独核验。",
+      "failed": true
+    },
+    {
+      "task": "P19",
+      "run": {
+        "id": 2112059647936643074,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PROJECT_FORMAL_IDENTITY_INVALID",
+        "started_at": "2026-10-19 13:53:54.900000",
+        "finished_at": "2026-10-19 13:54:06.165000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\P19-preview.json",
+      "result": "原ID命中的既存项目身份不符，另缺四属性定义。",
+      "disposition": "先解除项目ID占用；PRJ/project的shipment_status、shipment_status_updated_at、execution_status、execution_status_updated_at正式定义及配置ID仍未提供。不得发布假定义或改生命周期。",
+      "failed": true
+    },
+    {
+      "task": "P20",
+      "run": {
+        "id": 2112059695747514370,
+        "task_id": 2111504298947014658,
+        "task_code": "BASE_P20",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "started_at": "2026-10-19 13:54:06.300000",
+        "finished_at": "2026-10-19 13:54:18.478000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\P20-preview.json",
+      "result": "已解除项目来源映射阻断；7818条预览通过。",
+      "disposition": "project_id按对应原主档ID规划，回执保留FORMAL_PARENT_VALIDATION_DEFERRED；不代表必要父项目、正式外键及真实写入已经验收。",
+      "failed": false
+    },
+    {
+      "task": "P21",
+      "run": {
+        "id": 2112053188930744321,
+        "task_id": 2111463419926470657,
+        "task_code": "BASE_P21",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+        "started_at": "2026-10-19 13:28:14.959000",
+        "finished_at": "2026-10-19 13:28:15.153000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\P21-repaired-preview.json",
+      "result": "此前实现修复保留；1190条预览通过。",
+      "disposition": "454租赁+736配置原记录完整预览；两表project_id可空结构尚未就绪仍阻断实际执行，不清空或插入缓存。",
+      "failed": false
+    },
+    {
+      "task": "P22",
+      "run": {
+        "id": 2112059747408756737,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P22_PROJECT_OFFICE_UNRESOLVED",
+        "started_at": "2026-10-19 13:54:18.615000",
+        "finished_at": "2026-10-19 13:54:24.458000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\P22-preview.json",
+      "result": "实现SQL已修复；当前缺正式办事处快照。",
+      "disposition": "精确BINARY比较消除混用排序规则1267；真实重验现在为P22_PROJECT_OFFICE_UNRESOLVED。项目ID已按原值规划，必要办事处版本、正式合同/订单行仍需真实输入，未通过的后续检查不计成功。",
+      "failed": true
+    },
+    {
+      "task": "P31",
+      "run": {
+        "id": 2112057614999437313,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PUBLISHED_PROJECT_CURRENT_IDENTITY_CHANGED",
+        "started_at": "2026-10-19 13:45:50.208000",
+        "finished_at": "2026-10-19 13:45:52.946000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\P31-preview.json",
+      "result": "原ID命中的当前项目编码/类型不同。",
+      "disposition": "预览已改为同P16筛选规则的完整源范围，不再要求先正式执行P16。实际1001至1040占用导致当前身份核验拒绝；联系人后续仍需正式FINAL_CUSTOMER。历史成员保留member_code、user_id为空，不新增当前授权。",
+      "failed": true
+    },
+    {
+      "task": "P33",
+      "run": {
+        "id": 2112057626944815105,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P33_SOURCE_CAPACITY",
+        "started_at": "2026-10-19 13:45:53.056000",
+        "finished_at": "2026-10-19 13:46:21.177000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\P33-preview.json",
+      "result": "全量源记录超过现有容量，另有必要设备/地址上下文。",
+      "disposition": "同一批准范围1063717条，超过任务和库CHECK上限100万；即使只统计非空安装地址也有1037715条，不能据此截断/过滤。需相应容量结构及本任务配置可承载全量；后续仍核真实SN设备、当前管理权限、项目选择及不可变地址，不猜外键。",
+      "failed": true
+    },
+    {
+      "task": "P35",
+      "run": {
+        "id": 2112057745329045506,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P35_FORMAL_AST_SoftwareVersionRecord_EIGHT_ATTRIBUTE_DEFINITION_REQUIRED",
+        "started_at": "2026-10-19 13:46:21.282000",
+        "finished_at": "2026-10-19 13:46:23.543000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\P35-preview.json",
+      "result": "正式八属性定义缺项。",
+      "disposition": "只读源范围已可读取，当前明确缺AST/SoftwareVersionRecord的conp/boot/cpld/pcb各自_bak/_change八属性定义及配置ID。主批次ID传递保留；后续真实项目/权限检查未冒称完成。",
+      "failed": true
+    }
+  ],
+  "additionalAffectedP24": {
+    "key": "P24",
+    "taskId": 2111463422476607489,
+    "apiCode": 0,
+    "counts": {
+      "read": 81547,
+      "inserted": 81540,
+      "updated": 0,
+      "unchanged": 7,
+      "deleted": 0
+    },
+    "run": {
+      "id": 2112057587128287234,
+      "task_id": 2111463422476607489,
+      "task_code": "BASE_P24",
+      "status": "PREVIEW_READY",
+      "preview": "01",
+      "read_count": 81547,
+      "inserted_count": 81540,
+      "updated_count": 0,
+      "unchanged_count": 7,
+      "error_message": null,
+      "started_at": "2026-10-19 13:45:43.563000",
+      "finished_at": "2026-10-19 13:45:50.106000"
+    },
+    "seconds": 6.674
+  },
+  "tests": [
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest",
+      "tests": 37,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncIsolationTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncMapperWiringTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.OriginalAuditNamesTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.CacheSourceNullabilityTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.IndependentScopeMySqlTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.NewHistoryTaskMySqlTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.NewTaskPreconditionsTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.OriginalIdentityPolicyTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.OriginalProjectScopeMySqlTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.P22SnapshotCollationMySqlTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.ProjectCachePreviewMySqlTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.RemainingTaskMySqlTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-pilot-audit-20261019\\p21-20261019T135110.log"
+    }
+  ],
+  "runtime": {
+    "pid": 47868,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\runtime-candidate-p22\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms_reverify_20261014",
+    "redisDatabase": 14,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\runtime-sanitized.log",
+    "startedAt": "2026-10-19T13:52:15.972962"
+  },
+  "protectionEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-p22-20261019\\final-proof.json",
+  "collisionEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\project-id-collision-evidence.json",
+  "capacityEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-original-identifiers-20261019\\P33-capacity-evidence.json",
+  "operationsSinceOriginalIdentifierDecision": {
+    "newSuitePreviewRequests": 14,
+    "only59284Reloads": 2,
+    "originalTaskOperations": 0,
+    "realSyncs": 0,
+    "migrations": 0,
+    "businessOrDefinitionWrites": 0,
+    "service59191Operations": 0
+  },
+  "wholeFollowupOperations": {
+    "newSuitePreviewRequests": 28,
+    "only59284Reloads": 3
+  },
+  "P08ReceiptRecovery": "The first raw-ID phase request completed before BIT serialization monitoring failed; only its terminal database receipt was recovered. No repeated request or guessed API response."
+}

@@ -32,24 +32,29 @@ public class DppmsUserScopeSyncAdapter implements DataSyncAdapter {
                         "SYSTEM","UserCompanyDepartmentScope","system_user_company_department_scope",false)).toList(),List.of("RETAIN"),List.of("UPSERT"),false);
     }
     @Override public boolean sharesTargetAcrossSources(){return true;}
-    @Override public List<Change> preview(Batch batch){return execute(batch,false);}
-    @Override public List<Change> apply(Batch batch){return execute(batch,true);}
+    @Override public List<Change> preview(Batch batch){return execute(new DppmsAccountFoundationContext.Execution(batch,false,null));}
+    @Override public List<Change> apply(Batch batch){return execute(new DppmsAccountFoundationContext.Execution(batch,true,null));}
+    List<Change> afterFoundation(DppmsAccountFoundationContext.Execution execution){return execute(execution);}
     @Override public void refreshCaches(){}
-    private List<Change> execute(Batch batch,boolean apply){
+    private List<Change> execute(DppmsAccountFoundationContext.Execution execution){
+        var batch=execution.batch();boolean apply=execution.apply();
+        if(execution.preceding()!=null)execution.preceding().requireExecution(execution);
         if(!batch.full() || batch.clearBeforeLoad() || !"UPSERT".equals(batch.loadingMode()) || !"RETAIN".equals(batch.missingPolicy()))
             throw new IllegalArgumentException("范围迁移必须完整核对账号、公司角色和范围，不清空或删除来源缺失关系");
         long tenant=TenantContextHolder.getRequiredTenantId();String[] owner=batch.owner()==null?new String[0]:batch.owner().split(":");
         if(owner.length!=3 || !"integration".equals(owner[0]) || !Long.toString(tenant).equals(owner[1]))throw new IllegalArgumentException("范围承接所有权无效");
         var task=tasks.required(Long.parseLong(owner[2]));
-        if(!"DPPMS".equals(task.getSourceSystem()) || !"DPPMS_USER_SCOPES".equals(task.getAdapter()))throw new IllegalArgumentException("范围承接不能混用来源任务");
-        ScopePlan plan=new ScopePlan(batch,tenant,task.getConnectionId());plan.build();
-        var request=new Request(tenant,batch.owner(),plan.entries);var results=apply?scopes.apply(request):scopes.preview(request);
+        if(!"DPPMS".equals(task.getSourceSystem()) || !DppmsConsolidation.accepts(task,"DPPMS_USER_SCOPES"))throw new IllegalArgumentException("范围承接不能混用来源任务");
+        ScopePlan plan=new ScopePlan(new Planning(batch,tenant,task.getConnectionId(),execution.preceding()));plan.build();
+        var request=new Request(tenant,batch.owner(),plan.entries);var results=apply?scopes.apply(request):execution.preceding()==null?scopes.preview(request)
+                :scopes.previewAfterFoundation(new FoundationPreview(request,execution.preceding().preview()));
         List<Change> changes=new ArrayList<>();
         for(var result:results)changes.add(new Change(result.object(),result.sourceKey(),result.after().id(),result.action(),fields(result.before()),fields(result.after()),
                 "复用正式范围20列；历史日期与主/附加范围沿已批准规则，不生成办事处全部项目查看权"));
         for(var row:batch.rows())if(!plan.carried.contains(key(row)))changes.add(new Change(row.object(),row.sourceKey(),null,"SKIPPED",Map.of(),Map.of(),plan.skipReason(row)));
         return List.copyOf(changes);
     }
+    private record Planning(Batch batch,long tenant,Long connection,DppmsAccountFoundationContext preceding) {}
     private final class ScopePlan {
         private final Batch batch;
         private final Map<String,Row> sources=new LinkedHashMap<>(),tAccounts=new HashMap<>(),fndAccounts=new HashMap<>();
@@ -60,7 +65,8 @@ public class DppmsUserScopeSyncAdapter implements DataSyncAdapter {
         private final Map<String,CompanyRespDTO> companyCache=new HashMap<>();
         private final List<Entry> entries=new ArrayList<>();
         private final Set<String> carried=new HashSet<>();
-        ScopePlan(Batch batch,long tenant,Long connection){
+        ScopePlan(Planning planning){
+            var batch=planning.batch();long tenant=planning.tenant();var connection=planning.connection();
             this.batch=batch;Map<String,List<String>> columns=DppmsUserScopeSyncTemplate.columns();
             for(var binding:batch.bindings())if(prior.put(binding.object()+":"+binding.sourceKey(),binding)!=null)throw new IllegalArgumentException("范围来源绑定重复");
             for(var row:batch.rows()){
@@ -79,6 +85,19 @@ public class DppmsUserScopeSyncAdapter implements DataSyncAdapter {
             }
             for(String object:List.of("t_user","fnd_user_info")){
                 List<String> keys=sources.values().stream().filter(row->object.equals(row.object())).map(Row::sourceKey).toList();
+                if(planning.preceding()!=null){
+                    for(var key:keys){
+                        var reference=planning.preceding().users().get(object+":"+key);
+                        if(reference==null)continue;
+                        var profile=(Map<?,?>)reference.fields().get("profile");
+                        if(profile==null || !Objects.equals(accountName(sources.get(object+":"+key)),profile.get("username")))
+                            throw new IllegalArgumentException("范围原账号与同轮Owner回执不符");
+                        if(Boolean.TRUE.equals(reference.fields().get("_auditOnly")) && !"admin".equals(profile.get("username")))
+                            throw new IllegalArgumentException("范围原账号混用审计专用关联");
+                        userTargets.put(object+":"+key,reference.id());
+                    }
+                    continue;
+                }
                 var matched=bindings.selectIdentitySources(new SyncQueries.IdentitySources(tenant,"DPPMS",connection,"DPPMS_USERS",object,keys));
                 for(var binding:matched){
                     String source=object+":"+binding.getSourceKey();Row row=sources.get(source);

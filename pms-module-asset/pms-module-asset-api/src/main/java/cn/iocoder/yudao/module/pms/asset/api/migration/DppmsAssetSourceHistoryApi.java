@@ -10,6 +10,9 @@ import java.util.Map;
 /** Typed software observations and change batches; never commands to upgrade a device. */
 public interface DppmsAssetSourceHistoryApi {
     List<NativeEntityMigrationRow> importSourceHistory(Command command);
+    /** Read-only validation of the same software batch/version command; no factory imports. */
+    record Preview(String domain,String sourceKey,Long targetId) {}
+    List<Preview> previewSourceHistory(Command command);
     PageResult<ObservationRecord> pageObservations(Query query);
     PageResult<BatchRecord> pageBatches(Query query);
     PageResult<FactoryRecord> pageFactories(Query query);

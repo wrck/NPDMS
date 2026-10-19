@@ -1,0 +1,1 @@
+SELECT r.role_id,r.role_name,r.role_name_zn,r.home_page,r.priority,r.remark,r.status,r.create_by,r.create_time,r.update_by,r.update_time,100-r.priority AS migrationSort,COALESCE(r.update_time,r.create_time) AS migrationVersion,NULL AS creatorSourceKey,NULL AS updaterSourceKey FROM t_role r WHERE r.status<>0 OR r.status IS NULL

@@ -1,0 +1,896 @@
+{
+  "task": "P15",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "CONTRACT",
+      "sourceObject": "pm_order_data_from_erp",
+      "sourceKey": "id",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "contract",
+          "table": "com_contract",
+          "keys": [
+            "company_code",
+            "contract_no"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "IGNORE",
+          "updateColumns": [
+            "currency_name",
+            "contract_amount",
+            "currency_code",
+            "contract_create_time",
+            "project_name",
+            "project_code",
+            "market_code",
+            "market_name",
+            "department_code",
+            "department_name",
+            "industry_code",
+            "industry_name",
+            "marketing_representative_code",
+            "marketing_representative_name",
+            "secondary_representative_code",
+            "system_name"
+          ],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "DPPMS_COMPANY_CODE",
+              "defaultValue": null,
+              "source": "company_code",
+              "target": "company_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "contract_no",
+              "target": "contract_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "customer_code",
+              "target": "customer_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "customer_name",
+              "target": "customer_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "$SOURCE_KEY",
+              "target": "master_source_record_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "master_origin",
+              "target": "master_source_system",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "currency_name",
+              "target": "currency_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "currency_code",
+              "target": "currency_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "contract_amount",
+              "target": "contract_amount",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "contract_create_time",
+              "target": "contract_create_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "project_name",
+              "target": "project_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "project_code",
+              "target": "project_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "market_code",
+              "target": "market_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "market_name",
+              "target": "market_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "department_code",
+              "target": "department_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "department_name",
+              "target": "department_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "industry_code",
+              "target": "industry_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "industry_name",
+              "target": "industry_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "marketing_representative_code",
+              "target": "marketing_representative_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "marketing_representative_name",
+              "target": "marketing_representative_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "secondary_representative_code",
+              "target": "secondary_representative_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "system_name",
+              "target": "system_name",
+              "values": null
+            }
+          ],
+          "lookups": [
+            {
+              "table": "system_company",
+              "match": {
+                "code": "company_code"
+              },
+              "outputs": {
+                "company_id": "id",
+                "company_name": "name"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "sameVersionColumns": null
+        }
+      ]
+    },
+    {
+      "object": "SHIPMENT_CONTRACT",
+      "sourceObject": "fb_contract",
+      "sourceKey": "sync_evidence_key",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "shipmentContract",
+          "table": "com_shipment_contract_reference",
+          "keys": [
+            "source_system",
+            "source_record_key"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "IGNORE",
+          "updateColumns": [
+            "contract_no",
+            "company_code",
+            "department_code",
+            "contract_type",
+            "customer_name",
+            "project_name",
+            "warranty_years",
+            "market_code",
+            "market_name",
+            "system_source_key",
+            "system_name",
+            "remark",
+            "contract_id",
+            "company_id",
+            "company_name",
+            "department_id",
+            "department_name"
+          ],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "contract_code",
+              "target": "contract_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DPPMS_COMPANY_CODE",
+              "defaultValue": null,
+              "source": "company_code",
+              "target": "company_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "office_code",
+              "target": "department_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "contract_type",
+              "target": "contract_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "customer_name",
+              "target": "customer_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "project_name",
+              "target": "project_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DPPMS_WARRANTY_YEARS",
+              "defaultValue": null,
+              "source": "warranty",
+              "target": "warranty_years",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "marketCode",
+              "target": "market_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "marketName",
+              "target": "market_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "systemId",
+              "target": "system_source_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "systemName",
+              "target": "system_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "remark",
+              "target": "remark",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "$SOURCE_KEY",
+              "target": "source_record_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null
+            }
+          ],
+          "lookups": [
+            {
+              "table": "com_contract",
+              "match": {
+                "contract_no": "contract_no",
+                "company_code": "company_code"
+              },
+              "outputs": {
+                "contract_id": "id"
+              },
+              "onMissing": "RETAIN"
+            },
+            {
+              "table": "system_company",
+              "match": {
+                "code": "company_code"
+              },
+              "outputs": {
+                "company_id": "id",
+                "company_name": "name"
+              },
+              "onMissing": "RETAIN"
+            },
+            {
+              "table": "system_dept",
+              "match": {
+                "code": "department_code"
+              },
+              "outputs": {
+                "department_id": "id",
+                "department_name": "name"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "sameVersionColumns": null
+        }
+      ]
+    },
+    {
+      "object": "PACKAGE",
+      "sourceObject": "fb_shipment",
+      "sourceKey": "packlist_id",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "package",
+          "table": "com_shipment_package",
+          "keys": [
+            "source_system",
+            "source_record_key"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "IGNORE",
+          "updateColumns": [
+            "shipment_time",
+            "warranty_start_time",
+            "warranty_end_time",
+            "receiver_name",
+            "express_no",
+            "carrier_name",
+            "shipment_contract_ref_id",
+            "carrier_code"
+          ],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "packlist_id",
+              "target": "package_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "packdate",
+              "target": "shipment_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "warrantyStartTime",
+              "target": "warranty_start_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "warrantyEndTime",
+              "target": "warranty_end_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "receiveName",
+              "target": "receiver_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "emsNum",
+              "target": "express_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "carrier_name",
+              "target": "carrier_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "$SOURCE_KEY",
+              "target": "source_record_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "emsCompany",
+              "target": "carrier_code",
+              "values": null
+            }
+          ],
+          "lookups": [
+            {
+              "table": "com_shipment_contract_reference",
+              "match": {
+                "source_system": "source_system",
+                "source_record_key": "@con_id"
+              },
+              "outputs": {
+                "shipment_contract_ref_id": "id"
+              },
+              "onMissing": "RETAIN"
+            }
+          ],
+          "sameVersionColumns": null
+        }
+      ]
+    },
+    {
+      "object": "DEVICE_SN",
+      "sourceObject": "fb_shipment_barcode",
+      "sourceKey": "id",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "event",
+          "table": "ast_device_shipment",
+          "keys": [
+            "source_system",
+            "source_key"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "IGNORE",
+          "updateColumns": [],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "barcode",
+              "target": "device_sn",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "shipment_time",
+              "target": "shipment_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "pack_id",
+              "target": "package_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "pack_id",
+              "target": "legacy_package_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "contract_no",
+              "target": "contract_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "event_type",
+              "target": "event_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATE",
+              "defaultValue": null,
+              "source": "warrantyStartDate",
+              "target": "warranty_start_date",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null,
+              "source": "warrantyMonth",
+              "target": "warranty_months",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "rma_no",
+              "target": "rma_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "rmaBarcode",
+              "target": "rma_related_sn",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null,
+              "source": "rma_marked",
+              "target": "rma_marked",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "$SOURCE_KEY",
+              "target": "source_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "updateTime",
+              "target": "source_updated_at",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "JSON",
+              "defaultValue": null,
+              "source": "$ROW",
+              "target": "source_payload",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "orderNumber",
+              "target": "order_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "lineNum",
+              "target": "line_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "item",
+              "target": "product_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "barcode2",
+              "target": "secondary_sn",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "item2",
+              "target": "secondary_item",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "com_barcode",
+              "target": "internal_serial_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "isRMA",
+              "target": "is_rma",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "profitCenter",
+              "target": "profit_center",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "soleAgentSuffix",
+              "target": "sole_agent_suffix",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "syncTime",
+              "target": "sync_time",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "uuid",
+              "target": "uuid",
+              "values": null
+            }
+          ],
+          "lookups": null,
+          "sameVersionColumns": null
+        }
+      ]
+    },
+    {
+      "object": "DEVICE_RELATION",
+      "sourceObject": "fb_shipment_barcode_relation",
+      "sourceKey": "id",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "relation",
+          "table": "ast_device_relationship",
+          "keys": [
+            "source_system",
+            "source_key"
+          ],
+          "mode": "UPSERT",
+          "nullPolicy": "IGNORE",
+          "updateColumns": [],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "sn1",
+              "target": "source_device_sn",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "sn2",
+              "target": "target_device_sn",
+              "values": null
+            },
+            {
+              "constant": "EXTRA_SN",
+              "conversion": "CONSTANT",
+              "defaultValue": null,
+              "source": null,
+              "target": "relationship_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "contract",
+              "target": "contract_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DATETIME",
+              "defaultValue": null,
+              "source": "createtime",
+              "target": "effective_from",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "$SOURCE_SYSTEM",
+              "target": "source_system",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "$SOURCE_KEY",
+              "target": "source_key",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "updatetime",
+              "target": "source_version",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "item1",
+              "target": "source_item",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DIRECT",
+              "defaultValue": null,
+              "source": "item2",
+              "target": "target_item",
+              "values": null
+            }
+          ],
+          "lookups": null,
+          "sameVersionColumns": null
+        }
+      ]
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": []
+}

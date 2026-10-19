@@ -1,0 +1,607 @@
+{
+  "task": "P24",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "sms_ofst_contract_head_sap",
+      "sourceObject": "sms_ofst_contract_head_sap",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contract_num",
+          "target": "contract_num"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "batch_code",
+          "target": "batch_code"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "project_name",
+          "target": "project_name"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "order_num",
+          "target": "order_num"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "client_supplier_code",
+          "target": "client_supplier_code"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "client_supplier_name",
+          "target": "client_supplier_name"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contract_money_amount",
+          "target": "contract_money_amount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "delivered_money_amount",
+          "target": "delivered_money_amount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "collected_money_amount",
+          "target": "collected_money_amount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "collected_money_ratio",
+          "target": "collected_money_ratio"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "receivables_money_amount",
+          "target": "receivables_money_amount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "over_due_money_amount",
+          "target": "over_due_money_amount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "maketing_department_name",
+          "target": "maketing_department_name"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "office_name",
+          "target": "office_name"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "industry_name",
+          "target": "industry_name"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "marketing_representative_name",
+          "target": "marketing_representative_name"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "currency_name",
+          "target": "currency_name"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "create_by",
+          "target": "create_by"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "create_time",
+          "target": "create_time"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "update_by",
+          "target": "update_by"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "update_time",
+          "target": "update_time"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effective_from",
+          "target": "effective_from"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effective_to",
+          "target": "effective_to"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "import_batch_num",
+          "target": "import_batch_num"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contract_create_date",
+          "target": "contract_create_date"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectCode",
+          "target": "projectCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "marketCode",
+          "target": "marketCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "systemId",
+          "target": "systemId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "industryId",
+          "target": "industryId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "officeCode",
+          "target": "officeCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "expendId",
+          "target": "expendId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "usernamec",
+          "target": "usernamec"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "latest_ship_date",
+          "target": "latest_ship_date"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "usernamec2",
+          "target": "usernamec2"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "systemid_o",
+          "target": "systemid_o"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "expendid_o",
+          "target": "expendid_o"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "industry_name_o",
+          "target": "industry_name_o"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "dataSource",
+          "target": "dataSource"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "com_contract_receivable",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_id",
+      "parameter": "#{row.contractId}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_no",
+      "parameter": "#{row.contractNo}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_id",
+      "parameter": "#{row.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_code",
+      "parameter": "#{row.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_name",
+      "parameter": "#{row.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "company_resolution_source",
+      "parameter": "#{row.companyResolutionSource}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "mapping_status",
+      "parameter": "#{row.mappingStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "project_name",
+      "parameter": "#{row.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_order_no",
+      "parameter": "#{row.sourceOrderNo}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "customer_code",
+      "parameter": "#{row.customerCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "customer_name",
+      "parameter": "#{row.customerName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_amount",
+      "parameter": "#{row.contractAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "delivered_amount",
+      "parameter": "#{row.deliveredAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "collected_amount",
+      "parameter": "#{row.collectedAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "collected_ratio",
+      "parameter": "#{row.collectedRatio}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "receivable_amount",
+      "parameter": "#{row.receivableAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "overdue_amount",
+      "parameter": "#{row.overdueAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "currency_name",
+      "parameter": "#{row.currencyName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "market_code",
+      "parameter": "#{row.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "market_name",
+      "parameter": "#{row.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "department_id",
+      "parameter": "#{row.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "department_code",
+      "parameter": "#{row.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "department_name",
+      "parameter": "#{row.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "industry_name",
+      "parameter": "#{row.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "marketing_representative_name",
+      "parameter": "#{row.marketingRepresentativeName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_batch_code",
+      "parameter": "#{row.sourceBatchCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "import_batch_no",
+      "parameter": "#{row.importBatchNo}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "project_code",
+      "parameter": "#{row.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "system_source_key",
+      "parameter": "#{row.systemSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "system_code",
+      "parameter": "#{row.systemCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "system_name",
+      "parameter": "#{row.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "industry_code",
+      "parameter": "#{row.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "expend_source_key",
+      "parameter": "#{row.expendSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "expend_code",
+      "parameter": "#{row.expendCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "expend_name",
+      "parameter": "#{row.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "marketing_representative_code",
+      "parameter": "#{row.marketingRepresentativeCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "secondary_representative_code",
+      "parameter": "#{row.secondaryRepresentativeCode}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "original_division_values",
+      "parameter": "#{row.originalDivisionValues}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_effective_from",
+      "parameter": "#{row.sourceEffectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_effective_to",
+      "parameter": "#{row.sourceEffectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "contract_create_time",
+      "parameter": "#{row.contractCreateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "latest_ship_time",
+      "parameter": "#{row.latestShipTime}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_system",
+      "parameter": "#{row.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_record_key",
+      "parameter": "#{row.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "source_sync_time",
+      "parameter": "#{row.sourceSyncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "create_time",
+      "parameter": "#{row.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "update_time",
+      "parameter": "#{row.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    },
+    {
+      "table": "com_contract_receivable",
+      "column": "deleted",
+      "parameter": "#{row.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.selectSourceForUpdate",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml",
+      "xml": "<select id=\"selectSourceForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.dataobject.contract.history.ContractReceivableDO\">\n    SELECT id, tenant_id, contract_id, contract_no, company_id, company_code, company_name, company_resolution_source, mapping_status, project_name, source_order_no, customer_code, customer_name, contract_amount, delivered_amount, collected_amount, collected_ratio, receivable_amount, overdue_amount, currency_name, market_code, market_name, department_id, department_code, department_name, industry_name, marketing_representative_name, source_batch_code, import_batch_no, project_code, system_source_key, system_code, system_name, industry_code, expend_source_key, expend_code, expend_name, marketing_representative_code, secondary_representative_code, original_division_values, source_effective_from, source_effective_to, contract_create_time, latest_ship_time, source_system, source_record_key, source_sync_time, creator, create_time, updater, update_time, deleted FROM com_contract_receivable\n    WHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem}\n      AND source_record_key=#{query.sourceKey} FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.selectExactContractIds",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml",
+      "xml": "<select id=\"selectExactContractIds\" resultType=\"java.lang.Long\">\n    SELECT id FROM com_contract WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n      AND contract_no=#{query.contractNo}\n      AND CAST(contract_no AS BINARY)=CAST(#{query.contractNo} AS BINARY) ORDER BY id\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.selectContractIdentities",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml",
+      "xml": "<select id=\"selectContractIdentities\" resultType=\"cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper$ContractIdentity\">\n    SELECT id,contract_no FROM com_contract WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n    <choose><when test=\"query.contractNos != null and !query.contractNos.isEmpty()\">\n      AND contract_no IN <foreach collection=\"query.contractNos\" item=\"no\" open=\"(\" separator=\",\" close=\")\">#{no}</foreach>\n      AND CAST(contract_no AS BINARY) IN <foreach collection=\"query.contractNos\" item=\"no\" open=\"(\" separator=\",\" close=\")\">CAST(#{no} AS BINARY)</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY id\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.insertReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml",
+      "xml": "<insert id=\"insertReceipt\">\n    INSERT INTO com_contract_receivable (id, tenant_id, contract_id, contract_no, company_id, company_code, company_name, company_resolution_source, mapping_status, project_name, source_order_no, customer_code, customer_name, contract_amount, delivered_amount, collected_amount, collected_ratio, receivable_amount, overdue_amount, currency_name, market_code, market_name, department_id, department_code, department_name, industry_name, marketing_representative_name, source_batch_code, import_batch_no, project_code, system_source_key, system_code, system_name, industry_code, expend_source_key, expend_code, expend_name, marketing_representative_code, secondary_representative_code, original_division_values, source_effective_from, source_effective_to, contract_create_time, latest_ship_time, source_system, source_record_key, source_sync_time, creator, create_time, updater, update_time, deleted)\n    VALUES (#{row.id}, #{row.tenantId}, #{row.contractId}, #{row.contractNo}, #{row.companyId}, #{row.companyCode}, #{row.companyName}, #{row.companyResolutionSource}, #{row.mappingStatus}, #{row.projectName}, #{row.sourceOrderNo}, #{row.customerCode}, #{row.customerName}, #{row.contractAmount}, #{row.deliveredAmount}, #{row.collectedAmount}, #{row.collectedRatio}, #{row.receivableAmount}, #{row.overdueAmount}, #{row.currencyName}, #{row.marketCode}, #{row.marketName}, #{row.departmentId}, #{row.departmentCode}, #{row.departmentName}, #{row.industryName}, #{row.marketingRepresentativeName}, #{row.sourceBatchCode}, #{row.importBatchNo}, #{row.projectCode}, #{row.systemSourceKey}, #{row.systemCode}, #{row.systemName}, #{row.industryCode}, #{row.expendSourceKey}, #{row.expendCode}, #{row.expendName}, #{row.marketingRepresentativeCode}, #{row.secondaryRepresentativeCode}, #{row.originalDivisionValues}, #{row.sourceEffectiveFrom}, #{row.sourceEffectiveTo}, #{row.contractCreateTime}, #{row.latestShipTime}, #{row.sourceSystem}, #{row.sourceRecordKey}, #{row.sourceSyncTime}, #{row.creator}, #{row.createTime}, #{row.updater}, #{row.updateTime}, #{row.deleted})\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.commerce.dal.mysql.migration.ContractReceivableMigrationMapper.updateReceipt",
+      "source": "pms-module-commerce/src/main/resources/mapper/migration/ContractReceivableMigrationMapper.xml",
+      "xml": "<update id=\"updateReceipt\">\n    UPDATE com_contract_receivable SET contract_id=#{row.contractId}, contract_no=#{row.contractNo}, company_id=#{row.companyId}, company_code=#{row.companyCode}, company_name=#{row.companyName}, company_resolution_source=#{row.companyResolutionSource}, mapping_status=#{row.mappingStatus}, project_name=#{row.projectName}, source_order_no=#{row.sourceOrderNo}, customer_code=#{row.customerCode}, customer_name=#{row.customerName}, contract_amount=#{row.contractAmount}, delivered_amount=#{row.deliveredAmount}, collected_amount=#{row.collectedAmount}, collected_ratio=#{row.collectedRatio}, receivable_amount=#{row.receivableAmount}, overdue_amount=#{row.overdueAmount}, currency_name=#{row.currencyName}, market_code=#{row.marketCode}, market_name=#{row.marketName}, department_id=#{row.departmentId}, department_code=#{row.departmentCode}, department_name=#{row.departmentName}, industry_name=#{row.industryName}, marketing_representative_name=#{row.marketingRepresentativeName}, source_batch_code=#{row.sourceBatchCode}, import_batch_no=#{row.importBatchNo}, project_code=#{row.projectCode}, system_source_key=#{row.systemSourceKey}, system_code=#{row.systemCode}, system_name=#{row.systemName}, industry_code=#{row.industryCode}, expend_source_key=#{row.expendSourceKey}, expend_code=#{row.expendCode}, expend_name=#{row.expendName}, marketing_representative_code=#{row.marketingRepresentativeCode}, secondary_representative_code=#{row.secondaryRepresentativeCode}, original_division_values=#{row.originalDivisionValues}, source_effective_from=#{row.sourceEffectiveFrom}, source_effective_to=#{row.sourceEffectiveTo}, contract_create_time=#{row.contractCreateTime}, latest_ship_time=#{row.latestShipTime}, source_system=#{row.sourceSystem}, source_record_key=#{row.sourceRecordKey}, source_sync_time=#{row.sourceSyncTime}, creator=#{row.creator}, create_time=#{row.createTime}, updater=#{row.updater}, update_time=#{row.updateTime}, deleted=#{row.deleted}\n    WHERE tenant_id=#{row.tenantId} AND id=#{row.id} AND deleted=FALSE\n  </update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.selectMaintenance",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+      "xml": "<select id=\"selectMaintenance\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO\">\n    SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at &lt; #{now}))\n      ORDER BY id LIMIT 100\n  </select>\n"
+    }
+  ]
+}

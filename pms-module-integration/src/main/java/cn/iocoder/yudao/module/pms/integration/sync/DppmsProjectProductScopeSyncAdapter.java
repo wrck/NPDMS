@@ -65,7 +65,7 @@ public class DppmsProjectProductScopeSyncAdapter implements DataSyncAdapter {
                     || !saved.keySet().equals(raw.keySet()) || raw.keySet().stream().anyMatch(name->!Objects.equals(raw.get(name),text(saved.get(name))))))
                 fail("原字段或绑定发生变化，禁止自动接管");
         }
-        var references=projectBindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(projectKeys)));
+        var references=projectBindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(projectKeys)).originalLine());
         var byProject=new HashMap<String,DppmsProjectBindingApi.ProjectBinding>();
         for(var ref:references)if(byProject.put(ref.sourceProjectKey(),ref)!=null)fail("正式项目绑定多义");
         if(!projectKeys.containsAll(byProject.keySet()))fail("返回了范围外项目绑定");

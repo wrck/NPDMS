@@ -26,7 +26,7 @@
       "sourceObject": "pm_pb_plan_from_sms",
       "readMode": "TABLE",
       "table": "pm_pb_plan_from_sms",
-      "sourceKey": "cacheRowOrdinal",
+      "sourceKey": "id",
       "columns": [
         "id",
         "contractNo",

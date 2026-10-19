@@ -1,0 +1,779 @@
+{
+  "date": "2026-10-19",
+  "worktree": "C:\\Users\\user\\Documents\\Codex\\2026-10-06\\task-3\\project-detail-followup",
+  "branch": "fix/dppms-migration-consolidation-20261012",
+  "current24StatusCounts": {
+    "PREVIEW_READY": 14,
+    "FAILED": 10
+  },
+  "current24": [
+    {
+      "task": "P01",
+      "run": {
+        "id": 2111504172950122498,
+        "task_code": "BASE_P01",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 208,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 208,
+        "error_message": "P01_DIRECTOR_ASSOCIATION_PENDING:162007003;P01_DIRECTOR_ASSOCIATION_PENDING:162012003;P01_DIRECTOR_ASSOCIATION_PENDING:162022003;P01_DIRECTOR_ASSOCIATION_PENDING:310409001;P01_DIRECTOR_ASSOCIATION_PENDING:310422001;P01_DIRECTOR_ASSOCIATION_PENDING:167010;P01_DIRECTOR_ASSOCIATION_PENDING:167020;P01_DIRECTOR_ASSOCIATION_PENDING:167050",
+        "started_at": "2026-10-18 01:06:39.351000",
+        "finished_at": "2026-10-18 01:06:39.773000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P04",
+      "run": {
+        "id": 2111517837875126273,
+        "task_code": "BASE_P04",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 12632,
+        "inserted_count": 12605,
+        "updated_count": 0,
+        "unchanged_count": 27,
+        "error_message": "P04_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P04_ORIGINAL_READ:3307;EXCLUDED_ACCOUNTS:26;ORPHAN_PROFILES:3",
+        "started_at": "2026-10-18 02:00:57.327000",
+        "finished_at": "2026-10-18 02:00:58.290000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P08",
+      "run": {
+        "id": 2112057345712537601,
+        "task_id": 2111470471713304577,
+        "task_code": "BASE_P08",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 612,
+        "inserted_count": 611,
+        "updated_count": 0,
+        "unchanged_count": 1,
+        "error_message": null,
+        "started_at": "2026-10-19 13:44:46.012000",
+        "finished_at": "2026-10-19 13:44:46.238000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P10",
+      "run": {
+        "id": 2112067330504867842,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "CRM客户原记录存在未决问题：DUPLICATE_CUSTOMER_CODE",
+        "started_at": "2026-10-19 14:24:26.567000",
+        "finished_at": "2026-10-19 14:24:45.692000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P11",
+      "run": {
+        "id": 2111436809982627841,
+        "task_id": 2111407905813229570,
+        "task_code": "BASE_P11",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 8443,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 20:38:58.768000",
+        "finished_at": "2026-10-17 20:38:59.454000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P12",
+      "run": {
+        "id": 2111436813732335618,
+        "task_id": 2111435600580231169,
+        "task_code": "BASE_P12",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 34976,
+        "inserted_count": 34976,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 20:38:59.654000",
+        "finished_at": "2026-10-17 20:39:00.734000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P13",
+      "run": {
+        "id": 2111515526163517442,
+        "task_code": "BASE_P13",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 99895,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P13_EXECUTION_SCHEMA_REQUIRED:uk_int_base_sync_binding_target;P13_OUTSIDE_REVIEWED_PROJECT_SCOPE:2625;P13_PREVIEW_SOURCE_VALIDATED;WRITE_COUNTS_DEFERRED_UNTIL_EXECUTION",
+        "started_at": "2026-10-18 01:51:46.160000",
+        "finished_at": "2026-10-18 01:51:58.973000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P14",
+      "run": {
+        "id": 2112051434155581442,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+        "started_at": "2026-10-19 13:21:16.580000",
+        "finished_at": "2026-10-19 13:21:30.684000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P15",
+      "run": {
+        "id": 2112051493786001409,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P15_TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key",
+        "started_at": "2026-10-19 13:21:30.798000",
+        "finished_at": "2026-10-19 13:21:30.815000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P16",
+      "run": {
+        "id": 2112057425274290177,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P16_PROJECT_ID_ALREADY_OWNED",
+        "started_at": "2026-10-19 13:45:04.976000",
+        "finished_at": "2026-10-19 13:45:08.361000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P18",
+      "run": {
+        "id": 2112059597156204546,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PROJECT_FORMAL_IDENTITY_INVALID",
+        "started_at": "2026-10-19 13:53:42.800000",
+        "finished_at": "2026-10-19 13:53:54.709000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P19",
+      "run": {
+        "id": 2112071091293958146,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PROJECT_FORMAL_IDENTITY_INVALID",
+        "started_at": "2026-10-19 14:39:23.215000",
+        "finished_at": "2026-10-19 14:39:33.279000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P20",
+      "run": {
+        "id": 2112059695747514370,
+        "task_id": 2111504298947014658,
+        "task_code": "BASE_P20",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 7818,
+        "inserted_count": 7818,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED",
+        "started_at": "2026-10-19 13:54:06.300000",
+        "finished_at": "2026-10-19 13:54:18.478000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P21",
+      "run": {
+        "id": 2112053188930744321,
+        "task_id": 2111463419926470657,
+        "task_code": "BASE_P21",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 1190,
+        "inserted_count": 1190,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P21_EXECUTION_SCHEMA_REQUIRED:project_id_nullable",
+        "started_at": "2026-10-19 13:28:14.959000",
+        "finished_at": "2026-10-19 13:28:15.153000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P22",
+      "run": {
+        "id": 2112084563050270722,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P22_DEPARTMENT_CODE_UNRESOLVED:NULL",
+        "started_at": "2026-10-19 15:32:55.132000",
+        "finished_at": "2026-10-19 15:33:02.428000"
+      },
+      "rerunThisPhase": true
+    },
+    {
+      "task": "P23",
+      "run": {
+        "id": 2111466972774600705,
+        "task_code": "BASE_P23",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 35501,
+        "inserted_count": 35501,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 22:38:50.135000",
+        "finished_at": "2026-10-17 22:38:51.262000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P24",
+      "run": {
+        "id": 2112057587128287234,
+        "task_id": 2111463422476607489,
+        "task_code": "BASE_P24",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 81547,
+        "inserted_count": 81540,
+        "updated_count": 0,
+        "unchanged_count": 7,
+        "error_message": null,
+        "started_at": "2026-10-19 13:45:43.563000",
+        "finished_at": "2026-10-19 13:45:50.106000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P25",
+      "run": {
+        "id": 2111480444740603906,
+        "task_code": "BASE_P25",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 462213,
+        "inserted_count": 462213,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 23:32:22.096000",
+        "finished_at": "2026-10-17 23:32:37.135000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P30",
+      "run": {
+        "id": 2111481771424153602,
+        "task_code": "BASE_P30",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P30_FORMAL_DPPMS_SHIPMENTS_MISSING:0",
+        "started_at": "2026-10-17 23:37:38.410000",
+        "finished_at": "2026-10-17 23:37:38.463000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P31",
+      "run": {
+        "id": 2112057614999437313,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PUBLISHED_PROJECT_CURRENT_IDENTITY_CHANGED",
+        "started_at": "2026-10-19 13:45:50.208000",
+        "finished_at": "2026-10-19 13:45:52.946000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P33",
+      "run": {
+        "id": 2112057626944815105,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P33_SOURCE_CAPACITY",
+        "started_at": "2026-10-19 13:45:53.056000",
+        "finished_at": "2026-10-19 13:46:21.177000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P34",
+      "run": {
+        "id": 2111480509467103233,
+        "task_code": "BASE_P34",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 165801,
+        "inserted_count": 165801,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": null,
+        "started_at": "2026-10-17 23:32:37.529000",
+        "finished_at": "2026-10-17 23:32:41.213000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P35",
+      "run": {
+        "id": 2112071158990024705,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PUBLISHED_PROJECT_CURRENT_IDENTITY_CHANGED",
+        "started_at": "2026-10-19 14:39:39.348000",
+        "finished_at": "2026-10-19 14:39:41.122000"
+      },
+      "rerunThisPhase": false
+    },
+    {
+      "task": "P37",
+      "run": {
+        "id": 2111480525451595777,
+        "task_code": "BASE_P37",
+        "status": "PREVIEW_READY",
+        "preview": "01",
+        "read_count": 475468,
+        "inserted_count": 475468,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P37_LICENSE_CODE_EMPTY:sourceId=472122;P37_DEVICE_ASSOCIATION_PENDING:475468;P37_CONTRACT_ASSOCIATION_PENDING:475468",
+        "started_at": "2026-10-17 23:32:41.338000",
+        "finished_at": "2026-10-17 23:33:01.767000"
+      },
+      "rerunThisPhase": false
+    }
+  ],
+  "affectedRecords": [
+    {
+      "task": "P22",
+      "run": {
+        "id": 2112084563050270722,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P22_DEPARTMENT_CODE_UNRESOLVED:NULL",
+        "started_at": "2026-10-19 15:32:55.132000",
+        "finished_at": "2026-10-19 15:33:02.428000"
+      },
+      "evidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\P22-preview.json",
+      "priorRetryEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\P22-preview.json"
+    }
+  ],
+  "remainingFailureCount": 10,
+  "remainingFailures": [
+    {
+      "task": "P10",
+      "run": {
+        "id": 2112067330504867842,
+        "task_id": 2111470474389270529,
+        "task_code": "BASE_P10",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "CRM客户原记录存在未决问题：DUPLICATE_CUSTOMER_CODE",
+        "started_at": "2026-10-19 14:24:26.567000",
+        "finished_at": "2026-10-19 14:24:45.692000"
+      },
+      "classification": "EXTERNAL_SOURCE_DATA",
+      "disposition": "ERP列已按单列授权补齐；源59601行中22组客户编码对应44个不同账号且名称不同，另35行缺名称、4行名称超长。需CRM来源Owner纠正或给出已审核的无损承载方案，不能擅自合并、改码或跳过。"
+    },
+    {
+      "task": "P14",
+      "run": {
+        "id": 2112051434155581442,
+        "task_id": 2111504179094777858,
+        "task_code": "BASE_P14",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P14_DUPLICATE_BUSINESS_KEY_CONFLICT",
+        "started_at": "2026-10-19 13:21:16.580000",
+        "finished_at": "2026-10-19 13:21:30.684000"
+      },
+      "classification": "EXTERNAL_SOURCE_DATA",
+      "disposition": "源订单表头91572行/91239键，169组载荷冲突；订单行380605行/379522键，10组冲突，40条原行缺订单号。保留冲突校验，需ERP来源Owner确认正式版本及缺失订单号，不能用MAX任意选值。"
+    },
+    {
+      "task": "P15",
+      "run": {
+        "id": 2112051493786001409,
+        "task_id": 2111504249399701506,
+        "task_code": "BASE_P15",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P15_TARGET_COLUMN_MISSING:com_shipment_package.shipment_contract_source_key",
+        "started_at": "2026-10-19 13:21:30.798000",
+        "finished_at": "2026-10-19 13:21:30.815000"
+      },
+      "classification": "EXTERNAL_SCHEMA_CAPACITY_AND_INPUT",
+      "disposition": "com_shipment_package.shipment_contract_source_key仍缺失；4283326条条码超过注册值/库CHECK的100万，代码500万上限不会自动修改配置和结构。已有补丁仅准备，未获本轮其他DDL例外；正式P24输入也未产生。"
+    },
+    {
+      "task": "P16",
+      "run": {
+        "id": 2112057425274290177,
+        "task_id": 2111504250456666113,
+        "task_code": "BASE_P16",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P16_PROJECT_ID_ALREADY_OWNED",
+        "started_at": "2026-10-19 13:45:04.976000",
+        "finished_at": "2026-10-19 13:45:08.361000"
+      },
+      "classification": "EXTERNAL_PROJECT_ID_COLLISION",
+      "disposition": "当前40个原项目ID（1001至1040）均被其他编码项目占用。遵守原projectId承接，禁止覆盖或重新编号；需提供无冲突的正式承接环境或冲突归属处理证据。"
+    },
+    {
+      "task": "P18",
+      "run": {
+        "id": 2112059597156204546,
+        "task_id": 2111504251568156674,
+        "task_code": "BASE_P18",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PROJECT_FORMAL_IDENTITY_INVALID",
+        "started_at": "2026-10-19 13:53:42.800000",
+        "finished_at": "2026-10-19 13:53:54.709000"
+      },
+      "classification": "EXTERNAL_PROJECT_ID_COLLISION",
+      "disposition": "原项目ID承接仍被既存异编码项目占用；共用同一40项现场证据，不再把账号目录或P16预览当成正式父数据。待冲突归属解决后重验实际合同关系。"
+    },
+    {
+      "task": "P19",
+      "run": {
+        "id": 2112071091293958146,
+        "task_id": 2111504252700618753,
+        "task_code": "BASE_P19",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PROJECT_FORMAL_IDENTITY_INVALID",
+        "started_at": "2026-10-19 14:39:23.215000",
+        "finished_at": "2026-10-19 14:39:33.279000"
+      },
+      "classification": "EXTERNAL_PROJECT_ID_COLLISION",
+      "disposition": "四个项目状态扩展已暂缓，不读状态原表或正式扩展定义；相关方预览现停在原项目ID冲突。需解决同一40项项目身份冲突，不能接管已有相关方或项目。"
+    },
+    {
+      "task": "P22",
+      "run": {
+        "id": 2112084563050270722,
+        "task_id": 2111504342123180033,
+        "task_code": "BASE_P22",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P22_DEPARTMENT_CODE_UNRESOLVED:NULL",
+        "started_at": "2026-10-19 15:32:55.132000",
+        "finished_at": "2026-10-19 15:33:02.428000"
+      },
+      "classification": "IMPLEMENTATION_FIXED_WITH_EXTERNAL_DEPARTMENT_DATA",
+      "disposition": "订单行ID及部门ID均先-1，正式订单行缺失不再阻断原表预览。原pm_project.column001直接带入后，全范围343858行中14525行缺编码，正数量缺编码14293行，首条源行6644/原项目49746；其余非空码均能按租户匹配。需来源补齐这些原始部门业务键，不能猜部门或用数值-1代替业务码。2976条零数量按DPPMS-SCOPE-039既有裁决登记待处理。真实执行另需能承载待定订单引用的正式结构，以及后续新P14业务键/独立SALES_LINE绑定；当前未做DDL或同步。"
+    },
+    {
+      "task": "P31",
+      "run": {
+        "id": 2112057614999437313,
+        "task_id": 2111504367108648961,
+        "task_code": "BASE_P31",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PUBLISHED_PROJECT_CURRENT_IDENTITY_CHANGED",
+        "started_at": "2026-10-19 13:45:50.208000",
+        "finished_at": "2026-10-19 13:45:52.946000"
+      },
+      "classification": "EXTERNAL_PROJECT_ID_COLLISION",
+      "disposition": "当前正式项目身份与原ID范围不同，仍受同一40项冲突保护；不补造user_id，不由历史成员授予当前权限。待正式项目身份正确后再验历史联系人所需最终客户等真实关联。"
+    },
+    {
+      "task": "P33",
+      "run": {
+        "id": 2112057626944815105,
+        "task_id": 2111504368203362306,
+        "task_code": "BASE_P33",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "P33_SOURCE_CAPACITY",
+        "started_at": "2026-10-19 13:45:53.056000",
+        "finished_at": "2026-10-19 13:46:21.177000"
+      },
+      "classification": "EXTERNAL_SCHEMA_CAPACITY_AND_INPUT",
+      "disposition": "原批准范围1063717行，1037715行带地址，均超过当前100万任务/元数据约束。需已审核容量配置与对应结构到位；不得裁剪范围。后续真实设备、地址及授权能力仍需单独核验。"
+    },
+    {
+      "task": "P35",
+      "run": {
+        "id": 2112071158990024705,
+        "task_id": 2111504369105137665,
+        "task_code": "BASE_P35",
+        "status": "FAILED",
+        "preview": "01",
+        "read_count": 0,
+        "inserted_count": 0,
+        "updated_count": 0,
+        "unchanged_count": 0,
+        "error_message": "PUBLISHED_PROJECT_CURRENT_IDENTITY_CHANGED",
+        "started_at": "2026-10-19 14:39:39.348000",
+        "finished_at": "2026-10-19 14:39:41.122000"
+      },
+      "classification": "EXTERNAL_PROJECT_ID_COLLISION",
+      "disposition": "八个软件历史扩展已暂缓，不读写其属性或定义；基础批次/版本历史预览现停在原项目当前身份冲突。正式父软件批次仍只用本任务独立来源身份和本次规划，不接管旧任务记录。"
+    }
+  ],
+  "decisions": {
+    "originalDepartment": "l.projectId -> pm_project p.projectId; p.column001 AS originalDepartmentCode, no later source lookup or selected-master substitution",
+    "departmentMatch": "same tenant and exact code; catalogue loaded once; numeric ID -1 then one current-run-only postfill",
+    "orderLineId": "-1, no formal order lookup for fresh raw rows; one later unique business-key/own BASE_P14 SALES_LINE binding postfill; unresolved or ambiguous stays -1 with warning",
+    "companyCatalogue": "t_company once per execution, existing 01-04 to 001-004 conversion",
+    "zeroQuantity": "DPPMS-SCOPE-039 用户裁决 already ADJUDICATED: project quantity first, raw order quantity only when null; zero enumerated pending with no target/binding, positive rows continue, negative still fails",
+    "executionSchema": "Actual fk_scope_order_line and three NOT NULL derived snapshot columns cannot carry pending references; execution blocked before writes, preview only warns. No structural change authorized or performed this phase.",
+    "existingVersionUniqueIndex": "Already adjudicated DPPMS-SCOPE-040: current real uk_scope_version applies only to allocation_confirmed=true; unchanged and not a new blocker."
+  },
+  "tests": [
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncDefaultsTest",
+      "tests": 37,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T151636.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncIsolationTest",
+      "tests": 15,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T151636.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncMapperWiringTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T152931.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.OriginalIdentityPolicyTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T151636.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.OriginalProjectScopeMySqlTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T151636.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.P22DepartmentPostfillMySqlTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T152931.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.P22SnapshotCollationMySqlTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T152931.log"
+    }
+  ],
+  "affectedRerunTests": [
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.BaseSyncMapperWiringTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T152931.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.P22DepartmentPostfillMySqlTest",
+      "tests": 14,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T152931.log"
+    },
+    {
+      "class": "cn.iocoder.yudao.module.pms.integration.basesync.task.P22SnapshotCollationMySqlTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\order-line-20261019T152931.log"
+    }
+  ],
+  "uniqueEffectiveTests": 77,
+  "latestAffectedRerunTestCount": 19,
+  "protectionEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\final-proof.json",
+  "sourcePrerequisitesEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\original-department-source-evidence.json",
+  "missingDepartmentRowsEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\missing-original-department-rows.json",
+  "zeroQuantityPendingEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\P22-reviewed-pending-source-rows.json",
+  "schemaEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\pending-order-schema-evidence.json",
+  "otherPrerequisitesEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\remaining-prerequisites.json",
+  "CRMSourceEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\source-prerequisites.json",
+  "priorConflictAndCapacityEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-deferred-extensions-20261019\\terminal-gaps.json",
+  "candidateManifests": [
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-order-line-deferred-20261019\\candidate-manifest.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-reviewed-zero-20261019\\candidate-manifest.json",
+    "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\candidate-manifest.json"
+  ],
+  "runtime": {
+    "pid": 45184,
+    "jar": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\runtime-candidate-original-department\\yudao-server.jar",
+    "port": 59284,
+    "database": "npdms_reverify_20261014",
+    "redisDatabase": 14,
+    "log": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\runtime-sanitized.log",
+    "startedAt": "2026-10-19T15:31:37.282039"
+  },
+  "operationsThisPhase": {
+    "newPreviewRequests": 2,
+    "only59284Reloads": 3,
+    "formalSchemaChanges": 0,
+    "migrations": 0,
+    "realSyncs": 0,
+    "formalBusinessDml": 0,
+    "departmentOrOrderLineBackfills": 0,
+    "originalTaskOperations": 0,
+    "service59191Operations": 0
+  },
+  "scope": "Two affected P22 API preview receipts; other 23 latest task receipts and all original/direct implementation records reused unchanged. No dual-line execution, migration, actual synchronization, formal business DML, original-task operation or service59191 operation. Source aggregates are independent SELECT evidence, not successful API read counts.",
+  "scopeConstraintsEvidence": "D:\\CodexTaskArtifacts\\project-detail-followup\\base-sync-p22-original-department-20261019\\scope-constraints-evidence.json"
+}

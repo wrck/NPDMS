@@ -1,0 +1,455 @@
+{
+  "task": "P01",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "COMPANY",
+      "sourceObject": "ehr_company",
+      "sourceKey": "sourceId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "objectName",
+          "target": "objectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "businessKey",
+          "target": "businessKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sortRank",
+          "target": "sortRank",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonicalFields",
+          "target": "canonicalFields",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sourceAlias",
+          "target": "sourceAlias",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "DEPARTMENT",
+      "sourceObject": "ehr_department",
+      "sourceKey": "sourceId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "objectName",
+          "target": "objectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "businessKey",
+          "target": "businessKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sortRank",
+          "target": "sortRank",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonicalFields",
+          "target": "canonicalFields",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sourceAlias",
+          "target": "sourceAlias",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "fnd_department",
+      "sourceObject": "fnd_department",
+      "sourceKey": "sourceId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "objectName",
+          "target": "objectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "businessKey",
+          "target": "businessKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sortRank",
+          "target": "sortRank",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonicalFields",
+          "target": "canonicalFields",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sourceAlias",
+          "target": "sourceAlias",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "ehr_department",
+      "sourceObject": "ehr_department",
+      "sourceKey": "sourceId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "objectName",
+          "target": "objectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "businessKey",
+          "target": "businessKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sortRank",
+          "target": "sortRank",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonicalFields",
+          "target": "canonicalFields",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sourceAlias",
+          "target": "sourceAlias",
+          "values": null
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "COMPANY_REFERENCE",
+      "sourceObject": "t_company",
+      "sourceKey": "sourceCompanyId",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sourceCompanyId",
+          "target": "sourceCompanyId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "sourceCompanyCode",
+          "target": "sourceCompanyCode",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "system_company",
+      "column": "id",
+      "parameter": "#{write.node.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "code",
+      "parameter": "#{write.node.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "name",
+      "parameter": "#{write.node.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "status",
+      "parameter": "#{write.node.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "version",
+      "parameter": "#{write.node.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "creator",
+      "parameter": "#{write.node.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "create_time",
+      "parameter": "#{write.node.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "updater",
+      "parameter": "#{write.node.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "update_time",
+      "parameter": "#{write.node.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "tenant_id",
+      "parameter": "#{write.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_company",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "id",
+      "parameter": "#{write.node.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "code",
+      "parameter": "#{write.node.code}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "name",
+      "parameter": "#{write.node.name}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "parent_id",
+      "parameter": "#{write.node.parentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "sort",
+      "parameter": "#{write.node.sort}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "leader_user_id",
+      "parameter": "#{write.node.leaderUserId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "phone",
+      "parameter": "#{write.node.phone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "email",
+      "parameter": "#{write.node.email}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "status",
+      "parameter": "#{write.node.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "version",
+      "parameter": "#{write.node.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "creator",
+      "parameter": "#{write.node.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "create_time",
+      "parameter": "#{write.node.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "updater",
+      "parameter": "#{write.node.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "update_time",
+      "parameter": "#{write.node.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "tenant_id",
+      "parameter": "#{write.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.selectCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<select id=\"selectCompanies\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper$Node\"><include refid=\"companies\" /></select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.lockCompanies",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<select id=\"lockCompanies\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper$Node\"><include refid=\"companies\" /> FOR UPDATE</select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.selectDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<select id=\"selectDepartments\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper$Node\"><include refid=\"departments\" /></select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.lockDepartments",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<select id=\"lockDepartments\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper$Node\"><include refid=\"departments\" /> FOR UPDATE</select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.selectLeaders",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<select id=\"selectLeaders\" resultType=\"java.lang.Long\">\n    SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n    <choose><when test=\"query.ids != null and !query.ids.isEmpty()\">\n      AND id IN <foreach collection=\"query.ids\" item=\"id\" open=\"(\" separator=\",\" close=\")\">#{id}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertCompany",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<insert id=\"insertCompany\">\n    INSERT INTO system_company(id,code,name,status,version,creator,create_time,updater,update_time,tenant_id,deleted)\n    VALUES(#{write.node.id},#{write.node.code},#{write.node.name},#{write.node.status},#{write.node.version},\n      #{write.node.creator},#{write.node.createTime},#{write.node.updater},#{write.node.updateTime},#{write.tenantId},FALSE)\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.insertDepartment",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<insert id=\"insertDepartment\">\n    INSERT INTO system_dept(id,code,name,parent_id,sort,leader_user_id,phone,email,status,version,creator,create_time,updater,update_time,tenant_id,deleted)\n    VALUES(#{write.node.id},#{write.node.code},#{write.node.name},#{write.node.parentId},#{write.node.sort},\n      #{write.node.leaderUserId},#{write.node.phone},#{write.node.email},#{write.node.status},#{write.node.version},\n      #{write.node.creator},#{write.node.createTime},#{write.node.updater},#{write.node.updateTime},#{write.tenantId},FALSE)\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectOrganizationMapper.completeLeader",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectOrganizationMapper.xml",
+      "xml": "<update id=\"completeLeader\">\n    UPDATE system_dept SET leader_user_id=#{write.after.leaderUserId},version=#{write.after.version},\n      updater=#{write.after.updater},update_time=#{write.after.updateTime}\n    WHERE tenant_id=#{write.tenantId} AND id=#{write.before.id} AND deleted=FALSE\n      AND version=#{write.before.version} AND leader_user_id IS NULL\n  </update>\n"
+    }
+  ]
+}

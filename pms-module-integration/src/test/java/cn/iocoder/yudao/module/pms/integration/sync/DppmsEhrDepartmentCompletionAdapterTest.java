@@ -68,4 +68,29 @@ class DppmsEhrDepartmentCompletionAdapterTest {
         assertDoesNotThrow(()->MysqlSyncReader.compile(source));assertEquals(24,DppmsEhrDepartmentCompletionTemplate.ORIGINAL_COLUMNS.size());
         assertEquals(8,source.parameters().size());assertEquals("ONCE",definition.mode());
     }
+    @Test void canonicalSelectionStillValidatesLosingOriginalRowsBeforeCallingOwner() {
+        var values=rows();values.getFirst().fields().put("migrationFnd_status",2);
+        Set<String> winners=new HashSet<>();values.stream().skip(1).forEach(row->winners.add(row.object()+":"+row.sourceKey()));
+        when(bindings.selectEhrEmployeeUsers(any())).thenReturn(List.of());
+        assertThrows(IllegalArgumentException.class,()->adapter.executeCanonical(new DppmsOrganizationCanonical.ComponentBatch(batch(values),false,winners,List.of())));
+        verifyNoInteractions(owner);
+        when(owner.previewAfterOrganization(any())).thenAnswer(call->{SystemDepartmentMigrationApi.OrganizationPreview input=call.getArgument(0);request=input.request();return List.of();});
+        adapter.executeCanonical(new DppmsOrganizationCanonical.ComponentBatch(batch(rows()),false,winners,List.of()));
+        assertEquals(7,request.entries().size());assertTrue(request.entries().stream().noneMatch(entry->"1".equals(entry.sourceKey())));
+        verify(owner,never()).apply(any());
+    }
+    @Test void canonicalDirectorUsesOneLocalVerifiedAccountReadAndKeepsAmbiguousEmployeesPending() {
+        Set<String> winners=new HashSet<>();rows().forEach(row->winners.add(row.object()+":"+row.sourceKey()));
+        when(owner.previewAfterOrganization(any())).thenAnswer(call->{SystemDepartmentMigrationApi.OrganizationPreview input=call.getArgument(0);request=input.request();return List.of();});
+        when(bindings.selectEhrEmployeeUsers(any())).thenAnswer(call->{SyncQueries.EhrEmployeeUsers query=call.getArgument(0);
+            assertEquals(1L,query.tenantId());assertEquals(18L,query.connectionId());assertEquals(Set.of("293"),query.sourceEmployeeIds());
+            return List.of(new SyncBindingDO().setTargetId(77L).setFieldsJson("{\"_verifiedEhrEmployeeId\":\"293\"}"));});
+        adapter.executeCanonical(new DppmsOrganizationCanonical.ComponentBatch(batch(rows()),false,winners,List.of()));
+        assertTrue(request.entries().stream().allMatch(entry->Long.valueOf(77).equals(entry.leaderUserId())));
+        verify(bindings,times(1)).selectEhrEmployeeUsers(any());verify(bindings,never()).selectIdentitySources(any());
+        doReturn(List.of(new SyncBindingDO().setTargetId(77L).setFieldsJson("{\"_verifiedEhrEmployeeId\":\"293\"}"),
+                new SyncBindingDO().setTargetId(78L).setFieldsJson("{\"_verifiedEhrEmployeeId\":\"293\"}"))).when(bindings).selectEhrEmployeeUsers(any());
+        adapter.executeCanonical(new DppmsOrganizationCanonical.ComponentBatch(batch(rows()),false,winners,List.of()));
+        assertTrue(request.entries().stream().allMatch(entry->entry.leaderUserId()==null));verify(owner,never()).apply(any());
+    }
 }

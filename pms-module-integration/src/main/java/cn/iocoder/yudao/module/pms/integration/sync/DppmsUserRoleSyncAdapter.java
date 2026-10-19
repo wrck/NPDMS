@@ -22,18 +22,21 @@ public class DppmsUserRoleSyncAdapter implements DataSyncAdapter {
                         "SYSTEM","UserRole","system_user_role",false)).toList(),List.of("RETAIN"),List.of("UPSERT"),false);
     }
     @Override public boolean sharesTargetAcrossSources(){return true;}
-    @Override public List<Change> preview(Batch batch){return execute(batch,false);}
-    @Override public List<Change> apply(Batch batch){return execute(batch,true);}
+    @Override public List<Change> preview(Batch batch){return execute(new DppmsAccountFoundationContext.Execution(batch,false,null));}
+    @Override public List<Change> apply(Batch batch){return execute(new DppmsAccountFoundationContext.Execution(batch,true,null));}
+    List<Change> afterFoundation(DppmsAccountFoundationContext.Execution execution){return execute(execution);}
     @Override public void refreshCaches(){memberships.refreshCaches();}
     private record Assignment(Row source,String sourceKey,String userTable,String userKey,String roleTable,String roleKey,String roleCode){}
-    private List<Change> execute(Batch batch,boolean apply) {
+    private List<Change> execute(DppmsAccountFoundationContext.Execution execution) {
+        var batch=execution.batch();boolean apply=execution.apply();
+        if(execution.preceding()!=null)execution.preceding().requireExecution(execution);
         if (!batch.full()||batch.clearBeforeLoad()||!"UPSERT".equals(batch.loadingMode())||!"RETAIN".equals(batch.missingPolicy()))
             throw new IllegalArgumentException("角色关系仅支持完整来源核对与追加承接，不删除或替换现有权限");
         long tenant=TenantContextHolder.getRequiredTenantId();
         String[] owner=batch.owner()==null?new String[0]:batch.owner().split(":");
         if(owner.length!=3||!"integration".equals(owner[0])||!Long.toString(tenant).equals(owner[1]))throw new IllegalArgumentException("角色关系迁移所有权无效");
         var task=tasks.required(Long.parseLong(owner[2]));
-        if(!"DPPMS".equals(task.getSourceSystem())||!"DPPMS_USER_ROLES".equals(task.getAdapter()))throw new IllegalArgumentException("角色关系来源任务无效");
+        if(!"DPPMS".equals(task.getSourceSystem())||!DppmsConsolidation.accepts(task,"DPPMS_USER_ROLES"))throw new IllegalArgumentException("角色关系来源任务无效");
         List<Assignment> assignments=new ArrayList<>();List<Change> changes=new ArrayList<>();Set<String> identities=new HashSet<>();
         for(Row row:batch.rows()) {
             if(!DppmsUserRoleSyncTemplate.COLUMNS.containsKey(row.object())||!row.fields().keySet().containsAll(DppmsUserRoleSyncTemplate.COLUMNS.get(row.object()))
@@ -57,8 +60,15 @@ public class DppmsUserRoleSyncAdapter implements DataSyncAdapter {
                         fnd?"fnd_roles":"t_role",roleKey,roleCode));
             }
         }
-        Map<String,Long> userIds=resolve(assignments,true,tenant,task.getConnectionId());
-        Map<String,Long> roleIds=resolve(assignments,false,tenant,task.getConnectionId());
+        Map<String,Long> userIds=execution.preceding()==null?resolve(assignments,true,tenant,task.getConnectionId()):new HashMap<>();
+        Map<String,Long> roleIds=execution.preceding()==null?resolve(assignments,false,tenant,task.getConnectionId()):new HashMap<>();
+        if(execution.preceding()!=null)for(var assignment:assignments){
+            String user=assignment.userTable()+":"+assignment.userKey(), role=assignment.roleTable()+":"+assignment.roleKey();
+            userIds.put(user,execution.preceding().user(user,true).id());
+            var reference=execution.preceding().role(role);
+            if(!Objects.equals(assignment.roleCode(),reference.fields().get("code")))throw new IllegalArgumentException("同轮角色编码与批准映射不同");
+            roleIds.put(role,reference.id());
+        }
         Map<String,Binding> previous=new HashMap<>();batch.bindings().forEach(binding->{
             if(previous.put(binding.object()+":"+binding.sourceKey(),binding)!=null)throw new IllegalArgumentException("角色关系绑定重复");
         });
@@ -71,7 +81,8 @@ public class DppmsUserRoleSyncAdapter implements DataSyncAdapter {
                     roleIds.get(assignment.roleTable()+":"+assignment.roleKey()),assignment.roleCode(),bound==null?null:bound.targetId()));
         }
         var request=new SystemUserRoleMigrationApi.Request(tenant,batch.owner(),entries);
-        var results=apply?memberships.apply(request):memberships.preview(request);
+        var results=apply?memberships.apply(request):execution.preceding()==null?memberships.preview(request)
+                :memberships.previewAfterFoundation(new SystemUserRoleMigrationApi.FoundationPreview(request,execution.preceding().preview()));
         for(var result:results) {
             Assignment source=byIdentity.get(result.object()+":"+result.sourceKey());
             if(source==null)throw new IllegalStateException("角色关系Owner返回未知来源身份");

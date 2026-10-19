@@ -14,6 +14,8 @@ public interface SystemUserScopeMigrationApi {
     record Request(Long tenantId, String owner, List<Entry> entries) {}
     record Result(String object, String sourceKey, Relation before, Relation after, String action) {}
     List<Result> preview(Request request);
+    record FoundationPreview(Request request, SystemAccountMigrationPreview preceding) {}
+    List<Result> previewAfterFoundation(FoundationPreview request);
     /** Must share the transaction that persists the integration source bindings and run evidence. */
     List<Result> apply(Request request);
 }

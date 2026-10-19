@@ -1,0 +1,11 @@
+# P37 受控许可历史离线适配
+
+2026-10-16。专用SECURE_LICENSE读取模式只接受一次性明确批准的许可缓存ID及七项非敏感冻结原字段，不接受通用SQL、明文许可字段映射、P16项目筛选或空范围回退全量。保持原受控采集的精确八列Schema核对及字段变化保护，沿既有只读一致性来源事务读取，至多200条。
+
+来源许可码只在专用读取器内存中处理，按原Python捕获及现有Asset密码器兼容的AES-256-GCM+HMAC格式加密，可变缓冲区在成功/失败后清零。主密钥只取既有正式Secret配置，未写入任务或候选。通用快照和PLT证据只获得非敏感原字段、密文、keyId、MAC；运行结果/绑定只保留原字段、MAC及待关联结果，不展示密文或明文。异常不保留包含敏感内容的底层原因。原字段或MAC变化阻断；随机nonce变化不伪装成原许可事实变化。
+
+统一适配器复用既有COM精确合同解析和AST许可Owner，不改其授权、来源幂等、全部正式字段、加密认证及删除保护。ownerProjectId保留现有Owner授权/合同解析上下文，不进入许可来源查询，不新增项目归属筛选。设备或合同不匹配时沿Owner原规则明确保存pendingAssociations，不猜填关联；历史承接的运行SUCCESS不代表这些关联已完成。Owner及INT绑定同事务，失败不提交历史、绑定或SUCCESS。
+
+验证：targeted-025614.log 的原AST密码器4、原许可Owner7通过；首轮INT测试夹具lambda编译问题已修正。targeted-025755.log 的新INT入口4、采集密码器3、受控来源6、同步真实H2事务39通过，其中新增2项核验临时actor不持久化及许可Owner失败的整组回滚。合计63项定向检查通过。p37-cipher-interop.json 额外证明新Java捕获密文可由未修改的AST密码器校验、跨租户拒绝，原Python捕获MAC及PyCryptodome认证解密兼容；全部使用合成数据。
+
+候选 current-definitions/P37.json 与 candidate-commands/P37.json 由编译工厂导出，不带历史试点的批准ID、真实项目ID或密钥。approvedLicenseIds/facts保持空，ownerProjectId保持空；运行须显式补齐获准一次性范围、冻结字段、原Owner上下文及正式Secret配置，否则拒绝，不构造看似可运行的假范围。没有读取真实许可码、保存配置、真实业务预览/同步、DDL、服务操作、浏览器验收、提交或推送。

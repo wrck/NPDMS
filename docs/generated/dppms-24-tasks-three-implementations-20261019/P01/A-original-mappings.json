@@ -1,0 +1,738 @@
+{
+  "task": "P01",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "COMPANY",
+      "sourceObject": "ehr_company",
+      "sourceKey": "compID",
+      "mappings": [
+        {
+          "conversion": "TRIM",
+          "source": "compCode",
+          "target": "code",
+          "values": {}
+        },
+        {
+          "conversion": "TRIM",
+          "source": "compName",
+          "target": "name",
+          "values": {}
+        },
+        {
+          "conversion": "ENUM",
+          "source": "isDisabled",
+          "target": "status",
+          "values": {
+            "0": 0,
+            "1": 1,
+            "NULL": 0,
+            "true": 1,
+            "false": 0
+          }
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerObject",
+          "target": "_organizationWinnerObject"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerKey",
+          "target": "_organizationWinnerKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationBusinessCode",
+          "target": "_organizationBusinessCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationCompanyKey",
+          "target": "_organizationCompanyKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationParentKey",
+          "target": "_organizationParentKey"
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "DEPARTMENT",
+      "sourceObject": "ehr_department",
+      "sourceKey": "depID",
+      "mappings": [
+        {
+          "conversion": "TRIM",
+          "source": "depCode",
+          "target": "code",
+          "values": {}
+        },
+        {
+          "conversion": "TRIM",
+          "source": "depName",
+          "target": "name",
+          "values": {}
+        },
+        {
+          "conversion": "ENUM",
+          "source": "isDisabled",
+          "target": "status",
+          "values": {
+            "0": 0,
+            "1": 1,
+            "NULL": 0,
+            "true": 1,
+            "false": 0
+          }
+        },
+        {
+          "conversion": "REFERENCE",
+          "source": "adminID",
+          "target": "parentKey",
+          "values": {}
+        },
+        {
+          "conversion": "REFERENCE",
+          "source": "compID",
+          "target": "companyKey",
+          "values": {}
+        },
+        {
+          "conversion": "LONG",
+          "source": "depID",
+          "target": "sort",
+          "values": {}
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerObject",
+          "target": "_organizationWinnerObject"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerKey",
+          "target": "_organizationWinnerKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationBusinessCode",
+          "target": "_organizationBusinessCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationCompanyKey",
+          "target": "_organizationCompanyKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationParentKey",
+          "target": "_organizationParentKey"
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "fnd_department",
+      "sourceObject": "fnd_department",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "departmentNum",
+          "target": "departmentNum"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "departmentName",
+          "target": "departmentName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "isparam",
+          "target": "isparam"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "status",
+          "target": "status"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveFrom",
+          "target": "effectiveFrom"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectiveTo",
+          "target": "effectiveTo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationEhrDepartmentId",
+          "target": "migrationEhrDepartmentId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationEhrDisabled",
+          "target": "migrationEhrDisabled"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerObject",
+          "target": "_organizationWinnerObject"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerKey",
+          "target": "_organizationWinnerKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationBusinessCode",
+          "target": "_organizationBusinessCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationCompanyKey",
+          "target": "_organizationCompanyKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationParentKey",
+          "target": "_organizationParentKey"
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "ehr_department",
+      "sourceObject": "ehr_department",
+      "sourceKey": "depID",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "depID",
+          "target": "depID"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depCode",
+          "target": "depCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depName",
+          "target": "depName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depAbbr",
+          "target": "depAbbr"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "compID",
+          "target": "compID"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "adminID",
+          "target": "adminID"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depGrade",
+          "target": "depGrade"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depType",
+          "target": "depType"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depProperty",
+          "target": "depProperty"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depCost",
+          "target": "depCost"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "director",
+          "target": "director"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "director2",
+          "target": "director2"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depEmp",
+          "target": "depEmp"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depNum",
+          "target": "depNum"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "effectDate",
+          "target": "effectDate"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "xOrder",
+          "target": "xOrder"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "isDisabled",
+          "target": "isDisabled"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "disabledDate",
+          "target": "disabledDate"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "remark",
+          "target": "remark"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depCustom1",
+          "target": "depCustom1"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depCustom2",
+          "target": "depCustom2"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depCustom3",
+          "target": "depCustom3"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depCustom4",
+          "target": "depCustom4"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "depCustom5",
+          "target": "depCustom5"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_id",
+          "target": "migrationFnd_id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_departmentNum",
+          "target": "migrationFnd_departmentNum"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_departmentName",
+          "target": "migrationFnd_departmentName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_isparam",
+          "target": "migrationFnd_isparam"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_status",
+          "target": "migrationFnd_status"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_createTime",
+          "target": "migrationFnd_createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_effectiveFrom",
+          "target": "migrationFnd_effectiveFrom"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_effectiveTo",
+          "target": "migrationFnd_effectiveTo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationFnd_updateTime",
+          "target": "migrationFnd_updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationParentCode",
+          "target": "migrationParentCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationDirectorLoginCount",
+          "target": "migrationDirectorLoginCount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationDirectorAccount",
+          "target": "migrationDirectorAccount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationDirectorFndCount",
+          "target": "migrationDirectorFndCount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationDirectorFndId",
+          "target": "migrationDirectorFndId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationDirectorTCount",
+          "target": "migrationDirectorTCount"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "migrationDirectorTId",
+          "target": "migrationDirectorTId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerObject",
+          "target": "_organizationWinnerObject"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationWinnerKey",
+          "target": "_organizationWinnerKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationBusinessCode",
+          "target": "_organizationBusinessCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationCompanyKey",
+          "target": "_organizationCompanyKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "_organizationParentKey",
+          "target": "_organizationParentKey"
+        }
+      ],
+      "targets": []
+    },
+    {
+      "object": "COMPANY_REFERENCE",
+      "sourceObject": "t_company",
+      "sourceKey": "sourceCompanyId",
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "sourceCompanyId",
+          "target": "sourceCompanyId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "sourceCompanyCode",
+          "target": "sourceCompanyCode"
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "system_dept",
+      "column": "id",
+      "parameter": "#{department.id}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "code",
+      "parameter": "#{department.code}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "name",
+      "parameter": "#{department.name}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "parent_id",
+      "parameter": "#{department.parentId}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "sort",
+      "parameter": "#{department.sort}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "leader_user_id",
+      "parameter": "#{department.leaderUserId}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "phone",
+      "parameter": "#{department.phone}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "email",
+      "parameter": "#{department.email}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "status",
+      "parameter": "#{department.status}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "version",
+      "parameter": "#{department.version}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "creator",
+      "parameter": "#{department.creator}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "create_time",
+      "parameter": "#{department.createTime}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "updater",
+      "parameter": "#{department.updater}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "update_time",
+      "parameter": "#{department.updateTime}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    },
+    {
+      "table": "system_dept",
+      "column": "tenant_id",
+      "parameter": "#{tenantId}",
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectInstallationSelectionPage",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+      "xml": "<select id=\"selectInstallationSelectionPage\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId} AND deleted=FALSE\n      AND object_key='INSTALLATION_HISTORY' AND source_object='pm_project_shipment'\n    <choose><when test=\"query.deviceSns != null and !query.deviceSns.isEmpty()\">\n      AND JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.originalFields.barcode')) IN\n      <foreach collection=\"query.deviceSns\" item=\"sn\" open=\"(\" separator=\",\" close=\")\">#{sn}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    <if test=\"query.afterId != null\">AND id &gt; #{query.afterId}</if>\n    ORDER BY id LIMIT 500\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectRetiredSourceKeysForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+      "xml": "<select id=\"selectRetiredSourceKeysForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key=#{query.object} AND source_object=#{query.sourceObject} AND deleted=TRUE\n    <choose><when test=\"query.sourceKeys != null and !query.sourceKeys.isEmpty()\">\n      AND source_key IN <foreach collection=\"query.sourceKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectIdentitySources",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+      "xml": "<select id=\"selectIdentitySources\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT b.* FROM int_sync_binding b\n    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE\n    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE\n      AND t.source_system=#{query.sourceSystem} AND t.connection_id=#{query.connectionId}\n      AND (t.adapter=#{query.adapter}\n        <if test=\"query.originalOnly and query.adapter == 'DPPMS_USERS'\">OR (t.adapter='DPPMS_ACCOUNT_FOUNDATION' AND b.object_key IN ('t_user','t_user_info','fnd_user_info') AND b.source_key NOT LIKE '%:%')</if>\n        <if test=\"!query.originalOnly\">\n        <choose>\n          <when test=\"query.adapter == 'DPPMS_DEVICE_BOOTSTRAP'\">\n            OR (t.adapter='DPPMS_DEVICE_BOOTSTRAP_DIRECT' AND b.object_key='DEVICE_BASE' AND b.source_object='ast_device_shipment')\n          </when>\n          <when test=\"query.adapter == 'DPPMS_PROJECT_MASTER'\">\n            OR (t.adapter='DPPMS_PROJECT_MASTER_DIRECT' AND b.object_key IN ('pm_project_header','pm_project_identity'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_ORGANIZATION'\">\n            OR (t.adapter='DPPMS_ORGANIZATION_DIRECT' AND b.object_key IN ('COMPANY','DEPARTMENT','fnd_department','ehr_department','COMPANY_REFERENCE'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_USERS'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user','t_user_info','fnd_user_info')\n                AND b.source_key NOT LIKE '%:%')\n          </when>\n          <when test=\"query.adapter == 'DPPMS_ROLES'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_ROLE','FND_ROLE'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_USER_ROLES'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('T_USER_ROLE','FND_USER_ROLE'))\n          </when>\n          <when test=\"query.adapter == 'DPPMS_USER_SCOPES'\">\n            OR (t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT') AND b.object_key IN ('t_user_info','fnd_user_info','fnd_user_power')\n                AND b.source_key LIKE '%:%')\n          </when>\n        </choose>\n        </if>\n      ) AND b.source_object=#{query.sourceObject}\n    <choose>\n      <when test=\"query.sourceKeys != null and !query.sourceKeys.isEmpty()\">\n        AND b.source_key IN\n        <foreach collection=\"query.sourceKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach>\n      </when>\n      <otherwise>AND 1=0</otherwise>\n    </choose>\n    ORDER BY b.id\n  </select>\n  \n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectEhrEmployeeUsers",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+      "xml": "<select id=\"selectEhrEmployeeUsers\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT b.* FROM int_sync_binding b\n    JOIN int_sync_task t ON t.id=b.task_id AND t.tenant_id=b.tenant_id AND t.deleted=FALSE\n    WHERE b.tenant_id=#{query.tenantId} AND b.deleted=FALSE AND t.source_system='DPPMS'\n      AND t.connection_id=#{query.connectionId} AND t.adapter IN ('DPPMS_ACCOUNT_FOUNDATION','DPPMS_ACCOUNT_FOUNDATION_DIRECT')\n      <if test=\"query.originalOnly\">AND t.adapter='DPPMS_ACCOUNT_FOUNDATION'</if>\n      AND b.object_key IN ('t_user','fnd_user_info') AND b.object_key=b.source_object\n      AND b.source_key NOT LIKE '%:%'\n    <choose><when test=\"query.sourceEmployeeIds != null and !query.sourceEmployeeIds.isEmpty()\">\n      AND JSON_UNQUOTE(JSON_EXTRACT(b.fields_json,'$._verifiedEhrEmployeeId')) IN\n      <foreach collection=\"query.sourceEmployeeIds\" item=\"employee\" open=\"(\" separator=\",\" close=\")\">#{employee}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY b.id\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectFirstTaskBindingId",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+      "xml": "<select id=\"selectFirstTaskBindingId\" resultType=\"java.lang.Long\">\n    SELECT id FROM int_sync_binding\n    WHERE tenant_id=#{tenantId} AND task_id=#{taskId} AND deleted=FALSE\n    LIMIT 1\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncBindingMapper.selectObsoleteOrderLinesForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncBindingMapper.xml",
+      "xml": "<select id=\"selectObsoleteOrderLinesForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncBindingDO\">\n    SELECT * FROM int_sync_binding WHERE tenant_id=#{query.tenantId} AND task_id=#{query.taskId}\n      AND object_key='LINE' AND source_object='pm_order_line_from_erp' AND deleted=FALSE\n      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(fields_json,'$.companyCode')) AS BINARY)=CAST('01' AS BINARY)\n    <choose><when test=\"query.sourceKeys != null and !query.sourceKeys.isEmpty()\">\n      AND source_key IN <foreach collection=\"query.sourceKeys\" item=\"key\" open=\"(\" separator=\",\" close=\")\">#{key}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose>\n    ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.selectMaintenance",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+      "xml": "<select id=\"selectMaintenance\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO\">\n    SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at &lt; #{now}))\n      ORDER BY id LIMIT 100\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.selectCatalogue",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml",
+      "xml": "<select id=\"selectCatalogue\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDepartmentMigrationApi$Department\"><include refid=\"catalogue\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.selectCatalogueForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml",
+      "xml": "<select id=\"selectCatalogueForUpdate\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemDepartmentMigrationApi$Department\"><include refid=\"catalogue\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.selectLeaderUserIds",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml",
+      "xml": "<select id=\"selectLeaderUserIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n        <choose><when test=\"query.userIds != null and !query.userIds.isEmpty()\">\n            AND id IN <foreach collection=\"query.userIds\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach>\n        </when><otherwise>AND 1=0</otherwise></choose>\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.completeHistoricalLeader",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml",
+      "xml": "<update id=\"completeHistoricalLeader\">\n        UPDATE system_dept SET leader_user_id=#{after.leaderUserId},version=#{after.version},\n            updater=#{after.updater},update_time=#{after.updateTime}\n        WHERE id=#{before.id} AND tenant_id=#{tenantId} AND deleted=FALSE\n            AND version=#{before.version} AND leader_user_id IS NULL\n    </update>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.dept.DepartmentMigrationMapper.insertHistoricalDepartment",
+      "source": "yudao-module-system/src/main/resources/mapper/dept/DepartmentMigrationMapper.xml",
+      "xml": "<insert id=\"insertHistoricalDepartment\">\n        INSERT INTO system_dept(id,code,name,parent_id,sort,leader_user_id,phone,email,status,version,\n            creator,create_time,updater,update_time,deleted,tenant_id)\n        VALUES(#{department.id},#{department.code},#{department.name},#{department.parentId},#{department.sort},\n            #{department.leaderUserId},#{department.phone},#{department.email},#{department.status},#{department.version},\n            #{department.creator},#{department.createTime},#{department.updater},#{department.updateTime},FALSE,#{tenantId})\n    </insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.selectCompaniesForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<select id=\"selectCompaniesForUpdate\" resultType=\"cn.iocoder.yudao.module.system.dal.dataobject.company.CompanyDO\">\n    SELECT * FROM system_company WHERE tenant_id=#{tenantId} AND deleted=FALSE ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.selectAllCompaniesForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<select id=\"selectAllCompaniesForUpdate\" resultType=\"cn.iocoder.yudao.module.system.dal.dataobject.company.CompanyDO\">\n    SELECT * FROM system_company WHERE tenant_id=#{tenantId} ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.selectAllDepartmentsForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<select id=\"selectAllDepartmentsForUpdate\" resultType=\"cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO\">\n    SELECT * FROM system_dept WHERE tenant_id=#{tenantId} ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.selectDepartmentsForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<select id=\"selectDepartmentsForUpdate\" resultType=\"cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO\">\n    SELECT * FROM system_dept WHERE tenant_id=#{tenantId} AND deleted=FALSE ORDER BY id FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.selectCompanyForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<select id=\"selectCompanyForUpdate\" resultType=\"cn.iocoder.yudao.module.system.dal.dataobject.company.CompanyDO\">\n    SELECT * FROM system_company WHERE tenant_id=#{tenantId} AND id=#{id} AND deleted=FALSE FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.selectDepartmentForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<select id=\"selectDepartmentForUpdate\" resultType=\"cn.iocoder.yudao.module.system.dal.dataobject.dept.DeptDO\">\n    SELECT * FROM system_dept WHERE tenant_id=#{tenantId} AND id=#{id} AND deleted=FALSE FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.countClearReferences",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<select id=\"countClearReferences\" resultType=\"long\">\n    SELECT\n      (SELECT COUNT(*) FROM system_users u JOIN system_dept d ON d.id=u.dept_id AND d.tenant_id=u.tenant_id\n       WHERE u.tenant_id=#{tenantId} AND u.deleted=FALSE)\n      + (SELECT COUNT(*) FROM system_user_company_department_scope s\n         WHERE s.tenant_id=#{tenantId} AND s.deleted=FALSE AND\n           (EXISTS (SELECT 1 FROM system_company c WHERE c.tenant_id=s.tenant_id AND c.id=s.company_id)\n            OR EXISTS (SELECT 1 FROM system_dept d WHERE d.tenant_id=s.tenant_id AND d.id=s.department_id)))\n      + (SELECT COUNT(*) FROM system_role r WHERE r.tenant_id=#{tenantId} AND r.deleted=FALSE\n         AND r.data_scope=2 AND r.data_scope_dept_ids IS NOT NULL AND r.data_scope_dept_ids NOT IN ('','[]'))\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.deleteCompanies",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<delete id=\"deleteCompanies\">DELETE FROM system_company WHERE tenant_id=#{tenantId}</delete>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.ManagedOrganizationMapper.deleteDepartments",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/ManagedOrganizationMapper.xml",
+      "xml": "<delete id=\"deleteDepartments\">DELETE FROM system_dept WHERE tenant_id=#{tenantId}</delete>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.organization.OrganizationOwnershipMapper.selectForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/organization/OrganizationOwnershipMapper.xml",
+      "xml": "<select id=\"selectForUpdate\" resultType=\"cn.iocoder.yudao.module.system.dal.dataobject.organization.OrganizationOwnershipDO\">\n    SELECT * FROM system_organization_ownership\n    WHERE tenant_id=#{tenantId} AND object_type=#{objectType} AND target_id=#{targetId} AND deleted=FALSE FOR UPDATE\n  </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.user.UserMigrationMapper.selectProfiles",
+      "source": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+      "xml": "<select id=\"selectProfiles\" resultMap=\"migrationUser\"><include refid=\"profiles\" /></select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.user.UserMigrationMapper.selectProfilesForUpdate",
+      "source": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+      "xml": "<select id=\"selectProfilesForUpdate\" resultMap=\"migrationUser\"><include refid=\"profiles\" /> FOR UPDATE</select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.user.UserMigrationMapper.selectDepartmentIds",
+      "source": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+      "xml": "<select id=\"selectDepartmentIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM system_dept <include refid=\"references\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.user.UserMigrationMapper.selectPostIds",
+      "source": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+      "xml": "<select id=\"selectPostIds\" resultType=\"java.lang.Long\">\n        SELECT id FROM system_post <include refid=\"references\" />\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.user.UserMigrationMapper.selectHistoricalMemberIdentities",
+      "source": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+      "xml": "<select id=\"selectHistoricalMemberIdentities\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi$MemberIdentity\">\n        SELECT id,username,employee_no FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n        <choose>\n            <when test=\"query.usernames != null and !query.usernames.isEmpty()\">\n                AND username IN <foreach collection=\"query.usernames\" item=\"username\" open=\"(\" separator=\",\" close=\")\">#{username}</foreach>\n            </when>\n            <otherwise>AND 1=0</otherwise>\n        </choose>\n        ORDER BY id\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.user.UserMigrationMapper.selectHistoricalIdentities",
+      "source": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+      "xml": "<select id=\"selectHistoricalIdentities\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi$HistoricalIdentity\">\n        SELECT id,username FROM system_users <include refid=\"references\" /> ORDER BY id\n    </select>\n    "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.system.dal.mysql.user.UserMigrationMapper.selectHistoricalIdentitiesByUsername",
+      "source": "yudao-module-system/src/main/resources/mapper/user/UserMigrationMapper.xml",
+      "xml": "<select id=\"selectHistoricalIdentitiesByUsername\" resultType=\"cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi$HistoricalIdentity\">\n        SELECT id,username FROM system_users WHERE tenant_id=#{query.tenantId} AND deleted=FALSE\n        <choose>\n            <when test=\"query.usernames != null and !query.usernames.isEmpty()\">\n                AND username IN <foreach collection=\"query.usernames\" item=\"username\" open=\"(\" separator=\",\" close=\")\">#{username}</foreach>\n            </when>\n            <otherwise>AND 1=0</otherwise>\n        </choose>\n        ORDER BY id\n    </select>\n    "
+    }
+  ]
+}

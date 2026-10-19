@@ -1,0 +1,368 @@
+{
+  "adapter": "DPPMS_CONTRACT_RECEIVABLE_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 500,
+  "clearBeforeLoad": false,
+  "connectionId": null,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 1000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 8388608,
+  "maxRows": 500,
+  "mergedIntoTaskId": null,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 60,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": null,
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contract_num",
+          "target": "contract_num",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "batch_code",
+          "target": "batch_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "project_name",
+          "target": "project_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "order_num",
+          "target": "order_num",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "client_supplier_code",
+          "target": "client_supplier_code",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "client_supplier_name",
+          "target": "client_supplier_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contract_money_amount",
+          "target": "contract_money_amount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "delivered_money_amount",
+          "target": "delivered_money_amount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "collected_money_amount",
+          "target": "collected_money_amount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "collected_money_ratio",
+          "target": "collected_money_ratio",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "receivables_money_amount",
+          "target": "receivables_money_amount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "over_due_money_amount",
+          "target": "over_due_money_amount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "maketing_department_name",
+          "target": "maketing_department_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "office_name",
+          "target": "office_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "industry_name",
+          "target": "industry_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "marketing_representative_name",
+          "target": "marketing_representative_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "currency_name",
+          "target": "currency_name",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "create_by",
+          "target": "create_by",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "create_time",
+          "target": "create_time",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "update_by",
+          "target": "update_by",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "update_time",
+          "target": "update_time",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effective_from",
+          "target": "effective_from",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "effective_to",
+          "target": "effective_to",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "import_batch_num",
+          "target": "import_batch_num",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "contract_create_date",
+          "target": "contract_create_date",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "marketCode",
+          "target": "marketCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "systemId",
+          "target": "systemId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "industryId",
+          "target": "industryId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "officeCode",
+          "target": "officeCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "expendId",
+          "target": "expendId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "usernamec",
+          "target": "usernamec",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "latest_ship_date",
+          "target": "latest_ship_date",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "usernamec2",
+          "target": "usernamec2",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "systemid_o",
+          "target": "systemid_o",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "expendid_o",
+          "target": "expendid_o",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "industry_name_o",
+          "target": "industry_name_o",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataSource",
+          "target": "dataSource",
+          "values": null
+        }
+      ],
+      "object": "sms_ofst_contract_head_sap",
+      "parameters": {
+        "projectIds": "",
+        "contractNos": "",
+        "projectTypes": "10"
+      },
+      "primaryTarget": null,
+      "queryRef": null,
+      "readMode": "SQL",
+      "rowProjection": null,
+      "sourceKey": "id",
+      "sourceKeyColumns": null,
+      "sourceObject": "sms_ofst_contract_head_sap",
+      "sql": "SELECT r.*\nFROM sms_ofst_contract_head_sap r\nJOIN (SELECT DISTINCT pc.contractNo\nFROM pm_project_group_relationship m\nJOIN pm_project_group g ON g.projectGroupCode=m.projectGroupCode\n  AND CAST(g.projectGroupCode AS BINARY)=CAST(m.projectGroupCode AS BINARY)\nJOIN (SELECT DISTINCT scoped.projectId,scoped.projectCode,scoped.projectType\nFROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) scoped\nWHERE scoped.projectId=scoped.canonicalProjectId) p\n  ON p.projectCode=REPLACE(m.projectCode,'-his','') AND p.projectType=g.projectType\n  AND CAST(p.projectCode AS BINARY)=CAST(REPLACE(m.projectCode,'-his','') AS BINARY)\n  AND CAST(p.projectType AS BINARY)=CAST(g.projectType AS BINARY)\nJOIN pm_project_contract pc ON pc.projectGroupCode=g.projectGroupCode\n  AND CAST(pc.projectGroupCode AS BINARY)=CAST(g.projectGroupCode AS BINARY)) scope ON scope.contractNo=r.contract_num\nWHERE r.contract_num IS NOT NULL\n  AND (:contractNos='' OR FIND_IN_SET(r.contract_num,:contractNos))",
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    }
+  ],
+  "taskKey": "P24_DIRECT"
+}

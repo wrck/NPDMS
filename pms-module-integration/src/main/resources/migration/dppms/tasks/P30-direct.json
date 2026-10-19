@@ -1,0 +1,84 @@
+{
+  "adapter": "DPPMS_DEVICE_BOOTSTRAP_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 500,
+  "clearBeforeLoad": false,
+  "connectionId": 2110305954295414785,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 500,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 500,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [],
+      "filters": [],
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "deviceSn",
+          "target": "deviceSn"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "shipmentId",
+          "target": "shipmentId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "shipmentSourceKey",
+          "target": "shipmentSourceKey"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contractNo",
+          "target": "contractNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "packageNo",
+          "target": "packageNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "shipmentTime",
+          "target": "shipmentTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productCode",
+          "target": "productCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productModel",
+          "target": "productModel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "productName",
+          "target": "productName"
+        }
+      ],
+      "object": "DEVICE_BASE",
+      "parameters": {},
+      "readMode": "LOCAL_OWNER",
+      "sourceKey": "deviceSn",
+      "sourceObject": "ast_device_shipment",
+      "syncPrimaryKey": false
+    }
+  ],
+  "taskKey": "P30_DIRECT"
+}

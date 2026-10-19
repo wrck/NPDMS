@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$TargetMapper"><select id="selectSnapshots" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$Snapshot">SELECT p.id AS project_id,p.version AS project_version,p.project_code,p.project_name,p.company_code,p.company_name,p.customer_code,p.customer_name,p.manager_employee_no,p.manager_name,
+COALESCE(v.scope_version,0) AS scope_version
+FROM proj_project p
+LEFT JOIN com_delivery_scope_project_version v ON v.tenant_id=p.tenant_id AND v.project_id=p.id AND v.deleted=FALSE
+WHERE p.tenant_id=#{query.tenantId} AND p.deleted=FALSE
+<choose><when test="query.ids != null and !query.ids.isEmpty()">AND p.id IN <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
+<select id="selectScopes" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$ScopeRow">SELECT * FROM com_delivery_scope WHERE tenant_id=#{query.tenantId}
+<choose><when test="query.evidence != null and !query.evidence.isEmpty()">AND source_evidence IN <foreach collection="query.evidence" item="key" open="(" close=")" separator=",">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
+<select id="selectDetails" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$DetailRow">SELECT * FROM com_delivery_scope_detail WHERE tenant_id=#{query.tenantId}
+<choose><when test="query.ids != null and !query.ids.isEmpty()">AND delivery_scope_id IN <foreach collection="query.ids" item="key" open="(" close=")" separator=",">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview"> FOR UPDATE</if></select>
+<insert id="insertProductScope">
+        INSERT INTO com_delivery_scope
+          (id,tenant_id,project_id,project_code,project_name,project_company_code,project_company_name,
+           project_department_code,project_department_name,project_customer_code,project_customer_name,
+           project_manager_employee_no,project_manager_name,order_line_id,order_source_system,order_company_code,
+           order_company_name,order_type,order_no,line_no,product_code,product_desc,allocated_qty,
+           allocation_confirmed,delivered_quantity,open_quantity,scope_status,allocation_version,allocation_source,
+           change_reason,department_id,department_code,department_name,department_version,source_evidence,
+           effective_from,effective_to,status,version,creator,create_time,updater,update_time,deleted)
+        VALUES <foreach collection="rows" item="row" separator=",">(#{row.target.id},#{row.target.tenantId},#{row.target.projectId},#{row.target.projectCode},#{row.target.projectName},#{row.target.projectCompanyCode},#{row.target.projectCompanyName},
+           #{row.target.projectDepartmentCode},#{row.target.projectDepartmentName},#{row.target.projectCustomerCode},#{row.target.projectCustomerName},
+           #{row.target.projectManagerEmployeeNo},#{row.target.projectManagerName},#{row.target.orderLineId},#{row.target.orderSourceSystem},#{row.target.orderCompanyCode},
+           #{row.target.orderCompanyName},#{row.target.orderType},#{row.target.orderNo},#{row.target.lineNo},#{row.target.productCode},#{row.target.productDesc},#{row.target.allocatedQty},
+           0,#{row.target.deliveredQuantity},#{row.target.openQuantity},'ACTIVE',#{row.target.allocationVersion},'DPPMS',
+           NULL,#{row.target.departmentId},#{row.target.departmentCode},#{row.target.departmentName},#{row.target.departmentVersion},#{row.target.sourceEvidence},
+           #{row.target.effectiveFrom},NULL,'ENABLED',0,#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},0)</foreach></insert>
+<insert id="insertDetails">
+        INSERT INTO com_delivery_scope_detail
+          (id,tenant_id,delivery_scope_id,detail_sequence,serial_no,product_code,product_name,
+           device_type_code,device_type_name,delivery_batch_no,source_record_key,allocated_qty,detail_status,
+           source_snapshot,remark,version,creator,create_time,updater,update_time,deleted)
+        VALUES <foreach collection="rows" item="row" separator=",">(#{row.detail.id},#{row.detail.tenantId},#{row.detail.deliveryScopeId},1,NULL,#{row.detail.productCode},#{row.detail.productName},
+           NULL,NULL,NULL,#{row.detail.sourceRecordKey},#{row.detail.allocatedQty},'ACTIVE',NULL,NULL,0,
+           #{row.detail.creator},#{row.detail.createTime},#{row.detail.updater},#{row.detail.updateTime},0)</foreach></insert>
+<select id="selectDepartments" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$Department">
+ SELECT id,code,name,version FROM system_dept WHERE tenant_id=#{query.tenantId} AND deleted=FALSE AND code IS NOT NULL AND code&lt;&gt;''
+</select>
+<sql id="currentRunScopes">
+ JOIN int_base_sync_binding b ON b.tenant_id=s.tenant_id AND b.target_id=s.id AND b.object_key='PRODUCT_SCOPE' AND b.deleted=FALSE
+ JOIN int_base_sync_task t ON t.tenant_id=b.tenant_id AND t.id=b.task_id AND t.task_code='BASE_P22'
+  AND t.connection_id=#{query.connectionId} AND t.deleted=FALSE AND t.active_run_id=b.last_run_id
+</sql>
+<update id="backfillDepartmentIds">
+ UPDATE com_delivery_scope s <include refid="currentRunScopes"/>
+ JOIN system_dept d ON d.tenant_id=s.tenant_id AND CAST(d.code AS BINARY)=CAST(s.department_code AS BINARY)
+  AND d.deleted=FALSE AND d.id&gt;0 AND d.version=s.department_version AND CAST(d.name AS BINARY)=CAST(s.department_name AS BINARY)
+ SET s.department_id=d.id,s.update_time=s.update_time
+ WHERE s.tenant_id=#{query.tenantId} AND s.department_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS'
+ AND s.department_code IS NOT NULL AND TRIM(s.department_code)&lt;&gt;''
+</update>
+<select id="countUnresolvedCodedDepartments" resultType="long">
+ SELECT COUNT(*) FROM com_delivery_scope s <include refid="currentRunScopes"/>
+ WHERE s.tenant_id=#{query.tenantId} AND s.department_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS'
+ AND s.department_code IS NOT NULL AND TRIM(s.department_code)&lt;&gt;''
+</select>
+<select id="pendingDepartmentSchemaReady" resultType="int">
+ SELECT CASE WHEN COUNT(*)=3 THEN 1 ELSE 0 END FROM information_schema.columns
+ WHERE table_schema=DATABASE() AND table_name='com_delivery_scope'
+ AND column_name IN ('department_code','department_name','department_version') AND is_nullable='YES'
+</select>
+
+<select id="pendingOrderSchemaReady" resultType="int">
+ SELECT CASE WHEN
+ (SELECT COUNT(*) FROM information_schema.key_column_usage WHERE table_schema=DATABASE() AND table_name='com_delivery_scope' AND column_name='order_line_id' AND referenced_table_name IS NOT NULL)=0
+ AND (SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='com_delivery_scope' AND column_name IN ('order_source_system','order_company_code','order_type') AND is_nullable='YES')=3
+ THEN 1 ELSE 0 END
+</select>
+<sql id="ownedOrderRows">
+ FROM com_sales_order_line l
+ JOIN com_sales_order o ON o.tenant_id=l.tenant_id AND o.id=l.order_id AND o.deleted=FALSE AND o.status='ENABLED'
+  AND CAST(o.source_system AS BINARY)=CAST(l.source_system AS BINARY) AND CAST(o.company_code AS BINARY)=CAST(l.company_code AS BINARY) AND CAST(o.order_type AS BINARY)=CAST(l.order_type AS BINARY) AND CAST(o.order_no AS BINARY)=CAST(l.order_no AS BINARY)
+ JOIN int_base_sync_binding ob ON ob.tenant_id=l.tenant_id AND ob.target_id=l.id AND ob.object_key='SALES_LINE' AND ob.deleted=FALSE
+  AND CAST(ob.source_key AS BINARY)=CAST(SHA2(CAST(JSON_ARRAY(l.source_system,l.company_code,l.order_type,l.order_no,l.line_no) AS CHAR),256) AS BINARY)
+ JOIN int_base_sync_task ot ON ot.tenant_id=ob.tenant_id AND ot.id=ob.task_id AND ot.task_code='BASE_P14' AND ot.connection_id=#{query.connectionId} AND ot.deleted=FALSE
+ JOIN int_base_sync_run rr ON rr.tenant_id=ot.tenant_id AND rr.task_id=ot.id AND rr.connection_id=ot.connection_id AND rr.id=ob.last_run_id AND rr.task_code='BASE_P14' AND rr.status='COMPLETED' AND rr.preview=FALSE AND rr.deleted=FALSE
+ WHERE l.tenant_id=#{query.tenantId} AND l.deleted=FALSE AND l.status='ENABLED' AND l.source_system IN ('SAP','D365','SMS')
+</sql>
+<sql id="uniqueOrderColumns">
+ MIN(l.id) AS id,MAX(l.source_system) AS source_system,MAX(l.company_code) AS company_code,MAX(l.company_name) AS company_name,MAX(l.order_type) AS order_type,MAX(l.order_no) AS order_no,MAX(l.line_no) AS line_no,MAX(l.product_code) AS product_code
+</sql>
+<sql id="uniqueOrderGrouping">
+ GROUP BY CAST(l.company_code AS BINARY),CAST(l.order_no AS BINARY),CAST(l.line_no AS BINARY),CAST(l.product_code AS BINARY)
+ HAVING COUNT(DISTINCT l.id)=1
+</sql>
+<select id="selectOwnedOrderLines" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P22ProductScopeSyncTask$OrderLine">
+ SELECT <include refid="uniqueOrderColumns"/> <include refid="ownedOrderRows"/>
+ <choose><when test="query.keys != null and !query.keys.isEmpty()">AND (<foreach collection="query.keys" item="k" separator=" OR ">(CAST(l.company_code AS BINARY)=CAST(#{k.companyCode} AS BINARY) AND CAST(l.order_no AS BINARY)=CAST(#{k.orderNo} AS BINARY) AND CAST(l.line_no AS BINARY)=CAST(#{k.lineNo} AS BINARY) AND CAST(l.product_code AS BINARY)=CAST(#{k.productCode} AS BINARY))</foreach>)</when><otherwise>AND 1=0</otherwise></choose>
+ <include refid="uniqueOrderGrouping"/>
+</select>
+<update id="backfillOrderLineIds">
+ UPDATE com_delivery_scope s <include refid="currentRunScopes"/>
+ JOIN (SELECT <include refid="uniqueOrderColumns"/> <include refid="ownedOrderRows"/> <include refid="uniqueOrderGrouping"/>) matched
+  ON CAST(matched.company_code AS BINARY)=CAST(s.project_company_code AS BINARY) AND CAST(matched.order_no AS BINARY)=CAST(s.order_no AS BINARY)
+  AND CAST(matched.line_no AS BINARY)=CAST(s.line_no AS BINARY) AND CAST(matched.product_code AS BINARY)=CAST(s.product_code AS BINARY)
+ SET s.order_line_id=matched.id,s.order_source_system=matched.source_system,s.order_company_code=matched.company_code,s.order_company_name=matched.company_name,s.order_type=matched.order_type,s.update_time=s.update_time
+ WHERE s.tenant_id=#{query.tenantId} AND s.order_line_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS' AND s.allocation_confirmed=FALSE
+</update>
+<select id="countPendingOrderLines" resultType="long">
+ SELECT COUNT(*) FROM com_delivery_scope s <include refid="currentRunScopes"/>
+ WHERE s.tenant_id=#{query.tenantId} AND s.order_line_id=-1 AND s.deleted=FALSE AND s.allocation_source='DPPMS'
+</select>
+</mapper>

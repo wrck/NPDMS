@@ -1,0 +1,178 @@
+{
+  "adapter": "DPPMS_INSTALLATION_HISTORY_DIRECT",
+  "autoPaging": false,
+  "chunkSize": 500,
+  "clearBeforeLoad": false,
+  "connectionId": 2110305954295414785,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 500,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 500,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 0,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [
+        "id",
+        "projectId",
+        "barcode",
+        "itemCode",
+        "itemModel",
+        "itemName",
+        "receiveName",
+        "emsNum",
+        "emsCompany",
+        "packdate",
+        "contractNo",
+        "installAddress",
+        "chProjectId",
+        "chContractNo",
+        "transferProjectId",
+        "transferContractNo",
+        "transferFlag",
+        "createTime",
+        "createBy",
+        "updateTime",
+        "updateBy"
+      ],
+      "filters": [],
+      "mappings": [
+        {
+          "conversion": "DIRECT",
+          "source": "id",
+          "target": "id"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectId",
+          "target": "projectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "barcode",
+          "target": "barcode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "itemCode",
+          "target": "itemCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "itemModel",
+          "target": "itemModel"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "itemName",
+          "target": "itemName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "receiveName",
+          "target": "receiveName"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "emsNum",
+          "target": "emsNum"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "emsCompany",
+          "target": "emsCompany"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "packdate",
+          "target": "packdate"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "contractNo",
+          "target": "contractNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "installAddress",
+          "target": "installAddress"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "chProjectId",
+          "target": "chProjectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "chContractNo",
+          "target": "chContractNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "transferProjectId",
+          "target": "transferProjectId"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "transferContractNo",
+          "target": "transferContractNo"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "transferFlag",
+          "target": "transferFlag"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createTime",
+          "target": "createTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "createBy",
+          "target": "createBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateTime",
+          "target": "updateTime"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "updateBy",
+          "target": "updateBy"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "originalProjectCode",
+          "target": "originalProjectCode"
+        },
+        {
+          "conversion": "DIRECT",
+          "source": "projectType",
+          "target": "projectType"
+        }
+      ],
+      "object": "INSTALLATION_HISTORY",
+      "parameters": {},
+      "publishedProjectMatch": "ID",
+      "readMode": "TABLE",
+      "sourceKey": "id",
+      "sourceObject": "pm_project_shipment",
+      "syncPrimaryKey": false,
+      "table": "pm_project_shipment"
+    }
+  ],
+  "taskKey": "P33_DIRECT"
+}

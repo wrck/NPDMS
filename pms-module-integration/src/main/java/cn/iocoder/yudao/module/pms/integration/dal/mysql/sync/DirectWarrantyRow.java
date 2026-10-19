@@ -1,0 +1,25 @@
+package cn.iocoder.yudao.module.pms.integration.dal.mysql.sync;
+
+import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import java.time.LocalDate;
+
+@TableName("ast_device_warranty_renewal_record")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class DirectWarrantyRow extends TenantBaseDO {
+    @TableId private Long id;
+    private String deviceSn;
+    private String warrantyContractNo;
+    private String warrantyGrade;
+    private LocalDate warrantyStartDate;
+    private LocalDate warrantyEndDate;
+    private Integer warrantyMonths;
+    private Boolean extended;
+    private Boolean isLatest;
+    private String remark;
+    private Integer version;
+}

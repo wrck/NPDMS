@@ -1,0 +1,59 @@
+{
+  "task": "P12",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "fb_items",
+      "sourceObject": "fb_items",
+      "sourceKey": "item",
+      "mappings": [
+        {
+          "source": "id",
+          "target": "id",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "item",
+          "target": "item",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "itemname",
+          "target": "itemname",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        },
+        {
+          "source": "describe_",
+          "target": "describe_",
+          "values": null,
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.asset.dal.mysql.product.AssetProductOfficialMapper.selectByProductCodeForUpdate",
+      "source": "pms-module-asset/src/main/resources/mapper/product/AssetProductOfficialMapper.xml",
+      "xml": "<select id=\"selectByProductCodeForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.asset.dal.dataobject.product.AssetProductOfficialDO\">\n        SELECT * FROM ast_product_official_info\n        WHERE tenant_id=#{query.tenantId} AND product_code=#{query.productCode} FOR UPDATE\n    </select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncRunMapper.selectMaintenance",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncRunMapper.xml",
+      "xml": "<select id=\"selectMaintenance\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.dataobject.sync.SyncRunDO\">\n    SELECT id, status, config_snapshot FROM int_sync_run WHERE tenant_id=#{tenantId} AND deleted=FALSE\n      AND (cache_pending=TRUE OR (status IN ('QUEUED','READING','VALIDATING','APPLYING') AND started_at &lt; #{now}))\n      ORDER BY id LIMIT 100\n  </select>\n"
+    }
+  ]
+}

@@ -1,0 +1,165 @@
+{
+  "task": "P12",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "fb_items",
+      "sourceObject": "fb_items",
+      "sourceKey": "item",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "id",
+          "target": "id",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "item",
+          "target": "item",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "itemname",
+          "target": "itemname",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "describe_",
+          "target": "describe_",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "ast_product_official_info",
+      "column": "id",
+      "parameter": "#{row.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_code",
+      "parameter": "#{row.productCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_name",
+      "parameter": "#{row.productName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_desc",
+      "parameter": "#{row.productDesc}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "product_model",
+      "parameter": "#{row.productModel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "status",
+      "parameter": "#{row.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "version",
+      "parameter": "#{row.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_system",
+      "parameter": "#{row.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "source_key",
+      "parameter": "#{row.sourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "sync_status",
+      "parameter": "#{row.syncStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "synced_at",
+      "parameter": "#{row.syncedAt}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    },
+    {
+      "table": "ast_product_official_info",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.selectByProductCodeForUpdate",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml",
+      "xml": "<select id=\"selectByProductCodeForUpdate\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductRow\">\n    SELECT id,tenant_id,product_code,product_name,product_model,product_desc,status,source_system,source_key,sync_status,\n      synced_at,version,creator,create_time,updater,update_time,deleted\n    FROM ast_product_official_info WHERE tenant_id=#{query.tenantId} AND product_code=#{query.productCode} FOR UPDATE\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectProductMapper.insertProduct",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectProductMapper.xml",
+      "xml": "<insert id=\"insertProduct\">\n    INSERT INTO ast_product_official_info(id,tenant_id,product_code,product_name,product_desc,product_model,status,version,\n      source_system,source_key,sync_status,synced_at,creator,updater,deleted)\n    VALUES(#{row.id},#{row.tenantId},#{row.productCode},#{row.productName},#{row.productDesc},#{row.productModel},#{row.status},#{row.version},\n      #{row.sourceSystem},#{row.sourceKey},#{row.syncStatus},#{row.syncedAt},#{row.creator},#{row.updater},FALSE)\n  </insert>\n"
+    }
+  ]
+}

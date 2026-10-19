@@ -1,0 +1,120 @@
+{
+  "task": "P34",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "project_id",
+      "parameter": "#{row.target.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "device_sn",
+      "parameter": "#{row.target.deviceSn}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "conp_version",
+      "parameter": "#{row.target.conpVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "boot_version",
+      "parameter": "#{row.target.bootVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "cpld_version",
+      "parameter": "#{row.target.cpldVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "pcb_version",
+      "parameter": "#{row.target.pcbVersion}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    },
+    {
+      "table": "ast_device_factory_version_record",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.selectExisting",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml",
+      "xml": "<select id=\"selectExisting\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$FactorySyncRow\">SELECT `id`, `tenant_id`, `project_id`, `device_sn`, `conp_version`, `boot_version`, `cpld_version`, `pcb_version`, `creator`, `create_time`, `updater`, `update_time`, `deleted` FROM ast_device_factory_version_record\n    WHERE tenant_id=#{query.tenantId}\n    <choose><when test=\"query.ids != null and !query.ids.isEmpty()\">AND id IN\n      <foreach collection=\"query.ids\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach>\n    </when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\">FOR UPDATE</if>\n  </select>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.insertFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml",
+      "xml": "<insert id=\"insertFactoryHistory\">INSERT INTO ast_device_factory_version_record (`id`, `tenant_id`, `project_id`, `device_sn`, `conp_version`, `boot_version`, `cpld_version`, `pcb_version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES\n    <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id}, #{row.target.tenantId}, #{row.target.projectId}, #{row.target.deviceSn}, #{row.target.conpVersion}, #{row.target.bootVersion}, #{row.target.cpldVersion}, #{row.target.pcbVersion}, #{row.target.creator}, #{row.target.createTime}, #{row.target.updater}, #{row.target.updateTime}, #{row.target.deleted})</foreach>\n  </insert>\n  "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper.nullableSerialColumn",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P34TargetMapper.xml",
+      "xml": "<select id=\"nullableSerialColumn\" resultType=\"java.lang.Integer\">SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ast_device_factory_version_record' AND column_name='device_sn' AND is_nullable='YES'</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$SourceMapper.selectFactoryHistory",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P34SourceMapper.xml",
+      "xml": "<select id=\"selectFactoryHistory\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$FactorySyncSource\">\n    SELECT `serial_number` AS `device_sn`, `conp` AS `conp_version`, `cpld` AS `cpld_version`, `boot` AS `boot_version`, `pcb` AS `pcb_version` FROM fb_soft_version ORDER BY BINARY serial_number, BINARY conp, BINARY cpld, BINARY boot, BINARY pcb LIMIT #{limit}\n  </select>\n"
+    }
+  ]
+}

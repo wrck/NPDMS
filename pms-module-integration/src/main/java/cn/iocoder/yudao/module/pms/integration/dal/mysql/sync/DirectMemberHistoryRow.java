@@ -1,0 +1,120 @@
+package cn.iocoder.yudao.module.pms.integration.dal.mysql.sync;
+
+import cn.iocoder.yudao.framework.tenant.core.db.TenantBaseDO;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.time.LocalDateTime;
+
+/**
+ * 项目成员角色区间 DO（F-PM01 / V57 `proj_project_member_assignment`）
+ * <p>
+ * 成员角色的时态区间留痕：`effective_to IS NULL`=当前有效；
+ * 同项目同用户同角色区间不得重叠（应用层防重，uk 含 effective_from）。
+ * 指派语义=关闭旧区间+开启新区间（历史区间保留）。
+ * `version` 列暂不接 @Version 拦截器：并发由 uk + 行锁保障。
+ */
+@TableName("proj_project_member_assignment")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class DirectMemberHistoryRow extends TenantBaseDO {
+
+    /**
+     * 成员区间ID
+     */
+    @TableId
+    private Long id;
+    /**
+     * 项目ID
+     */
+    private Long projectId;
+    /**
+     * 用户ID
+     */
+    private Long userId;
+    /** 成员区间的人员编码，不能当作当前工号。 */
+    private String memberCode;
+    /** 成员区间自身联系方式。 */
+    private String phoneNumber;
+    private String email;
+    /** 1项目信息，2手工成员资料；不表示账号类型。 */
+    private String registrationSource;
+    /** 未确认历史不参与当前授权、指派或任务资格。 */
+    private Boolean authorizationConfirmed = Boolean.TRUE;
+    /**
+     * 成员工号
+     */
+    private String employeeNo;
+    /**
+     * 成员姓名
+     */
+    private String memberName;
+    /**
+     * 成员加入时公司主档ID
+     */
+    private Long companyId;
+    /**
+     * 公司编码
+     */
+    private String companyCode;
+    /**
+     * 公司名称
+     */
+    private String companyName;
+    /**
+     * 部门ID快照
+     */
+    private Long departmentId;
+    /**
+     * 部门编码
+     */
+    private String departmentCode;
+    /**
+     * 部门名称
+     */
+    private String departmentName;
+    /**
+     * 成员角色（经理使用原规则；TEAM_MEMBER/SALES_REPRESENTATIVE为普通成员；旧值保留历史）
+     */
+    private String memberRole;
+    /**
+     * 责任类型（PRIMARY/COLLABORATOR）
+     */
+    private String assignmentType;
+    /**
+     * AST站点稳定ID；L1统筹责任可为空
+     */
+    private Long siteId;
+    /**
+     * 职责
+     */
+    private String responsibility;
+    /**
+     * 指派或改派原因
+     */
+    private String changeReason;
+    /** 普通备注，不能解释为指派或退出原因。 */
+    private String remark;
+    /** 关闭区间时记录的退出/变更原因，原区间其他快照不改。 */
+    private String endReason;
+    /**
+     * 生效开始时间
+     */
+    private LocalDateTime effectiveFrom;
+    /**
+     * 失效时间（NULL=当前有效）
+     */
+    private LocalDateTime effectiveTo;
+    /**
+     * 状态（记录状态 ACTIVE；区间有效性由 effective_to 表达）
+     */
+    private String status;
+    /**
+     * 乐观锁版本列：暂不接 @Version 拦截器，并发由 uk + 行锁保障
+     */
+    private Integer version;
+    /** 既有物理删除时间；迁移全字段保护一并核对。 */
+    private LocalDateTime deletedTime;
+}

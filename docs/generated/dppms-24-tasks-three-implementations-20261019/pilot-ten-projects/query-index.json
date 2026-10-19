@@ -1,0 +1,1052 @@
+{
+  "first-ten-frozen-source-queries.sql": [
+    {
+      "id": "H001/t_user",
+      "taskId": "2108524822998773762",
+      "version": 0,
+      "adapter": "DPPMS_USERS",
+      "object": "t_user",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-users-apply.json"
+    },
+    {
+      "id": "H001/t_user_info",
+      "taskId": "2108524822998773762",
+      "version": 0,
+      "adapter": "DPPMS_USERS",
+      "object": "t_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-users-apply.json"
+    },
+    {
+      "id": "H001/fnd_user_info",
+      "taskId": "2108524822998773762",
+      "version": 0,
+      "adapter": "DPPMS_USERS",
+      "object": "fnd_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-users-apply.json"
+    },
+    {
+      "id": "H002/T_ROLE",
+      "taskId": "2108554583850524673",
+      "version": 0,
+      "adapter": "DPPMS_ROLES",
+      "object": "T_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-roles-apply.json"
+    },
+    {
+      "id": "H002/FND_ROLE",
+      "taskId": "2108554583850524673",
+      "version": 0,
+      "adapter": "DPPMS_ROLES",
+      "object": "FND_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-roles-apply.json"
+    },
+    {
+      "id": "H003/T_USER_ROLE",
+      "taskId": "2108568095503093761",
+      "version": 0,
+      "adapter": "DPPMS_USER_ROLES",
+      "object": "T_USER_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-user-roles-apply.json"
+    },
+    {
+      "id": "H003/FND_USER_ROLE",
+      "taskId": "2108568095503093761",
+      "version": 0,
+      "adapter": "DPPMS_USER_ROLES",
+      "object": "FND_USER_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-user-roles-apply.json"
+    },
+    {
+      "id": "H004/t_user",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "t_user",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-user-scopes-apply.json"
+    },
+    {
+      "id": "H004/t_user_info",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "t_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-user-scopes-apply.json"
+    },
+    {
+      "id": "H004/fnd_user_info",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "fnd_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-user-scopes-apply.json"
+    },
+    {
+      "id": "H004/t_user_role",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "t_user_role",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-user-scopes-apply.json"
+    },
+    {
+      "id": "H004/fnd_user_power",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "fnd_user_power",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-user-scopes-apply.json"
+    },
+    {
+      "id": "H005/fnd_department",
+      "taskId": "2108524501517955073",
+      "version": 0,
+      "adapter": "DPPMS_DEPARTMENTS",
+      "object": "fnd_department",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-departments-apply.json"
+    },
+    {
+      "id": "H006/ehr_department",
+      "taskId": "2108538095265562625",
+      "version": 0,
+      "adapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+      "object": "ehr_department",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-sync-ehr-departments-apply.json"
+    },
+    {
+      "id": "H007/fb_items",
+      "taskId": "2108534088732168194",
+      "version": 0,
+      "adapter": "DPPMS_PRODUCT_CATALOG",
+      "object": "fb_items",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-product-sync-state-20261009.json"
+    },
+    {
+      "id": "H008/SHIPMENT_CONTRACT",
+      "taskId": "2108799116748152833",
+      "version": 0,
+      "adapter": "DPPMS_SHIPMENT_CONTRACT_WARRANTY_CORRECTION",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-contract-years-sync-state-20261010.json"
+    },
+    {
+      "id": "H009/pm_project_header",
+      "taskId": "2108608417343934465",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_MASTER",
+      "object": "pm_project_header",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/approved-project-master-pilot-state-20261010.json"
+    },
+    {
+      "id": "H010/pm_project_identity",
+      "taskId": "2109622534918856706",
+      "version": null,
+      "adapter": "DPPMS_PROJECT_IDENTITY",
+      "object": "pm_project_identity",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/project-identity-task-pilot-state-20261012.json"
+    },
+    {
+      "id": "H011/pm_pb_plan_from_sms",
+      "taskId": "2108574253093683202",
+      "version": 3,
+      "adapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "object": "pm_pb_plan_from_sms",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/collection-whole-task-upgrade-state-20261012.json"
+    },
+    {
+      "id": "H012/pm_project_contract",
+      "taskId": "2109363204544983041",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "object": "pm_project_contract",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/contract-whole-task-upgrade-state-20261012.json"
+    },
+    {
+      "id": "H013/fnd_basic_data_type",
+      "taskId": "2109351154645135362",
+      "version": 0,
+      "adapter": "DPPMS_DICTIONARY_TYPES",
+      "object": "fnd_basic_data_type",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/dictionary-type-approved-sync-state-20261012.json"
+    },
+    {
+      "id": "H014/fnd_basic_data",
+      "taskId": "2109371486114320385",
+      "version": 0,
+      "adapter": "DPPMS_DICTIONARY_DATA",
+      "object": "fnd_basic_data",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/dictionary-data-approved-sync-state-20261012.json"
+    },
+    {
+      "id": "H015/pm_project_product_line",
+      "taskId": "2109829769958453249",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "object": "pm_project_product_line",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/project-scope-whole-task-state-20261013.json"
+    }
+  ],
+  "saved-task-snapshot-source-queries.sql": [
+    {
+      "id": "H001/pm_project_product_lease_line_from_crm",
+      "taskId": "2109865270430134273",
+      "version": 0,
+      "adapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "object": "pm_project_product_lease_line_from_crm",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H001/pm_project_product_config_level_info_from_crm",
+      "taskId": "2109865270430134273",
+      "version": 0,
+      "adapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "object": "pm_project_product_config_level_info_from_crm",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H002/pm_project_product_line_real",
+      "taskId": "2109865269478027265",
+      "version": 0,
+      "adapter": "DPPMS_PROJECT_REAL_PRODUCT",
+      "object": "pm_project_product_line_real",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H003/pm_project_product_line",
+      "taskId": "2109829769958453249",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "object": "pm_project_product_line",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H004/pm_project_identity",
+      "taskId": "2109622534918856706",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_IDENTITY",
+      "object": "pm_project_identity",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H005/fb_shipment_barcode_relation",
+      "taskId": "2109382583085117441",
+      "version": 2,
+      "adapter": "DPPMS_DEVICE_RELATIONSHIP_AUDIT_CORRECTION",
+      "object": "fb_shipment_barcode_relation",
+      "kind": "TABLE_READER_PROJECTION",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H006/fnd_basic_data",
+      "taskId": "2109371486114320385",
+      "version": 0,
+      "adapter": "DPPMS_DICTIONARY_DATA",
+      "object": "fnd_basic_data",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H007/pm_project_contract",
+      "taskId": "2109363204544983041",
+      "version": 5,
+      "adapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "object": "pm_project_contract",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H008/fnd_basic_data_type",
+      "taskId": "2109351154645135362",
+      "version": 0,
+      "adapter": "DPPMS_DICTIONARY_TYPES",
+      "object": "fnd_basic_data_type",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H009/SHIPMENT_CONTRACT",
+      "taskId": "2108799116748152833",
+      "version": 0,
+      "adapter": "DPPMS_SHIPMENT_CONTRACT_WARRANTY_CORRECTION",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H010/pm_project_header",
+      "taskId": "2108608417343934465",
+      "version": 5,
+      "adapter": "DPPMS_PROJECT_MASTER",
+      "object": "pm_project_header",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H011/pm_pb_plan_from_sms",
+      "taskId": "2108574253093683202",
+      "version": 6,
+      "adapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "object": "pm_pb_plan_from_sms",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H012/t_user",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "t_user",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H012/t_user_info",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "t_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H012/fnd_user_info",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "fnd_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H012/t_user_role",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "t_user_role",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H012/fnd_user_power",
+      "taskId": "2108569376783273985",
+      "version": 0,
+      "adapter": "DPPMS_USER_SCOPES",
+      "object": "fnd_user_power",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H013/T_USER_ROLE",
+      "taskId": "2108568095503093761",
+      "version": 0,
+      "adapter": "DPPMS_USER_ROLES",
+      "object": "T_USER_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H013/FND_USER_ROLE",
+      "taskId": "2108568095503093761",
+      "version": 0,
+      "adapter": "DPPMS_USER_ROLES",
+      "object": "FND_USER_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H014/fnd_roles",
+      "taskId": "2108567804242235394",
+      "version": 0,
+      "adapter": "DPPMS_ROLE_AUDIT_CORRECTION",
+      "object": "fnd_roles",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H015/T_ROLE",
+      "taskId": "2108554583850524673",
+      "version": 0,
+      "adapter": "DPPMS_ROLES",
+      "object": "T_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H015/FND_ROLE",
+      "taskId": "2108554583850524673",
+      "version": 0,
+      "adapter": "DPPMS_ROLES",
+      "object": "FND_ROLE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H016/fnd_user_info",
+      "taskId": "2108545067259985922",
+      "version": 1,
+      "adapter": "DPPMS_USER_AUDIT_CORRECTION",
+      "object": "fnd_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H017/ehr_department",
+      "taskId": "2108538095265562625",
+      "version": 0,
+      "adapter": "DPPMS_EHR_DEPARTMENT_COMPLETION",
+      "object": "ehr_department",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H018/fb_items",
+      "taskId": "2108534088732168194",
+      "version": 1,
+      "adapter": "DPPMS_PRODUCT_CATALOG",
+      "object": "fb_items",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H019/t_user",
+      "taskId": "2108524822998773762",
+      "version": 0,
+      "adapter": "DPPMS_USERS",
+      "object": "t_user",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H019/t_user_info",
+      "taskId": "2108524822998773762",
+      "version": 0,
+      "adapter": "DPPMS_USERS",
+      "object": "t_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H019/fnd_user_info",
+      "taskId": "2108524822998773762",
+      "version": 0,
+      "adapter": "DPPMS_USERS",
+      "object": "fnd_user_info",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H020/fnd_department",
+      "taskId": "2108524501517955073",
+      "version": 1,
+      "adapter": "DPPMS_DEPARTMENTS",
+      "object": "fnd_department",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H021/CONTRACT",
+      "taskId": "2107046961754501121",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H021/SHIPMENT_CONTRACT",
+      "taskId": "2107046961754501121",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H021/PACKAGE",
+      "taskId": "2107046961754501121",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H021/DEVICE_SN",
+      "taskId": "2107046961754501121",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_SN",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H021/DEVICE_RELATION",
+      "taskId": "2107046961754501121",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_RELATION",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H022/DEVICE_RELATION",
+      "taskId": "2107041701984034818",
+      "version": 0,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_RELATION",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H023/DEVICE_SN",
+      "taskId": "2107041701736570882",
+      "version": 0,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_SN",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H024/PACKAGE",
+      "taskId": "2107041701468135425",
+      "version": 0,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H025/CONTRACT",
+      "taskId": "2107041701187117058",
+      "version": 0,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H026/CONTRACT",
+      "taskId": "2107040712333811713",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H026/SHIPMENT_CONTRACT",
+      "taskId": "2107040712333811713",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H026/PACKAGE",
+      "taskId": "2107040712333811713",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H026/DEVICE_SN",
+      "taskId": "2107040712333811713",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_SN",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H026/DEVICE_RELATION",
+      "taskId": "2107040712333811713",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_RELATION",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H027/CONTRACT",
+      "taskId": "2107037031798468609",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H027/SHIPMENT_CONTRACT",
+      "taskId": "2107037031798468609",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H027/PACKAGE",
+      "taskId": "2107037031798468609",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H027/BARCODE",
+      "taskId": "2107037031798468609",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "BARCODE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H027/DEVICE_RELATION",
+      "taskId": "2107037031798468609",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_RELATION",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H028/CONTRACT",
+      "taskId": "2107037031219654657",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H028/SHIPMENT_CONTRACT",
+      "taskId": "2107037031219654657",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H028/PACKAGE",
+      "taskId": "2107037031219654657",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "TABLE_READER_PROJECTION",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H028/DEVICE_SN",
+      "taskId": "2107037031219654657",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_SN",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H028/DEVICE_RELATION",
+      "taskId": "2107037031219654657",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_RELATION",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H029/SHIPMENT_BARCODE_RAW",
+      "taskId": "2104524842835423234",
+      "version": 0,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_BARCODE_RAW",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H029/SHIPMENT_BARCODE_RELATION_RAW",
+      "taskId": "2104524842835423234",
+      "version": 0,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_BARCODE_RELATION_RAW",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H030/DEVICE_SN",
+      "taskId": "2102825819916980226",
+      "version": 10,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_SN",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H030/DEVICE_RELATION",
+      "taskId": "2102825819916980226",
+      "version": 10,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_RELATION",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H031/CUSTOMER",
+      "taskId": "2102221608959250434",
+      "version": 2,
+      "adapter": "CRM_CUSTOMER",
+      "object": "CUSTOMER",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H032/PRODUCT",
+      "taskId": "2102221608179109889",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "PRODUCT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H033/SHIPMENT_CONTRACT",
+      "taskId": "2101891886242299906",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H033/CONTRACT",
+      "taskId": "2101891886242299906",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H033/SHIPMENT_CONTRACT_LINK",
+      "taskId": "2101891886242299906",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT_LINK",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H033/PACKAGE",
+      "taskId": "2101891886242299906",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H033/BARCODE",
+      "taskId": "2101891886242299906",
+      "version": 6,
+      "adapter": "TABLE_MAPPING",
+      "object": "BARCODE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H034/BARCODE",
+      "taskId": "2101875785110306818",
+      "version": 7,
+      "adapter": "TABLE_MAPPING",
+      "object": "BARCODE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H035/PACKAGE",
+      "taskId": "2101875784728625154",
+      "version": 1,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H036/CONTRACT",
+      "taskId": "2101875784317583361",
+      "version": 4,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H037/SHIPMENT_CONTRACT",
+      "taskId": "2101857698189352962",
+      "version": 5,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H038/EXECUTION_ORDER",
+      "taskId": "2101625228492091393",
+      "version": 8,
+      "adapter": "DPPMS_CRM_EXECUTION_ORDER",
+      "object": "EXECUTION_ORDER",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H039/ACCEPTANCE",
+      "taskId": "2101613039156846593",
+      "version": 0,
+      "adapter": "PAYMENT_PLAN_ACCEPTANCE",
+      "object": "ACCEPTANCE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H040/ORDER",
+      "taskId": "2101587859478949890",
+      "version": 27,
+      "adapter": "DPPMS_ERP_ORDER",
+      "object": "ORDER",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H040/LINE",
+      "taskId": "2101587859478949890",
+      "version": 27,
+      "adapter": "DPPMS_ERP_ORDER",
+      "object": "LINE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H041/COMPANY",
+      "taskId": "2101562667583217666",
+      "version": 16,
+      "adapter": "EHR_ORGANIZATION",
+      "object": "COMPANY",
+      "kind": "TABLE_READER_PROJECTION",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    },
+    {
+      "id": "H041/DEPARTMENT",
+      "taskId": "2101562667583217666",
+      "version": 16,
+      "adapter": "EHR_ORGANIZATION",
+      "object": "DEPARTMENT",
+      "kind": "TABLE_READER_PROJECTION",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/existing-sync-task-inventory-20261013.json"
+    }
+  ],
+  "renewal-ten-source-queries.sql": [
+    {
+      "id": "H001/pm_project_header",
+      "taskId": "2108608417343934465",
+      "version": 6,
+      "adapter": "DPPMS_PROJECT_MASTER",
+      "object": "pm_project_header",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-master-state-20261013.json"
+    },
+    {
+      "id": "H002/pm_project_identity",
+      "taskId": "2109622534918856706",
+      "version": 2,
+      "adapter": "DPPMS_PROJECT_IDENTITY",
+      "object": "pm_project_identity",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-identity-state-20261013.json"
+    },
+    {
+      "id": "H003/CONTRACT",
+      "taskId": "2107037031219654657",
+      "version": 9,
+      "adapter": "TABLE_MAPPING",
+      "object": "CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-contractmasters-state-20261013.json"
+    },
+    {
+      "id": "H003/SHIPMENT_CONTRACT",
+      "taskId": "2107037031219654657",
+      "version": 9,
+      "adapter": "TABLE_MAPPING",
+      "object": "SHIPMENT_CONTRACT",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-contractmasters-state-20261013.json"
+    },
+    {
+      "id": "H003/PACKAGE",
+      "taskId": "2107037031219654657",
+      "version": 9,
+      "adapter": "TABLE_MAPPING",
+      "object": "PACKAGE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-contractmasters-state-20261013.json"
+    },
+    {
+      "id": "H003/DEVICE_SN",
+      "taskId": "2107037031219654657",
+      "version": 9,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_SN",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-contractmasters-state-20261013.json"
+    },
+    {
+      "id": "H003/DEVICE_RELATION",
+      "taskId": "2107037031219654657",
+      "version": 9,
+      "adapter": "TABLE_MAPPING",
+      "object": "DEVICE_RELATION",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-contractmasters-state-20261013.json"
+    },
+    {
+      "id": "H004/ORDER",
+      "taskId": "2101587859478949890",
+      "version": 28,
+      "adapter": "DPPMS_ERP_ORDER",
+      "object": "ORDER",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-orders-state-20261013.json"
+    },
+    {
+      "id": "H004/LINE",
+      "taskId": "2101587859478949890",
+      "version": 28,
+      "adapter": "DPPMS_ERP_ORDER",
+      "object": "LINE",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-orders-state-20261013.json"
+    },
+    {
+      "id": "H005/pm_project_contract",
+      "taskId": "2109363204544983041",
+      "version": 6,
+      "adapter": "DPPMS_PROJECT_CONTRACT_RELATION",
+      "object": "pm_project_contract",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-contract-state-20261013.json"
+    },
+    {
+      "id": "H006/pm_project_product_line",
+      "taskId": "2109829769958453249",
+      "version": 2,
+      "adapter": "DPPMS_PROJECT_PRODUCT_SCOPE",
+      "object": "pm_project_product_line",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-scope-state-20261013.json"
+    },
+    {
+      "id": "H007/pm_project_related_party",
+      "taskId": "2109968219214897153",
+      "version": 2,
+      "adapter": "DPPMS_PROJECT_FACTS",
+      "object": "pm_project_related_party",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-facts-state-20261013.json"
+    },
+    {
+      "id": "H007/pm_project_state",
+      "taskId": "2109968219214897153",
+      "version": 2,
+      "adapter": "DPPMS_PROJECT_FACTS",
+      "object": "pm_project_state",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-facts-state-20261013.json"
+    },
+    {
+      "id": "H008/sms_ofst_contract_head_sap",
+      "taskId": "2109967339937804289",
+      "version": 1,
+      "adapter": "DPPMS_CONTRACT_RECEIVABLE",
+      "object": "sms_ofst_contract_head_sap",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-receivable-state-20261013.json"
+    },
+    {
+      "id": "H009/fb_service",
+      "taskId": "2110010787726274561",
+      "version": 2,
+      "adapter": "DPPMS_WARRANTY_RENEWAL",
+      "object": "fb_service",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-renewal-state-20261013.json"
+    },
+    {
+      "id": "H010/pm_project_product_line_real",
+      "taskId": "2109865269478027265",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_REAL_PRODUCT",
+      "object": "pm_project_product_line_real",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-real-state-20261013.json"
+    },
+    {
+      "id": "H011/pm_project_product_lease_line_from_crm",
+      "taskId": "2109865270430134273",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "object": "pm_project_product_lease_line_from_crm",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-associated-state-20261013.json"
+    },
+    {
+      "id": "H011/pm_project_product_config_level_info_from_crm",
+      "taskId": "2109865270430134273",
+      "version": 1,
+      "adapter": "DPPMS_PROJECT_ASSOCIATED_PRODUCTS",
+      "object": "pm_project_product_config_level_info_from_crm",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-associated-state-20261013.json"
+    },
+    {
+      "id": "H012/pm_pb_plan_from_sms",
+      "taskId": "2108574253093683202",
+      "version": 7,
+      "adapter": "DPPMS_CONTRACT_COLLECTION_PLAN",
+      "object": "pm_pb_plan_from_sms",
+      "kind": "EXACT_SAVED_SQL",
+      "source": "C:/Users/user/Documents/Codex/2026-10-08/c-users-user-documents-codex-2026/work/native-followup-private/renewal-ten-collection-state-20261013.json"
+    }
+  ]
+}

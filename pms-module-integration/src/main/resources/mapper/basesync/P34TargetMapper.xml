@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$TargetMapper">
+  <select id="selectExisting" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P34FactoryHistorySyncTask$FactorySyncRow">SELECT `id`, `tenant_id`, `project_id`, `device_sn`, `conp_version`, `boot_version`, `cpld_version`, `pcb_version`, `creator`, `create_time`, `updater`, `update_time`, `deleted` FROM ast_device_factory_version_record
+    WHERE tenant_id=#{query.tenantId}
+    <choose><when test="query.ids != null and !query.ids.isEmpty()">AND id IN
+      <foreach collection="query.ids" item="id" open="(" close=")" separator=",">#{id}</foreach>
+    </when><otherwise>AND 1=0</otherwise></choose><if test="!query.preview">FOR UPDATE</if>
+  </select>
+  <insert id="insertFactoryHistory">INSERT INTO ast_device_factory_version_record (`id`, `tenant_id`, `project_id`, `device_sn`, `conp_version`, `boot_version`, `cpld_version`, `pcb_version`, `creator`, `create_time`, `updater`, `update_time`, `deleted`) VALUES
+    <foreach collection="rows" item="row" separator=",">(#{row.target.id}, #{row.target.tenantId}, #{row.target.projectId}, #{row.target.deviceSn}, #{row.target.conpVersion}, #{row.target.bootVersion}, #{row.target.cpldVersion}, #{row.target.pcbVersion}, #{row.target.creator}, #{row.target.createTime}, #{row.target.updater}, #{row.target.updateTime}, #{row.target.deleted})</foreach>
+  </insert>
+  <select id="nullableSerialColumn" resultType="java.lang.Integer">SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='ast_device_factory_version_record' AND column_name='device_sn' AND is_nullable='YES'</select>
+</mapper>

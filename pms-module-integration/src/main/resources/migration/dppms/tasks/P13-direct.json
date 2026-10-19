@@ -1,0 +1,625 @@
+{
+  "adapter": "DPPMS_CRM_EXECUTION_ORDER_DIRECT",
+  "autoPaging": true,
+  "chunkSize": 1000,
+  "clearBeforeLoad": false,
+  "connectionId": null,
+  "cron": "0 0 2 * * ?",
+  "evidencePolicy": "FULL",
+  "fetchSize": 2000,
+  "fullCron": "0 0 2 ? * SUN",
+  "loadingMode": "UPSERT",
+  "maxBytes": 67108864,
+  "maxRows": 2000,
+  "mergedIntoTaskId": null,
+  "missingPolicy": "RETAIN",
+  "mode": "ONCE",
+  "overlapSeconds": 0,
+  "queryTimeoutSeconds": 180,
+  "readStrategy": "STREAMING_CURSOR",
+  "resetMappingsBeforeLoad": false,
+  "restartPolicy": "RESTART_ALL",
+  "retryCount": 0,
+  "retryIntervalSeconds": 60,
+  "sourceSystem": "DPPMS",
+  "sources": [
+    {
+      "columns": [
+        "id",
+        "orderExecNumber",
+        "dataSource",
+        "projectCode",
+        "projectName",
+        "salesManCode",
+        "salesManName",
+        "marketCode",
+        "marketName",
+        "systemId",
+        "systemName",
+        "expendId",
+        "expendName",
+        "industryId",
+        "industryName",
+        "officeCode",
+        "officeName",
+        "serviceTypeName",
+        "channelName",
+        "engineeFee",
+        "objId",
+        "applyType",
+        "corporationCode",
+        "customerProjectName",
+        "finalCustomerName",
+        "agentName",
+        "majorProjectLevel",
+        "projectMoney",
+        "submitTime",
+        "predBidDate",
+        "linkmanName",
+        "linkmanTel",
+        "canonicalId",
+        "canonical_orderExecNumber",
+        "canonical_dataSource",
+        "canonical_projectCode",
+        "canonical_projectName",
+        "canonical_salesManCode",
+        "canonical_salesManName",
+        "canonical_marketCode",
+        "canonical_marketName",
+        "canonical_systemId",
+        "canonical_systemName",
+        "canonical_expendId",
+        "canonical_expendName",
+        "canonical_industryId",
+        "canonical_industryName",
+        "canonical_officeCode",
+        "canonical_officeName",
+        "canonical_serviceTypeName",
+        "canonical_channelName",
+        "canonical_engineeFee",
+        "canonical_objId",
+        "canonical_applyType",
+        "canonical_corporationCode",
+        "canonical_customerProjectName",
+        "canonical_finalCustomerName",
+        "canonical_agentName",
+        "canonical_majorProjectLevel",
+        "canonical_projectMoney",
+        "canonical_submitTime",
+        "canonical_predBidDate",
+        "canonical_linkmanName",
+        "canonical_linkmanTel"
+      ],
+      "evidenceAdapter": null,
+      "evidenceObject": null,
+      "filters": [],
+      "groupKey": null,
+      "issueField": null,
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderExecNumber",
+          "target": "executionNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_orderExecNumber",
+          "target": "canonical_executionNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataSource",
+          "target": "sourceSystem",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_dataSource",
+          "target": "canonical_sourceSystem",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_projectCode",
+          "target": "canonical_projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectName",
+          "target": "projectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_projectName",
+          "target": "canonical_projectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "salesManCode",
+          "target": "salesRepCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_salesManCode",
+          "target": "canonical_salesRepCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "salesManName",
+          "target": "salesRepName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_salesManName",
+          "target": "canonical_salesRepName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "marketCode",
+          "target": "marketCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_marketCode",
+          "target": "canonical_marketCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "marketName",
+          "target": "marketName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_marketName",
+          "target": "canonical_marketName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "systemId",
+          "target": "systemSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_systemId",
+          "target": "canonical_systemSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "systemName",
+          "target": "systemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_systemName",
+          "target": "canonical_systemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "expendId",
+          "target": "expendSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_expendId",
+          "target": "canonical_expendSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "expendName",
+          "target": "expendName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_expendName",
+          "target": "canonical_expendName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "industryId",
+          "target": "industryCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_industryId",
+          "target": "canonical_industryCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "industryName",
+          "target": "industryName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_industryName",
+          "target": "canonical_industryName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "officeCode",
+          "target": "departmentCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_officeCode",
+          "target": "canonical_departmentCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "officeName",
+          "target": "departmentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_officeName",
+          "target": "canonical_departmentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "serviceTypeName",
+          "target": "serviceTypeName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_serviceTypeName",
+          "target": "canonical_serviceTypeName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "channelName",
+          "target": "channelName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_channelName",
+          "target": "canonical_channelName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "engineeFee",
+          "target": "engineeringFeeRaw",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_engineeFee",
+          "target": "canonical_engineeringFeeRaw",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "objId",
+          "target": "sourceObjectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_objId",
+          "target": "canonical_sourceObjectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "applyType",
+          "target": "applyType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_applyType",
+          "target": "canonical_applyType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null,
+          "source": "corporationCode",
+          "target": "companyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null,
+          "source": "canonical_corporationCode",
+          "target": "canonical_companyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customerProjectName",
+          "target": "customerProjectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_customerProjectName",
+          "target": "canonical_customerProjectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "finalCustomerName",
+          "target": "finalCustomerName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_finalCustomerName",
+          "target": "canonical_finalCustomerName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "agentName",
+          "target": "agentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_agentName",
+          "target": "canonical_agentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "majorProjectLevel",
+          "target": "majorProjectLevel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_majorProjectLevel",
+          "target": "canonical_majorProjectLevel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectMoney",
+          "target": "projectAmount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_projectMoney",
+          "target": "canonical_projectAmount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "submitTime",
+          "target": "submitTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_submitTime",
+          "target": "canonical_submitTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "predBidDate",
+          "target": "predictedBidTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_predBidDate",
+          "target": "canonical_predictedBidTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "linkmanName",
+          "target": "contactName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_linkmanName",
+          "target": "canonical_contactName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "linkmanTel",
+          "target": "contactPhone",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_linkmanTel",
+          "target": "canonical_contactPhone",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonicalId",
+          "target": "canonicalSourceId",
+          "values": null
+        }
+      ],
+      "object": "EXECUTION_ORDER",
+      "parameters": {
+        "projectIds": "",
+        "projectTypes": "10",
+        "afterSalesType": "10"
+      },
+      "primaryTarget": null,
+      "queryRef": null,
+      "readMode": "SQL",
+      "rowProjection": null,
+      "sourceKey": "id",
+      "sourceKeyColumns": null,
+      "sourceObject": "pm_project_property_from_sms",
+      "sql": "SELECT r.id, r.orderExecNumber, r.dataSource, r.projectCode, r.projectName,\n  r.salesManCode, r.salesManName, r.marketCode, r.marketName, r.systemId, r.systemName,\n  r.expendId, r.expendName, r.industryId, r.industryName, r.officeCode, r.officeName,\n  r.serviceTypeName, r.channelName, r.engineeFee, r.objId, r.applyType, r.corporationCode,\n  r.customerProjectName, r.finalCustomerName, r.agentName, r.majorProjectLevel,\n  r.projectMoney, r.submitTime, r.predBidDate, r.linkmanName, r.linkmanTel,\n  latest.id AS canonicalId, latest.orderExecNumber AS canonical_orderExecNumber,\n  latest.dataSource AS canonical_dataSource, latest.projectCode AS canonical_projectCode,\n  latest.projectName AS canonical_projectName, latest.salesManCode AS canonical_salesManCode,\n  latest.salesManName AS canonical_salesManName, latest.marketCode AS canonical_marketCode,\n  latest.marketName AS canonical_marketName, latest.systemId AS canonical_systemId,\n  latest.systemName AS canonical_systemName, latest.expendId AS canonical_expendId,\n  latest.expendName AS canonical_expendName, latest.industryId AS canonical_industryId,\n  latest.industryName AS canonical_industryName, latest.officeCode AS canonical_officeCode,\n  latest.officeName AS canonical_officeName, latest.serviceTypeName AS canonical_serviceTypeName,\n  latest.channelName AS canonical_channelName, latest.engineeFee AS canonical_engineeFee,\n  latest.objId AS canonical_objId, latest.applyType AS canonical_applyType,\n  latest.corporationCode AS canonical_corporationCode, latest.customerProjectName AS canonical_customerProjectName,\n  latest.finalCustomerName AS canonical_finalCustomerName, latest.agentName AS canonical_agentName,\n  latest.majorProjectLevel AS canonical_majorProjectLevel, latest.projectMoney AS canonical_projectMoney,\n  latest.submitTime AS canonical_submitTime, latest.predBidDate AS canonical_predBidDate,\n  latest.linkmanName AS canonical_linkmanName, latest.linkmanTel AS canonical_linkmanTel\nFROM pm_project_property_from_sms r\nJOIN (\n  SELECT dataSource, orderExecNumber, CAST(dataSource AS BINARY) AS systemKey,\n    CAST(orderExecNumber AS BINARY) AS executionKey, MAX(id) AS canonicalId\n  FROM pm_project_property_from_sms\n  GROUP BY dataSource, orderExecNumber, CAST(dataSource AS BINARY), CAST(orderExecNumber AS BINARY)\n) selected ON selected.dataSource <=> r.dataSource AND selected.orderExecNumber <=> r.orderExecNumber\n  AND selected.systemKey <=> CAST(r.dataSource AS BINARY)\n  AND selected.executionKey <=> CAST(r.orderExecNumber AS BINARY)\nJOIN pm_project_property_from_sms latest ON latest.id=selected.canonicalId\nLEFT JOIN (\n  SELECT MIN(SUBSTRING_INDEX(projectCode,'-',1)) AS projectCode\n  FROM (SELECT original.*,canonical.projectId AS canonicalProjectId\nFROM pm_project original\nJOIN (\n  SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,\n    MAX(projectId) AS projectId\n  FROM pm_project\n  GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)\n) canonical ON canonical.typeKey <=> CAST(original.projectType AS BINARY)\n  AND canonical.codeKey <=> CAST(original.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE current_project.disabled=0 AND current_project.effectiveTo IS NULL\n  AND original.disabled=0 AND original.effectiveTo IS NULL\n  AND FIND_IN_SET(current_project.projectType,:projectTypes)\n  AND (:projectIds='' OR FIND_IN_SET(canonical.projectId,:projectIds))) valid_projects\n  WHERE (:projectTypes='' OR FIND_IN_SET(projectType,:projectTypes))\n    AND (:projectIds='' OR FIND_IN_SET(projectId,:projectIds))\n  GROUP BY CAST(SUBSTRING_INDEX(projectCode,'-',1) AS BINARY)\n) project_scope ON project_scope.projectCode=r.projectCode\n  AND CAST(project_scope.projectCode AS BINARY)=CAST(r.projectCode AS BINARY)\nWHERE project_scope.projectCode IS NOT NULL",
+      "syncPrimaryKey": false,
+      "table": null,
+      "targets": null,
+      "updatedAt": null
+    }
+  ],
+  "taskKey": "P13_DIRECT"
+}

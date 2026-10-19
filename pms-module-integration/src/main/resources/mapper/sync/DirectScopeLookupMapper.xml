@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeLookupMapper">
+ <select id="selectById" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDeliveryScopeRow">
+  SELECT * FROM com_delivery_scope WHERE tenant_id=#{query.tenantId} AND id=#{query.id} AND deleted=FALSE
+ </select>
+ <sql id="projectVersion">SELECT * FROM com_delivery_scope_project_version WHERE tenant_id=#{query.tenantId} AND project_id=#{query.projectId} AND deleted=FALSE</sql>
+ <select id="current" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeVersionRow"><include refid="projectVersion"/></select>
+ <select id="lockExisting" resultType="cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeVersionRow"><include refid="projectVersion"/> FOR UPDATE</select>
+</mapper>

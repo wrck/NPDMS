@@ -63,7 +63,7 @@ public class DppmsProjectFactsSyncAdapter implements DataSyncAdapter {
             if(PARTY.equals(row.object()))for(String name:List.of("createBy","updateBy"))if(text(row.fields().get(name))!=null)names.add(text(row.fields().get(name)));
         }
         var refs=new HashMap<String,DppmsProjectBindingApi.ProjectBinding>();
-        for(var ref:bindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(sourceProjects))))
+        for(var ref:bindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(sourceProjects)).originalLine()))
             if(refs.put(ref.sourceProjectKey(),ref)!=null)fail("项目绑定多义");
         if(!sourceProjects.containsAll(refs.keySet()))fail("返回了范围外项目绑定");
         var changes=new ArrayList<Change>();

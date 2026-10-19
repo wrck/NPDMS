@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$SourceMapper"><select id="selectRealProduct" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P20RealProductSyncTask$Source"><![CDATA[
+SELECT l.id AS sourceId,l.projectId AS originalProjectId,canonical.projectId AS canonicalProjectId,p.projectCode AS originalProjectCode,p.projectType,
+l.contractNo AS contractNo,
+l.projectCode AS projectCode,
+l.orderExecNumber AS executionNo,
+l.productFirstName AS productCategoryName,
+l.productName AS productName,
+l.productSubCode AS productSubCode,
+l.productSubModel AS productSubModel,
+l.productSubName AS productSubName,
+l.num AS quantity,
+l.memo AS memo,u.dataSource,COALESCE(u.matchCount,0) AS upstreamMatchCount,
+u.projectCode AS upstreamProjectCode,
+u.orderExecNumber AS upstreamExecutionNo,
+u.productFirstName AS upstreamProductCategoryName,
+u.productName AS upstreamProductName,
+u.productSubCode AS upstreamProductSubCode,
+u.productSubModel AS upstreamProductSubModel,
+u.productSubName AS upstreamProductSubName,
+u.num AS upstreamQuantity,
+u.memo AS upstreamMemo
+FROM pm_project_product_line_real l
+JOIN pm_project p ON p.projectId=l.projectId
+JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical
+ ON canonical.typeKey=CAST(p.projectType AS BINARY) AND canonical.codeKey=CAST(p.projectCode AS BINARY)
+JOIN pm_project current_project ON current_project.projectId=canonical.projectId
+LEFT JOIN (
+ SELECT MIN(projectCode) AS projectCode,MIN(orderExecNumber) AS orderExecNumber,MIN(productFirstName) AS productFirstName,MIN(productName) AS productName,
+ MIN(productSubCode) AS productSubCode,MIN(productSubModel) AS productSubModel,MIN(productSubName) AS productSubName,MIN(num) AS num,MIN(memo) AS memo,
+ CASE WHEN COUNT(*)=1 THEN MAX(dataSource) ELSE NULL END AS dataSource,COUNT(*) AS matchCount
+ FROM pm_project_real_product_line_from_sms GROUP BY CAST(projectCode AS BINARY),CAST(orderExecNumber AS BINARY),CAST(productFirstName AS BINARY),CAST(productName AS BINARY),CAST(productSubCode AS BINARY),CAST(productSubModel AS BINARY),CAST(productSubName AS BINARY),num,CAST(memo AS BINARY)
+) u ON CAST(u.projectCode AS BINARY) <=> CAST(l.projectCode AS BINARY) AND CAST(u.orderExecNumber AS BINARY) <=> CAST(l.orderExecNumber AS BINARY) AND CAST(u.productFirstName AS BINARY) <=> CAST(l.productFirstName AS BINARY) AND CAST(u.productName AS BINARY) <=> CAST(l.productName AS BINARY) AND CAST(u.productSubCode AS BINARY) <=> CAST(l.productSubCode AS BINARY) AND CAST(u.productSubModel AS BINARY) <=> CAST(l.productSubModel AS BINARY) AND CAST(u.productSubName AS BINARY) <=> CAST(l.productSubName AS BINARY) AND u.num <=> l.num AND CAST(u.memo AS BINARY) <=> CAST(l.memo AS BINARY)
+WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10'
+ORDER BY l.id LIMIT #{limit}
+]]></select></mapper>

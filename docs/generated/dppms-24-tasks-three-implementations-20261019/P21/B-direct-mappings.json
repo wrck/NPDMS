@@ -1,0 +1,230 @@
+{
+  "task": "P21",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "LEASE",
+      "sourceObject": "pm_project_product_lease_line_from_crm",
+      "sourceKey": "cacheRowOrdinal",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "proj_project_lease_product",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "projectCode",
+              "target": "project_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "orderExecNumber",
+              "target": "execution_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "productFirstName",
+              "target": "product_category",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "productName",
+              "target": "product_type",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "productSubCode",
+              "target": "product_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "productSubModel",
+              "target": "product_model",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "productSubName",
+              "target": "product_name",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DECIMAL",
+              "defaultValue": null,
+              "source": "num",
+              "target": "quantity",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "memo",
+              "target": "memo",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DECIMAL",
+              "defaultValue": null,
+              "source": "leaseDuration",
+              "target": "lease_duration",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "dataSource",
+              "target": "data_source",
+              "values": null
+            }
+          ],
+          "lookups": [],
+          "sameVersionColumns": null
+        }
+      ]
+    },
+    {
+      "object": "CONFIG",
+      "sourceObject": "pm_project_product_config_level_info_from_crm",
+      "sourceKey": "cacheRowOrdinal",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "proj_project_product_configuration",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "whenField": null,
+          "newerBy": null,
+          "tieBreaker": null,
+          "mappings": [
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "projectCode",
+              "target": "project_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "orderExecNumber",
+              "target": "execution_no",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null,
+              "source": "itemGroup",
+              "target": "item_group",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "itemCode",
+              "target": "product_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "parentCode",
+              "target": "parent_code",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "DECIMAL",
+              "defaultValue": null,
+              "source": "quantity",
+              "target": "quantity",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "bomPaths",
+              "target": "bom_path",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "itemModel",
+              "target": "product_model",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "itemDesc",
+              "target": "product_description",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "LONG",
+              "defaultValue": null,
+              "source": "level",
+              "target": "level",
+              "values": null
+            },
+            {
+              "constant": null,
+              "conversion": "STRING",
+              "defaultValue": null,
+              "source": "dataSource",
+              "target": "data_source",
+              "values": null
+            }
+          ],
+          "lookups": [],
+          "sameVersionColumns": null
+        }
+      ]
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": []
+}

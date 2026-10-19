@@ -1,0 +1,174 @@
+{
+  "task": "P19",
+  "implementation": "C",
+  "sourceMappings": [],
+  "insertBindings": [
+    {
+      "table": "proj_project_party",
+      "column": "id",
+      "parameter": "#{row.target.id}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "tenant_id",
+      "parameter": "#{row.target.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "project_id",
+      "parameter": "#{row.target.projectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_role",
+      "parameter": "#{row.target.partyRole}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_code",
+      "parameter": "#{row.target.partyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "party_name",
+      "parameter": "#{row.target.partyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "contact_name",
+      "parameter": "#{row.target.contactName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "phone",
+      "parameter": "#{row.target.phone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_system",
+      "parameter": "#{row.target.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_table",
+      "parameter": "#{row.target.sourceTable}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "source_record_key",
+      "parameter": "#{row.target.sourceRecordKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "effective_from",
+      "parameter": "#{row.target.effectiveFrom}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "effective_to",
+      "parameter": "#{row.target.effectiveTo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "status",
+      "parameter": "#{row.target.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "version",
+      "parameter": "#{row.target.version}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "creator",
+      "parameter": "#{row.target.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "create_time",
+      "parameter": "#{row.target.createTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "updater",
+      "parameter": "#{row.target.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "update_time",
+      "parameter": "#{row.target.updateTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    },
+    {
+      "table": "proj_project_party",
+      "column": "deleted",
+      "parameter": "#{row.target.deleted}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.selectParties",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml",
+      "xml": "<select id=\"selectParties\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$PartyRow\">SELECT `id`,`tenant_id`,`project_id`,`party_role`,`party_code`,`party_name`,`contact_name`,`phone`,`source_system`,`source_table`,`source_record_key`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted` FROM proj_project_party WHERE tenant_id=#{query.tenantId} AND source_system='DPPMS' AND source_table='pm_project_related_party'\n<choose><when test=\"query.keys != null and !query.keys.isEmpty()\">AND source_record_key IN <foreach collection=\"query.keys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.insertProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml",
+      "xml": "<insert id=\"insertProjectParty\">INSERT INTO proj_project_party (`id`,`tenant_id`,`project_id`,`party_role`,`party_code`,`party_name`,`contact_name`,`phone`,`source_system`,`source_table`,`source_record_key`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.target.id},#{row.target.tenantId},#{row.target.projectId},#{row.target.partyRole},#{row.target.partyCode},#{row.target.partyName},#{row.target.contactName},#{row.target.phone},#{row.target.sourceSystem},#{row.target.sourceTable},#{row.target.sourceRecordKey},#{row.target.effectiveFrom},#{row.target.effectiveTo},#{row.target.status},#{row.target.version},#{row.target.creator},#{row.target.createTime},#{row.target.updater},#{row.target.updateTime},#{row.target.deleted})</foreach></insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$TargetMapper.updateProjectParty",
+      "source": "pms-module-integration/src/main/resources/mapper/basesync/P19TargetMapper.xml",
+      "xml": "<update id=\"updateProjectParty\">UPDATE proj_project_party SET `project_id`=#{row.target.projectId},`party_role`=#{row.target.partyRole},`party_code`=#{row.target.partyCode},`party_name`=#{row.target.partyName},`effective_from`=#{row.target.effectiveFrom},`effective_to`=#{row.target.effectiveTo},`version`=#{row.target.version},`creator`=#{row.target.creator},`create_time`=#{row.target.createTime},`updater`=#{row.target.updater},`update_time`=#{row.target.updateTime} WHERE tenant_id=#{context.tenantId} AND id=#{row.target.id} AND version=#{row.expectedVersion} AND deleted=FALSE</update>"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$SourceMapper.selectProjectParty",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P19SourceMapper.xml",
+      "xml": "<select id=\"selectProjectParty\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$Source\">SELECT STRAIGHT_JOIN r.id AS sourceId,r.projectId AS originalProjectId,canonical.projectId AS canonicalProjectId,p.projectCode AS originalProjectCode,p.projectType,r.partyRole,r.partyCode,r.partyName,r.createTime,r.createBy AS source_creator,r.updateTime,r.updateBy AS source_updater,r.effectiveFrom,r.effectiveTo,0 AS state FROM pm_project_related_party r\nJOIN pm_project p ON p.projectId=r.projectId\nJOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical\n ON canonical.typeKey=CAST(p.projectType AS BINARY) AND canonical.codeKey=CAST(p.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10' ORDER BY r.id LIMIT #{limit}</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$SourceMapper.selectProjectState",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P19SourceMapper.xml",
+      "xml": "<select id=\"selectProjectState\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$Source\">SELECT STRAIGHT_JOIN r.projectId AS sourceId,r.projectId AS originalProjectId,canonical.projectId AS canonicalProjectId,p.projectCode AS originalProjectCode,p.projectType,r.projectPlanState,r.projectplanTime,r.shipmentState,r.shipmentTime,r.executionState,r.executionStateTime,r.closeProcessState,r.closeProcessStateTime,1 AS state FROM pm_project_state r\nJOIN pm_project p ON p.projectId=r.projectId\nJOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical\n ON canonical.typeKey=CAST(p.projectType AS BINARY) AND canonical.codeKey=CAST(p.projectCode AS BINARY)\nJOIN pm_project current_project ON current_project.projectId=canonical.projectId\nWHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10' AND p.projectId=canonical.projectId ORDER BY r.projectId LIMIT #{limit}</select>\n"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$SourceMapper">
+<select id="selectProjectParty" resultType="cn.iocoder.yudao.module.pms.integration.basesync.task.P19ProjectFactsSyncTask$Source">SELECT STRAIGHT_JOIN r.id AS sourceId,r.projectId AS originalProjectId,canonical.projectId AS canonicalProjectId,p.projectCode AS originalProjectCode,p.projectType,r.partyRole,r.partyCode,r.partyName,r.createTime,r.createBy AS source_creator,r.updateTime,r.updateBy AS source_updater,r.effectiveFrom,r.effectiveTo FROM pm_project_related_party r
+JOIN pm_project p ON p.projectId=r.projectId
+JOIN (SELECT CAST(projectType AS BINARY) AS typeKey,CAST(projectCode AS BINARY) AS codeKey,MAX(projectId) AS projectId FROM pm_project GROUP BY CAST(projectType AS BINARY),CAST(projectCode AS BINARY)) canonical
+ ON canonical.typeKey=CAST(p.projectType AS BINARY) AND canonical.codeKey=CAST(p.projectCode AS BINARY)
+JOIN pm_project current_project ON current_project.projectId=canonical.projectId
+WHERE p.disabled=0 AND p.effectiveTo IS NULL AND current_project.disabled=0 AND current_project.effectiveTo IS NULL AND current_project.projectType='10' ORDER BY r.id LIMIT #{limit}</select>
+</mapper>

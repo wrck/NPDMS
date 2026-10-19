@@ -42,6 +42,26 @@ class DppmsAssetSourceHistoryServiceTest {
     Command command() {
         return new Command(1L,1L,100L,"10","v4",at,List.of(observation()),List.of(),List.of());
     }
+    @Test void combinedPreviewValidatesParentsAndExtensionsWithoutAnyWrite() {
+        when(guard.validate(any())).thenReturn(new ProjectDeviceAssignmentGuardResult(100L,1L,null,100L,1L,true,null));
+        when(historicalUsers.getHistoricalIdentitiesByUsername(1L,Set.of("creator"))).thenReturn(List.of(new cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.HistoricalIdentity(11L,"creator")));
+        when(historicalUsers.getHistoricalIdentitiesByUsername(1L,Set.of("updater"))).thenReturn(List.of(new cn.iocoder.yudao.module.system.api.migration.SystemUserMigrationApi.HistoricalIdentity(12L,"updater")));
+        var source=observation().withMapping(null,null,99L);
+        var batch=new SoftwareBatch(302L,10L,"v1",null,1,null,at,null,null);
+        var result=service.previewSourceHistory(new Command(1L,1L,100L,"10","preview",at,List.of(source),List.of(batch),List.of()));
+        assertEquals(2,result.size());assertTrue(result.stream().allMatch(r->r.targetId()<0));
+        verify(observations,never()).insertHistorical(any());verify(batches,never()).insertHistorical(any());
+        verify(legacyExtensions,never()).initialize(anyLong(),anyLong(),anyLong(),anyLong(),any());
+        verify(legacyExtensions).preview(argThat(q->q.recordId()<0 && q.definitionId()==99L && q.values().keySet().size()==8));
+    }
+    @Test void previewCannotForgeAVirtualParentOrSkipMissingParent() {
+        when(guard.validate(any())).thenReturn(new ProjectDeviceAssignmentGuardResult(100L,1L,null,100L,1L,true,null));
+        var forged=observation().withMapping(null,-302L,99L);
+        assertThrows(IllegalArgumentException.class,()->service.previewSourceHistory(new Command(1L,1L,100L,"10","preview",at,List.of(forged),List.of(),List.of())));
+        var missing=observation().withMapping(null,null,99L);
+        assertThrows(IllegalArgumentException.class,()->service.previewSourceHistory(new Command(1L,1L,100L,"10","preview",at,List.of(missing),List.of(),List.of())));
+        verify(observations,never()).insertHistorical(any());verify(batches,never()).insertHistorical(any());
+    }
     @Test void batchUsesFormalFieldsAndPreservesNullAuditWithHistoricalDateFallback() {
         when(guard.validate(any())).thenReturn(new ProjectDeviceAssignmentGuardResult(100L,1L,null,100L,1L,true,null));
         when(batches.insertHistorical(any())).thenReturn(1);

@@ -1,0 +1,229 @@
+# 独立 MyBatis 同步任务约定
+
+状态：BASELINE。依据：2026-10-17 本侧会话明确批准“保留参考类的默认执行能力和子类用法，把底层替换为 MyBatis Mapper/XML、原生 ResultHandler 和 Spring 事务”。
+
+仅适用于全新 basesync 套件。原任务、配置、调度、运行历史及主线程改动保持独立。以 SPMS AbstractSynchronizeTask 为模板方法参照，以 SyncMesShipmentInfoJob 为子类编排和重载用法示例。设计依据仅为这两个原始参考及本侧用户要求，现有同步方法和已实现业务任务不反向决定基类设计。
+
+## 1. 默认能力与扩展边界
+
+简单任务提供数据名、Mapper XML 和必要字段前处理即可，不要求重写查询、删除、插入或实现行级动作接口。
+
+| 能力 | 默认实现 | 允许的任务扩展 |
+|---|---|---|
+| 执行入口 | execute 调用 work；work 调用 syncData | 多步骤任务在同一 work 中顺序调用多个 syncData |
+| 查询 | syncDataQueryByRowHandler 通过原生 SqlSession.select 执行 XML；syncDataQuery 通过原生 selectList 返回完整结果 | 特殊查询重载对应方法，可先调用 super；不重复连接管理 |
+| 分页 | syncDataWithPaging / syncDataQueryByPage；同一源会话执行 select + dataName + WithPaging | XML 实现物理分页与稳定唯一排序，不用 RowBounds 冒充物理分页 |
+| 清理 | syncDataClearCount / syncDataClear 执行明确的租户范围 XML | 特殊多表清理重载；每次调用自行指定 clear |
+| 插入 | syncDataInsert 将一个 SyncBatch 交给 XML 的 foreach，一批执行一条 INSERT | DefaultSyncTask 自动筛选本批 INSERT；特殊过程可重载 |
+| 更新 | syncDataUpdate 执行该数据名对应 XML，逐行校验影响数为 1 | DefaultSyncTask 按 UPDATE 动作调用；保留 SQL 中的版本和来源保护 |
+| 批量 upsert | 任务显式启用 syncDataUsesUpsert；基类按批执行同一个 insert 映射并核对影响数 | 仅用于已批准的单表 upsert；每次重复键更新必须推进 version，不执行逐行预查 |
+| 批次前后置 | 公共引用 → syncDataInsertBefore → syncDataInsert → syncDataInsertAfter | 查专用引用、值替换、字段填充和来源绑定放在任务重载中 |
+| 整次前后置 | syncDataBefore；步骤成功后 syncDataSuccess → syncDataAfter | 后置更新、多表回填留在同一任务；特殊过程可重载 syncData |
+| 公共引用 | 基类默认 syncDataReferences | 历史审计字段通过 SyncReferences.SourceAudit 声明需要，默认流程调用公共 API |
+| 事务与运行入口 | BaseSyncService 使用 Spring 事务；目标 SqlSessionTemplate 加入该事务 | 任务不手工提交或回滚 SqlSession，也不单独提交某批 |
+
+AbstractSyncTask 保留参考类的流程与扩展方式。DefaultSyncTask 在其上复用新增、更新、跳过的计数和执行分派；业务行不需要实现动作接口。简单追加或清理后插入的任务只提供 SELECT/INSERT 和显式 COUNT/DELETE。需要更新时重载 syncDataAction 返回动作；可声明 preparationStatement，由默认方法按批执行目标 Mapper SELECT，查引用、合并值并返回每个输入的一条结果。声明的语句缺失或结果条数不符直接失败；未声明则不执行预处理查询。已有任务不强制改继承关系。
+
+P11 继承 DefaultSyncTask：以 itemCode 作为目标唯一键，源 SQL 使用 LTRIM(RTRIM(itemCode)) 直接映射 product_code，不再执行 Java 修剪、递归查询、窗口选最新或归一去重。按已批准的批量 SQL 约定，目标每批执行一条原生 INSERT ... ON DUPLICATE KEY UPDATE，不在 Java 中逐条查询或判断新增/更新，不再使用早期的目标预处理 SELECT。源空值通过 COALESCE 保留已有值，创建字段和人工 document_id 不改；不同编码被排序规则视为相同、非批准来源及软删除身份由同一 SQL 拒绝并回滚。按本侧最新裁决不按状态/源版本筛选或裁决；重复来源键在同一批中也逐个按数据库输入顺序处理，不要求 batchSize=1，不丢弃任何源行。来源排序只保证 itemCode 次序，不承诺相同原键的先后业务优先级。Java 只保留必要状态/精度校验、来源版本文字和新行 ID 填充。P11 的 clear=false，不启用删除。
+
+P11 的每次重复键更新推进目标 version，基类据 MySQL 插入1、更新2的影响数计算实际新增/更新数量；相同来源再次执行也计更新，不按旧版语义计 UNCHANGED。预览只读取及校验来源，不发 upsert，不预查目标，故仅返回真实读取数，其余动作计数为0；这不是目标可写性、保护规则或全部拟新增/更新数量的预验证。需要真实目标执行时仍受正式注册、权限和外层事务约束，本轮不自动执行。
+
+来源绑定仅由需要该保护的任务在前后处理里调用 SyncIdentityStore；findByKeys 和 saveAll 复用公共范围校验与保存循环。默认基类不再自动保存绑定。原有的禁止接管、指纹校验、版本冲突和不可变历史保护仍必须保留。
+
+## 2. 每次 syncData 的调用方式
+
+简单任务的调用形式：
+
+~~~java
+@Override
+public void work(SyncContext<Void> context) {
+    syncData(context.forData("ExampleRows", true)); // 默认使用原生流式读取
+}
+~~~
+
+forData(name, clear) 默认使用流式；三参数形式的两个开关依次表示是否清理、是否使用原生行回调逐批处理。它们属于本次调用，不是任务级 ClearPolicy。多步骤任务可在同一个 work 中选择不同的数据名和开关：
+
+~~~java
+syncData(context.forData("Header", false, true));
+syncData(context.forData("Line", true, false));
+~~~
+
+- 默认流式路径：前置处理 → 按需清理 → 原生 ResultHandler 读取 → 满批校验及处理 → 尾批 → 成功及后置处理。
+- 完整读取路径：前置处理 → 收集完整源数据 → 完整校验 → 按需清理 → 整份数据的公共引用及专用前处理 → 拆批插入 → 整份数据的批次后处理 → 成功及后置处理。
+- 分页路径：前置处理 → 同一源会话按页查询和校验 → 首页按需清理一次 → 每页公共引用及前处理 → 拆批插入及该页后处理 → 成功及后置处理。空快照也遵守 clear；读取上限处查询探测行，超限整次回滚。
+- syncDataInsertWrapper 在专用前处理之后拆批，因此前处理允许增行、删行和替换值；后处理仅在该次输入的全部拆分批成功后调用一次。前处理删光数据时不发空 INSERT，仍调用该次后处理。空输入则不调用批次前后钩子。
+- 三种模式均保留，不用删除完整读取或分页来证明流式节省内存。需要完整输入及完整返回列表时显式选择完整读取；需要分页时调用 syncDataWithPaging。
+- 空快照替换缓存、读取上限、预览不写业务、整次失败回滚等既有保护保持。默认流式流程只持有本批条目及其引用数据，不积累完整行列表；满批和尾批处理后释放行引用，异常也释放。子类不能把本批行或无限增长的身份集合留在任务 Bean、参数或异步队列中。完整读取和分页合并返回列表按原参考语义保留，明确不属于批次内存上界的承诺。
+- source、target 与公共引用均来自运行上下文。默认源连接按已有配置打开，只读会话在查询结束或异常时关闭。
+
+syncDataSuccess 表示该步骤 SQL 执行成功，仍处于外层 Spring 事务中，不表示业务已提交。整次 work 及成功运行回执由 BaseSyncService 在同一事务中完成；第二步骤、后置处理或回执写入失败均回滚本次目标业务写入。这是当前系统的事务适配，不沿用旧类手工提交、吞异常后继续执行后置写入的行为。
+
+## 3. Mapper 与 SQL 约定
+
+每个任务一个顶层类，继承 AbstractSyncTask<T,P> 或公共默认实现 DefaultSyncTask<T,P>，T 为业务行，P 为任务具名参数类型；无需业务参数的任务使用 Void。任务专用方法、行对象、Query/Command、SourceMapper、TargetMapper 均在该任务类内，不新增专用 API、Service、Resolver 或 Helper。
+
+只有真正公共能力独立，例如基类、上下文、连接、公共引用、来源绑定和运行入口。每个查询只接收一个场景 Query；原生 ResultHandler 是框架回调，不承载第二组查询条件。
+
+| 位置 | 默认命名 |
+|---|---|
+| 源 Mapper namespace | 任务类全名 + $SourceMapper |
+| 目标 Mapper namespace | 任务类全名 + $TargetMapper |
+| 源查询 | select + dataName |
+| 清理计数及删除 | count + dataName；delete + dataName |
+| 批量插入及可选更新 | insert + dataName；update + dataName |
+
+- 源查询默认接收 SourceQuery<P>(limit, tenantId, preview, parameters)，分页接收 PageQuery<P>(offset, limit, tenantId, preview, parameters)。外部源 SQL 按已审核源范围筛选；本地源 SQL 必须使用 tenantId 和既定权限范围。更复杂的查询在子类使用场景 Query 重载。
+- 默认清理接收 ClearQuery<P>(tenantId, preview, parameters)。有业务参数时选择 count/delete + dataName + ByParams；无业务参数使用 count/delete + dataName；每次调用也可显式指定计数和清理语句。删除必须显式限定已审核范围；语句缺失或异常直接失败，不降级为无条件删除。
+- 默认插入直接接收 SyncBatch，XML 使用 rows 和 context；foreach 中使用明确命名字段，不生成 SQL 文本或动态表名。
+- 默认更新接收 RowParameter(row, context)，XML 使用 row 和 context.parameters，保留已有乐观锁条件；此处是有条件的逐行更新，不宣称 JDBC 批量更新。
+- 源 Mapper 不标注 @Mapper，只装入外部源会话；目标 Mapper 标注 @Mapper，由应用 Spring/MyBatis 装配。
+- 默认方法通过 MyBatis 原生 SqlSession 按注册的映射语句 ID 调用 XML，子类专用引用查询仍使用类型化 Mapper。语句 ID 由任务类和内部数据名确定，不接受 HTTP 输入的任意 SQL、表名或列名。
+- SQL 位于 base-sync-source/PxxSourceMapper.xml 和 mapper/basesync/PxxTargetMapper.xml；原表纯别名 SQL 保留在 base-sync-sql。
+- 按本次明确授权，集成任务直接访问已审核的源、目标和引用表；此例外不扩展到普通业务模块。
+- 业务字段逐项命名映射，不静默截断时间或金额，不补造来源身份、审批、Owner 或正式关联。
+
+## 4. 原生框架与隔离
+
+原始参考目录为 D:/EclipseWorkspace/wenrecaikeWorkspace/SPMS/src/com/dp/plat/task/，只读保留。旧基类已经调用 iBATIS queryWithRowHandler，内嵌 Handler 主要负责攒批和同步钩子；新实现直接使用 MyBatis ResultHandler，不另定义行回调协议。
+
+公共源会话使用 FORWARD_ONLY、STATEMENT 本地缓存作用域、关闭二级缓存。MySQL 使用 Connector/J 原生流式抓取参数；SQL Server 使用正数抓取大小及驱动自适应缓冲。保留已有连接配置和只读连接入口。流式结果未读完时，不在同一源连接上发起另一查询；专用源引用查询在主查询前完成，或使用独立源会话。
+
+框架依据：[MyBatis 原生 SQL 映射与 ResultHandler](https://mybatis.org/mybatis-3/java-api.html)、[MyBatis Mapper XML](https://mybatis.org/mybatis-3/sqlmap-xml.html)、[MyBatis-Spring 事务](https://mybatis.org/spring/transactions.html)、[Connector/J 流式读取](https://dev.mysql.com/doc/connector-j/en/connector-j-reference-implementation-notes.html)。
+
+新任务、运行、绑定仍只使用 int_base_sync_* 三张独立表；不修改原同步任务、原配置或原运行记录。代码、编译、H2 和模拟 JDBC 验证均不代表真实迁移、注册或预览。
+
+### 映射语句、连接与时间工具
+
+- 旧方法名 BySql 中的参数实际是映射语句 ID。新 syncDataQueryBySql（列表或原生回调）、syncDataClearBySql、syncDataInsertBySql、syncDataUpdateBySql 接收 MappedCall，里面是运行上下文、注册语句 ID、任务自身的场景 Query/Command；它是公共执行参数，不能替代业务 Mapper 的场景查询对象，也不接受原始 SQL 文本。
+- 常规单表仍直接继承默认查询、清理、插入；只有自定义语句才使用上述入口。默认更新保留逐行版本与影响数检查。自定义写入的业务影响数由任务检查，公共写入入口在 preview 下不执行 SQL。
+- 外部引用查询使用 context.forSource(已有连接ID)，每次打开连接仍经过原连接配置的租户校验；本地查询使用 context.forLocalData(name, clear, useRowHandler)，借用同一 Spring SqlSessionTemplate，命名空间选择 TargetMapper，不关闭或自行提交该会话。原始 context 保留外部连接入口。
+- 本地前序写入可被同一事务内后续查询读取。preview 不产生前序业务写入，后续本地查询只反映当前已存在数据；不能把这种多步骤预览当成“模拟写入后状态”的完整证明。
+- work 为 void 编排方法；syncData 和 syncDataWithPaging 返回 List<T>，完整读取返回本次列表，分页合并各页列表，流式返回空列表。execute 通过运行上下文汇总 SyncCounts，子类无需拼装计数。分页结果会随源行增长，不宣称分页路径总内存恒定。
+- initQueryDateRange(DateRangeRequest) 接收天数、向前偏移天数及本次 startedAt，返回具名 start/end；保留当天截止当前秒、历史天截止 23:59:59、包含起止日的语义。旧 Map 的六个同义键由任务 Query 的明确字段映射承接，不恢复万能参数 Map。
+
+### 业务参数与默认执行链
+
+createParameters 在每次 execute 尝试创建新的 P；前处理、查询、分页、清理、插入、更新和后处理共享本次同一个对象。需要跨步骤传值时，work 顺序调用 syncData，forData/forLocalData 保留 P，并给每个步骤独立 StepLog。P 的类型及内部引用对象必须定义在任务类内，不使用万能查询 Map 或额外专用 Helper。
+
+SourceQuery、PageQuery、ClearQuery 的 XML 通过 parameters.具名字段读取业务条件；插入使用 context.parameters，默认更新使用 RowParameter.context.parameters。任务因此无需仅为传入 lastLogId、范围或引用结果而重写数据库执行方法。
+
+context.forStatements(new Statements(query,count,delete,insert,update)) 为本次默认过程指定注册语句；空项继续使用默认命名，支持当前 Mapper 下短 ID 或完整 ID。forBatchSize 按本次调用指定批大小。更换 dataName 会重置语句选择，避免前一步的自定义语句泄漏到后一步；共享业务参数继续保留。
+
+列表查询与原生 ResultHandler 查询是两个真正独立的 MyBatis 分支，BySql 的 Handler 为 null 时使用 selectList。受控同步查询前后 clearCache，防止同一 Spring 会话先使用 Handler 后使用列表查询时命中 Handler 留下的空结果缓存。默认流式每批处理完成后清理目标会话缓存，预览同样执行；否则只有查询、没有写入失效缓存的预览会随批次数累积引用结果。清理不提交事务，不更改应用全局 MyBatis 配置；后续清理异常附加到原异常，不能替换原失败。
+
+StepLog 提供本步骤开始/结束时间、状态、计数及脱敏错误类型，供子类后处理读取。RunState 汇总整个 work 的计数，每次重试重新创建；查询原始行数在校验过滤之前计数，不把前处理增删行误算成读取数。只有整个 work 和事务成功才生成成功运行回执。
+
+### 日志与重试
+
+- 默认前置、成功和失败钩子使用仓库 SLF4J。专用前置重载调用 super 后再执行自己的校验；日志不打印源数据、SQL 参数、JDBC 异常正文或凭据。getTag 使用当前上下文，不能共享可变的最近数据名。
+- 默认最大重试次数 3、间隔 2000ms、指数退避关闭、原生行回调开启；保留四个设置方法。设置用于任务 Bean 初始化，单次运行固定配置快照；每次运行使用独立 Spring RetryTemplate，不共享 retryCount/lastException。
+- Spring Framework 7.0.8 已有原生 RetryTemplate/RetryPolicy，直接复用，不引入自建重试循环或旧 spring-retry 库。重试包裹整次 Spring 事务，每次失败先回滚，再重新进入整个 work；多个 syncData、来源绑定、成功回执一起重新执行。子类不可在事务钩子中发送不可回滚的外部通知。
+- shouldRetry 真正参与判断。默认只重试异常链中的 SQLTransactionRollbackException；权限、字段、版本、约束、未知 IO 和结果不明的连接/提交错误不自动重试。子类仅可依据已确认的可重试契约扩展该钩子。线程中断不继续重试。
+- 最终失败保留独立失败回执；回执和任务占用释放必须共同成功，失败时明确提示待核查。旧硬编码邮件发送器不迁入，不能通过同步失败自动向未授权收件人发送信息。
+- 旧 transaction=false、可写外部 targetDbName、手工 commit/endTransaction 不作为新套件能力：当前已审核目标是宿主机应用管理的目标库，原子性由 Spring 统一保证。外部连接继续只读。
+
+框架依据：[Spring 原生重试](https://docs.spring.io/spring-framework/reference/core/resilience.html)、[RetryTemplate](https://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/core/retry/RetryTemplate.html)。已对本工作树依赖中的 Spring 7.0.8 JAR 核验所用 API。
+
+## 5. 验证
+
+默认能力必须通过真实 MyBatis/XML 执行验证，不能只重载方法记录调用顺序。至少覆盖：
+
+- 无查询、删除、插入重载的简单任务，正确读取源库、限定租户清理并批量写入目标库；
+- 源读取未结束时处理首批，结束后处理尾批；独立 10,000 行测试在 JDBC next() 边界检查上一批已清空、引用查询一级缓存已清空；
+- 公共引用先于专用批次前处理，预览无业务及绑定写入；
+- 每次 syncData 独立选择清理和读取方式，多步骤及后批次失败由 Spring 回滚；
+- 实际字段映射、版本校验、禁止接管、历史保留和原任务隔离；
+- 源/目标 Mapper 会话隔离及新批量参数结构的真实 MyBatis 绑定。
+
+构建沿用工作树固定工具链与同一互斥锁，不部署、不启动服务、不运行数据库迁移。
+
+## 6. 原参考全部方法的适配边界
+
+原文件 51 个方法/构造入口按下表归组，同名重载合并表达；保留执行能力和可扩展位置，不复制 iBATIS 或 Quartz 的底层实现。三种读取能力并存，不能以默认流式要求取消显式完整读取、分页及其列表返回。
+
+| 原方法/入口（数量） | 新系统实现与继承方式 |
+|---|---|
+| 构造函数、getApplicationContext、initSqlMapClient、getSqlMapClient（4） | 由 Spring 装配；SyncContext 提供本地目标会话，SyncSource 按既有连接 ID 打开外部只读会话。forSource 切换外部源，forLocalData 借用目标会话；不手工创建第二个应用上下文或共享可变 SqlSession。 |
+| execute、work（2） | execute 每次建立独立参数与计数，调用可重载的 void work；简单任务继承默认 work，多步骤任务顺序调用多个 syncData。 |
+| syncData 六个重载（6） | 收敛为对象传参；context 保存数据名、源、目标、clear、useRowHandler、批大小、具名参数和语句选择。流式返回空列表，全量返回处理列表；默认模式可通过原有设置方法选择。 |
+| syncDataInner、syncDataInner2（2） | 统一在 protected syncDataInner 中保留全量、流式、分页分支；原重复执行器不再并行复制。子类仍可重载 syncData 或 syncDataInner。 |
+| syncDataWithPaging 三个重载（3） | 对象上下文承接参数，物理分页共用一个源会话，首批仅清理一次，每页执行前后处理，保留合并结果返回。 |
+| syncDataBefore 两重载、Success、Fail、After 两重载（6） | 同名 protected 钩子；具名参数 P 和 StepLog 贯穿整个步骤。前置查询可供后续填充；步骤成功后执行后置更新。失败向 Spring 传播，不吞异常后继续写入。 |
+| syncDataQuery、ByPage、ByRowHandler、BySql 两重载（5） | 分别使用原生 selectList、XML 物理分页及原生 ResultHandler。BySql 指 Mapper XML 语句 ID；无 Handler 或 null Handler 走列表。新增借用同一 SqlSession 的重载支持多源语句编排，资源所有权明确。 |
+| syncDataClear、ClearBySql（2） | 保留默认 deleteDataName、具名参数对应 ByParams 和显式语句；范围计数与删除量一致。缺失或失败不能退成无条件删除。 |
+| syncDataInsertWrapper、InsertBefore、Insert 两重载、InsertBySql、InsertAfter（6） | 公共引用 → 专用前填充 → 按 batchSize 拆分 INSERT → 后填充；前填充可换值、删行、增行，增行后仍拆批；空输入不执行，前填充删光仍执行该次后置钩子。 |
+| getTag 两重载、initQueryDateRange（3） | 任务/步骤标签来自当前上下文，无最近任务名共享字段；日期范围使用具名 start/end，保留日边界及当天截止当前秒。 |
+| 四个设置方法、shouldRetry、retry（6） | 保留最大次数、间隔、指数退避、默认流式设置及重试判断；执行通过 Spring 原生 RetryTemplate 包裹整次 Spring 事务，每次新参数、新会话并先回滚再重试。 |
+| sendMessage（1） | 原硬编码凭据和邮件发送不迁入；失败通过日志、失败钩子及运行回执反映。没有向未授权收件人发送通知的默认行为。 |
+| SyncDataRowHandler 构造、handleRow、preprocessRow、flush、getTotalCount（5） | 直接使用原生 ResultHandler，当前批缓冲、同步满批处理和尾批处理在基类内；原 private 空 preprocessRow 的字段处理意图由批次前处理承接；原始读取计数独立于增删行。没有另建 Handler 协议。 |
+
+旧事务开关、手工 commit/rollback/endTransaction 由新系统 Spring 事务边界承接：整个 work、后置更新及成功回执原子提交，批内不提交。默认执行无需子类重复实现公共事务、重试、连接和批处理能力。
+
+### 流式内存验证边界
+
+AbstractSyncTaskStreamingTest 使用独立 Mapper XML、真实 MyBatis 和 Spring/H2 目标事务；源 JDBC 按 next() 逐行提供模拟数据，不预建 10,000 行列表。每行携带 64 KiB 载荷，全部保留约需 625 MiB；测试 JVM 最大堆为 256 MiB。覆盖 128 条批次的预览及尾批、2000 条批次的写入、末批失败回滚先前写入和清理，并在读取下一批之前检查批次引用及会话缓存已释放。
+
+这是基类默认执行的内存与事务验证，不是正式数据库驱动的堆分析，也不代表业务子类的跨批缓存已经审计。真实源连接仍须符合驱动流式配置，XML 使用平坦字段映射；公共引用限本批查询，不启用跨批二级缓存或延迟嵌套集合加载。不能把显式全量、分页合并结果或子类自己累积的数据宣称为恒定批次内存。
+
+### P11 批量 upsert（2026-10-17 用户修订）
+
+P11 直接继承默认读取及批处理流程，源 SELECT 仅映射字段及修剪 itemCode；目标以租户和 product_code 唯一键执行多值 INSERT ... ON DUPLICATE KEY UPDATE。无目标预查询、逐条动作判断、逐条 UPDATE 或 batchSize=1 规避重复键。上述本节修订替代此前 P11 预查询及逐条更新说明。
+
+每批一条 SQL，重复键按源顺序由数据库更新；版本列原子递增以保留更新记录。已审核的空值不覆盖、租户/来源/删除保护及创建字段保留仍生效。读取、前后处理和整次 Spring 事务边界不变，不在行内或批内手工 commit。
+
+upsert XML 必须每次冲突都实际更新（版本递增），且禁止 IGNORE：JDBC affected = inserted + 2*updated，据本批行数计算真实插入/更新次数；同批重复键也适用。只读预览仅报告源读取数，不查询目标或伪造插入/更新预测；执行回执才报告真实写入数量。
+
+### 原表直写与查询精简（2026-10-17 用户修订）
+
+实施每个任务前，先核对能否按原表批量插入，仅保留基础转换和必要字段填充；备份、镜像和关联字段必须有实际业务依据。可空业务 ID 不作为原始历史承接的前置条件；原业务键完整保留，确需关联时才在同步后统一执行一次关联回填。本次只执行预览，不执行该回填或任何真实同步。
+
+公司、组织等少量公共引用在本次运行的线程内上下文中加载一次、重复使用，随本次运行结束释放；不把引用缓存放在单例任务 Bean，也不跨租户或跨运行复用。不同批次保留各自必要的来源身份与版本核对，不为未绑定目标执行空 ID 查询。整表回填 SQL 和相同静态引用 SQL 在单次运行中只执行一次。
+
+SQL 先考虑单表读取或拆分步骤；不新增超过原系统原始查表 SQL 层级的嵌套，超过三层的现有组合必须精简，不能只延长超时。原始 SQL 与实际拆分依据在任务实现记录中注明。批量写入、数据范围、原字段精度、来源身份、权限、不可变历史和整次失败回滚仍保持。
+
+当前应用：P25 按 `base-sync-sql/P25-source-alias.sql` 单表读取全部续保原记录，零嵌套，不查询设备或回填设备 ID；同一只读快照先执行一次复合来源身份检查，再无排序读取原记录，避免对 TEXT 全记录排序。P08 两张原表各读一次，缺失类型在本次上下文计算并供字典项复用。P24 审计账号目录本次读取一次，保留合同号，不逐批查合同 ID。P37 原 SN、合同等原文与认证密文完整承接，可空设备／合同 ID 留待明确需要时关联，不反查项目或公司。
+
+2026-10-18补充：P01组织四表、P16公司/账号目录、P15运输字典均在本次运行内各读一次。P18无索引巨型联表拆成四份原始查询后按精确键归并，属于有容量限制的显式全量处理；P14订单表头规划、P20完整清单和P33按设备最新原时间选择也有全量内存成本，不宣称流式恒定内存。P31/P33/P35的当前范围实现见下述2026-10-18复核；上一轮误接旧发布入口的实现已纠正，不以旧发布表存在作为新套件前置。
+
+P15的原始条码表有4283326行，代码允许的最大上限为500万；各任务实际注册的maxRows仍独立生效。数据库现有CHECK和注册值不因代码上限变化自动提升，V484仅准备、不执行。多条原始记录归入同一正式对象需保留每个独立来源身份，不能通过伪造object_key或target_id绕开旧目标唯一索引。当前结构不满足时明确阻断。
+
+P04历史任职的具体承载已由Q-LEGACY-IDENTITY-USERS-EMPLOYMENT-20261009-011批准为custom_info.employmentAssignments；沿该既有裁决实施，不再错误要求另造任职表。其他固定业务模型不得用JSON规避具名关系规则。新BASE_P04独立实现账号、角色、成员和范围，未精确关联的汇报人员ID保持NULL并保留原引用；isSysUser按本轮明确含义保存为systemPresetUser原值，不代表管理员权限。真正获批准的项目状态/软件历史扩展和不可变地址快照仍按正式公共契约处理，不新增原行镜像。
+
+新套件正式完成状态为COMPLETED；不得沿用旧套件的SUCCESS检查。P04/P13/P16/P18遇到多来源目标唯一索引时，真实执行仍在写入前阻断，只读预览允许继续校验并登记执行所需结构；不能将结构限制误报为源数据缺失。P13将项目范围目录一次加载，主表流式读取；多原始行归同一表头的预览只报告实际入选原始读取数，插入/更新数量留待执行，不按跨批虚拟提交夸大新增数。
+
+
+2026-10-18范围隔离复核：P31/P33/P35仅使用新套件完整BASE_P16非预览COMPLETED回执及其来源身份。P16全量主档/别名同事务完成，并为UNCHANGED项刷新last_run_id；消费者在同一REPEATABLE_READ事务固定该回执、分段完整读取本套件别名并校验主档/别名计数、指纹和容量。运行内Map不可修改；无正式完成回执则阻断，已完成的空范围仍为空，不降级为全表。这里是新套件的运行内稳定范围，不操作旧不可变发布历史，不将type10范围写成旧三类型完整发布，不读取旧任务/运行/绑定或调用旧发布API。正式项目当前状态及管理授权仍由公共API核验，不能用历史来源绑定直接授权。
+
+### 原用户名和项目ID承接（2026-10-19用户修订）
+
+依据本轮明确指令，需回查账号ID的字符串审计字段先按原用户名承接，保留大小写、空白、空串和NULL，不再查询账号目录或P04来源绑定，不补造用户ID。固定为数字外键的业务字段仍遵守既定承载：例如未确认历史成员保留member_code且user_id为空，不由历史姓名或来源身份生成当前授权。本节替代上述要求审计账号已正式创建的实现前置。
+
+新P16主表id、root_id及code_root_id采用选中的原projectId，已有按类型/精确编码选择原主档及保留旧别名的规则继续生效。不对项目重新编号；不接管已存在的其他项目ID或编码，不改写已有来源绑定到其他ID。树版本、路径、成员等各自实体的技术主键仍按原有机制生成。
+
+下游project_id使用对应原主档ID。只读预览可直接使用源ID规划，不要求先有正式P16完成回执或模拟生成正式数据；缺失正式父项目时不伪造项目版本、公司、组织及授权事实，回执记录正式父关联尚未验证。P31/P33/P35预览在本次源会话读取与P16相同筛选/归并规则的完整项目范围，运行内快照标记0，不能冒充正式完成Run；真实执行仍使用本套件完整COMPLETED回执和正式项目/当前管理权限。已存在的正式项目在预览和执行中均保留租户、删除、状态、编码/类型及管理权限检查。
+
+P18已拆开的项目目录查询同时读取原公司编码，使用既有公司码转换后核实操作者公司范围，不以正式项目尚未创建阻止原公司范围核查。合同ID、订单行、办事处版本、设备ID、地址能力及正式扩展定义等必要关联继续单独核验，不能用旧项目ID替代其他实体的外键。源范围查询与原P16同为一层派生表，不增加嵌套。
+
+上述调整只作用于独立basesync套件；不修改原任务，不执行迁移、真实同步或任何关联后处理，自动迁移关闭，59191保持不动。
+
+### 延后扩展属性与实施范围部门关联（2026-10-19用户修订）
+
+P19的四个项目历史状态属性、P35的八个软件历史扩展属性暂不承接，不查询或发布其正式定义，不读取或写入属性值，也不改为原行镜像。P19继续处理原相关方，P35继续处理软件批次及基础版本历史。来源身份在确需反查时仅使用本套件独立绑定；来源绑定不授予当前业务权限。
+
+P22直接使用原主档的部门编码与当前租户部门目录精确匹配；沿用已批准的旧编码转换。目录在本次运行上下文加载一次，不以正式项目办事处快照作为来源部门的前置条件。仍保留已存在正式项目的身份、版本及管理范围保护，合同订单行及数量单独核验。
+
+依据用户“非空默认用-1填充，用于后置更新限定更新范围”的修订，P22新增范围的department_id先填-1。真实写入路径在全部基础批次完成后只执行一次关联UPDATE，同时限定tenant_id、精确department_code、department_id=-1，以及本套件BASE_P22、同来源连接和本次active_run_id对应的PRODUCT_SCOPE来源绑定；禁止更新既有正数ID及其他运行、任务、租户记录。回填保留原update_time；派生ID不参与来源指纹，但重放仍核对它必须为-1或该租户/编码对应的真实ID，不能绕开目标保护。残留未解析ID导致整次事务回滚，不跳过记录。
+
+只读预览展示-1和后置回填警告，不调用UPDATE或写来源绑定。原部门业务编码缺失、真实订单行缺失、原项目ID被其他项目占用等仍按事实报告；-1不替代项目原ID或其他业务编码。此修订不授权真实同步、其他DDL或迁移。
+
+### P22订单行先承接、后关联（2026-10-19用户修订）
+
+新P22的order_line_id同样先填-1，不查询或要求正式订单行已经存在。数量使用原projectQuantity，为NULL时用原orderQuantity；不以正式订单数量代算来源。原数量精度、正数约束、来源身份及已存在项目和范围的保护继续保留。原合同号不再是订单行匹配的前置；本套件的来源键保留原表行身份，可据此追溯原始记录。
+
+已存在的DPPMS-SCOPE-039用户裁决继续生效：优先级填充后为零的原行不落业务表、不生成虚假目标绑定，读取数仍包含这些行，并登记待处理数量和可追溯来源明细；其他正数行继续处理。零数量不再使整项预览失败，负数量及其他未获例外的数据仍阻断相关写入。
+
+原公司目录及租户部门目录各在本次运行上下文加载一次。公司编码沿用已审核转换。后置关联按公司编码、订单号、行号和产品码匹配，只使用同租户、同来源连接的独立BASE_P14/SALES_LINE绑定，绑定来源键必须与P14真实业务键算法一致，来源Run必须为COMPLETED且非预览；跨ERP系统或类型的多个候选不能任意选取。
+
+订单行回填在全部原表批次完成后仅调用一次，限定order_line_id=-1、未确认分配，以及本次BASE_P22运行的PRODUCT_SCOPE绑定。缺失或歧义保持-1并登记待处理数，保留原行，不跳过或占用当前分配容量。只补派生ID及真实订单快照，保留update_time；派生内容单独核查，重放不能接管其他订单行或其他任务的绑定。
+
+预览不调用回填SQL，不查新记录的正式订单行。当前库存在fk_scope_order_line且若干订单快照列不可空，无法直接持久化未关联的-1/NULL组合；这只登记为真实执行的结构前置，不阻断只读预览。本轮不改外键或列、不填造ERP系统/类型、不执行迁移、真实同步或后置更新。

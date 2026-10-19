@@ -22,7 +22,7 @@ final class DppmsInstallationStream implements AutoCloseable {
         directory=Files.createTempDirectory("npdms-installation-source-");
     }
     static void validate(SyncDefinition definition) {
-        if(!DppmsInstallationSyncAdapter.ADAPTER.equals(definition.adapter()))return;
+        if(!DppmsInstallationSyncAdapter.ADAPTER.equals(definition.adapter()) && !DppmsDirectInstallationTask.ADAPTER.equals(definition.adapter()))return;
         if(!"DPPMS".equals(definition.sourceSystem()) || !"ONCE".equals(definition.mode())
                 || !"STREAMING_CURSOR".equals(definition.effectiveReadStrategy()) || !"RESTART_ALL".equals(definition.effectiveRestartPolicy())
                 || definition.sources()==null || definition.sources().size()!=1)fail("FULL_SOURCE_REQUIRED");

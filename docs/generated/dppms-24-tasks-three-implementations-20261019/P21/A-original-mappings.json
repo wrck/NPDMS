@@ -1,0 +1,162 @@
+{
+  "task": "P21",
+  "implementation": "A",
+  "sourceMappings": [
+    {
+      "object": "LEASE",
+      "sourceObject": "pm_project_product_lease_line_from_crm",
+      "sourceKey": "cacheRowOrdinal",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "proj_project_lease_product",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "mappings": [
+            {
+              "conversion": "STRING",
+              "source": "projectCode",
+              "target": "project_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "orderExecNumber",
+              "target": "execution_no"
+            },
+            {
+              "conversion": "STRING",
+              "source": "productFirstName",
+              "target": "product_category"
+            },
+            {
+              "conversion": "STRING",
+              "source": "productName",
+              "target": "product_type"
+            },
+            {
+              "conversion": "STRING",
+              "source": "productSubCode",
+              "target": "product_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "productSubModel",
+              "target": "product_model"
+            },
+            {
+              "conversion": "STRING",
+              "source": "productSubName",
+              "target": "product_name"
+            },
+            {
+              "conversion": "DECIMAL",
+              "source": "num",
+              "target": "quantity"
+            },
+            {
+              "conversion": "STRING",
+              "source": "memo",
+              "target": "memo"
+            },
+            {
+              "conversion": "DECIMAL",
+              "source": "leaseDuration",
+              "target": "lease_duration"
+            },
+            {
+              "conversion": "STRING",
+              "source": "dataSource",
+              "target": "data_source"
+            }
+          ],
+          "lookups": []
+        }
+      ]
+    },
+    {
+      "object": "CONFIG",
+      "sourceObject": "pm_project_product_config_level_info_from_crm",
+      "sourceKey": "cacheRowOrdinal",
+      "mappings": [],
+      "targets": [
+        {
+          "name": "cache",
+          "table": "proj_project_product_configuration",
+          "keys": [],
+          "mode": "INSERT_ONLY",
+          "nullPolicy": "OVERWRITE",
+          "updateColumns": [],
+          "mappings": [
+            {
+              "conversion": "STRING",
+              "source": "projectCode",
+              "target": "project_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "orderExecNumber",
+              "target": "execution_no"
+            },
+            {
+              "conversion": "LONG",
+              "source": "itemGroup",
+              "target": "item_group"
+            },
+            {
+              "conversion": "STRING",
+              "source": "itemCode",
+              "target": "product_code"
+            },
+            {
+              "conversion": "STRING",
+              "source": "parentCode",
+              "target": "parent_code"
+            },
+            {
+              "conversion": "DECIMAL",
+              "source": "quantity",
+              "target": "quantity"
+            },
+            {
+              "conversion": "STRING",
+              "source": "bomPaths",
+              "target": "bom_path"
+            },
+            {
+              "conversion": "STRING",
+              "source": "itemModel",
+              "target": "product_model"
+            },
+            {
+              "conversion": "STRING",
+              "source": "itemDesc",
+              "target": "product_description"
+            },
+            {
+              "conversion": "LONG",
+              "source": "level",
+              "target": "level"
+            },
+            {
+              "conversion": "STRING",
+              "source": "dataSource",
+              "target": "data_source"
+            }
+          ],
+          "lookups": []
+        }
+      ]
+    }
+  ],
+  "insertBindings": [],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.SyncDisplayCacheMapper.clearCurrent",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/SyncDisplayCacheMapper.xml",
+      "xml": "<delete id=\"clearCurrent\">\n    DELETE FROM\n    <choose>\n      <when test=\"query.cache.name() == 'PROJECT_LEASE'\">proj_project_lease_product</when>\n      <when test=\"query.cache.name() == 'PROJECT_CONFIGURATION'\">proj_project_product_configuration</when>\n      <otherwise>com_contract_collection_plan</otherwise>\n    </choose>\n    WHERE tenant_id=#{query.tenantId}\n  </delete>\n  "
+    }
+  ]
+}

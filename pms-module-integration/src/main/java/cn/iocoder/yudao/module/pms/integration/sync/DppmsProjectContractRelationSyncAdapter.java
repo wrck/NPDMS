@@ -93,7 +93,7 @@ public class DppmsProjectContractRelationSyncAdapter implements DataSyncAdapter 
         }
         var projectIds=new HashMap<String,Long>();
         var projectReferences=new HashMap<String,DppmsProjectBindingApi.ProjectBinding>();
-        if(!projectKeys.isEmpty()) for(var binding:projectBindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(projectKeys)))) {
+        if(!projectKeys.isEmpty()) for(var binding:projectBindings.resolve(new DppmsProjectBindingApi.BatchQuery(tenant,task.getConnectionId(),List.copyOf(projectKeys)).originalLine())) {
             Long prior=projectIds.putIfAbsent(binding.sourceProjectKey(),binding.projectId());
             if(binding.projectId()==null || prior!=null && !prior.equals(binding.projectId())) fail("原项目正式绑定多义");
             projectReferences.put(binding.sourceProjectKey(),binding);

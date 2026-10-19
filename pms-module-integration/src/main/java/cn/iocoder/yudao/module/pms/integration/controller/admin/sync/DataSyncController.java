@@ -89,6 +89,22 @@ public class DataSyncController {
     @GetMapping("/tasks")
     @PreAuthorize("@ss.hasPermission('pms:integration:view')")
     public CommonResult<PageResult<SyncTaskService.View>> tasks(@Valid SyncQueries.Page q){return success(tasks.page(q));}
+    @PostMapping("/templates/dppms-software-history")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> softwareHistoryTemplate(@RequestBody DppmsSoftwareHistorySyncTemplate.Request request) {
+        connections.required(request.connectionId());return success(DppmsSoftwareHistorySyncTemplate.create(request));
+    }
+    @GetMapping("/templates/dppms-member-history")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> memberHistoryTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsMemberHistorySyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-delivery")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> deliveryTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);
+        return success(DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P15",connectionId)));
+    }
     @GetMapping("/templates/dppms-orders")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> orderTemplate(@RequestParam Long connectionId){
@@ -147,7 +163,7 @@ public class DataSyncController {
     @GetMapping("/templates/dppms-project-contract-relations")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> projectContractRelationTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsProjectContractRelationSyncTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsGroupedProjectContractSyncTemplate.create(connectionId));
     }
     @GetMapping("/templates/dppms-project-product-scopes")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
@@ -163,6 +179,11 @@ public class DataSyncController {
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> installationHistoryTemplate(@RequestParam Long connectionId) {
         connections.required(connectionId);return success(DppmsInstallationSyncTemplate.create(connectionId));
+    }
+    @GetMapping("/templates/dppms-account-foundation")
+    @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
+    public CommonResult<SyncDefinition> accountFoundationTemplate(@RequestParam Long connectionId) {
+        connections.required(connectionId);return success(DppmsAccountFoundationSyncTemplate.create(connectionId));
     }
     @GetMapping("/templates/dppms-factory-history")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
@@ -183,7 +204,7 @@ public class DataSyncController {
     @GetMapping("/templates/dppms-warranty-renewals")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")
     public CommonResult<SyncDefinition> warrantyRenewalTemplate(@RequestParam Long connectionId) {
-        connections.required(connectionId);return success(DppmsWarrantyRenewalSyncTemplate.create(connectionId));
+        connections.required(connectionId);return success(DppmsLocalWarrantyRenewalSyncTemplate.create(connectionId));
     }
     @GetMapping("/templates/dppms-contract-receivables")
     @PreAuthorize("@ss.hasPermission('pms:integration:configure')")

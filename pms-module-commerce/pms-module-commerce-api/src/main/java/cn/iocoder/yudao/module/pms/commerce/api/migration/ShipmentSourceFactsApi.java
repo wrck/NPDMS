@@ -7,5 +7,7 @@ import java.util.List;
 public interface ShipmentSourceFactsApi {
     List<Fact> read(Query query);
     record Query(Long tenantId,Long actorId,List<String> packageSourceKeys) {}
-    record Fact(String packageSourceKey,LocalDateTime shipmentTime,String contractNo) {}
+    record Fact(String packageSourceKey,LocalDateTime shipmentTime,String contractNo,String contractType) {
+        public Fact(String packageSourceKey,LocalDateTime shipmentTime,String contractNo) {this(packageSourceKey,shipmentTime,contractNo,null);}
+    }
 }

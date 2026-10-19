@@ -50,7 +50,7 @@ class GenericSyncEngineTest {
         var source=d.sources().getFirst();Map<String,Object> fields=new LinkedHashMap<>();
         for(var step:source.targets()) {
             for(var mapping:step.mappings())if(mapping.source()!=null&&!mapping.source().startsWith("$"))fields.put(mapping.source(),null);
-            for(var lookup:step.lookups())lookup.match().values().stream().filter(v->v.startsWith("@")).forEach(v->fields.put(v.substring(1),null));
+            for(var lookup:step.lookups()==null?List.<GenericTargetStep.Lookup>of():step.lookups())lookup.match().values().stream().filter(v->v.startsWith("@")).forEach(v->fields.put(v.substring(1),null));
         }
         if(source.issueField()!=null)fields.put(source.issueField(),null);
         fields.putAll(overrides);return new DataSyncAdapter.Row(source.object(),key,fields,null);
@@ -58,6 +58,115 @@ class GenericSyncEngineTest {
     List<DataSyncAdapter.Change> apply(SyncDefinition d,DataSyncAdapter.Row...rows){return tx.execute(s->engine.bind(d).apply(batch(rows)));}
     int count(String table){return jdbc.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class);}
     Map<String,Object> barcode(String sn){return Map.of("barcode",sn,"item","ITEM-1","pack_id","PACK-1","shipment_time","2026-09-20T12:00:00","contract_no","C-1","event_type","SHIPMENT","rma_marked",0);}
+
+    @Test void deliveryPreviewReusesOnlyCommittedPlannedParentsAcrossChunks() {
+        var d=DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P15",1L));
+        d.sources().getFirst().readMode("LOCAL_OWNER").sourceObject("com_sales_order");
+        var packages=d.sources().stream().filter(source->"PACKAGE".equals(source.object())).findFirst().orElseThrow();
+        var dictionaries=org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class);
+        ReflectionTestUtils.setField(engine,"dictionaries",dictionaries);
+        var facts=org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.class);
+        ReflectionTestUtils.setField(engine,"shipmentFacts",facts);
+        var adapter=engine.bind(d);
+        var shipment=d.sources().stream().filter(source->"SHIPMENT_CONTRACT".equals(source.object())).findFirst().orElseThrow();
+        var event=d.sources().stream().filter(source->"DEVICE_SN".equals(source.object())).findFirst().orElseThrow();
+        var parent=row(d.toBuilder().sources(List.of(shipment)).build(),"RAW-C",Map.of("contract_code","C1"));
+        var pack=row(d.toBuilder().sources(List.of(packages)).build(),"PACK-1",Map.of("packlist_id","PACK-1","con_id","RAW-C","packdate","2020-01-01T12:00:00"));
+        var incoming=row(d.toBuilder().sources(List.of(event)).build(),"SN-1",barcode("SN-1"));
+        tx.executeWithoutResult(status->assertEquals("CREATED",adapter.preview(batch(parent)).getFirst().action()));
+        tx.executeWithoutResult(status->assertEquals("CREATED",adapter.preview(batch(pack)).getFirst().action()));
+        var planned=tx.execute(status->adapter.preview(batch(incoming))).getFirst();
+        assertEquals("CREATED",planned.action(),planned.message());
+        assertEquals("C1",planned.after().get("event.contract_no"));
+        org.mockito.Mockito.verifyNoInteractions(facts);
+        assertEquals(0,count("com_shipment_package"));assertEquals(0,count("ast_device_shipment"));
+        var isolated=engine.bind(d);
+        tx.executeWithoutResult(status->{isolated.preview(batch(parent));status.setRollbackOnly();});
+        tx.executeWithoutResult(status->isolated.preview(batch(pack)));
+        var noParent=tx.execute(status->isolated.preview(batch(incoming))).getFirst();
+        assertEquals("ISSUE",noParent.action());assertTrue(noParent.message().contains("本地包裹或原发货时间缺失"));
+    }
+
+    @Test void deliveryFirstImportCarriesShipmentHistoryBeforeP30CreatesDeviceMasters() {
+        // V351 removes SN foreign keys: history may precede the separate device-base task.
+        var foreignKeys=jdbc.queryForList("SELECT constraint_name FROM information_schema.table_constraints WHERE table_name='ast_device_shipment' AND constraint_type='FOREIGN KEY'",String.class);
+        for(var name:foreignKeys)jdbc.execute("ALTER TABLE ast_device_shipment DROP CONSTRAINT \""+name.replace("\"","\"\"")+"\"");
+        var d=DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P15",1L));
+        ReflectionTestUtils.setField(engine,"dictionaries",org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class));
+        var facts=org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.class);
+        ReflectionTestUtils.setField(engine,"shipmentFacts",facts);
+        org.mockito.Mockito.when(facts.read(org.mockito.ArgumentMatchers.any())).thenReturn(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.Fact("PACK-1",java.time.LocalDateTime.of(2020,1,1,12,0),"C1")));
+        var source=d.sources().stream().filter(item->"DEVICE_SN".equals(item.object())).findFirst().orElseThrow();
+        var fields=new LinkedHashMap<>(barcode("SN-FIRST"));fields.put("id",1L);
+        var incoming=row(d.toBuilder().sources(List.of(source)).build(),"1",fields);
+        var result=tx.execute(status->engine.bind(d).apply(batch(incoming))).getFirst();
+        assertEquals("CREATED",result.action(),result.message());assertEquals(0,count("ast_device"));assertEquals(1,count("ast_device_shipment"));
+        assertEquals("C1",jdbc.queryForObject("SELECT contract_no FROM ast_device_shipment WHERE source_key='1'",String.class));
+    }
+
+    @Test void deliveryOldEventsRetainFrozenParentsButEveryOriginalFieldAndTargetStillRemainProtected() {
+        var d=DppmsConsolidatedTemplate.create(new DppmsConsolidatedTemplate.Request("P15",1L));
+        var dictionaries=org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class);
+        var facts=org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.class);
+        ReflectionTestUtils.setField(engine,"dictionaries",dictionaries);ReflectionTestUtils.setField(engine,"shipmentFacts",facts);
+        org.mockito.Mockito.when(facts.read(org.mockito.ArgumentMatchers.any())).thenReturn(List.of(
+                new cn.iocoder.yudao.module.pms.commerce.api.migration.ShipmentSourceFactsApi.Fact("PACK-1",java.time.LocalDateTime.of(2020,1,1,12,0),"C1")));
+        jdbc.update("INSERT INTO ast_device(id,tenant_id,sn) VALUES(1,1,'SN-OLD')");
+        var source=d.sources().stream().filter(item->"DEVICE_SN".equals(item.object())).findFirst().orElseThrow();
+        var initial=row(d.toBuilder().sources(List.of(source)).build(),"1",barcode("SN-OLD"));
+        var raw=new LinkedHashMap<>(initial.fields());raw.remove("shipment_time");raw.remove("contract_no");
+        raw.put("id",1L);raw.put("unmappedOriginal","first");raw.put("updateTime","2020-01-01 10:00:00.000000");
+        var incoming=new LinkedHashMap<>(raw);incoming.put("_syncSourcePayload",new LinkedHashMap<>(raw));
+        var fresh=new DataSyncAdapter.Row("DEVICE_SN","1",incoming,null);
+        var first=tx.execute(status->engine.bind(d).apply(batch(fresh))).getFirst();
+        assertEquals("CREATED",first.action(),first.message());
+        String frozenPayload=jdbc.queryForObject("SELECT source_payload FROM ast_device_shipment WHERE id=?",String.class,first.targetId());
+        assertTrue(frozenPayload.contains("C1"));
+        var binding=new DataSyncAdapter.Binding("DEVICE_SN","1",first.targetId(),first.after());
+        org.mockito.Mockito.clearInvocations(facts);
+        var replayRaw=new LinkedHashMap<>(raw);replayRaw.put("updateTime",java.sql.Timestamp.valueOf("2020-01-01 10:00:00"));
+        var replayFields=new LinkedHashMap<>(replayRaw);replayFields.put("_syncSourcePayload",new LinkedHashMap<>(replayRaw));
+        var replay=new DataSyncAdapter.Row("DEVICE_SN","1",replayFields,first.targetId());
+        var sameBatch=new DataSyncAdapter.Batch("test",List.of(replay),List.of(binding),true,"RETAIN",false,"UPSERT",false);
+        var unchanged=tx.execute(status->engine.bind(d).apply(sameBatch)).getFirst();
+        assertEquals("UNCHANGED",unchanged.action(),unchanged.message());org.mockito.Mockito.verifyNoInteractions(facts);
+        assertEquals(frozenPayload,jdbc.queryForObject("SELECT source_payload FROM ast_device_shipment WHERE id=?",String.class,first.targetId()));
+        var changedRaw=new LinkedHashMap<>(replayRaw);changedRaw.put("unmappedOriginal","changed");
+        var changedFields=new LinkedHashMap<>(changedRaw);changedFields.put("_syncSourcePayload",changedRaw);
+        var changed=new DataSyncAdapter.Row("DEVICE_SN","1",changedFields,first.targetId());
+        var conflict=tx.execute(status->engine.bind(d).apply(new DataSyncAdapter.Batch("test",List.of(changed),List.of(binding),true,"RETAIN",false,"UPSERT",false))).getFirst();
+        assertEquals("CONFLICT",conflict.action());assertTrue(conflict.message().contains("unmappedOriginal"));
+        var missingRaw=new LinkedHashMap<>(replayRaw);missingRaw.remove("unmappedOriginal");
+        var missingFields=new LinkedHashMap<>(missingRaw);missingFields.put("_syncSourcePayload",missingRaw);
+        var missing=new DataSyncAdapter.Row("DEVICE_SN","1",missingFields,first.targetId());
+        assertEquals("CONFLICT",tx.execute(status->engine.bind(d).apply(new DataSyncAdapter.Batch("test",List.of(missing),List.of(binding),true,"RETAIN",false,"UPSERT",false))).getFirst().action());
+        jdbc.update("UPDATE ast_device_shipment SET shipment_time='2022-01-01 12:00:00' WHERE id=?",first.targetId());
+        assertEquals("CONFLICT",tx.execute(status->engine.bind(d).apply(sameBatch)).getFirst().action());
+        assertEquals(frozenPayload,jdbc.queryForObject("SELECT source_payload FROM ast_device_shipment WHERE id=?",String.class,first.targetId()));
+    }
+
+    @Test void deliveryReadsCarrierDictionaryOnceAndRetainsAmbiguousOriginalCode() {
+        var d=definition(1).toBuilder().taskKey("delivery-full-sync").build();
+        var source=d.sources().getFirst();var step=source.targets().getFirst();
+        var mappings=step.mappings().stream().map(mapping->"carrier_name".equals(mapping.target())
+                ?SyncDefinition.Mapping.builder().source("emsCompany").target("carrier_name").conversion("LOCAL_CARRIER_NAME").build():mapping).toList();
+        source.targets(List.of(new GenericTargetStep(step.name(),step.table(),step.keys(),step.mode(),step.nullPolicy(),
+                step.updateColumns(),step.whenField(),step.newerBy(),step.tieBreaker(),mappings,step.lookups(),step.sameVersionColumns())));
+        var dictionaries=org.mockito.Mockito.mock(cn.iocoder.yudao.module.system.api.dict.DictDataApi.class);
+        org.mockito.Mockito.when(dictionaries.getDictDataList("01")).thenReturn(List.of(
+                new cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO().setDictType("01").setValue("0").setLabel("A"),
+                new cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO().setDictType("01").setValue("0").setLabel("B"),
+                new cn.iocoder.yudao.framework.common.biz.system.dict.dto.DictDataRespDTO().setDictType("01").setValue("2").setLabel("C")));
+        ReflectionTestUtils.setField(engine,"dictionaries",dictionaries);
+        var adapter=engine.bind(d);
+        var ambiguous=adapter.preview(batch(row(d,"P1",Map.of("packlist_id","P1","emsCompany","0")))).getFirst();
+        assertEquals("CREATED",ambiguous.action());assertEquals("0",ambiguous.after().get("package.carrier_name"));
+        assertTrue(ambiguous.message().contains("本地物流名称有歧义"));
+        var exact=adapter.preview(batch(row(d,"P2",Map.of("packlist_id","P2","emsCompany","2")))).getFirst();
+        assertEquals("C",exact.after().get("package.carrier_name"));
+        org.mockito.Mockito.verify(dictionaries,org.mockito.Mockito.times(1)).getDictDataList("01");
+    }
 
     @Test void contractYearsAreNumericAndEmptySourceClearsOnlyThatField() {
         var d=definition(0);

@@ -1,0 +1,867 @@
+{
+  "task": "P13",
+  "implementation": "B",
+  "sourceMappings": [
+    {
+      "object": "EXECUTION_ORDER",
+      "sourceObject": "pm_project_property_from_sms",
+      "sourceKey": "id",
+      "mappings": [
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "orderExecNumber",
+          "target": "executionNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_orderExecNumber",
+          "target": "canonical_executionNo",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "dataSource",
+          "target": "sourceSystem",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_dataSource",
+          "target": "canonical_sourceSystem",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectCode",
+          "target": "projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_projectCode",
+          "target": "canonical_projectCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectName",
+          "target": "projectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_projectName",
+          "target": "canonical_projectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "salesManCode",
+          "target": "salesRepCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_salesManCode",
+          "target": "canonical_salesRepCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "salesManName",
+          "target": "salesRepName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_salesManName",
+          "target": "canonical_salesRepName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "marketCode",
+          "target": "marketCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_marketCode",
+          "target": "canonical_marketCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "marketName",
+          "target": "marketName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_marketName",
+          "target": "canonical_marketName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "systemId",
+          "target": "systemSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_systemId",
+          "target": "canonical_systemSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "systemName",
+          "target": "systemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_systemName",
+          "target": "canonical_systemName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "expendId",
+          "target": "expendSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_expendId",
+          "target": "canonical_expendSourceKey",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "expendName",
+          "target": "expendName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_expendName",
+          "target": "canonical_expendName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "industryId",
+          "target": "industryCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_industryId",
+          "target": "canonical_industryCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "industryName",
+          "target": "industryName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_industryName",
+          "target": "canonical_industryName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "officeCode",
+          "target": "departmentCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_officeCode",
+          "target": "canonical_departmentCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "officeName",
+          "target": "departmentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_officeName",
+          "target": "canonical_departmentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "serviceTypeName",
+          "target": "serviceTypeName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_serviceTypeName",
+          "target": "canonical_serviceTypeName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "channelName",
+          "target": "channelName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_channelName",
+          "target": "canonical_channelName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "engineeFee",
+          "target": "engineeringFeeRaw",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_engineeFee",
+          "target": "canonical_engineeringFeeRaw",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "objId",
+          "target": "sourceObjectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_objId",
+          "target": "canonical_sourceObjectId",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "applyType",
+          "target": "applyType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_applyType",
+          "target": "canonical_applyType",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null,
+          "source": "corporationCode",
+          "target": "companyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DPPMS_COMPANY_CODE",
+          "defaultValue": null,
+          "source": "canonical_corporationCode",
+          "target": "canonical_companyCode",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "customerProjectName",
+          "target": "customerProjectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_customerProjectName",
+          "target": "canonical_customerProjectName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "finalCustomerName",
+          "target": "finalCustomerName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_finalCustomerName",
+          "target": "canonical_finalCustomerName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "agentName",
+          "target": "agentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_agentName",
+          "target": "canonical_agentName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "majorProjectLevel",
+          "target": "majorProjectLevel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_majorProjectLevel",
+          "target": "canonical_majorProjectLevel",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "projectMoney",
+          "target": "projectAmount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_projectMoney",
+          "target": "canonical_projectAmount",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "submitTime",
+          "target": "submitTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_submitTime",
+          "target": "canonical_submitTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "predBidDate",
+          "target": "predictedBidTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_predBidDate",
+          "target": "canonical_predictedBidTime",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "linkmanName",
+          "target": "contactName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_linkmanName",
+          "target": "canonical_contactName",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "linkmanTel",
+          "target": "contactPhone",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonical_linkmanTel",
+          "target": "canonical_contactPhone",
+          "values": null
+        },
+        {
+          "constant": null,
+          "conversion": "DIRECT",
+          "defaultValue": null,
+          "source": "canonicalId",
+          "target": "canonicalSourceId",
+          "values": null
+        }
+      ],
+      "targets": []
+    }
+  ],
+  "insertBindings": [
+    {
+      "table": "com_crm_execution_order",
+      "column": "tenant_id",
+      "parameter": "#{row.tenantId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "version",
+      "parameter": "0",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "creator",
+      "parameter": "#{row.creator}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "updater",
+      "parameter": "#{row.updater}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "create_time",
+      "parameter": "CURRENT_TIMESTAMP",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "update_time",
+      "parameter": "CURRENT_TIMESTAMP",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "deleted",
+      "parameter": "FALSE",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "source_system",
+      "parameter": "#{row.sourceSystem}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "execution_no",
+      "parameter": "#{row.executionNo}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "project_code",
+      "parameter": "#{row.projectCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "project_name",
+      "parameter": "#{row.projectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "sales_rep_code",
+      "parameter": "#{row.salesRepCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "sales_rep_name",
+      "parameter": "#{row.salesRepName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "market_code",
+      "parameter": "#{row.marketCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "market_name",
+      "parameter": "#{row.marketName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "system_source_key",
+      "parameter": "#{row.systemSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "system_name",
+      "parameter": "#{row.systemName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "expend_source_key",
+      "parameter": "#{row.expendSourceKey}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "expend_name",
+      "parameter": "#{row.expendName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "industry_code",
+      "parameter": "#{row.industryCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "industry_name",
+      "parameter": "#{row.industryName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "department_id",
+      "parameter": "#{row.departmentId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "department_code",
+      "parameter": "#{row.departmentCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "department_name",
+      "parameter": "#{row.departmentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "service_type_name",
+      "parameter": "#{row.serviceTypeName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "channel_name",
+      "parameter": "#{row.channelName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "engineering_fee_raw",
+      "parameter": "#{row.engineeringFeeRaw}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "engineering_fee",
+      "parameter": "#{row.engineeringFee}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "source_object_id",
+      "parameter": "#{row.sourceObjectId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "apply_type",
+      "parameter": "#{row.applyType}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "company_id",
+      "parameter": "#{row.companyId}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "company_code",
+      "parameter": "#{row.companyCode}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "company_name",
+      "parameter": "#{row.companyName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "customer_project_name",
+      "parameter": "#{row.customerProjectName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "final_customer_name",
+      "parameter": "#{row.finalCustomerName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "agent_name",
+      "parameter": "#{row.agentName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "major_project_level",
+      "parameter": "#{row.majorProjectLevel}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "project_amount",
+      "parameter": "#{row.projectAmount}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "submit_time",
+      "parameter": "#{row.submitTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "predicted_bid_time",
+      "parameter": "#{row.predictedBidTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "contact_name",
+      "parameter": "#{row.contactName}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "contact_phone",
+      "parameter": "#{row.contactPhone}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "source_sync_time",
+      "parameter": "#{row.sourceSyncTime}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "status",
+      "parameter": "#{row.status}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    },
+    {
+      "table": "com_crm_execution_order",
+      "column": "af_evidence_status",
+      "parameter": "#{row.afEvidenceStatus}",
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml"
+    }
+  ],
+  "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.selectIncoming",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml",
+      "xml": "<select id=\"selectIncoming\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderRow\">\nSELECT id, tenant_id, version, creator, updater, create_time, update_time, deleted, source_system, execution_no, project_code, project_name, primary_project_id, sales_rep_code, sales_rep_name, sales_rep_phone, market_code, market_name, system_source_key, system_code, system_name, expend_source_key, expend_code, expend_name, industry_code, industry_name, department_id, department_code, department_name, service_type_name, channel_name, engineering_fee_raw, engineering_fee, source_object_id, apply_type, company_id, company_code, company_name, customer_project_name, final_customer_name, agent_name, project_manager_code, project_manager_name, decision_path, required_in_date, receiver_name, receiver_contact, receiver_address, loan_reason, project_type, major_project_level, project_amount, af_project_amount, submit_time, predicted_bid_time, contact_name, contact_phone, af_evidence_status, source_sync_time, status FROM com_crm_execution_order\nWHERE tenant_id=#{query.tenantId} AND source_system=#{query.sourceSystem}\n<choose><when test=\"query.executionNumbers != null and !query.executionNumbers.isEmpty()\">AND execution_no IN\n<foreach collection=\"query.executionNumbers\" item=\"number\" open=\"(\" separator=\",\" close=\")\">#{number}</foreach>\n</when><otherwise>AND 1=0</otherwise></choose> FOR UPDATE\n</select>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.insertRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml",
+      "xml": "<insert id=\"insertRow\" useGeneratedKeys=\"true\" keyProperty=\"row.id\">\nINSERT INTO com_crm_execution_order (tenant_id,version,creator,updater,create_time,update_time,deleted,source_system,execution_no,project_code,project_name,sales_rep_code,sales_rep_name,market_code,market_name,system_source_key,system_name,expend_source_key,expend_name,industry_code,industry_name,department_id,department_code,department_name,service_type_name,channel_name,engineering_fee_raw,engineering_fee,source_object_id,apply_type,company_id,company_code,company_name,customer_project_name,final_customer_name,agent_name,major_project_level,project_amount,submit_time,predicted_bid_time,contact_name,contact_phone,source_sync_time,status,af_evidence_status)\nVALUES (#{row.tenantId},0,#{row.creator},#{row.updater},CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,FALSE,#{row.sourceSystem},#{row.executionNo},#{row.projectCode},#{row.projectName},#{row.salesRepCode},#{row.salesRepName},#{row.marketCode},#{row.marketName},#{row.systemSourceKey},#{row.systemName},#{row.expendSourceKey},#{row.expendName},#{row.industryCode},#{row.industryName},#{row.departmentId},#{row.departmentCode},#{row.departmentName},#{row.serviceTypeName},#{row.channelName},#{row.engineeringFeeRaw},#{row.engineeringFee},#{row.sourceObjectId},#{row.applyType},#{row.companyId},#{row.companyCode},#{row.companyName},#{row.customerProjectName},#{row.finalCustomerName},#{row.agentName},#{row.majorProjectLevel},#{row.projectAmount},#{row.submitTime},#{row.predictedBidTime},#{row.contactName},#{row.contactPhone},#{row.sourceSyncTime},#{row.status},#{row.afEvidenceStatus})\n</insert>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectExecutionOrderMapper.updateRow",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectExecutionOrderMapper.xml",
+      "xml": "<update id=\"updateRow\">UPDATE com_crm_execution_order <set>\n<if test=\"row.sourceSystem != null\">source_system=#{row.sourceSystem},</if>\n<if test=\"row.executionNo != null\">execution_no=#{row.executionNo},</if>\n<if test=\"row.projectCode != null\">project_code=#{row.projectCode},</if>\n<if test=\"row.projectName != null\">project_name=#{row.projectName},</if>\n<if test=\"row.salesRepCode != null\">sales_rep_code=#{row.salesRepCode},</if>\n<if test=\"row.salesRepName != null\">sales_rep_name=#{row.salesRepName},</if>\n<if test=\"row.marketCode != null\">market_code=#{row.marketCode},</if>\n<if test=\"row.marketName != null\">market_name=#{row.marketName},</if>\n<if test=\"row.systemSourceKey != null\">system_source_key=#{row.systemSourceKey},</if>\n<if test=\"row.systemName != null\">system_name=#{row.systemName},</if>\n<if test=\"row.expendSourceKey != null\">expend_source_key=#{row.expendSourceKey},</if>\n<if test=\"row.expendName != null\">expend_name=#{row.expendName},</if>\n<if test=\"row.industryCode != null\">industry_code=#{row.industryCode},</if>\n<if test=\"row.industryName != null\">industry_name=#{row.industryName},</if>\n<if test=\"row.departmentId != null\">department_id=#{row.departmentId},</if>\n<if test=\"row.departmentCode != null\">department_code=#{row.departmentCode},</if>\n<if test=\"row.departmentName != null\">department_name=#{row.departmentName},</if>\n<if test=\"row.serviceTypeName != null\">service_type_name=#{row.serviceTypeName},</if>\n<if test=\"row.channelName != null\">channel_name=#{row.channelName},</if>\n<if test=\"row.engineeringFeeRaw != null\">engineering_fee_raw=#{row.engineeringFeeRaw},</if>\n<if test=\"row.engineeringFee != null\">engineering_fee=#{row.engineeringFee},</if>\n<if test=\"row.sourceObjectId != null\">source_object_id=#{row.sourceObjectId},</if>\n<if test=\"row.applyType != null\">apply_type=#{row.applyType},</if>\n<if test=\"row.companyId != null\">company_id=#{row.companyId},</if>\n<if test=\"row.companyCode != null\">company_code=#{row.companyCode},</if>\n<if test=\"row.companyName != null\">company_name=#{row.companyName},</if>\n<if test=\"row.customerProjectName != null\">customer_project_name=#{row.customerProjectName},</if>\n<if test=\"row.finalCustomerName != null\">final_customer_name=#{row.finalCustomerName},</if>\n<if test=\"row.agentName != null\">agent_name=#{row.agentName},</if>\n<if test=\"row.majorProjectLevel != null\">major_project_level=#{row.majorProjectLevel},</if>\n<if test=\"row.projectAmount != null\">project_amount=#{row.projectAmount},</if>\n<if test=\"row.submitTime != null\">submit_time=#{row.submitTime},</if>\n<if test=\"row.predictedBidTime != null\">predicted_bid_time=#{row.predictedBidTime},</if>\n<if test=\"row.contactName != null\">contact_name=#{row.contactName},</if>\n<if test=\"row.contactPhone != null\">contact_phone=#{row.contactPhone},</if>\n<if test=\"row.sourceSyncTime != null\">source_sync_time=#{row.sourceSyncTime},</if>\nversion=version+1,updater=#{row.updater},update_time=CURRENT_TIMESTAMP\n</set> WHERE tenant_id=#{row.tenantId} AND id=#{row.id} AND version=#{row.version} AND deleted=FALSE\nAND source_system=#{row.sourceSystem} AND execution_no=#{row.executionNo}\n</update>\n"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeLookupMapper.selectById",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectScopeLookupMapper.xml",
+      "xml": "<select id=\"selectById\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectDeliveryScopeRow\">\n  SELECT * FROM com_delivery_scope WHERE tenant_id=#{query.tenantId} AND id=#{query.id} AND deleted=FALSE\n </select>\n "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeLookupMapper.current",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectScopeLookupMapper.xml",
+      "xml": "<select id=\"current\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeVersionRow\"><include refid=\"projectVersion\" /></select>\n "
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeLookupMapper.lockExisting",
+      "source": "pms-module-integration/src/main/resources/mapper/sync/DirectScopeLookupMapper.xml",
+      "xml": "<select id=\"lockExisting\" resultType=\"cn.iocoder.yudao.module.pms.integration.dal.mysql.sync.DirectScopeVersionRow\"><include refid=\"projectVersion\" /> FOR UPDATE</select>\n"
+    }
+  ]
+}

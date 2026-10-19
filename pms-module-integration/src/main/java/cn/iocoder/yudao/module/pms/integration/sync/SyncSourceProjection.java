@@ -41,6 +41,10 @@ final class SyncSourceProjection {
     }
 
     static List<MysqlSyncReader.SourceRows> expand(Input input) {
+        if(DppmsProjectContractGroupProjection.supports(input))return DppmsProjectContractGroupProjection.expand(input);
+        if(DppmsMemberHistoryProjection.supports(input))return DppmsMemberHistoryProjection.expand(input);
+        if(DppmsOrganizationProjection.supports(input))return DppmsOrganizationProjection.expand(input);
+        if(DppmsAccountFoundationProjection.supports(input))return DppmsAccountFoundationProjection.expand(input);
         var root = input.source();
         if (root.rowProjection() == null)
             return List.of(new MysqlSyncReader.SourceRows(root.object(), root.sourceObject(), input.rows()));
@@ -85,7 +89,9 @@ final class SyncSourceProjection {
                     throw new IllegalArgumentException("合并查询的原行超过容量限制");
             }
         }
-        return sources.values().stream().map(s -> new MysqlSyncReader.SourceRows(s.object(), s.sourceObject(),
+        var expanded=sources.values().stream().map(s -> new MysqlSyncReader.SourceRows(s.object(), s.sourceObject(),
                 List.copyOf(rows.get(s.object())))).toList();
+        return (DppmsSoftwareHistorySyncTemplate.ADAPTER.equals(input.definition().adapter()) || DppmsDirectSoftwareHistoryTemplate.ADAPTER.equals(input.definition().adapter()))
+                ?DppmsSoftwareHistoryProjection.enrich(new DppmsSoftwareHistoryProjection.Input(input.rows(),expanded)):expanded;
     }
 }
