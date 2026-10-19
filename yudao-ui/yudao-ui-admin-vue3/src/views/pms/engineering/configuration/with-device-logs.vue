@@ -66,7 +66,8 @@
       </el-table-column>
       <el-table-column label="配置日志" width="120">
         <template #default="{ row }">
-          <el-button v-if="row.importedLogFileId && checkPermi(['pms:file:download'])" link type="primary"
+          <el-button
+            v-if="row.importedLogFileId && checkPermi(['pms:file:download'])" link type="primary"
             v-hasPermi="['pms:device-log-archive:download']" @click="downloadImported(row)">下载日志</el-button>
         </template>
       </el-table-column>
@@ -162,7 +163,8 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="调试人员" prop="debuggerUserId">
-            <PmsEntitySelect v-if="!readOnly"
+            <PmsEntitySelect
+              v-if="!readOnly"
               v-model="form.debuggerUserId" :api="queryDebuggerUsers"
               label-field="nickname" value-field="id" query-field="nickname" placeholder="请选择调试人员" />
             <UserTag v-else-if="form.debuggerUserId" :user-id="form.debuggerUserId" />

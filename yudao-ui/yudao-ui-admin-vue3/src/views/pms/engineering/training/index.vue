@@ -277,7 +277,8 @@
         <el-button tag="a" :href="detail.signatureImageDataUrl" download="客户手写签字.png" link type="primary">保存签字图片</el-button>
       </section>
       <template v-if="detail.remark"><h3>备注</h3><p class="training-text">{{ detail.remark }}</p></template>
-      <DeliveryPanel v-if="detail.id" :key="detail.id" owner-module="IMP" entity-type="training"
+      <DeliveryPanel
+        v-if="detail.id" :key="detail.id" owner-module="IMP" entity-type="training"
         :entity-id="detail.id" :type-codes="['TRAINING_RECORD']" :readonly="readonly || detail.status === 3" />
     </div>
     <template #footer>

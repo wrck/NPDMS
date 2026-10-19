@@ -9,7 +9,7 @@ vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: messages.warning }) }))
 vi.mock('../components/CutoverAssessmentPanel.vue', () => ({ default: defineComponent({
-  props: ['model', 'editable', 'onSave', 'onSubmit'], setup(props) { return () => h('section', [
+  props: { model: { type: Object, required: true }, editable: Boolean, onSave: Function, onSubmit: Function }, setup(props) { return () => h('section', [
     h('span', props.model.manualGrade),
     h('button', { 'data-testid': 'save-assessment', disabled: !props.editable, onClick: props.onSave }, '保存'),
     h('button', { 'data-testid': 'submit-assessment', disabled: !props.editable, onClick: props.onSubmit }, '下一步')

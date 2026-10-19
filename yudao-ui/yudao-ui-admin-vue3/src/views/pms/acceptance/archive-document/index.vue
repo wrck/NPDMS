@@ -139,7 +139,8 @@
         </el-col>
       </el-row>
     </el-form>
-    <DeliveryPanel v-if="form.id" :key="form.id" owner-module="ACC" entity-type="archiveDocument"
+    <DeliveryPanel
+      v-if="form.id" :key="form.id" owner-module="ACC" entity-type="archiveDocument"
       :entity-id="form.id" :type-codes="['ARCHIVE_DOCUMENT']" :readonly="form.status !== 0" @changed="onDeliveryChanged" />
     <el-alert v-else title="请先保存文档资料，再上传交付文件。" type="info" :closable="false" />
     <template #footer>

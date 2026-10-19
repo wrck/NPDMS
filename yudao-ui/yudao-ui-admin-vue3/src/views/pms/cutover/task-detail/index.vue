@@ -8,7 +8,8 @@
     </header>
     <div v-loading="detailLoading" class="detail-body">
       <el-alert v-if="detailError" :title="detailError" type="error" :closable="false" show-icon />
-      <CutoverApprovalPanel v-if="approvalOnly" :key="`${taskId}:${approvalReload}`" :readonly="readonly"
+      <CutoverApprovalPanel
+        v-if="approvalOnly" :key="`${taskId}:${approvalReload}`" :readonly="readonly"
         :task-id="taskId" complete-after-decision @changed="handleApprovalChanged" @decided="emit('close')" />
       <template v-else-if="detail">
         <CutoverWorkbenchSteps :steps="detail.workbenchSteps" :selected="selectedStage" @select="selectedStage = $event" />
@@ -22,43 +23,53 @@
           <el-alert title="根据问卷填写评估信息，人工确定A/B/C/D等级。D级使用简易割接流程；已提交内容需通过修订创建新版本。" type="info" :closable="false" show-icon />
           <CutoverProjectContextCard :detail="detail" />
           <CutoverTaskDevices :detail="detail" />
-          <CutoverAssessmentPanel :model="assessmentModel" :customer-service-level="assessmentCustomerLevel"
+          <CutoverAssessmentPanel
+            :model="assessmentModel" :customer-service-level="assessmentCustomerLevel"
             :editable="!readonly && !detailError && detail.allowedActions.includes('SAVE_ASSESSMENT')"
             :submittable="!readonly && !detailError && (detail.allowedActions.includes('SUBMIT_ASSESSMENT') || (detail.allowedActions.includes('SAVE_ASSESSMENT') && checkPermi(['pms:cutover-task:submit-assessment'])))"
             :saving="saving" :submitting="submitting" @save="saveAssessment" @submit="submitAssessment" />
         </template>
-        <CutoverChecklistPanel v-else-if="activeStagePanel === 'CHECKLIST'" :detail="detail" :readonly="readonly || !!detailError"
+        <CutoverChecklistPanel
+          v-else-if="activeStagePanel === 'CHECKLIST'" :detail="detail" :readonly="readonly || !!detailError"
           :refresh-workspace="refreshAfterChecklistSubmit" :refresh-draft="handleTaskChanged" @navigate="handleChecklistNavigation" />
-        <CutoverPlanPanel v-else-if="activeStagePanel === 'PLAN'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
+        <CutoverPlanPanel
+          v-else-if="activeStagePanel === 'PLAN'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
           :task-version="detail.task.version" :manual-grade="detail.task.manualGrade" @changed="handleTaskChanged" />
-        <CutoverApprovalPanel v-else-if="activeStagePanel === 'APPROVAL'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
+        <CutoverApprovalPanel
+          v-else-if="activeStagePanel === 'APPROVAL'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
           @changed="handleApprovalChanged" @decided="emit('close')" />
-        <CutoverClosurePanel v-else-if="activeStagePanel === 'CLOSURE'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
+        <CutoverClosurePanel
+          v-else-if="activeStagePanel === 'CLOSURE'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
           :devices="detail.devices" @changed="handleTaskChanged" />
         <el-empty v-else description="当前步骤暂无可查看的内容" />
       </template>
     </div>
-    <el-dialog v-model="revisionVisible" title="创建修订" width="min(560px, 94vw)" append-to-body align-center
+    <el-dialog
+      v-model="revisionVisible" title="创建修订" width="min(560px, 94vw)" append-to-body align-center
       :close-on-click-modal="!revising" :show-close="!revising">
       <el-alert :title="revisionImpact" type="warning" :closable="false" show-icon />
       <el-form label-position="top" class="mt-4">
         <el-form-item label="本次使用的配置">
-          <el-select v-model="revisionConfigurationId" :loading="revisionOptionsLoading" :disabled="revising"
+          <el-select
+            v-model="revisionConfigurationId" :loading="revisionOptionsLoading" :disabled="revising"
             class="w-full" data-testid="revision-configuration">
             <el-option label="沿用当前配置" value="" />
-            <el-option v-for="option in revisionOptions" :key="String(option.revisionId)" :value="String(option.revisionId)"
+            <el-option
+              v-for="option in revisionOptions" :key="String(option.revisionId)" :value="String(option.revisionId)"
               :label="`${option.name} · 版本 ${option.revisionNo}`" />
           </el-select>
           <span class="cut-help">选择新配置后需重新匹配；未变化的填报和材料可沿用，原版本保留在历史记录中。</span>
         </el-form-item>
         <el-form-item label="修订原因" required>
-          <el-input v-model="revisionReason" type="textarea" :rows="3" maxlength="1000" show-word-limit
+          <el-input
+            v-model="revisionReason" type="textarea" :rows="3" maxlength="1000" show-word-limit
             :disabled="revising" data-testid="revision-reason" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button :disabled="revising" @click="revisionVisible = false">取消</el-button>
-        <el-button type="primary" :loading="revising" :disabled="!revisionReason.trim() || revisionOptionsLoading"
+        <el-button
+          type="primary" :loading="revising" :disabled="!revisionReason.trim() || revisionOptionsLoading"
           data-testid="confirm-step-revision" @click="reviseStep">
           {{ detail?.task.currentStage === 'P5' ? '撤回审批并创建修订' : '创建修订' }}
         </el-button>

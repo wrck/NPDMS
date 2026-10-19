@@ -1,5 +1,6 @@
 <template>
-  <component :is="approvalContainer" v-model="visible" title="实施方案审批"
+  <component
+    :is="approvalContainer" v-model="visible" title="实施方案审批"
     v-bind="projectApproval ? { size: 'min(660px, 100%)', appendToBody: true, destroyOnClose: true } : { width: '660px' }">
     <section v-loading="loading">
       <p>{{ solution?.name }} · 版本 {{ solution?.version }}</p>

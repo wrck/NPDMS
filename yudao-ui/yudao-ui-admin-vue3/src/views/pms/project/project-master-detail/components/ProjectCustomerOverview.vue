@@ -82,7 +82,7 @@
       show-section-header
       @changed="emit('changed')"
     />
-    <ProjectCustomerExtensionDrawer ref="customerFormRef" :project-id="project.id" @success="load" />
+    <ProjectCustomerExtensionDrawer v-if="project.id" ref="customerFormRef" :project-id="project.id" @success="load" />
   </div>
 </template>
 
