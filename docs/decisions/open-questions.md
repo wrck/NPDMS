@@ -1704,6 +1704,8 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 
 - 2026-10-14 latest decision / USER_APPROVED_PRODUCTION_TASK_RULE_UPDATED: 用户明确“历史最终客户联系人作为项目成员进行迁入，历史项目无法准确归集到最终客户”。P32的原`pm_project_member.memberRole=60`由PROJ成员Owner承接到`proj_project_member_assignment`，按原项目身份关联；不再要求准确最终客户、`FINAL_CUSTOMER`相关方或CUS联系人主档，不向`cus_project_customer_contact_relation`迁入新批次。复用成员表既有姓名、人员编码、电话、邮箱、登记来源、有效期及审计字段，保留原角色60的历史含义；不把其猜配为经理、销售或普通账号成员角色。使用既有`authorization_confirmed=false`，无精确账号时`user_id`可空，不创建账号、系统角色、当前访问授权、主责或客户联系人完成事实。P31/P32同Owner、来源互斥、按项目串行；P17及P32不以最终客户资料完成为前提。当前成员迁入代码仍排除角色60、原联系人入口仍依赖最终客户相关方，代码及全量任务入口调整待完成。原库已迁9条CUS联系人、来源绑定、不可变回执和原整表裁决作为历史保留，本次只调整后续生产任务，不授权搬移、删除或实际迁入。见[生产任务P32](../superpowers/plans/2026-10-14-dppms-production-migration.md#p32-历史最终客户联系人作为项目成员)。
 
+- 2026-10-19独立新套件复核：新`BASE_P31`错误沿用CUS联系人分支，已仅在该新任务改为角色10/20/30/60全部承接到`proj_project_member_assignment`；角色60保持原角色含义及`authorization_confirmed=false`，不要求最终客户相关方，不写CUS联系人，不改当前授权或主责。原任务、旧实现、9条历史CUS联系人和旧绑定均保留。26项隔离、Mapper及原生临时表检查通过；真实预览2112116680425676801已越过旧依赖，当前因152条原始区间倒置失败，不能记为全量通过。日期问题独立登记于Q-BASE-P31-REVERSED-HISTORY-20261019。
+
 - 2026-10-12 final contacts executed / PILOT_LOCAL_VERIFIED: 获准V436通过指定Compose/Flyway应用，现项目联系人29列；9条最终客户联系人经迁移功能和CUS Owner迁入，9 NEW＋9 REPLAY_COMPLETED。原全表17联系人及客户主档/联系人操作历史不变，全表26条；姓名、电话、空邮箱、原区间和NULL更新人完整承接，未造客户主档、主联系人、账号、授权或完成事件。9项目真实页面、普通主联系人编辑打开取消和闭环普通维护禁用验收通过；验收后145成员、项目状态、其余保护业务及原70行15列再次保持。62项后端（含7项MySQL临时表）、4项前端和41模块打包通过。整表报告已记录实际证据，本批9条不再待裁决；全历史和生产基线尚未关闭。
 
 - 2026-10-12 remaining primary decision: 用户批准其余7项目按原主责补建正式成员授权和主责引用。52564/53649/50370/52443/53546服务及主项目经理均z01010；53614服务z01010、主项目经理y06496、liujiazhen_supp协作；69300仅服务经理z01010，原项目经理未通过资格不授角色或项目经理授权。全部10项目主责方向已裁决，逐项目执行前须重新预览并保护来源/资格/项目版本/全部成员字段。9条最终客户人员仍待CUS整表规划，未授权新增表列或属性。
@@ -2524,3 +2526,17 @@ RESOLVED（2026-10-11）：用户批准仅应用既有V398的version BIGINT NOT 
 - Status: ADJUDICATED。
 - User decision: 对新P22的14293条正数量原部门编码缺项，用户明确选择“保留空值、登记缺项，继续预览（建议）”。原查询直接带入原项目`pm_project.column001`，NULL/空字符串保留原样；`department_id=-1`，无法派生的部门名称/版本保持待定，登记缺项且继续预览，不填占位部门、不跳过这些正数量记录。
 - Boundary: 仅独立新BASE_P22。非空编码仍必须匹配同租户精确部门码；部门目录变更、已有身份和不可变来源保护保留。已有DPPMS-SCOPE-039零数量待处理裁决继续适用。已知部门仍按当前独立运行绑定统一后置回填，空编码保持待定。正式结构不支持待定值时仍阻止真实写入；本次不执行DDL、迁移、真实同步或原任务操作，不操作59191。
+
+### Q-BASE-P31-REVERSED-HISTORY-20261019 — 原人员历史区间倒置
+
+- Status: BLOCKED_BY_SPEC / PREVIEW_RULE_PENDING。
+- Evidence: 新P31的381195条来源中152条`effectiveTo < effectiveFrom`，角色60有145条、角色30有5条、角色10有2条。其中77条起止在同一日，75条结束日期早于开始日期；所有原日期精度均为秒，不是读取精度丢失。完整原ID、项目、角色和日期见工作树外`base-sync-seven-blockers-followup-20261019/P31-original-interval-audit.json`。
+- Existing boundary: 角色60归入项目成员历史的既有批准没有批准改写原有效期；目标`chk_proj_member_dates`仍对全部成员校验结束不早于开始。没有交换日期、补结束时间、跳过来源或修改CHECK。
+- Pending: 已仅针对新发现的日期问题询问，是否在新P31预览中保留原日期、逐条登记后继续，真实写入仍拒绝；在回复前不实施该预览例外。没有重新询问角色60或其他已决规则。
+
+### Q-BASE-VERIFY-CAPACITY-PACKAGE-20261019 — 专用验证库两项结构与三项容量例外
+
+- Status: EXPLICITLY_AUTHORIZED / APPLIED。
+- User decision: 用户明确“允许这两项补丁及三项容量调整（建议）”。仅对`npdms_reverify_20261014`按已有V481补`com_shipment_package.shipment_contract_source_key VARCHAR(128) NULL`，按已有V484将`int_base_sync_task.max_rows`的CHECK上限改为5000000；仅新`BASE_P15/P33/P35`的`max_rows`由1000000改为5000000。
+- Execution: 2026-10-19 17:34两条ALTER及三项任务容量更新完成；其他列、索引和任务字段保留。结构及任务原值已加密备份，独立审阅SQL、授权记录及执行证明在工作树外`base-sync-seven-blockers-followup-20261019/capacity-and-package-proof.json`。环境维护材料不进入产品同步任务或自动迁移路径。
+- Boundary: 本例外不授权其他DDL、Flyway、真实同步、正式父输入创建、原任务操作、测试库写入或59191操作。自动迁移和作业仍关闭。P35重跑2112116707562823682全量1586578条PREVIEW_READY；P15/P33越过结构和容量后暴露的真实缺项另列，不将本例外当作全任务放行。

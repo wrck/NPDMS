@@ -4,7 +4,11 @@
 
 **共24项、每项3种实现、72份验证记录；原字段处置861行。当前不能称为“72项验收全部通过”。**
 
-## ID修正及P16映射修复后的最新结果
+## 剩余七项复核后的最新结果
+
+[base-sync-seven-blockers-followup-20261019](base-sync-seven-blockers-followup-20261019.md)及[24项当前回执](base-sync-seven-blockers-followup-20261019.json)：新虚基类套件 **18 PREVIEW_READY、6 FAILED**。P35全量1586578条通过；新P31错误联系人依赖按已有裁决修复，现有152条源区间倒置仍阻断。新P15/P33已越过获准结构/容量补丁，正式输入和源地址缺项已逐项定位；P10/P14/P18的来源与正式输入前置列明。P31新日期预览处理选项待回复，未自动扩写规则。26项定向检查通过；原任务、测试库及历史保护核验保持，无Flyway、真实同步、双线对照或59191操作。P30仍为0行空预览。旧阶段JSON/SQL保留历史，本阶段JSON提供当前C终态。
+
+## ID修正及P16映射修复后的结果（历史）
 
 [本阶段逐项报告](base-sync-post-id-release-preview-20261019.md)及[24项当前回执](base-sync-post-id-release-preview-20261019.json)：新虚基类套件为 **17 PREVIEW_READY、7 FAILED**。P22全量343858条、P19全量186118条已就绪；P16修复已批准Readonly回退的结果映射后，158871条真实预览就绪。剩余7项的来源、正式输入或结构/容量缺项逐项列明；P30仍是0行空预览。验证库40个项目及关联技术ID已按单独授权修正，维护材料在工作树外；原任务保留，未执行迁移、真实同步或双线对照，59191未操作。旧阶段的verification-matrix及各附件保留原回执，本阶段JSON提供C路线的当前终态。
 
@@ -30,7 +34,7 @@
 |---|---|---|
 | A 原通用引擎 / Owner适配器 | 原任务原身份候选；19业务适配器 + 5 TABLE_MAPPING | 当前24份候选未全部保存/重跑；下面保留历史组件结果，不冒充当前候选验收 |
 | B 独立直写 | 独立ID与来源绑定；Direct*写入器，部分任务仍复用GenericSyncEngine | 最新既有回执16 PREVIEW_READY、7 FAILED、1历史非预览SUCCESS（P01）；READY中有空预览及全ISSUE |
-| C 新虚基类 | BASE_Pxx + AbstractSyncTask/DefaultSyncTask + 专用XML + 独立int_base_sync_* | 17 PREVIEW_READY、7 FAILED；P30为0行空预览。P16新映射回归与装配3项通过；既有阶段证据保留，未做真实同步 |
+| C 新虚基类 | BASE_Pxx + AbstractSyncTask/DefaultSyncTask + 专用XML + 独立int_base_sync_* | 18 PREVIEW_READY、6 FAILED；P30为0行空预览。新P31依赖纠正及26项检查通过，P35全量1586578条就绪；未做真实同步 |
 
 三种方式是现存实现路线，不新增任务，不运行双线业务对照。原37项组件按既有合并结论组成24项：P01←01/02/03，P04←04/05/06/07，P08←08/09，P15←15/26/27/28/29，P16←16/17，P31←31/32，P35←35/36，其余单项保留。
 
@@ -63,12 +67,12 @@
 | [P13](P13/README.md) | CRM执行单 | PREVIEW_READY / 99,895；ISSUE=99,895（全行） | PREVIEW_READY / 1,895 | PREVIEW_READY / 99,895 |
 | [P14](P14/README.md) | 销售订单与订单行 | PREVIEW_READY / 467,190；ISSUE=2,138 | PREVIEW_READY / 465,804；ISSUE=1,102 | FAILED / 0 |
 | [P15](P15/README.md) | 合同、发货引用、包裹、发货事件和设备关系 | PREVIEW_READY / 3,848,169；ISSUE=814 | PREVIEW_READY / 3,848,169；ISSUE=814 | FAILED / 0 |
-| [P16](P16/README.md) | 有效项目主档及全部旧身份 | FAILED / 0 | FAILED / 0 | FAILED / 0 |
+| [P16](P16/README.md) | 有效项目主档及全部旧身份 | FAILED / 0 | FAILED / 0 | PREVIEW_READY / 158,871 |
 | [P18](P18/README.md) | 项目合同关系 | PREVIEW_READY / 82,676；ISSUE=82,676（全行） | PREVIEW_READY / 82,676；ISSUE=82,676（全行） | FAILED / 0 |
-| [P19](P19/README.md) | 项目相关方及状态资料 | PREVIEW_READY / 265,547；ISSUE=265,547（全行） | PREVIEW_READY / 265,547；ISSUE=265,547（全行） | FAILED / 0 |
+| [P19](P19/README.md) | 项目相关方及状态资料 | PREVIEW_READY / 265,547；ISSUE=265,547（全行） | PREVIEW_READY / 265,547；ISSUE=265,547（全行） | PREVIEW_READY / 186,118 |
 | [P20](P20/README.md) | 项目真实产品 | PREVIEW_READY / 7,818；ISSUE=7,818（全行） | PREVIEW_READY / 7,818；ISSUE=7,818（全行） | PREVIEW_READY / 7,818 |
-| [P21](P21/README.md) | 项目租赁产品及配置树 | PREVIEW_READY / 1,294；ISSUE=1,294（全行） | FAILED / 1,190 | PREVIEW_READY / 1,190；执行结构警告保留 |
-| [P22](P22/README.md) | 项目产品实施范围 | PREVIEW_READY / 343,858；ISSUE=343,858（全行） | PREVIEW_READY / 343,858；ISSUE=343,858（全行） | FAILED / 0 |
+| [P21](P21/README.md) | 项目租赁产品及配置树 | PREVIEW_READY / 1,294；ISSUE=1,294（全行） | FAILED / 1,190 | PREVIEW_READY / 1,190 |
+| [P22](P22/README.md) | 项目产品实施范围 | PREVIEW_READY / 343,858；ISSUE=343,858（全行） | PREVIEW_READY / 343,858；ISSUE=343,858（全行） | PREVIEW_READY / 343,858 |
 | [P23](P23/README.md) | 合同回款计划 | FAILED / 0 | PREVIEW_READY / 35,501 | PREVIEW_READY / 35,501 |
 | [P24](P24/README.md) | 合同实际回款 | PREVIEW_READY / 79,182 | PREVIEW_READY / 79,182 | PREVIEW_READY / 81,547 |
 | [P25](P25/README.md) | 逐次续保 | PREVIEW_READY / 453,443 | PREVIEW_READY / 453,443 | PREVIEW_READY / 462,213 |
@@ -76,7 +80,7 @@
 | [P31](P31/README.md) | 成员历史、历史联系人及获准授权 | NOT_PREVIEWED | FAILED / 0 | FAILED / 0 |
 | [P33](P33/README.md) | 普通安装历史及获准当前位置 | NOT_PREVIEWED | FAILED / 0 | FAILED / 0 |
 | [P34](P34/README.md) | 出厂软件版本历史 | NOT_PREVIEWED | PREVIEW_READY / 165,801 | PREVIEW_READY / 165,801 |
-| [P35](P35/README.md) | 软件变更批次与版本历史 | NOT_PREVIEWED | FAILED / 0 | FAILED / 0 |
+| [P35](P35/README.md) | 软件变更批次与版本历史 | NOT_PREVIEWED | FAILED / 0 | PREVIEW_READY / 1,586,578 |
 | [P37](P37/README.md) | 设备许可历史 | NOT_PREVIEWED | PREVIEW_READY / 475,468 | PREVIEW_READY / 475,468 |
 
 

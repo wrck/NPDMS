@@ -31,9 +31,8 @@
 
 ## C 新虚基类
 
-对象键和来源键的实际保存表达式如下；正式行业务定位/幂等冲突继续受目标查询和指纹保护，不能只凭一个原ID覆盖现存行。
+当前来源技术身份为`tenant_id + task_id + connection_id + MEMBER_HISTORY + 原pm_project_member.id`；所有10/20/30/60角色均用同一种独立身份，正式主键按新行生成，不按姓名或联系方式合并。
 
-| 实现位置 | 身份/键原表达式 |
-|---|---|
-| [P31MemberContactSyncTask.java:31](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.java:31) | `var keys=b.rows().stream().map(s->s.sourceId.toString()).toList();var members=c.identities().findByKeys(new SyncIdentityStore.Query("MEMBER_HISTORY",keys));var contacts=c.identities().findByKeys(new SyncIdentityStore.Query("CONTACT_HISTORY",keys));` |
-| [P31MemberContactSyncTask.java:65](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.java:65) | `@Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){b.context().identities().saveAll(b.rows().stream().filter(s->s.action==SyncWriteAction.INSERT).map(s->new SyncIdentityStore.Save(s.member!=null?"MEMBER_HISTORY":"CONTACT_HISTORY",s.sourceId.toString(),s.member!=null?s.member.id:s.contact.id,s.member!=null?memberFingerprint(s.member):contactFingerprint(s.contact),null)).toList());}` |
+原项目ID及规范项目身份遵循本套件批准规则。正式成员现值按租户、项目查询并用完整指纹保护；未绑定的原有同业务事实禁止接管。本套件如已有`CONTACT_HISTORY`身份则阻断自动改绑，不搬移旧联系人；新写入不再使用CONTACT_HISTORY。
+
+正式表既有唯一键保持，成员授权始终false，不因原角色或原来源ID产生当前账号、权限或主责。当前日期缺项见[本轮报告](../base-sync-seven-blockers-followup-20261019.md)。

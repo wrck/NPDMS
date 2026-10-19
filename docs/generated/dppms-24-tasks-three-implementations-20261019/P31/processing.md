@@ -4,7 +4,7 @@
 
 [返回本任务](README.md)
 
-前置：完整已批准项目范围；成员角色10/20/30与联系人60分支；联系人须正式最终客户相关方。
+以下A/B段保留原实现流程；当前C按本页末尾及[本轮报告](../base-sync-seven-blockers-followup-20261019.md)解释，角色60不依赖最终客户相关方。
 
 后置：成员授权标志保持false；联系人不接管当前主联系人；保留原人员编码，可空user_id/employee_no不猜填。
 
@@ -37,70 +37,11 @@ Mapper声明存在不等于此运行调用或正式执行；SQL原件、动态�
 
 ## 新虚基类套件
 
-仅新P16完整COMPLETED范围，来源指纹/成员数验证；不依赖旧发布表；当前缺该正式输入。
+1. 预览从原库读取与新P16相同的完整有效项目范围，正式执行仍要求本套件P16完整COMPLETED及当前项目授权。不得把原发布表或旧任务绑定当作授权。
+2. 依原项目键分段流式读取15个原字段。每批只查询同租户选中项目的现存成员、本任务自身MEMBER_HISTORY及受保护CONTACT_HISTORY身份；没有CUS或最终客户查询。
+3. 10/20/30映射既有角色，60保留原值。姓名、原编码、电话、邮箱、登记来源、有效区间和审计按原规则承接。授权标志false、无精确账号时user_id空；不猜当前组织历史、不改主责或系统角色。
+4. 倒置日期及审计精度校验保持；152条原日期问题未解决前，全量真实预览仍失败，不能因联系人依赖已修复便标记通过。
+5. 同一独立绑定必须匹配完整目标指纹及原事实；人工变化、原有业务行接管或旧CONTACT_HISTORY自动搬移均拒绝。仅新行按一批一条INSERT进入34列成员表。
+6. 成功后仅保存本套件MEMBER_HISTORY来源身份；预览不执行INSERT或绑定。业务UPDATE、多表关联回填、当前授权及客户联系人后处理均无本任务SQL。失败同事务回滚。
 
-| 实际声明/动态模板 | 分类 | 多表JOIN | 原件 |
-|---|---|---|---|
-| 未定位到独立关联更新SQL | Java/Owner/API或不回填，见实际代码 | — | 见任务README方法索引 |
-
-Mapper声明存在不等于此运行调用或正式执行；SQL原件、动态分支和目标绑定见本方式.sql与-mappings.json。
-
-### createParameters
-
-[P31MemberContactSyncTask.java:18](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.java:18)
-
-```java
-@Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
-```
-
-### work
-
-[P31MemberContactSyncTask.java:21](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.java:21)
-
-```java
-@Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));syncData(c.forData("MemberContact",false,true));}
-```
-
-### syncDataInsertBefore
-
-[P31MemberContactSyncTask.java:27](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.java:27)
-
-```java
-@Override protected void syncDataInsertBefore(SyncBatch<Source,Parameters> b){
-  var c=b.context();var publication=c.parameters().publication;var selected=new LinkedHashMap<String,BaseSyncPublishedProjects.Member>();
-  for(var s:b.rows()){if(s.sourceId==null||s.sourceId<=0||s.originalProjectId==null)fail("SOURCE_IDENTITY_INVALID");var member=publication.members().get(s.originalProjectId.toString());if(member==null||!Objects.equals(member.projectType(),s.projectType))fail("SOURCE_OUTSIDE_PUBLISHED_SCOPE");selected.put(member.sourceKey(),member);}
-  var refs=projects.verifyPublished(new BaseSyncProjectReferences.PublishedQuery(c.tenantId(),c.actorId(),List.copyOf(selected.values()),c.preview()));var ids=refs.values().stream().map(BaseSyncProjectReferences.Identity::id).distinct().toList();
-  var keys=b.rows().stream().map(s->s.sourceId.toString()).toList();var members=c.identities().findByKeys(new SyncIdentityStore.Query("MEMBER_HISTORY",keys));var contacts=c.identities().findByKeys(new SyncIdentityStore.Query("CONTACT_HISTORY",keys));
-  var q=new TargetQuery(c.tenantId(),c.connectionId(),ids,c.maxRows()+1,c.preview());var currentMembers=mapper.selectMembers(q);var currentContacts=mapper.selectContacts(q);
-  if(currentMembers.size()>c.maxRows()||currentContacts.size()>c.maxRows())fail("FORMAL_HISTORY_CAPACITY");
-  var parties=new HashMap<Long,FinalCustomer>();for(var p:mapper.selectFinalCustomers(q))if(parties.putIfAbsent(p.projectId,p)!=null)fail("FINAL_CUSTOMER_AMBIGUOUS");
-  for(var s:b.rows()){
-   if(!Set.of("10","20","30","60").contains(Objects.toString(s.memberRole,""))||!"10".equals(s.projectType))fail("SOURCE_ROLE_OR_PROJECT_TYPE_INVALID");
-   if(s.effectiveFrom!=null&&s.effectiveTo!=null&&s.effectiveTo.isBefore(s.effectiveFrom)||s.createTime!=null&&s.createTime.getNano()!=0||s.updateTime!=null&&s.updateTime.getNano()!=0)fail("SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID");
-   var p=refs.get(s.originalProjectId.toString());s.action=SyncWriteAction.INSERT;
-   if("60".equals(s.memberRole)){
-    if(s.memberName==null||s.memberName.isBlank()||s.createTime==null)fail("CONTACT_P31MemberContactSyncTask_OR_ORIGINAL_AUDIT_REQUIRED");
-    var party=parties.get(p.id());var canonical=publication.canonical().get(p.id());
-    if(party==null||!Objects.equals(party.sourceRecordKey,canonical.sourceKey()))fail("CANONICAL_FINAL_CUSTOMER_REQUIRED:"+p.id());
-    var row=new ContactRow();row.tenantId=c.tenantId();row.projectId=p.id();row.projectPartyId=party.id;row.contactCode=s.memberCode;row.name=s.memberName;row.phone=s.phoneNum;row.email=s.email;row.registrationSource=s.fromFlag;row.effectiveFrom=s.effectiveFrom;row.effectiveTo=s.effectiveTo;row.creator=s.resolvedCreator;row.updater=s.resolvedUpdater;row.createTime=s.createTime;row.updateTime=s.updateTime==null?s.createTime:s.updateTime;row.primaryFlag=false;row.status=0;row.version=0;row.deleted=false;
-    validateContact(row);var binding=contacts.get(s.sourceId.toString());var old=binding==null?null:currentContacts.stream().filter(r->Objects.equals(r.id,binding.targetId())).findFirst().orElse(null);
-    if(binding!=null){if(old==null||Boolean.TRUE.equals(old.deleted)||!binding.fingerprint().equals(contactFingerprint(old)))fail("EXISTING_CONTACT_PROTECTED");row.id=old.id;row.version=old.version;if(!contactFingerprint(row).equals(contactFingerprint(old)))fail("CONTACT_HISTORY_IMMUTABLE");s.action=SyncWriteAction.UNCHANGED;s.contact=old;}
-    else{if(currentContacts.stream().anyMatch(r->!Boolean.TRUE.equals(r.owned)&&sameContact(r,row)))fail("ORIGINAL_CONTACT_CANNOT_ADOPT");row.id=c.preview()?null:IdWorker.getId();s.contact=row;}
-   }else{
-    var row=new MemberRow();row.tenantId=c.tenantId();row.projectId=p.id();row.memberCode=s.memberCode;row.memberName=s.memberName;row.phoneNumber=s.phoneNum;row.email=s.email;row.registrationSource=s.fromFlag;row.memberRole=switch(s.memberRole){case "10"->"SALES_REPRESENTATIVE";case "20"->"SERVICE_MANAGER";case "30"->"PROJECT_MANAGER";default->throw new IllegalArgumentException();};row.companyId=p.companyId();row.companyCode=p.companyCode();row.companyName=p.companyName();row.effectiveFrom=s.effectiveFrom;row.effectiveTo=s.effectiveTo;row.creator=s.resolvedCreator;row.updater=s.resolvedUpdater;row.createTime=s.createTime;row.updateTime=s.updateTime==null?s.createTime:s.updateTime;row.authorizationConfirmed=false;row.status="ACTIVE";row.version=0;row.deleted=false;
-    validateMember(row);var binding=members.get(s.sourceId.toString());var old=binding==null?null:currentMembers.stream().filter(r->Objects.equals(r.id,binding.targetId())).findFirst().orElse(null);
-    if(binding!=null){if(old==null||Boolean.TRUE.equals(old.deleted)||!binding.fingerprint().equals(memberFingerprint(old)))fail("EXISTING_MEMBER_PROTECTED");row.id=old.id;if(!memberFingerprint(row).equals(memberFingerprint(old)))fail("MEMBER_HISTORY_IMMUTABLE");s.action=SyncWriteAction.UNCHANGED;s.member=old;}
-    else{if(currentMembers.stream().anyMatch(r->!Boolean.TRUE.equals(r.owned)&&sameMember(r,row)))fail("ORIGINAL_MEMBER_CANNOT_ADOPT");row.id=c.preview()?null:IdWorker.getId();s.member=row;}
-   }
-  }
- }
-```
-
-### syncDataInsertAfter
-
-[P31MemberContactSyncTask.java:65](C:/Users/user/Documents/Codex/2026-10-06/task-3/project-detail-followup/pms-module-integration/src/main/java/cn/iocoder/yudao/module/pms/integration/basesync/task/P31MemberContactSyncTask.java:65)
-
-```java
-@Override protected void syncDataInsertAfter(SyncBatch<Source,Parameters> b){b.context().identities().saveAll(b.rows().stream().filter(s->s.action==SyncWriteAction.INSERT).map(s->new SyncIdentityStore.Save(s.member!=null?"MEMBER_HISTORY":"CONTACT_HISTORY",s.sourceId.toString(),s.member!=null?s.member.id:s.contact.id,s.member!=null?memberFingerprint(s.member):contactFingerprint(s.contact),null)).toList());}
-```
-
+当前实际SQL及动态节点见[C-base-sync.sql](C-base-sync.sql)和[C-base-sync-mappings.json](C-base-sync-mappings.json)。本轮26项定向检查及真实终态见[本轮报告](../base-sync-seven-blockers-followup-20261019.md)。

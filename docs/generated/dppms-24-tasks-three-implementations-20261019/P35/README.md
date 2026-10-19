@@ -1,5 +1,7 @@
 # P35 软件变更批次与版本历史
 
+2026-10-19最新：仅新BASE_P35容量获准提升到500万后，Run `2112116707562823682`全量1586578条PREVIEW_READY（16821批次＋1569757观察）；拓展属性仍暂缓，业务写入0。[本轮证明](../base-sync-seven-blockers-followup-20261019.md)。下方原失败和A/B回执保留历史。
+
 本轮最新：[base-sync-department-code-preview-20261019](../base-sync-department-code-preview-20261019.md)，本项真实回执[P35-preview.json](D:/CodexTaskArtifacts/project-detail-followup/base-sync-deferred-extensions-20261019/P35-preview.json)。此前阶段判断及回执保留。
 
 最新原用户名/原ID规则及回执：[本项结果](../base-sync-original-identifiers-preview-20261019.md#p35)。此前阶段判断和运行原件保留。
@@ -22,7 +24,7 @@
 |---|---|---|
 | 原通用引擎 / Owner适配器 | 当前候选未验证；历史 P35:NOT_PREVIEWED | 当前候选没有真实同步证据；不继承其他实现结果 |
 | 独立直写任务 | FAILED / 0 | 未找到本实现真实同步完成证据；预览不计同步 |
-| 新虚基类套件 | FAILED / 0 | 未找到本实现真实同步完成证据；预览不计同步 |
+| 新虚基类套件 | PREVIEW_READY / 1,586,578 | 未找到本实现真实同步完成证据；预览不计同步 |
 
 初次汇总仅引用既有证据；2026-10-19后续已重跑本项真实API预览，新P21另有实现修复和定向测试，详见页首跟进。未做真实同步。A的当前候选与早期回执不是相同配置版本；B/C也不相互替代。类级共同测试不能写成每任务全部用例都已通过。
 

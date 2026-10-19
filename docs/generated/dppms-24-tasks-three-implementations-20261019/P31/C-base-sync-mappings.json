@@ -1,7 +1,85 @@
 {
   "task": "P31",
   "implementation": "C",
+  "generatedAt": "2026-10-19T17:55:45.626704+08:00",
   "sourceMappings": [],
+  "sourceProjections": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.id",
+      "alias": "sourceId"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.projectId",
+      "alias": "originalProjectId"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.projectType",
+      "alias": "projectType"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.memberRole",
+      "alias": "memberRole"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.memberCode",
+      "alias": "memberCode"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.memberName",
+      "alias": "memberName"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.phoneNum",
+      "alias": "phoneNum"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.email",
+      "alias": "email"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.fromFlag",
+      "alias": "fromFlag"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.createTime",
+      "alias": "createTime"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.createBy",
+      "alias": "source_creator"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.updateTime",
+      "alias": "updateTime"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.updateBy",
+      "alias": "source_updater"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.effectiveFrom",
+      "alias": "effectiveFrom"
+    },
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "expression": "m.effectiveTo",
+      "alias": "effectiveTo"
+    }
+  ],
   "insertBindings": [
     {
       "table": "proj_project_member_assignment",
@@ -240,212 +318,14 @@
       "parameter": "#{row.member.authorizationConfirmed}",
       "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertMembers",
       "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "id",
-      "parameter": "#{row.contact.id}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "project_id",
-      "parameter": "#{row.contact.projectId}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "customer_id",
-      "parameter": "#{row.contact.customerId}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "customer_contact_id",
-      "parameter": "#{row.contact.customerContactId}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "name",
-      "parameter": "#{row.contact.name}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "department",
-      "parameter": "#{row.contact.department}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "title",
-      "parameter": "#{row.contact.title}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "mobile",
-      "parameter": "#{row.contact.mobile}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "phone",
-      "parameter": "#{row.contact.phone}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "email",
-      "parameter": "#{row.contact.email}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "primary_flag",
-      "parameter": "#{row.contact.primaryFlag}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "primary_set_time",
-      "parameter": "#{row.contact.primarySetTime}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "status",
-      "parameter": "#{row.contact.status}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "remark",
-      "parameter": "#{row.contact.remark}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "version",
-      "parameter": "#{row.contact.version}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "creator",
-      "parameter": "#{row.contact.creator}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "create_time",
-      "parameter": "#{row.contact.createTime}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "updater",
-      "parameter": "#{row.contact.updater}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "update_time",
-      "parameter": "#{row.contact.updateTime}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "deleted",
-      "parameter": "#{row.contact.deleted}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "deleted_by",
-      "parameter": "#{row.contact.deletedBy}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "deleted_at",
-      "parameter": "#{row.contact.deletedAt}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "tenant_id",
-      "parameter": "#{row.contact.tenantId}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "active_primary_project_id",
-      "parameter": "#{row.contact.activePrimaryProjectId}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "project_party_id",
-      "parameter": "#{row.contact.projectPartyId}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "contact_code",
-      "parameter": "#{row.contact.contactCode}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "registration_source",
-      "parameter": "#{row.contact.registrationSource}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "effective_from",
-      "parameter": "#{row.contact.effectiveFrom}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
-    },
-    {
-      "table": "cus_project_customer_contact_relation",
-      "column": "effective_to",
-      "parameter": "#{row.contact.effectiveTo}",
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml"
     }
   ],
   "mapperNodes": [
+    {
+      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
+      "source": "pms-module-integration/src/main/resources/base-sync-source/P31SourceMapper.xml",
+      "xml": "<select id=\"selectMemberContact\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$Source\">SELECT m.id AS sourceId,m.projectId AS originalProjectId,m.projectType,m.memberRole,m.memberCode,m.memberName,m.phoneNum,m.email,m.fromFlag,m.createTime,m.createBy AS source_creator,m.updateTime,m.updateBy AS source_updater,m.effectiveFrom,m.effectiveTo FROM pm_project_member m WHERE m.projectType='10' AND m.memberRole IN ('10','20','30','60') <choose><when test=\"projectKeys != null and !projectKeys.isEmpty()\">AND m.projectId IN <foreach collection=\"projectKeys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose> ORDER BY m.id LIMIT #{limit}</select>"
+    },
     {
       "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.selectMembers",
       "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml",
@@ -454,27 +334,8 @@
     {
       "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertMembers",
       "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml",
-      "xml": "<insert id=\"insertMembers\">INSERT INTO proj_project_member_assignment (`id`,`project_id`,`user_id`,`employee_no`,`member_name`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`member_role`,`assignment_type`,`site_id`,`responsibility`,`change_reason`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`deleted_time`,`tenant_id`,`remark`,`end_reason`,`member_code`,`phone_number`,`email`,`registration_source`,`authorization_confirmed`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.member.id},#{row.member.projectId},#{row.member.userId},#{row.member.employeeNo},#{row.member.memberName},#{row.member.companyId},#{row.member.companyCode},#{row.member.companyName},#{row.member.departmentId},#{row.member.departmentCode},#{row.member.departmentName},#{row.member.memberRole},#{row.member.assignmentType},#{row.member.siteId},#{row.member.responsibility},#{row.member.changeReason},#{row.member.effectiveFrom},#{row.member.effectiveTo},#{row.member.status},#{row.member.version},#{row.member.creator},#{row.member.createTime},#{row.member.updater},#{row.member.updateTime},#{row.member.deleted},#{row.member.deletedTime},#{row.member.tenantId},#{row.member.remark},#{row.member.endReason},#{row.member.memberCode},#{row.member.phoneNumber},#{row.member.email},#{row.member.registrationSource},#{row.member.authorizationConfirmed})</foreach></insert>\n"
-    },
-    {
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.selectContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml",
-      "xml": "<select id=\"selectContacts\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$ContactRow\">SELECT r.`id`,r.`project_id`,r.`customer_id`,r.`customer_contact_id`,r.`name`,r.`department`,r.`title`,r.`mobile`,r.`phone`,r.`email`,r.`primary_flag`,r.`primary_set_time`,r.`status`,r.`remark`,r.`version`,r.`creator`,r.`create_time`,r.`updater`,r.`update_time`,r.`deleted`,r.`deleted_by`,r.`deleted_at`,r.`tenant_id`,r.`active_primary_project_id`,r.`project_party_id`,r.`contact_code`,r.`registration_source`,r.`effective_from`,r.`effective_to`,(b.id IS NOT NULL) AS owned FROM cus_project_customer_contact_relation r LEFT JOIN int_base_sync_task task ON task.tenant_id=r.tenant_id AND task.task_code='BASE_P31' AND task.connection_id=#{query.connectionId} AND task.deleted=FALSE LEFT JOIN int_base_sync_binding b ON b.tenant_id=r.tenant_id AND b.task_id=task.id AND b.deleted=FALSE AND b.object_key='CONTACT_HISTORY' AND b.target_id=r.id WHERE r.tenant_id=#{query.tenantId} <choose><when test=\"query.projectIds != null and !query.projectIds.isEmpty()\">AND r.project_id IN <foreach collection=\"query.projectIds\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose> ORDER BY r.id LIMIT #{query.limit}<if test=\"!query.preview\"> FOR UPDATE</if></select>\n"
-    },
-    {
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.insertContacts",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml",
-      "xml": "<insert id=\"insertContacts\">INSERT INTO cus_project_customer_contact_relation (`id`,`project_id`,`customer_id`,`customer_contact_id`,`name`,`department`,`title`,`mobile`,`phone`,`email`,`primary_flag`,`primary_set_time`,`status`,`remark`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`deleted_by`,`deleted_at`,`tenant_id`,`active_primary_project_id`,`project_party_id`,`contact_code`,`registration_source`,`effective_from`,`effective_to`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.contact.id},#{row.contact.projectId},#{row.contact.customerId},#{row.contact.customerContactId},#{row.contact.name},#{row.contact.department},#{row.contact.title},#{row.contact.mobile},#{row.contact.phone},#{row.contact.email},#{row.contact.primaryFlag},#{row.contact.primarySetTime},#{row.contact.status},#{row.contact.remark},#{row.contact.version},#{row.contact.creator},#{row.contact.createTime},#{row.contact.updater},#{row.contact.updateTime},#{row.contact.deleted},#{row.contact.deletedBy},#{row.contact.deletedAt},#{row.contact.tenantId},#{row.contact.activePrimaryProjectId},#{row.contact.projectPartyId},#{row.contact.contactCode},#{row.contact.registrationSource},#{row.contact.effectiveFrom},#{row.contact.effectiveTo})</foreach></insert>\n"
-    },
-    {
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$TargetMapper.selectFinalCustomers",
-      "source": "pms-module-integration/src/main/resources/mapper/basesync/P31TargetMapper.xml",
-      "xml": "<select id=\"selectFinalCustomers\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$FinalCustomer\">SELECT r.id,r.project_id,r.source_record_key FROM proj_project_party r WHERE r.tenant_id=#{query.tenantId} AND r.deleted=FALSE AND r.party_role='FINAL_CUSTOMER' AND r.source_system='DPPMS' AND r.source_table='pm_project_header' <choose><when test=\"query.projectIds != null and !query.projectIds.isEmpty()\">AND r.project_id IN <foreach collection=\"query.projectIds\" item=\"id\" open=\"(\" close=\")\" separator=\",\">#{id}</foreach></when><otherwise>AND 1=0</otherwise></choose><if test=\"!query.preview\"> FOR UPDATE</if></select>"
-    },
-    {
-      "statement": "cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$SourceMapper.selectMemberContact",
-      "source": "pms-module-integration/src/main/resources/base-sync-source/P31SourceMapper.xml",
-      "xml": "<select id=\"selectMemberContact\" resultType=\"cn.iocoder.yudao.module.pms.integration.basesync.task.P31MemberContactSyncTask$Source\">SELECT m.id AS sourceId,m.projectId AS originalProjectId,m.projectType,m.memberRole,m.memberCode,m.memberName,m.phoneNum,m.email,m.fromFlag,m.createTime,m.createBy AS source_creator,m.updateTime,m.updateBy AS source_updater,m.effectiveFrom,m.effectiveTo FROM pm_project_member m WHERE m.projectType='10' AND m.memberRole IN ('10','20','30','60') <choose><when test=\"projectKeys != null and !projectKeys.isEmpty()\">AND m.projectId IN <foreach collection=\"projectKeys\" item=\"key\" open=\"(\" close=\")\" separator=\",\">#{key}</foreach></when><otherwise>AND 1=0</otherwise></choose> ORDER BY m.id LIMIT #{limit}</select>"
+      "xml": "<insert id=\"insertMembers\">INSERT INTO proj_project_member_assignment (`id`,`project_id`,`user_id`,`employee_no`,`member_name`,`company_id`,`company_code`,`company_name`,`department_id`,`department_code`,`department_name`,`member_role`,`assignment_type`,`site_id`,`responsibility`,`change_reason`,`effective_from`,`effective_to`,`status`,`version`,`creator`,`create_time`,`updater`,`update_time`,`deleted`,`deleted_time`,`tenant_id`,`remark`,`end_reason`,`member_code`,`phone_number`,`email`,`registration_source`,`authorization_confirmed`) VALUES <foreach collection=\"rows\" item=\"row\" separator=\",\">(#{row.member.id},#{row.member.projectId},#{row.member.userId},#{row.member.employeeNo},#{row.member.memberName},#{row.member.companyId},#{row.member.companyCode},#{row.member.companyName},#{row.member.departmentId},#{row.member.departmentCode},#{row.member.departmentName},#{row.member.memberRole},#{row.member.assignmentType},#{row.member.siteId},#{row.member.responsibility},#{row.member.changeReason},#{row.member.effectiveFrom},#{row.member.effectiveTo},#{row.member.status},#{row.member.version},#{row.member.creator},#{row.member.createTime},#{row.member.updater},#{row.member.updateTime},#{row.member.deleted},#{row.member.deletedTime},#{row.member.tenantId},#{row.member.remark},#{row.member.endReason},#{row.member.memberCode},#{row.member.phoneNumber},#{row.member.email},#{row.member.registrationSource},#{row.member.authorizationConfirmed})</foreach></insert>\n\n\n"
     }
-  ]
+  ],
+  "boundary": "Current independent P31 only; all four source roles enter unconfirmed PROJ member history, no CUS writes or current grants."
 }

@@ -33,12 +33,44 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(1,run(task,true).unchanged());
   jdbc.update("UPDATE proj_project_member_assignment SET member_name='changed'");assertThrows(IllegalArgumentException.class,()->run(task,true));
  }
- @Test void contactRequiresCanonicalFinalCustomerAndLaterFailureRollsBackEarlierMember(){
+ @Test void historicalFinalCustomerContactIsAnUnconfirmedMemberWithoutCustomerParty(){
   var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
   var member=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("w123");
-  var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberName("contact").setCreateTime(at);
+  var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberName("contact").setMemberCode("original-contact").setPhoneNum("12345").setEmail("contact@example.invalid").setFromFlag("1").setCreateTime(at);
   doAnswer(call->{emit(List.of(member,contact),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
-  assertThrows(IllegalArgumentException.class,()->run(task,false));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_project_customer_contact_relation",Integer.class));
+  assertEquals(2,run(task,true).inserted());assertTrue(saved.isEmpty());
+  assertEquals(2,run(task,false).inserted());
+  assertEquals(2,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
+  assertEquals("contact",jdbc.queryForObject("SELECT member_name FROM proj_project_member_assignment WHERE member_role='60'",String.class));
+  assertEquals("12345",jdbc.queryForObject("SELECT phone_number FROM proj_project_member_assignment WHERE member_role='60'",String.class));
+  assertEquals("contact@example.invalid",jdbc.queryForObject("SELECT email FROM proj_project_member_assignment WHERE member_role='60'",String.class));
+  assertEquals("1",jdbc.queryForObject("SELECT registration_source FROM proj_project_member_assignment WHERE member_role='60'",String.class));
+  assertNull(jdbc.queryForObject("SELECT user_id FROM proj_project_member_assignment WHERE member_role='60'",Long.class));
+  assertFalse(jdbc.queryForObject("SELECT authorization_confirmed FROM proj_project_member_assignment WHERE member_role='60'",Boolean.class));
+  assertTrue(saved.containsKey("MEMBER_HISTORY:2"));assertFalse(saved.containsKey("CONTACT_HISTORY:2"));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_project_customer_contact_relation",Integer.class));
+  assertEquals(2,run(task,true).unchanged());
+  jdbc.update("UPDATE proj_project_member_assignment SET phone_number='changed' WHERE member_role='60'");
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("EXISTING_MEMBER_PROTECTED"));
+ }
+ @Test void priorContactBindingCannotBeRewrittenAsMember(){
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberName("contact").setCreateTime(at);
+  var original=new cn.iocoder.yudao.module.pms.integration.api.basesync.SyncIdentityStore.Identity("2",99L,"existing-contact-baseline");
+  saved.put("CONTACT_HISTORY:2",original);
+  doAnswer(call->{emit(List.of(contact),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("EXISTING_CONTACT_HISTORY_PROTECTED"));
+  assertEquals(original,saved.get("CONTACT_HISTORY:2"));assertFalse(saved.containsKey("MEMBER_HISTORY:2"));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
+ }
+ @Test void invalidLaterHistoricalContactIntervalRollsBackEarlierMember(){
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var member=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("10").setMemberCode("w123");
+  var contact=new P31MemberContactSyncTask.Source().setSourceId(2L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setMemberName("contact").setCreateTime(at).setEffectiveFrom(at).setEffectiveTo(at.minusDays(1));
+  doAnswer(call->{emit(List.of(member,contact),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,false)).getMessage().contains("SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID"));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_project_customer_contact_relation",Integer.class));
  }
  P33InstallationSyncTask installation(List<P33InstallationSyncTask.Source> rows,AssetLocationApi locations){
   jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
