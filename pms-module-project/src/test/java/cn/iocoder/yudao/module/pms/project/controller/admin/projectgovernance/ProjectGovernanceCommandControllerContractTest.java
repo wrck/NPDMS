@@ -37,7 +37,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -81,14 +80,9 @@ class ProjectGovernanceCommandControllerContractTest {
     }
 
     @Test
-    void legacyControllerNoLongerExposesWriteRoutes() {
-        for (Method method : ProjectGovernanceController.class.getDeclaredMethods()) {
-            assertFalse(method.isAnnotationPresent(PostMapping.class), method.getName());
-            assertFalse(method.isAnnotationPresent(org.springframework.web.bind.annotation.PutMapping.class),
-                    method.getName());
-            assertFalse(method.isAnnotationPresent(org.springframework.web.bind.annotation.DeleteMapping.class),
-                    method.getName());
-        }
+    void legacyControllerIsRetired() {
+        assertThrows(ClassNotFoundException.class, () -> Class.forName(
+                "cn.iocoder.yudao.module.pms.project.controller.admin.projectgovernance.ProjectGovernanceController"));
     }
 
     @Test

@@ -7,7 +7,6 @@ import { checkPermi } from '@/utils/permission'
 // 满意度导航项 key 'satisfaction' 直接接既有满意度工作台页签（模板/任务/结果一体），不另设结果面板。
 import type { DeliveryModuleConfig } from '@/views/pms/project/inheritance/detail/DeliveryModuleTable.vue'
 import * as BriefingApi from '@/api/pms/engineering/briefing'
-import * as ScheduleBackwardApi from '@/api/pms/engineering/schedule-backward'
 import * as AcceptanceReportApi from '@/api/pms/acceptance/acceptance-report'
 import * as DeliverableCheckApi from '@/api/pms/acceptance/deliverable-checklist'
 import * as ProjectClosureApi from '@/api/pms/project/project-closure'
@@ -127,17 +126,6 @@ export const businessModuleConfigs: Record<string, DeliveryModuleConfig> = {
   // --- 方案计划 ---
   // 资源就绪(3.3)模块面板随界面整治决策隐藏：导航项已移除，本配置暂无消费方；
   // ResourceApi（getResourceReadyPage/markReady/markAbnormal/resetToNotReady）保留，恢复时回填本配置。
-  'schedule-backward': {
-    label: '历史工期倒排',
-    icon: 'ep:timer',
-    load: (pid, pageNo, pageSize) => ScheduleBackwardApi.getScheduleBackwardPage({ projectId: pid, pageNo, pageSize }),
-    columns: [
-      { prop: 'targetDate', label: '目标日期', width: 130, type: 'time' },
-      { prop: 'projectType', label: '项目类型', width: 100 },
-      { prop: 'conflictSummary', label: '冲突摘要', minWidth: 200 },
-      { prop: 'status', label: '状态', width: 90, type: 'status' }
-    ]
-  },
   // --- 实施部署（到货/安装/配置/联调/割接均为内嵌工作台） ---
   // --- 验收闭环 ---
   // 完工证明（Demo 6.2 表单）已内嵌 CompletionCertWorkbench，不走通用面板

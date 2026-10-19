@@ -439,7 +439,7 @@
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationPanel.vue",
         "yudao-ui/yudao-ui-admin-vue3/src/views/pms/project/project-master-detail/components/ProjectDurationFormDrawer.vue"
       ],
-      "cutoverEvidence": "F-SOL-001 Implementation Done c417dee；schedule-backward继续历史只读，plan-change于2026-10-17另行移除运行入口",
+      "cutoverEvidence": "F-SOL-001 Implementation Done c417dee；plan-change于2026-10-17移除运行入口；schedule-backward于2026-10-19按用户确认删除历史页面和接口，保留历史数据",
       "newImplementationPolicy": "HISTORICAL_READ_ONLY_ONLY"
     },
     {

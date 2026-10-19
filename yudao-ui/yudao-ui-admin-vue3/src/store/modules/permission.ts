@@ -3,6 +3,7 @@ import { store } from '@/store'
 import { useUserStore } from './user'
 import { commerceMenusForRoles } from './commerceMenuVisibility'
 import { configurationRoutes } from './configurationRoutes'
+import { withoutRetiredHistoryMenus } from './retiredHistoryMenus'
 import { cloneDeep } from 'lodash-es'
 import remainingRouter from '@/router/modules/remaining'
 import { flatMultiLevelRoutes, generateRoute } from '@/utils/routerHelper'
@@ -48,7 +49,7 @@ export const usePermissionStore = defineStore('permission', {
           res = roleRouters as AppCustomRouteRecordRaw[]
         }
         const routerMap: AppRouteRecordRaw[] = configurationRoutes(
-          generateRoute(commerceMenusForRoles(res, useUserStore().getRoles))
+          generateRoute(withoutRetiredHistoryMenus(commerceMenusForRoles(res, useUserStore().getRoles)))
         )
         // 动态路由，404一定要放到最后面
         // preschooler：vue-router@4以后已支持静态404路由，此处可不再追加

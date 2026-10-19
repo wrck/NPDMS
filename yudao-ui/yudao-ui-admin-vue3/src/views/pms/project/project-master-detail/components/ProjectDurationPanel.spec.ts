@@ -9,8 +9,6 @@ const history = read('./ProjectDurationHistoryDrawer.vue')
 const schedule = read('./ProjectSchedulePanel.vue')
 const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/construction-plan/index.ts')
-const oldBackwardApi = read('../../../../../api/pms/engineering/schedule-backward/index.ts')
-const oldBackwardPage = read('../../../engineering/schedule-backward/index.vue')
 
 describe('F-SOL-001 project duration panel', () => {
   it('reuses native query and table presentation instead of custom summary cards', () => {
@@ -94,13 +92,9 @@ describe('F-SOL-001 project duration panel', () => {
     expect(form).toContain("narrow.value ? '100%' : '560px'")
   })
 
-  it('keeps PRE-01 historical reads and removes the retired plan-change entry', () => {
-    expect(oldBackwardApi).toContain('getScheduleBackwardPage')
-    expect(oldBackwardApi).toContain('getScheduleBackwardItems')
-    expect(oldBackwardApi).not.toMatch(
-      /createScheduleBackward|calculateScheduleBackward|applyScheduleBackward|deleteScheduleBackward/
-    )
-    expect(oldBackwardPage).toContain('仅保留历史查询')
+  it('removes retired backward calculation and plan-change entry points', () => {
+    expect(exists('../../../../../api/pms/engineering/schedule-backward/index.ts')).toBe(false)
+    expect(exists('../../../engineering/schedule-backward/index.vue')).toBe(false)
     expect(exists('../../plan-change/index.vue')).toBe(false)
     expect(exists('../../../../../api/pms/project/plan-change/index.ts')).toBe(false)
   })
