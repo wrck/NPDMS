@@ -4,7 +4,11 @@
 
 **共24项、每项3种实现、72份验证记录；原字段处置861行。当前不能称为“72项验收全部通过”。**
 
-## 剩余七项复核后的最新结果
+## 新P31全量真实预览完成后的最新结果
+
+[base-sync-p31-original-interval-preview-20261019](base-sync-p31-original-interval-preview-20261019.md)及[24项当前回执](base-sync-p31-original-interval-preview-20261019.json)：新虚基类套件 **19 PREVIEW_READY、5 FAILED**。新P31完整381195条预览就绪，152条原区间倒置按本轮裁决原样保留、逐条登记，实际写入仍拒绝且日期/CHECK不改；P35全量1586578条通过。剩余P10/P14/P15/P18/P33的具体来源、正式输入及未决项已逐项列明。28项定向检查通过，原任务、历史、测试库保护核验保持；本次无DDL、迁移、真实同步或59191操作。P30仍为空预览。以前阶段的回执按原日期保留，当前C以上述JSON为准。
+
+## 剩余七项复核后的结果（历史）
 
 [base-sync-seven-blockers-followup-20261019](base-sync-seven-blockers-followup-20261019.md)及[24项当前回执](base-sync-seven-blockers-followup-20261019.json)：新虚基类套件 **18 PREVIEW_READY、6 FAILED**。P35全量1586578条通过；新P31错误联系人依赖按已有裁决修复，现有152条源区间倒置仍阻断。新P15/P33已越过获准结构/容量补丁，正式输入和源地址缺项已逐项定位；P10/P14/P18的来源与正式输入前置列明。P31新日期预览处理选项待回复，未自动扩写规则。26项定向检查通过；原任务、测试库及历史保护核验保持，无Flyway、真实同步、双线对照或59191操作。P30仍为0行空预览。旧阶段JSON/SQL保留历史，本阶段JSON提供当前C终态。
 
@@ -34,7 +38,7 @@
 |---|---|---|
 | A 原通用引擎 / Owner适配器 | 原任务原身份候选；19业务适配器 + 5 TABLE_MAPPING | 当前24份候选未全部保存/重跑；下面保留历史组件结果，不冒充当前候选验收 |
 | B 独立直写 | 独立ID与来源绑定；Direct*写入器，部分任务仍复用GenericSyncEngine | 最新既有回执16 PREVIEW_READY、7 FAILED、1历史非预览SUCCESS（P01）；READY中有空预览及全ISSUE |
-| C 新虚基类 | BASE_Pxx + AbstractSyncTask/DefaultSyncTask + 专用XML + 独立int_base_sync_* | 18 PREVIEW_READY、6 FAILED；P30为0行空预览。新P31依赖纠正及26项检查通过，P35全量1586578条就绪；未做真实同步 |
+| C 新虚基类 | BASE_Pxx + AbstractSyncTask/DefaultSyncTask + 专用XML + 独立int_base_sync_* | 19 PREVIEW_READY、5 FAILED；P30为0行空预览。新P31全量381195条就绪并登记152个原日期问题，28项检查通过；P35全量1586578条就绪；未做真实同步 |
 
 三种方式是现存实现路线，不新增任务，不运行双线业务对照。原37项组件按既有合并结论组成24项：P01←01/02/03，P04←04/05/06/07，P08←08/09，P15←15/26/27/28/29，P16←16/17，P31←31/32，P35←35/36，其余单项保留。
 
@@ -77,7 +81,7 @@
 | [P24](P24/README.md) | 合同实际回款 | PREVIEW_READY / 79,182 | PREVIEW_READY / 79,182 | PREVIEW_READY / 81,547 |
 | [P25](P25/README.md) | 逐次续保 | PREVIEW_READY / 453,443 | PREVIEW_READY / 453,443 | PREVIEW_READY / 462,213 |
 | [P30](P30/README.md) | 设备主档及项目归属 | NOT_PREVIEWED | PREVIEW_READY / 0；空预览 | PREVIEW_READY / 0；空预览 |
-| [P31](P31/README.md) | 成员历史、历史联系人及获准授权 | NOT_PREVIEWED | FAILED / 0 | FAILED / 0 |
+| [P31](P31/README.md) | 成员历史、历史联系人及获准授权 | NOT_PREVIEWED | FAILED / 0 | PREVIEW_READY / 381,195；152条原日期待处理 |
 | [P33](P33/README.md) | 普通安装历史及获准当前位置 | NOT_PREVIEWED | FAILED / 0 | FAILED / 0 |
 | [P34](P34/README.md) | 出厂软件版本历史 | NOT_PREVIEWED | PREVIEW_READY / 165,801 | PREVIEW_READY / 165,801 |
 | [P35](P35/README.md) | 软件变更批次与版本历史 | NOT_PREVIEWED | FAILED / 0 | PREVIEW_READY / 1,586,578 |

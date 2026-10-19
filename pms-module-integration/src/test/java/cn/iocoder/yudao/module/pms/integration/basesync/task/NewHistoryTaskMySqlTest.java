@@ -72,6 +72,34 @@ class NewHistoryTaskMySqlTest extends RemainingTaskMySqlSupport {
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));
   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM cus_project_customer_contact_relation",Integer.class));
  }
+ @Test void previewRetainsEveryReversedIntervalAndRegistersEachWithoutWrites(){
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var rows=new ArrayList<P31MemberContactSyncTask.Source>();
+  for(long id=1;id<=160;id++)rows.add(new P31MemberContactSyncTask.Source().setSourceId(id).setOriginalProjectId(1L).setProjectType("10").setMemberRole(id%3==0?"10":id%3==1?"30":"60").setEffectiveFrom(at).setEffectiveTo(at.minusDays(1)));
+  rows.add(new P31MemberContactSyncTask.Source().setSourceId(161L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setEffectiveFrom(at));
+  doAnswer(call->{emit(rows,call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(P31MemberContactSyncTask.class);
+  var events=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>();events.start();logger.addAppender(events);
+  try{
+   var context=context(true);assertEquals(161,transaction.execute(status->task.execute(context)).inserted());
+   assertTrue(context.runState().warnings().contains("P31_SOURCE_INTERVAL_PENDING:160"));
+   var issues=events.list.stream().map(ch.qos.logback.classic.spi.ILoggingEvent::getFormattedMessage).filter(message->message.startsWith("P31_PREVIEW_SOURCE_INTERVAL_PENDING:")).toList();assertEquals(160,issues.size());
+   for(var row:rows.subList(0,160)){
+    assertEquals(at,row.getEffectiveFrom());assertEquals(at.minusDays(1),row.getEffectiveTo());
+    assertEquals(at,row.getMember().getEffectiveFrom());assertEquals(at.minusDays(1),row.getMember().getEffectiveTo());
+    assertFalse(row.getMember().getAuthorizationConfirmed());
+    assertTrue(issues.stream().anyMatch(message->message.contains("sourceId="+row.getSourceId()+",")&&message.contains("effectiveFrom="+at+",")&&message.contains("effectiveTo="+at.minusDays(1))));
+   }
+   assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));assertTrue(saved.isEmpty());
+  }finally{logger.detachAppender(events);events.stop();}
+ }
+ @Test void previewIntervalExceptionDoesNotAllowLossOfAuditPrecision(){
+  var task=spy(new P31MemberContactSyncTask(session.getMapper(P31MemberContactSyncTask.TargetMapper.class),publications,projects));
+  var source=new P31MemberContactSyncTask.Source().setSourceId(1L).setOriginalProjectId(1L).setProjectType("10").setMemberRole("60").setCreateTime(at.plusNanos(1));
+  doAnswer(call->{emit(List.of(source),call.getArgument(1));return null;}).when(task).syncDataQueryByRowHandler(any(),any());
+  assertTrue(assertThrows(IllegalArgumentException.class,()->run(task,true)).getMessage().contains("SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID"));
+  assertEquals(0,jdbc.queryForObject("SELECT COUNT(*) FROM proj_project_member_assignment",Integer.class));assertTrue(saved.isEmpty());
+ }
  P33InstallationSyncTask installation(List<P33InstallationSyncTask.Source> rows,AssetLocationApi locations){
   jdbc.update("INSERT INTO ast_device(id,tenant_id,sn,status,version,source_system,source_key) VALUES(9,1,'SN-1','IN_STOCK',0,'DPPMS','SN-1')");
   var devices=mock(ProjectDeviceSelectionApi.class);when(devices.validateSelection(any(ProjectDeviceSelectionApi.SelectionQuery.class))).thenReturn(List.of(new SelectedProjectDevice(9L,"SN-1",null,null,null,null)));

@@ -60,3 +60,5 @@
 | proj_project_member_assignment.authorization_confirmed | #{row.member.authorizationConfirmed} | insertMembers |
 
 没有CUS联系人写入或多表业务更新。前后置与本轮日期阻断见[当前报告](../base-sync-seven-blockers-followup-20261019.md)。
+
+日期预览规则后续明确：仅预览保留倒置原值并逐条登记，真实写入仍拒绝；15列源查询和34列INSERT未改。[381195条最新预览及152条登记](../base-sync-p31-original-interval-preview-20261019.md)。

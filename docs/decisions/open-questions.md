@@ -2529,10 +2529,12 @@ RESOLVED（2026-10-11）：用户批准仅应用既有V398的version BIGINT NOT 
 
 ### Q-BASE-P31-REVERSED-HISTORY-20261019 — 原人员历史区间倒置
 
-- Status: BLOCKED_BY_SPEC / PREVIEW_RULE_PENDING。
+- Status: ADJUDICATED / PREVIEW_VERIFIED / EXECUTION_DATE_GUARD_RETAINED。
 - Evidence: 新P31的381195条来源中152条`effectiveTo < effectiveFrom`，角色60有145条、角色30有5条、角色10有2条。其中77条起止在同一日，75条结束日期早于开始日期；所有原日期精度均为秒，不是读取精度丢失。完整原ID、项目、角色和日期见工作树外`base-sync-seven-blockers-followup-20261019/P31-original-interval-audit.json`。
 - Existing boundary: 角色60归入项目成员历史的既有批准没有批准改写原有效期；目标`chk_proj_member_dates`仍对全部成员校验结束不早于开始。没有交换日期、补结束时间、跳过来源或修改CHECK。
-- Pending: 已仅针对新发现的日期问题询问，是否在新P31预览中保留原日期、逐条登记后继续，真实写入仍拒绝；在回复前不实施该预览例外。没有重新询问角色60或其他已决规则。
+- Original pending: 首次发现时仅针对日期问题询问预览保留和登记规则，回复前未实施例外；没有重新询问角色60或其他已决规则。
+- User decision: 用户选择“仅预览保留原值并登记，继续全量预览（建议）”。仅新BASE_P31预览允许原区间倒置时保留原日期，运行日志逐条登记原ID、原项目及起止日期，回执汇总待处理数量；真实写入仍拒绝，数据库CHECK、审计精度、当前授权和历史保护不变。不把此项扩展到其他任务或日期改写。
+- Verification: 新P31 Run `2112123456126668802`全量381195条PREVIEW_READY，计划插入381195、业务写入0；回执`P31_SOURCE_INTERVAL_PENDING:152`。152条日志原ID/项目/日期与冻结来源全部匹配，原库角色和日期再只读核对不变，目标CHECK保持。28项定向检查通过，包含160条问题逐条登记、预览不写入、真实写入失败回滚及精度保护。完整证据见[本轮报告](../generated/dppms-24-tasks-three-implementations-20261019/base-sync-p31-original-interval-preview-20261019.md)。
 
 ### Q-BASE-VERIFY-CAPACITY-PACKAGE-20261019 — 专用验证库两项结构与三项容量例外
 

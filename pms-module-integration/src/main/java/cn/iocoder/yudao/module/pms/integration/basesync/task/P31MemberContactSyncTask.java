@@ -11,14 +11,14 @@ import org.apache.ibatis.session.ResultHandler;
 import org.springframework.stereotype.Component;
 
 /** Historical unconfirmed members include source role 60; no customer ownership or current grants. */
-@Component @RequiredArgsConstructor
+@Component @RequiredArgsConstructor @lombok.extern.slf4j.Slf4j
 public class P31MemberContactSyncTask extends AbstractSyncTask<P31MemberContactSyncTask.Source,P31MemberContactSyncTask.Parameters> {
  private final TargetMapper mapper;private final BaseSyncPublishedProjects publications;private final BaseSyncProjectReferences projects;
- public static final class Parameters {private BaseSyncPublishedProjects.Snapshot publication;}
+ public static final class Parameters {private BaseSyncPublishedProjects.Snapshot publication;private long reversedIntervals;}
  @Override protected Parameters createParameters(SyncContext<?> c){return new Parameters();}
  @Override public String taskCode(){return "BASE_P31";}
  @Override public String taskName(){return "项目成员及最终客户联系人历史";}
- @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));syncData(c.forData("MemberContact",false,true));}
+ @Override public void work(SyncContext<Parameters> c){if(c.preview())c.runState().warning("SOURCE_PROJECT_IDS_PRESERVED:FORMAL_PARENT_VALIDATION_DEFERRED");c.parameters().publication=publications.load(new BaseSyncPublishedProjects.Query(c.tenantId(),c.connectionId(),c.maxRows(),c.source(),c.preview()));syncData(c.forData("MemberContact",false,true));if(c.parameters().reversedIntervals>0)c.runState().warning("P31_SOURCE_INTERVAL_PENDING:"+c.parameters().reversedIntervals);}
  public record ReadQuery(int limit,List<String> projectKeys){}
  @Override protected void syncDataQueryByRowHandler(SyncContext<Parameters> c,ResultHandler<Source> handler){
   var keys=new ArrayList<>(c.parameters().publication.members().keySet());Collections.sort(keys);
@@ -33,7 +33,12 @@ public class P31MemberContactSyncTask extends AbstractSyncTask<P31MemberContactS
   if(currentMembers.size()>c.maxRows())fail("FORMAL_HISTORY_CAPACITY");
   for(var s:b.rows()){
    if(!Set.of("10","20","30","60").contains(Objects.toString(s.memberRole,""))||!"10".equals(s.projectType))fail("SOURCE_ROLE_OR_PROJECT_TYPE_INVALID");
-   if(s.effectiveFrom!=null&&s.effectiveTo!=null&&s.effectiveTo.isBefore(s.effectiveFrom)||s.createTime!=null&&s.createTime.getNano()!=0||s.updateTime!=null&&s.updateTime.getNano()!=0)fail("SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID");
+   if(s.createTime!=null&&s.createTime.getNano()!=0||s.updateTime!=null&&s.updateTime.getNano()!=0)fail("SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID");
+   if(s.effectiveFrom!=null&&s.effectiveTo!=null&&s.effectiveTo.isBefore(s.effectiveFrom)){
+    if(!c.preview())fail("SOURCE_INTERVAL_OR_AUDIT_PRECISION_INVALID");
+    c.parameters().reversedIntervals++;
+    log.warn("P31_PREVIEW_SOURCE_INTERVAL_PENDING:tenantId={},connectionId={},startedAt={},sourceId={},originalProjectId={},effectiveFrom={},effectiveTo={}",c.tenantId(),c.connectionId(),c.startedAt(),s.sourceId,s.originalProjectId,s.effectiveFrom,s.effectiveTo);
+   }
    var p=refs.get(s.originalProjectId.toString());s.action=SyncWriteAction.INSERT;
    if(contacts.containsKey(s.sourceId.toString()))fail("EXISTING_CONTACT_HISTORY_PROTECTED");
     var row=new MemberRow();row.tenantId=c.tenantId();row.projectId=p.id();row.memberCode=s.memberCode;row.memberName=s.memberName;row.phoneNumber=s.phoneNum;row.email=s.email;row.registrationSource=s.fromFlag;row.memberRole=switch(s.memberRole){case "10"->"SALES_REPRESENTATIVE";case "20"->"SERVICE_MANAGER";case "30"->"PROJECT_MANAGER";case "60"->"60";default->throw new IllegalArgumentException();};row.companyId=p.companyId();row.companyCode=p.companyCode();row.companyName=p.companyName();row.effectiveFrom=s.effectiveFrom;row.effectiveTo=s.effectiveTo;row.creator=s.resolvedCreator;row.updater=s.resolvedUpdater;row.createTime=s.createTime;row.updateTime=s.updateTime==null?s.createTime:s.updateTime;row.authorizationConfirmed=false;row.status="ACTIVE";row.version=0;row.deleted=false;
