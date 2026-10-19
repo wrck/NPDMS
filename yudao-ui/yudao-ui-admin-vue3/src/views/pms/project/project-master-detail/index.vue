@@ -250,7 +250,7 @@
             class="min-w-0"
             :data-testid="`project-pane-${item.key}`"
           >
-            <ProjectDeliverablesPanel v-if="item.key === 'deliverable-checklist'" :project-id="detail.id" @changed="loadInstances" />
+            <ProjectDeliverablesPanel v-if="item.key === 'deliverable-checklist'" :project-id="detail.id" @changed="handleExternalWorkspaceChanged" />
             <DeliveryModuleTable v-else :config="businessModuleConfigs[item.key]" :project-id="detail.id" />
           </div>
         </template>
@@ -409,7 +409,7 @@
                   :project-version="detail.version"
                   :instances="instances"
                   :task-deliverables="stageSelection?.kind === 'task' ? flowTaskDeliverables : undefined"
-                  @changed="loadAll"
+                  @changed="handleExternalWorkspaceChanged"
                 />
               </ContentWrap>
               <ContentWrap>
@@ -534,7 +534,7 @@
       </div>
     </div>
   </div>
-  <ProjectDeliverableDialog v-if="detail?.id" ref="deliverableRef" :project-id="detail.id" @changed="loadInstances" />
+  <ProjectDeliverableDialog v-if="detail?.id" ref="deliverableRef" :project-id="detail.id" @changed="handleExternalWorkspaceChanged" />
   <ProjectApprovalDrawer ref="approvalDrawerRef" />
   <ProjectDeviceConfigLogDrawer v-if="detail?.id" ref="configLogDrawerRef" :project-id="detail.id" />
 </template>
@@ -879,6 +879,11 @@ const onMobileTaskSelect = async (task: TaskNode) => {
 const handleFlowChanged = async () => {
   stageTreeToken.value++
   await loadAll()
+}
+
+const handleExternalWorkspaceChanged = async () => {
+  await handleFlowChanged()
+  await flowRef.value?.refreshSummary()
 }
 
 // ============ 数据加载 ============

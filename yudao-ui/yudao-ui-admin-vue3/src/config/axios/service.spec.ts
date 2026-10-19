@@ -10,9 +10,10 @@ vi.mock('@/utils/auth', () => ({
 }))
 vi.mock('@/router', () => ({ resetRouter: vi.fn() }))
 vi.mock('@/hooks/web/useCache', () => ({ deleteUserCache: vi.fn() }))
-vi.mock('@/utils/encrypt', () => ({ ApiEncrypt: {} }))
+vi.mock('@/utils/encrypt', () => ({ ApiEncrypt: { getEncryptHeader: () => 'X-Encrypt' } }))
 
 import { service } from './service'
+import { cutoverPlanRecoveryAction } from '@/views/pms/cutover/shared/cutoverTaskInteraction'
 
 const translations: Record<string, string> = {
   'sys.api.apiRequestFailed': '请求出错，请稍后重试',
@@ -57,6 +58,20 @@ describe('HTTP 错误信息展示', () => {
   it('尊重由页面自行呈现错误的静默请求', async () => {
     await rejectResponse({ msg: '方案内容尚未完整' }, true)
     expect(messages.error).not.toHaveBeenCalled()
+  })
+
+  it('将 HTTP 200 中明确的业务拒绝保留为响应错误，不误判为结果未知', async () => {
+    const data = { code: 1011005122, msg: '存在多个有效已发布割接配置', data: null }
+    const promise = service.post('/api/v1/pms/cutover-tasks', {}, {
+      ...({ silentError: true, preserveBusinessError: true } as object),
+      adapter: async config => ({ data, status: 200, statusText: 'OK', headers: new AxiosHeaders(), config, request: {} })
+    })
+    const error = await promise.catch(error => error)
+    expect(error).toBeInstanceOf(AxiosError)
+    expect(error.response.data).toEqual(data)
+    expect(cutoverPlanRecoveryAction(error)).toBe('SURFACE_ERROR')
+    expect(messages.error).not.toHaveBeenCalled()
+    expect(cutoverPlanRecoveryAction(new AxiosError('Network Error'))).toBe('RETRY_SAME_KEY')
   })
 
   it.each([

@@ -79,36 +79,33 @@
             v-hasPermi="['pms:imp-joint-test:query']"
             >命令采集与日志</el-button
           >
+          <!-- 动态动作由 Vue 同时控制状态与权限，避免指令移除节点后破坏后续插入锚点。 -->
           <el-button
             link
             type="success"
-            v-if="!readonly && row.status === 0"
+            v-if="!readonly && row.status === 0 && checkPermi(['pms:imp-joint-test:update'])"
             @click="handleAction(row, 'start')"
-            v-hasPermi="['pms:imp-joint-test:update']"
             >开始联调</el-button
           >
           <el-button
             link
             type="success"
-            v-if="!readonly && row.status === 1"
+            v-if="!readonly && row.status === 1 && checkPermi(['pms:imp-joint-test:update'])"
             @click="handleAction(row, 'pass')"
-            v-hasPermi="['pms:imp-joint-test:update']"
             >联调通过</el-button
           >
           <el-button
             link
             type="danger"
-            v-if="!readonly && row.status === 1"
+            v-if="!readonly && row.status === 1 && checkPermi(['pms:imp-joint-test:update'])"
             @click="handleFail(row)"
-            v-hasPermi="['pms:imp-joint-test:update']"
             >联调失败</el-button
           >
           <el-button
-            v-if="!readonly && (row.status === 0 || row.status === 1)"
+            v-if="!readonly && (row.status === 0 || row.status === 1) && checkPermi(['pms:imp-joint-test:delete'])"
             link
             type="danger"
             @click="remove(row)"
-            v-hasPermi="['pms:imp-joint-test:delete']"
             >删除</el-button
           >
         </template>

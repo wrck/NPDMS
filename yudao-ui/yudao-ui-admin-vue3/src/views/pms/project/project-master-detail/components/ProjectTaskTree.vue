@@ -14,8 +14,8 @@
       <template #default="{ data }">
         <div class="task-node" :class="{ 'task-node--placeholder': data.placeholder }">
           <div class="task-node-main">
-            <span class="task-node-name">{{ data.placeholder ? '受限层级' : data.name }}</span>
-            <span v-if="!data.placeholder" class="task-node-code">{{ data.taskCode }}</span>
+            <span class="task-node-name" :title="data.placeholder ? undefined : data.name">{{ data.placeholder ? '受限层级' : data.name }}</span>
+            <span v-if="!data.placeholder" class="task-node-code" :title="data.taskCode">{{ data.taskCode }}</span>
           </div>
           <div v-if="!data.placeholder" class="task-node-meta">
             <el-tag size="small" effect="plain" :type="statusType(data.status)">
@@ -184,6 +184,7 @@ defineExpose({ reload: search })
 
 .task-node-main {
   min-width: 0;
+  flex: 1;
 }
 
 .task-node-name,
@@ -194,10 +195,15 @@ defineExpose({ reload: search })
 }
 
 .task-node-code {
-  margin-left: 8px;
+  display: block;
   font-size: 12px;
   color: var(--el-text-color-placeholder);
 }
+
+.task-node-name { display: block; }
+.task-tree :deep(.el-tree-node__content) { height: auto; min-height: 46px; }
+.task-tree--compact .task-node { flex-wrap: wrap; gap: 4px; padding-block: 5px; }
+.task-tree--compact .task-node-main { flex-basis: 100%; }
 
 .task-node-meta {
   display: inline-flex;

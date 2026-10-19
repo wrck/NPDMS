@@ -6,6 +6,7 @@ import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import * as MemberApi from '@/api/pms/project/unified-members'
 import {
   mount,
+  textOf,
   passthrough,
   tableColumn
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
@@ -22,7 +23,8 @@ vi.mock('vue-router', () => ({
   onBeforeRouteLeave: vi.fn(),
   onBeforeRouteUpdate: vi.fn()
 }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+const permission = vi.hoisted(() => ({ bpm: true, task: true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) => codes.includes('bpm:process-instance:query') ? permission.bpm : codes.includes('bpm:task:query') ? permission.task : true }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: {}, getDictLabel: () => '直签' }))
 vi.mock('@/api/pms/engineering/stage-plan', () => ({
   getStagePlanBatchPage: vi.fn(),
@@ -103,6 +105,8 @@ const render = () => {
   return { ...mounted, state: (mounted.vm as any).$.setupState }
 }
 beforeEach(() => {
+  permission.bpm = true
+  permission.task = true
   vi.clearAllMocks()
   vi.stubGlobal('window', { addEventListener: vi.fn(), removeEventListener: vi.fn() })
   vi.mocked(DurationApi.getByProjectId).mockResolvedValue({
@@ -119,6 +123,20 @@ beforeEach(() => {
     id === 7 ? structuredClone(effective) : draft()
   )
   vi.mocked(PlanApi.getOverdueStages).mockResolvedValue([])
+})
+
+it.each(['bpm', 'task'] as const)('hides the BPM progress entry when the existing account lacks %s query permission', async missing => {
+  permission[missing] = false
+  vi.mocked(PlanApi.getStagePlanBatch).mockResolvedValue({ ...effective, bpmProcessInstanceId: 'approval-1' } as any)
+  const app = render()
+  try {
+    await flush()
+    expect(textOf(app.root)).not.toContain('查看审批进度')
+    permission[missing] = true
+    app.vm.$forceUpdate()
+    await flush()
+    expect(textOf(app.root)).toContain('查看审批进度')
+  } finally { app.app.unmount() }
 })
 
 it('loads effective plan dates for warnings even when the page response has no date fields', async () => {

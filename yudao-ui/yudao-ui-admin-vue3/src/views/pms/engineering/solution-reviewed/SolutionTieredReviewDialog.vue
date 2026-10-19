@@ -8,10 +8,10 @@
         <p>审批状态：{{ statusLabel }}</p>
         <el-button type="primary" plain @click="openProcess">查看审批记录</el-button>
         <el-table :data="history">
-          <el-table-column prop="nodeKey" label="审批节点" />
-          <el-table-column prop="decision" label="结果" />
+          <el-table-column prop="nodeKey" label="审批节点" :formatter="row => reviewNodeLabel(row.nodeKey)" />
+          <el-table-column prop="decision" label="结果" :formatter="row => reviewDecisionLabel(row.decision)" />
           <el-table-column prop="reason" label="意见" />
-          <el-table-column prop="time" label="时间" />
+          <el-table-column prop="time" label="时间" min-width="170" :formatter="row => formatDate(row.time) || '—'" />
         </el-table>
       </template>
       <el-form v-else-if="definition" label-position="top">
@@ -38,6 +38,7 @@ import { projectApprovalDetailKey, useProjectApprovalDetail } from '@/views/pms/
 import * as ReviewApi from '@/api/pms/engineering/solution-review'
 import type { SolutionVO } from '@/api/pms/engineering/solution'
 import { useMessage } from '@/hooks/web/useMessage'
+import { formatDate } from '@/utils/formatTime'
 const emit = defineEmits<{ changed: [] }>()
 const projectApproval = inject(projectApprovalDetailKey, null)
 const approvalContainer = projectApproval ? ElDrawer : Dialog
@@ -47,6 +48,8 @@ const definition = ref<ReviewApi.ReviewDefinition>()
 const openApprovalDetail = useProjectApprovalDetail(), message = useMessage()
 const statusLabel = computed(() => ({ RUNNING: '审核中', APPROVE: '已通过', REJECT: '已驳回', CANCEL: '已撤回' })[record.value?.status || ''] || record.value?.status)
 const history = computed(() => record.value?.reviewsJson ? JSON.parse(record.value.reviewsJson) : [])
+const reviewNodeLabel = (key: string) => ({ serviceManagerReview: '服务经理审核', engineeringManagementReview: '工程管理部复审' }[key] || key)
+const reviewDecisionLabel = (decision: string) => ({ APPROVE: '通过', REJECT: '驳回', CANCEL: '撤回' }[decision] || decision)
 // 与后端分支网关一致：工程管理部复审只在重大方案（审核级别 1）参与，普通方案不显示该节点
 const routedNodes = computed(() => (definition.value?.nodes || []).filter(
   (node) => node.responsibility === 'SERVICE_MANAGER' || solution.value?.reviewLevel === 1,

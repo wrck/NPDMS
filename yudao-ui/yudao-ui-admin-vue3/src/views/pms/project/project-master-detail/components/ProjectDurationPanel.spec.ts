@@ -1,7 +1,8 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
+const exists = (path: string) => existsSync(new URL(path, import.meta.url))
 const panel = read('./ProjectDurationPanel.vue')
 const form = read('./ProjectDurationFormDrawer.vue')
 const history = read('./ProjectDurationHistoryDrawer.vue')
@@ -9,9 +10,7 @@ const schedule = read('./ProjectSchedulePanel.vue')
 const detail = read('../index.vue')
 const api = read('../../../../../api/pms/engineering/construction-plan/index.ts')
 const oldBackwardApi = read('../../../../../api/pms/engineering/schedule-backward/index.ts')
-const oldChangeApi = read('../../../../../api/pms/project/plan-change/index.ts')
 const oldBackwardPage = read('../../../engineering/schedule-backward/index.vue')
-const oldChangePage = read('../../plan-change/index.vue')
 
 describe('F-SOL-001 project duration panel', () => {
   it('reuses native query and table presentation instead of custom summary cards', () => {
@@ -95,18 +94,14 @@ describe('F-SOL-001 project duration panel', () => {
     expect(form).toContain("narrow.value ? '100%' : '560px'")
   })
 
-  it('retires V1.7 PRE-01 writes while preserving historical reads', () => {
+  it('keeps PRE-01 historical reads and removes the retired plan-change entry', () => {
     expect(oldBackwardApi).toContain('getScheduleBackwardPage')
     expect(oldBackwardApi).toContain('getScheduleBackwardItems')
     expect(oldBackwardApi).not.toMatch(
       /createScheduleBackward|calculateScheduleBackward|applyScheduleBackward|deleteScheduleBackward/
     )
-    expect(oldChangeApi).toContain('getPlanChangePage')
-    expect(oldChangeApi).toContain('getPlanChangeSnapshots')
-    expect(oldChangeApi).not.toMatch(
-      /createPlanChange|submitPlanChange|approvePlanChange|withdrawPlanChange|deletePlanChange/
-    )
     expect(oldBackwardPage).toContain('仅保留历史查询')
-    expect(oldChangePage).toContain('仅保留历史查询')
+    expect(exists('../../plan-change/index.vue')).toBe(false)
+    expect(exists('../../../../../api/pms/project/plan-change/index.ts')).toBe(false)
   })
 })

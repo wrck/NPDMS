@@ -416,6 +416,9 @@ const loadEquipment = async () => {
 watch(() => [props.readOnly, form.value.projectId], () => { void loadEquipment() }, { immediate: true })
 
 const stripHtml = (v: unknown) => String(v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+const isEmptyEditorContent = (value: unknown) =>
+  !stripHtml(value).replace(/&nbsp;/gi, ' ').trim() &&
+  !/<(?:img|video|audio|iframe|table|hr)\b/i.test(String(value ?? ''))
 const reqBackground = computed(() => String(reqValues.value['projectBackground'] ?? ''))
 const reqObjective = computed(() => String(reqValues.value['projectObjective'] ?? ''))
 const reqTopology = computed(() => String(reqValues.value['networkTopology'] ?? ''))
@@ -658,9 +661,9 @@ const writeRequirementInput = (input: Record<string, unknown>) => {
 const refreshRequirementInput = () => {
   const source = latestRequirement.value
   if (!source || props.readOnly) return
-  if (!form.value.background || form.value.background === reqValues.value.projectBackground)
+  if (isEmptyEditorContent(form.value.background) || form.value.background === reqValues.value.projectBackground)
     form.value.background = String(source.values.projectBackground || '')
-  if (!form.value.target || form.value.target === reqValues.value.projectObjective)
+  if (isEmptyEditorContent(form.value.target) || form.value.target === reqValues.value.projectObjective)
     form.value.target = String(source.values.projectObjective || '')
   writeRequirementInput({ revisionId: source.revision.ref.revisionId, revisionNo: source.revision.revisionNo })
   reqValues.value = source.values
@@ -740,8 +743,8 @@ watch(() => [props.readOnly, form.value.projectId], () => { loadReferences() }, 
 // ---------- 生成方案（引用前序数据，只填空字段） ----------
 const generateFromSources = () => {
   if (props.readOnly) return
-  if (reqBackground.value && !String(form.value.background ?? '').trim()) form.value.background = reqBackground.value
-  if (reqObjective.value && !String(form.value.target ?? '').trim()) form.value.target = reqObjective.value
+  if (reqBackground.value && isEmptyEditorContent(form.value.background)) form.value.background = reqBackground.value
+  if (reqObjective.value && isEmptyEditorContent(form.value.target)) form.value.target = reqObjective.value
   if (teamRefRows.value.length && !tables.team.length) tables.team = memberRows()
   if (scopeRows.value.length && !tables.inventory.length) tables.inventory = scopeProductRows()
   if (equipmentProducts.value.length && !tables.deploy.length) tables.deploy = equipmentProducts.value.map(product => equipmentRow(product))

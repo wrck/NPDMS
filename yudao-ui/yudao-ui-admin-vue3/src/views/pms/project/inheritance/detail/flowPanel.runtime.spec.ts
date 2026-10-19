@@ -47,7 +47,8 @@ vi.mock('../../project-master-detail/components/TaskBusinessPanel.vue', () => ({
 }) }))
 // 交付件弹窗内部走真实文件API（node环境无window），浅mock为入口桩
 vi.mock('../../project-master-detail/components/ProjectDeliverableDialog.vue', () => ({ default: defineComponent({
-  setup(_, { expose }) { expose({ open: vi.fn(), requestLeave: async () => true, isBusy: () => false }); return () => h('div', '交付件弹窗') }
+  emits: ['changed'],
+  setup(_, { expose, emit }) { expose({ open: vi.fn(), requestLeave: async () => true, isBusy: () => false }); return () => h('button', { onClick: () => emit('changed') }, '保存交付件') }
 }) }))
 // 页面嵌入的真实工作台整页组件会拉入store/axios链（node环境无window），与本用例无关，统一浅mock
 vi.mock('./ProjectArrivalReceiptPanel.vue', () => ({ default: defineComponent({ setup: () => () => h('div', '到货回执') }) }))
@@ -194,6 +195,31 @@ it('shows the template-frozen deliverables of the task as a read-only checklist'
   expect(text).toContain('必选')
   expect(text).toContain('可选')
   expect(text).toContain('自动满足交付要求')
+})
+
+it.each(['dialog', 'external'])('refreshes the task checklist after a deliverable changes through %s', async source => {
+  const task = { taskId: 10, name: '到货签收', version: 1, status: 'IN_PROGRESS' }
+  api.getTaskWorkbench.mockResolvedValue({ task, bindingType: 'TASK_NATIVE',
+    deliverables: [{ id: 25, deliverableCode: 'D_ARRIVAL', name: '到货签收单', status: 'PENDING' }] })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockResolvedValue({ task, bindingType: 'TASK_NATIVE',
+    deliverables: [{ id: 25, deliverableCode: 'D_ARRIVAL', name: '到货签收单', status: 'ACCEPTED' }] })
+  if (source === 'dialog') await (findContactAction(view.root, '保存交付件')!.props!.onClick as Function)()
+  else await view.exposed().refreshSummary()
+  await flush()
+  expect(view.state().workbench.deliverables[0].status).toBe('ACCEPTED')
+  expect(view.state().workbench.task.status).toBe('IN_PROGRESS')
+  expect(view.changed).toHaveBeenCalledTimes(source === 'dialog' ? 1 : 0)
+})
+
+it('reports a failed task checklist refresh instead of treating the retained snapshot as current', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 1 }, bindingType: 'TASK_NATIVE',
+    deliverables: [{ id: 25, deliverableCode: 'D_ARRIVAL', status: 'PENDING' }] })
+  const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  api.getTaskWorkbench.mockRejectedValue(new Error('read unavailable'))
+  await view.exposed().refreshSummary(); await flush()
+  expect(view.state().loadError).toContain('概要刷新失败')
+  expect(view.state().workbench.deliverables[0].status).toBe('PENDING')
 })
 
 it('starts independent task reads together and waits for both before exposing Owner actions', async () => {

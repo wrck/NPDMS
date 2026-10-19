@@ -176,7 +176,7 @@
       </el-form>
       <Teleport :to="barTarget || 'body'" :disabled="!barTarget">
         <el-button
-          v-if="batch.bpmProcessInstanceId"
+          v-if="batch.bpmProcessInstanceId && checkPermi(['bpm:process-instance:query']) && checkPermi(['bpm:task:query'])"
           link
           type="primary"
           @click="openApprovalDetail(batch.bpmProcessInstanceId)"

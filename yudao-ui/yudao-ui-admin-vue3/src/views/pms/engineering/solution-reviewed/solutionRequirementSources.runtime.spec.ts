@@ -51,7 +51,7 @@ describe('solution requirement analysis references', () => {
       await flush()
       expect(RequirementApi.workspace).toHaveBeenCalledWith(1)
       const referenceButtons = (node: TestNode): TestNode[] => [
-        ...(node.type === 'button' && textOf(node) === '从 2.3 需求分析引用' ? [node] : []),
+        ...(node.type === 'button' && textOf(node) === '从需求分析引用' ? [node] : []),
         ...node.children.flatMap(referenceButtons)
       ]
       const buttons = referenceButtons(mounted.root)
@@ -85,6 +85,31 @@ describe('solution requirement analysis references', () => {
       expect(mounted.state.reqBackground).toBe('项目二')
       mounted.form.value.projectId = undefined; await flush()
       expect(mounted.state.reqBackground).toBe('')
+    } finally { mounted.app.unmount() }
+  })
+
+  it('imports requirements into the empty HTML emitted by the rich text editor', async () => {
+    let resolveSource!: (value: any) => void
+    vi.mocked(RequirementApi.workspace).mockReturnValueOnce(new Promise(resolve => { resolveSource = resolve }))
+    const mounted = render(1)
+    try {
+      mounted.form.value.background = '<p><br></p>'
+      mounted.form.value.target = '<p>&nbsp;</p>'
+      resolveSource(overview({ projectBackground: '<p>已冻结背景</p>', projectObjective: '<p>项目目标</p>' }))
+      await flush()
+      expect(mounted.form.value).toMatchObject({ background: '<p>已冻结背景</p>', target: '<p>项目目标</p>' })
+
+      mounted.form.value.background = '<p><br></p>'
+      mounted.form.value.target = '<p>\u00a0</p>'
+      mounted.state.generateFromSources()
+      await flush()
+      expect(mounted.form.value).toMatchObject({ background: '<p>已冻结背景</p>', target: '<p>项目目标</p>' })
+
+      mounted.form.value.background = '<p>人工编辑</p>'
+      mounted.form.value.target = '<p><img src="manual-diagram.png"></p>'
+      mounted.state.generateFromSources()
+      mounted.state.refreshRequirementInput()
+      expect(mounted.form.value).toMatchObject({ background: '<p>人工编辑</p>', target: '<p><img src="manual-diagram.png"></p>' })
     } finally { mounted.app.unmount() }
   })
 

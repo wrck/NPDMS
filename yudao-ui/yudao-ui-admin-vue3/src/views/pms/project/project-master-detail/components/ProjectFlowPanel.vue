@@ -149,7 +149,7 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
         <div class="section-title task-business-heading">
           <span>任务业务办理</span>
         </div>
-        <div v-loading="true" class="task-business-loading" />
+        <div v-loading="true" class="task-business-loading"></div>
       </template>
       <template v-else-if="workbench?.bindingType !== 'TASK_NATIVE'">
       <div class="section-title task-business-heading">
@@ -217,11 +217,12 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
       <template v-else-if="workbench?.bindingType === 'PAGE'">
         <!-- 页面照常内嵌展示；未进入阶段时业务写操作由组件 readonly 隐藏 -->
         <template v-if="pageEmbed">
-          <p v-if="workbench.trustedTargetRef === '/pms/project/normal-closure'" class="page-embed-hint">本任务在正常闭环审批通过后完成。请在下方校验条件并提交审批。</p>
+          <p v-if="workbench.trustedTargetRef === '/pms/project/normal-closure'" class="page-embed-hint">{{ project.lifecycleStatus === 'NORMAL_CLOSED' || ['DONE', 'CLOSED', 'CANCELLED'].includes(workbench.task.status || '') ? '本任务已结束，可在下方查看闭环记录。' : '本任务在正常闭环审批通过后完成。请在下方校验条件并提交审批。' }}</p>
           <p v-else-if="workbench.trustedTargetRef === '/customer-asset/customer-contact'" class="page-embed-hint">联系人保存后将同步任务状态与进度；完成条件以当前任务规则为准。</p>
           <p v-else-if="workbench.trustedTargetRef === '/pms/project-management/project-master-detail'" class="page-embed-hint">维护最终用户外部人员后，将按当前任务规则同步完成状态。</p>
           <p v-else class="page-embed-hint">本任务业务在下方工作区直接办理，不跳离当前任务；办理完成后使用任务状态操作推进状态。</p>
-          <component :is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :origin-task-id="workbench.task.taskId" :readonly="taskPending"
+          <component
+:is="pageEmbed" :key="`page-embed-${workbench.task.taskId}`" :project-id="projectId" :origin-task-id="workbench.task.taskId" :readonly="taskPending"
             @changed="handleEmbeddedBusinessChanged" @updated="handleEmbeddedBusinessChanged" />
         </template>
         <el-alert
@@ -277,7 +278,7 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           <el-button v-else-if="workbench?.bindingType === 'PAGE' && !taskPending" :disabled="!workbench?.trustedTargetRef" @click="openTaskPage">打开页面</el-button>
         </template>
       </div>
-      <div class="flow-bar-spacer" />
+      <div class="flow-bar-spacer"></div>
       <template v-if="selection.kind === 'stage'">
         <el-alert v-if="advanceError" class="flow-bar-alert" :title="advanceError" type="error" :closable="false" show-icon />
         <p v-if="readiness" class="flow-bar-hint">{{ stageAdvanceHint }}</p>
@@ -687,9 +688,11 @@ const handleBusinessFactChanged = (version?: string) => {
 }
 const refreshSummary = async () => {
   const token = sequence
+  const taskId = props.selection?.kind === 'task' ? props.selection.taskId : undefined
   if (props.selection?.kind === 'stage') void loadReadiness()
   try {
-    await loadWorkspace(token)
+    // 交付件状态同时出现在任务工作台与父页面实例摘要中，保存后两者都需回源。
+    await Promise.all([loadWorkspace(token), taskId == null ? undefined : loadTaskWorkbench(taskId, token)])
     if (current(token) && props.selection?.kind === 'stage') await tasks.reload()
   } catch {
     if (current(token)) loadError.value = '概要刷新失败，已加载内容保留，请重新加载。'

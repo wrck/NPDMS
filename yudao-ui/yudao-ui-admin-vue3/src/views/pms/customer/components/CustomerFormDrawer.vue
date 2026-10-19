@@ -314,7 +314,7 @@ const loadReferenceData = async (value?: CustomerDetailRespVO) => {
     CustomerApi.getClassificationOptions().then((rows) => (classificationRows.value = rows)),
     DeptApi.getSimpleDeptList().then((rows) => {
       departmentOptions.value = rows
-        .filter((department) => department.code && department.status === 0)
+        .filter((department) => department.code)
         .sort(
           (left, right) => left.sort - right.sort || left.name.localeCompare(right.name, 'zh-CN')
         )

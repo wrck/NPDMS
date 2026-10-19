@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import {
   mount,
+  textOf,
   passthrough,
   tableColumn
 } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 import Workbench from './index.vue'
+import RecordActions from './ConfirmationRecordActions.vue'
 
 const api = vi.hoisted(() => ({
   getConfirmationPage: vi.fn(),
@@ -44,7 +46,8 @@ vi.mock('@/store/modules/user', () => ({
   useUserStore: () => ({ user: { id: 1, nickname: '当前用户' }, getUser: { id: 1, nickname: '当前用户' } })
 }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => message }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+const auditPermission = vi.hoisted(() => ({ allowed: true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: (codes: string[]) => !codes.includes('pms:acc-completion-certificate:audit') || auditPermission.allowed }))
 vi.mock('@/utils/dict', () => ({
   DICT_TYPE: { PMS_COMPLETION_CERT_STATUS: 'completion_status' },
   getIntDictOptions: () => []
@@ -92,6 +95,14 @@ vi.mock('vue-router', () => ({
 }))
 
 const mounted: { unmount: () => void }[] = []
+it.each([0, 1])('does not offer issue or reissue without the existing audit permission at status %s', status => {
+  auditPermission.allowed = false
+  const view = mount(RecordActions, { record: { id: 10, status } })
+  try {
+    expect(textOf(view.root)).not.toContain(status === 1 ? '重新推送' : '发起调查')
+    expect(textOf(view.root)).toContain('查看')
+  } finally { view.app.unmount(); auditPermission.allowed = true }
+})
 const flush = async () => {
   await nextTick()
   await Promise.resolve()
