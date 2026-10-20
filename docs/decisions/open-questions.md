@@ -1529,3 +1529,13 @@ Q-MIG-DIM-001~005涉及的V294~V297四个迁移已在开发库实际应用但未
 - Resolution: 需求方2026-10-15选择“负责人主动修订时可选择新配置，保留旧版本”。
 - Current action: P2/P3修订入口提供同一配置当前有效的已发布版本，默认沿用原配置；选择新版本后重新匹配，仅沿用字段定义一致的填报与受权材料引用。旧评估、清单、方案及其配置保留历史；配置发布仍由正式发布操作完成。
 - Decision owner: 需求方。
+
+## Q-SUPERVISION-REQUIREMENT-SOLUTION-20261019 — 督导模板按需需求分析与必做实施方案
+
+- Status: BLOCKED_BY_SPEC
+- Area: 未发布督导模板993009900036的需求分析与实施方案依赖；不阻断已授权的割接入口及到货、初验、终验实体页面配置。
+- Question: 需求分析按需、实施方案必做时，是否按方案办理方式决定需求分析的前置要求？
+- Evidence: 当前草稿PRE_REQUIREMENT为按需，PLAN_SOLUTION为必做。SolutionSubmissionValidator的在线编制分支要求本项目有效FROZEN需求分析；完整客户方案分支先由SolutionCustomerDocumentService核验原件引用，再按既有上传路径办理。
+- Recommendation: 保留需求分析按需。在线编制实施方案时先完成需求分析并引用有效版本；已有完整客户方案时沿用原件校验及既有提交审批路径。明确提示条件依赖，不自动补造需求分析、不降低在线提交校验。
+- Current action: 需求方要求先建议再确认，尚未裁决；模板该项与业务校验均保持原状，未修改PRD。
+- Decision owner: 需求方。
