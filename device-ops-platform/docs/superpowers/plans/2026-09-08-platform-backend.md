@@ -58,7 +58,7 @@ Files: same management port, JDBC adapter/controller and tests; existing script 
 
 ## Task 4: Settings and HTTP security acceptance
 
-Files: management controller and `device-ops-server/src/test/java/com/dp/deviceops/server/ManagementHttpTest.java`.
+Files: management controller and `device-ops-server/src/test/java/com/dp/plat/deviceops/server/ManagementHttpTest.java`.
 
 - [ ] Start a test-only random-port server with explicit `jdbc:h2:mem:` URL and OAuth2 test decoder. No real device execution. Seed only synthetic rows using test JDBC.
 - [ ] Assert anonymous 401, absent scope 403, namespace/project forbidden 403, cross-project rows omitted in list/count/overview, bad page/size/time/status 400, scripts source/hash/ownership restrictions, secret absence, settings allowlist and write methods rejected.

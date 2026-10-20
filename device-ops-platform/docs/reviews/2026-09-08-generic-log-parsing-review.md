@@ -73,8 +73,8 @@ P1 表示会造成关键内容遗漏、错误结构或敏感内容暴露；P2 �
 
 位置：
 
-- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/DelimitedSectionParser.java:15-20`
-- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/NestedEvidenceExpander.java:62-75`
+- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/DelimitedSectionParser.java:15-20`
+- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/NestedEvidenceExpander.java:62-75`
 - `device-ops-platform/parser-releases/device-command-output-1.3.0/rules/base.json:79`
 
 分段正则允许纯星号行被捕获为命令 `*`。分段器先用它切断前一个命令，后续展开才判断该命令无字母数字而跳过。于是有效正文归属已经丢失。
@@ -85,7 +85,7 @@ P1 表示会造成关键内容遗漏、错误结构或敏感内容暴露；P2 �
 
 ### P1-2：TEXT / FORCE 模式只保留第一次匹配，后续内容静默遗漏
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/StructuralSegmenter.java:23-34`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/StructuralSegmenter.java:23-34`。
 
 `TextStructureParser` 遇空行停止；KV、表格等也返回自己的 `nextOffset`。但 TEXT/FORCE 分支只接受一次结果，既不检查剩余输入，也不把尾部继续解析或降级为文本。
 
@@ -104,7 +104,7 @@ FORCE KV 只返回第一行，状态 `STRUCTURED`、无 warning、无 omittedLin
 
 ### P1-3：23 个接口记录全部只有身份，没有内部结构
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/RecordStructureParser.java:150-159`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/RecordStructureParser.java:150-159`。
 
 记录正文只从 offset 0 调用一次 KV 解析，且子 `sections` 永远为空。真实接口记录的第一条正文是类似 `... state is UP, line state is DOWN` 的描述，不是 KV，因此后面的 Description、MTU、带宽、收发统计也完全没有进入记录字段。
 
@@ -114,7 +114,7 @@ FORCE KV 只返回第一行，状态 `STRUCTURED`、无 warning、无 omittedLin
 
 ### P1-4：真实温度表 5 列被错误拆成 52 列
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/TableStructureParser.java:230-245`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/TableStructureParser.java:230-245`。
 
 `separatorStarts()` 只区分“所有横线段长度都为 1”和其他情况。真实 environment 横线装饰以单横线为主，却夹杂一个双横线，于是引擎把每一小段横线起点都当列起点。
 
@@ -126,8 +126,8 @@ FORCE KV 只返回第一行，状态 `STRUCTURED`、无 warning、无 omittedLin
 
 位置：
 
-- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/SensitiveEvidenceSanitizer.java:35-43`
-- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/SensitiveValueRedactor.java:14-32`
+- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/SensitiveEvidenceSanitizer.java:35-43`
+- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/SensitiveValueRedactor.java:14-32`
 
 仅使用合成数据验证：无引号 `Password: SYNTHETIC_FIRST SYNTHETIC_SECOND ...` 只替换首 token，后续 token 仍进入 `genericContent.rawLines`；合成 `BEGIN PRIVATE KEY` / `END PRIVATE KEY` 中间正文也被原样保留。
 
@@ -137,8 +137,8 @@ FORCE KV 只返回第一行，状态 `STRUCTURED`、无 warning、无 omittedLin
 
 位置：
 
-- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/TableStructureParser.java:108-170`
-- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/KeyValueStructureParser.java:77-95`
+- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/TableStructureParser.java:108-170`
+- `device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/KeyValueStructureParser.java:77-95`
 
 复现结果：
 
@@ -153,19 +153,19 @@ FORCE KV 只返回第一行，状态 `STRUCTURED`、无 warning、无 omittedLin
 
 ### P2-2：层级/记录容器会阻断原有语义提取
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/FactExtractor.java:164-175`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/FactExtractor.java:164-175`。
 
 同一输入中的两组 `Name/State` 被通用层归为 recordList 后，原有 KEY_VALUE(State) 不再查找记录的 entries。合成复现为旧路径返回两个事实，通用结构路径返回零事实且无警告。应提供统一结构遍历器，按显式作用域和基数提取，不让包装类型意外改变字段可达性。
 
 ### P2-3：配置前导识别会误删合法配置
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/ConfigStanzaStructureParser.java:30-35`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/ConfigStanzaStructureParser.java:30-35`。
 
 首个 `!` 之前只要有空行，就把整个前缀跳过。合成的 `hostname + 空行 + interface A + ! + interface B` 只保留 B，前缀连 section 原文也未保留。当前真实 fixture 的前缀确属说明文字，因此这条是通用扩展边界错误，不能把它误报为该 fixture 已丢合法配置。
 
 ### P2-4：预算限制不独立，也没有完整递归覆盖
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/StructureBudget.java:32-36,63-70,91-99`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/StructureBudget.java:32-36,63-70,91-99`。
 
 合成复现：表格行数达到上限后，粘性的 limited 标志使后续本来仍有节点预算的 A/B/C 三条 KV 只保留 A；另一方面 recordList 内部的 KV 又绕过节点预算。另有事实候选先创建全部对象、后检查 maxFacts 的检查时机问题。
 
@@ -173,13 +173,13 @@ FORCE KV 只返回第一行，状态 `STRUCTURED`、无 warning、无 omittedLin
 
 ### P2-5：表格事实转换存在字段名冲突覆盖
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/FactExtractor.java:204-212`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/FactExtractor.java:204-212`。
 
 表头 `Name / Name / column1` 中，重复 Name 回退为 column1/column2，第三列唯一标签恰为 column1，最终 Map.put 覆盖第一列。通用表本身三列完整，但 TABLE 事实只剩两列。最终字段名需要统一消歧，稳定列 ID 不能与展示标签混用。
 
 ### P2-6：FORCE list 的空项能导致整个解析失败
 
-位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/deviceops/parser/semantic/internal/ListStructureParser.java:47-48,58-71`。
+位置：`device-ops-platform/device-ops-parser-semantic/src/main/java/com/dp/plat/deviceops/parser/semantic/internal/ListStructureParser.java:47-48,58-71`。
 
 `- first` 后跟 `-   `，正则接受空格后 strip 成空字符串，ListItem 构造抛出 IllegalArgumentException。AUTO 外层可捕获，FORCE 路径不会正常降级。应保留该行并报告格式不匹配，而不是让一条空列表项使整个任务失败。
 

@@ -28,38 +28,38 @@
 
 ```
 device-ops-core/
-  src/main/java/com/dp/deviceops/core/model/ConnectionProtocol.java        # +SERIAL
-  src/main/java/com/dp/deviceops/core/port/CommandExecutionPort.java       # +SerialParity/SerialFlowControl/SerialParams/SerialPrompts；ConnectionSpec 11 参
-  src/main/java/com/dp/deviceops/core/model/ExecutionConnectionContext.java # ConnectionProjection +串口字段
-  src/main/java/com/dp/deviceops/core/service/CollectionWorker.java        # connectionSpec() 透传串口字段
-  src/test/java/com/dp/deviceops/core/port/ConnectionSpecSerialTest.java   # 新建
+  src/main/java/com/dp/plat/deviceops/core/model/ConnectionProtocol.java        # +SERIAL
+  src/main/java/com/dp/plat/deviceops/core/port/CommandExecutionPort.java       # +SerialParity/SerialFlowControl/SerialParams/SerialPrompts；ConnectionSpec 11 参
+  src/main/java/com/dp/plat/deviceops/core/model/ExecutionConnectionContext.java # ConnectionProjection +串口字段
+  src/main/java/com/dp/plat/deviceops/core/service/CollectionWorker.java        # connectionSpec() 透传串口字段
+  src/test/java/com/dp/plat/deviceops/core/port/ConnectionSpecSerialTest.java   # 新建
 device-ops-adapter-web-spring/
-  src/main/java/com/dp/deviceops/adapter/web/ConnectionRequestMapper.java  # Connection/SerialParams/SerialPrompts + directSpec
-  src/main/java/com/dp/deviceops/adapter/web/CollectionController.java     # Target +串口字段与 SHELL 校验
-  src/test/java/com/dp/deviceops/adapter/web/ConnectionRequestMapperSerialTest.java # 新建
-  src/test/java/com/dp/deviceops/adapter/web/CollectionBoundaryTest.java   # Connection 构造 arity 更新
-  src/test/java/com/dp/deviceops/adapter/web/CollectionRequestFingerprintTest.java # 同上
+  src/main/java/com/dp/plat/deviceops/adapter/web/ConnectionRequestMapper.java  # Connection/SerialParams/SerialPrompts + directSpec
+  src/main/java/com/dp/plat/deviceops/adapter/web/CollectionController.java     # Target +串口字段与 SHELL 校验
+  src/test/java/com/dp/plat/deviceops/adapter/web/ConnectionRequestMapperSerialTest.java # 新建
+  src/test/java/com/dp/plat/deviceops/adapter/web/CollectionBoundaryTest.java   # Connection 构造 arity 更新
+  src/test/java/com/dp/plat/deviceops/adapter/web/CollectionRequestFingerprintTest.java # 同上
 device-ops-adapter-persistence-jdbc/
   src/main/resources/db/migration/V21__add_saved_connection_serial_params.sql # 新建（H2）
   src/main/resources/db/mysql-migration/V1__create_device_ops_baseline.sql    # 表定义加列
-  src/main/java/com/dp/deviceops/adapter/persistence/jdbc/JdbcSavedConnectionStore.java # 读写串口列
-  src/test/java/com/dp/deviceops/adapter/persistence/jdbc/SavedConnectionSerialPersistenceTest.java # 新建
+  src/main/java/com/dp/plat/deviceops/adapter/persistence/jdbc/JdbcSavedConnectionStore.java # 读写串口列
+  src/test/java/com/dp/plat/deviceops/adapter/persistence/jdbc/SavedConnectionSerialPersistenceTest.java # 新建
 device-ops-adapter-serial/                                                 # 新建模块
   pom.xml
-  src/main/java/com/dp/deviceops/adapter/serial/SerialTransport.java
-  src/main/java/com/dp/deviceops/adapter/serial/JdkSerialTransport.java
-  src/main/java/com/dp/deviceops/adapter/serial/JdkSerialPortEnumerator.java
-  src/main/java/com/dp/deviceops/adapter/serial/SerialCommandExecutionAdapter.java
-  src/test/java/com/dp/deviceops/adapter/serial/InMemorySerialTransport.java
-  src/test/java/com/dp/deviceops/adapter/serial/SerialCommandExecutionAdapterTest.java
+  src/main/java/com/dp/plat/deviceops/adapter/serial/SerialTransport.java
+  src/main/java/com/dp/plat/deviceops/adapter/serial/JdkSerialTransport.java
+  src/main/java/com/dp/plat/deviceops/adapter/serial/JdkSerialPortEnumerator.java
+  src/main/java/com/dp/plat/deviceops/adapter/serial/SerialCommandExecutionAdapter.java
+  src/test/java/com/dp/plat/deviceops/adapter/serial/InMemorySerialTransport.java
+  src/test/java/com/dp/plat/deviceops/adapter/serial/SerialCommandExecutionAdapterTest.java
 device-ops-server/
   pom.xml                                                  # +adapter-serial 依赖
-  src/main/java/com/dp/deviceops/server/SerialProperties.java        # 新建
-  src/main/java/com/dp/deviceops/server/DeviceOpsWiringConfiguration.java # +串口 bean
-  src/main/java/com/dp/deviceops/server/RuntimeConfigController.java # +serialEnabled
-  src/main/java/com/dp/deviceops/server/ManagementSettingsController.java # Capabilities +serialEnabled
-  src/main/java/com/dp/deviceops/server/SerialPortController.java    # 新建
-  src/test/java/com/dp/deviceops/server/SerialWiringTest.java        # 新建
+  src/main/java/com/dp/plat/deviceops/server/SerialProperties.java        # 新建
+  src/main/java/com/dp/plat/deviceops/server/DeviceOpsWiringConfiguration.java # +串口 bean
+  src/main/java/com/dp/plat/deviceops/server/RuntimeConfigController.java # +serialEnabled
+  src/main/java/com/dp/plat/deviceops/server/ManagementSettingsController.java # Capabilities +serialEnabled
+  src/main/java/com/dp/plat/deviceops/server/SerialPortController.java    # 新建
+  src/test/java/com/dp/plat/deviceops/server/SerialWiringTest.java        # 新建
 device-ops-web/src/
   types/collection.ts                                      # +SERIAL 类型分支
   types/management.ts                                      # capabilities +serialEnabled
@@ -80,20 +80,20 @@ device-ops-web/src/
 ### Task 1: core —— SERIAL 协议枚举与 ConnectionSpec 校验
 
 **Files:**
-- Modify: `device-ops-core/src/main/java/com/dp/deviceops/core/model/ConnectionProtocol.java`
-- Modify: `device-ops-core/src/main/java/com/dp/deviceops/core/port/CommandExecutionPort.java`
-- Modify: `device-ops-core/src/main/java/com/dp/deviceops/core/model/ExecutionConnectionContext.java`
-- Modify: `device-ops-core/src/main/java/com/dp/deviceops/core/service/CollectionWorker.java`
-- Test: `device-ops-core/src/test/java/com/dp/deviceops/core/port/ConnectionSpecSerialTest.java`
+- Modify: `device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/ConnectionProtocol.java`
+- Modify: `device-ops-core/src/main/java/com/dp/plat/deviceops/core/port/CommandExecutionPort.java`
+- Modify: `device-ops-core/src/main/java/com/dp/plat/deviceops/core/model/ExecutionConnectionContext.java`
+- Modify: `device-ops-core/src/main/java/com/dp/plat/deviceops/core/service/CollectionWorker.java`
+- Test: `device-ops-core/src/test/java/com/dp/plat/deviceops/core/port/ConnectionSpecSerialTest.java`
 
 - [ ] **Step 1: 写失败测试**
 
-创建 `device-ops-core/src/test/java/com/dp/deviceops/core/port/ConnectionSpecSerialTest.java`：
+创建 `device-ops-core/src/test/java/com/dp/plat/deviceops/core/port/ConnectionSpecSerialTest.java`：
 
 ```java
-package com.dp.deviceops.core.port;
+package com.dp.plat.deviceops.core.port;
 
-import com.dp.deviceops.core.model.ConnectionProtocol;
+import com.dp.plat.deviceops.core.model.ConnectionProtocol;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -239,7 +239,7 @@ Expected: 编译失败（`SERIAL`、`SerialParams` 等不存在）。
 `ConnectionProtocol.java` 整文件替换为：
 
 ```java
-package com.dp.deviceops.core.model;
+package com.dp.plat.deviceops.core.model;
 
 public enum ConnectionProtocol {
     SSH2,
@@ -449,21 +449,21 @@ git commit -m "feat(device-ops-core): SERIAL 协议与串口连接校验"
 ### Task 2: web 层 —— ConnectionRequestMapper 串口字段
 
 **Files:**
-- Modify: `device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/ConnectionRequestMapper.java`
-- Modify: `device-ops-adapter-web-spring/src/main/java/com/dp/deviceops/adapter/web/CollectionController.java`
-- Modify: `device-ops-adapter-web-spring/src/test/java/com/dp/deviceops/adapter/web/CollectionBoundaryTest.java`（Connection 构造 arity）
-- Modify: `device-ops-adapter-web-spring/src/test/java/com/dp/deviceops/adapter/web/CollectionRequestFingerprintTest.java`（同上）
-- Test: `device-ops-adapter-web-spring/src/test/java/com/dp/deviceops/adapter/web/ConnectionRequestMapperSerialTest.java`（新建）
+- Modify: `device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/ConnectionRequestMapper.java`
+- Modify: `device-ops-adapter-web-spring/src/main/java/com/dp/plat/deviceops/adapter/web/CollectionController.java`
+- Modify: `device-ops-adapter-web-spring/src/test/java/com/dp/plat/deviceops/adapter/web/CollectionBoundaryTest.java`（Connection 构造 arity）
+- Modify: `device-ops-adapter-web-spring/src/test/java/com/dp/plat/deviceops/adapter/web/CollectionRequestFingerprintTest.java`（同上）
+- Test: `device-ops-adapter-web-spring/src/test/java/com/dp/plat/deviceops/adapter/web/ConnectionRequestMapperSerialTest.java`（新建）
 
 - [ ] **Step 1: 写失败测试**
 
 创建 `ConnectionRequestMapperSerialTest.java`：
 
 ```java
-package com.dp.deviceops.adapter.web;
+package com.dp.plat.deviceops.adapter.web;
 
-import com.dp.deviceops.core.model.ConnectionProtocol;
-import com.dp.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.model.ConnectionProtocol;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -718,22 +718,22 @@ git commit -m "feat(device-ops-web): 连接请求映射支持串口参数"
 **Files:**
 - Create: `device-ops-adapter-persistence-jdbc/src/main/resources/db/migration/V21__add_saved_connection_serial_params.sql`
 - Modify: `device-ops-adapter-persistence-jdbc/src/main/resources/db/mysql-migration/V1__create_device_ops_baseline.sql`（`device_ops_saved_connection` 表定义，telnet 列之后）
-- Modify: `device-ops-adapter-persistence-jdbc/src/main/java/com/dp/deviceops/adapter/persistence/jdbc/JdbcSavedConnectionStore.java`
-- Test: `device-ops-adapter-persistence-jdbc/src/test/java/com/dp/deviceops/adapter/persistence/jdbc/SavedConnectionSerialPersistenceTest.java`（新建）
+- Modify: `device-ops-adapter-persistence-jdbc/src/main/java/com/dp/plat/deviceops/adapter/persistence/jdbc/JdbcSavedConnectionStore.java`
+- Test: `device-ops-adapter-persistence-jdbc/src/test/java/com/dp/plat/deviceops/adapter/persistence/jdbc/SavedConnectionSerialPersistenceTest.java`（新建）
 
 - [ ] **Step 1: 写失败测试**
 
 参考 `CollectionPersistenceTest` 的 H2+Flyway 设施。创建 `SavedConnectionSerialPersistenceTest.java`：
 
 ```java
-package com.dp.deviceops.adapter.persistence.jdbc;
+package com.dp.plat.deviceops.adapter.persistence.jdbc;
 
-import com.dp.deviceops.core.model.ConnectionProtocol;
-import com.dp.deviceops.core.model.SavedConnection;
-import com.dp.deviceops.core.model.SavedConnectionDraft;
-import com.dp.deviceops.core.model.TransientCredential;
-import com.dp.deviceops.core.port.CommandExecutionPort;
-import com.dp.deviceops.core.port.SavedConnectionCredentialStore;
+import com.dp.plat.deviceops.core.model.ConnectionProtocol;
+import com.dp.plat.deviceops.core.model.SavedConnection;
+import com.dp.plat.deviceops.core.model.SavedConnectionDraft;
+import com.dp.plat.deviceops.core.model.TransientCredential;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.port.SavedConnectionCredentialStore;
 import org.flywaydb.core.Flyway;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.Test;
@@ -932,9 +932,9 @@ git commit -m "feat(device-ops-persistence): 保存连接持久化串口参数"
 **Files:**
 - Create: `device-ops-adapter-serial/pom.xml`
 - Modify: `pom.xml`（根，`<modules>` 加一行）
-- Create: `device-ops-adapter-serial/src/main/java/com/dp/deviceops/adapter/serial/SerialTransport.java`
-- Create: `device-ops-adapter-serial/src/main/java/com/dp/deviceops/adapter/serial/JdkSerialTransport.java`
-- Create: `device-ops-adapter-serial/src/main/java/com/dp/deviceops/adapter/serial/JdkSerialPortEnumerator.java`
+- Create: `device-ops-adapter-serial/src/main/java/com/dp/plat/deviceops/adapter/serial/SerialTransport.java`
+- Create: `device-ops-adapter-serial/src/main/java/com/dp/plat/deviceops/adapter/serial/JdkSerialTransport.java`
+- Create: `device-ops-adapter-serial/src/main/java/com/dp/plat/deviceops/adapter/serial/JdkSerialPortEnumerator.java`
 
 - [ ] **Step 1: 创建模块 pom 与根 modules**
 
@@ -948,7 +948,7 @@ git commit -m "feat(device-ops-persistence): 保存连接持久化串口参数"
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.dp.deviceops</groupId>
+        <groupId>com.dp.plat.deviceops</groupId>
         <artifactId>device-ops-platform</artifactId>
         <version>${revision}</version>
     </parent>
@@ -957,7 +957,7 @@ git commit -m "feat(device-ops-persistence): 保存连接持久化串口参数"
 
     <dependencies>
         <dependency>
-            <groupId>com.dp.deviceops</groupId>
+            <groupId>com.dp.plat.deviceops</groupId>
             <artifactId>device-ops-core</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -986,9 +986,9 @@ git commit -m "feat(device-ops-persistence): 保存连接持久化串口参数"
 `SerialTransport.java`（读契约：阻塞至多 timeoutMillis，无数据返回 0；连接关闭抛 IOException）：
 
 ```java
-package com.dp.deviceops.adapter.serial;
+package com.dp.plat.deviceops.adapter.serial;
 
-import com.dp.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
 
 import java.io.IOException;
 
@@ -1011,9 +1011,9 @@ public interface SerialTransport extends AutoCloseable {
 `JdkSerialTransport.java`（生产实现，薄包装 jSerialComm）：
 
 ```java
-package com.dp.deviceops.adapter.serial;
+package com.dp.plat.deviceops.adapter.serial;
 
-import com.dp.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
 import com.fazecast.jSerialComm.SerialPort;
 
 import java.io.IOException;
@@ -1102,7 +1102,7 @@ public final class JdkSerialTransport implements SerialTransport {
 `JdkSerialPortEnumerator.java`（供 `GET /api/v1/serial-ports` 使用）：
 
 ```java
-package com.dp.deviceops.adapter.serial;
+package com.dp.plat.deviceops.adapter.serial;
 
 import com.fazecast.jSerialComm.SerialPort;
 
@@ -1138,19 +1138,19 @@ git commit -m "feat(device-ops-adapter-serial): 串口传输抽象与 jSerialCom
 ### Task 5: adapter-serial —— 内存替身与登录引擎（TDD）
 
 **Files:**
-- Create: `device-ops-adapter-serial/src/test/java/com/dp/deviceops/adapter/serial/InMemorySerialTransport.java`
-- Create: `device-ops-adapter-serial/src/main/java/com/dp/deviceops/adapter/serial/SerialCommandExecutionAdapter.java`（本任务先实现 protocol()/test()/login）
-- Modify: `device-ops-adapter-serial/src/main/java/com/dp/deviceops/adapter/serial/SerialCommandExecutionAdapter.java`（Task 6 补 execute）
-- Test: `device-ops-adapter-serial/src/test/java/com/dp/deviceops/adapter/serial/SerialCommandExecutionAdapterTest.java`
+- Create: `device-ops-adapter-serial/src/test/java/com/dp/plat/deviceops/adapter/serial/InMemorySerialTransport.java`
+- Create: `device-ops-adapter-serial/src/main/java/com/dp/plat/deviceops/adapter/serial/SerialCommandExecutionAdapter.java`（本任务先实现 protocol()/test()/login）
+- Modify: `device-ops-adapter-serial/src/main/java/com/dp/plat/deviceops/adapter/serial/SerialCommandExecutionAdapter.java`（Task 6 补 execute）
+- Test: `device-ops-adapter-serial/src/test/java/com/dp/plat/deviceops/adapter/serial/SerialCommandExecutionAdapterTest.java`
 
 - [ ] **Step 1: 写内存替身**
 
 `InMemorySerialTransport.java`（脚本化响应队列 + 写入记录）：
 
 ```java
-package com.dp.deviceops.adapter.serial;
+package com.dp.plat.deviceops.adapter.serial;
 
-import com.dp.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -1285,11 +1285,11 @@ final class InMemorySerialTransport implements SerialTransport {
 `SerialCommandExecutionAdapterTest.java`：
 
 ```java
-package com.dp.deviceops.adapter.serial;
+package com.dp.plat.deviceops.adapter.serial;
 
-import com.dp.deviceops.core.model.ConnectionFailure;
-import com.dp.deviceops.core.model.ConnectionProtocol;
-import com.dp.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.model.ConnectionFailure;
+import com.dp.plat.deviceops.core.model.ConnectionProtocol;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -1389,18 +1389,18 @@ Expected: 编译失败（`SerialCommandExecutionAdapter` 不存在）。
 `SerialCommandExecutionAdapter.java`：
 
 ```java
-package com.dp.deviceops.adapter.serial;
+package com.dp.plat.deviceops.adapter.serial;
 
-import com.dp.deviceops.core.model.CommandBlockStatus;
-import com.dp.deviceops.core.model.CommandOutputBlock;
-import com.dp.deviceops.core.model.CommandPlan;
-import com.dp.deviceops.core.model.CommandPlan.CommandSpec;
-import com.dp.deviceops.core.model.ConnectionFailure;
-import com.dp.deviceops.core.model.ConnectionProtocol;
-import com.dp.deviceops.core.port.CommandExecutionPort;
-import com.dp.deviceops.core.port.ProtocolCommandExecutionAdapter;
-import com.dp.deviceops.core.terminal.TerminalPagerController;
-import com.dp.deviceops.core.terminal.TerminalTextProcessor;
+import com.dp.plat.deviceops.core.model.CommandBlockStatus;
+import com.dp.plat.deviceops.core.model.CommandOutputBlock;
+import com.dp.plat.deviceops.core.model.CommandPlan;
+import com.dp.plat.deviceops.core.model.CommandPlan.CommandSpec;
+import com.dp.plat.deviceops.core.model.ConnectionFailure;
+import com.dp.plat.deviceops.core.model.ConnectionProtocol;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.port.ProtocolCommandExecutionAdapter;
+import com.dp.plat.deviceops.core.terminal.TerminalPagerController;
+import com.dp.plat.deviceops.core.terminal.TerminalTextProcessor;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -1677,8 +1677,8 @@ git commit -m "feat(device-ops-adapter-serial): 串口登录与提示符引擎"
 ### Task 6: adapter-serial —— execute 命令循环与输出累积
 
 **Files:**
-- Modify: `device-ops-adapter-serial/src/main/java/com/dp/deviceops/adapter/serial/SerialCommandExecutionAdapter.java`（加 execute/内部类）
-- Modify: `device-ops-adapter-serial/src/test/java/com/dp/deviceops/adapter/serial/SerialCommandExecutionAdapterTest.java`（追加测试）
+- Modify: `device-ops-adapter-serial/src/main/java/com/dp/plat/deviceops/adapter/serial/SerialCommandExecutionAdapter.java`（加 execute/内部类）
+- Modify: `device-ops-adapter-serial/src/test/java/com/dp/plat/deviceops/adapter/serial/SerialCommandExecutionAdapterTest.java`（追加测试）
 
 - [ ] **Step 1: 追加失败测试**
 
@@ -1991,7 +1991,7 @@ Expected: 编译失败（`executeTransport` 不存在）。
 并在文件头部 import 区补：
 
 ```java
-import com.dp.deviceops.core.model.ConnectionFailure; // 已有
+import com.dp.plat.deviceops.core.model.ConnectionFailure; // 已有
 import java.util.ArrayList;
 import java.util.List;
 ```
@@ -2015,27 +2015,27 @@ git commit -m "feat(device-ops-adapter-serial): 串口命令执行循环与输�
 ### Task 7: server 装配 —— 属性、Bean、runtime-config、capabilities、serial-ports 端点
 
 **Files:**
-- Create: `device-ops-server/src/main/java/com/dp/deviceops/server/SerialProperties.java`
-- Create: `device-ops-server/src/main/java/com/dp/deviceops/server/SerialPortController.java`
-- Modify: `device-ops-server/src/main/java/com/dp/deviceops/server/DeviceOpsWiringConfiguration.java`
-- Modify: `device-ops-server/src/main/java/com/dp/deviceops/server/RuntimeConfigController.java`
-- Modify: `device-ops-server/src/main/java/com/dp/deviceops/server/ManagementSettingsController.java`
+- Create: `device-ops-server/src/main/java/com/dp/plat/deviceops/server/SerialProperties.java`
+- Create: `device-ops-server/src/main/java/com/dp/plat/deviceops/server/SerialPortController.java`
+- Modify: `device-ops-server/src/main/java/com/dp/plat/deviceops/server/DeviceOpsWiringConfiguration.java`
+- Modify: `device-ops-server/src/main/java/com/dp/plat/deviceops/server/RuntimeConfigController.java`
+- Modify: `device-ops-server/src/main/java/com/dp/plat/deviceops/server/ManagementSettingsController.java`
 - Modify: `device-ops-server/pom.xml`
 - Modify: `device-ops-server/src/main/resources/application.yml`（若其中显式列出 telnet 开关默认值；先 `grep -n "telnet" device-ops-server/src/main/resources/application.yml` 确认，再按同样格式补 `device-ops.serial.enabled: true`）
-- Test: `device-ops-server/src/test/java/com/dp/deviceops/server/SerialWiringTest.java`
+- Test: `device-ops-server/src/test/java/com/dp/plat/deviceops/server/SerialWiringTest.java`
 
 - [ ] **Step 1: 写失败测试**
 
 `SerialWiringTest.java`：
 
 ```java
-package com.dp.deviceops.server;
+package com.dp.plat.deviceops.server;
 
-import com.dp.deviceops.adapter.serial.SerialCommandExecutionAdapter;
-import com.dp.deviceops.core.model.ConnectionProtocol;
-import com.dp.deviceops.core.port.CommandExecutionPort;
-import com.dp.deviceops.core.port.ProtocolCommandExecutionAdapter;
-import com.dp.deviceops.core.service.ProtocolCommandExecutionRouter;
+import com.dp.plat.deviceops.adapter.serial.SerialCommandExecutionAdapter;
+import com.dp.plat.deviceops.core.model.ConnectionProtocol;
+import com.dp.plat.deviceops.core.port.CommandExecutionPort;
+import com.dp.plat.deviceops.core.port.ProtocolCommandExecutionAdapter;
+import com.dp.plat.deviceops.core.service.ProtocolCommandExecutionRouter;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -2092,13 +2092,13 @@ Expected: 编译失败（`SerialProperties` 不存在；server 尚不依赖 adap
 (a) `device-ops-server/pom.xml` 在 telnet 依赖行后加：
 
 ```xml
-        <dependency><groupId>com.dp.deviceops</groupId><artifactId>device-ops-adapter-serial</artifactId><version>${revision}</version></dependency>
+        <dependency><groupId>com.dp.plat.deviceops</groupId><artifactId>device-ops-adapter-serial</artifactId><version>${revision}</version></dependency>
 ```
 
 (b) `SerialProperties.java`（镜像 `TelnetProperties`；enabled 默认 true）：
 
 ```java
-package com.dp.deviceops.server;
+package com.dp.plat.deviceops.server;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -2153,7 +2153,7 @@ public class SerialProperties {
 }
 ```
 
-(c) `DeviceOpsWiringConfiguration.java`：import 区加 `import com.dp.deviceops.adapter.serial.SerialCommandExecutionAdapter;`；在 `telnetCommandExecutionAdapter` bean（:181-189）之后加：
+(c) `DeviceOpsWiringConfiguration.java`：import 区加 `import com.dp.plat.deviceops.adapter.serial.SerialCommandExecutionAdapter;`；在 `telnetCommandExecutionAdapter` bean（:181-189）之后加：
 
 ```java
     @Bean ProtocolCommandExecutionAdapter serialCommandExecutionAdapter(SerialProperties properties) {
@@ -2170,7 +2170,7 @@ public class SerialProperties {
 (d) `RuntimeConfigController.java` 整文件替换：
 
 ```java
-package com.dp.deviceops.server;
+package com.dp.plat.deviceops.server;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -2214,9 +2214,9 @@ public class RuntimeConfigController {
 (f) `SerialPortController.java`：
 
 ```java
-package com.dp.deviceops.server;
+package com.dp.plat.deviceops.server;
 
-import com.dp.deviceops.adapter.serial.JdkSerialPortEnumerator;
+import com.dp.plat.deviceops.adapter.serial.JdkSerialPortEnumerator;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -2250,7 +2250,7 @@ public class SerialPortController {
     @Bean JdkSerialPortEnumerator jdkSerialPortEnumerator() { return new JdkSerialPortEnumerator(); }
 ```
 
-（import `com.dp.deviceops.adapter.serial.JdkSerialPortEnumerator`。）
+（import `com.dp.plat.deviceops.adapter.serial.JdkSerialPortEnumerator`。）
 
 - [ ] **Step 4: 运行确认绿（server 全量）**
 
