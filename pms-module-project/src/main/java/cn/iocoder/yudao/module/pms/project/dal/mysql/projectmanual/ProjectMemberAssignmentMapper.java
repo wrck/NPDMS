@@ -27,6 +27,7 @@ import java.util.List;
  */
 @Mapper
 public interface ProjectMemberAssignmentMapper extends BaseMapperX<ProjectMemberAssignmentDO> {
+    ProjectMemberAssignmentDO selectMemberSelectionForUpdate(@Param("query") cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectMemberSelectionQuery query);
     default List<ProjectMemberAssignmentDO> selectTreeManagers(
             cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.query.ProjectTreeManagersQuery query) {
         if (query.projectIds().isEmpty()) return List.of();
