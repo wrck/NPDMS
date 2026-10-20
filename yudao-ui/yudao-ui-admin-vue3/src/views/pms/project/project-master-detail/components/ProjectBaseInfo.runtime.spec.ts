@@ -1,12 +1,12 @@
 import { expect, it, vi } from 'vitest'
 import { nextTick } from 'vue'
 import Panel from './ProjectBaseInfo.vue'
-import { mount, passthrough } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+import { mount, passthrough, textOf } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-const api = vi.hoisted(() => ({ get: vi.fn(), getMemberPage: vi.fn() }))
+const api = vi.hoisted(() => ({ get: vi.fn(), getMemberPage: vi.fn(), checkRole: vi.fn(() => true) }))
 vi.mock('@/config/axios', () => ({ default: { get: api.get } }))
 vi.mock('@/api/pms/project/unified-members', () => ({ getMemberPage: api.getMemberPage }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => true, checkRole: api.checkRole }))
 vi.mock('@vueuse/core', () => ({ useMediaQuery: () => ({ value: false }) }))
 vi.mock('@/utils/dict', () => ({ DICT_TYPE: { PMS_SIGNING_METHOD: 'signing', PMS_PROJECT_CATEGORY: 'category' },
   getDictLabel: (dict: string, value: string) => dict === 'signing' ? '直签' : dict === 'category' ? '工程类' : value }))
@@ -35,4 +35,21 @@ it('maps legacy signing/category meanings without truncating managers or choosin
     expect(value('订单创建时间')).toContain('SO-2')
     expect(value('结构深度')).toBeUndefined()
   } finally { m.app.unmount() }
+})
+
+it.each([true, false])('shows supplementary sections only for administrators: %s', async (admin) => {
+  api.checkRole.mockReturnValue(admin)
+  api.get.mockResolvedValue({ contracts: [], orders: [], executionOrders: [] })
+  api.getMemberPage.mockResolvedValue({ total: 0, list: [] })
+  const m = mount(Panel, { project: { id: 151, customerName: '客户甲' } })
+  try {
+    for (let i = 0; i < 10; i++) await nextTick()
+    const text = textOf(m.root)
+    expect(text.includes('合同与执行单')).toBe(admin)
+    expect(text.includes('补充信息')).toBe(admin)
+    expect(text).toContain('客户项目名称')
+  } finally {
+    m.app.unmount()
+    api.checkRole.mockReturnValue(true)
+  }
 })

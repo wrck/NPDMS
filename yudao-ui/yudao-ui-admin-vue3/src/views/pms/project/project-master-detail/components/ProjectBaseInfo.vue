@@ -8,7 +8,7 @@
         </div>
       </dl>
     </section>
-    <section class="fact-section" v-loading="loading">
+    <section v-if="checkRole(['admin'])" class="fact-section" v-loading="loading">
       <div class="section-heading"><h3>合同与执行单</h3><el-button v-if="error" link type="primary" @click="load">重新加载</el-button></div>
       <el-alert v-if="error" :title="error" type="warning" :closable="false" />
       <p v-else-if="!canReadCommerce" class="empty-note">暂无商务资料查看权限。</p>
@@ -44,7 +44,7 @@
         <p v-if="!loading && !error && !commerce?.contracts.length && !commerce?.orders.length && !commerce?.executionOrders.length" class="empty-note">尚未关联商务资料；关联后展示合同、订单及执行单信息。</p>
       </template>
     </section>
-    <section class="fact-section">
+    <section v-if="checkRole(['admin'])" class="fact-section">
       <h3>补充信息</h3>
       <dl class="fact-grid">
         <div class="fact"><dt>客户单位</dt><dd>{{ project.customerName || project.customerCode || '—' }}</dd></div>
@@ -62,7 +62,7 @@
 
 <script setup lang="ts">
 import request from '@/config/axios'
-import { checkPermi } from '@/utils/permission'
+import { checkPermi, checkRole } from '@/utils/permission'
 import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import { formatDate } from '@/utils/formatTime'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
