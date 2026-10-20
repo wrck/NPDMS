@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { defineComponent, h, nextTick } from 'vue'
 import Arrival from './ProjectArrivalReceiptPanel.vue'
-import { mount, passthrough, tableColumn } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
-const api = vi.hoisted(() => ({ getArrivalPage: vi.fn(), getArrival: vi.fn(), save: vi.fn(), error: vi.fn() }))
-vi.mock('@/utils/permission', () => ({ checkPermi: () => true }))
+import { mount, passthrough, tableColumn, textOf, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
+const api = vi.hoisted(() => ({ getArrivalPage: vi.fn(), getArrival: vi.fn(), save: vi.fn(), error: vi.fn(), deleteArrival: vi.fn(), markAbnormalArrival: vi.fn(), permitted: true }))
+vi.mock('@/utils/permission', () => ({ checkPermi: () => api.permitted }))
 vi.mock('@/api/system/user', () => ({ __v_isRef: false, getSimpleUser: vi.fn() }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 8, nickname: '测试用户' } }) }))
 vi.mock('@/api/pms/engineering/arrival', () => api)
@@ -16,14 +16,37 @@ const formStub = defineComponent({ setup(_, { slots, attrs, expose }) {
   return () => h('form', attrs, slots.default?.())
 } })
 const apps: { unmount: () => void }[] = []
-const render = (readonly = false) => {
-  const view = mount(Arrival, { projectId: 1, readonly }, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElUpload: passthrough })
+const buttons = (node: TestNode): string[] => [
+  ...(node.type === 'button' ? [textOf(node)] : []), ...node.children.flatMap(buttons)
+]
+const render = (readonly = false, allowedActions?: string[]) => {
+  const view = mount(Arrival, { projectId: 1, readonly, allowedActions }, { ElTable: passthrough, ElTableColumn: tableColumn, ElForm: formStub, ElRow: passthrough, ElCol: passthrough, ElUpload: passthrough })
   apps.push(view.app)
   return { ...view, state: (view.vm as any).$.setupState }
 }
 const file = { name: '签收.txt', size: 5, raw: { name: '签收.txt', size: 5, type: 'text/plain' } }
-beforeEach(() => { vi.resetAllMocks(); api.getArrivalPage.mockResolvedValue({ list: [], total: 0 }); api.getArrival.mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 3 })) })
+beforeEach(() => { vi.resetAllMocks(); api.permitted = true; api.getArrivalPage.mockResolvedValue({ list: [], total: 0 }); api.getArrival.mockImplementation(async id => ({ id, projectId: 1, status: 0, version: 3 })) })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
+it('queries the enclosing project in a readonly task while hiding and blocking writes', async () => {
+  const view = render(true, ['QUERY']); await nextTick()
+  expect(api.getArrivalPage).toHaveBeenCalledWith(expect.objectContaining({ projectId: 1 }))
+  expect(textOf(view.root)).toContain('查询')
+  expect(buttons(view.root)).not.toContain('登记到货')
+  await view.state.remove({ id: 8, status: 0 })
+  await view.state.handleAction({ id: 8, status: 0 }, 'markAbnormal')
+  await view.state.openForm(); await view.state.save()
+  expect(api.deleteArrival).not.toHaveBeenCalled()
+  expect(api.markAbnormalArrival).not.toHaveBeenCalled()
+  expect(api.save).not.toHaveBeenCalled()
+})
+it.each(['owner', 'menu'])('does not query or open records without %s permission', async (source) => {
+  if (source === 'menu') api.permitted = false
+  const view = render(true, source === 'owner' ? [] : ['QUERY']); await nextTick()
+  await view.state.load(); await view.state.openForm({ id: 8, status: 0 })
+  expect(api.getArrivalPage).not.toHaveBeenCalled()
+  expect(api.getArrival).not.toHaveBeenCalled()
+  expect(view.state.formVisible).toBe(false)
+})
 it('keeps signed receipts and their original attachments read-only', async () => {
   const view = render()
   api.getArrival.mockResolvedValue({ id: 8, projectId: 1, status: 1, version: 2, attachmentUrl: 'original-file' })

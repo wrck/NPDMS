@@ -2,6 +2,7 @@
 import { defineComponent, h, nextTick, reactive, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import BusinessViewHost from './BusinessViewHost.vue'
+import ProjectArrivalReceiptPanel from '@/views/pms/project/project-master-detail/components/ProjectArrivalReceiptPanel.vue'
 import { businessPageRoutes } from './presentationRoute'
 import ProjectRequirementAnalysisPanel from '@/views/pms/delivery-business/requirement-analysis/entity/EntityPanel.vue'
 import { businessViewTargetKey, resolveStandaloneBusinessEntityView, resolveBusinessView, type BusinessViewTarget } from './registry'
@@ -244,14 +245,27 @@ describe('PM-03 BusinessView runtime', () => {
     expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, operationObjectType: 'CUTOVER_APPROVAL', allowedActions: ['QUERY'] })
   })
   it.each([
-    ['IMP_ARRIVAL_RECEIPT', 'IMP', 'ARRIVAL', 'arrival'],
-  ])('resolves %s to its existing Owner workspace and rejects a different Owner', (componentKey, ownerContext, entityType, tab) => {
+    ['IMP_ARRIVAL_RECEIPT', 'IMP', 'ARRIVAL'],
+  ])('embeds %s in its existing Owner workspace and rejects a different Owner', (componentKey, ownerContext, entityType) => {
     const data = target('PAGE')
     Object.assign(data.registration, { componentKey, ownerContext, entityType, supportedActions: ['QUERY'] })
     data.allowedActions = ['QUERY']
-    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, tab, allowedActions: ['QUERY'] })
+    expect(resolveBusinessView(data).component).toBe(ProjectArrivalReceiptPanel)
+    expect(resolveBusinessView(data).props).toMatchObject({ projectId: 11, allowedActions: ['QUERY'] })
     data.registration.ownerContext = 'OTHER'
     expect(resolveBusinessView(data).error).toBeTruthy()
+  })
+  it('keeps authorized embedded arrival queries for a readonly task without granting writes or missing query access', () => {
+    const data = target('PAGE')
+    Object.assign(data.registration, { componentKey: 'IMP_ARRIVAL_RECEIPT', ownerContext: 'IMP', entityType: 'ARRIVAL', supportedActions: ['QUERY'] })
+    data.readonly = true
+    data.allowedActions = ['QUERY', 'CREATE', 'UPDATE']
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
+    data.allowedActions = ['CREATE']
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
+    data.allowedActions = ['QUERY']
+    data.registration.status = 'DISABLED'
+    expect(resolveBusinessView(data).props).toMatchObject({ readonly: true, allowedActions: [] })
   })
   const stageExecution = {
     projectId: 11, projectVersion: 1, stageId: '2099999999999999997', stageVersion: 1,

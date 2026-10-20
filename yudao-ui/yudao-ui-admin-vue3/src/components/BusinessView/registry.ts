@@ -1,5 +1,5 @@
 import { defineAsyncComponent, markRaw, type Component } from 'vue'
-import OwnerCompletionEntry from './OwnerCompletionEntry.vue'
+import ProjectArrivalReceiptPanel from '@/views/pms/project/project-master-detail/components/ProjectArrivalReceiptPanel.vue'
 import ProjectMembersBusinessView from './ProjectMembersBusinessView.vue'
 import { businessPageRoutes, validatePagePresentation, type PagePresentation } from './presentationRoute'
 import type { ProjectMasterVO } from '@/api/pms/project/projects'
@@ -65,10 +65,10 @@ const adapters: readonly Adapter[] = [
   },
   {
     ...businessPageRoutes.IMP_ARRIVAL_RECEIPT,
-    component: markRaw(OwnerCompletionEntry),
+    component: markRaw(ProjectArrivalReceiptPanel),
     resolve: ({ registration, resolvedContext }) =>
       registration.dynamicFormRevisionId == null && positiveId(resolvedContext.project?.id)
-        ? { projectId: resolvedContext.project.id, label: '到货签收', tab: 'arrival' }
+        ? { projectId: legacyOwnerId(resolvedContext.project.id) }
         : undefined
   },
   {
@@ -288,7 +288,11 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
     props: {
       ...context,
       readonly,
-      allowedActions: readonly ? [] : [...(target.allowedActions || [])]
+      // Pending arrival tasks retain authorized reads in the embedded Owner panel.
+      allowedActions: readonly
+        ? adapter.component === ProjectArrivalReceiptPanel && registration.status === 'PUBLISHED'
+          ? (target.allowedActions || []).filter((action) => action === 'QUERY') : []
+        : [...(target.allowedActions || [])]
     }
   }
 }

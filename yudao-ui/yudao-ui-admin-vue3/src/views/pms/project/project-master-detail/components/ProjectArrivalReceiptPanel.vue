@@ -1,4 +1,6 @@
 <template>
+  <el-alert v-if="!canQuery" title="当前没有查看该业务的权限" type="info" :closable="false" />
+  <template v-else>
   <ContentWrap :body-style="{ padding: '20px', overflow: 'hidden' }">
     <header class="receipt-heading"><h2>到货签收</h2><p>登记到货情况，上传交付件并记录签收结果。</p></header>
     <el-form ref="queryFormRef" :model="query" inline class="-mb-15px">
@@ -99,6 +101,7 @@
       <el-button v-if="!readOnly" type="primary" :loading="saving" @click="save">保存</el-button>
     </template>
   </Dialog>
+  </template>
 </template>
 
 <script setup lang="ts">
@@ -116,7 +119,9 @@ import { PmsFileReferenceList } from '@/components/PmsFileArtifact'
 import { createArrivalUploadAttempt, saveArrivalReceipt, type ArrivalUploadAttempt } from './saveArrivalReceipt'
 
 defineOptions({ name: 'ProjectArrivalReceiptPanel' })
-const props = defineProps<{ projectId: number; /** 任务所属阶段未进入时由工作区强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean }>()
+const props = defineProps<{ projectId: number; /** 任务所属阶段未进入时由工作区强制只读：隐藏业务写操作，查看照常 */ readonly?: boolean; allowedActions?: string[] }>()
+const canQuery = computed(() => checkPermi(['pms:imp-arrival:query']) &&
+  (props.allowedActions === undefined || props.allowedActions.includes('QUERY')))
 const userStore = useUserStore()
 const message = useMessage()
 const loading = ref(false)
@@ -134,7 +139,7 @@ let detailSequence = 0
 type ArrivalForm = Omit<ArrivalVO, 'arrivalTime'> & { arrivalTime?: string | number | null }
 const form = ref<ArrivalForm>({ projectId: props.projectId, code: '', status: 0 })
 const editableRecord = (row: Pick<ArrivalVO, 'status'>) => (row.status === 0 || row.status === 2) && checkPermi(['pms:imp-arrival:update'])
-const readOnly = computed(() => detailLoading.value || detailError.value || !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create'])))
+const readOnly = computed(() => !canQuery.value || detailLoading.value || detailError.value || !!props.readonly || (form.value.id ? !editableRecord(form.value) : !checkPermi(['pms:imp-arrival:create'])))
 const rules = {
   attachmentUrl: [{ validator: (_rule: unknown, _value: unknown, callback: (error?: Error) => void) =>
     callback(uploadAttempt || form.value.signDocumentArtifactId ? undefined : new Error('请选择签收单文件')) }]
@@ -161,6 +166,7 @@ const completionTimeText = computed(() => {
 })
 
 const load = async () => {
+  if (!canQuery.value) return
   loading.value = true
   try {
     const data = await ArrivalApi.getArrivalPage({ ...query, projectId: props.projectId })
@@ -171,7 +177,7 @@ const load = async () => {
   }
 }
 const openForm = async (row?: ArrivalVO) => {
-  if (saving.value) return
+  if (saving.value || !canQuery.value) return
   const sequence = ++detailSequence
   detailLoading.value = false
   uploadFiles.value = []; uploadAttempt = undefined
@@ -231,6 +237,7 @@ const save = async () => {
   }
 }
 const remove = async (row: ArrivalVO) => {
+  if (props.readonly || !canQuery.value || !checkPermi(['pms:imp-arrival:delete'])) return
   if (row.status === 1) return
   await message.delConfirm()
   await ArrivalApi.deleteArrival(row.id!)
@@ -238,6 +245,7 @@ const remove = async (row: ArrivalVO) => {
   await load()
 }
 const handleAction = async (row: ArrivalVO, action: 'markAbnormal') => {
+  if (props.readonly || !canQuery.value || !checkPermi(['pms:imp-arrival:update'])) return
   const actionText = { markAbnormal: '标记异常' }[action]
   await message.confirm(`确认${actionText}该签收记录？`)
   if (action === 'markAbnormal') await ArrivalApi.markAbnormalArrival(row.id!)
