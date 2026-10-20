@@ -156,6 +156,8 @@ class CutoverChecklistMatchingTest {
                     mock(CutoverChecklistItemResultMapper.class), configuration, new CutoverChecklistMatcher(),
                     scopes, mock(CutoverCollectionPort.class), mock(CutoverChecklistFilePort.class), platform,
                     mock(CutoverNavigationDecisionQueryService.class), Clock.systemUTC());
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAudience",
+                    mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.class));
             var metadata = mock(CutoverChecklistMetadataStore.class);
             doAnswer(invocation -> { metadataWrite.set(invocation.getArgument(0)); return null; }).when(metadata).replace(any());
             when(metadata.dimensions(any())).thenAnswer(invocation -> metadataWrite.get().dimensions());

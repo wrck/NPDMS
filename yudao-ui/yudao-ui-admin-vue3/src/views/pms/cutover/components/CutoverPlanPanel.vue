@@ -30,26 +30,29 @@
       </el-form>
       <CutoverPlanEditor
         v-if="draftContent"
+        ref="planEditor"
         v-model="draftContent"
+        :support-validation-message="supportValidationMessage"
         :source-snapshot="sourceSnapshot"
         :task-id="taskId"
         :editable="!props.readonly && !writing && plan.allowedActions.includes('SAVE_DRAFT')"
         :patch-approved="!props.readonly && plan.allowedActions.includes('UPDATE_APPROVED_CONTACTS')"
         @patch-support="patchSupport"
         @upload-pending="editorUploadPending = $event"
+        @file-state-pending="editorFileStatePending = $event"
       />
 
       </div>
       </section>
       <footer v-if="visiblePlanActions" class="cut-actions cut-actions--sticky plan-actions">
-        <span v-if="hasUnsavedChanges" class="draft-change-hint">内容已修改，请先保存；生成方案会自动保存。</span>
+        <span v-if="hasUnsavedChanges" class="draft-change-hint">内容已修改；生成方案、提交和离开页面前会先保存草稿。</span>
         <el-button
           v-if="!props.readonly && plan.allowedActions.includes('SAVE_DRAFT')"
           v-hasPermi="['pms:cutover-task:save-plan']"
           data-testid="save-plan"
           type="success"
           :loading="writing"
-          :disabled="pendingUploads"
+          :disabled="pendingUploads || editorFileStatePending"
           @click="save"
         >保存</el-button>
         <el-button
@@ -57,7 +60,7 @@
           v-hasPermi="['pms:cutover-task:download-plan']"
           data-testid="download-plan"
           :loading="writing"
-          :disabled="pendingUploads"
+          :disabled="pendingUploads || editorFileStatePending"
           @click="download"
         >生成并下载方案</el-button>
         <el-button
@@ -66,7 +69,7 @@
           data-testid="submit-plan"
           type="primary"
           :loading="writing"
-          :disabled="pendingUploads || hasUnsavedChanges"
+          :disabled="pendingUploads || editorFileStatePending"
           @click="submit"
         >下一步：割接审批</el-button>
         <el-button
@@ -161,6 +164,7 @@ import {
   formatWireDateTime
 } from '../shared/cutoverTaskInteraction'
 import CutoverPlanEditor from './CutoverPlanEditor.vue'
+import { planSupportValidationMessage } from '../shared/cutoverPlanValidation'
 
 const props = defineProps<{ taskId: string | number; taskVersion: number; manualGrade: ManualGrade | null; readonly?: boolean }>()
 const emit = defineEmits<{ changed: [] }>()
@@ -170,8 +174,12 @@ const writing = ref(false)
 const creatingReplacement = ref(false)
 const plan = ref<CutoverPlanView | null>(null)
 const draftContent = ref<WritableCutoverPlanContent | null>(null)
+const planEditor = ref<InstanceType<typeof CutoverPlanEditor>>()
+const supportValidationMessage = ref('')
+watch(draftContent, () => { supportValidationMessage.value = '' }, { deep: true })
 const downloaded = ref<DownloadCutoverPlanDraftResult | null>(null)
 const editorUploadPending = ref(false)
+const editorFileStatePending = ref(false)
 const createUploadRef = ref<InstanceType<typeof PmsFileUploader>>()
 const createFileReads = ref(0)
 const pendingUploads = computed(() => editorUploadPending.value || createFileReads.value > 0
@@ -205,16 +213,24 @@ const approvalTone = computed(() => plan.value?.approvalFact?.status === 'APPROV
     ? 'danger'
     : 'warning')
 
-const refresh = async () => {
+const refresh = async (options: { preserveDraft?: boolean } = {}) => {
+  const retained = options.preserveDraft && draftContent.value
+    ? JSON.parse(JSON.stringify(draftContent.value)) as WritableCutoverPlanContent : null
   loading.value = true
   try {
-    plan.value = await CutoverApi.getCutoverPlan(props.taskId)
+    const current = await CutoverApi.getCutoverPlan(props.taskId)
+    if (retained && plan.value && (String(current.planRevisionId) !== String(plan.value.planRevisionId)
+      || current.planVersion !== plan.value.planVersion || current.status !== 'DRAFT')) {
+      message.warning('方案已被其他操作更新，当前填写已保留；请先核对新版本，不能直接覆盖。')
+      throw new Error('Draft changed concurrently')
+    }
+    plan.value = current
     creatingReplacement.value = false
     downloaded.value = plan.value.generatedDraft ?? null
     const content = plan.value.content
-    draftContent.value = content
+    draftContent.value = retained || (content
       ? JSON.parse(JSON.stringify(content)) as WritableCutoverPlanContent
-      : null
+      : null)
   } finally {
     loading.value = false
   }
@@ -232,6 +248,7 @@ const passBarrier = async () => {
 const runIntent = async <T,>(intent: string, call: (key: string) => Promise<T>) => {
   if (pendingUploads.value) { message.warning('请完成附件上传和绑定后再保存或提交'); return null }
   if (!(await passBarrier())) return null
+  supportValidationMessage.value = ''
   writing.value = true
   const key = intents.key(intent)
   try {
@@ -247,22 +264,33 @@ const runIntent = async <T,>(intent: string, call: (key: string) => Promise<T>) 
     return result
   } catch (error) {
     const recovery = cutoverPlanRecoveryAction(error)
-    const response = (error as { response?: { data?: { msg?: string; data?: { errorCode?: string } } } })?.response
+    const response = (error as { response?: { data?: { msg?: string; data?: { reasonCode?: string } } } })?.response
     if (recovery !== 'RETRY_SAME_KEY') {
-      message.error(response?.data?.data?.errorCode === 'PLAN_SECTION_INCOMPLETE'
+      const reasonCode = response?.data?.data?.reasonCode
+      if (['PLAN_SECTION_INCOMPLETE', 'SUPPORT_ARRANGEMENT_INCOMPLETE'].includes(reasonCode || '')) {
+        supportValidationMessage.value = planSupportValidationMessage(draftContent.value)
+      }
+      message.error(supportValidationMessage.value || (reasonCode === 'PLAN_SECTION_INCOMPLETE'
         ? '方案内容尚未完整，请补充方案各章节及步骤后再生成或提交。'
-        : response?.data?.msg || '方案操作失败，请检查填写内容后重试。')
+        : response?.data?.msg || '方案操作失败，请检查填写内容后重试。'))
     }
     if (recovery === 'START_NEW_INTENT') intents.complete(intent)
     if (recovery === 'REFRESH_AGGREGATE' || recovery === 'REFRESH_OWNER_FACTS') {
       intents.complete(intent)
-      try { await refresh(); emit('changed') } catch { message.warning('权威事实刷新失败，请稍后重试') }
+      try {
+        await refresh({ preserveDraft: true })
+        message.warning('来源和版本已刷新，未提交的填写已保留；请核对后重新保存草稿。')
+      } catch { message.warning('权威事实刷新失败，当前填写已保留，请稍后重试。') }
     } else if (recovery === 'RETRY_SAME_KEY') {
       message.warning('响应未知或命令处理中，已保留本次幂等键')
     }
     return null
   } finally {
     writing.value = false
+    if (supportValidationMessage.value) {
+      await nextTick()
+      planEditor.value?.focusSupportValidation()
+    }
   }
 }
 
@@ -275,6 +303,7 @@ const create = async () => {
   if (result) message.success('方案草稿已创建')
 }
 const save = async () => {
+  if (editorFileStatePending.value) { message.warning('文件状态正在读取，请稍后保存草稿。'); return false }
   if (plan.value?.planVersion === null || plan.value?.planVersion === undefined || !draftContent.value) return false
   const content = contentForSave(JSON.parse(JSON.stringify(draftContent.value)) as WritableCutoverPlanContent)
   const result = await runIntent(`save:${plan.value.planRevisionId}:${plan.value.planVersion}:${JSON.stringify(content)}`,
@@ -306,6 +335,17 @@ const contentForSave = (content: WritableCutoverPlanContent): WritableCutoverPla
 }
 const hasUnsavedChanges = computed(() => !!draftContent.value && !!plan.value?.content
   && JSON.stringify(contentForSave(draftContent.value)) !== JSON.stringify(contentForSave(plan.value.content)))
+const saveBeforeLeave = async () => {
+  if (editorFileStatePending.value) { message.warning('文件状态正在读取，请稍后再离开。'); return false }
+  if (pendingUploads.value || writing.value) { message.warning('请等待当前上传或保存完成后再离开。'); return false }
+  if (!hasUnsavedChanges.value) return true
+  if (!plan.value?.allowedActions.includes('SAVE_DRAFT') || props.readonly) {
+    message.warning('当前填写尚未保存，权限或方案状态已变化；填写已保留，暂不能离开。')
+    return false
+  }
+  return save()
+}
+defineExpose({ saveBeforeLeave, hasPendingDraft: () => hasUnsavedChanges.value || pendingUploads.value || writing.value })
 const download = async () => {
   if (plan.value?.planVersion === null || plan.value?.planVersion === undefined) return
   if (downloaded.value && String(downloaded.value.planRevisionId) === String(plan.value.planRevisionId)
@@ -350,6 +390,7 @@ const accessGeneratedDraft = async (result: DownloadCutoverPlanDraftResult, open
 }
 const submit = async () => {
   if (plan.value?.planVersion === null || plan.value?.planVersion === undefined) return
+  if (hasUnsavedChanges.value && !(await save())) return
   const result = await runIntent(`submit:${plan.value.planRevisionId}:${plan.value.planVersion}`,
     (key) => CutoverApi.submitCutoverPlan({ taskId: props.taskId, taskVersion: props.taskVersion, planVersion: plan.value!.planVersion!, idempotencyKey: key }))
   if (result) message.success('方案已提交审批')
@@ -381,7 +422,7 @@ const patchSupport = async (row: CutoverPlanSupportArrangement) => {
   try { const response = await message.prompt('请输入本次联系人、电话或到位时间的变更原因', '更新保障联系人'); reason = response.value.trim() } catch { return }
   if (!reason) { message.warning('请填写变更原因'); return }
   const data = { personName: row.personName, phone: row.phone, arrivalTime: row.arrivalTime, reason,
-    customerContactReference: row.customerContactReference ?? null }
+    customerContactReference: row.customerContactReference ?? null, personReference: row.personReference ?? null }
   const result = await runIntent(`contact:${row.arrangementId}:${plan.value.planVersion}:${JSON.stringify(data)}`,
     (key) => CutoverApi.patchApprovedCutoverPlanContact({ taskId: props.taskId, arrangementId: row.arrangementId!, planVersion: plan.value!.planVersion!, data: data, idempotencyKey: key }))
   if (result) message.success('批准联系人已更新')

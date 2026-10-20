@@ -4,12 +4,10 @@ import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.dal.dataobject.approval.CutoverApprovalNodeDO;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApprovalRoleCandidatePort;
-import cn.iocoder.yudao.module.pms.cutover.service.approval.port.ProjectCutoverServiceManagerPort;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,17 +23,19 @@ class CutoverApprovalRoleEligibilityTest {
 
     @ParameterizedTest
     @CsvSource({"SECOND_LINE,probSupporter", "RND,probRD"})
-    void selectedUserWithExistingRoleAndProjectScopeCanAct(String nodeCode, String roleCode) {
+    void frozenSelectedUserCanActWithoutCurrentRoleLookup(String nodeCode, String roleCode) {
         var fixture = new Fixture(nodeCode, roleCode, true);
         assertTrue(fixture.policy.eligible(fixture.root, fixture.node, 2L));
-        verify(fixture.roles).inspectActor(new CutoverApprovalRoleCandidatePort.ActorQuery(1L, 2L));
+        verify(fixture.roles).requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(1L, 2L));
+        verify(fixture.roles, never()).inspectActor(any());
     }
 
     @ParameterizedTest
     @CsvSource({"SECOND_LINE,probSupporter", "RND,probRD"})
-    void existingRoleDoesNotBypassProjectScope(String nodeCode, String roleCode) {
+    void frozenSelectedUserSurvivesProjectScopeChange(String nodeCode, String roleCode) {
         var fixture = new Fixture(nodeCode, roleCode, false);
-        assertFalse(fixture.policy.eligible(fixture.root, fixture.node, 2L));
+        assertTrue(fixture.policy.eligible(fixture.root, fixture.node, 2L));
+        verifyNoInteractions(fixture.scopes);
     }
 
     @ParameterizedTest
@@ -107,6 +107,26 @@ class CutoverApprovalRoleEligibilityTest {
         verifyNoInteractions(fixture.scopes);
     }
 
+    @Test void claimedRoleSurvivesRemovalButCannotBeTakenByAnotherMember() {
+        var f = new Fixture("SECOND_LINE", "probSupporter", false, true);
+        f.node.setCurrentApproverUserId(2L);
+        doReturn(List.of()).when(f.roles).inspectActor(any());
+        assertTrue(f.policy.eligible(f.root, f.node, 2L));
+        assertFalse(f.policy.eligible(f.root, f.node, 3L));
+        verify(f.roles, never()).inspectActor(any());
+    }
+    @Test void frozenPersonalAssignmentDoesNotRequeryProjectOrManager() {
+        var f = new Fixture("SERVICE_MANAGER", "probSupporter", false);
+        assertTrue(f.policy.eligible(f.root, f.node, 2L));
+        assertFalse(f.policy.eligible(f.root, f.node, 3L));
+        verifyNoInteractions(f.scopes);
+    }
+    @Test void disabledAssignedAccountCannotAct() {
+        var f = new Fixture("SECOND_LINE", "probSupporter", false, true);
+        f.node.setCurrentApproverUserId(2L);
+        doThrow(new IllegalArgumentException("disabled")).when(f.roles).requireActiveUser(any());
+        assertThrows(IllegalArgumentException.class, () -> f.policy.eligible(f.root, f.node, 2L));
+    }
     private static final class Fixture {
         void tenantRoleScope() { node.setApprovalModeCode("ROLE"); }
         final CutoverApprovalRoleCandidatePort roles = mock(CutoverApprovalRoleCandidatePort.class);
@@ -134,8 +154,7 @@ class CutoverApprovalRoleEligibilityTest {
             });
             when(scopes.inspect(any())).thenReturn(new CutoverApprovalProjectScopePort.ProjectScopeFact(
                     1L, 10L, 2L, "ACTION_VIEW", projectAllowed, 1L));
-            policy = new CutoverApprovalEligibilityPolicy(mock(ProjectCutoverServiceManagerPort.class),
-                    roles, scopes, LocalDateTime::now);
+            policy = new CutoverApprovalEligibilityPolicy(roles);
         }
     }
 }

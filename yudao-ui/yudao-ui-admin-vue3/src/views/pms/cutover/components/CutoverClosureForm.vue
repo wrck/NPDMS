@@ -2,54 +2,67 @@
   <section class="closure-form" aria-label="割接闭环填写">
     <div v-for="(item, index) in resultItems" :key="item.key" class="closure-question">
       <label class="question-label">{{ index + 1 }}. {{ item.label }}是否正常？<span class="cut-required"> *</span></label>
-      <el-radio-group :model-value="modelValue[item.normalKey] ?? undefined" :disabled="!editable"
+      <el-radio-group
+:model-value="modelValue[item.normalKey] ?? undefined" :disabled="!editable"
         :data-testid="'closure-' + item.key + '-normal'" :aria-label="item.label + '是否正常'"
         @update:model-value="update(item.normalKey, $event)">
         <el-radio :value="true">是</el-radio><el-radio :value="false">否</el-radio>
       </el-radio-group>
       <div v-if="modelValue[item.normalKey] === false || modelValue[item.detailKey]" class="reason-box">
         <label>详细说明<span v-if="modelValue[item.normalKey] === false" class="cut-required"> *</span></label>
-        <el-input :model-value="modelValue[item.detailKey]" :disabled="!editable" type="textarea" :rows="2"
+        <el-input
+:model-value="modelValue[item.detailKey]" :disabled="!editable" type="textarea" :rows="2"
           :placeholder="'请填写' + item.label + '情况及处置说明'" :data-testid="'closure-' + item.key + '-detail'"
           @update:model-value="update(item.detailKey, $event)" />
       </div>
     </div>
     <div class="closure-question">
       <label class="question-label">4. 割接是否存在回退操作？<span class="cut-required"> *</span></label>
-      <el-radio-group :model-value="modelValue.rollbackOccurred ?? undefined" :disabled="!editable"
+      <el-radio-group
+:model-value="modelValue.rollbackOccurred ?? undefined" :disabled="!editable"
         data-testid="closure-rollback-occurred" aria-label="是否存在回退操作" @update:model-value="update('rollbackOccurred', $event)">
         <el-radio :value="true">是，有回退</el-radio><el-radio :value="false">否，无回退</el-radio>
       </el-radio-group>
       <div v-if="modelValue.rollbackOccurred" class="reason-box">
         <label>回退结果及原因<span class="cut-required"> *</span></label>
-        <el-radio-group :model-value="modelValue.rollbackSuccessful ?? undefined" :disabled="!editable"
+        <el-radio-group
+:model-value="modelValue.rollbackSuccessful ?? undefined" :disabled="!editable"
           data-testid="closure-rollback-successful" aria-label="回退结果" @update:model-value="update('rollbackSuccessful', $event)">
           <el-radio :value="true">回退成功</el-radio><el-radio :value="false">回退失败</el-radio>
         </el-radio-group>
-        <el-input :model-value="modelValue.rollbackReason" :disabled="!editable" type="textarea" :rows="2"
+        <el-input
+:model-value="modelValue.rollbackReason" :disabled="!editable" type="textarea" :rows="2"
           placeholder="请填写回退原因及处置说明" data-testid="closure-rollback-reason" @update:model-value="update('rollbackReason', $event)" />
       </div>
     </div>
     <section class="attachment-section" aria-label="闭环附件">
       <div v-for="(slot, index) in attachmentSlots" :key="slot.purposeCode" class="attachment-row">
         <h4 class="cut-section-title">{{ index < 2 ? (index + 5) + '. ' : '' }}{{ slot.label }}<span v-if="index < 2" class="cut-required"> *</span></h4>
-        <PmsFileUploader ref="uploadRefs" v-if="editable && closureId !== null"
+        <PmsFileUploader
+ref="uploadRefs" v-if="editable && closureId !== null"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
           :data-testid="'closure-file-' + slot.purposeCode" owner-context="CUT" object-type="CUTOVER_CLOSURE" :object-id="String(closureId)"
-          :purpose-code="slot.purposeCode" :reference-key="'cutover-closure-' + closureId + '-' + slot.referenceSuffix"
+          :purpose-code="slot.purposeCode" :reference-key="attachment(slot.purposeCode)?.referenceKey || 'cutover-closure-' + closureId + '-' + slot.referenceSuffix"
+          :artifact-id="references[slot.purposeCode]?.artifactId || attachment(slot.purposeCode)?.artifactId"
+          :expected-reference-version="references[slot.purposeCode]?.referenceVersion ?? attachment(slot.purposeCode)?.fileFactVersion.referenceVersion"
+          :disabled="referencesLoading || !!referenceErrors[slot.purposeCode]"
           category-code="CUTOVER_CLOSURE" @completed="completeUpload(slot.purposeCode, $event)" />
+        <p v-if="referenceErrors[slot.purposeCode]" class="cut-help" role="status">当前材料引用读取失败，请重试后上传。<el-button link type="primary" @click="readReferences">重试</el-button></p>
         <p v-if="editable && closureId !== null" class="cut-help">支持PDF、Word、Excel及图片，单文件不超过50MB。</p>
-        <PmsFileVersionReferenceList v-if="attachment(slot.purposeCode)" owner-context="CUT" object-type="CUTOVER_CLOSURE"
+        <PmsFileVersionReferenceList
+v-if="attachment(slot.purposeCode)" owner-context="CUT" object-type="CUTOVER_CLOSURE"
           :object-id="String(closureId)" :purpose-code="slot.purposeCode" :reference-key="attachment(slot.purposeCode)!.referenceKey"
           :artifact-id="attachment(slot.purposeCode)!.artifactId" :version-no="attachment(slot.purposeCode)!.versionNo" />
         <p v-else-if="closureId === null" class="cut-help">先保存闭环草稿，即可上传{{ slot.label }}。</p>
         <p v-else-if="!editable" class="cut-help">未上传附件</p>
-        <el-button v-if="editable && closureId !== null && !attachment(slot.purposeCode)" :disabled="pendingUploads"
+        <el-button
+v-if="editable && closureId !== null && !attachment(slot.purposeCode)" :disabled="pendingUploads"
           link type="primary" :data-testid="'closure-restore-' + slot.purposeCode" @click="restoreUpload(slot)">读取已上传附件</el-button>
       </div>
     </section>
     <h4 class="cut-section-title">7. 割接遗留项</h4>
-    <el-input :model-value="modelValue.legacyItems" :disabled="!editable" type="textarea" :rows="3"
+    <el-input
+:model-value="modelValue.legacyItems" :disabled="!editable" type="textarea" :rows="3"
       placeholder="请输入割接遗留事项及后续安排，无遗留事项可填写“无”" data-testid="closure-legacy-items" @update:model-value="update('legacyItems', $event)" />
   </section>
 </template>
@@ -68,8 +81,12 @@ const emit = defineEmits<{
 }>()
 const uploadRefs = ref<Array<InstanceType<typeof PmsFileUploader>>>([])
 const completingUploads = ref(0)
+const references = ref<Partial<Record<CutoverClosureFilePurpose, { artifactId: string | number; referenceVersion: number }>>>({})
+const referenceErrors = ref<Partial<Record<CutoverClosureFilePurpose, boolean>>>({})
+const referencesLoading = ref(false)
+let referenceSequence = 0
 const message = useMessage()
-const pendingUploads = computed(() => completingUploads.value > 0 ||
+const pendingUploads = computed(() => referencesLoading.value || completingUploads.value > 0 ||
   uploadRefs.value.some(uploader => uploader.isBusy() || uploader.hasPendingFile()))
 watch(pendingUploads, pending => emit('upload-pending', pending), { immediate: true })
 defineExpose({ hasPendingUploads: () => pendingUploads.value })
@@ -100,12 +117,31 @@ const attachment = (purposeCode: CutoverClosureFilePurpose) =>
 const fileKey = (purposeCode: CutoverClosureFilePurpose, referenceKey: string) => ({
   ownerContext: 'CUT', objectType: 'CUTOVER_CLOSURE', objectId: String(props.closureId), purposeCode, referenceKey
 })
+const readReferences = async () => {
+  const sequence = ++referenceSequence
+  if (!props.editable || props.closureId == null) { referencesLoading.value = false; return }
+  referencesLoading.value = true
+  try {
+    const results = await Promise.allSettled(attachmentSlots.map(slot => FileApi.getCurrentReference(
+      fileKey(slot.purposeCode, attachment(slot.purposeCode)?.referenceKey || `cutover-closure-${props.closureId}-${slot.referenceSuffix}`))))
+    if (sequence !== referenceSequence) return
+    results.forEach((result, index) => {
+      const purpose = attachmentSlots[index].purposeCode
+      referenceErrors.value[purpose] = result.status === 'rejected'
+      if (result.status === 'fulfilled') references.value[purpose] = result.value || undefined
+    })
+  } finally { if (sequence === referenceSequence) referencesLoading.value = false }
+}
+watch(() => [props.closureId, props.editable], () => { references.value = {}; referenceErrors.value = {}; void readReferences() }, { immediate: true })
+onBeforeUnmount(() => { referenceSequence++ })
+
 const completeUpload = async (purposeCode: CutoverClosureFilePurpose,
     selection: Pick<CutoverClosureFileFact, 'artifactId' | 'versionNo' | 'referenceKey'>) => {
   completingUploads.value++
   try {
     const key = fileKey(purposeCode, selection.referenceKey)
     const artifact = await FileApi.getArtifact(selection.artifactId, key)
+    references.value[purposeCode] = { artifactId: selection.artifactId, referenceVersion: artifact.reference.referenceVersion }
     const versions = await FileApi.getVersions(selection.artifactId, { ...key, pageSize: 20 })
     const version = versions.items.find((row) => row.versionNo === selection.versionNo)
     if (!version) throw new Error('PLT 未返回刚完成的闭环附件版本')

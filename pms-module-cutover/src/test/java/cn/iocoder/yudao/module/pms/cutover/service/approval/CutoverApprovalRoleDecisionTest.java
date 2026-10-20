@@ -297,7 +297,8 @@ class CutoverApprovalRoleDecisionTest {
                 "explicit-correlation"));
         assertThat(result.approvalStatus()).isEqualTo("APPROVED");
         verify(f.workflow).decide(any(), any(), argThat(input -> "APPROVE".equals(input.action())), eq(33L));
-        verify(f.candidates).lockAndInspectActor(new CutoverApprovalRoleCandidatePort.ActorQuery(1L, 33L));
+        verify(f.candidates).requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(1L, 33L));
+        verify(f.candidates, never()).lockAndInspectActor(any());
     }
 
     @Test
@@ -398,21 +399,60 @@ class CutoverApprovalRoleDecisionTest {
     }
 
     @Test
-    void explicitlySelectedUserLosingRoleCannotApprove() {
+    void explicitlySelectedUserRemainsAssignedAfterRoleRemoval() {
         Fixture f = new Fixture(33L);
         f.givenRoleCandidates(33L, List.of(44L));
-        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L,
-                10L,
-                100L,
-                3L,
-                0L,
-                yesItems(),
-                null,
-                "原改派用户已失效",
-                "revoked-role",
-                "revoked-correlation")))
+        when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
+        assertThat(f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 100L, 3L, 0L,
+                yesItems(), null, "fixed assignment", "fixed-role", "fixed-correlation"))
+                .approvalStatus()).isEqualTo("APPROVED");
+        verify(f.workflow).decide(any(), any(), any(), eq(33L));
+        verify(f.candidates, never()).lockAndInspectActor(any());
+        verifyNoInteractions(f.scopes);
+    }
+
+    @Test
+    void directSharedDecisionIsIdempotentAndWritesOneFiveItemReview() {
+        Fixture f = new Fixture(33L);
+        f.givenRoleCandidates(null, List.of(33L, 44L));
+        f.markCurrentNodeAsSharedRole();
+        when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
+        var command = new ApproveCutoverApprovalCommand(1L, 10L, 100L, 3L, 0L, yesItems(), null,
+                "direct role decision", "direct-role-key", "direct-role-correlation");
+        var result = f.service.approve(command);
+        assertThat(f.service.approve(command)).isEqualTo(result);
+        verify(f.workflow, times(1)).decide(any(), any(), any(), eq(33L));
+        verify(f.reviews, times(5)).insert(any(CutoverApprovalReviewItemDO.class));
+        verify(f.nodes, times(1)).updateStatusIfMatch(argThat(update ->
+                "APPROVED".equals(update.node().getStatusCode())
+                        && Long.valueOf(33L).equals(update.node().getCurrentApproverUserId())
+                        && "ROLE".equals(update.node().getApprovalModeCode())));
+    }
+
+    @Test
+    void anotherMemberCannotDecideAlreadyAssignedRole() {
+        Fixture f = new Fixture(44L);
+        f.givenRoleCandidates(33L, List.of(33L, 44L));
+        var node = f.nodes.selectByInstanceAndNodeForUpdate(
+                new cn.iocoder.yudao.module.pms.cutover.dal.mysql.approval.query.ApprovalNodeLockQuery(1L, 100L, 3));
+        node.setApprovalModeCode("ROLE");
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 100L, 3L, 0L,
+                yesItems(), null, "other member", "other-decision", "other-correlation")))
                 .isInstanceOf(CutoverApprovalApplicationException.class);
         verifyNoInteractions(f.workflow);
+        verify(f.reviews, never()).insert(any(CutoverApprovalReviewItemDO.class));
+    }
+
+    @Test
+    void memberRemovedBeforeDecisionCannotAct() {
+        Fixture f = new Fixture(33L);
+        f.givenRoleCandidates(null, List.of(44L));
+        f.markCurrentNodeAsSharedRole();
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 100L, 3L, 0L,
+                yesItems(), null, "revoked member", "revoked-direct", "revoked-correlation")))
+                .isInstanceOf(CutoverApprovalApplicationException.class);
+        verifyNoInteractions(f.workflow);
+        verify(f.nodes, never()).updateStatusIfMatch(any());
     }
 
     private static List<ReviewItemInput> noItems() {

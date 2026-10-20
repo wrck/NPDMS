@@ -9,6 +9,8 @@ import static cn.iocoder.yudao.module.pms.cutover.service.approval.domain.Cutove
 
 public interface CutoverApprovalRoleCandidatePort {
 
+    void requireActiveUser(ActorQuery query);
+
     CandidateSet inspectCandidates(RoleQuery query);
 
     CandidateRevalidation lockAndRevalidate(CandidateSet expected);

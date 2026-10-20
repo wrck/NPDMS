@@ -37,7 +37,8 @@ public class CutoverTaskSnapshotStore {
     @Builder
     public record DeviceWrite(CutoverAssessmentDO assessment, List<CutoverTaskDeviceScopeDO> devices,
                               Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> productTypes,
-                              Long actorId, LocalDateTime time) { }
+                              Long actorId, LocalDateTime time,
+                              List<CutoverDeviceScopePort.DeviceFact> currentDevices) { }
 
     public static void applyTask(TaskWrite command) {
         var row = command.task(); var context = command.context(); var project = context.project(); var customer = context.customer();
@@ -155,6 +156,16 @@ public class CutoverTaskSnapshotStore {
                 .deviceIds(ids).build());
     }
 
+    /** 只读审批查看CUT已经保存的来源引用，不据此复核或推进IMP业务。 */
+    public CutoverReadinessPort.ReadinessFact readinessReference(CutoverTaskDO task) {
+        var ids = taskDevices.byTask(new CutoverTaskDeviceListQuery(task.getTenantId(), task.getId())).stream()
+                .map(CutoverTaskDeviceScopeDO::getDeviceId).toList();
+        if ("NOT_APPLICABLE".equals(task.getReadinessDecisionCode())) return CutoverContextSupport.independentReadiness(task.getProjectId(), ids);
+        if (task.getImplementationReadinessSnapshotId() == null) return null;
+        return new CutoverReadinessPort.ReadinessFact(task.getImplementationReadinessSnapshotId(), task.getImplementationReadinessSnapshotVersion(),
+                task.getReadinessDecisionCode(), task.getProjectId(), ids, null, null);
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public void replaceAssessmentDevices(DeviceWrite command) {
         var assessment = command.assessment();
@@ -166,9 +177,11 @@ public class CutoverTaskSnapshotStore {
                 throw new IllegalArgumentException("评估设备必须属于同租户任务");
             }
             var product = command.productTypes().get(device.getDeviceId());
+            var current = command.currentDevices() == null ? null : command.currentDevices().stream()
+                    .filter(value -> device.getDeviceId().equals(value.deviceId())).findFirst().orElseThrow();
             assessmentDevices.insert(CutoverAssessmentDeviceDO.builder().tenantId(assessment.getTenantId()).assessmentId(assessment.getId())
-                    .taskDeviceScopeId(device.getId()).deviceId(device.getDeviceId()).projectId(device.getProjectId()).sn(device.getSerialNumberSnapshot())
-                    .projectAssignmentVersion(device.getProjectAssignmentVersion()).deviceTypeCode(device.getDeviceTypeCodeSnapshot())
+                    .taskDeviceScopeId(device.getId()).deviceId(device.getDeviceId()).projectId(current == null ? device.getProjectId() : current.projectId()).sn(current == null ? device.getSerialNumberSnapshot() : current.serialNumber())
+                    .projectAssignmentVersion(current == null ? device.getProjectAssignmentVersion() : current.projectAssignmentVersion()).deviceTypeCode(device.getDeviceTypeCodeSnapshot())
                     .deviceTypeSourceVersion(device.getDeviceTypeSourceVersionSnapshot()).productTypeCode(product == null ? null : product.productTypeCode())
                     .productTypeSourceVersion(product == null ? null : product.sourceVersion()).sortOrder(i).createUserId(command.actorId()).createTime(command.time()).build());
         }

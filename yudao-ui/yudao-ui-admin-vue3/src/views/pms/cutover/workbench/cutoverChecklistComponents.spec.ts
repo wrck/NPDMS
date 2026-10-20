@@ -16,6 +16,11 @@ import { textOf } from '../cutoverTestHarness'
 const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
 const acceptedTemplate = vi.hoisted(() => ({ value: '9007199254740992' }))
 const downloadFile = vi.hoisted(() => ({ excel: vi.fn() }))
+const validationFocus = vi.hoisted(() => vi.fn())
+vi.mock('../shared/cutoverChecklistValidation', async importOriginal => ({
+  ...await importOriginal<typeof import('../shared/cutoverChecklistValidation')>(),
+  focusChecklistValidationItem: validationFocus
+}))
 const checklistApi = vi.hoisted(() => ({
   getCutoverChecklistMatchingOptions: vi.fn(async () => ({ matchingInput: { cutoverType: 'CONFIGURATION_CHANGE', networkMode: null, deviceTypeCodes: ['ROUTER'] }, deviceTypes: [{ value: 'ROUTER', label: '路由器' }] })),
   getCutoverChecklistRevisions: vi.fn(async () => []),
@@ -41,9 +46,9 @@ vi.mock('@/components/DeviceCollection/BusinessCollectionDialog.vue', () => ({
     emits: ['accepted', 'closed'],
     setup(_, { emit, expose }) {
       expose({ open: vi.fn() })
-      return () => h('button', { 'data-testid': 'accept-platform-execution', onClick: () => emit('accepted', {
+      return () => h('section', [h('button', { 'data-testid': 'accept-platform-execution', onClick: () => emit('accepted', {
         id: '9007199254740994', task: { deviceId: '9007199254740991', templateId: acceptedTemplate.value }
-      }) }, '确认平台采集执行')
+      }) }, '确认平台采集执行'), h('button', { 'data-testid': 'close-platform-execution', onClick: () => emit('closed') }, '关闭采集')])
     }
   })
 }))
@@ -220,6 +225,41 @@ describe('F-CUT-003 mounted checklist field', () => {
     expect(inputs).not.toContain('当前软件版本')
     expect(inputs).not.toContain('设备型号')
     mounted.app.unmount()
+  })
+
+  it('keeps entered checklist facts when a failed save triggers a source refresh', async () => {
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockImplementation(async () => checklistView(null))
+    const failure = { response: { status: 409, data: { data: { recoveryAction: 'REFRESH_OWNER_FACTS' } } } }
+    checklistApi.saveCutoverChecklist.mockRejectedValueOnce(failure)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+    findInput(mounted.root, '请填写核查事实').props['onUpdate:modelValue']('必须保留的核查事实')
+    await expect((findByTestId(mounted.root, 'checklist-save')!.props!.onClick as Function)()).rejects.toEqual(failure)
+    await flush()
+    expect(findInput(mounted.root, '请填写核查事实').props['model-value']).toBe('必须保留的核查事实')
+    expect(checklistApi.getCutoverChecklist).toHaveBeenCalledTimes(2)
+    mounted.app.unmount()
+  })
+
+  it('saves pending checklist facts before refreshing after collection closes', async () => {
+    const current = () => ({ ...checklistView(null), items: [item, { ...item, itemId: '202', stableItemKey: 'collection-check', workModeCode: 'COLLECTION' }] })
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockImplementation(async () => current())
+    checklistApi.saveCutoverChecklist.mockImplementation(async () => {
+      checklistApi.getCutoverChecklist.mockImplementation(async () => ({ ...current(), items: [
+        { ...item, currentResult: { resultSourceCode: 'DIRECT', answerSnapshot: '{"value":"关闭采集前的填写"}' } }, current().items[1]
+      ] }))
+    })
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+    findInput(mounted.root, '请填写核查事实').props['onUpdate:modelValue']('关闭采集前的填写')
+    await (findByTestId(mounted.root, 'close-platform-execution')!.props!.onClick as Function)()
+    await vi.waitFor(() => expect(checklistApi.saveCutoverChecklist).toHaveBeenCalledOnce())
+    await vi.waitFor(() => expect(checklistApi.getCutoverChecklist).toHaveBeenCalledTimes(3))
+    expect(findInput(mounted.root, '请填写核查事实').props['model-value']).toBe('关闭采集前的填写')
+    mounted.app.unmount()
+    checklistApi.saveCutoverChecklist.mockReset()
   })
 
   it('saves a DIRECT value as JSON and hydrates the refreshed control value', async () => {
@@ -410,6 +450,47 @@ describe('F-CUT-003 mounted checklist field', () => {
       expect.any(Blob),
       'cutover-checklist-101-v1.xlsx'
     )
+    mounted.app.unmount()
+  })
+
+  it('reveals and focuses a required item hidden by search after server validation rejects submission', async () => {
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockResolvedValue(checklistView(null))
+    checklistApi.submitCutoverChecklist.mockReset()
+    checklistApi.submitCutoverChecklist.mockRejectedValue({
+      response: { status: 200, data: { msg: '风险核查 / 联系电话：尚未填写' } }
+    })
+    const refreshWorkspace = vi.fn()
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail, refreshWorkspace }, controls)
+    await flush()
+    const search = findInput(mounted.root, '查找采集项')!
+    search.props['onUpdate:modelValue']('不存在的采集项')
+    await nextTick()
+    await (findByTestId(mounted.root, 'checklist-submit')!.props?.onClick as () => Promise<void>)()
+    await flush()
+
+    expect(findInput(mounted.root, '查找采集项').props.modelValue).toBe('')
+    expect(textOf(mounted.root)).toContain('风险核查 / 联系电话：尚未填写')
+    expect(validationFocus).toHaveBeenCalledWith(expect.anything(), 'risk-check')
+    expect(checklistApi.submitCutoverChecklist).toHaveBeenCalledOnce()
+    expect(refreshWorkspace).not.toHaveBeenCalled()
+    findInput(mounted.root, '请填写核查事实').props['onUpdate:modelValue']('已补充')
+    await nextTick()
+    expect(textOf(mounted.root)).not.toContain('风险核查 / 联系电话：尚未填写')
+    mounted.app.unmount()
+  })
+
+  it('does not turn authorization rejection into missing-item navigation', async () => {
+    checklistApi.getCutoverChecklist.mockReset()
+    checklistApi.getCutoverChecklist.mockResolvedValue(checklistView(null))
+    checklistApi.submitCutoverChecklist.mockReset()
+    const failure = { response: { status: 403, data: { msg: '风险核查：无权限' } } }
+    checklistApi.submitCutoverChecklist.mockRejectedValue(failure)
+    const mounted = mount(CutoverChecklistPanel, { detail: taskDetail }, controls)
+    await flush()
+    await expect((findByTestId(mounted.root, 'checklist-submit')!.props?.onClick as () => Promise<void>)())
+      .rejects.toEqual(failure)
+    expect(validationFocus).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
 

@@ -1,7 +1,7 @@
 <template>
   <section class="cutover-task-workbench full-detail" data-testid="cutover-task-detail">
     <header class="detail-topbar">
-      <el-button link data-testid="close-cutover-detail" @click="emit('close')"><Icon icon="ep:back" />返回任务列表</el-button>
+      <el-button link data-testid="close-cutover-detail" @click="closeDetail"><Icon icon="ep:back" />返回任务列表</el-button>
       <div><strong>{{ approvalOnly ? '割接审批' : detail?.task.taskName || '割接任务' }}</strong><span>{{ approvalOnly ? '审批来源与方案只读' : detail?.task.taskNo }}</span></div>
       <el-tag v-if="detail" :type="detail.task.taskStatus === 'ARCHIVED' ? 'success' : 'primary'" size="small">{{ statusLabels[detail.task.taskStatus] }}</el-tag>
       <el-button link data-testid="refresh-cutover-detail" :loading="detailLoading" @click="reloadDetail">刷新</el-button>
@@ -12,7 +12,10 @@
         v-if="approvalOnly" :key="`${taskId}:${approvalReload}`" :readonly="readonly"
         :task-id="taskId" complete-after-decision @changed="handleApprovalChanged" @decided="emit('close')" />
       <template v-else-if="detail">
-        <CutoverWorkbenchSteps :steps="detail.workbenchSteps" :selected="selectedStage" @select="selectedStage = $event" />
+        <el-alert
+v-if="detail.task.currentStage === 'P2' && detail.assessmentSubmissionBlockReason"
+          :title="detail.assessmentSubmissionBlockReason" type="warning" :closable="false" show-icon />
+        <CutoverWorkbenchSteps :steps="detail.workbenchSteps" :selected="selectedStage" @select="selectStage" />
         <div v-if="revisionTarget && !readonly && !detailError" class="cut-actions">
           <span class="cut-help">修订保留原版本，并使后续清单或方案失效；审批中会先撤回当前审批。</span>
           <el-button data-testid="revise-current-step" type="warning" :loading="revising" @click="openRevision">
@@ -21,7 +24,7 @@
         </div>
         <template v-if="activeStagePanel === 'ASSESSMENT'">
           <el-alert title="根据问卷填写评估信息，人工确定A/B/C/D等级。D级使用简易割接流程；已提交内容需通过修订创建新版本。" type="info" :closable="false" show-icon />
-          <CutoverProjectContextCard :detail="detail" />
+          <CutoverProjectContextCard :detail="detail" :approval-readonly="detail.approvalReadOnly" />
           <CutoverTaskDevices :detail="detail" />
           <CutoverAssessmentPanel
             :model="assessmentModel" :customer-service-level="assessmentCustomerLevel"
@@ -30,9 +33,11 @@
             :saving="saving" :submitting="submitting" @save="saveAssessment" @submit="submitAssessment" />
         </template>
         <CutoverChecklistPanel
+          ref="checklistPanel"
           v-else-if="activeStagePanel === 'CHECKLIST'" :detail="detail" :readonly="readonly || !!detailError"
           :refresh-workspace="refreshAfterChecklistSubmit" :refresh-draft="handleTaskChanged" @navigate="handleChecklistNavigation" />
         <CutoverPlanPanel
+          ref="planPanel"
           v-else-if="activeStagePanel === 'PLAN'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
           :task-version="detail.task.version" :manual-grade="detail.task.manualGrade" @changed="handleTaskChanged" />
         <CutoverApprovalPanel
@@ -97,7 +102,10 @@ import CutoverWorkbenchSteps from '../components/CutoverWorkbenchSteps.vue'
 const props = defineProps<{ taskId: WireLong; projectId?: WireLong; readonly?: boolean; approvalOnly?: boolean }>()
 const emit = defineEmits<{ close: []; changed: [] }>()
 const message = useMessage()
+const planPanel = ref<InstanceType<typeof CutoverPlanPanel>>()
+const checklistPanel = ref<InstanceType<typeof CutoverChecklistPanel>>()
 const detail = ref<CutoverTaskDetail | null>(null)
+const readonly = computed(() => !!props.readonly || !!detail.value?.approvalReadOnly)
 const detailLoading = ref(false)
 const detailError = ref('')
 const selectedStage = ref<CutoverApi.CutoverStage | null>(null)
@@ -160,7 +168,23 @@ const refreshDetail = async () => {
     if (sequence === loadSequence) detailLoading.value = false
   }
 }
-const reloadDetail = async () => { try { await refreshDetail() } catch { /* 错误由详情页展示，历史数据不可继续办理。 */ } }
+const reloadDetail = async () => {
+  if (!(await saveBeforeLeave())) return
+  try { await refreshDetail() } catch { /* 错误由详情页展示，历史数据不可继续办理。 */ }
+}
+const refreshKeepingAssessment = async () => {
+  const taskId = String(props.taskId)
+  const retained = JSON.parse(JSON.stringify(assessmentModel))
+  try { await refreshDetail() }
+  finally {
+    if (taskId === String(props.taskId)) {
+      Object.assign(assessmentModel.answers, retained.answers)
+      assessmentModel.manualGrade = retained.manualGrade
+      assessmentModel.manualCustomerServiceLevelCode = retained.manualCustomerServiceLevelCode
+      message.warning('未提交的评估填写已保留；草稿尚未保存成功，请核对后重试。')
+    }
+  }
+}
 
 const openRevision = async () => {
   if (!revisionTarget.value || !detail.value) return
@@ -196,7 +220,8 @@ const persistAssessment = async () => {
     assessmentVersion: detail.value.assessment?.rowVersion || 0,
     data: { ...JSON.parse(JSON.stringify(assessmentModel)), manualCustomerServiceLevelCode: assessmentCustomerLevel.value?.status === 'NOT_CONFIGURED' ? assessmentModel.manualCustomerServiceLevelCode : null } }
   const result = await assessmentWrites.run(JSON.stringify(['SAVE_ASSESSMENT', command]),
-    idempotencyKey => CutoverApi.saveCutoverAssessment({ ...command, idempotencyKey }), refreshDetail)
+    idempotencyKey => CutoverApi.saveCutoverAssessment({ ...command, idempotencyKey }), refreshDetail,
+    { refreshOnFailure: refreshKeepingAssessment })
   if (!result.writeCalled || !result.refreshSucceeded) {
     message.warning(result.refreshSucceeded ? '已刷新上次操作结果，请按最新任务继续' : '评估操作已成功，详情尚未刷新，请先刷新后继续')
     return false
@@ -229,12 +254,13 @@ const submitAssessment = async () => {
         || !answers.operationComplexityLevel || !answers.hiddenRiskLevel || answers.sparePartApplied == null
       message.warning(incomplete
         ? '请填写业务重要等级、操作复杂度、隐患风险、备件是否申请，并选择割接等级。'
-        : '评估信息已保存，但当前来源信息、实施条件或操作权限不满足提交要求，请刷新任务并核查。')
+        : detail.value?.assessmentSubmissionBlockReason || '评估信息已保存，但当前来源信息、实施条件或操作权限不满足提交要求，请刷新任务并核查。')
       return
     }
     const command = { taskId: detail.value.task.id, taskVersion: detail.value.task.version, assessmentVersion: detail.value.assessment.rowVersion }
     const result = await assessmentWrites.run(JSON.stringify(['SUBMIT_ASSESSMENT', command]),
-      idempotencyKey => CutoverApi.submitCutoverAssessment({ ...command, idempotencyKey }), refreshDetail)
+      idempotencyKey => CutoverApi.submitCutoverAssessment({ ...command, idempotencyKey }), refreshDetail,
+      { refreshOnFailure: refreshKeepingAssessment })
     if (!result.writeCalled || !result.refreshSucceeded) {
       message.warning(result.refreshSucceeded ? '已刷新上次操作结果，请按最新任务继续' : '评估提交已成功，详情尚未刷新，请先刷新后继续')
       return
@@ -253,6 +279,37 @@ const handleChecklistNavigation = (target: CutoverApi.CutoverNavigationTarget) =
 }
 const handleTaskChanged = async () => { await refreshDetail(); emit('changed') }
 const handleApprovalChanged = async () => { if (!props.approvalOnly) await refreshDetail(); emit('changed') }
+const assessmentDirty = () => !!detail.value && activeStagePanel.value === 'ASSESSMENT'
+  && (JSON.stringify(detail.value.assessment?.answers || emptyAnswers()) !== JSON.stringify(assessmentModel.answers)
+    || (detail.value.assessment?.manualGrade || null) !== assessmentModel.manualGrade
+    || (detail.value.assessment?.manualCustomerServiceLevelCode || null) !== assessmentModel.manualCustomerServiceLevelCode)
+const saveBeforeLeave = async () => {
+  try {
+    if (activeStagePanel.value === 'PLAN') return await planPanel.value?.saveBeforeLeave?.() ?? true
+    if (activeStagePanel.value === 'CHECKLIST') return await checklistPanel.value?.saveBeforeLeave?.() ?? true
+    if (!assessmentDirty()) return true
+    if (saving.value || submitting.value) { message.warning('请等待评估保存完成后再离开。'); return false }
+    if (readonly.value || !detail.value?.allowedActions.includes('SAVE_ASSESSMENT')) {
+      message.warning('评估填写尚未保存，当前状态不能保存；填写已保留。'); return false
+    }
+    saving.value = true
+    try { return await persistAssessment() } finally { saving.value = false }
+  } catch {
+    message.warning('草稿保存未完成，当前填写已保留，请保存成功后再离开。')
+    return false
+  }
+}
+const selectStage = async (stage: CutoverApi.CutoverStage) => {
+  if (stage !== selectedStage.value && await saveBeforeLeave()) selectedStage.value = stage
+}
+const closeDetail = async () => { if (await saveBeforeLeave()) emit('close') }
+const hasPendingDraft = () => assessmentDirty() || !!planPanel.value?.hasPendingDraft?.()
+  || !!checklistPanel.value?.hasPendingDraft?.()
+const beforeUnload = (event: BeforeUnloadEvent) => {
+  if (hasPendingDraft()) { event.preventDefault(); event.returnValue = '' }
+}
+defineExpose({ saveBeforeLeave, hasPendingDraft })
+onMounted(() => window.addEventListener('beforeunload', beforeUnload))
 
 watch(() => [props.taskId, props.projectId, props.approvalOnly], () => {
   loadSequence++
@@ -262,7 +319,7 @@ watch(() => [props.taskId, props.projectId, props.approvalOnly], () => {
   assessmentWrites.reset()
   void reloadDetail()
 }, { immediate: true })
-onBeforeUnmount(() => { loadSequence++ })
+onBeforeUnmount(() => { loadSequence++; window.removeEventListener('beforeunload', beforeUnload) })
 </script>
 
 <style scoped>

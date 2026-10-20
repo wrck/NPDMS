@@ -70,8 +70,7 @@ public class CutoverApprovalQueryService {
         this.roleCandidatePort = roleCandidatePort;
         this.snapshotCodec = snapshotCodec;
         this.spareQueryService = spareQueryService;
-        this.eligibilityPolicy = new CutoverApprovalEligibilityPolicy(serviceManagerPort, roleCandidatePort,
-                projectScopePort, LocalDateTime::now);
+        this.eligibilityPolicy = new CutoverApprovalEligibilityPolicy(roleCandidatePort);
     }
 
     public CutoverApprovalViews.ApprovalView detail(CutoverApprovalContext context, long taskId) {
@@ -116,6 +115,10 @@ public class CutoverApprovalQueryService {
             full = currentEligible = eligibilityPolicy.eligible(root, current, actorId);
         else if (full && candidate)
             currentEligible = eligibilityPolicy.eligible(root, current, actorId);
+        if (!full && context.canQuery() && nodes.stream().anyMatch(node -> CutoverApprovalEligibilityPolicy.handledBy(node, actorId))) {
+            roleCandidatePort.requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(tenantId, actorId));
+            full = true;
+        }
         if (full) return full(root, task, nodes, current, currentEligible, context);
         if (projectView && List.of("APPROVED", "REJECTED").contains(root.getStatusCode())) return finalResult(root);
         if (context.canReassign() && "PENDING".equals(root.getStatusCode())) return reassignment(root, task, nodes);
@@ -261,7 +264,7 @@ public class CutoverApprovalQueryService {
             CutoverTaskDO task, List<CutoverApprovalNodeDO> nodes) {
         List<CutoverApprovalViews.ReassignmentNode> open = nodes.stream()
                 .filter(node -> List.of("WAITING", "PENDING").contains(node.getStatusCode())
-                        && !CutoverRoleApprovalSnapshot.isRole(node))
+                        && (!CutoverRoleApprovalSnapshot.isRole(node) || node.getCurrentApproverUserId() != null))
                 .map(node -> new CutoverApprovalViews.ReassignmentNode(node.getId(), node.getNodeNo(), node.getNodeCode(),
                         node.getStatusCode(), node.getCurrentApproverUserId(), node.getVersion())).toList();
         return new CutoverApprovalViews.ApprovalReassignmentView("REASSIGNMENT_ONLY", root.getId(), root.getVersion(),

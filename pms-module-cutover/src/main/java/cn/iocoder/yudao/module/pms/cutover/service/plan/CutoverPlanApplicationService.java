@@ -379,6 +379,7 @@ public class CutoverPlanApplicationService {
                 command.tenantId(), command.actorId(), sourceFacts);
         requireSameSource(sourceFacts, lockedSource);
         CutoverPlanContentCodec.DecodedContent content = storedContent(command.tenantId(), plan, sourceFacts);
+        contacts.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(command.tenantId(), command.actorId(), task.getProjectId()), content, true);
         try {
             if (CutoverPlanScheduleTime.value(content.rootSnapshot()) == null) throw new IllegalArgumentException("请填写计划割接时间");
             codec.validateComplete(content, sourceFacts);
@@ -504,6 +505,18 @@ public class CutoverPlanApplicationService {
 
     private CutoverPlanCommandResult createNew(CreateCutoverPlanDraftCommand command) {
         CutoverTaskDO task = requireOwnedP4(taskMapper.selectById(command.taskId()), command);
+        if (!"FULL_FILE_UPLOAD".equals(command.editMode())) {
+            CutoverPlanRevisionDO previous = planMapper.selectListHistory(new CutoverPlanHistoryQuery(
+                    command.tenantId(), command.taskId())).reversed().stream()
+                    .filter(row -> "INVALIDATED".equals(row.getStatusCode()) && row.getCurrentMarker() == null
+                            && "USER_REVISION".equals(row.getInvalidationReasonCode()))
+                    .findFirst().orElse(null);
+            if (previous != null && command.editMode().equals(previous.getEditModeCode())) {
+                return reviseNew(new ReviseCutoverPlanCommand(command.tenantId(), command.actorId(), command.taskId(),
+                        command.expectedTaskVersion(), previous.getId(), "USER_REVISION",
+                        command.idempotencyKey(), command.correlationId()));
+            }
+        }
         CutoverProjectScopePort.ProjectScopeFact scope = inspectCurrentScope(command.actorId(), task.getProjectId());
         CutoverPlanSourcePort.SourceFacts facts = inspectSource(command.tenantId(), command.actorId(), command.taskId());
         requireSource(facts, task);
@@ -516,8 +529,13 @@ public class CutoverPlanApplicationService {
         CutoverPlanRevisionDO plan = requireDraft(planMapper.selectCurrent(new CutoverPlanRevisionQuery(
                 command.tenantId(), command.taskId(), null)), command.expectedPlanVersion());
         CutoverPlanSourcePort.SourceSnapshot snapshot = parseSource(plan);
+        if (!Objects.equals(snapshot.taskId(), task.getId()) || !Objects.equals(snapshot.projectId(), task.getProjectId())) {
+            throw failure(OWNER_DATA_CORRUPTED, "草稿来源身份损坏");
+        }
         CutoverProjectScopePort.ProjectScopeFact scope = inspectScope(command.actorId(), task.getProjectId(),
                 snapshot.projectScopeVersion());
+        // Draft content belongs to this revision. Readiness of preceding stages is
+        // checked on submission, so a source failure must not discard user input.
         CutoverPlanSourcePort.SourceFacts facts = new CutoverPlanSourcePort.SourceFacts(snapshot, snapshot.failedRiskFacts());
         CutoverPlanContentCodec.DecodedContent decoded = decode(command.content(), facts);
         CutoverPlanFilePort.FileFact inspectedFile = inspectSaveFile(command, task, decoded);
@@ -567,8 +585,6 @@ public class CutoverPlanApplicationService {
                                                 CutoverPlanContentCodec.DecodedContent decoded,
                                                 CutoverPlanFilePort.FileFact inspectedFile) {
         lockScope(command.actorId(), inspectedTask.getProjectId(), inspectedScope.projectScopeVersion());
-        CutoverPlanSourcePort.SourceFacts lockedFacts = lockSource(command.tenantId(), command.actorId(), expectedFacts);
-        requireSameSource(expectedFacts, lockedFacts);
         CutoverPlanFilePort.FileFact file = lockFile(command, inspectedTask, decoded, inspectedFile);
         CutoverTaskDO task = requireOwnedP4(taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(),
                 command.taskId())), command);
@@ -588,7 +604,7 @@ public class CutoverPlanApplicationService {
         if (planMapper.replaceDraftIfMatch(new CutoverPlanDraftUpdate(plan, command.expectedPlanVersion(), newVersion)) != 1) {
             throw failure(VERSION_CONFLICT, "草稿版本已变化");
         }
-        storage.replaceDraft(CutoverPlanStorage.Write.builder().plan(plan).source(lockedFacts.snapshot())
+        storage.replaceDraft(CutoverPlanStorage.Write.builder().plan(plan).source(expectedFacts.snapshot())
                 .content(decoded.rootSnapshot()).actorId(command.actorId()).time(now).build());
         stepMapper.deleteDraftRows(children);
         supportMapper.deleteDraftRows(children);
@@ -682,6 +698,9 @@ public class CutoverPlanApplicationService {
             row.setArrivalTime(source.arrivalTime() == 0 ? null : LocalDateTime.ofInstant(Instant.ofEpochMilli(source.arrivalTime()),
                     ZoneId.systemDefault()));
             row.setCustomerContactId(source.customerContactReference() == null ? null : source.customerContactReference().contactId());
+            row.setPersonSourceCode(source.personReference() == null ? null : source.personReference().sourceCode());
+            row.setPersonSourceId(source.personReference() == null ? null : source.personReference().id());
+            row.setPersonSourceVersion(source.personReference() == null ? null : source.personReference().version());
             row.setCustomerContactVersion(source.customerContactReference() == null ? null : source.customerContactReference().contactVersion().longValue());
             row.setSortOrder(supportOrder++);
             row.setVersion(0);
@@ -731,6 +750,9 @@ public class CutoverPlanApplicationService {
             row.setPersonName(source.personName()); row.setDutyDescription(source.dutyDescription()); row.setPhone(source.phone());
             row.setArrivalTime(source.arrivalTime() == 0 ? null : LocalDateTime.ofInstant(Instant.ofEpochMilli(source.arrivalTime()), ZoneId.systemDefault()));
             row.setCustomerContactId(source.customerContactReference() == null ? null : source.customerContactReference().contactId());
+            row.setPersonSourceCode(source.personReference() == null ? null : source.personReference().sourceCode());
+            row.setPersonSourceId(source.personReference() == null ? null : source.personReference().id());
+            row.setPersonSourceVersion(source.personReference() == null ? null : source.personReference().version());
             row.setCustomerContactVersion(source.customerContactReference() == null ? null : source.customerContactReference().contactVersion().longValue());
             row.setSortOrder(supportOrder++);
             row.setVersion(0); row.setCreator(String.valueOf(command.actorId())); row.setUpdater(String.valueOf(command.actorId()));
@@ -1315,7 +1337,6 @@ public class CutoverPlanApplicationService {
             throw failure(CHECKLIST_STALE, "清单事实已变化");
         }
         if (!Objects.equals(before.projectId(), after.projectId())
-                || !Objects.equals(before.projectVersion(), after.projectVersion())
                 || !Objects.equals(before.projectScopeVersion(), after.projectScopeVersion())
                 || !Objects.equals(before.devices(), after.devices())) {
             throw failure(PROJECT_OR_DEVICE_STALE, "项目或设备事实已变化");
@@ -1326,7 +1347,7 @@ public class CutoverPlanApplicationService {
                 || !Objects.equals(before.templateSections(), after.templateSections())) {
             throw failure(CONFIGURATION_OR_TEMPLATE_STALE, "配置或模板事实已变化");
         }
-        if (!Objects.equals(expected, current)) {
+        if (!before.sameBusinessSource(after)) {
             throw failure(OWNER_DATA_CORRUPTED, "来源Owner返回无法分轴解释的变化");
         }
     }

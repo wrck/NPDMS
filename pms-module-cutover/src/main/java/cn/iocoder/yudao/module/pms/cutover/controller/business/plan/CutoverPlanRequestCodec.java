@@ -57,11 +57,13 @@ public final class CutoverPlanRequestCodec {
     }
 
     public PatchContact patchContact(JsonNode body) {
-        exact(body, PATCH, "patchContact");
+        var keys = new HashSet<>(PATCH); if (body.has("personReference")) keys.add("personReference");
+        exact(body, keys, "patchContact");
         return new PatchContact(textField(body, "personName", 128), textField(body, "phone", 64),
                 dateTime(body.get("arrivalTime"), "arrivalTime"),
                 new cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.Change(textField(body, "reason", 1000),
-                        cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.selection(body.get("customerContactReference"))));
+                        cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.selection(body.get("customerContactReference")),
+                        cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverSupportPersonPolicy.reference(body.get("personReference"))));
     }
 
     public Revise revise(JsonNode body) {

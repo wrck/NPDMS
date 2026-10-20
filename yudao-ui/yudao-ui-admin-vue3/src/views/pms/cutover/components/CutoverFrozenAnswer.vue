@@ -1,19 +1,32 @@
 <template>
   <span v-if="fileFact">已提交附件（第 {{ fileFact.versionNo }} 版）</span>
-  <ol v-else-if="Array.isArray(answer)" class="answer-rows"><li v-for="(row, index) in answer" :key="index"><CutoverFrozenAnswer :value="row" /></li></ol>
-  <dl v-else-if="answer && typeof answer === 'object'" class="answer-fields"><div v-for="(field, key) in answer" :key="key"><dt>{{ labels[String(key)] || key }}</dt><dd><CutoverFrozenAnswer :value="field" /></dd></div></dl>
-  <span v-else class="answer-text">{{ typeof answer === 'boolean' ? (answer ? '是' : '否') : answer === 'YES' ? '是' : answer === 'NO' ? '否' : answer ?? '—' }}</span>
+  <ol v-else-if="Array.isArray(answer)" class="answer-rows"><li v-for="(row, index) in answer" :key="index"><CutoverFrozenAnswer :value="row" :schema="rowSchema" /></li></ol>
+  <dl v-else-if="answer && typeof answer === 'object'" class="answer-fields"><div v-for="(field, key) in answer" :key="key"><dt>{{ fieldSchema(String(key))?.label || fieldSchema(String(key))?.name || labels[String(key)] || key }}</dt><dd><CutoverFrozenAnswer :value="field" :schema="fieldSchema(String(key))" /></dd></div></dl>
+  <span v-else class="answer-text">{{ scalarLabel }}</span>
 </template>
 <script setup lang="ts">
-const props = defineProps<{ snapshot?: string; value?: unknown }>()
+import type { FieldSchema } from './CutoverSchemaInput.vue'
+const props = defineProps<{ snapshot?: string; value?: unknown; schema?: FieldSchema }>()
 const answer = computed<any>(() => {
-  if (!props.snapshot) return props.value
-  try {
-    const snapshot = JSON.parse(props.snapshot)
-    const result = snapshot.analysis ?? snapshot
-    if (result === null || typeof result !== 'object') return result
-    return Object.prototype.hasOwnProperty.call(result, 'value') ? result.value : result
-  } catch { return props.snapshot }
+  let result = props.value
+  if (props.snapshot) {
+    try {
+      const snapshot = JSON.parse(props.snapshot)
+      result = snapshot?.analysis ?? snapshot
+      if (result !== null && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'value')) result = (result as Record<string, unknown>).value
+    } catch { return props.snapshot }
+  }
+  // TABLE 的 rows 仅是存储包装；列描述属于每一行，而不是包装字段。
+  const rows = result !== null && typeof result === 'object' && 'rows' in result ? result.rows : undefined
+  return props.schema?.columns?.length && Array.isArray(rows) ? rows : result
+})
+const rowSchema = computed(() => props.schema?.columns?.length ? { fields: props.schema.columns } : props.schema)
+const fieldSchema = (key: string) => props.schema?.fields?.find(field => field.code === key)
+const scalarLabel = computed(() => {
+  const value = answer.value
+  const option = props.schema?.options?.find(option => (typeof option === 'string' ? option : option.value) === value)
+  if (option) return typeof option === 'string' ? option : option.label
+  return typeof value === 'boolean' ? (value ? '是' : '否') : value === 'YES' ? '是' : value === 'NO' ? '否' : value ?? '—'
 })
 const fileFact = computed(() => answer.value && !Array.isArray(answer.value) && typeof answer.value === 'object' && 'artifactId' in answer.value ? answer.value : null)
 const labels: Record<string, string> = {
@@ -26,7 +39,12 @@ const labels: Record<string, string> = {
   concurrentConnections: '并发连接数', newConnections: '新建连接数', cpuUsage: 'CPU使用率', memoryUsage: '内存使用率',
   hasBulletins: '是否有相关技术公告', queryBasis: '版本与查询依据', bulletins: '技术公告', number: '公告编号',
   subject: '主题', solution: '解决方案', involved: '本次是否涉及', measures: '采取措施',
-  passed: '是否通过', resultCode: '检查结果', factDescription: '事实说明', file: '附件'
+  normal: '检查是否正常', passed: '是否通过', resultCode: '检查结果', factDescription: '事实说明', file: '附件',
+  majorCutover: '本次是否为重大割接项目', spareReference: '备件外部申请引用或人工核验说明',
+  collectionTaskId: '采集任务编号', deviceId: '采集设备编号', commandTemplateId: '采集命令模板编号',
+  technicalStatus: '采集技术状态编码', resultReferenceId: '采集结果引用编号', resultVersion: '采集结果版本',
+  failureCode: '采集失败编码', originalFailedCollectionTaskId: '原失败采集任务编号',
+  originalFailedResultVersion: '原失败采集结果版本', originalFailureCode: '原采集失败编码'
 }
 </script>
 <style scoped>

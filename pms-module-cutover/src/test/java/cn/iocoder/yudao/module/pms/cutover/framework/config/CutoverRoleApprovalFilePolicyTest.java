@@ -122,12 +122,16 @@ class CutoverRoleApprovalFilePolicyTest {
         verifyNoInteractions(f.audience);
         verify(f.scopes, times(4)).inspect(8L, 30L, "ACTION_EDIT");
     }
-    @Test void closureRetainsItsOrdinaryProjectScopeAndCannotUseRoleAudience() {
+    @Test void closureRequiresTaskReadGrantAndNeverUsesTheFrozenOnlyRoleGrant() {
         Fixture f = new Fixture();
         for (String action : List.of("READ", "DOWNLOAD", "PREVIEW"))
             assertFalse(f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", action)).allowed());
-        verifyNoInteractions(f.audience);
+        verify(f.audience, times(3)).inspectTask(any());
+        verify(f.audience, never()).inspectFile(any());
         verify(f.scopes, times(3)).inspect(8L, 30L, "ACTION_VIEW");
+        when(f.audience.inspectTask(any())).thenReturn(new CutoverRoleApprovalAudience.Grant(20L, "{}"));
+        assertTrue(f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "READ")).allowed());
+        assertFalse(f.policy("CUTOVER_CLOSURE").inspect(query("CUTOVER_CLOSURE", "40", "OTHER_EVIDENCE", "UPLOAD")).allowed());
     }
     @Test void tenantOwnerAndPurposeChecksStillPrecedeRoleAudience() {
         Fixture f = new Fixture();

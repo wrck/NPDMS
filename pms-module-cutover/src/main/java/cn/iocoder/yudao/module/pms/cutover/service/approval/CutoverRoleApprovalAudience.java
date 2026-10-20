@@ -42,7 +42,7 @@ public class CutoverRoleApprovalAudience {
         this.tasks = tasks; this.instances = instances; this.nodes = nodes;
         this.roles = roles; this.permissions = permissions;
         this.evidence = evidence;
-        this.eligibility = new CutoverApprovalEligibilityPolicy(managers, roles, scopes, LocalDateTime::now);
+        this.eligibility = new CutoverApprovalEligibilityPolicy(roles);
     }
 
     public Grant inspect(Query query) {
@@ -50,6 +50,36 @@ public class CutoverRoleApprovalAudience {
         var root = instances.selectCurrentByTask(new ApprovalTaskQuery(query.tenantId(), query.taskId()));
         if (root == null || root.getReplacementApprovalInstanceId() != null) return null;
         return qualified(query, root, false);
+    }
+
+    /** 本人当前待办，或本人已经实际决定过的任务；不授予同项目其他任务。 */
+    public Grant inspectTask(Query query) {
+        if (!taskAllowed(query)) return null;
+        for (var root : instances.history(new ApprovalTaskQuery(query.tenantId(), query.taskId()))) {
+            if (!Objects.equals(root.getTenantId(), query.tenantId()) || !Objects.equals(root.getTaskId(), query.taskId())
+                    || query.expectedApprovalId() != null && !Objects.equals(root.getId(), query.expectedApprovalId())) continue;
+            var current = qualified(query, root, false);
+            if (current != null) return current;
+            if (nodes.all(new CutoverApprovalNodesQuery(query.tenantId(), root.getId())).stream()
+                    .anyMatch(node -> CutoverApprovalEligibilityPolicy.handledBy(node, query.actorId()))) {
+                roles.requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(query.tenantId(), query.actorId()));
+                return new Grant(root.getId(), JsonUtils.toJsonString(storage.sourceView(root)));
+            }
+        }
+        return null;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public Grant lockAndRevalidateTask(Query query) {
+        if (query.expectedApprovalId() == null || !taskAllowed(query)) return null;
+        var root = instances.selectByIdForUpdate(new ApprovalInstanceLockQuery(query.tenantId(), query.expectedApprovalId(), null, null));
+        if (root == null || !Objects.equals(root.getTenantId(), query.tenantId()) || !Objects.equals(root.getTaskId(), query.taskId())) return null;
+        var current = qualified(query, root, true);
+        if (current != null) return current;
+        if (nodes.all(new CutoverApprovalNodesQuery(query.tenantId(), root.getId())).stream()
+                .noneMatch(node -> CutoverApprovalEligibilityPolicy.handledBy(node, query.actorId()))) return null;
+        roles.requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(query.tenantId(), query.actorId()));
+        return new Grant(root.getId(), JsonUtils.toJsonString(storage.sourceView(root)));
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -97,10 +127,13 @@ public class CutoverRoleApprovalAudience {
                 || !Objects.equals(root.getTaskId(), query.taskId())
                 || query.expectedApprovalId() != null && !Objects.equals(root.getId(), query.expectedApprovalId())) return null;
         for (var node : nodes.all(new CutoverApprovalNodesQuery(query.tenantId(), root.getId()))) {
-            var snapshot = CutoverRoleApprovalSnapshot.from(node);
-            if (!CutoverRoleApprovalSnapshot.currentRoleTodo(root, node)
+            if (!"PENDING".equals(root.getStatusCode()) || root.getHoldReasonCode() != null
+                    || root.getReplacementApprovalInstanceId() != null
+                    || !"PENDING".equals(node.getStatusCode())
+                    || !Objects.equals(root.getCurrentNodeNo(), node.getNodeNo())
                     || !eligibility.eligible(root, node, query.actorId())) continue;
-            if (lock) {
+            if (lock && node.getCurrentApproverUserId() == null) {
+                var snapshot = CutoverRoleApprovalSnapshot.from(node);
                 var actorQuery = new CutoverApprovalRoleCandidatePort.ActorQuery(query.tenantId(), query.actorId());
                 if (snapshot.currentActor(actorQuery, roles.lockAndInspectActor(actorQuery)) == null) return null;
             }

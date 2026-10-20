@@ -4,6 +4,8 @@ import cn.iocoder.yudao.module.pms.cutover.controller.business.support.CutoverRe
 
 import cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext;
 import org.springframework.http.HttpHeaders;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverApprovalSourcePresentation;
 
 import cn.iocoder.yudao.framework.common.pojo.PageParam;
 
@@ -39,28 +41,31 @@ public class CutoverApprovalController {
     private final CutoverApprovalQueryService queryService;
     private final CutoverApprovalRequestContext requestContext;
     private final CutoverApprovalRequestCodec codec;
+    private final CutoverChecklistApplicationService checklists;
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(CutoverApprovalController.class);
 
     public CutoverApprovalController(CutoverApprovalApplicationService applicationService,
             CutoverApprovalQueryService queryService, CutoverApprovalRequestContext requestContext,
-            CutoverApprovalRequestCodec codec) {
+            CutoverApprovalRequestCodec codec, CutoverChecklistApplicationService checklists) {
         this.applicationService = Objects.requireNonNull(applicationService);
         this.queryService = Objects.requireNonNull(queryService);
         this.requestContext = Objects.requireNonNull(requestContext);
         this.codec = Objects.requireNonNull(codec);
+        this.checklists = Objects.requireNonNull(checklists);
     }
 
     @GetMapping("/cutover-tasks/{taskId}/approval")
     @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query-approval','pms:cutover-task:reassign-approval')")
     public CommonResult<CutoverApprovalResponses.View> detail(@PathVariable Long taskId) {
         var trusted = trusted(taskId);
-        return success(CutoverApprovalResponses.view(queryDetail(trusted, taskId)));
+        return success(view(trusted, queryDetail(trusted, taskId)));
     }
 
     @GetMapping("/cutover-approvals/{approvalId}")
     @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query-approval','pms:cutover-task:reassign-approval')")
     public CommonResult<CutoverApprovalResponses.View> instance(@PathVariable Long approvalId) {
         var trusted = requestContext.current();
-        return success(CutoverApprovalResponses.view(queryService.detailByInstance(trusted, approvalId)));
+        return success(view(trusted, queryService.detailByInstance(trusted, approvalId)));
     }
 
     @GetMapping("/cutover-approvals/todos")
@@ -95,7 +100,7 @@ public class CutoverApprovalController {
                 codec.version(taskVersion, "X-Task-Version"), codec.version(approvalVersion, "If-Match"),
                 request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
-        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted, result)));
+        return success(view(trusted, queryService.decisionResponse(trusted, result)));
     }
 
     @PostMapping("/cutover-approvals/{approvalId}/actions/reject")
@@ -111,7 +116,7 @@ public class CutoverApprovalController {
                 codec.version(taskVersion, "X-Task-Version"), codec.version(approvalVersion, "If-Match"),
                 request.reviewItems(), request.assessmentReview(),
                 request.feedback(), codec.header(idempotencyKey, "Idempotency-Key"), trusted.correlationId()));
-        return success(CutoverApprovalResponses.view(queryService.decisionResponse(trusted, result)));
+        return success(view(trusted, queryService.decisionResponse(trusted, result)));
     }
 
     @PostMapping("/cutover-approvals/{approvalId}/actions/reassign")
@@ -210,6 +215,21 @@ public class CutoverApprovalController {
                 .currentApprovalVersion(null)
                 .currentTaskVersion(null)
                 .build()));
+    }
+
+    private CutoverApprovalResponses.View view(CutoverApprovalContext trusted, CutoverApprovalViews.ApprovalView authorized) {
+        CutoverApprovalSourcePresentation presentation = null;
+        if (authorized instanceof CutoverApprovalViews.ApprovalDetail detail) {
+            try {
+                presentation = checklists.getApprovalSourcePresentation(
+                        new CutoverChecklistApplicationService.ApprovalPresentationQuery(trusted.tenantId(), detail));
+            } catch (RuntimeException ex) {
+                // 显示说明读取失败不改变已授权的审批事实；异常留在服务端，前端保留原值并提示重试。
+                LOG.warn("Approval source presentation unavailable, approvalId={}", detail.approvalInstanceId(), ex);
+                presentation = CutoverApprovalSourcePresentation.unavailable();
+            }
+        }
+        return CutoverApprovalResponses.view(authorized, presentation);
     }
 
     private CutoverApprovalViews.ApprovalView queryDetail(CutoverApprovalContext trusted,

@@ -92,6 +92,8 @@ class CutoverPlanRevisionLifecycleTest {
         assertThat(fixture.copiedSupport).isEmpty();
 
         CutoverPlanRevisionDO derived = fixture.derived.get();
+        // The source history has no scheduled time; fill only the editable derived draft before submission.
+        fixture.contents.get(derived.getId()).put("scheduledTime", 1793498400000L);
         when(fixture.planMapper.selectCurrent(any())).thenReturn(derived);
         when(fixture.planMapper.selectCurrentForUpdate(any())).thenReturn(derived);
         when(fixture.planMapper.submitDraftIfMatch(any())).thenReturn(1);
@@ -280,7 +282,7 @@ class CutoverPlanRevisionLifecycleTest {
                 .thenReturn(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Reference(
                         501L, 2, 70L, 401L, "李工", "13800000000", null, null, null));
         var contactPolicy = new CutoverPlanContactPolicy(contactApi,
-                supportMapper, changes, storage, mock(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class));
+                supportMapper, changes, storage, mock(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class), mock(CutoverSupportPersonPolicy.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "contacts", contactPolicy);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
         return new Fixture(service, task, source, support, sourcePort, taskMapper, planMapper, stepMapper,

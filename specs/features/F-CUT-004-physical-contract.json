@@ -1,4 +1,5 @@
 {
+  "supportPersonSelection20261020": {"migration": "V506__cutover_support_person_selection.sql", "baselineColumns": ["person_source_code", "person_source_id", "person_source_version"], "contactChangeColumns": ["before_person_source_code", "before_person_source_id", "before_person_source_version", "after_person_source_code", "after_person_source_id", "after_person_source_version"], "nullableForExistingHistory": true, "backfillHistoricalRows": false, "requiredRoles": ["CUSTOMER", "DP_FIRST_LINE"], "optionalRoles": ["DP_SECOND_LINE", "DP_RND"], "protection": "existing frozen-history triggers retained; new source-update trigger rejects submitted baseline changes; contact changes append to existing audit chain; submit trigger checks required-role coverage and each added row"},
   "schemaVersion": 2,
   "featureId": "F-CUT-004",
   "status": "BASELINE_READY",

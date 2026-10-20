@@ -43,7 +43,7 @@ public class CutoverPlanController {
     }
 
     @GetMapping
-    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query-plan')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query-plan','pms:cutover-task:query-approval')")
     public CommonResult<CutoverPlanResponses.View> detail(@PathVariable Long taskId) {
         var trusted = trusted(taskId);
         return success(CutoverPlanResponses.View.from(view(trusted, taskId)));
@@ -179,7 +179,7 @@ public class CutoverPlanController {
                         .build()));
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
+    @ExceptionHandler({AccessDeniedException.class, SecurityException.class})
     public ResponseEntity<CommonResult<CutoverPlanContractException.ErrorData>> handleForbidden(Exception exception) {
         return error(new CutoverPlanContractException(403, 1_011_009_101, exception.getMessage(),
                 CutoverPlanContractException.ErrorData.builder()

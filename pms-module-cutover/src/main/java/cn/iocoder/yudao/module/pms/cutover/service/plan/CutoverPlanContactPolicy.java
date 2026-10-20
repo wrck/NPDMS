@@ -29,8 +29,11 @@ public class CutoverPlanContactPolicy {
     private final CutoverPlanSupportContactChangeMapper changes;
     private final CutoverPlanStorage storage;
     private final OperationAuditApi audit;
+    private final CutoverSupportPersonPolicy people;
     public record Selection(Long contactId, Integer contactVersion) { }
-    public record Change(String reason, Selection customerContactReference) { }
+    public record Change(String reason, Selection customerContactReference, CutoverSupportPersonPolicy.Reference personReference) {
+        public Change(String reason, Selection customerContactReference) { this(reason, customerContactReference, null); }
+    }
 
     public List<ProjectContactReferenceApi.Reference> list(Long tenant, Long actor, Long project) {
         return contacts.list(new ProjectContactReferenceApi.Query(tenant, actor, project));
@@ -38,6 +41,12 @@ public class CutoverPlanContactPolicy {
 
     public void validate(ProjectContactReferenceApi.Query query, CutoverPlanContentCodec.DecodedContent content, boolean submitting) {
         if (content.rootSnapshot() == null || !"ONLINE_TEMPLATE_STANDARD".equals(content.rootSnapshot().path("editMode").asText())) return;
+        for (var row : content.supportArrangements()) {
+            if (row.personReference() != null || !"CUSTOMER".equals(row.roleCode())) {
+                people.validate(new CutoverSupportPersonPolicy.Validation(new CutoverSupportPersonPolicy.Query(query.tenantId(), query.actorId(), query.projectId(), row.roleCode()),
+                        row.personReference(), row.personName(), submitting));
+            }
+        }
         var customers = content.supportArrangements().stream().filter(row -> "CUSTOMER".equals(row.roleCode())).toList();
         if (submitting && customers.isEmpty()) invalid("客户保障安排尚未填写");
         for (var customer : customers) {
@@ -57,6 +66,11 @@ public class CutoverPlanContactPolicy {
         String role = arrangement.getRoleCode();
         var query = new ProjectContactReferenceApi.Query(command.tenantId(), command.actorId(), task.getProjectId());
         if (change == null || change.reason() == null || change.reason().isBlank() || change.reason().length() > 1000) invalid("请填写联系人变更原因");
+        if (change.personReference() != null || !"CUSTOMER".equals(role)) {
+            people.validate(new CutoverSupportPersonPolicy.Validation(new CutoverSupportPersonPolicy.Query(command.tenantId(), command.actorId(), task.getProjectId(), role),
+                    change.personReference(), command.personName(), true));
+        }
+        if (change.personReference() != null && change.customerContactReference() != null) invalid("人员引用不能同时选择两种来源");
         if ("CUSTOMER".equals(role)) {
             if (change.customerContactReference() == null) {
                 manualIdentity(command.personName(), command.phone());
@@ -87,6 +101,10 @@ public class CutoverPlanContactPolicy {
                 .beforeCustomerContactVersion(beforeReference == null ? null : beforeReference.contactVersion().longValue())
                 .afterCustomerContactId(afterReference == null ? null : afterReference.contactId())
                 .afterCustomerContactVersion(afterReference == null ? null : afterReference.contactVersion().longValue())
+                .beforePersonSourceCode(before.getPersonSourceCode()).beforePersonSourceId(before.getPersonSourceId()).beforePersonSourceVersion(before.getPersonSourceVersion())
+                .afterPersonSourceCode(change == null || change.personReference() == null ? null : change.personReference().sourceCode())
+                .afterPersonSourceId(change == null || change.personReference() == null ? null : change.personReference().id())
+                .afterPersonSourceVersion(change == null || change.personReference() == null ? null : change.personReference().version())
                 .reason(change == null ? null : change.reason()).operateUserId(command.actorId()).operateTime(request.time())
                 .createUserId(command.actorId()).createTime(request.time()).build();
         if (changes.insert(row) != 1) invalid("联系人变更事实保存失败");

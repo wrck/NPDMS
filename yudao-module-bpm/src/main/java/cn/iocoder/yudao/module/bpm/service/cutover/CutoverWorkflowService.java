@@ -144,6 +144,7 @@ public class CutoverWorkflowService implements CutoverWorkflowApi {
                         || tasks.createTaskQuery().taskId(task.getId()).taskUnassigned().taskCandidateGroup(group)
                                 .taskTenantId(command.tenantId().toString()).count() != 1)
                     throw new IllegalArgumentException("当前用户不具备本角色待办资格");
+                runtime.addUserIdentityLink(command.processInstanceId(), command.actorId().toString(), CURRENT + command.nodeCode());
                 tasks.claim(task.getId(), command.actorId().toString());
             }
             if (command.approved()) {
@@ -165,9 +166,10 @@ public class CutoverWorkflowService implements CutoverWorkflowApi {
             if (links.size() > 1) throw new IllegalStateException("割接待办候选身份不唯一");
             if (!links.isEmpty()) runtime.deleteUserIdentityLink(command.processInstanceId(), links.getFirst().getUserId(), CURRENT + command.nodeCode());
             runtime.addUserIdentityLink(command.processInstanceId(), command.userId().toString(), CURRENT + command.nodeCode());
-            if (!List.of("INITIATOR", "SERVICE_MANAGER").contains(command.nodeCode()))
-                throw new IllegalArgumentException("角色审批节点不允许改派个人");
-            runtime.setVariable(command.processInstanceId(), "cutoverUser_" + command.nodeCode(), command.userId());
+            var roleNode = runtime.getIdentityLinksForProcessInstance(command.processInstanceId()).stream()
+                    .anyMatch(link -> (PREFIX + "role:" + command.nodeCode()).equals(link.getType()));
+            if (roleNode && links.size() != 1) throw new IllegalArgumentException("未领取角色节点不能改派个人");
+            if (!roleNode) runtime.setVariable(command.processInstanceId(), "cutoverUser_" + command.nodeCode(), command.userId());
             var task = tasks.createTaskQuery().processInstanceId(command.processInstanceId()).taskDefinitionKey(command.nodeCode()).singleResult();
             if (task != null) { tasks.addComment(task.getId(), command.processInstanceId(), "CUT_REASSIGN", "操作人 " + command.actorId() + "：" + command.reason()); tasks.setAssignee(task.getId(), command.userId().toString()); }
         });

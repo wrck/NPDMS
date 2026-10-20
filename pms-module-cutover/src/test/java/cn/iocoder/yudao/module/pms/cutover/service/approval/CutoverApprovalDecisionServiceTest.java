@@ -215,6 +215,37 @@ class CutoverApprovalDecisionServiceTest {
     }
 
     @Test
+    void submittedServiceManagerSurvivesProjectVersionAndManagerChanges() {
+        Fixture f = new Fixture(22L);
+        f.givenRoot(2, "SERVICE_MANAGER");
+        var replacement = new ProjectCutoverServiceManagerPort.ServiceManagerFact(
+                ProjectCutoverServiceManagerPort.Outcome.FOUND, 1L, 20L, 99L,
+                "SERVICE_MANAGER_L1", 14, 14L, java.time.LocalDateTime.now(f.clock));
+        when(f.managers.inspectCurrent(anyLong(), anyLong(), any())).thenReturn(replacement);
+        when(f.managers.lockAndRevalidate(any())).thenThrow(new AssertionError("must not re-resolve submitted assignee"));
+        when(f.tasks.transitionFromApprovalIfMatch(any())).thenReturn(1);
+        var result = f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 100L, 3L, 0L,
+                yesItems(), new AssessmentReviewInput("CONFIRMED", null), "fixed service manager",
+                "fixed-manager", "fixed-manager-correlation"));
+        assertThat(result.approvalStatus()).isEqualTo("APPROVED");
+        verifyNoInteractions(f.managers, f.scopes);
+        verify(f.candidates).requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(1L, 22L));
+        verify(f.reviews, times(5)).insert(any(CutoverApprovalReviewItemDO.class));
+    }
+
+    @Test
+    void disabledFrozenAssigneeCannotWriteReview() {
+        Fixture f = new Fixture(22L);
+        f.givenRoot(2, "SERVICE_MANAGER");
+        doThrow(new IllegalArgumentException("disabled account")).when(f.candidates).requireActiveUser(any());
+        assertThatThrownBy(() -> f.service.approve(new ApproveCutoverApprovalCommand(1L, 10L, 100L, 3L, 0L,
+                yesItems(), new AssessmentReviewInput("CONFIRMED", null), "disabled", "disabled-key", "disabled-correlation")))
+                .isInstanceOf(IllegalArgumentException.class);
+        verify(f.reviews, never()).insert(any(CutoverApprovalReviewItemDO.class));
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+    }
+
+    @Test
     void serviceManagerCanRejectNoReviewWhileConfirmingAssessment() {
         Fixture f = new Fixture(22L);
         f.givenRoot(2, "SERVICE_MANAGER");

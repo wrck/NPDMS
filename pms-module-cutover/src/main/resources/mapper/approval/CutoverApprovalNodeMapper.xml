@@ -53,7 +53,7 @@
                  <otherwise>1 = 0</otherwise>
              </choose>))
     </sql>
-    <sql id="individualNode">n.approval_mode_code = 'PERSONAL'</sql>
+    <sql id="individualNode">(n.approval_mode_code = 'PERSONAL' OR n.current_approver_user_id IS NOT NULL)</sql>
     <select id="selectByInstanceAndNodeForUpdate"
             resultMap="structuredCutoverApprovalNodeDO">
         SELECT id, tenant_id, approval_instance_id, node_no, node_code, status_code, original_approver_user_id, current_approver_user_id, project_scope_version, assessment_review_decision_code, assessment_review_reason, feedback, decide_time, pending_marker, version, creator, create_time, updater, update_time, deleted, approval_mode_code, candidate_role_id, candidate_role_code, candidate_group_key, qualification_kind_code, qualification_outcome_code, qualification_role_code, qualification_project_version, qualification_participant_fact_version, qualification_required_action_code, qualification_allowed_flag, qualification_check_time, decision_actor_user_id, decision_role_id, decision_membership_version, decision_user_status_version, decision_check_time FROM cut_approval_node

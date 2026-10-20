@@ -1,5 +1,6 @@
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { checkPermi } from '@/utils/permission'
 import type {
   CutoverApprovalDetail,
   CutoverApprovalReassignmentView,
@@ -29,8 +30,12 @@ const api = vi.hoisted(() => ({
   getCutoverApprovalTodos: vi.fn(),
   getCutoverDashboardKpis: vi.fn(),
   getCutoverTaskPage: vi.fn(),
-  getCutoverTaskDetail: vi.fn()
+  getCutoverTaskDetail: vi.fn(),
+  getCutoverChecklistMatchingOptions: vi.fn(),
+  getCutoverChecklist: vi.fn()
 }))
+const people = vi.hoisted(() => ({ getSimpleUserList: vi.fn() }))
+vi.mock('@/api/system/user', () => people)
 vi.mock('@/api/pms/cutover', () => api)
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }))
 vi.mock('vue-router', () => ({ useRouter: () => router, useRoute: () => ({ query: {} }) }))
@@ -50,6 +55,7 @@ vi.mock('../components/CutoverPlanEditor.vue', () => ({
 }))
 
 const controls = {
+  ElDialog: passthrough,
   ElDescriptions: passthrough,
   ElDescriptionsItem: passthrough,
   ElResult: passthrough,
@@ -60,6 +66,8 @@ const controls = {
   ElRadioGroup: passthrough,
   ElRadioButton: button,
   ElInput: passthrough,
+  ElSelect: passthrough,
+  ElOption: passthrough,
   ElInputNumber: passthrough
 }
 const actionableTableColumn = defineComponent({
@@ -77,8 +85,15 @@ const actionableTableColumn = defineComponent({
 
 describe('F-CUT-005 mounted approval workbench', () => {
   beforeEach(() => {
+    people.getSimpleUserList.mockReset().mockResolvedValue([
+      { id: '8', nickname: '原审批人' }, { id: '44', nickname: '新审批人' },
+      { id: '9007199254740995', nickname: '长编号审批人' }
+    ])
+    vi.mocked(checkPermi).mockReturnValue(true)
     router.push.mockReset()
     Object.values(api).forEach((mock) => mock.mockReset())
+    api.getCutoverChecklistMatchingOptions.mockResolvedValue({ cutoverTypes: [], networkModes: [], deviceTypes: [], matchingInput: { deviceTypeCodes: [] } })
+    api.getCutoverChecklist.mockResolvedValue({ taskId: '9007199254740993', checklistId: '301', items: [] })
     api.getCutoverDashboardKpis.mockResolvedValue({
       todoCount: 0,
       archivedCount: 0,
@@ -86,6 +101,78 @@ describe('F-CUT-005 mounted approval workbench', () => {
       rejectedPendingModificationCount: 0,
       generatedAt: 1788314400000
     })
+  })
+
+  it.each(['SECOND_LINE', 'RND'] as const)('opens %s shared approval directly without a separate claim step', async (nodeCode) => {
+    const detail = full('B')
+    Object.assign(detail.nodes[0], { nodeCode, originalApproverUserId: null, currentApproverUserId: null,
+      candidateRoleCode: nodeCode === 'SECOND_LINE' ? 'probSupporter' : 'probRD' })
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    api.approveCutoverApproval.mockResolvedValue(detail)
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(findByTestId(page.root, 'approve-approval')).toBeDefined()
+    expect(findByTestId(page.root, 'reject-approval')).toBeDefined()
+    expect(findByTestId(page.root, 'claim-approval')).toBeUndefined()
+    await update(page.root, 'approval-feedback', 'direct role decision')
+    await click(page.root, 'approve-approval')
+    await flush()
+    expect(api.approveCutoverApproval).toHaveBeenCalledTimes(1)
+    expect(api.approveCutoverApproval).toHaveBeenCalledWith(expect.objectContaining({
+      approvalId: '701', approvalVersion: 4, taskVersion: 9,
+      data: expect.objectContaining({ reviewItems: expect.arrayContaining([
+        expect.objectContaining({ itemCode: 'PREPARATION', decision: 'YES' }),
+        expect.objectContaining({ itemCode: 'BUSINESS_TEST', decision: 'YES' }),
+        expect.objectContaining({ itemCode: 'EXECUTION', decision: 'YES' }),
+        expect.objectContaining({ itemCode: 'ROLLBACK', decision: 'YES' }),
+        expect.objectContaining({ itemCode: 'OTHER', decision: 'YES' })
+      ]) })
+    }))
+    page.app.unmount()
+  })
+
+  it('opens existing reassignment form from full approval and submits through CUT', async () => {
+    const detail = full('B')
+    detail.nodes.push({ ...detail.nodes[0], nodeId: '712', nodeNo: 2, nodeCode: 'SECOND_LINE',
+      status: 'WAITING', candidateRoleCode: 'probSupporter', originalApproverUserId: null, currentApproverUserId: null })
+    const changed = structuredClone(detail)
+    changed.approvalVersion = 5
+    changed.nodes[0].currentApproverUserId = '44'
+    api.getCutoverApprovalInstance.mockResolvedValueOnce(detail).mockResolvedValue(changed)
+    api.reassignCutoverApproval.mockResolvedValue(reassignment())
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    await click(page.root, 'open-cutover-reassignment')
+    expect(textOf(page.root)).toContain('审批改派')
+    await update(page.root, 'new-approver-id', '44')
+    await update(page.root, 'reassignment-reason', '人员变更')
+    await click(page.root, 'submit-reassignment')
+    await flush()
+    expect(api.reassignCutoverApproval).toHaveBeenCalledWith({ approvalId: '701', approvalVersion: 4,
+      data: { nodeNo: 1, newApproverUserId: '44', reason: '人员变更' }, idempotencyKey: expect.any(String) })
+    expect(api.approveCutoverApproval).not.toHaveBeenCalled()
+    expect(api.rejectCutoverApproval).not.toHaveBeenCalled()
+    await vi.waitFor(() => expect(findByTestId(page.root, 'submit-reassignment')).toBeUndefined())
+    page.app.unmount()
+  })
+
+  it('does not expose reassignment without permission or for an unassigned shared role', async () => {
+    const detail = full('B')
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    vi.mocked(checkPermi).mockReturnValue(false)
+    const denied = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(findByTestId(denied.root, 'open-cutover-reassignment')).toBeUndefined()
+    denied.app.unmount()
+    vi.mocked(checkPermi).mockReturnValue(true)
+    Object.assign(detail.nodes[0], { nodeCode: 'SECOND_LINE', candidateRoleCode: 'probSupporter',
+      originalApproverUserId: null, currentApproverUserId: null })
+    const shared = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(findByTestId(shared.root, 'open-cutover-reassignment')).toBeUndefined()
+    expect(findByTestId(shared.root, 'approve-approval')).toBeDefined()
+    expect(api.reassignCutoverApproval).not.toHaveBeenCalled()
+    shared.app.unmount()
   })
 
   it.each(['A', 'B', 'C', 'D'] as ManualGrade[])(
@@ -110,6 +197,143 @@ describe('F-CUT-005 mounted approval workbench', () => {
       mounted.app.unmount()
     }
   )
+
+  it('opens the complete task in readonly mode from the authorized approval', async () => {
+    api.getCutoverApprovalInstance.mockResolvedValue(full('B'))
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    await click(page.root, 'view-complete-cutover-task')
+    expect(router.push).toHaveBeenCalledWith({ path: '/pms/cutover/tasks/9007199254740993', query: { readonly: '1' } })
+    expect(api.approveCutoverApproval).not.toHaveBeenCalled()
+    page.app.unmount()
+  })
+
+  it('renders original item descriptions with frozen answers instead of the latest checklist results', async () => {
+    const detail = full('B')
+    const item = detail.sourceSnapshot.riskItems[0]
+    item.answerSnapshot = JSON.stringify({ value: { majorCutover: false, spareReference: '11' } })
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    detail.sourcePresentation = { matchingOptions: null, incomplete: false, answerSchemas: {
+      [String(item.checklistItemId)]: { fields: [
+        { code: 'majorCutover', label: '本次是否为重大割接项目' },
+        { code: 'spareReference', label: '备件外部申请引用或人工核验说明' }
+      ] }
+    } }
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    await flush()
+    expect(api.getCutoverChecklist).not.toHaveBeenCalled()
+    expect(textOf(page.root)).toContain('本次是否为重大割接项目')
+    expect(textOf(page.root)).toContain('备件外部申请引用或人工核验说明')
+    expect(textOf(page.root)).toContain('11')
+    expect(textOf(page.root)).not.toContain('majorCutover')
+    expect(textOf(page.root)).not.toContain('禁止使用当前结果')
+    page.app.unmount()
+  })
+
+  it.each(['missing', 'incomplete'])('retains frozen facts when source presentation is %s', async (failure) => {
+    const detail = full('B')
+    detail.sourceSnapshot.riskItems[0].answerSnapshot = '{"value":{"unmapped":"审批原始事实"}}'
+    if (failure === 'incomplete') detail.sourcePresentation = { matchingOptions: null, answerSchemas: {}, incomplete: true }
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(textOf(page.root)).toContain('审批原始事实')
+    expect(textOf(page.root)).toContain('字段描述暂时无法读取')
+    expect(api.getCutoverChecklist).not.toHaveBeenCalled()
+    expect(api.getCutoverChecklistMatchingOptions).not.toHaveBeenCalled()
+    page.app.unmount()
+  })
+
+  it('renders labels and selected device types from the exact checklist referenced by the approval', async () => {
+    const detail = full('B')
+    detail.sourceSnapshot.collectionAnalysis.cutoverType = 'VERSION_UPGRADE'
+    detail.sourceSnapshot.collectionAnalysis.networkMode = 'SILENT_DUAL'
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    detail.sourcePresentation = { incomplete: false, answerSchemas: {}, matchingOptions: {
+      configurationRevisionId: '401', configurationRevisionNo: 1,
+      cutoverTypes: [{ value: 'VERSION_UPGRADE', label: '版本升级' }],
+      networkModes: [{ value: 'SILENT_DUAL', label: '静默双机' }],
+      deviceTypes: [{ value: 'DPX_FRAME', label: 'DPX框式设备' }],
+      matchingInput: { cutoverType: 'VERSION_UPGRADE', networkMode: 'SILENT_DUAL', deviceTypeCodes: ['DPX_FRAME'] }
+    } }
+    const original = structuredClone(detail)
+    const mounted = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(textOf(mounted.root)).toContain('版本升级')
+    expect(textOf(findByTestId(mounted.root, 'approval-cutover-type')!)).toBe('版本升级')
+    expect(textOf(findByTestId(mounted.root, 'approval-network-mode')!)).toBe('静默双机')
+    expect(textOf(findByTestId(mounted.root, 'approval-device-types')!)).toBe('DPX框式设备')
+    expect(api.getCutoverChecklistMatchingOptions).not.toHaveBeenCalled()
+    expect(detail).toEqual(original)
+    expect(api.approveCutoverApproval).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('uses authorized approval presentation without ordinary task query permission', async () => {
+    vi.mocked(checkPermi).mockReturnValue(false)
+    const detail = full('B')
+    detail.sourcePresentation = { matchingOptions: null, answerSchemas: {}, incomplete: false }
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    const page = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(api.getCutoverChecklist).not.toHaveBeenCalled()
+    expect(api.getCutoverChecklistMatchingOptions).not.toHaveBeenCalled()
+    expect(textOf(page.root)).not.toContain('字段描述暂时无法读取')
+    expect(textOf(page.root)).toContain('已核验')
+    page.app.unmount()
+  })
+
+  it('ignores old description responses after switching approval instances', async () => {
+    let finishOld!: (value: unknown) => void
+    const approval = (id: string, label: string) => {
+      const detail = full('B')
+      detail.approvalInstanceId = id
+      detail.sourceSnapshot.riskItems[0].answerSnapshot = '{"value":{"sameCode":"冻结事实"}}'
+      detail.sourcePresentation = { matchingOptions: null, incomplete: false, answerSchemas: {
+        '3011': { fields: [{ code: 'sameCode', label }] }
+      } }
+      return detail
+    }
+    api.getCutoverApprovalInstance.mockImplementation(id => id === '701'
+      ? new Promise(resolve => { finishOld = resolve }) : Promise.resolve(approval('702', '新审批字段描述')))
+    const selected = ref('701')
+    const page = mount(defineComponent({ setup: () => () => h(CutoverApprovalPanel, { approvalId: selected.value }) }), {}, controls)
+    await flush()
+    selected.value = '702'
+    await flush()
+    await flush()
+    expect(textOf(page.root)).toContain('新审批字段描述')
+    finishOld(approval('701', '旧审批字段描述'))
+    await flush()
+    expect(textOf(page.root)).toContain('新审批字段描述')
+    expect(textOf(page.root)).not.toContain('旧审批字段描述')
+    page.app.unmount()
+  })
+
+  it('keeps the frozen approval readable when checklist metadata cannot be loaded', async () => {
+    const detail = full('B')
+    detail.sourceSnapshot.collectionAnalysis.cutoverType = 'CUSTOM_TYPE'
+    api.getCutoverApprovalInstance.mockResolvedValue(detail)
+    api.getCutoverChecklistMatchingOptions.mockRejectedValue(new Error('metadata unavailable'))
+    const mounted = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(textOf(findByTestId(mounted.root, 'approval-cutover-type')!)).toBe('CUSTOM_TYPE')
+    expect(textOf(mounted.root)).toContain('本次审批引用的清单匹配信息暂时无法读取')
+    expect(findByTestId(mounted.root, 'frozen-plan')).toBeDefined()
+    expect(api.approveCutoverApproval).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('does not request a current checklist for the D-grade flow with no frozen checklist', async () => {
+    api.getCutoverApprovalInstance.mockResolvedValue(full('D'))
+    const mounted = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(api.getCutoverChecklistMatchingOptions).not.toHaveBeenCalled()
+    expect(api.getCutoverChecklist).not.toHaveBeenCalled()
+    expect(findByTestId(mounted.root, 'frozen-plan')).toBeDefined()
+    mounted.app.unmount()
+  })
 
   it('submits five review items and service-manager reassessment from allowedActions', async () => {
     const detail = full('A', 'SERVICE_MANAGER')
@@ -446,6 +670,52 @@ describe('F-CUT-005 mounted approval workbench', () => {
     await flush()
     expect(findByTestId(mounted.root, 'new-approver-id')?.props?.modelValue).toBe('')
     expect(findByTestId(mounted.root, 'reassignment-reason')?.props?.modelValue).toBe('')
+    mounted.app.unmount()
+  })
+
+  it('selects reassignment nodes and people by name and rejects invalid form values', async () => {
+    const view = reassignment()
+    const original = view.nodes[0].currentApproverUserId!
+    const submitted = vi.fn()
+    const mounted = mount(CutoverApprovalReassignmentPanel, {
+      view, busy: false, userNames: { [String(original)]: '原审批人', '9007199254740995': '新审批人' }, onReassign: submitted
+    }, controls)
+    expect(findByTestId(mounted.root, 'reassignment-node')).toBeDefined()
+    expect(textOf(mounted.root)).toContain('原审批人')
+    expect(textOf(mounted.root)).not.toContain('当前审批人ID')
+    expect(findByTestId(mounted.root, 'new-approver-id')?.props?.filterable).toBeDefined()
+    expect(findByTestId(mounted.root, 'reassignment-reason')?.props?.type).toBe('textarea')
+    await update(mounted.root, 'reassignment-reason', '人员变更')
+    await update(mounted.root, 'new-approver-id', String(original))
+    await click(mounted.root, 'submit-reassignment')
+    expect(submitted).not.toHaveBeenCalled()
+    await update(mounted.root, 'new-approver-id', '不存在的用户')
+    await click(mounted.root, 'submit-reassignment')
+    expect(submitted).not.toHaveBeenCalled()
+    await update(mounted.root, 'new-approver-id', '9007199254740995')
+    await update(mounted.root, 'reassignment-node', 99)
+    await click(mounted.root, 'submit-reassignment')
+    expect(submitted).not.toHaveBeenCalled()
+    await update(mounted.root, 'reassignment-node', 1)
+    await update(mounted.root, 'new-approver-id', '9007199254740995')
+    await update(mounted.root, 'reassignment-reason', '  人员变更  ')
+    await click(mounted.root, 'submit-reassignment')
+    expect(submitted).toHaveBeenCalledWith({ nodeNo: 1, newApproverUserId: '9007199254740995', reason: '人员变更' })
+    mounted.app.unmount()
+  })
+
+  it('keeps reassignment disabled when people could not load and retries the read', async () => {
+    people.getSimpleUserList.mockRejectedValueOnce(new Error('load failed'))
+    api.getCutoverApprovalInstance.mockResolvedValue(reassignment())
+    const mounted = mount(CutoverApprovalPanel, { approvalId: '701' }, controls)
+    await flush()
+    expect(textOf(mounted.root)).toContain('人员信息加载失败')
+    expect(findByTestId(mounted.root, 'submit-reassignment')?.props?.disabled).toBe(true)
+    await click(mounted.root, 'retry-reassignment-users')
+    await flush()
+    expect(people.getSimpleUserList).toHaveBeenCalledTimes(2)
+    expect(textOf(mounted.root)).not.toContain('人员信息加载失败')
+    expect(api.reassignCutoverApproval).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
 

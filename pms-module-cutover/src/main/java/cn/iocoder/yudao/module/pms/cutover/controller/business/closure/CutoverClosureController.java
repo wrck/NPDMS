@@ -48,7 +48,7 @@ public class CutoverClosureController {
     }
 
     @GetMapping
-    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query-closure')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query-closure','pms:cutover-task:query-approval')")
     public CommonResult<CutoverClosureResponse> detail(@PathVariable Long taskId) {
         var trusted = trusted(taskId);
         return success(view(trusted, taskId));

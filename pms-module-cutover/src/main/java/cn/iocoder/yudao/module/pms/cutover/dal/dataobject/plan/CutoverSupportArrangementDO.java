@@ -22,6 +22,9 @@ public class CutoverSupportArrangementDO extends TenantBaseDO {
     private String phone;
     private Long customerContactId;
     private Long customerContactVersion;
+    private String personSourceCode;
+    private Long personSourceId;
+    private Long personSourceVersion;
     private Integer sortOrder;
     @TableField(value = "arrive_time")
     private LocalDateTime arrivalTime;

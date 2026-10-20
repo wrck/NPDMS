@@ -100,6 +100,25 @@ class CutoverTaskQueryServiceTest {
     }
 
     @Test
+    void approvalReaderSeesTheExactTaskButGetsNoTaskWriteActions() {
+        var task = task(); task.setCurrentStage("P3"); task.setTaskStatus("SURVEYING");
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, false));
+        when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
+        when(assessmentMapper.selectById(801L)).thenReturn(assessment());
+        var audience = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAudience", audience);
+        when(audience.inspectTask(any())).thenReturn(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Grant(20L, "{}"));
+        var context = new CutoverTaskContext(1L, 9L, "approval-read", true, true, true, true, true);
+        var result = service.detail(context, 701L);
+        assertThat(result.task().id()).isEqualTo(701L);
+        assertThat(result.devices()).containsExactly(device);
+        assertThat(result.allowedActions()).isEmpty();
+        when(audience.inspectTask(any())).thenReturn(null);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.detail(context, 701L)).isInstanceOf(CutoverTaskApplicationException.class);
+    }
+
+    @Test
     void resolvesSingleAuthorizedCreateCandidate() {
         when(deviceScopePort.resolveBySerials(List.of("SN-401"))).thenReturn(List.of(device));
         when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT"))
@@ -152,10 +171,12 @@ class CutoverTaskQueryServiceTest {
 
         task.setProjectVersion(2L);
         assertThat(service.detail(new CutoverTaskContext(1L, 9L, "query-stale-version", true, true, false, false, false), 701L)
-                .allowedActions()).containsExactly("SAVE_ASSESSMENT");
+                .allowedActions()).containsExactly("SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT");
         task.setProjectVersion(3L); task.setProjectName("旧项目名称");
-        assertThat(service.detail(new CutoverTaskContext(1L, 9L, "query-stale-name", true, true, false, false, false), 701L)
-                .allowedActions()).containsExactly("SAVE_ASSESSMENT");
+        var refreshed = service.detail(new CutoverTaskContext(1L, 9L, "query-stale-name", true, true, false, false, false), 701L);
+        assertThat(refreshed.allowedActions()).containsExactly("SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT");
+        assertThat(refreshed.project().projectName()).isEqualTo(project.projectName());
+        assertThat(task.getProjectName()).isEqualTo("旧项目名称");
     }
 
     @Test
@@ -180,6 +201,36 @@ class CutoverTaskQueryServiceTest {
                 "SAVE_CHECKLIST", "REQUEST_COLLECTION", "SUBMIT_CHECKLIST");
     }
 
+    @Test
+    void draftUsesCurrentDeviceVersionButExplainsForeignDeviceAndMissingPermission() {
+        var task = task();
+        when(taskMapper.selectById(701L)).thenReturn(task);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 7L, true));
+        when(projectContextPort.inspect(any())).thenReturn(project);
+        when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
+        when(assessmentMapper.selectById(801L)).thenReturn(assessment());
+        var current = new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 101L, 6L);
+        when(deviceScopePort.resolveBySerials(List.of("SN-401"))).thenReturn(List.of(current));
+        var context = new CutoverTaskContext(1L, 9L, "latest-device", true, true, false, false, false);
+        var detail = service.detail(context, 701L);
+        assertThat(detail.devices()).containsExactly(current);
+        assertThat(detail.allowedActions()).contains("SUBMIT_ASSESSMENT");
+        var denied = service.detail(new CutoverTaskContext(1L, 9L, "no-submit", true, false, false, false, false), 701L);
+        assertThat(denied.allowedActions()).doesNotContain("SUBMIT_ASSESSMENT");
+        assertThat(denied.assessmentSubmissionBlockReason()).contains("无提交割接评估权限");
+        when(deviceScopePort.resolveBySerials(List.of("SN-401")))
+                .thenReturn(List.of(new CutoverDeviceScopePort.DeviceFact(401L, "SN-401", 999L, 6L)));
+        var foreign = service.detail(context, 701L);
+        assertThat(foreign.allowedActions()).doesNotContain("SUBMIT_ASSESSMENT");
+        assertThat(foreign.assessmentSubmissionBlockReason()).contains("不属于当前项目");
+        assertThat(foreign.devices()).containsExactly(device);
+        when(projectScopePort.inspect(9L, 101L, "ACTION_EDIT")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(101L, 8L, true));
+        var changedScope = service.detail(context, 701L);
+        assertThat(changedScope.allowedActions()).doesNotContain("SAVE_ASSESSMENT", "SUBMIT_ASSESSMENT");
+        assertThat(changedScope.assessmentSubmissionBlockReason()).contains("项目范围版本已变化");
+    }
+
     @ParameterizedTest
     @CsvSource({"P4,PLAN_DRAFTING", "P5,APPROVING"})
     void exposesSubmittedChecklistRevisionAfterAdvancing(String stage, String status) {
@@ -195,6 +246,7 @@ class CutoverTaskQueryServiceTest {
         when(frozenDevices.byTask(any())).thenReturn(List.of(deviceRow()));
         CutoverAssessmentDO assessment = assessment();
         assessment.setAssessmentStatus("SUBMITTED");
+        assessment.setProjectName("本次提交冻结的项目名称");
         when(assessmentMapper.selectById(801L)).thenReturn(assessment);
         var checklist = new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.checklist.CutoverChecklistDO();
         checklist.setStatusCode("SUBMITTED");
@@ -204,6 +256,8 @@ class CutoverTaskQueryServiceTest {
 
         assertThat(detail.allowedActions()).contains("REVISE_ASSESSMENT", "REVISE_CHECKLIST")
                 .doesNotContain("SAVE_CHECKLIST", "SUBMIT_CHECKLIST");
+        assertThat(detail.project().projectName()).isEqualTo("本次提交冻结的项目名称");
+        assertThat(task.getProjectName()).isEqualTo(project.projectName());
     }
 
     private CutoverTaskSnapshotStore.Context frozenContext() {

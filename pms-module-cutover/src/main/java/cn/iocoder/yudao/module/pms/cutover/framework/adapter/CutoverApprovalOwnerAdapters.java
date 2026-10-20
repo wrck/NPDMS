@@ -79,8 +79,12 @@ public class CutoverApprovalOwnerAdapters {
         };
     }
     @Bean
-    CutoverApprovalRoleCandidatePort cutoverApprovalRoleCandidatePort(RoleCandidateFactApi api) {
+    CutoverApprovalRoleCandidatePort cutoverApprovalRoleCandidatePort(RoleCandidateFactApi api, AdminUserApi users) {
         return new CutoverApprovalRoleCandidatePort() {
+            public void requireActiveUser(ActorQuery query) {
+                CutoverOwnerAdapters.requireTenant(query.tenantId());
+                users.validateUser(query.actorId());
+            }
             public CandidateSet inspectCandidates(RoleQuery query) { return candidates(query, false); }
             public CandidateRevalidation lockAndRevalidate(CandidateSet expected) {
                 var current = candidates(new RoleQuery(expected.tenantId(), expected.roleGroupCode()), true);

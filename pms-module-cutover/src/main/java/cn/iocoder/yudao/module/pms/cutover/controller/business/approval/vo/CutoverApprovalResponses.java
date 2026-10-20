@@ -4,6 +4,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprov
 import cn.iocoder.yudao.module.pms.cutover.service.approval.leadtime.CutoverLeadTimeCompliance;
 import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews;
 import cn.iocoder.yudao.module.pms.cutover.service.spare.view.CutoverSpareViews;
+import cn.iocoder.yudao.module.pms.cutover.service.checklist.result.CutoverApprovalSourcePresentation;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -25,6 +26,7 @@ public final class CutoverApprovalResponses {
                          CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot sourceSnapshot,
                          CutoverLeadTimeCompliance leadTimeCompliance, Long decisionAt, String rejectionReason,
                          SpareSupportApprovalSummary spareSupport,
+                         CutoverApprovalSourcePresentation sourcePresentation,
                          List<String> allowedActions) implements View { }
     public record SpareSupportApprovalSummary(Boolean required,
                                               List<SpareApplicationApprovalSummary> applications,
@@ -54,14 +56,14 @@ public final class CutoverApprovalResponses {
     public record ReassignmentCandidatePage(List<ReassignmentCandidate> list, Long total,
                                              Integer pageNo, Integer pageSize) { }
 
-    public static View view(CutoverApprovalViews.ApprovalView source) {
+    public static View view(CutoverApprovalViews.ApprovalView source, CutoverApprovalSourcePresentation presentation) {
         return switch (source) {
             case CutoverApprovalViews.ApprovalDetail value -> new Detail(value.viewMode(), value.approvalInstanceId(),
                     value.approvalVersion(), value.taskId(), value.taskVersion(), value.planRevisionId(),
                     value.planRevisionNo(), value.grade(), value.status(), value.holdReason(), value.currentNodeNo(),
                     value.nodes().stream().map(CutoverApprovalResponses::node).toList(), value.sourceSnapshot(),
                     value.leadTimeCompliance(), epoch(value.decisionAt()), value.rejectionReason(),
-                    spare(value.spareSupport()), value.allowedActions());
+                    spare(value.spareSupport()), presentation, value.allowedActions());
             case CutoverApprovalViews.ApprovalFinalResult value -> new FinalResult(value.viewMode(),
                     value.approvalInstanceId(), value.taskId(), value.planRevisionId(), value.grade(), value.status(),
                     epoch(value.decisionAt()), value.rejectionReason(), value.allowedActions());

@@ -246,7 +246,7 @@ public class CutoverTaskController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query','pms:cutover-task:query-approval')")
     public CommonResult<CutoverTaskResponses.Detail> detail(@PathVariable("id") Long id) {
         requireId(id);
         var trusted = requestContext.current();

@@ -44,7 +44,7 @@ export const submitCutoverPlan = (command: { taskId: WireLong; taskVersion: Wire
     }
   })
 
-export const patchApprovedCutoverPlanContact = (command: { taskId: WireLong; arrangementId: WireLong; planVersion: WireLong; data: { personName: string; phone: string; arrivalTime: WireDateTime; reason: string; customerContactReference: CustomerContactReference | null }; idempotencyKey: string }) =>
+export const patchApprovedCutoverPlanContact = (command: { taskId: WireLong; arrangementId: WireLong; planVersion: WireLong; data: { personName: string; phone: string; arrivalTime: WireDateTime; reason: string; customerContactReference: CustomerContactReference | null; personReference?: import('./types').SupportPersonReference | null }; idempotencyKey: string }) =>
   request.put<CutoverPlanView>({
     method: 'PATCH',
     url: `${baseUrl}/${command.taskId}/plan/support-arrangements/${command.arrangementId}`,
@@ -65,3 +65,4 @@ export const reviseCutoverPlan = (command: { taskId: WireLong; taskVersion: Wire
   })
 
 export const getProjectContactChoices = (taskId: WireLong) => request.get<ProjectContactChoice[]>({ url: `/api/v1/pms/cutover-tasks/${taskId}/project-contacts` })
+export const getSupportPersonChoices = (taskId: WireLong, roleCode: string) => request.get<import('./types').SupportPersonChoice[]>({ url: `/api/v1/pms/cutover-tasks/${taskId}/support-person-choices`, params: { roleCode } })

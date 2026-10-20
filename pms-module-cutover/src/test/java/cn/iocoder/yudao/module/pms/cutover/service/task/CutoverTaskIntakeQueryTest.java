@@ -31,7 +31,7 @@ class CutoverTaskIntakeQueryTest {
         org.springframework.test.util.ReflectionTestUtils.setField(queries, "taskSnapshots",
                 mock(CutoverTaskSnapshotStore.class));
         var task = new CutoverTaskDO();
-        task.setId(701L); task.setTenantId(1L); task.setProjectId(101L);
+        task.setId(701L); task.setTenantId(1L); task.setProjectId(101L); task.setProjectScopeVersion(7L);
         task.setCurrentStage("P6"); task.setTaskStatus("ARCHIVED"); task.setManualGrade("D");
         when(tasks.selectById(701L)).thenReturn(task);
         when(scopes.inspect(9L, 101L, "ACTION_VIEW"))

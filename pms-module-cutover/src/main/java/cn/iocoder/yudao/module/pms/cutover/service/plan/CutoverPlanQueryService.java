@@ -45,6 +45,9 @@ import static cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanApplic
 
 /** P4 方案运行查询，保留历史版本与批准事实。 */
 public class CutoverPlanQueryService {
+    @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience approvalAudience;
+
     private static final CutoverP4ActionPolicy ACTION_POLICY = new CutoverP4ActionPolicy();
     @Resource
     private CutoverPlanStorage storage;
@@ -76,11 +79,12 @@ public class CutoverPlanQueryService {
         CutoverTaskDO task = taskMapper.selectById(taskId);
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw notFound();
         CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.inspect(actorId, task.getProjectId(), "ACTION_VIEW");
-        if (scope == null || !scope.allowed()) throw notFound();
+        boolean projectRead = scope != null && scope.allowed() && Objects.equals(scope.projectId(), task.getProjectId());
+        if (!projectRead && approvalAudience.inspectTask(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Query(tenantId, actorId, taskId, null)) == null) throw notFound();
         CutoverPlanRevisionDO plan = selectReadablePlan(tenantId, task);
-        boolean editAllowed = inspectEditAllowed(actorId, task);
+        boolean editAllowed = projectRead && inspectEditAllowed(actorId, task);
         CutoverApprovalFact approval = inspectApprovalFact(tenantId, plan);
-        List<String> actions = allowedActions(context, task, plan, approval, editAllowed);
+        List<String> actions = projectRead ? allowedActions(context, task, plan, approval, editAllowed) : List.of();
         if (plan == null) return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), null, null, null, null, null, null, null, null, null, null, actions, null);
         JsonNode sourceSnapshot = parseSourceSnapshot(plan);
         JsonNode content = assemble(tenantId, plan);
@@ -204,7 +208,7 @@ public class CutoverPlanQueryService {
         try {
             CutoverPlanSourcePort.SourceFacts current = sourcePort.inspect(tenantId, actorId, task.getId());
             CutoverPlanSourcePort.SourceSnapshot frozen = storage.source(plan);
-            return current != null && !current.snapshot().equals(frozen);
+            return current != null && !current.snapshot().sameBusinessSource(frozen);
         } catch (RuntimeException ignored) {
             return false;
         }
@@ -268,7 +272,7 @@ public class CutoverPlanQueryService {
         try {
             CutoverPlanSourcePort.SourceFacts current = sourcePort.inspect(tenantId, actorId, task.getId());
             CutoverPlanSourcePort.SourceSnapshot frozen = storage.source(plan);
-            return current != null && current.snapshot().equals(frozen);
+            return current != null && current.snapshot().sameBusinessSource(frozen);
         } catch (RuntimeException ignored) {
             return false;
         }

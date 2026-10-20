@@ -7,7 +7,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.port.CutoverApproval
 import java.util.List;
 import java.util.Objects;
 
-/** 节点只固定实际角色引用；成员资格始终由SYSTEM核验当前办理人。 */
+/** 节点固定角色引用；SYSTEM成员资格只用于领取前核验。 */
 public record CutoverRoleApprovalSnapshot(long roleGroupId, String roleGroupCode,
                                                 String candidateGroupKey, String approvalMode) {
     public boolean byRole() { return "ROLE".equals(approvalMode); }

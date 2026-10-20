@@ -14,6 +14,31 @@ class CutoverPlanContentCodecTest {
     private final CutoverPlanContentCodec codec = new CutoverPlanContentCodec();
 
     @Test
+    void keepsSelectedPersonReferenceWhenReopeningAndDerivingDraft() {
+        var body=(tools.jackson.databind.node.ObjectNode)JsonUtils.parseTree(standardJson());
+        var row=(tools.jackson.databind.node.ObjectNode)body.path("supportArrangements").get(0);
+        row.putObject("personReference").put("sourceCode","SYSTEM_USER").put("id","2108559111685582849").put("version","1792460873037");
+        var draft=codec.decodeWritable(body,source("A"));
+        var selected=draft.supportArrangements().getFirst().personReference();
+        assertThat(selected.id()).isEqualTo(2108559111685582849L);
+        assertThat(codec.rebaseDerivedDraft(draft,source("A")).supportArrangements().getFirst().personReference()).isEqualTo(selected);
+        var stored=new cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverSupportArrangementDO();
+        stored.setId(1L);stored.setPersonSourceCode(selected.sourceCode());stored.setPersonSourceId(selected.id());stored.setPersonSourceVersion(selected.version());
+        assertThat(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanStorage.supportContent(stored).path("personReference").path("id").asText()).isEqualTo("2108559111685582849");
+    }
+
+    @Test
+    void supportRequiresCustomerAndFirstLineButAllowsSecondLineAndRndToBeAbsent() {
+        var customer = new CutoverPlanContentCodec.SupportArrangement(null, "CUSTOMER", "客户", "保障", "13800000001", 1L, null);
+        var firstLine = new CutoverPlanContentCodec.SupportArrangement(null, "DP_FIRST_LINE", "一线", "实施", "13800000002", 1L, null);
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(customer, firstLine))).isTrue();
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(customer))).isFalse();
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(firstLine))).isFalse();
+        var partialSecondLine = new CutoverPlanContentCodec.SupportArrangement(null, "DP_SECOND_LINE", "二线", "", "", 0L, null);
+        assertThat(CutoverPlanContentCodec.supportComplete(List.of(customer, firstLine, partialSecondLine))).isFalse();
+    }
+
+    @Test
     void singlePlanTimeSurvivesEveryContentModeAndRejectsInvalidValues() {
         var standard = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(standardJson());
         standard.put("scheduledTime", 1793498400000L);

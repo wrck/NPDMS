@@ -47,6 +47,19 @@ class CutoverBpmGuardFlowableTest {
     @BeforeEach void tenant() { TenantContextHolder.setTenantId(1L); }
     @AfterEach void cleanup() { TenantContextHolder.clear(); }
 
+    @Test void definitionUsesNativeButtonSettingsWithoutChangingGenericBpm() {
+        var definition = engine.getRepositoryService().createProcessDefinitionQuery()
+                .processDefinitionKey(CutoverWorkflowApi.DEFINITION_KEY).processDefinitionTenantId("1").singleResult();
+        var model = engine.getRepositoryService().getBpmnModel(definition.getId());
+        CutoverWorkflowDefinitionPolicy.validate(model);
+        for (String node : List.of("INITIATOR", "SERVICE_MANAGER", "SECOND_LINE", "RND")) {
+            var settings = cn.iocoder.yudao.module.bpm.framework.flowable.core.util.BpmnModelUtils.parseButtonsSetting(model, node);
+            assertEquals(Set.of(1, 2, 3, 4, 5, 6, 7), settings.keySet());
+            for (int businessAction : List.of(1, 2, 3, 4, 5, 6)) assertFalse(settings.get(businessAction).getEnable());
+            assertTrue(settings.get(7).getEnable());
+        }
+    }
+
     @Test void eachGradeKeepsEveryRequiredManualNode() {
         for (String grade : List.of("A", "B", "C", "D")) {
             String instance = start(grade);
@@ -148,7 +161,10 @@ class CutoverBpmGuardFlowableTest {
 
     private static void approve(String instance, Task task) {
         guard.mutate(new CutoverBpmGuard.Operation(instance, task.getTaskDefinitionKey(), 7L, "APPROVE"), () -> {
-            if (task.getAssignee() == null) engine.getTaskService().claim(task.getId(), "7");
+            if (task.getAssignee() == null) {
+                engine.getRuntimeService().addUserIdentityLink(instance, "7", "cutoverCurrent:" + task.getTaskDefinitionKey());
+                engine.getTaskService().claim(task.getId(), "7");
+            }
             engine.getTaskService().setVariableLocal(task.getId(), BpmnVariableConstants.TASK_VARIABLE_STATUS, BpmTaskStatusEnum.APPROVE.getStatus());
             engine.getTaskService().complete(task.getId());
         });

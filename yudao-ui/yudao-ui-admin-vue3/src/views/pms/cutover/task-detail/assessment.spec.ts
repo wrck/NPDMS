@@ -30,6 +30,25 @@ const detail = (id = '101', grade = 'A') => ({
 
 describe('P2 detail write recovery', () => {
   beforeEach(() => vi.resetAllMocks())
+  it('retains unsaved assessment input on source conflict and prevents leaving until a draft can be saved', async () => {
+    api.getCutoverTaskDetail.mockImplementation(async () => structuredClone(detail()))
+    const failure = { response: { status: 409, data: { data: { recoveryAction: 'REFRESH_OWNER_FACTS' } } } }
+    api.saveCutoverAssessment.mockRejectedValue(failure)
+    const page = mount(TaskDetail, { taskId: '101' }); await flush()
+    const state = (page.vm as any).$.setupState
+    state.assessmentModel.manualGrade = 'D'
+    await expect((findByTestId(page.root, 'save-assessment')!.props!.onClick as Function)()).rejects.toEqual(failure)
+    expect(state.assessmentModel.manualGrade).toBe('D')
+    expect(api.getCutoverTaskDetail).toHaveBeenCalledTimes(2)
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+    await (findByTestId(page.root, 'close-cutover-detail')!.props!.onClick as Function)()
+    expect(state.assessmentModel.manualGrade).toBe('D')
+    expect(api.submitCutoverAssessment).not.toHaveBeenCalled()
+    expect(messages.warning).toHaveBeenCalledWith('草稿保存未完成，当前填写已保留，请保存成功后再离开。')
+    page.app.unmount()
+  })
   it('retries an uncertain assessment save with exactly the original key, versions and content', async () => {
     api.getCutoverTaskDetail.mockResolvedValue(detail())
     api.saveCutoverAssessment.mockRejectedValueOnce(new Error('response lost')).mockResolvedValue({})
@@ -80,6 +99,16 @@ describe('P2 detail write recovery', () => {
     await flush()
     expect(textOf(page.root)).toContain('割接102')
     expect(textOf(page.root)).not.toContain('割接101')
+    page.app.unmount()
+  })
+  it('shows the server reason without issuing a submission when original devices moved', async () => {
+    const reason = '原选设备已缺失、替换或不属于当前项目，请核查设备归属后重试'
+    api.getCutoverTaskDetail.mockResolvedValue({ ...detail(), allowedActions: ['SAVE_ASSESSMENT'], assessmentSubmissionBlockReason: reason })
+    const page = mount(TaskDetail, { taskId: '101' })
+    await flush()
+    await (findByTestId(page.root, 'submit-assessment')!.props!.onClick as () => Promise<void>)()
+    expect(messages.warning).toHaveBeenCalledWith(reason)
+    expect(api.submitCutoverAssessment).not.toHaveBeenCalled()
     page.app.unmount()
   })
   it('saves an explicit manual customer level in the existing assessment command before submission', async () => {

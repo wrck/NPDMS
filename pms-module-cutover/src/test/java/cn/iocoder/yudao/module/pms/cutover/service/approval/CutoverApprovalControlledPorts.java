@@ -57,6 +57,9 @@ public final class CutoverApprovalControlledPorts {
 
     public static CutoverApprovalRoleCandidatePort roleCandidates() {
         return new CutoverApprovalRoleCandidatePort() {
+            @Override public void requireActiveUser(ActorQuery query) {
+                if (query.actorId() <= 0) throw new IllegalArgumentException("invalid controlled actor");
+            }
             @Override
             public CandidateSet inspectCandidates(RoleQuery query) {
                 long tenantId = query.tenantId(); String roleGroupCode = query.roleGroupCode();

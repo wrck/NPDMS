@@ -139,6 +139,23 @@ public class CutoverFilePolicy implements FileBusinessObjectPolicyProvider, File
                         Set.of("CUTOVER_CHECKLIST_ITEM".equals(type) ? "CUTOVER_CHECKLIST_MANUAL_EVIDENCE" : type), MEDIA, 52_428_800L, "INTERNAL");
             }
         }
+        if (READ.contains(query.requiredAction())) {
+            var access = new CutoverRoleApprovalAudience.Query(query.tenantId(), query.actorUserId(), context.task().getId(), lock ? expected : null);
+            var grant = lock ? approvalAudience.lockAndRevalidateTask(access) : approvalAudience.inspectTask(access);
+            if (grant != null) {
+                boolean selectedVersion = frozen == null;
+                if (frozen != null && "CUTOVER_PLAN".equals(type)) {
+                    selectedVersion = plans.existsFrozenFileVersion(CutoverFrozenPlanFileQuery.builder()
+                            .tenantId(query.tenantId()).taskId(context.task().getId()).artifactId(frozen.artifactId())
+                            .versionNo(frozen.versionNo()).referenceKey(query.referenceKey()).build());
+                } else if (frozen != null) {
+                    var file = grant.selectedFile(new CutoverRoleApprovalAudience.FileReference(type, query.objectId(), query.referenceKey()));
+                    selectedVersion = file != null && frozen.artifactId().equals(file.artifactId()) && frozen.versionNo().equals(file.versionNo());
+                }
+                if (selectedVersion) return new FileBusinessObjectPolicyFact(true, grant.approvalId(), "IMMUTABLE", "MULTIPLE",
+                        Set.of("CUTOVER_CHECKLIST_ITEM".equals(type) ? "CUTOVER_CHECKLIST_MANUAL_EVIDENCE" : type), MEDIA, 52_428_800L, "INTERNAL");
+            }
+        }
         var inspected = scopes.inspect(query.actorUserId(), context.task().getProjectId(), action);
         if (!inspected.allowed()) return denied();
         var scope = lock ? scopes.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()

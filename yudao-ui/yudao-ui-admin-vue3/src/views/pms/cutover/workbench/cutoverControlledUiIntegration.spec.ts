@@ -45,6 +45,7 @@ const api = vi.hoisted(() => ({
   removeCustomChecklistItem: vi.fn(),
   requestChecklistCollection: vi.fn(),
   submitCutoverChecklist: vi.fn(),
+  getSupportPersonChoices: vi.fn(async () => []),
   getProjectContactChoices: vi.fn(async () => []),
   getCutoverPlan: vi.fn(),
   createCutoverPlanDraft: vi.fn(),
@@ -67,7 +68,8 @@ const api = vi.hoisted(() => ({
 const fileApi = vi.hoisted(() => ({
   getArtifact: vi.fn(),
   getVersions: vi.fn(),
-  createAccessTicket: vi.fn()
+  createAccessTicket: vi.fn(),
+  getCurrentReference: vi.fn().mockResolvedValue(null)
 }))
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }))
 const route = reactive({ path: '/pms/cutover/workbench', query: {} as Record<string, string> })

@@ -9,6 +9,13 @@
         <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
         <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
         <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:buttonsSetting id="1" displayName="通过" enable="false"/>
+        <flowable:buttonsSetting id="2" displayName="驳回" enable="false"/>
+        <flowable:buttonsSetting id="3" displayName="转办" enable="false"/>
+        <flowable:buttonsSetting id="4" displayName="委派" enable="false"/>
+        <flowable:buttonsSetting id="5" displayName="加签" enable="false"/>
+        <flowable:buttonsSetting id="6" displayName="退回" enable="false"/>
+        <flowable:buttonsSetting id="7" displayName="抄送" enable="true"/>
         <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>
@@ -21,6 +28,13 @@
         <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
         <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
         <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:buttonsSetting id="1" displayName="通过" enable="false"/>
+        <flowable:buttonsSetting id="2" displayName="驳回" enable="false"/>
+        <flowable:buttonsSetting id="3" displayName="转办" enable="false"/>
+        <flowable:buttonsSetting id="4" displayName="委派" enable="false"/>
+        <flowable:buttonsSetting id="5" displayName="加签" enable="false"/>
+        <flowable:buttonsSetting id="6" displayName="退回" enable="false"/>
+        <flowable:buttonsSetting id="7" displayName="抄送" enable="true"/>
         <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>
@@ -34,6 +48,13 @@
         <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
         <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
         <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:buttonsSetting id="1" displayName="通过" enable="false"/>
+        <flowable:buttonsSetting id="2" displayName="驳回" enable="false"/>
+        <flowable:buttonsSetting id="3" displayName="转办" enable="false"/>
+        <flowable:buttonsSetting id="4" displayName="委派" enable="false"/>
+        <flowable:buttonsSetting id="5" displayName="加签" enable="false"/>
+        <flowable:buttonsSetting id="6" displayName="退回" enable="false"/>
+        <flowable:buttonsSetting id="7" displayName="抄送" enable="true"/>
         <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>
@@ -47,6 +68,13 @@
         <flowable:approveType>1</flowable:approveType><flowable:assignStartUserHandlerType>1</flowable:assignStartUserHandlerType>
         <flowable:assignEmptyHandlerType>3</flowable:assignEmptyHandlerType><flowable:rejectHandlerType>1</flowable:rejectHandlerType>
         <flowable:signEnable>false</flowable:signEnable><flowable:reasonRequire>true</flowable:reasonRequire>
+        <flowable:buttonsSetting id="1" displayName="通过" enable="false"/>
+        <flowable:buttonsSetting id="2" displayName="驳回" enable="false"/>
+        <flowable:buttonsSetting id="3" displayName="转办" enable="false"/>
+        <flowable:buttonsSetting id="4" displayName="委派" enable="false"/>
+        <flowable:buttonsSetting id="5" displayName="加签" enable="false"/>
+        <flowable:buttonsSetting id="6" displayName="退回" enable="false"/>
+        <flowable:buttonsSetting id="7" displayName="抄送" enable="true"/>
         <flowable:taskListener event="create" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="assignment" expression="${cutoverBpmGuard.validate(task)}"/>
         <flowable:taskListener event="complete" expression="${cutoverBpmGuard.validate(task)}"/>

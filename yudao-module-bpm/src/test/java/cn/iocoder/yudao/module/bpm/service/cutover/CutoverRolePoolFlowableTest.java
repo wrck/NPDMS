@@ -115,6 +115,44 @@ class CutoverRolePoolFlowableTest {
         TenantContextHolder.setTenantId(1L); assertNull(task(instance).getAssignee());
     }
 
+    @Test void claimedMemberRetainsTaskAfterRoleRemovalAndOthersCannotTakeIt() {
+        String instance = second(List.of(8L, 9L)); Task pending = task(instance);
+        guard.mutate(new CutoverBpmGuard.Operation(instance, "SECOND_LINE", 8L, "CLAIM"), () -> {
+            engine.getRuntimeService().addUserIdentityLink(instance, "8", "cutoverCurrent:SECOND_LINE");
+            engine.getTaskService().claim(pending.getId(), "8");
+        });
+        MEMBERS.remove(8L);
+        assertEquals("8", task(instance).getAssignee());
+        assertEquals(1, access.todos(new RoleCandidateFactApi.ActorQuery(1L, 8L)).processInstanceId(instance).count());
+        assertEquals(0, access.todos(new RoleCandidateFactApi.ActorQuery(1L, 9L)).processInstanceId(instance).count());
+        assertThrows(RuntimeException.class, () -> engine.getTaskService().claim(pending.getId(), "9"));
+        approve(instance, task(instance), 8L);
+        assertEquals("RND", task(instance).getTaskDefinitionKey());
+        assertEquals("8", engine.getHistoryService().createHistoricTaskInstanceQuery().taskId(pending.getId()).singleResult().getAssignee());
+    }
+    @Test void explicitReassignmentMovesClaimedTaskAndKeepsOriginalRoleAndDecisionHistory() {
+        String instance = second(List.of(8L, 9L)); Task pending = task(instance);
+        guard.mutate(new CutoverBpmGuard.Operation(instance, "SECOND_LINE", 8L, "CLAIM"), () -> {
+            engine.getRuntimeService().addUserIdentityLink(instance, "8", "cutoverCurrent:SECOND_LINE");
+            engine.getTaskService().claim(pending.getId(), "8");
+        });
+        MEMBERS.remove(8L);
+        guard.mutate(new CutoverBpmGuard.Operation(instance, "SECOND_LINE", 7L, "REASSIGN"), () -> {
+            engine.getRuntimeService().deleteUserIdentityLink(instance, "8", "cutoverCurrent:SECOND_LINE");
+            engine.getRuntimeService().addUserIdentityLink(instance, "9", "cutoverCurrent:SECOND_LINE");
+            engine.getTaskService().addComment(pending.getId(), instance, "CUT_REASSIGN", "8 -> 9");
+            engine.getTaskService().setAssignee(pending.getId(), "9");
+        });
+        MEMBERS.remove(9L);
+        assertEquals("9", task(instance).getAssignee());
+        assertEquals("ROLE:80", engine.getRuntimeService().getVariable(instance, "cutoverGroup_SECOND_LINE"));
+        assertThrows(RuntimeException.class, () -> approve(instance, task(instance), 8L));
+        approve(instance, task(instance), 9L);
+        assertEquals("9", engine.getHistoryService().createHistoricTaskInstanceQuery().taskId(pending.getId()).singleResult().getAssignee());
+        assertEquals("8 -> 9", engine.getTaskService().getTaskComments(pending.getId(), "CUT_REASSIGN").getFirst().getFullMessage());
+        assertEquals("RND", task(instance).getTaskDefinitionKey());
+    }
+
     private static List<RoleCandidateFactApi.ActorMembership> memberships(RoleCandidateFactApi.ActorQuery query) {
         return query.tenantId() == 1L ? MEMBERS.getOrDefault(query.actorUserId(), List.of()) : List.of();
     }
@@ -144,9 +182,16 @@ class CutoverRolePoolFlowableTest {
         return engine.getTaskService().createTaskQuery().processInstanceId(instance).singleResult();
     }
     private static void approve(String instance, Task task, Long actor) {
+        if (task.getAssignee() == null && !access.lockEligible(new CutoverRoleTaskAccess.Qualification(
+                new RoleCandidateFactApi.ActorQuery(1L, actor), task.getTaskDefinitionKey(),
+                "ROLE:" + ("SECOND_LINE".equals(task.getTaskDefinitionKey()) ? 80L : 90L))))
+            throw new IllegalArgumentException("not an eligible role member");
         guard.mutate(new CutoverBpmGuard.Operation(instance, task.getTaskDefinitionKey(), actor, "APPROVE"), () ->
                 engine.getManagementService().executeCommand(context -> {
-                    if (task.getAssignee() == null) engine.getTaskService().claim(task.getId(), actor.toString());
+                    if (task.getAssignee() == null) {
+                        engine.getRuntimeService().addUserIdentityLink(instance, actor.toString(), "cutoverCurrent:" + task.getTaskDefinitionKey());
+                        engine.getTaskService().claim(task.getId(), actor.toString());
+                    }
                     engine.getTaskService().setVariableLocal(task.getId(), BpmnVariableConstants.TASK_VARIABLE_STATUS, BpmTaskStatusEnum.APPROVE.getStatus());
                     engine.getTaskService().complete(task.getId()); return null;
                 }));

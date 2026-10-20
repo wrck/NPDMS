@@ -6,6 +6,7 @@
       <el-button data-testid="retry-approval-refresh" :loading="loading" @click="retryRefresh">重新加载审批</el-button>
     </div>
     <template v-else-if="view?.viewMode === 'FULL'">
+      <div class="cut-actions"><el-button data-testid="view-complete-cutover-task" @click="openCompleteTask">查看完整割接任务</el-button></div>
       <section class="cut-card">
         <header class="cut-card__header"><h3 id="approval-heading"><Icon icon="ep:location" />项目信息</h3><small>引用割接等级确认时的项目信息</small></header>
         <div class="cut-card__body cut-form-grid">
@@ -19,18 +20,20 @@
         <header class="cut-card__header"><h3><Icon icon="ep:data-analysis" />采集信息分析</h3><small>引用调研及风险考察</small></header>
         <div class="cut-card__body">
           <div class="cut-form-grid">
-            <div class="cut-form-field"><label>割接类型</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.collectionAnalysis.cutoverType || '不适用' }}</span></div>
-            <div class="cut-form-field"><label>高可靠性组网模式</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.collectionAnalysis.networkMode || '未配置' }}</span></div>
-            <div class="cut-form-field"><label>设备类型</label><span class="cut-form-value cut-form-value--plain">{{ deviceTypeSummary || '—' }}</span></div>
+            <div class="cut-form-field"><label>割接类型</label><span data-testid="approval-cutover-type" class="cut-form-value cut-form-value--plain">{{ cutoverTypeLabel }}</span></div>
+            <div class="cut-form-field"><label>高可靠性组网模式</label><span data-testid="approval-network-mode" class="cut-form-value cut-form-value--plain">{{ networkModeLabel }}</span></div>
+            <div class="cut-form-field"><label>设备类型</label><span data-testid="approval-device-types" class="cut-form-value cut-form-value--plain">{{ deviceTypeSummary || '—' }}</span></div>
             <div class="cut-form-field"><label>割接操作时间</label><span class="cut-form-value cut-form-value--plain">{{ view.sourceSnapshot.collectionAnalysis.scheduledTime == null ? '不适用' : formatWireDateTime(view.sourceSnapshot.collectionAnalysis.scheduledTime) }}</span></div>
           </div>
+          <p v-if="matchingOptionsError" class="cut-help" role="status">{{ matchingOptionsError }}</p>
+          <p v-if="answerSchemaError" class="cut-help" role="status">{{ answerSchemaError }}</p>
           <CutoverLeadTimeComplianceCard v-if="view.leadTimeCompliance" :compliance="view.leadTimeCompliance" />
           <p v-if="view.grade === 'D'" class="cut-help simple-flow-note">D级简易割接跳过调研及风险考察，本次审批直接引用简易方案。</p>
           <template v-for="group in frozenGroups" :key="group.label">
             <h4 class="cut-section-title">{{ group.label }}</h4>
             <el-table :data="group.items" empty-text="本次割接无此类检查记录">
               <el-table-column prop="itemName" label="调研／风险项" min-width="260" />
-              <el-table-column label="结果" min-width="460"><template #default="{ row }"><CutoverFrozenAnswer :snapshot="row.answerSnapshot" /><PmsFileVersionReferenceList v-if="manualFile(row)" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(row.checklistItemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile(row)!.referenceKey" :artifact-id="manualFile(row)!.artifactId" :version-no="manualFile(row)!.versionNo" /></template></el-table-column>
+              <el-table-column label="结果" min-width="460"><template #default="{ row }"><CutoverFrozenAnswer :snapshot="row.answerSnapshot" :schema="answerSchemas[String(row.checklistItemId)]" /><PmsFileVersionReferenceList v-if="manualFile(row)" owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(row.checklistItemId)" purpose-code="MANUAL_EVIDENCE" :reference-key="manualFile(row)!.referenceKey" :artifact-id="manualFile(row)!.artifactId" :version-no="manualFile(row)!.versionNo" /></template></el-table-column>
               <el-table-column label="事实说明" min-width="180"><template #default="{ row }">{{ row.factDescription || '—' }}</template></el-table-column>
             </el-table>
           </template>
@@ -59,7 +62,7 @@
           :allowed-actions="props.readonly ? [] : view.allowedActions" :busy="writing" @decide="decide" /></div>
       </section>
       <section class="cut-card">
-        <header class="cut-card__header"><h3><Icon icon="ep:clock" />审批记录</h3><div><el-tag size="small" :type="view.status === 'APPROVED' ? 'success' : view.status === 'REJECTED' ? 'danger' : 'warning'">{{ statusLabels[view.status] }}</el-tag><el-button link data-testid="refresh-approval" @click="load">刷新</el-button></div></header>
+        <header class="cut-card__header"><h3><Icon icon="ep:clock" />审批记录</h3><div><el-tag size="small" :type="view.status === 'APPROVED' ? 'success' : view.status === 'REJECTED' ? 'danger' : 'warning'">{{ statusLabels[view.status] }}</el-tag><el-button v-if="reassignmentForm" link data-testid="open-cutover-reassignment" :disabled="writing" @click="reassignmentVisible = true">审批改派</el-button><el-button link data-testid="refresh-approval" @click="load">刷新</el-button></div></header>
         <el-table :data="view.nodes" row-key="nodeId">
           <el-table-column label="审批节点" width="180"><template #default="{ row }">{{ row.nodeNo }}. {{ nodeLabels[row.nodeCode] }}</template></el-table-column>
           <el-table-column label="状态" width="105"><template #default="{ row }">{{ nodeStatusLabels[row.status] }}</template></el-table-column>
@@ -81,9 +84,14 @@
       :key="`${view.approvalInstanceId}:${view.approvalVersion}`"
       :view="view"
       :busy="writing"
+      :user-names="userNames" :users-loading="usersLoading" :users-error="usersError"
+      @retry-users="loadUsers"
       @reassign="reassign"
     />
     <el-empty v-else-if="!loading" description="暂无审批数据" />
+    <el-dialog v-if="reassignmentVisible && view?.viewMode === 'FULL' && reassignmentForm" v-model="reassignmentVisible" title="审批改派" width="min(640px, 94vw)" append-to-body :close-on-click-modal="!writing" :close-on-press-escape="!writing" :show-close="!writing">
+      <CutoverApprovalReassignmentPanel :key="`${reassignmentForm.approvalInstanceId}:${reassignmentForm.approvalVersion}`" :view="reassignmentForm" :busy="writing" :user-names="userNames" :users-loading="usersLoading" :users-error="usersError" embedded @retry-users="loadUsers" @cancel="reassignmentVisible = false" @reassign="reassign" />
+    </el-dialog>
   </section>
 </template>
 
@@ -91,6 +99,8 @@
 import { useMessage } from '@/hooks/web/useMessage'
 import * as CutoverApi from '@/api/pms/cutover'
 import { getSimpleUserList } from '@/api/system/user'
+import { getDictLabel, DICT_TYPE } from '@/utils/dict'
+import { checkPermi } from '@/utils/permission'
 import type {
   CutoverApprovalChecklistResultSnapshot,
   CutoverApprovalDecisionRequest,
@@ -109,20 +119,48 @@ import CutoverLeadTimeComplianceCard from './CutoverLeadTimeComplianceCard.vue'
 import CutoverApprovalReassignmentPanel from './CutoverApprovalReassignmentPanel.vue'
 import CutoverPlanEditor from './CutoverPlanEditor.vue'
 import CutoverFrozenAnswer from './CutoverFrozenAnswer.vue'
+import type { FieldSchema } from './CutoverSchemaInput.vue'
 import PmsFileVersionReferenceList from '@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue'
 
+const router = useRouter()
+const openCompleteTask = () => {
+  if (view.value?.viewMode === 'FULL') void router.push({ path: `/pms/cutover/tasks/${view.value.taskId}`, query: { readonly: '1' } })
+}
 const props = defineProps<{ taskId?: CutoverApi.WireLong; approvalId?: CutoverApi.WireLong; readonly?: boolean; completeAfterDecision?: boolean }>()
 const emit = defineEmits<{ changed: []; decided: [] }>()
 const message = useMessage()
 const loading = ref(false)
 const writing = ref(false)
+const reassignmentVisible = ref(false)
 const errorText = ref('')
 const view = ref<CutoverApprovalView | null>(null)
+const matchingOptions = ref<CutoverApi.CutoverChecklistMatchingOptions | null>(null)
+const matchingOptionsError = ref('')
+const answerSchemas = ref<Record<string, FieldSchema>>({})
+const answerSchemaError = ref('')
 const userNames = ref<Record<string, string>>({})
+const usersLoading = ref(false)
+const usersError = ref('')
 const coordinator = createCutoverWriteCoordinator()
 let loadSequence = 0
 const levelLabels: Record<string, string> = { LOW: '低', MEDIUM: '中', HIGH: '高' }
-const deviceTypeSummary = computed(() => view.value?.viewMode === 'FULL' ? [...new Set(view.value.sourceSnapshot.plan.sourceSnapshot.devices.map(device => device.deviceTypeCode).filter(Boolean))].join('、') : '')
+const cutoverTypeLabel = computed(() => {
+  const code = view.value?.viewMode === 'FULL' ? view.value.sourceSnapshot.collectionAnalysis.cutoverType : null
+  return matchingOptions.value?.cutoverTypes?.find(option => option.value === code)?.label
+    || (code ? getDictLabel(DICT_TYPE.PMS_CUTOVER_TYPE, code) || code : '不适用')
+})
+const networkModeLabel = computed(() => {
+  const code = view.value?.viewMode === 'FULL' ? view.value.sourceSnapshot.collectionAnalysis.networkMode : null
+  return matchingOptions.value?.networkModes?.find(option => option.value === code)?.label
+    || (code ? getDictLabel(DICT_TYPE.PMS_NETWORK_MODE, code) || code : '未配置')
+})
+const deviceTypeSummary = computed(() => {
+  if (view.value?.viewMode !== 'FULL') return ''
+  const codes = matchingOptions.value?.matchingInput.deviceTypeCodes
+    ?? view.value.sourceSnapshot.plan.sourceSnapshot.devices.map(device => device.deviceTypeCode).filter((code): code is string => !!code)
+  return [...new Set(codes)].map(code => matchingOptions.value?.deviceTypes.find(option => option.value === code)?.label
+    || getDictLabel('pms_device_type', code) || code).join('、')
+})
 const frozenGroups = computed(() => {
   const current = view.value
   return current?.viewMode === 'FULL' ? [
@@ -139,6 +177,18 @@ const currentNode = computed(() => {
   return current?.viewMode === 'FULL'
     ? current.nodes.find((node) => node.nodeNo === current.currentNodeNo) || null
     : null
+})
+const reassignmentForm = computed(() => {
+  const current = view.value
+  if (props.readonly || !checkPermi(['pms:cutover-task:reassign-approval'])) return null
+  if (current?.viewMode === 'REASSIGNMENT_ONLY') return current
+  if (current?.viewMode !== 'FULL' || current.status !== 'PENDING') return null
+  const nodes = current.nodes.filter(node => (node.status === 'WAITING' || node.status === 'PENDING')
+    && (!node.candidateRoleCode || node.currentApproverUserId != null))
+    .map(node => ({ nodeId: node.nodeId, nodeNo: node.nodeNo, nodeCode: node.nodeCode,
+      nodeStatus: node.status as 'WAITING' | 'PENDING', currentApproverUserId: node.currentApproverUserId }))
+  return nodes.length ? { approvalInstanceId: current.approvalInstanceId,
+    approvalVersion: current.approvalVersion, holdReason: current.holdReason, nodes } : null
 })
 const hasDecisionAction = computed(
   () =>
@@ -194,6 +244,10 @@ const requireTaskId = () => {
 }
 const fetchApproval = async () => {
   const sequence = ++loadSequence
+  matchingOptions.value = null
+  matchingOptionsError.value = ''
+  answerSchemas.value = {}
+  answerSchemaError.value = ''
   const approvalId = props.approvalId
   const taskId = approvalId ? undefined : requireTaskId()
   loading.value = true
@@ -202,6 +256,17 @@ const fetchApproval = async () => {
     if (sequence !== loadSequence) return
     view.value = loaded
     errorText.value = ''
+    if (loaded.viewMode === 'FULL' && loaded.sourceSnapshot.checklistId != null) {
+      const presentation = loaded.sourcePresentation
+      matchingOptions.value = presentation?.matchingOptions ?? null
+      answerSchemas.value = (presentation?.answerSchemas ?? {}) as Record<string, FieldSchema>
+      if (!presentation || presentation.incomplete) {
+        answerSchemaError.value = '部分原清单字段描述暂时无法读取，已保留审批原值，请刷新重试。'
+      }
+      if (!presentation?.matchingOptions) {
+        matchingOptionsError.value = '本次审批引用的清单匹配信息暂时无法读取，请刷新重试。'
+      }
+    }
   } catch (error) {
     if (sequence !== loadSequence) return
     view.value = null
@@ -268,9 +333,9 @@ const reassign = async (request: {
   newApproverUserId: CutoverApi.WireLong
   reason: string
 }) => {
-  if (view.value?.viewMode !== 'REASSIGNMENT_ONLY') return
+  const current = reassignmentForm.value
+  if (!current) return
   writing.value = true
-  const current = view.value
   try {
     const outcome = await coordinator.run(
       `REASSIGN:${current.approvalInstanceId}:${request.nodeNo}`,
@@ -280,6 +345,7 @@ const reassign = async (request: {
     )
     if (outcome.writeCalled)
       message.success(outcome.refreshSucceeded ? '审批节点已改派' : '改派已提交，页面刷新待重试')
+    if (outcome.writeCalled) reassignmentVisible.value = false
   } finally {
     writing.value = false
   }
@@ -289,6 +355,7 @@ watch(
   async () => {
     loadSequence++
     view.value = null
+    reassignmentVisible.value = false
     errorText.value = ''
     coordinator.reset()
     await nextTick()
@@ -296,15 +363,23 @@ watch(
   }
 )
 onBeforeUnmount(() => { loadSequence++ })
-onMounted(async () => {
-  await load()
-  if (view.value?.viewMode !== 'FULL') return
+const loadUsers = async () => {
+  if (usersLoading.value || !view.value || !['FULL', 'REASSIGNMENT_ONLY'].includes(view.value.viewMode)) return
+  usersLoading.value = true
+  usersError.value = ''
   try {
     const users = await getSimpleUserList()
     userNames.value = Object.fromEntries(users.map(user => [String(user.id), user.nickname]))
   } catch {
     userNames.value = {}
+    usersError.value = '人员信息加载失败，请重试。'
+  } finally {
+    usersLoading.value = false
   }
+}
+onMounted(async () => {
+  await load()
+  await loadUsers()
 })
 </script>
 

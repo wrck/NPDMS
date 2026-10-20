@@ -52,11 +52,11 @@ public final class CutoverTaskResponses {
     }
 
     public record Project(Long projectId, String projectCode, String projectName,
-            Long projectScopeVersion) {
+            Long projectScopeVersion, String departmentName) {
         public static Project from(CutoverTaskViews.Project value) {
             if (value == null) return null;
             return new Project(value.projectId(), value.projectCode(), value.projectName(),
-                    value.projectScopeVersion());
+                    value.projectScopeVersion(), value.departmentName());
         }
     }
 
@@ -102,12 +102,13 @@ public final class CutoverTaskResponses {
 
     public record Detail(TaskCore task, Source source, Project project,
             List<Device> devices, CustomerLevel customerServiceLevel, Readiness implementationReadiness,
-            Assessment assessment, List<WorkbenchStep> workbenchSteps, List<String> allowedActions) {
+            Assessment assessment, List<WorkbenchStep> workbenchSteps, List<String> allowedActions,
+            String assessmentSubmissionBlockReason, boolean approvalReadOnly) {
         public static Detail from(CutoverTaskViews.Detail value) {
             if (value == null) return null;
             return new Detail(TaskCore.from(value.task()), Source.from(value.source()), Project.from(value.project()),
                     value.devices() == null ? null : value.devices().stream().map(Device::from).toList(), CustomerLevel.from(value.customerServiceLevel()), Readiness.from(value.implementationReadiness()),
-                    Assessment.from(value.assessment()), value.workbenchSteps() == null ? null : value.workbenchSteps().stream().map(WorkbenchStep::from).toList(), value.allowedActions());
+                    Assessment.from(value.assessment()), value.workbenchSteps() == null ? null : value.workbenchSteps().stream().map(WorkbenchStep::from).toList(), value.allowedActions(), value.assessmentSubmissionBlockReason(), value.approvalReadOnly());
         }
     }
 

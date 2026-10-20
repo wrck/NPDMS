@@ -8,7 +8,7 @@
     <header>
       <div>
         <h3 id="lead-time-heading">P5 提前时间参考</h3>
-        <p>按 Asia/Shanghai 自然日口径，以方案提交时冻结的规则判断。</p>
+        <p>按自然日口径，以方案提交时冻结的规则判断。</p>
       </div>
       <strong role="status" data-testid="lead-time-status">
         {{ compliance.lateSubmission ? '迟交：是' : '迟交：否' }}

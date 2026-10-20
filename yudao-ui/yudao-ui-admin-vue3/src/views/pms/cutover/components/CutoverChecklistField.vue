@@ -1,5 +1,8 @@
 <template>
-  <article class="checklist-field" :class="{ required: item.required, 'is-table-row': tableRow, 'is-embedded': embedded }">
+  <article
+class="checklist-field" :class="{ required: item.required, 'is-table-row': tableRow, 'is-embedded': embedded, 'has-validation-error': !!validationMessage }"
+    :data-checklist-item-key="item.stableItemKey" :aria-invalid="validationMessage ? 'true' : undefined" tabindex="-1">
+    <p v-if="validationMessage" class="validation-message" role="alert">{{ validationMessage }}</p>
     <header v-if="!tableRow && !embedded">
       <div>
         <h4>{{ item.itemName }}<span v-if="item.required" aria-label="必填"> *</span></h4>
@@ -97,6 +100,7 @@ const props = withDefaults(defineProps<{
   allowCollection?: boolean
   tableRow?: boolean
   embedded?: boolean
+  validationMessage?: string
   devices?: DeviceScopeEntry[]
   externalState?: CutoverExternalItemState | null
   externalFeedback?: CutoverExternalFeedback[]
@@ -243,12 +247,15 @@ const completeUpload = async (selection: FileSelection) => {
 .checklist-field h4, .checklist-field p { margin: 0; }
 .checklist-field h4 span { color: var(--el-color-danger); }
 .checklist-field p { margin-top: 4px; color: var(--el-text-color-secondary); }
+.checklist-field.has-validation-error { outline: 2px solid var(--el-color-danger); outline-offset: 3px; scroll-margin-block: 100px; }
+.checklist-field .validation-message { margin: 0 0 10px; color: var(--el-color-danger); }
 .field-tags { display: flex; align-items: flex-start; gap: 6px; }
 .fact-description { white-space:pre-wrap; }
 .manual-area { margin-top: 14px; }
 .collection-area { display: grid; grid-template-columns: minmax(180px, 1fr) auto auto; gap: 10px; }
 .manual-area summary { margin-bottom: 10px; cursor: pointer; color: var(--el-color-primary); }
 .manual-area :deep(.pms-file-uploader) { margin-top: 10px; }
+.manual-area :deep(.upload-feedback--auto) { min-height: 0; }
 @media (max-width: 767px) {
   .checklist-field header { flex-direction: column; }
   .collection-area { grid-template-columns: 1fr; }

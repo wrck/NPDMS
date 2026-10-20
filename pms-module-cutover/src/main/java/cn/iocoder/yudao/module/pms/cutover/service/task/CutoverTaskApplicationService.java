@@ -153,7 +153,7 @@ public class CutoverTaskApplicationService {
     private CutoverAssessmentCommandResult saveAssessmentOnce(SaveCutoverAssessmentCommand command) {
         CutoverTaskDO snapshot = requireTask(taskMapper.selectById(command.taskId()), command.tenantId());
         requireOwnedP2(snapshot, command.actorId(), command.expectedTaskVersion());
-        ResolvedContext context = draftContext(snapshot);
+        ResolvedContext context = lockContext(command.actorId(), draftContext(snapshot));
         CutoverTaskDO lockedTask = requireTask(taskMapper.selectForUpdate(
                 new CutoverTaskRowQuery(command.tenantId(), command.taskId())), command.tenantId());
         requireOwnedP2(lockedTask, command.actorId(), command.expectedTaskVersion());
@@ -170,7 +170,8 @@ public class CutoverTaskApplicationService {
             row.setQuestionnaireTemplateVersion(CutoverTaskRules.TEMPLATE_VERSION);
             CutoverTaskSnapshotStore.applyAssessment(new CutoverTaskSnapshotStore.AssessmentWrite(row, contextFacts, command.answers()));
             row.setManualGrade(normalizeOptionalGrade(command.manualGrade()));
-            applyManualCustomerLevel(new ManualCustomerLevelWrite(row, context.customer(), command));
+            applyManualCustomerLevel(new ManualCustomerLevelWrite(row, context.customer(), command,
+                    !sameCustomer(CutoverTaskSnapshotStore.project(snapshot), context.project())));
             row.setSimpleFlow(false);
             row.setCurrentMarker(1);
             row.setVersion(0L);
@@ -178,7 +179,7 @@ public class CutoverTaskApplicationService {
             row.setUpdater(String.valueOf(command.actorId()));
             require(assessmentMapper.insert(row) == 1, STATE_CONFLICT, "评估草稿创建失败");
             taskSnapshots.replaceAssessmentDevices(CutoverTaskSnapshotStore.DeviceWrite.builder().assessment(row)
-                    .devices(storedDevices(command.tenantId(), command.taskId())).productTypes(context.productTypesByDevice())
+                    .devices(storedDevices(command.tenantId(), command.taskId())).currentDevices(context.devices()).productTypes(context.productTypesByDevice())
                     .actorId(command.actorId()).time(LocalDateTime.now(clock)).build());
             requireTaskVersion(taskMapper.linkAssessmentIfMatch(new CutoverTaskAssessmentLinkUpdate(
                     command.tenantId(), command.taskId(), command.expectedTaskVersion(), row.getId())) == 1,
@@ -190,19 +191,15 @@ public class CutoverTaskApplicationService {
                 command.tenantId(), command.taskId(), lockedTask.getCurrentAssessmentId()));
         require(row != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(row.getAssessmentStatus()),
                 STATE_CONFLICT, "当前评估不可编辑");
-        var savedCustomer = CutoverTaskSnapshotStore.customer(row);
-        if (savedCustomer != null && !"UNAVAILABLE".equals(savedCustomer.status())) {
-            context = context.toBuilder().customer(savedCustomer).build();
-            contextFacts = snapshotContext(context, lockedTask.getIntakeSourceType());
-        }
+        boolean customerChanged = !sameCustomer(CutoverTaskSnapshotStore.project(row), context.project());
         CutoverTaskSnapshotStore.applyAssessment(new CutoverTaskSnapshotStore.AssessmentWrite(row, contextFacts, command.answers()));
         row.setManualGrade(normalizeOptionalGrade(command.manualGrade()));
-        applyManualCustomerLevel(new ManualCustomerLevelWrite(row, context.customer(), command));
+        applyManualCustomerLevel(new ManualCustomerLevelWrite(row, context.customer(), command, customerChanged));
         row.setUpdater(String.valueOf(command.actorId()));
         requireAssessmentVersion(assessmentMapper.updateDraftIfMatch(new CutoverAssessmentDraftUpdate(
                 row, command.expectedAssessmentVersion())) == 1, row.getVersion());
         taskSnapshots.replaceAssessmentDevices(CutoverTaskSnapshotStore.DeviceWrite.builder().assessment(row)
-                .devices(storedDevices(command.tenantId(), command.taskId())).productTypes(context.productTypesByDevice())
+                .devices(storedDevices(command.tenantId(), command.taskId())).currentDevices(context.devices()).productTypes(context.productTypesByDevice())
                 .actorId(command.actorId()).time(LocalDateTime.now(clock)).build());
         return new CutoverAssessmentCommandResult(command.taskId(), row.getId(), row.getAssessmentVersion(),
                 command.expectedAssessmentVersion() + 1, lockedTask.getVersion(), CutoverTaskRules.ASSESSMENT_DRAFT);
@@ -321,10 +318,10 @@ public class CutoverTaskApplicationService {
 
     private record ManualCustomerLevelWrite(CutoverAssessmentDO assessment,
                                             CutoverCustomerLevelPort.CustomerLevelFact customer,
-                                            SaveCutoverAssessmentCommand command) { }
+                                            SaveCutoverAssessmentCommand command, boolean customerChanged) { }
 
     private void applyManualCustomerLevel(ManualCustomerLevelWrite write) {
-        String selected = write.command().manualCustomerServiceLevelCode();
+        String selected = write.customerChanged() ? null : write.command().manualCustomerServiceLevelCode();
         var customer = write.customer();
         require(customer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级暂不可用");
         if (selected != null) {
@@ -350,7 +347,7 @@ public class CutoverTaskApplicationService {
         CutoverTaskDO snapshot = requireTask(taskMapper.selectById(command.taskId()), command.tenantId());
         requireOwnedP2(snapshot, command.actorId(), command.expectedTaskVersion());
         List<CutoverTaskDeviceScopeDO> storedDevices = storedDevices(command.tenantId(), command.taskId());
-        ResolvedContext locked = lockStoredContext(command.actorId(), snapshot, storedDevices);
+        ResolvedContext locked = lockContext(command.actorId(), draftContext(snapshot));
         if (requiresImplementationReadiness(snapshot.getIntakeSourceType())) requireReady(locked.readiness());
         List<Long> deviceIds = storedDevices.stream().map(CutoverTaskDeviceScopeDO::getDeviceId).toList();
         deviceMapper.selectActiveForUpdate(new CutoverActiveDeviceQuery(command.tenantId(), snapshot.getProjectId(), deviceIds));
@@ -362,6 +359,8 @@ public class CutoverTaskApplicationService {
         require(assessment != null && CutoverTaskRules.ASSESSMENT_DRAFT.equals(assessment.getAssessmentStatus()),
                 STATE_CONFLICT, "当前评估不可提交");
         var savedCustomer = CutoverTaskSnapshotStore.customer(assessment);
+        require(sameCustomer(CutoverTaskSnapshotStore.project(assessment), locked.project()),
+                PROJECT_CONTEXT_STALE, "项目客户已变化，请先保存草稿更新来源，再重新确认客户服务等级");
         require(CutoverTaskSnapshotStore.hasRequiredCustomerServiceLevelSelection(assessment),
                 BUSINESS_GATE_INVALID, "请选择客户服务等级后再提交");
         CutoverAssessmentAnswers answers = CutoverTaskSnapshotStore.answers(assessment);
@@ -374,7 +373,7 @@ public class CutoverTaskApplicationService {
         assessment.setManualGrade(grade); assessment.setSimpleFlow(target.simpleFlow());
         assessment.setSubmittedBy(command.actorId()); assessment.setSubmittedAt(now); assessment.setUpdater(String.valueOf(command.actorId()));
         taskSnapshots.replaceAssessmentDevices(CutoverTaskSnapshotStore.DeviceWrite.builder().assessment(assessment)
-                .devices(storedDevices).productTypes(locked.productTypesByDevice()).actorId(command.actorId()).time(now).build());
+                .devices(storedDevices).currentDevices(locked.devices()).productTypes(locked.productTypesByDevice()).actorId(command.actorId()).time(now).build());
         requireAssessmentVersion(assessmentMapper.submitIfMatch(new CutoverAssessmentSubmitUpdate(
                 assessment, command.expectedAssessmentVersion())) == 1,
                 assessment.getVersion());
@@ -431,24 +430,37 @@ public class CutoverTaskApplicationService {
         var scope = projectScopePort.inspect(task.getOwnerUserId(), task.getProjectId(), ACTION_EDIT);
         require(scope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
         require(scope.allowed() && task.getProjectId().equals(scope.projectId()), DATA_SCOPE_FORBIDDEN, "无项目编辑范围");
+        require(Objects.equals(task.getProjectScopeVersion(), scope.projectScopeVersion()), PROJECT_SCOPE_STALE,
+                "项目范围版本已变化，请核查原任务项目范围后再办理");
         var rows = storedDevices(task.getTenantId(), task.getId());
-        var devices = rows.stream().map(row -> new CutoverDeviceScopePort.DeviceFact(row.getDeviceId(),
+        var selected = rows.stream().map(row -> new CutoverDeviceScopePort.DeviceFact(row.getDeviceId(),
                 row.getSerialNumberSnapshot(), row.getProjectId(), row.getProjectAssignmentVersion())).toList();
-        // 暂存保留受信冻结上下文；当前 Owner 事实在提交事务中重新锁定核对。
-        return new ResolvedContext(CutoverTaskSnapshotStore.project(task),
-                devices, frozenProductTypes(rows),
-                initialCustomerLevel(task), taskSnapshots.readiness(task));
+        var query = CutoverProjectContextPort.Inspection.builder().tenantId(task.getTenantId())
+                .projectId(task.getProjectId()).expectedProjectScopeVersion(scope.projectScopeVersion()).build();
+        var project = projectContextPort.inspect(query);
+        requireProjectContext(query, project);
+        var devices = orderedDevices(deviceScopePort.resolveBySerials(selected.stream()
+                .map(CutoverDeviceScopePort.DeviceFact::serialNumber).toList()));
+        require(sameSelectedDevices(selected, devices), DEVICE_SCOPE_STALE,
+                "原选设备已缺失、替换或不属于当前项目，请核查设备归属后重试");
+        var readiness = requiresImplementationReadiness(task.getIntakeSourceType())
+                ? readinessPort.inspect(task.getProjectId(), devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList())
+                : independentReadiness(task.getProjectId(), devices.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).toList());
+        require(readiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用，请稍后重试");
+        return new ResolvedContext(project, devices, frozenProductTypes(rows), initialCustomerLevel(task, project), readiness);
     }
 
-    private CutoverCustomerLevelPort.CustomerLevelFact initialCustomerLevel(CutoverTaskDO task) {
+    private CutoverCustomerLevelPort.CustomerLevelFact initialCustomerLevel(CutoverTaskDO task,
+            CutoverProjectContextPort.ProjectContextFact project) {
         var saved = task.getCurrentAssessmentId() == null ? null : assessmentMapper.selectById(task.getCurrentAssessmentId());
-        if (saved != null && !"UNAVAILABLE".equals(saved.getCustomerFactStatusCode())) {
+        if (saved != null && sameCustomer(CutoverTaskSnapshotStore.project(saved), project)
+                && !"UNAVAILABLE".equals(saved.getCustomerFactStatusCode())) {
             return CutoverTaskSnapshotStore.customer(saved);
         }
         var customer = CutoverTaskSnapshotStore.customer(task);
         // 旧任务创建时提供方尚未接入，首次保存补齐来源；已有等级始终沿用创建事实。
-        return customer == null || "UNAVAILABLE".equals(customer.status())
-                ? customerReference(customerLevelPort, CutoverTaskSnapshotStore.project(task)) : customer;
+        return !sameCustomer(CutoverTaskSnapshotStore.project(task), project) || customer == null || "UNAVAILABLE".equals(customer.status())
+                ? customerReference(customerLevelPort, project) : customer;
     }
 
     private ResolvedContext lockContext(Long actorId, ResolvedContext expected) {
@@ -459,7 +471,8 @@ public class CutoverTaskApplicationService {
                 .expectedProjectScopeVersion(expected.project().projectScopeVersion())
                 .build());
         require(scope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
-        require(scope.allowed(), PROJECT_SCOPE_STALE, "项目范围已失效");
+        require(scope.allowed() && expected.project().projectId().equals(scope.projectId())
+                && expected.project().projectScopeVersion() == scope.projectScopeVersion(), PROJECT_SCOPE_STALE, "项目范围已失效");
         CutoverProjectContextPort.ProjectContextFact project = projectContextPort.lockAndRevalidate(expected.project());
         requireProjectContext(CutoverProjectContextPort.Inspection.builder()
                 .tenantId(expected.project().tenantId())
@@ -476,44 +489,6 @@ public class CutoverTaskApplicationService {
         require(readiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
         requireEquivalentReadiness(expected.readiness(), readiness);
         return new ResolvedContext(project, devices, expected.productTypesByDevice(), customer, readiness);
-    }
-
-    private ResolvedContext lockStoredContext(Long actorId, CutoverTaskDO task,
-                                              List<CutoverTaskDeviceScopeDO> storedDevices) {
-        CutoverProjectContextPort.ProjectContextFact project = CutoverTaskSnapshotStore.project(task);
-        List<CutoverDeviceScopePort.DeviceFact> devices = storedDevices.stream()
-                .map(row -> new CutoverDeviceScopePort.DeviceFact(row.getDeviceId(), row.getSerialNumberSnapshot(),
-                        row.getProjectId(), row.getProjectAssignmentVersion())).toList();
-        Map<Long, CutoverDeviceProductTypePort.ProductTypeFact> productTypes = frozenProductTypes(storedDevices);
-        CutoverCustomerLevelPort.CustomerLevelFact customer = CutoverTaskSnapshotStore.customer(task);
-        CutoverReadinessPort.ReadinessFact readiness = taskSnapshots.readiness(task);
-        CutoverProjectScopePort.ProjectScopeFact scope = projectScopePort.lockAndRevalidate(CutoverProjectScopePort.RevalidationQuery.builder()
-                .actorId(actorId)
-                .projectId(project.projectId())
-                .action(ACTION_EDIT)
-                .expectedProjectScopeVersion(project.projectScopeVersion())
-                .build());
-        require(scope != null, PROJ_PROVIDER_UNAVAILABLE, "项目范围事实不可用");
-        require(scope.allowed(), PROJECT_SCOPE_STALE, "项目范围已失效");
-        CutoverProjectContextPort.ProjectContextFact lockedProject = projectContextPort.lockAndRevalidate(project);
-        requireProjectContext(CutoverProjectContextPort.Inspection.builder()
-                .tenantId(project.tenantId())
-                .projectId(project.projectId())
-                .expectedProjectScopeVersion(project.projectScopeVersion())
-                .build(), lockedProject);
-        require(sameFrozenProject(project, lockedProject), PROJECT_CONTEXT_STALE, "项目上下文事实已变化");
-        List<CutoverDeviceScopePort.DeviceFact> lockedDevices = orderedDevices(deviceScopePort.lockAndRevalidate(
-                project.projectId(), devices));
-        requireEquivalentDevices(devices, lockedDevices);
-        CutoverCustomerLevelPort.CustomerLevelFact lockedCustomer = customer;
-        CutoverReadinessPort.ReadinessFact lockedReadiness = requiresImplementationReadiness(task.getIntakeSourceType())
-                ? readinessPort.lockAndRevalidate(readiness)
-                : independentReadiness(task.getProjectId(), devices.stream()
-                        .map(CutoverDeviceScopePort.DeviceFact::deviceId).toList());
-        require(lockedCustomer != null, CUS_PROVIDER_UNAVAILABLE, "客户服务等级事实不可用");
-        require(lockedReadiness != null, IMP_PROVIDER_UNAVAILABLE, "实施就绪事实不可用");
-        if (requiresImplementationReadiness(task.getIntakeSourceType())) requireEquivalentReadiness(readiness, lockedReadiness);
-        return new ResolvedContext(lockedProject, lockedDevices, productTypes, lockedCustomer, lockedReadiness);
     }
 
     private List<CutoverTaskDeviceScopeDO> storedDevices(Long tenantId, Long taskId) {

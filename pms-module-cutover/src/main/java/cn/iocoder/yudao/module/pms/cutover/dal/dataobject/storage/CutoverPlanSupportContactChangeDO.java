@@ -50,6 +50,12 @@ public class CutoverPlanSupportContactChangeDO {
     /** 客户角色变更后CUS联系人版本 */
     private Long afterCustomerContactVersion;
     /** 填写值：变更原因 */
+    private String beforePersonSourceCode;
+    private Long beforePersonSourceId;
+    private Long beforePersonSourceVersion;
+    private String afterPersonSourceCode;
+    private Long afterPersonSourceId;
+    private Long afterPersonSourceVersion;
     private String reason;
     /** 实际操作者 */
     private Long operateUserId;

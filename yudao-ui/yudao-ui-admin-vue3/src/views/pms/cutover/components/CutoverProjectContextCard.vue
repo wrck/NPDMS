@@ -16,7 +16,7 @@ import { checkPermi } from '@/utils/permission'
 import { getDictLabel, DICT_TYPE } from '@/utils/dict'
 import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
 
-const props = defineProps<{ detail: CutoverTaskDetail }>()
+const props = defineProps<{ detail: CutoverTaskDetail; approvalReadonly?: boolean }>()
 const project = ref<ProjectMasterVO | null>(null)
 const members = ref<ProjectMemberAssignmentVO[]>([])
 const loading = ref(false)
@@ -33,28 +33,30 @@ const fields = computed(() => [
   { label: '项目经理', value: project.value?.managerName || memberNames(['PROJECT_MANAGER']) },
   { label: '服务经理', value: memberNames(['SERVICE_MANAGER', 'SERVICE_MANAGER_L1', 'SERVICE_MANAGER_L2']) },
   { label: '所属行业', value: project.value?.industryName || project.value?.industryCode },
-  { label: '办事处', value: project.value?.departmentName },
+  { label: '办事处', value: project.value?.departmentName || props.detail.project.departmentName },
   { label: '项目级别', value: project.value?.majorProjectLevel ? getDictLabel(DICT_TYPE.PMS_MAJOR_PROJECT_LEVEL, project.value.majorProjectLevel) || project.value.majorProjectLevel : null },
   { label: '客户服务等级', value: savedServiceLevelCode.value ? getDictLabel('pms_service_level', savedServiceLevelCode.value) || savedServiceLevelCode.value : props.detail.customerServiceLevel?.status === 'NOT_CONFIGURED' ? '未配置' : '未获取' },
   { label: '销售', value: memberNames(['SALES_REPRESENTATIVE']) },
   { label: '计划割接时间', value: formatWireDateTime(props.detail.task.scheduledTime) }
 ])
 
-watch(() => props.detail.task.id, async () => {
-  const taskId = String(props.detail.task.id)
+let sequence = 0
+watch(() => props.detail, async () => {
+  const request = ++sequence
   project.value = null; members.value = []; errorText.value = ''
   loading.value = true
   try {
     const results = await Promise.allSettled([
-      checkPermi(['pms:project:query']) ? getProject(props.detail.task.projectId) : Promise.resolve(null),
-      checkPermi(['pms:project:query']) ? getProjectMembers(props.detail.task.projectId) : Promise.resolve([])
+      !props.approvalReadonly && checkPermi(['pms:project:query']) ? getProject(props.detail.task.projectId) : Promise.resolve(null),
+      !props.approvalReadonly && checkPermi(['pms:project:query']) ? getProjectMembers(props.detail.task.projectId) : Promise.resolve([])
     ])
-    if (taskId !== String(props.detail.task.id)) return
+    if (request !== sequence) return
     if (results[0].status === 'fulfilled') project.value = results[0].value
     if (results[1].status === 'fulfilled') members.value = results[1].value
     if (results.some(result => result.status === 'rejected')) errorText.value = '部分项目背景信息暂时无法读取，可刷新后重试。'
-  } finally { if (taskId === String(props.detail.task.id)) loading.value = false }
+  } finally { if (request === sequence) loading.value = false }
 }, { immediate: true })
+onBeforeUnmount(() => { ++sequence })
 </script>
 <style scoped>
 .context-error { margin: 12px 0 0; color: #b26a00; font-size: 12px; }

@@ -10,6 +10,7 @@ public final class CutoverPlanRules {
     public static final List<String> SIMPLE_SECTIONS = List.of("OPERATION", "ROLLBACK");
     public static final List<String> SUPPORT_ROLES = List.of(
             "CUSTOMER", "DP_FIRST_LINE", "DP_SECOND_LINE", "DP_RND");
+    public static final List<String> REQUIRED_SUPPORT_ROLES = List.of("CUSTOMER", "DP_FIRST_LINE");
 
     private CutoverPlanRules() {
     }

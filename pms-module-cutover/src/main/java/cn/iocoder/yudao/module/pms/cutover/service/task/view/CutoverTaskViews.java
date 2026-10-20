@@ -50,7 +50,7 @@ public final class CutoverTaskViews {
                          String businessEventId) {
     }
 
-    public record Project(Long projectId, String projectCode, String projectName, Long projectScopeVersion) {
+    public record Project(Long projectId, String projectCode, String projectName, Long projectScopeVersion, String departmentName) {
     }
 
     @lombok.Builder
@@ -73,7 +73,7 @@ public final class CutoverTaskViews {
                          CutoverCustomerLevelPort.CustomerLevelFact customerServiceLevel,
                          CutoverReadinessPort.ReadinessFact implementationReadiness,
                          Assessment assessment, List<WorkbenchStep> workbenchSteps,
-                         List<String> allowedActions) {
+                         List<String> allowedActions, String assessmentSubmissionBlockReason, boolean approvalReadOnly) {
     }
 
     public record StoredAssessmentContext(CutoverProjectContextPort.ProjectContextFact project,

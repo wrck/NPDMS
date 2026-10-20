@@ -24,6 +24,37 @@ import static org.mockito.Mockito.*;
 
 class CutoverApprovalQueryServiceTest {
 
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({"SECOND_LINE,probSupporter", "RND,probRD"})
+    void currentRoleMemberCanOpenDecisionFormWithoutSeparateClaim(String code, String roleCode) {
+        Fixture f = new Fixture();
+        var root = root("PENDING"); root.setCurrentNodeNo(3);
+        var task = task(); task.setCurrentStage("P5"); task.setTaskStatus("APPROVING");
+        task.setTaskOrigin("NEW_PLATFORM"); task.setOwnerUserId(11L);
+        var node = node(); node.setNodeNo(3); node.setNodeCode(code); node.setOriginalApproverUserId(null);
+        cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.apply(node,
+                cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalNodeFacts.role(
+                        new CutoverApprovalRoleCandidatePort.RoleReference(1L, 900L, roleCode)));
+        when(f.instances.selectCurrentByTask(any())).thenReturn(root);
+        when(f.tasks.selectById(10L)).thenReturn(task);
+        when(f.nodes.all(any())).thenReturn(List.of(node));
+        when(f.reviews.byInstance(any())).thenReturn(List.of());
+        when(f.candidates.inspectActor(any())).thenReturn(List.of(new CutoverApprovalRoleCandidatePort.ActorMembership(
+                new CutoverApprovalRoleCandidatePort.RoleReference(1L, 900L, roleCode),
+                new CutoverApprovalRoleCandidatePort.Candidate(33L, 900L, 1L, 1L))));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 33L, "direct-role", true, true, false);
+        assertThat(f.service.detail(context, 10L)).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalDetail.class,
+                detail -> assertThat(detail.allowedActions()).containsExactly("APPROVE", "REJECT"));
+        var readonly = new cn.iocoder.yudao.module.pms.cutover.service.approval.context.CutoverApprovalContext(
+                1L, 33L, "direct-role-readonly", true, false, false);
+        assertThat(f.service.detail(readonly, 10L)).isInstanceOfSatisfying(CutoverApprovalViews.ApprovalDetail.class,
+                detail -> assertThat(detail.allowedActions()).isEmpty());
+        assertThat(node.getCurrentApproverUserId()).isNull();
+        verify(f.nodes, never()).updateStatusIfMatch(any());
+        verifyNoInteractions(f.scopes);
+    }
+
     @Test
     void eligibleInitiatorStillNeedsApprovePermissionForDecisionActions() {
         Fixture f = new Fixture();
@@ -116,7 +147,7 @@ class CutoverApprovalQueryServiceTest {
     }
 
     @Test
-    void returnsSecondLineTodoByCurrentSelectedPersonProjectScope() {
+    void returnsSecondLineTodoForFrozenSelectedPerson() {
         Fixture f = new Fixture();
         CutoverApprovalNodeDO node = node(); node.setNodeCode("SECOND_LINE"); node.setCurrentApproverUserId(22L);
         ApprovalTodoPageRow row = new ApprovalTodoPageRow();
@@ -155,14 +186,8 @@ class CutoverApprovalQueryServiceTest {
 
         assertThat(page.list()).singleElement().extracting(CutoverApprovalViews.TodoItem::nodeCode)
                 .isEqualTo("SECOND_LINE");
-        verify(f.scopes).inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
-                .tenantId(1L).projectId(20L).subjectUserId(22L).requiredAction("ACTION_VIEW").build());
-        verify(f.scopes, never()).inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
-                .tenantId(1L)
-                .projectId(20L)
-                .subjectUserId(23L)
-                .requiredAction("ACTION_VIEW")
-                .build());
+        verifyNoInteractions(f.scopes);
+        verify(f.candidates).requireActiveUser(new CutoverApprovalRoleCandidatePort.ActorQuery(1L, 22L));
     }
 
     @Test

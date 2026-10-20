@@ -173,15 +173,16 @@ public class CutoverApprovalApplicationService {
                 command.tenantId(), command.approvalInstanceId(), command.nodeNo()));
         require(node != null && List.of("WAITING", "PENDING").contains(node.getStatusCode()),
                 STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标节点未开放");
-        require(!CutoverRoleApprovalSnapshot.isRole(node), STATE_CONFLICT,
-                "REASSIGN_TARGET_NOT_OPEN", "角色审批节点按角色办理，不指定人员");
+        require(!CutoverRoleApprovalSnapshot.isRole(node) || node.getCurrentApproverUserId() != null, STATE_CONFLICT,
+                "REASSIGN_TARGET_NOT_OPEN", "未领取角色待办不能改派个人");
         require(!Objects.equals(node.getCurrentApproverUserId(), command.newApproverUserId()),
                 STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标未变化");
         ReassignmentCandidate candidate = lockReassignmentCandidate(root, node, command.newApproverUserId());
         workflow.reassign(root, node, command, actorId);
         LocalDateTime now = LocalDateTime.now(clock);
         Long from = node.getCurrentApproverUserId();
-        CutoverApprovalNodeFacts.apply(node, candidate.qualification());
+        if (CutoverRoleApprovalSnapshot.isRole(node)) node.setCurrentApproverUserId(command.newApproverUserId());
+        else CutoverApprovalNodeFacts.apply(node, candidate.qualification());
         node.setUpdater(String.valueOf(actorId)); node.setUpdateTime(now);
         require(nodeMapper.updateStatusIfMatch(new ApprovalNodeStatusUpdate(node, node.getVersion(), node.getStatusCode())) == 1,
                 VERSION_CONFLICT, "审批节点并发变化");
@@ -259,7 +260,7 @@ public class CutoverApprovalApplicationService {
                 new ApprovalNodeLockQuery(tenantId, instance.getId(), instance.getCurrentNodeNo()));
         boolean byRole = CutoverRoleApprovalSnapshot.isRole(current);
         require(current != null && "PENDING".equals(current.getStatusCode())
-                && (byRole || Objects.equals(current.getCurrentApproverUserId(), actorId)), STATE_CONFLICT,
+                && (current.getCurrentApproverUserId() == null && byRole || Objects.equals(current.getCurrentApproverUserId(), actorId)), STATE_CONFLICT,
                 "NOT_CURRENT_NODE", "当前用户不是待审批人");
         var qualification = revalidateApprover(instance, current, actorId);
         if (!qualification.allowed()) {
@@ -531,47 +532,13 @@ public class CutoverApprovalApplicationService {
     }
 
     private ApproverQualification revalidateApprover(CutoverApprovalInstanceDO instance, CutoverApprovalNodeDO node, long actorId) {
-        return switch (node.getNodeCode()) {
-            case "INITIATOR" -> {
-                var expected = new CutoverApprovalProjectScopePort.ProjectScopeFact(instance.getTenantId(),
-                        instance.getProjectId(), actorId, "ACTION_EDIT", true, node.getProjectScopeVersion());
-                var locked = projectScopePort.lockAndRevalidate(expected);
-                if (!locked.current().allowed()) yield ApproverQualification.of(false);
-                require(locked.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                        SOURCE_STALE, "APPROVER_FACT_STALE", "发起人项目范围版本已变化");
-                yield ApproverQualification.of(true);
-            }
-            case "SERVICE_MANAGER" -> {
-                var expected = CutoverApprovalNodeFacts.manager(new CutoverApprovalNodeFacts.Source(instance, node));
-                var locked = serviceManagerPort.lockAndRevalidate(expected);
-                if (locked.current().outcome() != ProjectCutoverServiceManagerPort.Outcome.FOUND
-                        || !Objects.equals(locked.current().userId(), actorId)) yield ApproverQualification.of(false);
-                require(locked.outcome() == ProjectCutoverServiceManagerPort.Revalidation.VALID,
-                        SOURCE_STALE, "APPROVER_FACT_STALE", "服务经理事实版本已变化");
-                yield ApproverQualification.of(true);
-            }
-            case "SECOND_LINE", "RND" -> {
-                var role = CutoverRoleApprovalSnapshot.from(node);
-                String group = "SECOND_LINE".equals(node.getNodeCode()) ? "probSupporter" : "probRD";
-                String personalGroup = "SECOND_LINE".equals(node.getNodeCode()) ? "CUT_SECOND_LINE_APPROVER" : "CUT_RND_APPROVER";
-                require(role != null && (group.equals(role.roleGroupCode())
-                                || !role.byRole() && personalGroup.equals(role.roleGroupCode())),
-                        OWNER_DATA_CORRUPTED, "审批角色引用损坏");
-                var query = new CutoverApprovalRoleCandidatePort.ActorQuery(instance.getTenantId(), actorId);
-                var actual = role.currentActor(query, roleCandidatePort.lockAndInspectActor(query));
-                if (actual == null) yield ApproverQualification.of(false);
-                if (!role.byRole()) {
-                    var expected = new CutoverApprovalProjectScopePort.ProjectScopeFact(instance.getTenantId(),
-                            instance.getProjectId(), actorId, "ACTION_VIEW", true, node.getProjectScopeVersion());
-                    var scope = projectScopePort.lockAndRevalidate(expected);
-                    if (!scope.current().allowed()) yield ApproverQualification.of(false);
-                    require(scope.outcome() == CutoverApprovalProjectScopePort.Revalidation.VALID,
-                            SOURCE_STALE, "APPROVER_FACT_STALE", "审批人项目范围版本已变化");
-                }
-                yield new ApproverQualification(true, actual);
-            }
-            default -> throw failure(OWNER_DATA_CORRUPTED, "未知审批节点");
-        };
+        var query = new CutoverApprovalRoleCandidatePort.ActorQuery(instance.getTenantId(), actorId);
+        roleCandidatePort.requireActiveUser(query);
+        if (node.getCurrentApproverUserId() != null)
+            return ApproverQualification.of(Objects.equals(node.getCurrentApproverUserId(), actorId));
+        var role = CutoverRoleApprovalSnapshot.from(node);
+        var actual = role == null ? null : role.currentActor(query, roleCandidatePort.lockAndInspectActor(query));
+        return new ApproverQualification(actual != null, actual);
     }
 
     private ReassignmentCandidate lockReassignmentCandidate(CutoverApprovalInstanceDO root,
@@ -599,10 +566,16 @@ public class CutoverApprovalApplicationService {
             }
             case "SECOND_LINE", "RND" -> {
                 var role = CutoverRoleApprovalSnapshot.from(node);
-                require(role != null && !role.byRole(), STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "角色审批不指定人员");
+                require(role != null, STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "审批角色引用缺失");
                 var query = new CutoverApprovalRoleCandidatePort.ActorQuery(root.getTenantId(), targetUserId);
                 require(role.currentActor(query, roleCandidatePort.lockAndInspectActor(query)) != null,
                         STATE_CONFLICT, "REASSIGN_TARGET_NOT_OPEN", "改派目标不是当前合格候选");
+                if (role.byRole()) {
+                    var target = CutoverApprovalNodeFacts.role(new CutoverApprovalRoleCandidatePort.RoleReference(
+                            root.getTenantId(), role.roleGroupId(), role.roleGroupCode()));
+                    target.setCurrentApproverUserId(targetUserId);
+                    yield target;
+                }
                 var expected = projectScopePort.inspect(CutoverApprovalProjectScopePort.ScopeQuery.builder()
                         .tenantId(root.getTenantId()).projectId(root.getProjectId()).subjectUserId(targetUserId)
                         .requiredAction("ACTION_VIEW").build());
@@ -623,7 +596,8 @@ public class CutoverApprovalApplicationService {
     private static CutoverApprovalViews.ApprovalReassignmentView reassignmentView(
             CutoverApprovalInstanceDO root, CutoverTaskDO task, List<CutoverApprovalNodeDO> nodes) {
         List<CutoverApprovalViews.ReassignmentNode> open = nodes.stream()
-                .filter(node -> List.of("WAITING", "PENDING").contains(node.getStatusCode()))
+                .filter(node -> List.of("WAITING", "PENDING").contains(node.getStatusCode())
+                        && (!CutoverRoleApprovalSnapshot.isRole(node) || node.getCurrentApproverUserId() != null))
                 .map(node -> new CutoverApprovalViews.ReassignmentNode(node.getId(), node.getNodeNo(),
                         node.getNodeCode(), node.getStatusCode(), node.getCurrentApproverUserId(), node.getVersion()))
                 .toList();

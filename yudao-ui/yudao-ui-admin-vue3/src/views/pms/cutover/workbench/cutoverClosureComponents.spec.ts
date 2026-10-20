@@ -1,5 +1,7 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CutoverClosureContent } from '@/api/pms/cutover/types'
+import type { CutoverClosureContent } from '@/api/pms/cutover'
 import CutoverClosureEvidencePanel from '../components/CutoverClosureEvidencePanel.vue'
 import CutoverClosureForm from '../components/CutoverClosureForm.vue'
 import CutoverClosurePanel from '../components/CutoverClosurePanel.vue'
@@ -9,7 +11,7 @@ const api = vi.hoisted(() => ({
   getCutoverClosure: vi.fn(), saveCutoverClosure: vi.fn(),
   linkClosureExecution: vi.fn(), linkCutoverClosureManualResult: vi.fn(), submitCutoverClosure: vi.fn()
 }))
-const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn() }))
+const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), getCurrentReference: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
@@ -53,6 +55,7 @@ const controls = {
 describe('F-CUT-006 mounted P6 closure workbench', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    fileApi.getCurrentReference.mockResolvedValue(null)
     fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 3 } })
     fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 4, availabilityVersion: 5, sha256: 'a'.repeat(64) }] })
   })
@@ -164,6 +167,36 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     mounted.app.unmount()
   })
 
+  it('loads the current reference before appending a version and advances it after upload', async () => {
+    fileApi.getCurrentReference.mockResolvedValue({ artifactId: '9007199254740993', referenceVersion: 7, versionNo: 3, status: 'ACTIVE' })
+    const model = ref(content())
+    model.value.attachments.push({ purposeCode: 'POST_COLLECTION_CHECKLIST', artifactId: '9007199254740993', versionNo: 2,
+      referenceKey: 'existing-key', scopeVersion: 17, sha256: 'a'.repeat(64),
+      fileFactVersion: { artifactVersion: 1, referenceVersion: 3, availabilityVersion: 1 } })
+    fileApi.getArtifact.mockResolvedValue({ artifactVersion: 9, reference: { scopeVersion: 17, referenceVersion: 8 } })
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverClosureForm, { modelValue: model.value, closureId: '501', editable: true,
+      'onAttachment-completed': (fact: any) => { model.value = { ...model.value, attachments: [fact] } } }) }), {}, controls)
+    await flush()
+    let uploader = findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!
+    expect((uploader.props?.artifactId ?? uploader.props?.['artifact-id'])).toBe('9007199254740993')
+    expect((uploader.props?.expectedReferenceVersion ?? uploader.props?.['expected-reference-version'])).toBe(7)
+    expect((uploader.props?.referenceKey ?? uploader.props?.['reference-key'])).toBe('existing-key')
+    await click(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST'); await flush()
+    uploader = findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!
+    expect((uploader.props?.expectedReferenceVersion ?? uploader.props?.['expected-reference-version'])).toBe(8)
+    expect(api.saveCutoverClosure).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('blocks upload on failed reference read and retries without replacing the form', async () => {
+    fileApi.getCurrentReference.mockRejectedValueOnce(new Error('unavailable')).mockResolvedValue(null)
+    const mounted = mount(CutoverClosureForm, { modelValue: content(), closureId: '501', editable: true }, controls)
+    await flush()
+    expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!.props?.disabled).toBe(true)
+    expect(textOf(mounted.root)).toContain('当前材料引用读取失败')
+    mounted.app.unmount()
+  })
+
   it('keeps the form and stage navigation responsive at the locked 320/768/1024/1440 breakpoints', () => {
     const mounted = mount(CutoverClosureForm, { modelValue: content(), closureId: '501', editable: false }, controls)
     expect(textOf(mounted.root)).toContain('割接前检查')
@@ -173,7 +206,7 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
   })
 })
 
-const content = () => ({
+const content = (): CutoverClosureContent => ({
   preCheckNormal: null, preCheckDetail: null, executionNormal: null, executionDetail: null,
   testNormal: null, testDetail: null, rollbackOccurred: null, rollbackSuccessful: null,
   rollbackReason: null, legacyItems: null, finalResult: null, attachments: []

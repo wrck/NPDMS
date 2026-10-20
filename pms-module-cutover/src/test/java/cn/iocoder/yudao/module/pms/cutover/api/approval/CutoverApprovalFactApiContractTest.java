@@ -83,7 +83,7 @@ class CutoverApprovalFactApiContractTest {
     @Test
     void exposesTheClosedStatusAndErrorSets() {
         assertThat(ApprovalStatus.values()).containsExactly(
-                ApprovalStatus.PENDING, ApprovalStatus.PAUSED_SOURCE_INVALIDATED,
+                ApprovalStatus.PENDING, ApprovalStatus.PAUSED_SOURCE_INVALIDATED, ApprovalStatus.WITHDRAWN,
                 ApprovalStatus.APPROVED, ApprovalStatus.REJECTED);
         assertThat(InspectStatus.values()).containsExactly(InspectStatus.FOUND, InspectStatus.NOT_FOUND);
         assertThat(RevalidationStatus.values()).containsExactly(RevalidationStatus.VALID, RevalidationStatus.STALE);

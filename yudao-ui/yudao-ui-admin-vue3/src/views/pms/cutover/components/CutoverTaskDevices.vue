@@ -30,7 +30,7 @@ const rows = computed(() => props.detail.devices.map(device => ({
   currentSoftwareVersion: products.value[String(device.deviceId)]?.conpVersion || '—'
 })))
 let sequence = 0
-watch(() => props.detail.task.id, async () => {
+watch(() => props.detail, async () => {
   const request = ++sequence
   products.value = {}
   errorText.value = ''

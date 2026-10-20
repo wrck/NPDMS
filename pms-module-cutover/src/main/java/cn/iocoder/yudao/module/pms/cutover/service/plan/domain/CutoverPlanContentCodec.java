@@ -93,6 +93,12 @@ public final class CutoverPlanContentCodec {
             row.put("phone", arrangement.phone());
             putWireLong(row, "arrivalTime", arrangement.arrivalTime());
             row.set("customerContactReference", JsonUtils.getObjectMapper().valueToTree(arrangement.customerContactReference()));
+            if (arrangement.personReference() == null) row.putNull("personReference");
+            else {
+                var person = row.putObject("personReference"); person.put("sourceCode", arrangement.personReference().sourceCode());
+                putWireLong(person, "id", arrangement.personReference().id());
+                putWireLong(person, "version", arrangement.personReference().version());
+            }
         });
         return decodeWritable(body, currentFacts);
     }
@@ -412,23 +418,26 @@ public final class CutoverPlanContentCodec {
         array.forEach(node -> {
             Set<String> keys = new HashSet<>(SUPPORT);
             if (node.has("customerContactReference")) keys.add("customerContactReference");
+            if (node.has("personReference")) keys.add("personReference");
             exact(node, keys, "supportArrangement");
             String role = text(node, "roleCode", 32);
             require(CutoverPlanRules.SUPPORT_ROLES.contains(role), "roleCode");
             Long identity = nullablePositiveLong(node.get("arrangementId"));
             require(identity == null || identities.add(identity), "support identity");
             var contact = cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.selection(node.get("customerContactReference"));
+            var person = cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverSupportPersonPolicy.reference(node.get("personReference"));
+            require(contact == null || person == null, "support person reference");
             require("CUSTOMER".equals(role) || contact == null, "support customer reference");
             result.add(new SupportArrangement(identity, role,
                     draftText(node, "personName", 128), draftText(node, "dutyDescription", 1000),
-                    draftText(node, "phone", 64), node.path("arrivalTime").isNull() ? 0L : nonNegativeLong(node, "arrivalTime"), contact));
+                    draftText(node, "phone", 64), node.path("arrivalTime").isNull() ? 0L : nonNegativeLong(node, "arrivalTime"), contact, person));
         });
         return List.copyOf(result);
     }
 
     public static boolean supportComplete(List<SupportArrangement> arrangements) {
         return arrangements.stream().map(SupportArrangement::roleCode).collect(java.util.stream.Collectors.toSet())
-                .containsAll(CutoverPlanRules.SUPPORT_ROLES)
+                .containsAll(CutoverPlanRules.REQUIRED_SUPPORT_ROLES)
                 && arrangements.stream().allMatch(row -> !row.personName().isBlank() && !row.phone().isBlank()
                 && !row.dutyDescription().isBlank() && row.arrivalTime() > 0);
     }
@@ -477,5 +486,12 @@ public final class CutoverPlanContentCodec {
     public record StoredPlanContent(ObjectNode content, List<CutoverPlanStepDO> steps) {}
     public record SupportArrangement(Long arrangementId, String roleCode, String personName,
                                      String dutyDescription, String phone, long arrivalTime,
-                                     cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.Selection customerContactReference) {}
+                                     cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.Selection customerContactReference,
+                                     cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverSupportPersonPolicy.Reference personReference) {
+        /** Existing snapshots may have only the original customer reference. */
+        public SupportArrangement(Long arrangementId, String roleCode, String personName, String dutyDescription,
+                                  String phone, long arrivalTime, cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanContactPolicy.Selection customerContactReference) {
+            this(arrangementId, roleCode, personName, dutyDescription, phone, arrivalTime, customerContactReference, null);
+        }
+    }
 }

@@ -1,5 +1,8 @@
 import { vi } from 'vitest'
 
+// The mounted-node harness needs the browser unload event contract.
+vi.stubGlobal('window', new EventTarget())
+
 // Owner services and router are external to the mounted CUT components. Each
 // business test still supplies its own server allowedActions and response facts.
 vi.mock('@/utils/permission', () => ({ checkPermi: vi.fn(() => true) }))

@@ -1,4 +1,4 @@
-import { defineComponent, h, nextTick } from 'vue'
+import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CutoverPlanView } from '@/api/pms/cutover'
 import CutoverPlanPanel from '../components/CutoverPlanPanel.vue'
@@ -13,6 +13,7 @@ import {
 } from '../cutoverTestHarness'
 
 const api = vi.hoisted(() => ({
+  getSupportPersonChoices: vi.fn(async () => []),
   getProjectContactChoices: vi.fn(async () => []),
   getCutoverPlan: vi.fn(),
   createCutoverPlanDraft: vi.fn(),
@@ -23,7 +24,12 @@ const api = vi.hoisted(() => ({
   reviseCutoverPlan: vi.fn()
 }))
 const messages = vi.hoisted(() => ({ error: vi.fn() }))
-const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), createAccessTicket: vi.fn() }))
+const supportValidationFocus = vi.hoisted(() => vi.fn())
+vi.mock('../shared/cutoverPlanValidation', async importOriginal => ({
+  ...await importOriginal<typeof import('../shared/cutoverPlanValidation')>(),
+  focusPlanSupportValidation: supportValidationFocus
+}))
+const fileApi = vi.hoisted(() => ({ getArtifact: vi.fn(), getVersions: vi.fn(), createAccessTicket: vi.fn(), getCurrentReference: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
 vi.mock('@/api/pms/platform/file/version-reference', () => fileApi)
 vi.mock('@/hooks/web/useMessage', () => ({
@@ -60,6 +66,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
   const accessTarget = { opener: {} as unknown, location: { replace: vi.fn() }, close: vi.fn() }
   beforeEach(() => {
     vi.clearAllMocks()
+    fileApi.getCurrentReference.mockReset().mockResolvedValue(null)
     accessTarget.location.replace.mockReset()
     accessTarget.close.mockReset()
     vi.stubGlobal('window', { open: vi.fn(() => accessTarget) })
@@ -160,9 +167,15 @@ describe('F-CUT-004 mounted plan workbench', () => {
   })
 
   it('shows missing plan content for a 422 generation failure without downloading or submitting', async () => {
-    api.getCutoverPlan.mockResolvedValue(standardPlan(['DOWNLOAD_DRAFT']))
+    const plan = standardPlan(['DOWNLOAD_DRAFT'])
+    if (plan.content?.editMode === 'ONLINE_TEMPLATE_STANDARD') {
+      const customer = plan.content.supportArrangements[0]
+      plan.content.supportArrangements = ['CUSTOMER', 'DP_FIRST_LINE', 'DP_SECOND_LINE', 'DP_RND']
+        .map(roleCode => ({ ...customer, roleCode } as typeof customer))
+    }
+    api.getCutoverPlan.mockResolvedValue(plan)
     api.downloadCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 422, data: {
-      msg: '方案内容尚未完整', data: { errorCode: 'PLAN_SECTION_INCOMPLETE' }
+      msg: '方案内容尚未完整', data: { category: 'BUSINESS_INCOMPLETE', reasonCode: 'PLAN_SECTION_INCOMPLETE', recoveryAction: 'FIX_REQUEST' }
     } } })
     const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
     await flush()
@@ -171,6 +184,24 @@ describe('F-CUT-004 mounted plan workbench', () => {
     expect(accessTarget.close).toHaveBeenCalledOnce()
     expect(fileApi.createAccessTicket).not.toHaveBeenCalled()
     expect(api.submitCutoverPlan).not.toHaveBeenCalled()
+    mounted.app.unmount()
+  })
+
+  it('names missing support roles and focuses their section after a generation rejection', async () => {
+    api.getCutoverPlan.mockResolvedValue(standardPlan(['DOWNLOAD_DRAFT']))
+    api.downloadCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 422, data: {
+      msg: '方案内容尚未完整', data: { category: 'BUSINESS_INCOMPLETE', reasonCode: 'PLAN_SECTION_INCOMPLETE', recoveryAction: 'FIX_REQUEST' }
+    } } })
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'C' }, controls)
+    await flush()
+    await click(mounted.root, 'download-plan'); await flush()
+    expect(messages.error).toHaveBeenCalledWith('保障安排缺少角色：迪普一线工程师。请新增人员并补齐保障信息。')
+    expect(textOf(mounted.root)).toContain('保障安排缺少角色')
+    expect(supportValidationFocus).toHaveBeenCalledOnce()
+    expect(api.downloadCutoverPlanDraft).toHaveBeenCalledOnce()
+    expect(api.submitCutoverPlan).not.toHaveBeenCalled()
+    expect(accessTarget.close).toHaveBeenCalledOnce()
+    expect(fileApi.createAccessTicket).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
 
@@ -242,6 +273,206 @@ describe('F-CUT-004 mounted plan workbench', () => {
     }
   )
 
+  it('stages uploaded standard files into an empty draft without persisting or changing the original input', async () => {
+    const content = standardPlan([]).content!
+    const updates = vi.fn()
+    fileApi.getCurrentReference.mockImplementation(async (key) => ({ ...key,
+      artifactId: '9007199254740993', referenceVersion: 0, versionNo: 1, status: 'ACTIVE'
+    }))
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 1, reference: { scopeVersion: 17, referenceVersion: 0 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 1, availabilityVersion: 1, sha256: 'b'.repeat(64) }] })
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true,
+      'onUpdate:modelValue': updates
+    }, controls)
+    try {
+      await flush(); await flush()
+      for (const field of ['preTopologyFile', 'postTopologyFile', 'networkConfigurationFile']) {
+        expect(findByTestId(mounted.root, `plan-file-${field}`)!.props).toMatchObject({
+          'artifact-id': '9007199254740993', 'expected-reference-version': 0, disabled: false
+        })
+      }
+      expect(fileApi.getCurrentReference).toHaveBeenCalledTimes(3)
+      expect(fileApi.getCurrentReference).toHaveBeenCalledWith(expect.objectContaining({
+        ownerContext: 'CUT', objectType: 'CUTOVER_PLAN', objectId: '101', purposeCode: 'FULL_PLAN',
+        referenceKey: 'cutover-plan-101-pre-topology'
+      }))
+      expect(updates).toHaveBeenCalledOnce()
+      const restored = updates.mock.calls[0][0]
+      expect(restored.overview.preTopologyFile.versionNo).toBe(1)
+      expect(restored.overview.postTopologyFile.versionNo).toBe(1)
+      expect(restored.overview.networkConfigurationFile.versionNo).toBe(1)
+      expect(content.editMode === 'ONLINE_TEMPLATE_STANDARD' && content.overview.preTopologyFile).toBeNull()
+      expect(textOf(mounted.root)).toContain('保存方案后生效')
+    } finally { mounted.app.unmount() }
+  })
+
+  it.each(['preTopologyFile', 'postTopologyFile', 'networkConfigurationFile'] as const)(
+    'saves the uploaded newer version after reopening a draft that still references V1 in %s', async field => {
+      let server = standardPlan(['SAVE_DRAFT'])
+      if (server.content?.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+      const key = `cutover-plan-101-${field}`
+      const original = { ...uploadedFact(), referenceKey: key, versionNo: 1,
+        fileFactVersion: { artifactVersion: 1, referenceVersion: 0, availabilityVersion: 1 } }
+      server.content.overview[field] = original
+      api.getCutoverPlan.mockImplementation(async () => structuredClone(server))
+      api.saveCutoverPlanDraft.mockImplementation(async command => {
+        server = { ...server, content: structuredClone(command.data), planVersion: 2 }
+        return server
+      })
+      fileApi.getCurrentReference.mockImplementation(async business => business.referenceKey === key
+        ? { ...business, artifactId: original.artifactId, versionNo: 2, referenceVersion: 1, status: 'ACTIVE' } : null)
+      fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 2, reference: { scopeVersion: 17, referenceVersion: 1 } })
+      fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 2, availabilityVersion: 1, sha256: 'b'.repeat(64) }] })
+      const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+      try {
+        await flush(); await flush()
+        await click(mounted.root, 'save-plan'); await flush()
+        expect(api.saveCutoverPlanDraft.mock.calls.at(-1)?.[0].data.overview[field]).toMatchObject({
+          artifactId: original.artifactId, versionNo: 2, fileFactVersion: { referenceVersion: 1 }
+        })
+        expect(server.content?.editMode === 'ONLINE_TEMPLATE_STANDARD' && server.content.overview[field]?.versionNo).toBe(2)
+        expect(original.versionNo).toBe(1)
+        expect(original.fileFactVersion.referenceVersion).toBe(0)
+      } finally { mounted.app.unmount() }
+    }
+  )
+
+  it('blocks standard uploads after a failed reference read and lets the user retry without discarding plan edits', async () => {
+    fileApi.getCurrentReference.mockRejectedValue(new Error('reference unavailable'))
+    const content = standardPlan([]).content!
+    const updates = vi.fn()
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true,
+      'onUpdate:modelValue': updates
+    }, controls)
+    try {
+      await flush()
+      expect(findByTestId(mounted.root, 'plan-file-preTopologyFile')!.props?.disabled).toBe(true)
+      expect(textOf(mounted.root)).toContain('文件状态读取失败')
+      fileApi.getCurrentReference.mockResolvedValue(null)
+      await click(mounted.root, 'retry-plan-file-references'); await flush()
+      expect(findByTestId(mounted.root, 'plan-file-preTopologyFile')!.props?.disabled).toBe(false)
+      expect(updates).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('waits for current reference lookup before saving a reopened draft', async () => {
+    let complete!: (value: unknown) => void
+    fileApi.getCurrentReference.mockImplementationOnce(() => new Promise(resolve => { complete = resolve }))
+    api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT']))
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    try {
+      await flush()
+      expect(findByTestId(mounted.root, 'save-plan')!.props?.disabled).toBe(true)
+      await click(mounted.root, 'save-plan')
+      expect(api.saveCutoverPlanDraft).not.toHaveBeenCalled()
+      complete(null); await flush(); await flush()
+      expect(findByTestId(mounted.root, 'save-plan')!.props?.disabled).toBe(false)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('does not downgrade a pending newer file fact from a delayed older reference', async () => {
+    const content = standardPlan([]).content!
+    if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+    content.overview.preTopologyFile = uploadedFact()
+    const updates = vi.fn()
+    fileApi.getCurrentReference.mockImplementation(async key => key.referenceKey === 'cutover-plan-file'
+      ? { ...key, artifactId: '9007199254740993', versionNo: 2, referenceVersion: 1, status: 'ACTIVE' } : null)
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true,
+      'onUpdate:modelValue': updates
+    }, controls)
+    try {
+      await flush(); await flush()
+      expect(updates).not.toHaveBeenCalled()
+      expect(content.overview.preTopologyFile.versionNo).toBe(4)
+      expect(findByTestId(mounted.root, 'plan-file-preTopologyFile')!.props?.['expected-reference-version']).toBe(3)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('requires rereading instead of combining a recovered file with a concurrently changed reference version', async () => {
+    const content = standardPlan([]).content!
+    if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+    content.overview.preTopologyFile = { ...uploadedFact(), referenceKey: 'cutover-plan-file', versionNo: 1,
+      fileFactVersion: { artifactVersion: 1, referenceVersion: 0, availabilityVersion: 1 } }
+    fileApi.getCurrentReference.mockImplementation(async key => key.referenceKey === 'cutover-plan-file'
+      ? { ...key, artifactId: '9007199254740993', versionNo: 2, referenceVersion: 1, status: 'ACTIVE' } : null)
+    fileApi.getArtifact.mockResolvedValue({ allowedActions: ['READ'], artifactVersion: 3,
+      reference: { scopeVersion: 17, referenceVersion: 2 } })
+    fileApi.getVersions.mockResolvedValue({ items: [{ versionNo: 2, availabilityVersion: 1, sha256: 'b'.repeat(64) }] })
+    const updates = vi.fn()
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true,
+      'onUpdate:modelValue': updates
+    }, controls)
+    try {
+      await flush(); await flush()
+      expect(updates).not.toHaveBeenCalled()
+      expect(content.overview.preTopologyFile.versionNo).toBe(1)
+      expect(textOf(mounted.root)).toContain('文件状态读取失败')
+      expect(findByTestId(mounted.root, 'plan-file-preTopologyFile')!.props?.disabled).toBe(true)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('does not look up current standard slot references when displaying frozen history', async () => {
+    const content = standardPlan([]).content!
+    if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+    content.overview.preTopologyFile = { ...uploadedFact(), versionNo: 1 }
+    const updates = vi.fn()
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: false,
+      'onUpdate:modelValue': updates
+    }, controls)
+    try {
+      await flush()
+      expect(fileApi.getCurrentReference).not.toHaveBeenCalled()
+      expect(updates).not.toHaveBeenCalled()
+      expect(content.overview.preTopologyFile.versionNo).toBe(1)
+    } finally { mounted.app.unmount() }
+  })
+
+  it('uses the current upload concurrency version while retaining the saved file fact until a new upload completes', async () => {
+    const content = standardPlan([]).content!
+    if (content.editMode !== 'ONLINE_TEMPLATE_STANDARD') throw new Error('fixture')
+    const frozen = uploadedFact()
+    content.overview.preTopologyFile = frozen
+    const updates = vi.fn()
+    fileApi.getCurrentReference.mockResolvedValue({ artifactId: frozen.artifactId, referenceVersion: 4 })
+    const mounted = mount(CutoverPlanEditor, {
+      modelValue: content, sourceSnapshot: sourceSnapshot(), taskId: '101', editable: true,
+      'onUpdate:modelValue': updates
+    }, controls)
+    try {
+      await flush()
+      expect(findByTestId(mounted.root, 'plan-file-preTopologyFile')!.props?.['expected-reference-version']).toBe(4)
+      expect(frozen.fileFactVersion.referenceVersion).toBe(3)
+      expect(updates).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('ignores an old task reference response after switching the plan being edited', async () => {
+    const pending = new Map<string, Array<(value: unknown) => void>>()
+    fileApi.getCurrentReference.mockImplementation(key => new Promise(resolve => {
+      const requests = pending.get(key.objectId) || []
+      requests.push(resolve); pending.set(key.objectId, requests)
+    }))
+    const taskId = ref('101')
+    const mounted = mount(defineComponent({ setup: () => () => h(CutoverPlanEditor, {
+      modelValue: standardPlan([]).content!, sourceSnapshot: sourceSnapshot(), taskId: taskId.value, editable: true
+    }) }), {}, controls)
+    try {
+      await flush(); taskId.value = '102'; await flush()
+      pending.get('102')!.forEach(resolve => resolve({ artifactId: '9007199254740995', referenceVersion: 2 }))
+      await flush()
+      pending.get('101')!.forEach(resolve => resolve({ artifactId: '9007199254740993', referenceVersion: 1 }))
+      await flush()
+      expect(findByTestId(mounted.root, 'plan-file-preTopologyFile')!.props).toMatchObject({
+        'artifact-id': '9007199254740995', 'expected-reference-version': 2
+      })
+    } finally { mounted.app.unmount() }
+  })
+
   it('patches an approved P6 support contact with the frozen arrangement identity', async () => {
     api.getCutoverPlan.mockResolvedValue(standardPlan(['UPDATE_APPROVED_CONTACTS'], 'APPROVED', 'P6'))
     api.patchApprovedCutoverPlanContact.mockResolvedValue(standardPlan([]))
@@ -256,7 +487,7 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await flush()
 
     expect(api.patchApprovedCutoverPlanContact).toHaveBeenCalledWith({ taskId: '101', arrangementId: '601', planVersion: 1, data: {
-      personName: expect.any(String), phone: '13800000000', arrivalTime: 1788220801000, reason: '值班人员变更', customerContactReference: { contactId: '801', contactVersion: 2 }
+      personName: expect.any(String), phone: '13800000000', arrivalTime: 1788220801000, reason: '值班人员变更', customerContactReference: { contactId: '801', contactVersion: 2 }, personReference: null
     }, idempotencyKey: expect.any(String) })
     mounted.app.unmount()
   })
@@ -325,6 +556,47 @@ describe('F-CUT-004 mounted plan workbench', () => {
     await click(mounted.root, 'save-plan'); await flush()
     expect(api.saveCutoverPlanDraft).toHaveBeenCalledTimes(2)
     mounted.app.unmount()
+  })
+
+  it('retains all locally edited plan fields when source recovery refreshes the server draft after rejection', async () => {
+    api.getCutoverPlan.mockResolvedValue(standardPlan(['SAVE_DRAFT', 'SUBMIT_PLAN']))
+    api.saveCutoverPlanDraft.mockRejectedValueOnce({ response: { status: 409, data: {
+      msg: '方案来源事实已变化或尚未完成，请刷新前序环节', data: { recoveryAction: 'REFRESH_OWNER_FACTS' }
+    } } })
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    try {
+      await flush()
+      await (findByTestId(mounted.root, 'plan-project-description')!.props?.['onUpdate:modelValue'] as Function)('不能丢失的项目概述')
+      await (findByTestId(mounted.root, 'plan-step-OPERATION-1-content')!.props?.['onUpdate:modelValue'] as Function)('不能丢失的操作步骤')
+      await click(mounted.root, 'save-plan'); await flush()
+      expect(findByTestId(mounted.root, 'plan-project-description')!.props?.['model-value']).toBe('不能丢失的项目概述')
+      expect(findByTestId(mounted.root, 'plan-step-OPERATION-1-content')!.props?.['model-value']).toBe('不能丢失的操作步骤')
+      expect(api.saveCutoverPlanDraft).toHaveBeenCalledOnce()
+      expect(api.submitCutoverPlan).not.toHaveBeenCalled()
+    } finally { mounted.app.unmount() }
+  })
+
+  it('saves pending edits before submission and retains the persisted draft when completeness validation rejects submission', async () => {
+    let server = standardPlan(['SAVE_DRAFT', 'SUBMIT_PLAN'])
+    api.getCutoverPlan.mockImplementation(async () => JSON.parse(JSON.stringify(server)))
+    api.saveCutoverPlanDraft.mockImplementation(async command => {
+      server = { ...server, content: command.data, planVersion: 2 }
+      return server
+    })
+    api.submitCutoverPlan.mockRejectedValueOnce({ response: { status: 422, data: {
+      msg: '方案内容尚未完整', data: { reasonCode: 'PLAN_SECTION_INCOMPLETE', recoveryAction: 'START_NEW_INTENT' }
+    } } })
+    const mounted = mount(CutoverPlanPanel, { taskId: '101', taskVersion: 7, manualGrade: 'A' }, controls)
+    try {
+      await flush()
+      await (findByTestId(mounted.root, 'plan-project-description')!.props?.['onUpdate:modelValue'] as Function)('已落为草稿的填写')
+      await click(mounted.root, 'submit-plan'); await flush()
+      expect(api.saveCutoverPlanDraft).toHaveBeenCalledOnce()
+      expect(api.submitCutoverPlan).toHaveBeenCalledOnce()
+      expect(api.saveCutoverPlanDraft.mock.invocationCallOrder.at(-1)!).toBeLessThan(api.submitCutoverPlan.mock.invocationCallOrder.at(-1)!)
+      expect(server.content?.editMode === 'ONLINE_TEMPLATE_STANDARD' && server.content.overview.projectDescription).toBe('已落为草稿的填写')
+      expect(findByTestId(mounted.root, 'plan-project-description')!.props?.['model-value']).toBe('已落为草稿的填写')
+    } finally { mounted.app.unmount() }
   })
 
   it.each([320, 768, 1024, 1440])('mounts every workbench stage at %ipx', (width) => {

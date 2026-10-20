@@ -61,7 +61,8 @@ public class CutoverBpmGuard {
         if (grade.size() != 1 || !Objects.equals(grade.getFirst().getGroupId(), task.getVariable("cutoverGrade"))) {
             throw new IllegalStateException("割接审批等级与冻结路由不一致");
         }
-        var candidates = links.stream().filter(link -> (CURRENT + task.getTaskDefinitionKey()).equals(link.getType())).toList();
+        var candidates = links.stream().filter(link -> (CURRENT + task.getTaskDefinitionKey()).equals(link.getType()))
+                .map(org.flowable.identitylink.api.IdentityLink::getUserId).distinct().toList();
         var role = links.stream().filter(link -> (PREFIX + "role:" + task.getTaskDefinitionKey()).equals(link.getType())).toList();
         boolean byRole = !role.isEmpty();
         if (byRole) {
@@ -69,25 +70,30 @@ public class CutoverBpmGuard {
             String expectedRole = "SECOND_LINE".equals(code) ? "probSupporter" : "RND".equals(code) ? "probRD" : null;
             String group = role.size() == 1 ? role.getFirst().getGroupId() : null;
             var actual = task.getCandidates();
-            if (role.size() != 1 || expectedRole == null || !candidates.isEmpty()
+            if (role.size() != 1 || expectedRole == null || candidates.size() > 1
                     || !Objects.equals(expectedRole, task.getVariable("cutoverRoleCode_" + code))
                     || !Objects.equals(group, task.getVariable("cutoverGroup_" + code))
                     || !Objects.equals(group, "ROLE:" + task.getVariable("cutoverRoleId_" + code))
                     || actual.size() != 1 || !Objects.equals(actual.iterator().next().getGroupId(), group)
                     || actual.iterator().next().getUserId() != null)
                 throw new IllegalStateException("割接角色待办不匹配业务冻结角色引用");
+            if ("assignment".equals(task.getEventName()) && task.getAssignee() != null
+                    && operation.get() != null && !"REASSIGN".equals(operation.get().action())
+                    && !roleAccess.lockEligible(new CutoverRoleTaskAccess.Qualification(
+                            new cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.ActorQuery(
+                                    Long.valueOf(task.getTenantId()), Long.valueOf(task.getAssignee())), code, group)))
+                throw new IllegalStateException("领取时必须具备当前角色资格");
             if (task.getAssignee() != null && !("delete".equals(task.getEventName())
                     && operation.get() != null && "CANCEL".equals(operation.get().action()))) {
                 var allowed = operation.get();
-                if (allowed == null || !Objects.equals(allowed.instance(), task.getProcessInstanceId())
-                        || !Objects.equals(allowed.node(), code) || !Objects.equals(allowed.actor().toString(), task.getAssignee())
-                        || !List.of("APPROVE", "REJECT").contains(allowed.action())
-                        || !roleAccess.lockEligible(new CutoverRoleTaskAccess.Qualification(
-                                new cn.iocoder.yudao.module.system.api.permission.RoleCandidateFactApi.ActorQuery(
-                                        Long.valueOf(task.getTenantId()), allowed.actor()), code, group)))
-                    throw new IllegalStateException("割接角色待办仅允许当前有效成员在业务决定事务领取");
+                if (candidates.size() != 1 || !Objects.equals(candidates.getFirst(), task.getAssignee())
+                        || allowed == null || !Objects.equals(allowed.instance(), task.getProcessInstanceId())
+                        || !Objects.equals(allowed.node(), code)
+                        || !List.of("CLAIM", "REASSIGN", "APPROVE", "REJECT").contains(allowed.action()))
+                    throw new IllegalStateException("割接角色待办不匹配已固定的领取人");
             }
-        } else if (candidates.size() != 1 || !Objects.equals(candidates.getFirst().getUserId(), task.getAssignee())) {
+
+        } else if (candidates.size() != 1 || !Objects.equals(candidates.getFirst(), task.getAssignee())) {
             throw new IllegalStateException("割接审批人不匹配业务冻结候选人");
         }
         if (List.of("complete", "delete", "assignment").contains(task.getEventName())) {
@@ -98,9 +104,9 @@ public class CutoverBpmGuard {
                 throw new IllegalStateException("请从割接详情填写完整评审并办理，通用BPM操作不能替代割接业务校验");
             }
             if (byRole && "assignment".equals(task.getEventName())
-                    && (!List.of("APPROVE", "REJECT").contains(allowed.action())
+                    && (!List.of("CLAIM", "REASSIGN", "APPROVE", "REJECT").contains(allowed.action())
                     || !Objects.equals(allowed.node(), task.getTaskDefinitionKey())
-                    || !Objects.equals(allowed.actor().toString(), task.getAssignee())))
+                    || !"REASSIGN".equals(allowed.action()) && !Objects.equals(allowed.actor().toString(), task.getAssignee())))
                 throw new IllegalStateException("角色待办只能在割接业务校验后由办理人领取");
             if ("complete".equals(task.getEventName()) && (!"APPROVE".equals(allowed.action())
                     || !Objects.equals(allowed.node(), task.getTaskDefinitionKey()) || !Objects.equals(allowed.actor().toString(), task.getAssignee())

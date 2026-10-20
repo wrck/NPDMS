@@ -308,6 +308,18 @@ describe('详情式新建割接任务', () => {
     expect(textOf(findByTestId(view.root, 'created-task-detail')!)).toBe('701'); view.app.unmount()
   })
 
+  it('refreshes product details when the same task receives updated source information', async () => {
+    assets.getDevice.mockResolvedValueOnce({ summary: { productCode: 'OLD', productModel: 'OLD' } })
+      .mockResolvedValueOnce({ summary: { productCode: 'LATEST', productModel: 'LATEST', conpVersion: 'V2' } })
+    const input = ref({ task: { id: '701' }, devices: [device()] })
+    const host = defineComponent({ setup: () => () => h(TaskDevices, { detail: input.value as any }) })
+    const view = mount(host, {}, controls); await flush()
+    input.value = { task: { id: '701' }, devices: [device()] }
+    await flush()
+    expect(assets.getDevice).toHaveBeenCalledTimes(2)
+    expect(textOf(view.root)).toContain('LATEST')
+    view.app.unmount()
+  })
   it('blocks new creation when the host withdraws CREATE before submission', async () => {
     operation.enabled = true
     const actions = ref(['CREATE'])

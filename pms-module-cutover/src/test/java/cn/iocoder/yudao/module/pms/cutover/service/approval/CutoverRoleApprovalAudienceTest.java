@@ -17,6 +17,28 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class CutoverRoleApprovalAudienceTest {
+    @Test void completeTaskReadSurvivesActualDecisionAndResubmissionButNotMembershipAlone() {
+        Fixture f = new Fixture();
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        assertNull(f.audience.inspectTask(query(2L, 8L, null)));
+        assertNull(f.audience.inspectTask(new CutoverRoleApprovalAudience.Query(1L, 8L, 11L, null)));
+        f.node.setStatusCode("WAITING");
+        assertNull(f.audience.inspectTask(query(1L, 8L, null)));
+        f.node.setStatusCode("APPROVED"); f.node.setCurrentApproverUserId(8L);
+        f.node.setDecisionActorUserId(8L); f.node.setDecisionAt(java.time.LocalDateTime.now());
+        f.root.setStatusCode("REJECTED"); f.root.setReplacementApprovalInstanceId(21L);
+        doReturn(List.of()).when(f.roles).inspectActor(any());
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null)));
+        assertNotNull(f.audience.lockAndRevalidateTask(query(1L, 8L, 20L)));
+        assertNull(f.audience.inspectTask(query(1L, 9L, null)));
+        assertNull(f.audience.lockAndRevalidateTask(query(1L, 8L, 21L)));
+        f.node.setCurrentApproverUserId(9L);
+        assertNotNull(f.audience.inspectTask(query(1L, 8L, null))); // actual actor, not later assignment/name/role
+        assertNull(f.audience.inspectTask(query(1L, 9L, null)));
+        doThrow(new IllegalStateException("inactive")).when(f.roles).requireActiveUser(any());
+        assertThrows(IllegalStateException.class, () -> f.audience.inspectTask(query(1L, 8L, null)));
+    }
+
     @Test void currentEnabledRoleMemberCanReadWithoutOrdinaryProjectScope() {
         Fixture f = new Fixture();
         var grant = f.audience.inspect(query(1L, 8L, 20L));
@@ -79,6 +101,22 @@ class CutoverRoleApprovalAudienceTest {
         assertTemporaryReadDenied(replaced);
         Fixture differentNode = new Fixture(); differentNode.root.setCurrentNodeNo(2);
         assertTemporaryReadDenied(differentNode);
+    }
+    @Test void frozenAssigneeRetainsExactEvidenceAccessAfterPersonnelChanges() {
+        for (String mode : List.of("PERSONAL", "ROLE")) {
+            Fixture f = new Fixture();
+            f.node.setApprovalModeCode(mode); f.node.setCurrentApproverUserId(8L);
+            if ("PERSONAL".equals(mode)) f.node.setNodeCode("SERVICE_MANAGER");
+            doReturn(List.of()).when(f.roles).inspectActor(any());
+            doReturn(List.of()).when(f.roles).lockAndInspectActor(any());
+            var request = new CutoverRoleApprovalAudience.FileQuery(query(1L, 8L, 20L),
+                    file("CUTOVER_PLAN", "10", "cutover-plan:50:2"));
+            assertNotNull(f.audience.inspect(query(1L, 8L, 20L)));
+            assertNotNull(f.audience.lockAndRevalidateFile(request));
+            assertNull(f.audience.inspect(query(1L, 9L, 20L)));
+            verifyNoInteractions(f.scopes, f.managers);
+            verify(f.roles, never()).lockAndInspectActor(any());
+        }
     }
     private static void assertTemporaryReadDenied(Fixture f) {
         var access = query(1L, 8L, 20L);

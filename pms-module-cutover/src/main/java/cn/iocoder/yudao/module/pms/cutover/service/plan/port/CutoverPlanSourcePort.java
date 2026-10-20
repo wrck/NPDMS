@@ -31,6 +31,14 @@ public interface CutoverPlanSourcePort {
                           String configurationCode, Integer configurationRevisionNo,
                           List<TemplateSectionSnapshot> templateSections,
                           List<RiskFactSnapshot> failedRiskFacts) {
+        /** Project version records when facts were read; it does not bind CUT progression. */
+        public boolean sameBusinessSource(SourceSnapshot other) {
+            return other != null && equals(new SourceSnapshot(other.snapshotVersion(), other.taskId(), other.taskVersion(),
+                    other.assessmentId(), other.assessmentVersion(), other.grade(), other.checklistId(), other.checklistVersion(),
+                    other.projectId(), projectVersion, other.projectScopeVersion(), other.devices(), other.configurationRevisionId(),
+                    other.configurationCode(), other.configurationRevisionNo(), other.templateSections(), other.failedRiskFacts()));
+        }
+
         public SourceSnapshot {
             require(snapshotVersion != null && snapshotVersion > 0, "snapshotVersion");
             require(taskId != null && taskId > 0 && taskVersion != null && taskVersion >= 0, "task");

@@ -120,6 +120,7 @@
     <update id="replaceDraftIfMatch">
         UPDATE cut_plan_revision SET
         edit_mode_code = #{query.plan.editModeCode},
+        source_project_version = #{query.plan.sourceProjectVersion},
         scheduled_time = #{query.plan.scheduledTime},
         project_description = #{query.plan.projectDescription},
         rollback_description = #{query.plan.rollbackDescription},

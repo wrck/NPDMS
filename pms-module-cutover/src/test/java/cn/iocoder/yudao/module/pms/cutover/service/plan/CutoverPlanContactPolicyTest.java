@@ -15,7 +15,7 @@ class CutoverPlanContactPolicyTest {
     final CutoverPlanContactPolicy policy = new CutoverPlanContactPolicy(contacts,
             mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.plan.CutoverSupportArrangementMapper.class),
             mock(cn.iocoder.yudao.module.pms.cutover.dal.mysql.storage.CutoverPlanSupportContactChangeMapper.class),
-            mock(CutoverPlanStorage.class), mock(OperationAuditApi.class));
+            mock(CutoverPlanStorage.class), mock(OperationAuditApi.class), mock(CutoverSupportPersonPolicy.class));
 
     @Test void submitsOnlyTheCurrentProjectContactIdentityAndVersion() {
         when(contacts.lockAndInspect(any())).thenReturn(new ProjectContactReferenceApi.Reference(

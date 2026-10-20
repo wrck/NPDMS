@@ -11,6 +11,9 @@
         <result column="phone" property="phone"/>
         <result column="customer_contact_id" property="customerContactId"/>
         <result column="customer_contact_version" property="customerContactVersion"/>
+        <result column="person_source_code" property="personSourceCode"/>
+        <result column="person_source_id" property="personSourceId"/>
+        <result column="person_source_version" property="personSourceVersion"/>
         <result column="sort_order" property="sortOrder"/>
         <result column="arrive_time" property="arrivalTime"/>
         <result column="version" property="version"/>
@@ -23,12 +26,12 @@
     </resultMap>
 
     <select id="selectListByPlan" resultMap="structuredCutoverSupportArrangementDO">
-        SELECT id, tenant_id, plan_revision_id, role_code, person_name, duty_description, phone, arrive_time, version, creator, create_time, updater, update_time, deleted, current_support_contact_change_id, customer_contact_id, customer_contact_version, sort_order FROM cut_cutover_support_arrangement WHERE tenant_id = #{query.tenantId}
+        SELECT id, tenant_id, plan_revision_id, role_code, person_name, duty_description, phone, arrive_time, version, creator, create_time, updater, update_time, deleted, current_support_contact_change_id, customer_contact_id, customer_contact_version, sort_order, person_source_code, person_source_id, person_source_version FROM cut_cutover_support_arrangement WHERE tenant_id = #{query.tenantId}
           AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
         ORDER BY sort_order, id ASC
     </select>
     <select id="selectListByPlanForUpdate" resultMap="structuredCutoverSupportArrangementDO">
-        SELECT id, tenant_id, plan_revision_id, role_code, person_name, duty_description, phone, arrive_time, version, creator, create_time, updater, update_time, deleted, current_support_contact_change_id, customer_contact_id, customer_contact_version, sort_order FROM cut_cutover_support_arrangement WHERE tenant_id = #{query.tenantId}
+        SELECT id, tenant_id, plan_revision_id, role_code, person_name, duty_description, phone, arrive_time, version, creator, create_time, updater, update_time, deleted, current_support_contact_change_id, customer_contact_id, customer_contact_version, sort_order, person_source_code, person_source_id, person_source_version FROM cut_cutover_support_arrangement WHERE tenant_id = #{query.tenantId}
           AND plan_revision_id = #{query.planRevisionId} AND deleted = b'0'
         ORDER BY sort_order, id ASC FOR UPDATE
     </select>

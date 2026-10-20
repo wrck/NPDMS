@@ -67,7 +67,10 @@ class CutoverPlanSubmissionTest {
         when(generatedMapper.insertIfCurrentDraft(any())).thenAnswer(call -> {
             persisted.set(call.getArgument(0)); return boundRows;
         });
-        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(facts);
+        var currentTree = (tools.jackson.databind.node.ObjectNode) JsonUtils.getObjectMapper().valueToTree(snapshot);
+        currentTree.put("projectVersion", snapshot.projectVersion() + 1);
+        var currentSnapshot = JsonUtils.getObjectMapper().treeToValue(currentTree, CutoverPlanSourcePort.SourceSnapshot.class);
+        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(new CutoverPlanSourcePort.SourceFacts(currentSnapshot, List.of()));
         when(stepMapper.selectListByPlan(any())).thenReturn(List.of(
                 step("OPERATION", 1, "执行割接"), step("ROLLBACK", 1, "执行回退")));
         CutoverPlanFilePort.FileFact generated = fileFact();
@@ -135,8 +138,9 @@ class CutoverPlanSubmissionTest {
         verify(filePort, times(1)).downloadDraft(any());
     }
 
-    @Test
-    void submitsCompleteDraftAndAdvancesTaskToP5WithPendingApproval() {
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, 1})
+    void submitsCompleteDraftDespiteGeneralProjectEditsAndAdvancesToPendingApproval(int projectVersionDelta) {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);
         CutoverPlanStepMapper stepMapper = mock(CutoverPlanStepMapper.class);
@@ -160,7 +164,10 @@ class CutoverPlanSubmissionTest {
                 .expectedProjectScopeVersion(30L)
                 .build()))
                 .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
-        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(facts);
+        var currentTree = (tools.jackson.databind.node.ObjectNode) JsonUtils.getObjectMapper().valueToTree(snapshot);
+        currentTree.put("projectVersion", snapshot.projectVersion() + projectVersionDelta);
+        var currentSnapshot = JsonUtils.getObjectMapper().treeToValue(currentTree, CutoverPlanSourcePort.SourceSnapshot.class);
+        when(sourcePort.lockAndRevalidate(1L, 8L, facts)).thenReturn(new CutoverPlanSourcePort.SourceFacts(currentSnapshot, List.of()));
         when(taskMapper.selectForUpdate(any())).thenReturn(task);
         when(planMapper.selectCurrentForUpdate(any())).thenReturn(plan);
         when(stepMapper.selectListByPlanForUpdate(any())).thenReturn(steps);

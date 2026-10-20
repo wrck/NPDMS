@@ -65,11 +65,9 @@ class CutoverTaskIntakePolicyTest {
         when(fixture.projectContext().lockAndRevalidate(any())).thenThrow(
                 new cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException(
                         cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException.Code.PROVIDER_UNAVAILABLE, "项目参考暂不可用"));
-        var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "B"));
-        verifyNoInteractions(fixture.projectContext());
-        assertEquals("DRAFT", fixture.assessment().get().getAssessmentStatus());
         assertThrows(cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverOwnerFactException.class,
-                () -> fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(), saved.assessmentRowVersion(), "submit-outage")));
+                () -> fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "B")));
+        assertNull(fixture.assessment().get());
         assertEquals("P2", fixture.task().get().getCurrentStage());
     }
 

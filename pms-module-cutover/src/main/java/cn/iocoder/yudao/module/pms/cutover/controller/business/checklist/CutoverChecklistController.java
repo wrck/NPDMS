@@ -68,7 +68,7 @@ public class CutoverChecklistController {
     }
 
     @GetMapping
-    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query','pms:cutover-task:query-approval')")
     public CommonResult<CutoverChecklistResponses.View> get(@PathVariable("taskId") Long taskId,
             @org.springframework.web.bind.annotation.RequestParam(value = "checklistId", required = false) Long checklistId) {
         requireId(taskId);
@@ -78,7 +78,7 @@ public class CutoverChecklistController {
     }
 
     @GetMapping("/revisions")
-    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query','pms:cutover-task:query-approval')")
     public CommonResult<java.util.List<CutoverChecklistApplicationService.RevisionSummary>> revisions(@PathVariable("taskId") Long taskId) {
         requireId(taskId);
         return success(service.history(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(requestContext.current(), taskId, null)));
@@ -103,7 +103,7 @@ public class CutoverChecklistController {
     }
 
     @GetMapping("/external-state")
-    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query','pms:cutover-task:query-approval')")
     public CommonResult<CutoverExternalChecklistResponses.State> externalState(
             @PathVariable("taskId") Long taskId,
             @org.springframework.web.bind.annotation.RequestParam(value = "checklistId", required = false) Long checklistId) {
@@ -152,7 +152,7 @@ public class CutoverChecklistController {
     }
 
     @GetMapping("/matching-options")
-    @PreAuthorize("@ss.hasPermission('pms:cutover-task:query')")
+    @PreAuthorize("@ss.hasAnyPermissions('pms:cutover-task:query','pms:cutover-task:query-approval')")
     public CommonResult<CutoverChecklistResponses.MatchingOptions> matchingOptions(@PathVariable("taskId") Long taskId,
             @org.springframework.web.bind.annotation.RequestParam(value = "checklistId", required = false) Long checklistId) {
         requireId(taskId);

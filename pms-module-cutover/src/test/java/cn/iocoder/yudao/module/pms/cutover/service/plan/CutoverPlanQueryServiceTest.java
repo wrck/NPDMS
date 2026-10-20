@@ -32,6 +32,69 @@ import static org.mockito.Mockito.*;
 class CutoverPlanQueryServiceTest {
 
     @Test
+    void approvalTaskReadDoesNotGrantPlanSaveSubmitReviseOrContactWrites() {
+        var f = fixture();
+        when(f.projectScope.inspect(8L, 70L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, false));
+        var service = f.service(mock(CutoverApprovalFactApi.class));
+        var audience = mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAudience", audience);
+        when(audience.inspectTask(any())).thenReturn(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Grant(20L, "{}"));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "approval-read", true, true, true, true);
+        var result = service.detail(context, 50L);
+        assertThat(result.planRevisionId()).isEqualTo(f.plan.getId());
+        assertThat(result.allowedActions()).isEmpty();
+        verify(f.projectScope, never()).inspect(8L, 70L, "ACTION_EDIT");
+        when(audience.inspectTask(any())).thenReturn(null);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.detail(context, 50L)).isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
+    void permitsOnlyDraftSaveWhenPrecedingSourceIsUnavailableAndKeepsAccessBoundaries() {
+        Fixture fixture = fixture();
+        fixture.source = mock(CutoverPlanSourcePort.class);
+        when(fixture.source.inspect(any(), any(), any())).thenThrow(new IllegalStateException("source incomplete"));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "draft", true, true, true, true);
+        var service = fixture.service(mock(CutoverApprovalFactApi.class));
+        assertThat(service.detail(context, 50L).allowedActions()).contains("SAVE_DRAFT").doesNotContain("SUBMIT_PLAN");
+        when(fixture.projectScope.inspect(8L, 70L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, false));
+        assertThat(service.detail(context, 50L).allowedActions()).doesNotContain("SAVE_DRAFT", "SUBMIT_PLAN");
+        when(fixture.projectScope.inspect(8L, 70L, "ACTION_EDIT"))
+                .thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
+        fixture.plan.setStatusCode("SUBMITTED");
+        assertThat(service.detail(context, 50L).allowedActions()).doesNotContain("SAVE_DRAFT");
+    }
+
+    @Test
+    void projectAuditVersionDoesNotHideChangesToProtectedSourceFacts() {
+        var original = facts().snapshot();
+        for (String field : java.util.List.of("projectId", "projectScopeVersion", "taskVersion", "assessmentVersion", "configurationRevisionId")) {
+            var tree = (tools.jackson.databind.node.ObjectNode) JsonUtils.getObjectMapper().valueToTree(original);
+            tree.put("projectVersion", original.projectVersion() + 1);
+            tree.put(field, tree.path(field).asLong() + 1);
+            var changed = JsonUtils.getObjectMapper().treeToValue(tree, CutoverPlanSourcePort.SourceSnapshot.class);
+            assertThat(original.sameBusinessSource(changed)).as(field).isFalse();
+        }
+        var tree = (tools.jackson.databind.node.ObjectNode) JsonUtils.getObjectMapper().valueToTree(original);
+        ((tools.jackson.databind.node.ObjectNode) tree.path("devices").get(0)).put("projectAssignmentVersion", 99L);
+        assertThat(original.sameBusinessSource(JsonUtils.getObjectMapper().treeToValue(tree,
+                CutoverPlanSourcePort.SourceSnapshot.class))).isFalse();
+    }
+
+    @Test
+    void keepsDraftActionsWhenOnlyGeneralProjectVersionChanged() {
+        Fixture fixture = fixture();
+        var tree = (tools.jackson.databind.node.ObjectNode) JsonUtils.getObjectMapper().valueToTree(facts().snapshot());
+        tree.put("projectVersion", facts().snapshot().projectVersion()+1);
+        var snapshot = JsonUtils.getObjectMapper().treeToValue(tree,CutoverPlanSourcePort.SourceSnapshot.class);
+        fixture.source = new CutoverPlanControlledPorts.SourcePort(new CutoverPlanSourcePort.SourceFacts(snapshot,snapshot.failedRiskFacts()));
+        var view = fixture.service(mock(CutoverApprovalFactApi.class)).detail(
+                new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L,8L,"refresh",true,true,true,true),50L);
+        assertThat(view.allowedActions()).contains("SAVE_DRAFT").doesNotContain("REFRESH_DRAFT_SOURCE");
+        assertThat(view.sourceSnapshot().path("projectVersion").asInt()).isEqualTo(facts().snapshot().projectVersion());
+    }
+
+    @Test
     void assemblesDraftStepsFromChildRowsAndProjectsAllowedActions() {
         CutoverTaskMapper taskMapper = mock(CutoverTaskMapper.class);
         CutoverPlanRevisionMapper planMapper = mock(CutoverPlanRevisionMapper.class);

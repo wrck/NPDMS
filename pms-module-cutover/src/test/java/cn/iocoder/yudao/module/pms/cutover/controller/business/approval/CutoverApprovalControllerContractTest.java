@@ -38,6 +38,7 @@ class CutoverApprovalControllerContractTest {
     private CutoverApprovalApplicationService application;
     private CutoverApprovalQueryService query;
     private MockMvc mvc;
+    private final cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService checklists = mock(cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService.class);
 
     @BeforeEach
     void setUp() {
@@ -47,7 +48,7 @@ class CutoverApprovalControllerContractTest {
         CutoverApprovalRequestContext context = () -> new CutoverApprovalContext(
                 1L, 8L, "corr-approval-1", true, true, true);
         CutoverApprovalController controller = new TestController(application, query, context,
-                new CutoverApprovalRequestCodec());
+                new CutoverApprovalRequestCodec(), checklists);
         mvc = standaloneSetup(controller).setControllerAdvice(controller).build();
     }
 
@@ -165,6 +166,28 @@ class CutoverApprovalControllerContractTest {
                 null, null, null, List.of("APPROVE", "REJECT"));
     }
 
+    @Test
+    void metadataReadFailureRetainsAuthorizedSnapshotAndLimitedViewsDoNotReadMetadata() throws Exception {
+        when(checklists.getApprovalSourcePresentation(any())).thenThrow(new IllegalStateException("unavailable"));
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.viewMode").value("FULL"))
+                .andExpect(jsonPath("$.data.sourcePresentation.incomplete").value(true));
+        verify(checklists).getApprovalSourcePresentation(argThat(q -> q.tenantId() == 1L && q.approval().approvalInstanceId() == 100L));
+        clearInvocations(checklists);
+        when(query.detailByInstance(any(), anyLong())).thenReturn(reassignment());
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.sourcePresentation").doesNotExist());
+        verifyNoInteractions(checklists);
+    }
+
+    @Test
+    void deniedApprovalDoesNotReadSourcePresentation() throws Exception {
+        when(query.detailByInstance(any(), anyLong())).thenThrow(new org.springframework.security.access.AccessDeniedException("denied"));
+        mvc.perform(get("/api/v1/pms/cutover-approvals/100"))
+                .andExpect(status().isForbidden()).andExpect(jsonPath("$.data.sourcePresentation").doesNotExist());
+        verifyNoInteractions(checklists);
+    }
+
     private static CutoverApprovalViews.ApprovalReassignmentView reassignment() {
         return new CutoverApprovalViews.ApprovalReassignmentView("REASSIGNMENT_ONLY", 100L, 0L, 10L, 20L,
                 "CUT-10", "核心割接", "A", "PENDING", null,
@@ -194,8 +217,9 @@ class CutoverApprovalControllerContractTest {
     @RestController
     private static final class TestController extends CutoverApprovalController {
         private TestController(CutoverApprovalApplicationService application, CutoverApprovalQueryService query,
-                               CutoverApprovalRequestContext context, CutoverApprovalRequestCodec codec) {
-            super(application, query, context, codec);
+                               CutoverApprovalRequestContext context, CutoverApprovalRequestCodec codec,
+                               cn.iocoder.yudao.module.pms.cutover.service.checklist.CutoverChecklistApplicationService checklists) {
+            super(application, query, context, codec, checklists);
         }
     }
 }

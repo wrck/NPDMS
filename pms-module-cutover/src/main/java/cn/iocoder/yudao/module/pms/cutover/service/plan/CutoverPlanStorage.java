@@ -249,6 +249,9 @@ public class CutoverPlanStorage {
         current.setPersonName(change.getAfterPersonName()); current.setPhone(change.getAfterPhone());
         current.setCustomerContactId(change.getAfterCustomerContactId());
         current.setCustomerContactVersion(change.getAfterCustomerContactVersion());
+        current.setPersonSourceCode(change.getAfterPersonSourceCode());
+        current.setPersonSourceId(change.getAfterPersonSourceId());
+        current.setPersonSourceVersion(change.getAfterPersonSourceVersion());
         current.setArrivalTime(change.getAfterArriveTime()); return current;
     }
 
@@ -263,6 +266,10 @@ public class CutoverPlanStorage {
             var reference = row.putObject("customerContactReference");
             putWireLong(reference, "contactId", value.getCustomerContactId());
             reference.put("contactVersion", Math.toIntExact(value.getCustomerContactVersion()));
+        }
+        if (value.getPersonSourceId() != null) {
+            var person = row.putObject("personReference"); person.put("sourceCode", value.getPersonSourceCode());
+            putWireLong(person, "id", value.getPersonSourceId()); putWireLong(person, "version", value.getPersonSourceVersion());
         }
         return row;
     }

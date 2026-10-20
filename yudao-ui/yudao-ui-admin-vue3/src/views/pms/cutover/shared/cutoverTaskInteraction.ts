@@ -151,7 +151,8 @@ export const createCutoverWriteCoordinator = (factory: () => string = newIntentK
   const barrier = createCutoverPlanWriteBarrier()
   return {
     refreshPending: () => barrier.beforeWrite(),
-    async run<T>(intent: string, write: (key: string) => Promise<T>, refresh: () => Promise<void>) {
+    async run<T>(intent: string, write: (key: string) => Promise<T>, refresh: () => Promise<void>,
+        options?: { refreshOnFailure: () => Promise<void> }) {
       const before = await barrier.beforeWrite()
       if (before !== 'PROCEED')
         return { writeCalled: false, refreshSucceeded: before === 'REFRESHED' } as const
@@ -163,10 +164,11 @@ export const createCutoverWriteCoordinator = (factory: () => string = newIntentK
         const recovery = cutoverWriteRecoveryAction(error)
         if (['REFRESH_APPROVAL', 'REFRESH_SOURCES', 'REFRESH_AGGREGATE', 'REFRESH_OWNER_FACTS', 'REFRESH_TASK'].includes(recovery)) {
           intents.complete(intent)
+          const recover = options?.refreshOnFailure || refresh
           try {
-            await refresh()
+            await recover()
           } catch {
-            barrier.register(refresh)
+            barrier.register(recover)
           }
         } else if (recovery === 'START_NEW_INTENT') intents.complete(intent)
         throw error

@@ -36,6 +36,7 @@ const api = vi.hoisted(() => ({
   removeCustomChecklistItem: vi.fn(),
   requestChecklistCollection: vi.fn(),
   submitCutoverChecklist: vi.fn(),
+  getSupportPersonChoices: vi.fn(async () => []),
   getProjectContactChoices: vi.fn(async () => []),
   getCutoverPlan: vi.fn(),
   createCutoverPlanDraft: vi.fn(),

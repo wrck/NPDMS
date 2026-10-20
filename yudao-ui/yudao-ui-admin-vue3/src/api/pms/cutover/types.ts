@@ -177,6 +177,8 @@ export interface CutoverTaskListQuery {
 }
 
 export interface CutoverTaskDetail {
+  approvalReadOnly?: boolean
+  assessmentSubmissionBlockReason?: string | null
   task: CutoverTaskCore
   source: {
     intakeSourceType: CutoverTaskSummary['intakeSourceType']
@@ -189,6 +191,7 @@ export interface CutoverTaskDetail {
     projectCode: string | null
     projectName: string | null
     projectScopeVersion: WireLong | null
+    departmentName?: string | null
   }
   devices: DeviceScopeEntry[]
   customerServiceLevel: CustomerServiceLevelContext | null
@@ -389,6 +392,7 @@ export interface CutoverPlanScheduleRow {
 }
 
 export interface CutoverPlanSupportArrangement {
+  personReference?: SupportPersonReference | null
   arrangementId: WireLong | null
   roleCode: 'CUSTOMER' | 'DP_FIRST_LINE' | 'DP_SECOND_LINE' | 'DP_RND'
   personName: string
@@ -399,6 +403,8 @@ export interface CutoverPlanSupportArrangement {
 }
 
 export interface CustomerContactReference { contactId: WireLong; contactVersion: number }
+export interface SupportPersonReference { sourceCode: 'SYSTEM_USER' | 'PROJECT_MEMBER'; id: WireLong; version: WireLong }
+export interface SupportPersonChoice { reference: SupportPersonReference; name: string; phone: string | null }
 
 export interface ProjectContactChoice extends CustomerContactReference { projectId: WireLong; sourceContactId: WireLong; name: string; mobile: string | null; phone: string | null; department: string | null; title: string | null }
 
@@ -610,6 +616,11 @@ export interface CutoverLeadTimeCompliance {
 
 export interface CutoverApprovalDetail {
   viewMode: 'FULL'
+  sourcePresentation?: {
+    matchingOptions: CutoverChecklistMatchingOptions | null
+    answerSchemas: Record<string, Record<string, unknown>>
+    incomplete: boolean
+  }
   approvalInstanceId: WireLong
   approvalVersion: number
   taskId: WireLong

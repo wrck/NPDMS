@@ -51,6 +51,92 @@ import static org.mockito.Mockito.when;
 class CutoverTaskApplicationServiceTest {
 
     @Test
+    void sourceRefreshRejectsMissingReplacedAndForeignProjectDevicesBeforeWriting() {
+        for (var current : List.<List<CutoverDeviceScopePort.DeviceFact>>of(List.of(),
+                List.of(new CutoverDeviceScopePort.DeviceFact(401L, "SN-400", 100L, 10L)),
+                List.of(new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 999L, 10L)))) {
+            var fixture = fixture();
+            var created = fixture.service().create(createCommand("invalid-current-device"));
+            var devices = (CutoverDeviceScopePort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "deviceScopePort");
+            when(devices.resolveBySerials(List.of("SN-400"))).thenReturn(current);
+            var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                    () -> fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D")));
+            assertEquals(CutoverTaskApplicationException.Code.DEVICE_SCOPE_STALE, failure.code());
+            assertNull(fixture.assessment().get());
+            assertEquals(0, fixture.deviceWrites().size());
+            assertEquals("P2", fixture.task().get().getCurrentStage());
+        }
+    }
+
+    @Test
+    void sourceRefreshStillRejectsRevokedProjectScopeAtLock() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("scope-revoked-on-refresh"));
+        var scopes = (CutoverProjectScopePort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "projectScopePort");
+        when(scopes.lockAndRevalidate(any())).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(100L, 8L, false));
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                () -> fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D")));
+        assertEquals(CutoverTaskApplicationException.Code.PROJECT_SCOPE_STALE, failure.code());
+        assertNull(fixture.assessment().get());
+    }
+
+    @Test
+    void changingProjectCustomerDoesNotCarryFormerCustomersManualLevel() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("customer-source-change"));
+        unconfiguredCustomer(fixture);
+        var saved = fixture.service().saveAssessment(manualLevelCommand(created, "STANDARD"));
+        var projects = (CutoverProjectContextPort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "projectContextPort");
+        var old = CutoverTaskSnapshotStore.project(fixture.task().get());
+        var next = CutoverProjectContextPort.ProjectContextFact.builder().tenantId(1L).projectId(100L).projectVersion(4)
+                .projectCode(old.projectCode()).projectName(old.projectName()).customerId(201L).customerCode("CUS-201").customerName("新客户")
+                .departmentId(old.departmentId()).departmentCode(old.departmentCode()).departmentName(old.departmentName())
+                .projectScopeVersion(7L).build();
+        when(projects.inspect(any())).thenReturn(next);
+        when(projects.lockAndRevalidate(any())).thenReturn(next);
+        when(fixture.customerLevel().inspect(201L)).thenReturn(CutoverCustomerLevelPort.CustomerLevelFact.builder()
+                .customerId(201L).customerCode("CUS-201").customerName("新客户").status("NOT_CONFIGURED").factVersion(0).build());
+        var command = SaveCutoverAssessmentCommand.builder().tenantId(1L).actorId(8L).taskId(created.taskId())
+                .expectedTaskVersion(saved.taskVersion()).expectedAssessmentVersion(saved.assessmentRowVersion())
+                .answers(new CutoverAssessmentAnswers("HIGH", "MEDIUM", "LOW", false)).manualGrade("D")
+                .manualCustomerServiceLevelCode("STANDARD").idempotencyKey("save-new-customer").correlationId("new-customer").build();
+        var refreshed = fixture.service().saveAssessment(command);
+        assertEquals(201L, fixture.assessment().get().getCustomerId());
+        assertNull(fixture.assessment().get().getManualCustomerServiceLevelCode());
+        assertNull(fixture.assessment().get().getManualCustomerServiceLevelSelectedBy());
+        var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
+                () -> fixture.service().submitAssessment(submitCommand(created.taskId(), refreshed.taskVersion(), refreshed.assessmentRowVersion(), "submit-new-customer")));
+        assertEquals(CutoverTaskApplicationException.Code.BUSINESS_GATE_INVALID, failure.code());
+    }
+
+    @Test
+    void draftRefreshesCurrentProjectAndDeviceVersionsWithoutChangingCreationEvidence() {
+        var fixture = fixture();
+        var created = fixture.service().create(createCommand("draft-source-refresh"));
+        var projects = (CutoverProjectContextPort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "projectContextPort");
+        var devices = (CutoverDeviceScopePort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "deviceScopePort");
+        var latest = CutoverTaskSnapshotStore.project(fixture.task().get());
+        latest = CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(latest.tenantId()).projectId(latest.projectId()).projectVersion(4)
+                .projectCode(latest.projectCode()).projectName("最新项目名称")
+                .customerId(latest.customerId()).customerCode(latest.customerCode()).customerName(latest.customerName())
+                .departmentId(latest.departmentId()).departmentCode(latest.departmentCode()).departmentName(latest.departmentName())
+                .projectScopeVersion(latest.projectScopeVersion()).build();
+        when(projects.inspect(any())).thenReturn(latest);
+        when(projects.lockAndRevalidate(any())).thenReturn(latest);
+        var currentDevices = List.of(new CutoverDeviceScopePort.DeviceFact(400L, "SN-400", 100L, 10L));
+        when(devices.resolveBySerials(List.of("SN-400"))).thenReturn(currentDevices);
+        when(devices.lockAndRevalidate(100L, currentDevices)).thenReturn(currentDevices);
+        var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
+        assertEquals(4L, fixture.assessment().get().getProjectVersion());
+        assertEquals("最新项目名称", fixture.assessment().get().getProjectName());
+        assertEquals(10L, fixture.deviceWrites().getLast().currentDevices().getFirst().projectAssignmentVersion());
+        assertEquals(3L, fixture.task().get().getProjectVersion());
+        assertEquals(9L, fixture.deviceRows().getFirst().getProjectAssignmentVersion());
+        assertEquals("P4", fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(), saved.assessmentRowVersion(), "submit-current-source")).currentStage());
+    }
+
+    @Test
     void springMapperPreservesLegacyCompletedSaveReplayAndManualSelectionConflicts() {
         var previousMapper = cn.iocoder.yudao.framework.common.util.json.JsonUtils.getObjectMapper();
         try {
@@ -293,13 +379,20 @@ class CutoverTaskApplicationServiceTest {
     }
 
     @Test
-    void stillRejectsChangedFrozenProjectVersionAndNameWithMajorProjectMetadata() {
+    void stillRejectsProjectChangingBetweenCurrentReadAndTransactionLock() {
         for (String changed : List.of("VERSION", "NAME")) {
             Fixture fixture = fixture();
             var created = fixture.service().create(createCommand("create-stale-project"));
             var saved = fixture.service().saveAssessment(saveCommand(created.taskId(), created.version(), "D"));
-            if ("VERSION".equals(changed)) fixture.task().get().setProjectVersion(2L);
-            else fixture.task().get().setProjectName("旧项目名称");
+            var projects = (CutoverProjectContextPort) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service(), "projectContextPort");
+            var next = CutoverTaskSnapshotStore.project(fixture.task().get());
+            next = CutoverProjectContextPort.ProjectContextFact.builder().tenantId(next.tenantId()).projectId(next.projectId())
+                    .projectVersion("VERSION".equals(changed) ? 4 : next.projectVersion())
+                    .projectCode(next.projectCode()).projectName("NAME".equals(changed) ? "并发修改名称" : next.projectName())
+                    .customerId(next.customerId()).customerCode(next.customerCode()).customerName(next.customerName())
+                    .departmentId(next.departmentId()).departmentCode(next.departmentCode()).departmentName(next.departmentName())
+                    .projectScopeVersion(next.projectScopeVersion()).majorProjectLevel("公司级").build();
+            when(projects.lockAndRevalidate(any())).thenReturn(next);
 
             var failure = org.junit.jupiter.api.Assertions.assertThrows(CutoverTaskApplicationException.class,
                     () -> fixture.service().submitAssessment(submitCommand(created.taskId(), saved.taskVersion(),
@@ -467,6 +560,12 @@ class CutoverTaskApplicationServiceTest {
         });
         when(assessmentMapper.insert(any(CutoverAssessmentDO.class))).thenAnswer(invocation -> {
             assessment.set(invocation.getArgument(0));
+            return 1;
+        });
+        when(assessmentMapper.updateDraftIfMatch(any())).thenAnswer(invocation -> {
+            var update = (cn.iocoder.yudao.module.pms.cutover.dal.mysql.task.query.CutoverAssessmentDraftUpdate) invocation.getArgument(0);
+            if (!update.expectedVersion().equals(assessment.get().getVersion())) return 0;
+            assessment.get().setVersion(update.expectedVersion() + 1);
             return 1;
         });
         when(taskMapper.linkAssessmentIfMatch(any())).thenAnswer(invocation -> {

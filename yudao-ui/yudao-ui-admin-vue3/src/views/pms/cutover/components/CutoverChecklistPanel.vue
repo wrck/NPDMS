@@ -1,5 +1,5 @@
 <template>
-  <section v-loading="loading" class="checklist-panel" aria-label="调研及风险考察">
+  <section ref="panelRoot" v-loading="loading" class="checklist-panel" aria-label="调研及风险考察">
     <el-alert title="按任务的割接类型、组网模式、设备类型及等级匹配清单。同页填写调研、风险和双机检查结果，提交后带入割接方案。" type="info" :closable="false" show-icon />
     <el-alert v-if="gapMessage" :title="gapMessage" type="warning" :closable="false" show-icon />
     <el-alert v-if="historicalRevisionId" :title="`历史清单只读。${selectedRevision?.invalidatedReason ? `修订原因：${selectedRevision.invalidatedReason}` : ''}`" type="info" :closable="false" />
@@ -69,11 +69,12 @@
         <div v-if="group.code === 'BACKGROUND'" class="cut-card__body background-form" aria-label="割接背景表单">
           <CutoverChecklistField
             v-for="row in group.items" :key="row.stableItemKey" :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" embedded
+            :validation-message="validationKey === row.stableItemKey ? validationMessage : undefined"
             :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
             :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
             :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
             @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
-            @collection="requestCollection" @remove="removeCustom" @refresh="load" />
+            @collection="requestCollection" @remove="removeCustom" @refresh="refreshAfterCollection" />
           <el-empty v-if="!group.items.length" :description="search ? '本区暂无匹配的采集项' : '当前条件未匹配此类采集项'" />
         </div>
         <div v-else class="cut-card__body cut-card__body--table">
@@ -85,11 +86,12 @@
                   <div class="stacked-table-item__heading"><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></div>
                   <CutoverChecklistField
                     :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
+                    :validation-message="validationKey === row.stableItemKey ? validationMessage : undefined"
                     :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
                     :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
                     :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
                     @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
-                    @collection="requestCollection" @remove="removeCustom" @refresh="load" />
+                    @collection="requestCollection" @remove="removeCustom" @refresh="refreshAfterCollection" />
                 </div>
                 <template v-else><span>{{ row.itemName }}</span><span v-if="row.required" class="cut-required"> *</span><p v-if="row.itemDescription" class="item-description">{{ row.itemDescription }}</p><small v-if="row.sourceCode === 'CUSTOM'" class="cut-muted">自定义项</small></template>
               </template>
@@ -98,11 +100,12 @@
               <template #default="{ row }">
                 <CutoverChecklistField
                   :item="row" :direct-value="answers[row.stableItemKey] || ''" :readonly="readonly" :table-row="true"
+                  :validation-message="validationKey === row.stableItemKey ? validationMessage : undefined"
                   :allow-save="canSave && !externalBusy && !saving && !submitting" :allow-collection="canRequestCollection && !externalBusy" :devices="detail.devices" @direct="setAnswer" @manual="saveManual"
                   :external-state="externalState?.items.find(item => item.stableItemKey === row.stableItemKey)" :external-feedback="externalFeedbacks[row.stableItemKey]"
                   :external-busy="externalBusy || saving || submitting" :version-dirty="deviceVersionsDirty"
                   @external-feedback="setExternalFeedback" @external-load="loadExternal" @external-save="saveExternalFeedback"
-                  @collection="requestCollection" @remove="removeCustom" @refresh="load" />
+                  @collection="requestCollection" @remove="removeCustom" @refresh="refreshAfterCollection" />
               </template>
             </el-table-column>
           </el-table>
@@ -149,6 +152,7 @@ import {
   newIntentKey
 } from '../shared/cutoverTaskInteraction'
 import CutoverChecklistField from './CutoverChecklistField.vue'
+import { findChecklistValidationItem, focusChecklistValidationItem } from '../shared/cutoverChecklistValidation'
 
 const isTableItem = (item: CutoverChecklistItem) => {
   try { return !!JSON.parse(item.interfaceSchemaSnapshot || '{}').columns?.length } catch { return false }
@@ -164,6 +168,15 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ navigate: [target: CutoverNavigationTarget] }>()
 const message = useMessage()
+const panelRoot = ref<HTMLElement>()
+const validationKey = ref('')
+const validationMessage = ref('')
+const clearValidation = (key?: string) => {
+  if (!key || validationKey.value === key) {
+    validationKey.value = ''
+    validationMessage.value = ''
+  }
+}
 const checklist = ref<CutoverChecklistView | null>(null)
 const revisions = ref<CutoverApi.CutoverChecklistRevision[]>([])
 const selectedRevisionId = ref('CURRENT')
@@ -241,6 +254,7 @@ const hydrateAnswers = () => {
 }
 let loadSequence = 0
 const load = async () => {
+  clearValidation()
   const sequence = ++loadSequence
   const taskId = props.detail.task.id
   loading.value = true
@@ -289,9 +303,7 @@ const refreshResults = async () => {
 }
 const selectRevision = async (value: string) => {
   if (value === selectedRevisionId.value) return
-  if (!historicalRevisionId.value && (JSON.stringify(answers) !== savedAnswers.value || deviceVersionsDirty.value || selectionChanged.value)) {
-    try { await message.confirm('切换版本会放弃尚未保存的填写，是否继续？') } catch { return }
-  }
+  if (!historicalRevisionId.value && !(await saveBeforeLeave())) return
   selectedRevisionId.value = value
   await load()
 }
@@ -299,8 +311,28 @@ const writeDraft = async <T, C extends object>(command: {
   action: string; request: C; send: (request: C & { idempotencyKey: string }) => Promise<T>; refresh?: () => Promise<void>
 }) => {
   const request = JSON.parse(JSON.stringify(command.request)) as C
+  const refreshKeepingInput = async () => {
+    const taskId = String(props.detail.task.id)
+    const retained = JSON.parse(JSON.stringify({ answers, deviceVersions: deviceVersions.value, externalFeedbacks,
+      cutoverType: cutoverType.value, networkMode: networkMode.value, deviceTypeCodes: deviceTypeCodes.value }))
+    try { await (command.refresh || load)() }
+    finally {
+      if (taskId === String(props.detail.task.id)) {
+      for (const key of Object.keys(answers)) delete answers[key]
+      Object.assign(answers, retained.answers)
+      deviceVersions.value = retained.deviceVersions
+      for (const key of Object.keys(externalFeedbacks)) delete externalFeedbacks[key]
+      Object.assign(externalFeedbacks, retained.externalFeedbacks)
+      cutoverType.value = retained.cutoverType
+      networkMode.value = retained.networkMode
+      deviceTypeCodes.value = retained.deviceTypeCodes
+      message.warning('未提交的清单填写已保留；草稿尚未保存成功，请核对后重试。')
+      }
+    }
+  }
   const result = await draftWrites.run(JSON.stringify([command.action, request]),
-    idempotencyKey => command.send({ ...request, idempotencyKey }), command.refresh || load)
+    idempotencyKey => command.send({ ...request, idempotencyKey }), command.refresh || load,
+    { refreshOnFailure: refreshKeepingInput })
   if (!result.refreshSucceeded) message.warning('写入已完成，清单刷新失败；再次操作将先刷新。')
   return result
 }
@@ -358,7 +390,10 @@ const generate = async () => {
 
   } finally { generating.value = false }
 }
-const setAnswer = (stableItemKey: string, value: string) => { answers[stableItemKey] = value }
+const setAnswer = (stableItemKey: string, value: string) => {
+  answers[stableItemKey] = value
+  clearValidation(stableItemKey)
+}
 const saveDirect = async () => {
   if (!checklist.value) return false
   if (!(await beforeWrite())) return false
@@ -400,7 +435,10 @@ const saveVersions = async () => {
   try { if (!(await saveDirect()) || !(await persistVersions())) return; message.success('设备软件版本已保存') }
   finally { externalBusy.value = false }
 }
-const setExternalFeedback = (key: string, feedback: CutoverExternalFeedback[]) => { externalFeedbacks[key] = feedback }
+const setExternalFeedback = (key: string, feedback: CutoverExternalFeedback[]) => {
+  externalFeedbacks[key] = feedback
+  clearValidation(key)
+}
 const persistExternalFeedback = async (key: string) => {
   const item = externalState.value?.items.find(entry => entry.stableItemKey === key)
   if (!item?.resultId || !item.contextCurrent || deviceVersionsDirty.value) {
@@ -443,6 +481,23 @@ const save = async () => {
     }
     return true
   } finally { externalBusy.value = false }
+}
+const hasPendingDraft = () => JSON.stringify(answers) !== savedAnswers.value || deviceVersionsDirty.value
+  || Object.keys(externalFeedbacks).some(key => JSON.stringify(externalFeedbacks[key]) !== savedExternalFeedbacks[key])
+  || selectionChanged.value
+const saveBeforeLeave = async () => {
+  if (externalBusy.value || saving.value || submitting.value || rematching.value) {
+    message.warning('请等待当前清单操作完成后再离开。'); return false
+  }
+  if (!hasPendingDraft()) return true
+  if (selectionChanged.value) { message.warning('匹配条件尚未应用，请先重新匹配或恢复原条件。'); return false }
+  if (readonly.value || !canSave.value) { message.warning('清单填写尚未保存，当前状态不能保存；填写已保留。'); return false }
+  return save()
+}
+defineExpose({ saveBeforeLeave, hasPendingDraft })
+const refreshAfterCollection = async () => {
+  if (!(await saveBeforeLeave())) return
+  await load()
 }
 const rematch = async () => {
   const selectedType = cutoverType.value
@@ -565,6 +620,7 @@ const exportChecklist = async () => {
 const submit = async () => {
   if (!checklist.value || !props.detail.assessment || selectionChanged.value || !frozenDeviceTypeCodes.value.length || !canSubmit.value) return
   if (!(await beforeWrite())) return
+  clearValidation()
   submitting.value = true
   try {
     if (!(await save())) return
@@ -584,11 +640,30 @@ const submit = async () => {
       message.warning('业务提交结果待刷新确认，请再次操作以仅重试刷新')
     }
   } catch (error) {
-    const status = (error as { response?: { status?: number } })?.response?.status
+    const response = (error as { response?: { status?: number; data?: { msg?: string } } })?.response
+    const status = response?.status
+    if (status && status < 500 && status !== 401 && status !== 403 && typeof response?.data?.msg === 'string') {
+      const target = findChecklistValidationItem({
+        items: checklist.value?.items || [], message: response.data.msg, externalItems: externalState.value?.items
+      })
+      if (target) {
+        search.value = ''
+        validationKey.value = target.stableItemKey
+        validationMessage.value = response.data.msg === '必填清单项尚未完成'
+          ? `${target.itemName}：请补充必填内容` : response.data.msg
+        return
+      }
+    }
     if (status && status !== 500) throw error
     submitBarrier.register(refreshAfterSubmit)
     message.warning('提交响应未确认，请再次操作以仅刷新任务状态')
-  } finally { submitting.value = false }
+  } finally {
+    submitting.value = false
+    if (validationKey.value) {
+      await nextTick()
+      if (panelRoot.value) focusChecklistValidationItem(panelRoot.value, validationKey.value)
+    }
+  }
 }
 
 watch(() => props.detail.task.id, () => { draftWrites.reset(); submitBarrier.reset(); void load() }, { immediate: true })

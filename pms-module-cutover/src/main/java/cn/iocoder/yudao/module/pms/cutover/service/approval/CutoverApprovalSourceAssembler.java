@@ -94,6 +94,7 @@ public class CutoverApprovalSourceAssembler {
         requirePlanProject(inspectedPlan, inspectedProject);
         // P4已按相同顺序锁定来源；单独组装时也先锁项目，再锁CUT事实。
         CutoverProjectContextPort.ProjectContextFact project = projectContext.lockAndRevalidate(inspectedProject);
+        require(Objects.equals(inspectedProject, project), SOURCE_STALE, "项目读取期间已变化，请重试当前操作");
         requirePlanProject(inspectedPlan, project);
         CutoverTaskDO task = taskMapper.selectForUpdate(new CutoverTaskRowQuery(command.tenantId(), command.taskId()));
         require(task != null && Objects.equals(task.getVersion(), command.expectedTaskVersion())
@@ -167,7 +168,6 @@ public class CutoverApprovalSourceAssembler {
     private static void requirePlanProject(CutoverPlanRevisionDO plan, CutoverProjectContextPort.ProjectContextFact project) {
         require(project != null && Objects.equals(plan.getTenantId(), project.tenantId())
                         && Objects.equals(plan.getSourceProjectId(), project.projectId())
-                        && Objects.equals(plan.getSourceProjectVersion(), (long) project.projectVersion())
                         && Objects.equals(plan.getSourceProjectScopeVersion(), project.projectScopeVersion()),
                 SOURCE_STALE, "方案项目来源已变化，请修订后重新提交");
     }

@@ -62,13 +62,12 @@ public class CutoverPlanSource implements CutoverPlanSourcePort {
                 .projectId(before.projectId())
                 .expectedProjectScopeVersion(before.projectScopeVersion())
                 .build());
-        if (project.projectVersion() != before.projectVersion()) throw stale(PROJECT_OR_DEVICE_STALE);
         projects.lockAndRevalidate(project);
         assetDevices.lockAndRevalidate(before.projectId(), before.devices().stream().map(device ->
                 new CutoverDeviceScopePort.DeviceFact(device.deviceId(), device.serialNumber(), before.projectId(),
                         device.projectAssignmentVersion())).toList());
         var current = assemble(tenant, actor, before.taskId(), true);
-        if (!expected.equals(current)) throw stale(SOURCE_STALE);
+        if (!before.sameBusinessSource(current.snapshot())) throw stale(SOURCE_STALE);
         return current;
     }
 

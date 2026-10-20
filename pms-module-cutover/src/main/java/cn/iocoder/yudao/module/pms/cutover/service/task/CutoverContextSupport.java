@@ -7,6 +7,7 @@ import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverReadinessPor
 
 import java.util.List;
 import java.util.Objects;
+import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverDeviceScopePort;
 
 /** 修订014：外部参考事实不能成为独立割接的通用准入条件。 */
 final class CutoverContextSupport {
@@ -18,7 +19,23 @@ final class CutoverContextSupport {
         return "PROJECT_EVENT".equals(sourceType);
     }
 
-    /** P1原有冻结契约；重大项目级别由P3匹配单独按项目版本重验。 */
+    static boolean sameCustomer(CutoverProjectContextPort.ProjectContextFact left,
+                                CutoverProjectContextPort.ProjectContextFact right) {
+        return left != null && right != null && Objects.equals(left.customerId(), right.customerId())
+                && Objects.equals(left.customerCode(), right.customerCode());
+    }
+
+    /** 草稿可更新归属版本，但不能替换原选设备或跨项目续办。事务锁仍核对最新版本。 */
+    static boolean sameSelectedDevices(List<CutoverDeviceScopePort.DeviceFact> selected,
+                                       List<CutoverDeviceScopePort.DeviceFact> current) {
+        return current != null && selected.size() == current.size()
+                && current.stream().map(CutoverDeviceScopePort.DeviceFact::deviceId).distinct().count() == selected.size()
+                && selected.stream().allMatch(expected -> current.stream().anyMatch(value ->
+                Objects.equals(expected.deviceId(), value.deviceId()) && Objects.equals(expected.projectId(), value.projectId())
+                        && expected.serialNumber().equalsIgnoreCase(value.serialNumber())));
+    }
+
+    /** 仅比较本次创建操作读取与锁定的项目上下文，不绑定后续割接环节。 */
     static boolean sameFrozenProject(CutoverProjectContextPort.ProjectContextFact expected,
                                      CutoverProjectContextPort.ProjectContextFact current) {
         return expected != null && current != null

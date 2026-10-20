@@ -54,6 +54,56 @@ import static org.mockito.Mockito.when;
 class CutoverChecklistApplicationServiceTest {
 
     @Test
+    void approvalPresentationReadsOnlyReferencedDefinitionsWithoutOrdinaryProjectScopeOrCurrentResults() {
+        var fixture = fixture();
+        var service = fixture.service;
+        var checklistMapper = (CutoverChecklistMapper) org.springframework.test.util.ReflectionTestUtils.getField(service, "checklistMapper");
+        var itemMapper = (CutoverChecklistItemMapper) org.springframework.test.util.ReflectionTestUtils.getField(service, "itemMapper");
+        var fields = (cn.iocoder.yudao.module.pms.cutover.service.configuration.CutoverFieldDefinitionStore)
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "fieldDefinitions");
+        var checklist = new CutoverChecklistDO();
+        checklist.setId(301L); checklist.setTenantId(1L); checklist.setCutoverTaskId(1000L);
+        checklist.setConfigurationRevisionId(3000L); checklist.setConfigurationCode("CUT-CONFIG"); checklist.setConfigurationRevisionNo(1);
+        when(checklistMapper.selectById(301L)).thenReturn(checklist);
+        var item = new CutoverChecklistItemDO();
+        item.setId(3011L); item.setTenantId(1L); item.setChecklistId(301L); item.setStableItemKey("RISK-001");
+        item.setItemTypeCode("RISK"); item.setItemDefinitionId(400L); item.setItemDefinitionVersion(2);
+        item.setInterfaceSchemaSnapshot("{\"fields\":[{\"code\":\"fact\",\"label\":\"审批原字段\"}]}");
+        when(itemMapper.selectListByChecklist(any())).thenReturn(List.of(item));
+        org.mockito.Mockito.doReturn(item).when(fields).withSchema(item);
+        var source = mock(cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.ApprovalSourceSnapshot.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+        when(source.taskId()).thenReturn(1000L); when(source.checklistId()).thenReturn(301L);
+        when(source.collectionAnalysis().cutoverType()).thenReturn("配置变更");
+        when(source.collectionAnalysis().networkMode()).thenReturn("普通双机");
+        var fact = new cn.iocoder.yudao.module.pms.cutover.service.approval.domain.CutoverApprovalSourceSnapshotCodec.ChecklistResultSnapshot(
+                3011L, "RISK-001", 400L, 2, "RISK", "风险项", true, 1, "DIRECT", "{\"value\":\"冻结值\"}", null, null, null, null, null, null);
+        when(source.riskItems()).thenReturn(List.of(fact)); when(source.businessSurveyItems()).thenReturn(List.of());
+        var approval = mock(cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApprovalViews.ApprovalDetail.class);
+        when(approval.taskId()).thenReturn(1000L); when(approval.sourceSnapshot()).thenReturn(source);
+        var query = new CutoverChecklistApplicationService.ApprovalPresentationQuery(1L, approval);
+        var result = service.getApprovalSourcePresentation(query);
+        assertFalse(result.incomplete());
+        assertTrue(result.answerSchemas().get("3011").toString().contains("审批原字段"));
+        assertEquals(List.of("ROUTER"), result.matchingOptions().matchingInput().deviceTypeCodes());
+        verify(fields).withSchema(item);
+        org.mockito.Mockito.verifyNoInteractions(org.springframework.test.util.ReflectionTestUtils.getField(service, "projectScopePort"),
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "taskMapper"),
+                org.springframework.test.util.ReflectionTestUtils.getField(service, "resultMapper"));
+        // 同一条清单项目指向不同定义版本时，不得将当前定义套用到审批原始事实。
+        item.setItemDefinitionVersion(3);
+        var mismatched = service.getApprovalSourcePresentation(query);
+        assertTrue(mismatched.incomplete()); assertTrue(mismatched.answerSchemas().isEmpty());
+        // 租户或任务不一致时，不读取任何配置、字段或答案。
+        for (boolean otherTenant : List.of(true, false)) {
+            checklist.setTenantId(otherTenant ? 2L : 1L); checklist.setCutoverTaskId(otherTenant ? 1000L : 1001L);
+            var unavailable = service.getApprovalSourcePresentation(query);
+            assertTrue(unavailable.incomplete()); assertTrue(unavailable.answerSchemas().isEmpty());
+            assertEquals(null, unavailable.matchingOptions());
+        }
+        assertTrue(fixture.platform.facts.isEmpty());
+    }
+
+    @Test
     void selectsAndRefreshesManualExecutionWithoutInventingTemplateIdentity() {
         var fixture=fixture();var generated=generate(fixture);
         var accepted=fixture.service.requestCollection(new RequestCollectionCommand(
@@ -182,6 +232,15 @@ class CutoverChecklistApplicationServiceTest {
                 List.of(new SaveChecklistCommand.DirectAnswer("SYS-COLLECT", "{\"value\":{\"status\":\"ok\"}}")),
                 cn.iocoder.yudao.module.pms.cutover.support.CutoverTestCommands.intent()));
         CutoverChecklistView view = fixture.service.getView(new cn.iocoder.yudao.module.pms.cutover.service.checklist.query.CutoverChecklistReadQuery(new cn.iocoder.yudao.module.pms.cutover.service.checklist.context.CutoverChecklistContext(1L, 8L, "corr-read"), 1000L, null));
+        var checklistMapper = (CutoverChecklistMapper) org.springframework.test.util.ReflectionTestUtils.getField(fixture.service, "checklistMapper");
+        checklistMapper.selectCurrent(new cn.iocoder.yudao.module.pms.cutover.dal.mysql.checklist.query.CutoverChecklistRowQuery(
+                1L, 1000L, generated.checklistId())).setMatchingProjectVersion(12L);
+        var projectOwner = mock(cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.class);
+        var currentProject = cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.ProjectContextFact.builder()
+                .tenantId(1L).projectId(10L).projectVersion(13).projectScopeVersion(7L).build();
+        when(projectOwner.inspect(any())).thenReturn(currentProject);
+        when(projectOwner.lockAndRevalidate(currentProject)).thenReturn(currentProject);
+        org.springframework.test.util.ReflectionTestUtils.setField(fixture.service, "projectContext", projectOwner);
         ChecklistCommandResult submitted = fixture.service.submit(new SubmitChecklistCommand(
                 1L, 8L, 1000L, 2L, 1L, generated.checklistId(), analyzed.checklistFactVersion(), 7L,
                 "submit-1", "corr-submit-1"));
@@ -318,12 +377,14 @@ class CutoverChecklistApplicationServiceTest {
                 assertEquals(12L, write.getValue().checklist().getMatchingProjectVersion());
                 verify(owner).lockAndRevalidate(fact);
                 var changed = cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort.ProjectContextFact.builder()
-                        .tenantId(1L).projectId(10L).projectVersion(13).projectScopeVersion(7L).majorProjectLevel("办事处级").build();
+                        .tenantId(1L).projectId(10L).projectVersion(13).projectScopeVersion(7L).majorProjectLevel(level).build();
                 when(owner.inspect(any())).thenReturn(changed); when(owner.lockAndRevalidate(changed)).thenReturn(changed);
                 var stale = org.junit.jupiter.api.Assertions.assertThrows(CutoverChecklistException.class,
                         () -> fixture.service.submit(new SubmitChecklistCommand(1L, 8L, 1000L, 2L, 1L, generated.checklistId(),
                                 generated.checklistFactVersion(), 7L, "stale-project", "stale-project")));
-                assertEquals(CutoverChecklistException.Code.VERSION_CONFLICT, stale.getCode());
+                // Project edits do not demand rematching; the still-missing required items must block submission.
+                assertEquals(CutoverChecklistException.Code.STATE_CONFLICT, stale.getCode());
+                verify(owner).lockAndRevalidate(changed);
                 assertEquals("P3", fixture.task.get().getCurrentStage());
             }
         }

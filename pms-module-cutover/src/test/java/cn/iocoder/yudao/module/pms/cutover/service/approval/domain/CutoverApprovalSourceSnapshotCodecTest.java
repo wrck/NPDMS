@@ -23,6 +23,32 @@ class CutoverApprovalSourceSnapshotCodecTest {
     private final CutoverApprovalSourceSnapshotCodec codec = new CutoverApprovalSourceSnapshotCodec();
 
     @Test
+    void acceptsNewerProjectAuditVersionButRejectsDifferentProjectOrScope() {
+        var document = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(codec.encode(snapshot("A", null)));
+        var project = (tools.jackson.databind.node.ObjectNode) document.path("project");
+        project.put("projectVersion", 5);
+        var decoded = codec.decode(document.toString());
+        assertEquals(5, decoded.project().projectVersion());
+        assertEquals(decoded, codec.decode(codec.encode(decoded)));
+        project.put("projectId", 3002L);
+        assertThrows(IllegalArgumentException.class, () -> codec.decode(document.toString()));
+        project.put("projectId", 3001L);
+        project.put("projectScopeVersion", 13L);
+        assertThrows(IllegalArgumentException.class, () -> codec.decode(document.toString()));
+    }
+
+    @Test
+    void preservesEmptyOptionalFactDescriptionWithoutChangingRequiredRiskFacts() {
+        var document = (tools.jackson.databind.node.ObjectNode) JsonUtils.parseTree(codec.encode(snapshot("A", null)));
+        ((tools.jackson.databind.node.ObjectNode) document.path("riskItems").get(0)).put("factDescription", "");
+        var decoded = codec.decode(document.toString());
+        assertEquals("", decoded.riskItems().getFirst().factDescription());
+        assertEquals("", codec.decode(codec.encode(decoded)).riskItems().getFirst().factDescription());
+        ((tools.jackson.databind.node.ObjectNode) document.path("riskItems").get(0)).put("factDescription", "x".repeat(4001));
+        assertThrows(IllegalArgumentException.class, () -> codec.decode(document.toString()));
+    }
+
+    @Test
     void roundTripsExactSnapshotWithNullableNetworkModeAndStableItemOrder() {
         ApprovalSourceSnapshot source = snapshot("A", null);
 

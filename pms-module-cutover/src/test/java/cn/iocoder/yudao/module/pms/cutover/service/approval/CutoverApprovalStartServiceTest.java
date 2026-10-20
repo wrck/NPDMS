@@ -31,8 +31,9 @@ import static org.mockito.Mockito.*;
 class CutoverApprovalStartServiceTest {
 
     @org.junit.jupiter.params.ParameterizedTest
-    @org.junit.jupiter.params.provider.ValueSource(booleans = {false, true})
-    void startsGradeARouteWithRealInitiatorAndOnePendingNotificationThenReplays(boolean replacesWithdrawn) {
+    @org.junit.jupiter.params.provider.ValueSource(strings = {"NONE", "WITHDRAWN", "REJECTED"})
+    void startsFreshRouteAndPreservesPreviousDecisionWhenResubmitted(String previousStatus) {
+        boolean replacesPrevious = !"NONE".equals(previousStatus);
         CutoverApprovalSourceAssembler assembler = mock(CutoverApprovalSourceAssembler.class);
         CutoverApprovalInstanceMapper instances = mock(CutoverApprovalInstanceMapper.class);
         CutoverApprovalNodeMapper nodes = mock(CutoverApprovalNodeMapper.class);
@@ -46,10 +47,12 @@ class CutoverApprovalStartServiceTest {
         when(assembler.lockAndAssemble(any())).thenReturn(
                 new CutoverApprovalSourceAssembler.LockedSource(task, null, null, plan, CutoverApprovalControlledPorts.approvalSource("A")));
         when(instances.insert(any(CutoverApprovalInstanceDO.class))).thenReturn(1);
-        Long previousId = replacesWithdrawn ? 800L : null;
+        Long previousId = replacesPrevious ? 800L : null;
         var previous = new CutoverApprovalInstanceDO();
         previous.setId(previousId); previous.setTenantId(1L); previous.setTaskId(100L);
-        previous.setStatusCode("WITHDRAWN"); previous.setVersion(2L);
+        previous.setStatusCode(previousStatus); previous.setVersion(2L);
+        previous.setSourceSnapshot("original immutable source");
+        previous.setDecisionAt("REJECTED".equals(previousStatus) ? LocalDateTime.of(2026, 8, 31, 18, 0) : null);
         previous.setWithdrawUserId(202L); previous.setWithdrawReason("修订调研结果");
         when(instances.selectByIdForUpdate(any())).thenReturn(previous);
         when(instances.updateStateIfMatch(any())).thenReturn(1);
@@ -94,6 +97,8 @@ class CutoverApprovalStartServiceTest {
                 nodeCaptor.getAllValues().stream().map(CutoverApprovalNodeDO::getNodeCode).toList());
         assertEquals("PENDING", nodeCaptor.getAllValues().getFirst().getStatusCode());
         assertEquals(202L, nodeCaptor.getAllValues().getFirst().getCurrentApproverUserId());
+        assertEquals(301L, nodeCaptor.getAllValues().get(1).getCurrentApproverUserId());
+        assertEquals(301L, nodeCaptor.getAllValues().get(1).getOriginalApproverUserId());
         ArgumentCaptor<CutoverApprovalInstanceDO> instanceCaptor =
                 ArgumentCaptor.forClass(CutoverApprovalInstanceDO.class);
         verify(instances).insert(instanceCaptor.capture());
@@ -118,9 +123,12 @@ class CutoverApprovalStartServiceTest {
         assertTrue(notificationCaptor.getAllValues().stream().allMatch(value -> value.getNextRetryAt() == null));
         assertEquals(1, platform.facts.size());
         assertEquals(CutoverApprovalApplicationException.Code.IDEMPOTENCY_CONFLICT, conflict.code());
-        if (replacesWithdrawn) {
+        if (replacesPrevious) {
             assertEquals(started.fact().approvalInstanceId(), previous.getReplacementApprovalInstanceId());
-            assertEquals("WITHDRAWN", previous.getStatusCode());
+            assertEquals(previousStatus, previous.getStatusCode());
+            assertEquals("original immutable source", previous.getSourceSnapshot());
+            if ("REJECTED".equals(previousStatus))
+                assertEquals(LocalDateTime.of(2026, 8, 31, 18, 0), previous.getDecisionAt());
             assertEquals("修订调研结果", previous.getWithdrawReason());
             verify(instances, times(1)).updateStateIfMatch(any());
         }

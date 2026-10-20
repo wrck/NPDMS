@@ -133,9 +133,15 @@ class CutoverPlanControllerContractTest {
                 .andExpect(jsonPath("$.data.reasonCode").value("PROJECT_OR_TASK_SCOPE_DENIED"))
                 .andExpect(jsonPath("$.data.recoveryAction").value("CONTACT_ADMIN"));
 
-        when(application.submit(any())).thenThrow(new CutoverPlanApplicationException(
+        when(application.submit(any())).thenThrow(new SecurityException("项目成员范围已撤销"));
+        mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/submit")
+                .header("If-Match", "3").header("X-Task-Version", "4").header("Idempotency-Key", "revoked"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.data.reasonCode").value("PROJECT_OR_TASK_SCOPE_DENIED"));
+
+        doThrow(new CutoverPlanApplicationException(
                 CutoverPlanApplicationException.Code.FILE_FACT_STALE, "FILE_OWNERSHIP_NOT_CONFIRMED", "PLT",
-                null, 3L, null, "完整文件未确认归属"));
+                null, 3L, null, "完整文件未确认归属")).when(application).submit(any());
         mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/submit")
                 .header("If-Match", "3").header("X-Task-Version", "4").header("Idempotency-Key", "i4"))
                 .andExpect(status().isUnprocessableEntity())

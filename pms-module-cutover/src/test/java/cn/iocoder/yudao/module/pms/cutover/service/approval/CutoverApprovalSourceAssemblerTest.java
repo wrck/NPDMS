@@ -16,8 +16,6 @@ import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanStorage;
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectContextPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -116,11 +114,20 @@ class CutoverApprovalSourceAssemblerTest {
         order.verify(tasks).selectForUpdate(any());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false, true})
-    void rejectsProjectChangesBeforeLockingCutoverFacts(boolean changedDuringLock) {
-        if (changedDuringLock) when(projects.lockAndRevalidate(any())).thenReturn(project(11));
-        else when(projects.inspect(any())).thenReturn(project(11));
+    @Test
+    void acceptsProjectEditsSincePlanDraftWithoutChangingHistoricalSources() {
+        when(projects.inspect(any())).thenReturn(project(11));
+        when(projects.lockAndRevalidate(project(11))).thenReturn(project(11));
+        var snapshot = codec.decode(service.lockAndAssemble(command("D")).sourceSnapshot());
+        assertEquals(11, snapshot.project().projectVersion());
+        assertEquals(10, snapshot.plan().sourceSnapshot().path("projectVersion").asInt());
+        assertEquals(10L, plan.getSourceProjectVersion());
+        assertEquals(9L, task.getProjectVersion());
+    }
+
+    @Test
+    void rejectsConcurrentProjectChangesDuringCurrentReadAndLock() {
+        when(projects.lockAndRevalidate(any())).thenReturn(project(11));
 
         var failure = assertThrows(CutoverApprovalApplicationException.class,
                 () -> service.lockAndAssemble(command("D")));

@@ -41,6 +41,9 @@ import static cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosure
 /** 割接闭环详情、证据与当前办理资格。 */
 public class CutoverClosureQueryService {
     @jakarta.annotation.Resource
+    private cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience approvalAudience;
+
+    @jakarta.annotation.Resource
     private CutoverClosureStorage storage;
     private static final CutoverP6ActionPolicy ACTION_POLICY = new CutoverP6ActionPolicy();
     private final CutoverTaskMapper taskMapper;
@@ -76,7 +79,8 @@ public class CutoverClosureQueryService {
         CutoverTaskDO task = taskMapper.selectById(taskId);
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw notFound();
         CutoverProjectScopePort.ProjectScopeFact viewScope = inspectScope(actorId, task.getProjectId(), "ACTION_VIEW");
-        if (!viewScope.allowed()) throw notFound();
+        boolean projectRead = viewScope.allowed() && Objects.equals(viewScope.projectId(), task.getProjectId());
+        if (!projectRead && approvalAudience.inspectTask(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Query(tenantId, actorId, taskId, null)) == null) throw notFound();
 
         CutoverClosureDO closure = closureMapper.selectByTask(new CutoverClosureRowQuery(tenantId, taskId));
         CutoverPlanRevisionDO plan;
@@ -93,8 +97,8 @@ public class CutoverClosureQueryService {
                 : attachmentMapper.selectListByClosure(new CutoverClosureChildrenQuery(tenantId, closure.getId()));
         List<CutoverCollectionEvidenceDO> evidence = closure == null ? List.of()
                 : evidenceMapper.selectListByClosure(new CutoverClosureChildrenQuery(tenantId, closure.getId()));
-        boolean editAllowed = inspectEdit(actorId, task.getProjectId());
-        List<String> actions = allowedActions(task, closure, attachments, evidence, context, editAllowed);
+        boolean editAllowed = projectRead && inspectEdit(actorId, task.getProjectId());
+        List<String> actions = projectRead ? allowedActions(task, closure, attachments, evidence, context, editAllowed) : List.of();
         return new CutoverClosureView(taskId, task.getCurrentStage(), task.getTaskStatus(), task.getVersion(),
                 closure == null ? null : closure.getId(), closure == null ? null : closure.getVersion(),
                 closure == null ? null : closure.getStatusCode(), approval.getId(), approval.getVersion(),
