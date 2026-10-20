@@ -22,7 +22,9 @@
         <el-table-column label="大小" min-width="110">
           <template #default="scope">{{ formatSize(scope.row.sizeBytes) }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" prop="createdAt" min-width="180" />
+        <el-table-column label="创建时间" min-width="180">
+          <template #default="scope">{{ formatDate(scope.row.createdAt) }}</template>
+        </el-table-column>
       </el-table>
       <div v-else class="version-list">
         <article v-for="item in items" :key="item.id" class="version-card">
@@ -30,7 +32,7 @@
             ><strong>V{{ item.versionNo }}</strong
             ><el-tag size="small">{{ availabilityLabel(item.availabilityStatus) }}</el-tag></div
           >
-          <span>{{ formatSize(item.sizeBytes) }} · {{ item.createdAt }}</span>
+          <span>{{ formatSize(item.sizeBytes) }} · {{ formatDate(item.createdAt) }}</span>
           <span class="scan-fact">{{ scanStatusLabel(item.scanStatus) }}</span>
         </article>
       </div>
@@ -43,6 +45,7 @@
 
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core'
+import { formatDate } from '@/utils/formatTime'
 import { computed, ref } from 'vue'
 import * as FileApi from '@/api/pms/platform/file'
 import type { FileBusinessKey, FileVersionVO } from '@/api/pms/platform/file'

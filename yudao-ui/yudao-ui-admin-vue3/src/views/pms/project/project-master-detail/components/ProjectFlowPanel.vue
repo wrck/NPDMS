@@ -105,7 +105,6 @@ v-if="showStageGates && hasStageGates" ref="stageGatesRef" :project-id="projectI
           <div v-for="item in stageDeliverables" :key="item.id" class="deliverable-line">
             <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
             <span class="deliverable-name">{{ item.name }}</span>
-            <span class="deliverable-code">{{ item.deliverableCode }}</span>
             <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
             <el-button v-if="item.id && !stagePending" link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
           </div>
@@ -250,7 +249,6 @@ v-else-if="workbench?.bindingType === 'APPROVAL'" ref="approvalRef"
           <div v-for="item in workbench.deliverables" :key="item.id" class="deliverable-line">
             <el-tag size="small" :type="item.required ? 'danger' : 'info'">{{ item.required ? '必选' : '可选' }}</el-tag>
             <span class="deliverable-name">{{ item.name }}</span>
-            <span class="deliverable-code">{{ item.deliverableCode }}</span>
             <dict-tag :type="DICT_TYPE.PMS_PROJECT_DELIVERABLE_STATUS" :value="item.status ?? ''" />
             <el-button v-if="!taskPending" link type="primary" @click="deliverableRef?.open(item.id)">提交与查看</el-button>
           </div>
@@ -938,11 +936,7 @@ onBeforeUnmount(() => {
 .deliverable-name {
   font-size: 13px;
 }
-.deliverable-code {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
+
 .deliverable-hint {
   margin: 0;
   font-size: 12px;

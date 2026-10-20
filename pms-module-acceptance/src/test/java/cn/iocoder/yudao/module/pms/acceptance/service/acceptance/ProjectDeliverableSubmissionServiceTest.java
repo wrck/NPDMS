@@ -140,6 +140,49 @@ class ProjectDeliverableSubmissionServiceTest {
         return new FileDocumentSourceProvider.Scope(projectId, "SOL.REQUIREMENT_DOCUMENT");
     }
 
+    @Test
+    void historicalFileLookupRunsInsideTheRequiredTransaction() {
+        var manager = new org.springframework.transaction.support.AbstractPlatformTransactionManager() {
+            protected Object doGetTransaction() {
+                return org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive();
+            }
+            protected boolean isExistingTransaction(Object transaction) { return Boolean.TRUE.equals(transaction); }
+            protected void doBegin(Object transaction, org.springframework.transaction.TransactionDefinition definition) { }
+            protected void doCommit(org.springframework.transaction.support.DefaultTransactionStatus status) { }
+            protected void doRollback(org.springframework.transaction.support.DefaultTransactionStatus status) { }
+        };
+        var factory = new org.springframework.aop.framework.ProxyFactory(service);
+        factory.setProxyTargetClass(true);
+        factory.addAdvice(new org.springframework.transaction.interceptor.TransactionInterceptor(manager,
+                new org.springframework.transaction.annotation.AnnotationTransactionAttributeSource()));
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(1L, 50L, null, "ACTIVE")));
+        when(fileEvidence.inspectDocument(7L, 50L)).thenAnswer(invocation -> {
+            assertTrue(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+            return unifiedDocument(50L, true);
+        });
+        var proxied = (ProjectDeliverableSubmissionService) factory.getProxy();
+        assertDoesNotThrow(() -> proxied.detail(9L, 31L));
+        assertDoesNotThrow(() -> proxied.resultTypes(9L, 31L));
+        assertDoesNotThrow(() -> proxied.candidates(9L, 31L,
+                new BusinessResultSource.Type("SOL", "REQUIREMENT_ANALYSIS", "REQUIREMENT_ANALYSIS_COMPLETED"), null));
+        verify(fileEvidence, times(3)).inspectDocument(7L, 50L);
+        assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+    }
+
+    @Test
+    void historyProjectsOriginalFileKeyWithoutChangingFrozenMaterial() {
+        when(platform.listMaterials(31L)).thenReturn(List.of(fileMaterial(1L, 50L, null, "ACTIVE")));
+        when(platform.listSubmissions(31L)).thenReturn(List.of(submission(2L, "UPLOAD", "{}", "{}", List.of(1L))));
+        var material = service.detail(9L, 31L).history().getFirst().materials().getFirst();
+        assertEquals("plt/ref/50", material.fileKey().referenceKey());
+        assertEquals("ACC:project_deliverable:9", material.fileKey().objectId());
+        assertEquals("proof.pdf", material.fileName());
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(unifiedDocument(51L, true));
+        assertNull(service.detail(9L, 31L).history().getFirst().materials().getFirst().fileKey());
+        when(fileEvidence.inspectDocument(7L, 50L)).thenReturn(null);
+        assertNull(service.detail(9L, 31L).history().getFirst().materials().getFirst().fileKey());
+    }
+
     // ———— 手工提交：幂等、并发、守卫 ————
 
     @Test

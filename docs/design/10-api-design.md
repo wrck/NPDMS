@@ -1084,3 +1084,8 @@ SOL工勘Owner在原生删除授权、项目MANAGE范围、执行入口、草稿
 2026-10-19按用户授权修复后续工期审批意见回写。BPM新增内部只读`DurationChangeBpmApi.getApprovalOpinion(ApprovalOpinionQuery)`，查询对象包含受信租户、冻结流程实例ID/定义key/业务changeId及冻结审批人ID。BPM校验租户一致、流程已通过并结束、业务关联一致，读取唯一已完成且通过的`serviceManagerApprove`任务意见。关联不存在、不一致或不唯一时失败关闭；真实未填写的可选同意意见可为空，不用流程结束原因兜底。SOL完成原授权、当前状态及冻结事实校验后调用该契约，不直接访问BPM Service或表。
 
 同意终态在BPM原事务`beforeCommit`阶段处理，使任务历史已由引擎写入且BPM与SOL仍同事务提交/回滚；驳回与撤回沿用原流程结束原因和同步处理。平台既有状态事件定义及流程节点、候选策略、路由均不变；重复终态不查询补填意见、不覆盖历史。本次无新增HTTP接口、数据表、权限或初始化配置。
+
+
+### 交付件历史材料文件入口补充（2026-10-19）
+
+GET `/api/v1/pms/projects/{projectId}/deliverables/{id}` 的历史材料行增补可空 `fileKey`（ownerContext、objectType、objectId、purposeCode、referenceKey）。仅在原项目与交付件查询授权通过，且当前租户引用对应冻结工件及版本时投影原文件业务锚；不改历史、不生成下载地址、不授予文件权限。预览、下载和版本历史仍走 PLT 文件接口及原业务授权；无法解析引用时保留历史文件名和版本，不臆造访问入口。

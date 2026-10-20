@@ -10,7 +10,7 @@
             {{ statusLabel(artifact.reference.status) }}
           </el-tag>
           <span>V{{ artifact.reference.versionNo }}</span>
-          <span>{{ artifact.categoryCode }}</span>
+          <span>{{ categoryLabel || artifact.categoryCode }}</span>
         </div>
       </div>
       <div class="file-actions">
@@ -66,6 +66,7 @@ import PmsFileVersionDrawer from './PmsFileVersionDrawer.vue'
 const props = withDefaults(
   defineProps<
     FileBusinessKey & {
+      categoryLabel?: string
       artifactId?: number
       versionNo?: number
       editable?: boolean

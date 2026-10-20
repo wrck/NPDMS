@@ -67,9 +67,11 @@ public class ProjectDeliverableSubmissionService {
                              @NotBlank String sourceType, @NotNull @Size(max = 100) List<@Valid FileSelection> files,
                              BusinessResultSource.Query businessResult) { }
     public record Evaluation(boolean satisfied, String reason, String evidence) { }
+    public record FileKey(String ownerContext, String objectType, String objectId,
+                          String purposeCode, String referenceKey) { }
     public record MaterialLine(Long id, String materialKind, Long referenceId, Long artifactId,
                                Integer versionNo, String sha256, String fileName,
-                               String businessObjectType, String businessObjectId) { }
+                               String businessObjectType, String businessObjectId, FileKey fileKey) { }
     public record History(Long id, Long planVersionId, String sourceType, List<MaterialLine> materials,
                           String creator, java.time.LocalDateTime submittedAt) { }
     public record Detail(Long id, Long projectId, String code, String name, String status, Long version,
@@ -77,6 +79,7 @@ public class ProjectDeliverableSubmissionService {
                          List<History> history) { }
     public record Submitted(Long submissionId, Long sourceVersionId, String status, Long version, Evaluation evaluation) { }
 
+    @Transactional(rollbackFor = Exception.class)
     public Detail detail(Long projectId, Long id) {
         var view = require(platform.findById(id), projectId);
         var context = rules.read(projectId, view.deliverableCode());
@@ -94,11 +97,13 @@ public class ProjectDeliverableSubmissionService {
                 ownerSources.ownerType(view), history);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public List<BusinessResultSource.Descriptor> resultTypes(Long projectId, Long id) {
         detail(projectId, id);
         return results.types();
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public BusinessResultInventorySource.InventoryPage candidates(Long projectId, Long id,
                                                                   BusinessResultSource.Type type, String after) {
         var detail = detail(projectId, id);
@@ -413,9 +418,18 @@ public class ProjectDeliverableSubmissionService {
             index.put(material.id(), new MaterialLine(material.id(), material.materialKind(),
                     material.fileReferenceId(), material.fileArtifactId(), material.fileVersionNo(),
                     material.fileSha256(), material.fileName(), material.businessObjectType(),
-                    material.businessObjectId()));
+                    material.businessObjectId(), historyFileKey(material)));
         }
         return index;
+    }
+
+    private FileKey historyFileKey(TemplateFrozenMaterialView material) {
+        if (material.fileReferenceId() == null || material.fileArtifactId() == null) return null;
+        var document = fileEvidence.inspectDocument(TenantContextHolder.getRequiredTenantId(), material.fileReferenceId());
+        if (document == null || !Objects.equals(document.artifactId(), material.fileArtifactId())
+                || !Objects.equals(document.versionNo(), material.fileVersionNo())) return null;
+        return new FileKey(document.ownerContext(), document.objectType(), document.objectId(),
+                document.purposeCode(), document.referenceKey());
     }
 
     private static Long planVersionIdFrom(String payloadJson) {
