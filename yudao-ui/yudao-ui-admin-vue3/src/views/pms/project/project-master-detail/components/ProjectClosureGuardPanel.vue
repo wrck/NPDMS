@@ -1,12 +1,12 @@
 <template>
   <ContentWrap>
     <el-form inline class="-mb-15px guard-query">
-      <el-form-item label="项目"><el-input :model-value="projectName || `项目 #${projectId}`" disabled class="!w-220px" /></el-form-item>
       <el-form-item><el-button :loading="loading" @click="evaluate" data-testid="evaluate-closure-tree"><Icon icon="ep:search" />重新检查</el-button></el-form-item>
     </el-form>
   </ContentWrap>
   <ContentWrap>
-    <el-alert type="info" :closable="false" class="guard-alert"
+    <el-alert
+      type="info" :closable="false" class="guard-alert"
       title="检查范围仅为后代项目闭环与聚合进度；不能替代按冻结配置执行的完整闭环校验、审批或归档。" />
     <el-skeleton v-if="loading" :rows="3" animated />
     <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" data-testid="closure-tree-error" />

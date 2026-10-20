@@ -152,28 +152,6 @@
         </div>
 
         <div class="rail-stage">
-          <div class="rail-stage-title">项目拆分</div>
-          <button
-            class="rail-item"
-            :class="{ 'rail-item--active': activeTab === 'split' }"
-            @click="switchTab('split')"
-          >
-            <Icon icon="ep:operation" class="rail-icon" />
-            <span class="rail-label">拆分方案</span>
-          </button>
-        </div>
-        <div class="rail-stage">
-          <div class="rail-stage-title">进度汇总</div>
-          <button
-            class="rail-item"
-            :class="{ 'rail-item--active': activeTab === 'progress' }"
-            @click="switchTab('progress')"
-          >
-            <Icon icon="ep:data-analysis" class="rail-icon" />
-            <span class="rail-label">进度汇总</span>
-          </button>
-        </div>
-        <div class="rail-stage">
           <div class="rail-stage-title">异常治理</div>
           <button
             class="rail-item"
@@ -471,26 +449,30 @@
           />
         </div>
 
-        <div v-if="detail?.id && visitedTabs.has('split')" v-show="activeTab === 'split'" class="min-w-0" data-testid="project-pane-split">
-          <ProjectSplitWizard
-            :project-id="detail.id"
-            @applied="treeRefreshKey++"
-          />
-        </div>
         <div v-if="detail?.id && visitedTabs.has('tree')" v-show="activeTab === 'tree'" class="min-w-0" data-testid="project-pane-tree">
-          <ProjectTreePanel
-            :key="treeRefreshKey"
-            :project-id="detail.id"
-            @tree-version="treeVersion = $event"
-            @updated="loadAll"
-          />
-        </div>
-        <div v-if="detail?.id && visitedTabs.has('progress')" v-show="activeTab === 'progress'" class="min-w-0" data-testid="project-pane-progress">
-          <ProjectProgressPanel
-            :project-id="detail.id"
-            :refresh-token="treeRefreshKey"
-            :tree-version="treeVersion"
-          />
+          <el-tabs v-model="projectTreeTab" aria-label="项目树功能">
+            <el-tab-pane label="项目结构" name="structure" lazy>
+              <ProjectTreePanel
+                :key="treeRefreshKey"
+                :project-id="detail.id"
+                @tree-version="treeVersion = $event"
+                @updated="loadAll"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="拆分方案" name="split" lazy>
+              <ProjectSplitWizard
+                :project-id="detail.id"
+                @applied="treeRefreshKey++"
+              />
+            </el-tab-pane>
+            <el-tab-pane label="进度汇总" name="progress" lazy>
+              <ProjectProgressPanel
+                :project-id="detail.id"
+                :refresh-token="treeRefreshKey"
+                :tree-version="treeVersion"
+              />
+            </el-tab-pane>
+          </el-tabs>
         </div>
         <div v-if="detail?.id && visitedTabs.has('closure')" v-show="activeTab === 'closure'" class="min-w-0" data-testid="project-pane-closure">
           <ProjectNormalClosurePanel
@@ -680,6 +662,7 @@ const requestedTab = (
     : 'base')
 const activeTab = ref(requestedTab)
 const visitedTabs = ref(new Set([requestedTab]))
+const projectTreeTab = ref('structure')
 
 // 项目概览子项（设计稿 F-PROJ-007 §6 六类内容 + 既有扩展）；pending 项为规格未定义的占位卡片
 // permission 与 pms-inheritance/project-detail 的 overviewSteps 同口径，无权限时导航项隐藏

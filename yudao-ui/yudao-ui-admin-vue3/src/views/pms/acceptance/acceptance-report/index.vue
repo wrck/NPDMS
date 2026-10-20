@@ -1,9 +1,8 @@
 <template>
   <ContentWrap>
     <el-form :model="query" inline class="-mb-15px query-form" @submit.prevent>
-      <el-form-item label="项目">
-        <el-input v-if="scoped" :model-value="projectName || `项目 #${projectId}`" disabled class="!w-220px" />
-        <PmsEntitySelect v-else v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['projectCode', 'projectName']" value-field="id" query-field="projectName" placeholder="选择项目查看初验与终验" clearable :disabled="creating || detailRef?.isDirty()" class="!w-220px" />
+      <el-form-item v-if="!scoped" label="项目">
+        <PmsEntitySelect v-model="query.projectId" :api="ProjectApi.getProjectPage" :label-field="['projectCode', 'projectName']" value-field="id" query-field="projectName" placeholder="选择项目查看初验与终验" clearable :disabled="creating || detailRef?.isDirty()" class="!w-220px" />
       </el-form-item>
       <el-form-item><el-button :loading="loading" :disabled="!validProject" @click="load"><Icon icon="ep:search" />查询报告活动</el-button></el-form-item>
       <el-form-item v-if="!embedded && !readonly && validProject && checkPermi(['pms:acceptance:report:write'])">

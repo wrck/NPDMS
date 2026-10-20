@@ -1,9 +1,6 @@
 <template>
   <ContentWrap>
     <el-form inline class="-mb-15px duration-query">
-      <el-form-item label="项目">
-        <el-input :model-value="project.projectName || `项目 #${project.id}`" disabled class="!w-220px" data-testid="duration-project-name" />
-      </el-form-item>
       <el-form-item>
         <el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button>
         <el-button v-if="plan" @click="historyRef?.open(plan.planId)">查看历史</el-button>

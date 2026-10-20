@@ -15,17 +15,16 @@
           </el-dropdown>
         </div>
       </header>
-      <ol class="confirmation-sequence" aria-label="办理顺序"><li><Icon icon="ep:document" />完善完工证明</li><li><Icon icon="ep:promotion" />发起并推送调查</li><li><Icon icon="ep:edit-pen" />客户统一签字确认</li></ol>
       <el-form :model="query" inline class="confirmation-query">
         <el-form-item v-if="!props.projectId" label="项目" prop="projectId"><PmsEntitySelect v-model="query.projectId" :api="ProjectApi.getProjectPage" label-field="projectName" value-field="id" query-field="projectName" placeholder="请选择项目" class="!w-180px" /></el-form-item>
-        <el-form-item label="项目名称" prop="name"><el-input v-model="query.name" clearable placeholder="搜索项目名称" class="!w-180px" @keyup.enter="load" /></el-form-item>
+        <el-form-item v-if="!props.projectId" label="项目名称" prop="name"><el-input v-model="query.name" clearable placeholder="搜索项目名称" class="!w-180px" @keyup.enter="load" /></el-form-item>
         <el-form-item label="办理状态" prop="status"><el-select v-model="query.status" clearable placeholder="全部状态" class="!w-160px"><el-option v-for="dict in getIntDictOptions(DICT_TYPE.PMS_COMPLETION_CERT_STATUS)" :key="dict.value" :label="dict.label" :value="dict.value" /></el-select></el-form-item>
         <el-form-item><el-button :loading="loading" @click="load"><Icon icon="ep:search" />查询</el-button></el-form-item>
       </el-form>
     </ContentWrap>
     <ContentWrap :body-style="{ padding: '20px', overflow: 'hidden' }">
       <el-table v-loading="loading" :data="rows" stripe class="desktop-records">
-        <el-table-column label="项目名称" min-width="174" show-overflow-tooltip><template #default="{ row }">{{ projectNames[row.projectId] || row.name || '—' }}</template></el-table-column>
+        <el-table-column v-if="!props.projectId" label="项目名称" min-width="174" show-overflow-tooltip><template #default="{ row }">{{ projectNames[row.projectId] || row.name || '—' }}</template></el-table-column>
         <el-table-column prop="customerUnit" label="客户单位" min-width="135" show-overflow-tooltip />
         <el-table-column label="完工信息" min-width="125"><template #default="{ row }"><div>{{ row.completionDate || '—' }}</div><span class="record-hint">工程师 {{ row.engineerName || '—' }}</span></template></el-table-column>
         <el-table-column label="办理状态" width="112"><template #default="{ row }"><dict-tag :type="DICT_TYPE.PMS_COMPLETION_CERT_STATUS" :value="row.status" /></template></el-table-column>
@@ -803,9 +802,6 @@ onMounted(load)
   background: white;
 }
 .heading-actions { display: flex; flex-shrink: 0; gap: 10px; flex-wrap: wrap; }
-.confirmation-sequence { display: flex; align-items: center; gap: 24px; margin: 0 0 24px; padding: 14px 16px; list-style: none; border: 1px solid var(--el-border-color-lighter); border-radius: 4px; background: var(--el-fill-color-lighter); }
-.confirmation-sequence li { display: flex; align-items: center; gap: 8px; color: var(--el-text-color-regular); font-size: 13px; }
-.confirmation-sequence li + li { padding-left: 24px; border-left: 1px solid var(--el-border-color); }
 .confirmation-query { margin-bottom: -18px; }
 .record-hint { color: var(--el-text-color-secondary); font-size: 13px; line-height: 1.6; }
 .mobile-records { display: none; }
@@ -815,8 +811,6 @@ onMounted(load)
   .confirmation-heading { flex-direction: column; gap: 16px; }
   .heading-actions { width: 100%; }
   .heading-actions .el-button { min-height: 44px; }
-  .confirmation-sequence { gap: 8px; flex-direction: column; align-items: flex-start; }
-  .confirmation-sequence li + li { padding-left: 0; border-left: 0; }
   .confirmation-query :deep(.el-form-item) { width: 100%; margin-right: 0; }
   .confirmation-query :deep(.el-form-item__content) { min-width: 0; }
   .confirmation-query :deep(.el-input), .confirmation-query :deep(.el-select) { width: 100% !important; }

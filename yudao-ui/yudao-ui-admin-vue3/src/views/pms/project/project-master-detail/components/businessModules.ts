@@ -74,7 +74,6 @@ export const businessFlowGroups: BusinessFlowGroup[] = [
       { key: 'acceptance-reports', label: '初验&终验', icon: 'ep:document-checked', code: '6.3', permission: ['pms:acceptance:report:query'] },
       { key: 'deliverable-summary', label: '交付件汇总', icon: 'ep:folder-opened', code: '6.5' },
       { key: 'deliverable-checklist', label: '交付件检查', icon: 'ep:folder-checked', code: '6.6' },
-      { key: 'project-closure', label: '闭环记录', icon: 'ep:lock', code: '6.8' },
       { key: 'closure', label: '项目闭环', icon: 'ep:circle-close', code: '6.9' }
     ]
   }

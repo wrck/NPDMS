@@ -116,7 +116,7 @@ it('shows the real current revision in the original-style table', async () => {
   const mounted = render(Panel)
   await flush()
   expect(findByTestId(mounted.root, 'duration-current-revision')?.props?.data).toEqual([revision])
-  expect(findByTestId(mounted.root, 'duration-project-name')?.props?.['model-value']).toBe('主线工期验收项目')
+  expect(findByTestId(mounted.root, 'duration-project-name')).toBeUndefined()
 })
 
 it('uses the survey project deadline to derive the submitted initial date range', async () => {

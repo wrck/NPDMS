@@ -60,7 +60,7 @@
   <ContentWrap>
     <el-table v-loading="loading" :data="rows" empty-text="暂无物料换货数据">
       <el-table-column prop="code" label="单号" width="160" />
-      <el-table-column prop="projectId" label="项目" min-width="180">
+      <el-table-column v-if="!props.projectId" prop="projectId" label="项目" min-width="180">
         <template #default="{ row }">
           <ProjectTag :project-id="row.projectId" />
         </template>
@@ -73,7 +73,8 @@
       <el-table-column label="物料编码" min-width="160">
         <template #default="{ row }">
           <template v-if="row.productCode">
-            <el-tag v-for="code in row.productCode.split(',').filter(Boolean)" :key="code" size="small"
+            <el-tag
+              v-for="code in row.productCode.split(',').filter(Boolean)" :key="code" size="small"
               class="mr-4px">{{ code }}</el-tag>
           </template>
           <span v-else>-</span>
@@ -168,7 +169,8 @@
     <el-alert v-if="sourceSurveyId" title="此入口只创建内部换货申请草稿；CRM推送尚未接入，不会自动推送。" type="warning" :closable="false" />
     <el-form ref="formRef" :model="form" :rules="rules" label-width="120px">
       <el-form-item label="物料选择">
-        <MaterialDevicePicker v-if="formVisible" :key="pickerKey" :project-id="form.projectId"
+        <MaterialDevicePicker
+          v-if="formVisible" :key="pickerKey" :project-id="form.projectId"
           :model-value="form.serials || []" @update:model-value="updateSerials" />
       </el-form-item>
       <el-row :gutter="16">
