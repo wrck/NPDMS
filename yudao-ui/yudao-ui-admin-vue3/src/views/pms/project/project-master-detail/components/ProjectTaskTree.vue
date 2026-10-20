@@ -15,7 +15,6 @@
         <div class="task-node" :class="{ 'task-node--placeholder': data.placeholder }">
           <div class="task-node-main">
             <span class="task-node-name" :title="data.placeholder ? undefined : data.name">{{ data.placeholder ? '受限层级' : data.name }}</span>
-            <span v-if="!data.placeholder" class="task-node-code" :title="data.taskCode">{{ data.taskCode }}</span>
           </div>
           <div v-if="!data.placeholder" class="task-node-meta">
             <el-tag size="small" effect="plain" :type="statusType(data.status)">
@@ -187,27 +186,21 @@ defineExpose({ reload: search })
   flex: 1;
 }
 
-.task-node-name,
-.task-node-code {
+.task-node-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.task-node-code {
-  display: block;
-  font-size: 12px;
-  color: var(--el-text-color-placeholder);
-}
-
 .task-node-name { display: block; }
-.task-tree :deep(.el-tree-node__content) { height: auto; min-height: 46px; }
-.task-tree--compact .task-node { flex-wrap: wrap; gap: 4px; padding-block: 5px; }
-.task-tree--compact .task-node-main { flex-basis: 100%; }
+.task-tree :deep(.el-tree-node__content) { height: auto; }
+.task-tree--compact .task-node { gap: 4px; padding-block: 5px; }
+.task-tree--compact .task-node-meta { margin-left: auto; }
 
 .task-node-meta {
   display: inline-flex;
   flex-shrink: 0;
+  white-space: nowrap;
   align-items: center;
   gap: 8px;
   font-size: 12px;
@@ -224,7 +217,6 @@ defineExpose({ reload: search })
 }
 
 @media (width <= 767px) {
-  .task-node-code,
   .task-node-meta span {
     display: none;
   }

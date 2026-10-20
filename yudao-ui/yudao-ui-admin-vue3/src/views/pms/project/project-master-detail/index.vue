@@ -122,7 +122,7 @@
             >
               <Icon
                 v-if="stageHasTasks(stage)"
-                :icon="expandedStage === stage.stageCode ? 'ep:arrow-down' : 'ep:arrow-right'"
+                :icon="collapsedStages.includes(stage.stageCode) ? 'ep:arrow-right' : 'ep:arrow-down'"
                 class="stage-caret"
               />
               <i class="stage-dot" :class="stageDotClass(stage)"></i>
@@ -130,7 +130,7 @@
               <span class="stage-prog">{{ stageProgress(stage) }}</span>
             </button>
             <div
-              v-if="detail?.id && expandedStage === stage.stageCode && stageHasTasks(stage)"
+              v-if="detail?.id && !collapsedStages.includes(stage.stageCode) && stageHasTasks(stage)"
               class="nav-task-tree"
               :data-testid="`project-nav-tasks-${stage.stageCode}`"
             >
@@ -305,7 +305,6 @@
                   >任务（{{ instTasks(stage.stageCode).length }}）</div
                 >
                 <el-table :data="instTasks(stage.stageCode)" size="small" border>
-                  <el-table-column prop="taskCode" label="任务码" width="120" />
                   <el-table-column prop="name" label="任务名称" min-width="140" />
                   <el-table-column label="状态" width="90">
                     <template #default="{ row }">
@@ -785,6 +784,7 @@ const sortedStages = computed(() =>
   [...(instances.value?.stages || [])].sort((a, b) => a.sortOrder - b.sortOrder)
 )
 const expandedStage = ref('')
+const collapsedStages = ref<string[]>([])
 const stageTreeToken = ref(0)
 const stageSelection = ref<ProjectFlowSelection>()
 const flowRef = ref<InstanceType<typeof ProjectFlowPanel>>()
@@ -845,17 +845,12 @@ const selectStage = async (stageCode: string) => {
 }
 
 const toggleStage = async (stageCode: string) => {
-  const selection = stageSelection.value
-  const alreadySelected =
-    activeTab.value === 'stage' &&
-    expandedStage.value === stageCode &&
-    selection?.kind === 'stage' &&
-    selection.stageCode === stageCode
-  if (alreadySelected) {
-    expandedStage.value = ''
-    return
-  }
   await selectStage(stageCode)
+  if (collapsedStages.value.includes(stageCode)) {
+    collapsedStages.value = collapsedStages.value.filter((code) => code !== stageCode)
+  } else {
+    collapsedStages.value.push(stageCode)
+  }
 }
 
 const onTaskSelect = async (task: TaskNode, stageCode: string) => {
