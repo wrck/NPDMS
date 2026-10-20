@@ -15,33 +15,10 @@
       </div>
     </header>
     <dl class="schedule-facts">
-      <div
-        ><dt>签约方式</dt><dd>{{ signingLabel }}</dd
-        ><small>{{ project.contractNo || '尚未关联合同' }}</small></div
-      >
-      <div
-        ><dt>工勘要求结束日期</dt><dd>{{ project.projectEndDate || '未登记' }}</dd
-        ><small>来自工前准备</small></div
-      >
-      <div
-        ><dt>当前生效工期</dt
-        ><dd>{{ durationPlan ? `${durationPlan.currentRevision.durationDays} 天` : '未录入' }}</dd
-        ><small>{{
-          durationPlan
-            ? `${durationPlan.currentRevision.startDate} 至 ${durationPlan.currentRevision.endDate}`
-            : '录入后可制定施工计划'
-        }}</small></div
-      >
-      <div
-        ><dt>本版倒排截止日期</dt><dd>{{ calculationInput.anchorEnd || '尚未推算' }}</dd
-        ><small>{{
-          calculationInput.signingMethod === 'DIRECT_SIGN'
-            ? '来自回款节点计划验收时间'
-            : calculationInput.anchorEnd
-              ? '来自本版工期要求'
-              : '创建计划后读取权威输入'
-        }}</small></div
-      >
+      <div><dt>生效工期开始</dt><dd>{{ durationPlan?.currentRevision.startDate || '未录入' }}</dd></div>
+      <div><dt>生效工期结束</dt><dd>{{ durationPlan?.currentRevision.endDate || '未录入' }}</dd></div>
+      <div><dt>工期总天数</dt><dd>{{ durationPlan ? `${durationPlan.currentRevision.durationDays} 天` : '未录入' }}</dd></div>
+      <div><dt>计划验收时间</dt><dd>{{ plannedAcceptanceDates || '未登记' }}</dd></div>
     </dl>
     <el-alert
       v-if="errorText"
@@ -265,7 +242,6 @@ import { useProjectApprovalDetail } from './projectApprovalDetail'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import { formatDate } from '@/utils/formatTime'
-import { DICT_TYPE, getDictLabel } from '@/utils/dict'
 import * as MemberApi from '@/api/pms/project/unified-members'
 import * as DurationApi from '@/api/pms/engineering/construction-plan'
 import * as PlanApi from '@/api/pms/engineering/stage-plan'
@@ -319,12 +295,6 @@ const currentEffective = computed(
   () =>
     batches.value.filter((item) => item.status === 2).sort((a, b) => (b.id || 0) - (a.id || 0))[0]
 )
-const signingLabel = computed(
-  () =>
-    getDictLabel(DICT_TYPE.PMS_SIGNING_METHOD, props.project.signingMethod) ||
-    props.project.signingMethod ||
-    '未登记'
-)
 const staleDuration = computed(
   () =>
     !!batch.value &&
@@ -352,11 +322,17 @@ const taskProgress = computed(() =>
 )
 const overdue = ref<PlanApi.StagePlanOverdueRowVO[]>([])
 const overdueError = ref(false)
-const calculationInput = computed(() => {
+const plannedAcceptanceDates = computed(() => {
   try {
-    return JSON.parse(batch.value?.inputSnapshot || '{}')
+    const input = JSON.parse(batch.value?.inputSnapshot || '{}') as {
+      stages?: { acceptanceTime?: string; tasks?: { acceptanceTime?: string }[] }[]
+    }
+    const dates = (input.stages || []).flatMap((stage) =>
+      [stage.acceptanceTime, ...(stage.tasks || []).map((task) => task.acceptanceTime)]
+    ).filter((value): value is string => !!value).map((value) => value.slice(0, 10))
+    return [...new Set(dates)].sort().join('、')
   } catch {
-    return {}
+    return ''
   }
 })
 const statusLabels: Record<number, string> = { 0: '草稿', 1: '审批中', 2: '已生效', 3: '已驳回' }
@@ -736,13 +712,6 @@ defineExpose({
   margin: 8px 0 0;
   font-size: 15px;
   font-weight: 600;
-}
-
-.schedule-facts small {
-  display: block;
-  margin-top: 8px;
-  line-height: 1.5;
-  color: var(--el-text-color-secondary);
 }
 
 .schedule-toolbar {
