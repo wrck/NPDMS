@@ -48,6 +48,20 @@ public class AcceptanceTaskBusinessObjectProvider implements TaskBusinessObjectP
 
     @Override public String ownerContext() { return "ACC"; }
     @Override public String objectType() { return "ACCEPTANCE"; }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getRequiredTenantId()))
+            throw exception(ACC_REPORT_SCOPE_FORBIDDEN);
+        var activity = activityMapper.selectById(objectId(objectId));
+        if (activity == null || !Objects.equals(activity.getTenantId(), context.tenantId())
+                || !Objects.equals(activity.getProjectId(), context.projectId()) || Boolean.TRUE.equals(activity.getDeleted()))
+            throw exception(ACC_REPORT_NOT_EXISTS);
+        if (activity.getCurrentReportVersionId() == null) return null;
+        var report = reportMapper.selectById(activity.getCurrentReportVersionId());
+        if (report == null || !Objects.equals(report.getTenantId(), context.tenantId())
+                || !Objects.equals(report.getAcceptanceId(), activity.getId()) || Boolean.TRUE.equals(report.getDeleted()))
+            throw exception(ACC_REPORT_NOT_EXISTS);
+        return report.getCreateTime();
+    }
     @Override public boolean supportsStageCompletionFacts() { return true; }
     @Override public Set<String> completionFactCodes() { return Set.of("REPORT_EFFECTIVE", "PRELIMINARY_ACCEPTANCE_PASSED", "FINAL_ACCEPTANCE_PASSED"); }
     @Override public Map<String, String> completionFactLabels() { return Map.of("REPORT_EFFECTIVE", "当前报告证据有效（不等同验收通过）",

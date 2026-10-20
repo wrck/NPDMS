@@ -19,6 +19,7 @@ public class NormalClosureQueryService {
     private final ProjectClosureCheckApi checkApi;
     private final NormalClosureMapper mapper;
     private final PermissionApi permissions;
+    private final cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi reopens;
 
     @Transactional(rollbackFor = Exception.class)
     public Overview get(Long projectId, Actor actor) {
@@ -26,6 +27,13 @@ public class NormalClosureQueryService {
         var query = new NormalClosureMapper.ProjectQuery(actor.tenantId(), projectId);
         var latest = mapper.selectLatestApplication(query);
         var snapshot = mapper.selectLatestSnapshot(query);
+        var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                actor.tenantId(), projectId));
+        if (round.isPresent()) {
+            if (latest != null && !"IN_REVIEW".equals(latest.getStatus()) && latest.getSubmittedAt() != null
+                    && !latest.getSubmittedAt().isAfter(round.get().openedAt())) latest = null;
+            if (snapshot != null && (snapshot.getCheckedAt() == null || !snapshot.getCheckedAt().isAfter(round.get().openedAt()))) snapshot = null;
+        }
         List<Check> checks = new ArrayList<>();
         boolean policyAvailable = false;
         try {

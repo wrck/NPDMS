@@ -85,6 +85,16 @@ public class CutoverApprovalTaskBusinessObjectProvider implements TaskBusinessOb
     }
 
     private record Current(Long id, String name, String version, boolean approved) { }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null) throw denied();
+        var query = new CutoverCompletionQuery(context.tenantId(), context.projectId(), parse(objectId), null, 1, false);
+        scope(query);
+        var row = tasks.one(query);
+        if (row == null || !Objects.equals(row.getTenantId(), query.tenantId())
+                || !Objects.equals(row.getProjectId(), query.projectId()) || Boolean.TRUE.equals(row.getDeleted()))
+            throw new IllegalArgumentException("CUTOVER_TASK_UNAVAILABLE");
+        return row.getCreateTime();
+    }
 
     private Current load(CutoverCompletionQuery query) {
         scope(query);

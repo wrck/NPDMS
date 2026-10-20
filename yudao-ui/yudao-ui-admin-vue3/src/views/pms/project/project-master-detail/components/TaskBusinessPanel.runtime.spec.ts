@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import TaskBusinessPanel from './TaskBusinessPanel.vue'
 import * as BusinessApi from '@/api/pms/project/task-business'
 import { getProject } from '@/api/pms/project/projects'
+import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import { getBusinessView } from '@/api/pms/platform/business-view'
 import type { TaskBusinessContext, TaskBusinessLink } from '@/api/pms/project/task-business'
 import {
@@ -16,16 +17,20 @@ vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => controls }))
 vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn() }))
 vi.mock('@/api/pms/project/task-business', () => ({
   getTaskBusinessContext: vi.fn(), getTaskBusinessCandidates: vi.fn(),
-  linkTaskBusinessObject: vi.fn(), unlinkTaskBusinessObject: vi.fn()
+  linkTaskBusinessObject: vi.fn(), unlinkTaskBusinessObject: vi.fn(), refreshTaskBusinessResults: vi.fn()
 }))
 vi.mock('@/api/pms/project/projects', () => ({ getProject: vi.fn() }))
+vi.mock('@/api/pms/engineering/requirement-analysis/entity', () => ({ getWorkspace: vi.fn() }))
+vi.mock('@/api/pms/project/execution-operations', () => ({ inspectOperationCapabilities: vi.fn() }))
+vi.mock('@/config/axios', () => ({ default: {} }))
+vi.mock('@/config/axios/service', () => ({ service: {} }))
 vi.mock('@/api/pms/platform/business-view', () => ({ getBusinessView: vi.fn() }))
 // Keep the real Host and its two-phase target watcher. Only its Owner child/registry
 // are substituted, so no private Panel functions or copied implementation are tested.
 vi.mock('@/components/BusinessView/registry', async () => {
   const { defineComponent, h, ref } = await import('vue')
   const Owner = defineComponent({
-    props: ['registration', 'resolvedContext', 'allowedActions', 'readonly'],
+    props: { registration: Object, resolvedContext: { type: Object, required: true }, allowedActions: Array, readonly: Boolean },
     setup(props, { emit, expose }) {
       const dirty = ref(false)
       expose({
@@ -103,6 +108,10 @@ beforeEach(() => {
   controls.confirm.mockResolvedValue(undefined)
   controls.leave.mockResolvedValue(true)
   controls.discard.mockReturnValue(true)
+  vi.mocked(inspectOperationCapabilities).mockImplementation(async (query) => ({
+    node: { projectId: query.projectId, id: query.nodeId, kind: query.nodeKind, status: 'IN_PROGRESS' },
+    reason: 'LEGACY_BINDING', actions: []
+  } as any))
   vi.mocked(BusinessApi.getTaskBusinessContext).mockImplementation(async (id) => context(id))
   vi.mocked(BusinessApi.getTaskBusinessCandidates).mockResolvedValue([record('42')])
   vi.mocked(BusinessApi.linkTaskBusinessObject).mockResolvedValue({} as any)
@@ -115,6 +124,50 @@ afterEach(() => {
 })
 
 describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
+  it('refreshes eligible business results through the command then reloads the task', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { allowedActions: ['REFRESH_RESULTS'] }))
+    vi.mocked(BusinessApi.refreshTaskBusinessResults).mockResolvedValue({ completed: true, unknown: false })
+    const page = await setup()
+    await page.panel.value.refresh()
+    expect(BusinessApi.refreshTaskBusinessResults).toHaveBeenCalledWith({
+      taskId: '11', expectedTaskVersion: 4, expectedContractVersion: 3
+    })
+    expect(BusinessApi.getTaskBusinessContext).toHaveBeenCalledTimes(2)
+    expect(page.changed).toHaveBeenCalled()
+  })
+  it('keeps read-only refresh as a query and respects rejected unsaved-content navigation', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { allowedActions: ['REFRESH_RESULTS'] }))
+    const page = await setup({ readonly: true })
+    await page.panel.value.refresh()
+    expect(BusinessApi.refreshTaskBusinessResults).not.toHaveBeenCalled()
+    page.state.readonly = false
+    await tick()
+    await click(page.root, 'Owner edit')
+    controls.leave.mockResolvedValue(false)
+    await page.panel.value.refresh()
+    expect(BusinessApi.refreshTaskBusinessResults).not.toHaveBeenCalled()
+  })
+  it('does not report success or preserve completion facts after a failed refresh command', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { allowedActions: ['REFRESH_RESULTS'] }))
+    vi.mocked(BusinessApi.refreshTaskBusinessResults).mockRejectedValue(new Error('version conflict'))
+    const page = await setup()
+    await page.panel.value.refresh()
+    expect(page.changed).not.toHaveBeenCalled()
+    expect(page.facts).toHaveBeenLastCalledWith(undefined)
+    expect(textOf(page.root)).toContain('业务结果重新判定失败')
+  })
+  it('keeps the Owner workspace usable without the retired reopen confirmation step', async () => {
+    vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
+      allowedActions: ['CONFIRM_REOPEN_HANDLING']
+    }))
+    const page = await setup()
+    expect(textOf(page.root)).not.toContain('确认本轮已核对')
+    expect(controls.ownerProps.mock.lastCall![0].readonly).toBe(false)
+    await click(page.root, 'Owner changed')
+    await tick()
+    expect(BusinessApi.getTaskBusinessContext).toHaveBeenCalledTimes(2)
+    expect(page.facts).toHaveBeenLastCalledWith('fact-11')
+  })
   it('refreshes task status after automatic completion even when Owner facts are unchanged', async () => {
     const execution: NonNullable<TaskBusinessContext['execution']> = {
       projectId: '2099999999999999999', projectVersion: 1, taskId: '11', taskVersion: 4,
@@ -131,7 +184,7 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     await tick()
     expect(page.changed).toHaveBeenCalledTimes(1)
     expect(page.facts).toHaveBeenLastCalledWith('fact-11')
-    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: [] })
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
     page.state.taskVersion = 5
     await tick()
     expect(page.changed).toHaveBeenCalledTimes(1)
@@ -149,12 +202,12 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     page.state.readonly = true
     await tick()
     expect(textOf(page.root)).toContain('owner:11/41')
-    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: [] })
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
   })
   it('keeps the task business view read-only when task execution is denied despite Owner actions', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', { executionAllowed: false }))
     await setup()
-    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: [] })
+    expect(controls.ownerProps.mock.lastCall![0]).toMatchObject({ readonly: true, allowedActions: ['QUERY'] })
     expect(BusinessApi.linkTaskBusinessObject).not.toHaveBeenCalled()
   })
   it('loads the frozen context without registration management or extra project query permissions', async () => {
@@ -201,7 +254,7 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     ])
     page.state.readonly = true
     await tick()
-    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([])
+    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual(['QUERY'])
   })
   it('fails closed when a full Owner project cannot be queried, without fabricating a grant', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
@@ -226,7 +279,7 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     await tick()
     expect(getProject).toHaveBeenCalledWith(12)
     expect(page.facts).toHaveBeenLastCalledWith(undefined)
-    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([])
+    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual(['QUERY'])
   })
   it('does not reuse another project or use the enclosing project to bypass denied context', async () => {
     vi.mocked(BusinessApi.getTaskBusinessContext).mockResolvedValue(context('11', {
@@ -316,7 +369,7 @@ describe('PM-11 / PM-03 TaskBusinessPanel runtime', () => {
     expect(page.facts).toHaveBeenLastCalledWith(undefined)
     expect(textOf(page.root)).toContain('owner:11/41;dirty:true')
     expect(page.panel.value.isDirty()).toBe(true)
-    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual([])
+    expect(controls.ownerProps.mock.lastCall![0].allowedActions).toEqual(['QUERY'])
   })
   it('does not discard dirty content for a superseded task-switch confirmation', async () => {
     const page = await setup()

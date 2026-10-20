@@ -130,6 +130,42 @@ class ProjectGovernanceApplicationServiceTest {
         TenantContextHolder.clear();
     }
 
+    @Test void templateReopenUsesExistingSnapshotAndPlanWithCallerSuppliedIdentities() {
+        var project = project(); project.setLifecycleStatus("NORMAL_CLOSED");
+        when(projectMapper.selectByIdForUpdate(PROJECT_ID)).thenReturn(project);
+        var plans = mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "plans", plans);
+        var prepared = mock(cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.PreparedTemplateReopen.class);
+        var previous = new cn.iocoder.yudao.module.pms.project.dal.dataobject.projectplan.ProjectPlanVersionDO(); previous.setId(100L);
+        when(prepared.previousPlan()).thenReturn(previous); when(prepared.previousEvidence()).thenReturn("{\"oldResults\":\"retained\"}");
+        when(plans.prepareTemplateReopen(any())).thenReturn(prepared);
+        when(plans.installTemplateReopen(any())).thenReturn(
+                new cn.iocoder.yudao.module.pms.project.service.projectplan.ProjectPlanActivationService.Applied(PROJECT_ID, 101L, 2, 7L));
+        var result = service.reopen(new ReopenProjectCommand(PROJECT_ID, VERSION, "NEW_TEMPLATE", "重新办理", null,
+                "template-reopen", "a".repeat(64), 200L), actor());
+        assertEquals("ACTIVE", result.lifecycleStatus()); assertEquals("S0", result.currentStage()); assertEquals(7L, result.projectVersion());
+        var snapshot = ArgumentCaptor.forClass(ProjectStageSnapshotDO.class);
+        var order = org.mockito.Mockito.inOrder(plans, snapshotRepository, projectMapper);
+        order.verify(plans).prepareTemplateReopen(any());
+        order.verify(snapshotRepository).append(snapshot.capture());
+        order.verify(projectMapper).updateGovernanceStateIfMatch(any());
+        order.verify(plans).installTemplateReopen(any());
+        assertEquals(1, successFacts.get().businessEvents().size());
+        assertEquals("ProjectRuleReevaluationRequested", successFacts.get().businessEvents().getFirst().eventType());
+        assertEquals("NORMAL_CLOSED", snapshot.getValue().getBeforeLifecycleStatus());
+        assertEquals("{\"oldResults\":\"retained\"}", snapshot.getValue().getProviderFactsJson());
+        assertEquals(null, snapshot.getValue().getRelatedSnapshotId());
+        verify(snapshotRepository, never()).selectLatestReusableExceptionCloseForUpdate(any());
+        verify(memberMapper, never()).closeEffectiveServiceManagerAssignments(any());
+    }
+
+    @Test void templateReopenRejectsActiveProjectBeforePlanOrSnapshotWrites() {
+        assertThrows(ServiceException.class, () -> service.reopen(new ReopenProjectCommand(PROJECT_ID, VERSION,
+                "NEW_TEMPLATE", "重新办理", null, "active", "b".repeat(64), 200L), actor()));
+        verify(snapshotRepository, never()).append(any());
+        verify(projectMapper, never()).updateGovernanceStateIfMatch(any());
+    }
+
     @Test
     void shouldCloseAcceptanceScopeBindingsOnRollback() {
         service.rollback(command("f".repeat(64)), actor());

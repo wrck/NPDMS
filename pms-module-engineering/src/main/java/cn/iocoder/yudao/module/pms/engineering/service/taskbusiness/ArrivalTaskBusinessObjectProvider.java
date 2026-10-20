@@ -31,6 +31,12 @@ public class ArrivalTaskBusinessObjectProvider implements TaskBusinessObjectProv
     private final ProjectNodeExecutionApi executions;
 
     @Override public String ownerContext() { return "IMP"; }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null) throw denied();
+        var query = new ArrivalTaskFactQuery(context.tenantId(), context.projectId(), parse(objectId));
+        scope(query);
+        return require(records.selectTaskFact(query), query).getCreateTime();
+    }
     @Override public String objectType() { return "ARRIVAL"; }
     @Override public Set<String> completionFactCodes() { return Set.of(FACT); }
     @Override public Map<String, String> completionFactLabels() { return Map.of(FACT, "到货记录已正式签收"); }

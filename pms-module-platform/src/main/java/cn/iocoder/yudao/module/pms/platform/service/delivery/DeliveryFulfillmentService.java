@@ -18,6 +18,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class DeliveryFulfillmentService {
     private final DeliveryFulfillmentMapper mapper;
+    private final cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi reopens;
 
     public void associate(DeliveryRequirementDO requirement, DeliveryMaterialDO material) {
         Long tenantId = TenantContextHolder.getRequiredTenantId();
@@ -27,6 +28,13 @@ public class DeliveryFulfillmentService {
                 || requirement.getProjectId() == null || !requirement.getProjectId().equals(material.getProjectId())
                 || !DeliveryMaterialDO.STATUS_ACTIVE.equals(material.getStatus())) {
             throw new BusinessContractException("DELIVERY_MATERIAL_OWNER_MISMATCH", "只能关联本项目有效材料");
+        }
+        DeliveryRequirementService.requireCurrent(requirement);
+        if (DeliveryRequirementDO.KIND_TEMPLATE_FROZEN.equals(requirement.getRequirementKind())) {
+            var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                    tenantId, requirement.getProjectId()));
+            if (round.isPresent() && (material.getCreateTime() == null || !material.getCreateTime().isAfter(round.get().openedAt())))
+                throw new BusinessContractException("DELIVERY_PREVIOUS_PROJECT_ROUND", "旧轮次材料不能计入本轮交付");
         }
         DeliveryFulfillmentDO existing = mapper.selectIdentity(new DeliveryFulfillmentIdentityQuery(TenantContextHolder.getRequiredTenantId(), requirement.getId(), material.getId()));
         if (existing != null) {

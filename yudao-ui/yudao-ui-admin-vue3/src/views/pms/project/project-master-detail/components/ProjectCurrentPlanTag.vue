@@ -3,6 +3,9 @@
     <template v-if="plan">当前执行：{{ executionLabel }} · 计划 v{{ plan.revisionNo }}</template>
     <template v-else>{{ error ? '当前执行计划读取失败' : '当前执行计划加载中…' }}</template>
   </el-tag>
+  <el-tag v-if="plan?.templateBinding" size="small" type="info" effect="plain" aria-label="当前绑定模板">
+    当前模板：{{ plan.templateBinding.name }} · v{{ plan.templateBinding.revisionNo }}
+  </el-tag>
   <el-button v-if="error" link type="primary" @click="load">重试计划信息</el-button>
 </template>
 

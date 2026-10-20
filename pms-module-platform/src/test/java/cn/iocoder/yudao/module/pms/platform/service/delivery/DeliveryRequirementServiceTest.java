@@ -74,6 +74,33 @@ class DeliveryRequirementServiceTest {
         TenantContextHolder.clear();
     }
 
+    @Test
+    void previousRoundIsReadableButCannotSupplyCompletionOrAcceptNewSubmission() {
+        var row = requirement(10L, DeliveryRequirementDO.STATUS_CONFIRMED, "MATERIAL", 1);
+        row.setArchivedReopenSnapshotId(30L);
+        when(requirementMapper.selectById(10L)).thenReturn(row);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(row);
+
+        assertEquals(row, service.requireRequirement(10L));
+        assertFalse(service.evaluateCompletion(10L).satisfied());
+        assertFalse(service.evaluateCompletion(10L).confirmed());
+        assertThrows(BusinessContractException.class, () -> service.submit(10L, "new", List.of(1L)));
+        assertThrows(BusinessContractException.class, () -> service.confirm(10L));
+        assertThrows(BusinessContractException.class, () -> service.refreshStatus(row));
+        assertEquals(DeliveryRequirementDO.STATUS_CONFIRMED, row.getStatus());
+        org.mockito.Mockito.verifyNoInteractions(materialMapper, submissionMapper, outbox);
+    }
+
+    @Test void staleCurrentObjectCannotRefreshArchivedDatabaseRow() {
+        var observed = requirement(10L, DeliveryRequirementDO.STATUS_CONFIRMED, "MATERIAL", 1);
+        var archived = requirement(10L, DeliveryRequirementDO.STATUS_CONFIRMED, "MATERIAL", 1);
+        archived.setArchivedReopenSnapshotId(30L);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(archived);
+        assertThrows(BusinessContractException.class, () -> service.refreshStatus(observed));
+        verify(requirementMapper, never()).updateById(any(DeliveryRequirementDO.class));
+        org.mockito.Mockito.verifyNoInteractions(materialMapper, submissionMapper, outbox);
+    }
+
     private DeliveryRequirementDO requirement(long id, String status, String countingUnit, int minimum) {
         DeliveryRequirementDO row = new DeliveryRequirementDO();
         row.setId(id);
@@ -186,7 +213,7 @@ class DeliveryRequirementServiceTest {
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         stubEntityState();
         when(submissionMapper.selectByRequestKey(10L, "k-new")).thenReturn(java.util.Optional.empty());
-        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(requirement);
         when(submissionMapper.insert(any(DeliverySubmissionDO.class))).thenAnswer(invocation -> {
             requirementSubmissions.add(invocation.getArgument(0));
             return 1;
@@ -215,7 +242,7 @@ class DeliveryRequirementServiceTest {
         DeliveryRequirementDO requirement = requirement(10L, "SATISFIED",
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         when(submissionMapper.selectByRequestKey(10L, "k-old")).thenReturn(java.util.Optional.of(existing));
-        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(requirement);
         when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
                 .thenReturn(List.of());
 
@@ -235,7 +262,7 @@ class DeliveryRequirementServiceTest {
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         stubEntityState();
         when(submissionMapper.selectByRequestKey(10L, "k1")).thenReturn(java.util.Optional.empty());
-        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(requirement);
 
         BusinessContractException ex = assertThrows(BusinessContractException.class,
                 () -> service.submit(10L, "k1", List.of(1L)));
@@ -250,7 +277,7 @@ class DeliveryRequirementServiceTest {
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         stubEntityState();
         when(submissionMapper.selectByRequestKey(10L, "k-race")).thenReturn(java.util.Optional.empty());
-        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(requirement);
         when(submissionMapper.insert(any(DeliverySubmissionDO.class)))
                 .thenThrow(new DuplicateKeyException("uk"));
 
@@ -266,7 +293,7 @@ class DeliveryRequirementServiceTest {
         DeliveryRequirementDO requirement = requirement(10L, "CONFIRMED",
                 DeliveryTypeDO.COUNTING_MATERIAL, 1);
         when(submissionMapper.selectById(21L)).thenReturn(requirementSubmissions.get(0));
-        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(requirement);
         when(submissionMapper.selectByRequirement(10L)).thenReturn(requirementSubmissions);
         when(materialMapper.selectListForOwner(new cn.iocoder.yudao.module.pms.platform.dal.mysql.delivery.query.DeliveryMaterialOwnerQuery(1L,OWNER_MODULE,ENTITY_TYPE,ENTITY_ID,TYPE_CODE)))
                 .thenReturn(new ArrayList<>(entityMaterials));
@@ -299,7 +326,7 @@ class DeliveryRequirementServiceTest {
         when(materialService.revalidateActive(any()))
                 .thenThrow(new BusinessContractException("DELIVERY_FILE_UNAVAILABLE", "失效"));
         when(submissionMapper.selectByRequestKey(10L, "k-x")).thenReturn(java.util.Optional.empty());
-        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(requirement);
 
         BusinessContractException ex = assertThrows(BusinessContractException.class,
                 () -> service.submit(10L, "k-x", List.of(1L)));
@@ -389,7 +416,7 @@ class DeliveryRequirementServiceTest {
     void ordinarySubmissionRejectsSameKeyWithDifferentMaterialIntent() {
         var row = requirement(10L, "SATISFIED", "MATERIAL", 1);
         var existing = submission(21, "shared-key", "CURRENT", List.of(1L));
-        when(requirementMapper.selectById(10L)).thenReturn(row);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(row);
         when(submissionMapper.selectByRequestKey(10L, "shared-key")).thenReturn(java.util.Optional.of(existing));
         var error = assertThrows(BusinessContractException.class,
                 () -> service.submit(10L, "shared-key", List.of(2L)));
@@ -428,7 +455,7 @@ class DeliveryRequirementServiceTest {
     @Test
     void replayRejectsSameKeyAndMaterialsWithDifferentSource() {
         var requirement = requirement(10L, "SATISFIED", "MATERIAL", 1);
-        when(requirementMapper.selectById(10L)).thenReturn(requirement);
+        when(requirementMapper.selectIdForUpdate(any())).thenReturn(requirement);
         var previous = submission(21L, "same-key", "CURRENT", List.of(1L));
         previous.setSourceType("UPLOAD");
         when(submissionMapper.selectByRequestKey(10L, "same-key")).thenReturn(java.util.Optional.of(previous));

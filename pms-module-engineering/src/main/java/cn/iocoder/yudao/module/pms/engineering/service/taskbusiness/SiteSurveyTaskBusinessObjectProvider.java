@@ -87,6 +87,13 @@ public class SiteSurveyTaskBusinessObjectProvider implements TaskBusinessObjectP
     public String ownerContext() { return "SOL"; }
 
     @Override
+    public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null || !Objects.equals(context.tenantId(), TenantContextHolder.getTenantId())) throw exception(FORBIDDEN);
+        var query = objectQuery(context.tenantId(), context.projectId(), objectId);
+        return requireObject(mapper.selectTaskObject(query), query).getCreateTime();
+    }
+
+    @Override
     public String objectType() { return "SITE_SURVEY"; }
 
     @Override

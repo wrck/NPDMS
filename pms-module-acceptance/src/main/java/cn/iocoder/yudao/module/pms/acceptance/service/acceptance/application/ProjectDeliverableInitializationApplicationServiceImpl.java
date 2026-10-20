@@ -23,6 +23,14 @@ public class ProjectDeliverableInitializationApplicationServiceImpl
 
     @Override
     @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
+    public void archiveForProjectReopen(ProjectReopenArchive command) {
+        if (command == null) throw new IllegalArgumentException("交付件重开归档命令不能为空");
+        platform.archiveForProjectReopen(new PlatformDeliveryRequirementApi.ProjectReopenArchive(
+                command.projectId(), command.reopenSnapshotId(), command.expectedRequirementIds()));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY, rollbackFor = Exception.class)
     public DeliverableInitializationResult initialize(InitializeProjectDeliverablesCommand command) {
         if (command == null || command.projectId() == null || command.templateRevisionId() == null
                 || command.definitions() == null) {

@@ -8,6 +8,9 @@ import cn.iocoder.yudao.module.pms.project.api.taskbusiness.TaskBusinessObjectPr
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessService.*;
 import cn.iocoder.yudao.module.pms.project.service.taskbusiness.TaskBusinessContext;
+import cn.iocoder.yudao.module.pms.project.service.taskbusiness.ProjectTaskBusinessRefreshService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.ProjectTaskLifecycleService;
+import cn.iocoder.yudao.module.pms.project.service.taskworkbench.TaskWorkbenchActor;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,17 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.*;
 public class ProjectTaskBusinessController {
     private final ProjectTaskBusinessService service;
     private final Environment environment;
+    private final ProjectTaskBusinessRefreshService refreshService;
+
+    @PostMapping("/refresh")
+    @PreAuthorize("@ss.hasPermission('pms:project-task:execute')")
+    public CommonResult<ProjectTaskLifecycleService.AutomaticResult> refresh(@PathVariable Long taskId,
+            @RequestHeader("If-Match") String ifMatch, @Valid @RequestBody UnlinkRequest request) {
+        requireVersion(ifMatch, request.expectedContractVersion());
+        return trustedTenant(() -> success(refreshService.refresh(new ProjectTaskBusinessRefreshService.Command(
+                taskId, request.expectedTaskVersion(), request.expectedContractVersion()),
+                new TaskWorkbenchActor(tenant(), actor(), correlation()))));
+    }
 
     @GetMapping("/context")
     @PreAuthorize("@ss.hasPermission('pms:project-task:query')")

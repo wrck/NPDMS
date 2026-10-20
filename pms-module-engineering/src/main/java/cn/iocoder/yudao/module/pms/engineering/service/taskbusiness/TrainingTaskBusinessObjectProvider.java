@@ -32,6 +32,12 @@ public class TrainingTaskBusinessObjectProvider implements TaskBusinessObjectPro
     private final ProjectNodeExecutionApi executions;
 
     @Override public String ownerContext() { return "IMP"; }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null) throw denied();
+        var query = new TrainingTaskFactQuery(context.tenantId(), context.projectId(), parse(objectId));
+        scope(query);
+        return require(records.selectTaskFact(query), query).getCreateTime();
+    }
     @Override public String objectType() { return "TRAINING"; }
     @Override public Set<String> completionFactCodes() { return Set.of(FACT); }
     @Override public Map<String, String> completionFactLabels() { return Map.of(FACT, "培训记录已由客户确认"); }

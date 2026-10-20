@@ -38,7 +38,7 @@ class ProjectPlanDraftServiceTest {
     final ProjectPlanMilestoneInstaller milestoneInstaller = new ProjectPlanMilestoneInstaller(milestoneProjections,
             mock(cn.iocoder.yudao.module.pms.project.dal.mysql.projectmanual.ProjectMilestoneInstanceMapper.class));
     final ProjectPlanGateInstaller gates = mock(ProjectPlanGateInstaller.class);
-    final ProjectPlanDraftService service = new ProjectPlanDraftService(scopes,permissions,projectRows,projects,plans,executions,graph,compiler,dependencies,ruleValidator,new ProjectPlanImpactAnalyzer(),new ProjectPlanExecutionPlanner(),commands,deliverables,new ProjectPlanDeliverablePlanner(),milestoneInstaller,gates);
+    final ProjectPlanDraftService service = new ProjectPlanDraftService(scopes,permissions,projectRows,projects,plans,executions,graph,compiler,dependencies,ruleValidator,new ProjectPlanImpactAnalyzer(),new ProjectPlanExecutionPlanner(),commands,deliverables,new ProjectPlanDeliverablePlanner(),milestoneInstaller,gates,mock(ProjectPlanTemplateBindingReader.class));
     ProjectMasterDO project;
     ProjectPlanVersionDO effective, draft;
     PlatformCommandExecutionApi.SuccessFacts recorded;

@@ -106,6 +106,55 @@ class ProjectPlanActivationPersistenceTest {
                 List.of(new ProjectNodeExecutionMapper.PlanRebase(1L,9L,20L,4,50L,51L,30L,30L,"1")),
                 List.of(new ProjectNodeExecutionMapper.PlanRetirement(1L,9L,22L,0,50L,"1")));
     }
+
+    private void templateReopenSchema() {
+        jdbc.execute("ALTER TABLE proj_project ADD current_stage VARCHAR(16) DEFAULT 'S0'");
+        jdbc.execute("ALTER TABLE proj_project ADD status VARCHAR(30) DEFAULT 'NORMAL_CLOSED'");
+        jdbc.execute("ALTER TABLE proj_project ADD project_close_time TIMESTAMP");
+        jdbc.execute("CREATE TABLE proj_project_stage_snapshot (id BIGINT PRIMARY KEY,tenant_id BIGINT,project_id BIGINT,operation_type VARCHAR(30),before_lifecycle_status VARCHAR(30),after_lifecycle_status VARCHAR(30),after_stage VARCHAR(16),deleted INT)");
+        jdbc.execute("INSERT INTO proj_project_stage_snapshot VALUES (90,1,9,'REOPEN','NORMAL_CLOSED','ACTIVE','S0',0)");
+        jdbc.execute("UPDATE proj_project SET project_close_time=TIMESTAMP '2026-09-13 12:00:00'");
+    }
+
+    @Test void templateReopenKeepsOldPlanClosureAndExecutionResultsWhileAttachingFreshPlan() {
+        templateReopenSchema();
+        jdbc.execute("UPDATE proj_project_plan_version SET closed_at=TIMESTAMP '2026-09-13 12:00:00' WHERE id=50");
+        var closedAt = value("proj_project_plan_version",50,"closed_at");
+        var oldExecutions = jdbc.queryForList("SELECT * FROM proj_project_node_execution ORDER BY id");
+        transaction.executeWithoutResult(status -> persistence.activateTemplateReopen(
+                new ProjectPlanVersionMapper.TemplateReopenActivation(activation(3,2),90L)));
+        assertEquals("SUPERSEDED",value("proj_project_plan_version",50,"status"));
+        assertEquals(closedAt,value("proj_project_plan_version",50,"closed_at"));
+        assertEquals("old rules",value("proj_project_plan_version",50,"execution_snapshot"));
+        assertEquals(oldExecutions,jdbc.queryForList("SELECT * FROM proj_project_node_execution ORDER BY id"));
+        assertEquals(51L,jdbc.queryForObject("SELECT active_plan_version_id FROM proj_project WHERE id=9",Long.class));
+        assertNull(value("proj_project",9,"project_close_time"));
+    }
+
+    @Test void templateReopenAcceptsRetainedLegacyPlanWithoutInventingCloseTime() {
+        templateReopenSchema();
+        transaction.executeWithoutResult(status -> persistence.activateTemplateReopen(
+                new ProjectPlanVersionMapper.TemplateReopenActivation(activation(3,2),90L)));
+        assertEquals("SUPERSEDED",value("proj_project_plan_version",50,"status"));
+        assertNull(value("proj_project_plan_version",50,"closed_at"));
+    }
+
+    @Test void missingSnapshotVersionConflictAndLaterAuditFailureRollBackTemplateReopen() {
+        templateReopenSchema();
+        var project = jdbc.queryForMap("SELECT * FROM proj_project WHERE id=9");
+        var oldPlan = jdbc.queryForMap("SELECT * FROM proj_project_plan_version WHERE id=50");
+        assertThrows(RuntimeException.class, () -> transaction.executeWithoutResult(status -> persistence.activateTemplateReopen(
+                new ProjectPlanVersionMapper.TemplateReopenActivation(activation(3,2),999L))));
+        assertThrows(RuntimeException.class, () -> transaction.executeWithoutResult(status -> persistence.activateTemplateReopen(
+                new ProjectPlanVersionMapper.TemplateReopenActivation(activation(3,99),90L))));
+        assertThrows(IllegalStateException.class, () -> transaction.executeWithoutResult(status -> {
+            persistence.activateTemplateReopen(new ProjectPlanVersionMapper.TemplateReopenActivation(activation(3,2),90L));
+            throw new IllegalStateException("audit unavailable");
+        }));
+        assertEquals(project,jdbc.queryForMap("SELECT * FROM proj_project WHERE id=9"));
+        assertEquals(oldPlan,jdbc.queryForMap("SELECT * FROM proj_project_plan_version WHERE id=50"));
+        assertEquals("DRAFT",value("proj_project_plan_version",51,"status"));
+    }
     ProjectPlanVersionMapper.Activation activation(long projectVersion,long draftVersion) {
         return new ProjectPlanVersionMapper.Activation(1L,9L,50L,51L,draftVersion,projectVersion,"new frozen rules",activatedAt,"1");
     }

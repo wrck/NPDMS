@@ -16,6 +16,18 @@ const state = (revisionNo: number) => ({
 }) as unknown as ProjectPlanState
 beforeEach(() => vi.clearAllMocks())
 
+it('shows the actual effective template binding independently of configuration dimensions', async () => {
+  const value = state(4)
+  value.effective.templateBinding = { templateId: 32, revisionId: 68, revisionNo: 1, name: '普通类－直签' }
+  value.draft!.templateBinding = { templateId: 99, revisionId: 100, revisionNo: 8, name: '未生效模板' }
+  vi.mocked(getProjectPlan).mockResolvedValue(value)
+  const { app, root } = mount(ProjectCurrentPlanTag, { projectId: 190 })
+  await settle()
+  expect(textOf(root)).toContain('当前模板：普通类－直签 · v1')
+  expect(textOf(root)).not.toContain('未生效模板')
+  app.unmount()
+})
+
 it('shows the effective configuration and plan revision, never the unpublished draft', async () => {
   vi.mocked(getProjectPlan).mockResolvedValue(state(4))
   const { app, root } = mount(ProjectCurrentPlanTag, { projectId: 197 })

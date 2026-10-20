@@ -28,6 +28,7 @@ public class NormalClosureApplicationService {
     private final PlatformCommandExecutionApi commands;
     private final BpmNormalClosureApi bpm;
     private final ExplicitPermissionApi explicitPermissions;
+    private final cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi reopens;
     public record Actor(Long tenantId, Long userId, String correlationId) {}
     public record CheckCommand(Long projectId, Long expectedProjectVersion, Long expectedTreeVersion, String idempotencyKey) {}
     public record SubmitCommand(Long projectId, Long snapshotId, Long expectedProjectVersion, Long expectedTreeVersion, String idempotencyKey) {}
@@ -65,9 +66,16 @@ public class NormalClosureApplicationService {
                     command.expectedTreeVersion(), actor.userId());
             var projectQuery = new NormalClosureMapper.ProjectQuery(actor.tenantId(), command.projectId());
             var latest = mapper.selectLatestApplication(projectQuery);
+            var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                    actor.tenantId(), command.projectId()));
+            // Never ignore an outstanding process. A prior approved closure is retained history after reopening.
+            if (round.isPresent() && latest != null && !"IN_REVIEW".equals(latest.getStatus())
+                    && latest.getSubmittedAt() != null && !latest.getSubmittedAt().isAfter(round.get().openedAt())) latest = null;
             if (latest != null && ("IN_REVIEW".equals(latest.getStatus()) || "APPROVED".equals(latest.getStatus())))
                 throw failure("CLOSURE_APPLICATION_IN_PROGRESS");
             var snapshot = mapper.selectLatestSnapshot(projectQuery);
+            if (round.isPresent() && (snapshot == null || snapshot.getCheckedAt() == null
+                    || !snapshot.getCheckedAt().isAfter(round.get().openedAt()))) throw failure("CLOSURE_NEW_SNAPSHOT_REQUIRED");
             requireSnapshot(snapshot, command, context.currentStage());
             if (latest != null && Objects.equals(latest.getSnapshotId(), snapshot.getId()))
                 throw failure("CLOSURE_NEW_SNAPSHOT_REQUIRED_AFTER_REJECTION");

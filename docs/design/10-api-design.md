@@ -1089,3 +1089,26 @@ SOL工勘Owner在原生删除授权、项目MANAGE范围、执行入口、草稿
 ### 交付件历史材料文件入口补充（2026-10-19）
 
 GET `/api/v1/pms/projects/{projectId}/deliverables/{id}` 的历史材料行增补可空 `fileKey`（ownerContext、objectType、objectId、purposeCode、referenceKey）。仅在原项目与交付件查询授权通过，且当前租户引用对应冻结工件及版本时投影原文件业务锚；不改历史、不生成下载地址、不授予文件权限。预览、下载和版本历史仍走 PLT 文件接口及原业务授权；无法解析引用时保留历史文件名和版本，不臆造访问入口。
+
+### 2026-10-20 项目当前模板绑定迁移
+
+按需求方授权，项目可通过新的项目计划修订更换当前模板绑定，项目类别等属性保持不变。创建时的`lifecycleTemplateId/lifecycleTemplateRevisionNo/lifecycleTemplateRevisionId`仍为不可变来源历史；当前绑定由`activePlanVersionId`所指生效计划的`sourceTemplateRevisionId`承载，旧计划及其来源不回写。不能仅修改显示名称或将原来源字段覆盖为新模板。
+
+`POST /api/v1/pms/projects/{projectId}/plan/draft/{draftId}/template-binding` 输入`expectedVersion/expectedBasePlanVersionId/targetTemplateRevisionId`及`Idempotency-Key`，要求既有`pms:project-plan:manage`和当前项目编辑范围。服务端锁定当前项目和目标模板，目标须为同租户启用模板的已发布V2修订，使用项目现有事实执行目标版本冻结的匹配规则；不修改属性以满足模板，不回退到旧四维匹配器。校验草稿、基线及版本后，将目标发布设计和来源修订ID原子写入指定草稿，并记录原/新来源审计。接口不发布模板、不生效计划、不改任务或业务记录。后续项目专属调整仍受原保存、影响预览与生效保护约束，已开始节点不能直接删除、换绑定或移阶段；生效失败不切换当前绑定。
+
+计划查询的`effective/draft`加性返回`templateBinding`（`templateId/revisionId/revisionNo/name`），按该计划来源修订读取，缺失来源不猜测。页面展示生效计划的当前绑定，不将未生效草稿显示为已绑定。公共模板、立项来源及各旧计划历史保持独立。
+### 指定存量项目一次性新轮次的交付隔离（2026-10-20）
+
+依据 Q-PROJECT-RESTART-RESULT-20261020，本次仅对获授权的六个项目执行一次。项目集合与目标模板作为执行输入，不在产品代码中固化项目ID、项目编码、租户、模板映射或日期标记。PROJ 在项目锁、授权、状态、版本和幂等校验后，通过 ACC/PLT Owner API 创建新轮次，不直接访问其他模块表；不新增日常重置页面或独立重置机制。
+
+PLT 的模板冻结交付要求增加 `archived_reopen_snapshot_id`：0 为当前要求，非0引用既有受控重开快照。内部 `archiveForProjectReopen(ProjectReopenArchive)` 接收项目、重开快照ID及预期当前要求ID集合，完整比对并原子归档；保留原要求、材料、提交、确认及来源字段，不撤回旧成果。当前身份、列表和完成判定只使用当前要求，新计划以相同交付编码创建新的要求ID。历史ID可读，但不允许重新提交、确认、修改、撤回或刷新历史完成状态。此内部能力不公开为通用重开入口，也不以归档代替上游状态机动作或授权。
+
+PROJ 复用 `actions/reopen` 命令与 `proj_project_stage_snapshot` 的 REOPEN 快照，保留前后计划、目标模板、时间和不可变旧运行证据，不新增重置台账或独立重置入口。提供 `targetTemplateRevisionId` 时校验正常结项、最新已发布且匹配的模板，并从S0建立新轮；未提供时沿用原异常关闭快照恢复路径。跨模块通过 `ProjectReopenScopeApi` 读取正常结项至ACTIVE/S0的最新REOPEN快照，不依赖特定原因码、日期或项目白名单；未执行此操作的项目保持现有行为。可独立建单的 Owner 通过 `TaskBusinessObjectProvider.handlingCreatedAt` 提供同租户同项目办理记录的原始创建时间；固定主记录的验收业务取当前报告版本创建时间，不取旧记录更新时间或审批时间。未知时间不得算作新记录。关联、人工引用和完成判定均排除重开前对象，不能仅排除旧任务已关联对象。
+
+人员指派与安装等复用原项目对象的业务，按当前执行轮次重新读取并校验 Owner 当前真实完成事实，不继承旧任务完成状态。2026-10-20需求方纠正：不增加“确认本轮已核对”按钮、确认接口或额外确认凭证门槛；保留既有授权、执行轮次、事实版本和业务完成校验。新旧关联与执行历史继续隔离，可独立建单业务的新记录要求不变。
+
+### 2026-10-20 任务业务结果主动刷新
+
+既有“刷新业务结果”入口对可办理的业务绑定任务调用 `POST /api/v1/pms/project-tasks/{taskId}/business/refresh`；请求体为 `expectedTaskVersion/expectedContractVersion`，`If-Match` 与合同版本一致。租户、操作者和项目由服务端确定。须具备 `pms:project-task:execute`、当前任务可见及办理范围、Owner 查询权限；锁定项目、任务和当前合同后重新校验版本及可写执行轮次。仅 `IN_PROGRESS/PENDING_ACCEPT` 任务参与，未开始及已结束任务的页面刷新保持只读。
+
+服务端在同一事务中复用自动关联同步及 `completeFromBusinessResult`，按当前计划、Owner 事实、门禁及冻结状态机判定，返回 `completed/unknown`。不新增人工确认凭证、不改业务数据、不跳过开始或完成规则。完成命令仍使用既有执行轮次幂等键与审计/Outbox；页面刷新本身只追加操作者刷新审计。重复请求在版本过期或任务已经结束时拒绝，客户端须重新读取，不自动重放过期请求；条件未满足的重复刷新不会推进状态。GET 上下文不产生写入。上下文 `allowedActions` 的 `REFRESH_RESULTS` 仅表示可执行上述重评；没有该操作时按钮仅重读现有业务上下文。

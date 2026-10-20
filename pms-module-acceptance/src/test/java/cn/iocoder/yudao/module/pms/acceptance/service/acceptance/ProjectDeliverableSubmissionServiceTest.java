@@ -56,7 +56,7 @@ class ProjectDeliverableSubmissionServiceTest {
     final ProjectDeliverableRequirementResolver resolver =
             new ProjectDeliverableRequirementResolver(platform, rules, ownerSources, documentSources, fileEvidence);
     final ProjectDeliverableSubmissionService service = new ProjectDeliverableSubmissionService(
-            platform, rules, access, fileEvidence, results, outbox, ownerSources, resolver);
+            platform, rules, access, fileEvidence, results, outbox, ownerSources, resolver, query -> Optional.empty());
 
     TemplateFrozenView view;
     ProjectDeliverableRuleApi.Context context;

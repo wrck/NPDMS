@@ -61,6 +61,7 @@ public class ProjectDeliverableSubmissionService {
     private final PlatformBusinessEventApi outbox;
     private final ProjectDeliverableOwnerSources ownerSources;
     private final ProjectDeliverableRequirementResolver resolver;
+    private final cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi reopens;
 
     public record FileSelection(@NotNull @Positive Long referenceId) { }
     public record Submission(@NotNull @Positive Long planVersionId, @NotNull @PositiveOrZero Long expectedVersion,
@@ -108,8 +109,12 @@ public class ProjectDeliverableSubmissionService {
                                                                   BusinessResultSource.Type type, String after) {
         var detail = detail(projectId, id);
         if (!allowed(detail.configuration(), "BUSINESS_RESULT")) throw failure("模板未允许关联业务成果");
-        return results.candidates(new BusinessResultInventorySource.InventoryQuery(
+        var page = results.candidates(new BusinessResultInventorySource.InventoryQuery(
                 TenantContextHolder.getRequiredTenantId(), projectId, type, false, null, after, 30));
+        if (reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                TenantContextHolder.getRequiredTenantId(), projectId)).isEmpty()) return page;
+        return new BusinessResultInventorySource.InventoryPage(page.nextCursor(), page.complete(), page.observations().stream()
+                .filter(row -> row.result() != null && currentRoundEvidence(projectId, row.result().formedAt())).toList());
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -238,6 +243,7 @@ public class ProjectDeliverableSubmissionService {
                 || !matchesDocumentSource(context, observed.deliverableCode(), scope)) return;
         var view = require(platform.lockById(observed.id()), observed.projectId());
         String key = "file-event:" + eventId;
+        if (!currentRoundFile(observed.projectId(), file.referenceId())) return;
         if (platform.findSubmissionByRequestKey(observed.id(), key).isPresent()) return;
         var current = platform.findCurrentSubmission(observed.id());
         // 投影来源保持自身不可变链路；业务成果槽位不被文档归集覆盖。
@@ -301,6 +307,7 @@ public class ProjectDeliverableSubmissionService {
         // 形成的成果是交付件唯一现行证据槽；归集整体置换（不与文档/上传合并）。
         var result = change.observation().result();
         if (result == null || result.validity() != BusinessResultSource.Validity.CURRENT) return;
+        if (!currentRoundEvidence(observed.projectId(), result.formedAt())) return;
         Long materialId = platform.registerTemplateFrozenBusinessResult(observed.id(),
                 ProjectDeliverableBusinessResultEvidenceProvider.BUSINESS_OBJECT_TYPE,
                 ProjectDeliverableBusinessResultEvidenceProvider.compositeObjectId(result.type(), result.objectId(),
@@ -345,6 +352,7 @@ public class ProjectDeliverableSubmissionService {
                     || !query.resultId().equals(result.resultId())) {
                 throw failure("业务成果尚未形成、已撤销或已被替换");
             }
+            if (!currentRoundEvidence(projectId, result.formedAt())) throw failure("不能沿用项目重开前的业务成果");
             Long materialId = platform.registerTemplateFrozenBusinessResult(locked.id(),
                     ProjectDeliverableBusinessResultEvidenceProvider.BUSINESS_OBJECT_TYPE,
                     ProjectDeliverableBusinessResultEvidenceProvider.compositeObjectId(result.type(), result.objectId(),
@@ -362,10 +370,26 @@ public class ProjectDeliverableSubmissionService {
                 throw failure("文件引用不存在或不可用: " + selected.referenceId());
             }
             if (!anchorMatches(document, locked, projectId)) throw failure("文件归属与交付件不一致");
+            if (!currentRoundFile(projectId, selected.referenceId())) throw failure("请为本轮重新上传交付文件");
             captured.add(platform.registerTemplateFrozenFile(locked.id(), selected.referenceId(), null,
                     PlatformDeliveryRequirementApi.MATERIAL_SOURCE_UPLOAD));
         }
         return captured;
+    }
+
+    private boolean currentRoundEvidence(Long projectId, java.time.LocalDateTime formedAt) {
+        var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                TenantContextHolder.getRequiredTenantId(), projectId));
+        return round.isEmpty() || formedAt != null && formedAt.isAfter(round.get().openedAt());
+    }
+
+    private boolean currentRoundFile(Long projectId, Long referenceId) {
+        var round = reopens.findTemplateReopen(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Query(
+                TenantContextHolder.getRequiredTenantId(), projectId));
+        if (round.isEmpty()) return true;
+        var createdAt = fileEvidence.referenceCreatedAt(new FileEvidenceApi.ReferenceIdentity(
+                TenantContextHolder.getRequiredTenantId(), referenceId));
+        return createdAt != null && createdAt.isAfter(round.get().openedAt());
     }
 
     /** 上传锚：新统一锚（PLT/DELIVERY_MATERIAL/ACC:project_deliverable:{projectId}，purposeCode=交付件编码）

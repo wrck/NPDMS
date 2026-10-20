@@ -33,7 +33,8 @@ class ProjectTaskBusinessAssociationServiceTest {
         TenantContextHolder.setTenantId(1L);
         when(owner.ownerContext()).thenReturn("SOL"); when(owner.objectType()).thenReturn("SITE_SURVEY");
         service = new ProjectTaskBusinessAssociationService(tasks, contracts, links,
-                new TaskBusinessProviderRegistry(List.of(owner)), audit, executions, graph);
+                new TaskBusinessProviderRegistry(List.of(owner)), audit, executions, graph,
+                new ProjectReopenBusinessEvidence(query -> java.util.Optional.empty()));
         var project = new ProjectMasterDO(); project.setId(9L); project.setTenantId(1L); project.setLifecycleStatus("ACTIVE"); project.setActivePlanVersionId(50L);
         task = new ProjectTaskInstanceDO(); task.setId(11L); task.setProjectId(9L); task.setStatus("PENDING_ASSIGN");
         contract = new ProjectTaskExecutionContractDO(); contract.setId(31L); contract.setContractVersion(1);

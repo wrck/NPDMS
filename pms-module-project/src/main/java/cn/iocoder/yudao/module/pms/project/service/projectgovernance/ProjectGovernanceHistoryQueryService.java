@@ -23,12 +23,23 @@ import static cn.iocoder.yudao.module.pms.project.enums.ErrorCodeConstants.PROJE
 /** 按受信租户和ProjectTreeScope读取PM-10 append-only治理快照。 */
 @Service
 @RequiredArgsConstructor
-public class ProjectGovernanceHistoryQueryService {
+public class ProjectGovernanceHistoryQueryService implements
+        cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi {
 
     private final ProjectMasterMapper projectMapper;
     private final ProjectTreeVersionMapper treeVersionMapper;
     private final ProjectTreeScopeService treeScopeService;
     private final ProjectStageSnapshotMapper snapshotMapper;
+
+    @Override
+    public java.util.Optional<Round> findTemplateReopen(Query query) {
+        if (query == null || !Objects.equals(TenantContextHolder.getRequiredTenantId(), query.tenantId())
+                || query.projectId() == null || query.projectId() <= 0) throw exception(PROJECT_TREE_SCOPE_FORBIDDEN);
+        return java.util.Optional.ofNullable(snapshotMapper.selectTemplateReopen(
+                new cn.iocoder.yudao.module.pms.project.dal.mysql.projectgovernance.query.ProjectTemplateReopenQuery(
+                        query.tenantId(), query.projectId())))
+                .map(snapshot -> new Round(snapshot.getId(), snapshot.getOperatedAt()));
+    }
 
     public PageResult<ProjectStageSnapshotDO> page(
             ProjectGovernanceHistoryPageQuery query, Actor actor) {

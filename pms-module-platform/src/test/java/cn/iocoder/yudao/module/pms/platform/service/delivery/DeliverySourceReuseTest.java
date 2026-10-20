@@ -29,7 +29,7 @@ class DeliverySourceReuseTest {
         materials=mock(DeliveryMaterialMapper.class);links=mock(DeliveryFulfillmentMapper.class);
         files=mock(FileEvidenceApi.class);provider=mock(DeliveryBusinessObjectEvidenceProvider.class);
         service=new DeliveryMaterialService(materials,mock(DeliveryCatalogService.class),files,mock(DeliveryEventPublisher.class),List.of(provider));
-        ReflectionTestUtils.setField(service,"fulfillmentService",new DeliveryFulfillmentService(links));
+        ReflectionTestUtils.setField(service,"fulfillmentService",new DeliveryFulfillmentService(links, query -> java.util.Optional.empty()));
     }
     @AfterEach void cleanup(){TenantContextHolder.clear();}
     DeliveryRequirementDO requirement(){
@@ -39,6 +39,20 @@ class DeliverySourceReuseTest {
     DeliveryMaterialDO material(){
         var m=new DeliveryMaterialDO();m.setId(710L);m.setTenantId(7L);m.setProjectId(99L);
         m.setRequirementId(901L);m.setTypeCode("REQ-A");m.setStatus("ACTIVE");return m;
+    }
+
+    @Test void reopenedTemplateRequirementRejectsSharedOldMaterialWithoutChangingItsHistory() {
+        var openedAt = java.time.LocalDateTime.now();
+        var target = requirement(); target.setRequirementKind(DeliveryRequirementDO.KIND_TEMPLATE_FROZEN);
+        var original = material(); original.setCreateTime(openedAt.minusDays(1));
+        var fulfillment = new DeliveryFulfillmentService(links, query -> java.util.Optional.of(
+                new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Round(20L, openedAt)));
+        assertThrows(BusinessContractException.class, () -> fulfillment.associate(target, original));
+        assertEquals("ACTIVE", original.getStatus()); assertEquals(901L, original.getRequirementId());
+        verifyNoInteractions(links);
+        original.setCreateTime(openedAt.plusSeconds(1));
+        fulfillment.associate(target, original);
+        verify(links).insert(any(DeliveryFulfillmentDO.class));
     }
     private void canonicalResultStore() {
         var store=new java.util.HashMap<String,DeliveryMaterialDO>();
@@ -116,7 +130,7 @@ class DeliverySourceReuseTest {
     }
     @Test void relationRejectsAnotherProjectsMaterialBeforeAnyWrite(){
         var original=material();original.setProjectId(100L);
-        assertThrows(BusinessContractException.class,()->new DeliveryFulfillmentService(links).associate(requirement(),original));
+        assertThrows(BusinessContractException.class,()->new DeliveryFulfillmentService(links, query -> java.util.Optional.empty()).associate(requirement(),original));
         verifyNoInteractions(links);
     }
     private cn.iocoder.yudao.module.pms.platform.api.file.dto.FileArtifactVersionFact projectionFact() {

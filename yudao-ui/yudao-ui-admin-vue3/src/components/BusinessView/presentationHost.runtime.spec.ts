@@ -1,20 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { nextTick } from 'vue'
+import { defineComponent, h, nextTick, provide, ref } from 'vue'
+import { BUSINESS_ACTION_BAR_TARGET } from './businessActionBar'
 import BusinessViewHost from './BusinessViewHost.vue'
 import { resolveBusinessView } from './registry'
 import { businessPageRoutes } from './presentationRoute'
 import { inspectOperationCapabilities } from '@/api/pms/project/execution-operations'
 import { mount, textOf, findByTestId, passthrough, tableColumn, type TestNode } from '@/views/pms/platform/dynamic-form/components/runtimeTestHarness'
 
-const owner = vi.hoisted(() => ({ mounts: 0, allowLeave: false }))
+const owner = vi.hoisted(() => ({ mounts: 0, allowLeave: false, refresh: vi.fn() }))
 vi.mock('@/views/pms/delivery-business/site-survey/index.vue', async () => {
   const { defineComponent, h, ref } = await import('vue')
   return { default: defineComponent({
-    props: ['projectId', 'objectId', 'readonly'], emits: ['dirty-change'],
+    props: { projectId: [String, Number], objectId: [String, Number], readonly: Boolean }, emits: ['dirty-change'],
     setup(props, { emit, expose }) {
       owner.mounts++
       const value = ref('saved')
-      expose({ requestLeave: async () => owner.allowLeave, discardChanges: () => { value.value = 'saved'; return true }, isDirty: () => value.value !== 'saved' })
+      expose({ refresh: owner.refresh, requestLeave: async () => owner.allowLeave, discardChanges: () => { value.value = 'saved'; return true }, isDirty: () => value.value !== 'saved' })
       return () => h('div', [h('span', `owner:${props.projectId}:${value.value}:readonly=${props.readonly}`),
         h('button', { 'data-testid': 'edit-page', onClick: () => { value.value = 'unsaved'; emit('dirty-change', true) } }, 'edit')])
     }
@@ -49,9 +50,9 @@ describe('BusinessViewHost consumes frozen page routing', () => {
     try {
       await tick()
       expect(owner.mounts).toBe(1)
-      expect(view.root.children[0].props?.['data-page-url']).toBe(`${route.pageUrl}?projectId=1`)
+      expect(view.root.children.find(node => node.props?.['aria-label'] === '业务视图')?.props?.['data-page-url']).toBe(`${route.pageUrl}?projectId=1`)
       await (findByTestId(view.root, 'edit-page')!.props!.onClick as () => void)(); await tick()
-      const refresh = async () => { await (button(view.root, '刷新执行状态')!.props!.onClick as () => Promise<void>)(); await tick() }
+      const refresh = async () => { await (button(view.root, '刷新')!.props!.onClick as () => Promise<void>)(); await tick() }
       await refresh()
       expect(owner.mounts).toBe(1); expect(textOf(view.root)).toContain('unsaved')
       vi.mocked(inspectOperationCapabilities).mockResolvedValue({ ...capability(), presentation: { ...capability().presentation, status: 'READ_ONLY' } } as never)
@@ -65,7 +66,27 @@ describe('BusinessViewHost consumes frozen page routing', () => {
       owner.allowLeave = true
       await reopen()
       expect(owner.mounts).toBe(2); expect(textOf(view.root)).toContain('saved:readonly=false')
-      expect(view.root.children[0].props?.['data-page-url']).toBe(route.pageUrl)
+      expect(view.root.children.find(node => node.props?.['aria-label'] === '业务视图')?.props?.['data-page-url']).toBe(route.pageUrl)
+    } finally { view.app.unmount() }
+  })
+  it('uses the workspace refresh for execution and Owner data, and blocks it when Owner cannot leave', async () => {
+    vi.mocked(inspectOperationCapabilities).mockResolvedValue(capability() as never)
+    const host = ref<InstanceType<typeof BusinessViewHost>>()
+    const view = mount(defineComponent({ setup() {
+      provide(BUSINESS_ACTION_BAR_TARGET, ref(null))
+      return () => h(BusinessViewHost, { ...target(), ref: host } as any)
+    } }), {}, options)
+    try {
+      await tick()
+      expect(button(view.root, '刷新')).toBeUndefined()
+      vi.mocked(inspectOperationCapabilities).mockClear()
+      await host.value!.refresh()
+      expect(inspectOperationCapabilities).not.toHaveBeenCalled()
+      expect(owner.refresh).not.toHaveBeenCalled()
+      owner.allowLeave = true
+      await host.value!.refresh()
+      expect(inspectOperationCapabilities).toHaveBeenCalledTimes(1)
+      expect(owner.refresh).toHaveBeenCalledTimes(1)
     } finally { view.app.unmount() }
   })
   it('never mounts the default Owner page when first inspection supplies an unregistered route', async () => {
@@ -82,3 +103,14 @@ describe('BusinessViewHost consumes frozen page routing', () => {
     expect(resolveBusinessView({ ...source, presentation: { pageUrl: route.pageUrl, query: { projectId: '2' } } } as never).error).toBeTruthy()
   })
 })
+
+vi.mock('./ProjectMembersBusinessView.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/project/project-master-detail/components/ProjectArrivalReceiptPanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/acceptance/satisfaction/index.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/project/project-master-detail/components/ProjectSchedulePanel.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/engineering/solution-reviewed/index.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/engineering/training/index.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/engineering/installation/ProjectInstallationWorkbench.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/cutover/project-tasks/index.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/cutover/project-coverage/index.vue', () => ({ default: { render: () => null } }))
+vi.mock('@/views/pms/cutover/components/CutoverBusinessEntry.vue', () => ({ default: { render: () => null } }))

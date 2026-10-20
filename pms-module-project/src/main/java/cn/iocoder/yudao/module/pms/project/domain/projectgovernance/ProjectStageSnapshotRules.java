@@ -32,7 +32,15 @@ public final class ProjectStageSnapshotRules {
                 requireText(snapshot.getLegacyItemsJson(), "legacyItemsJson");
                 requireGuard(snapshot);
             }
-            case REOPEN -> requireValue(snapshot.getRelatedSnapshotId(), "relatedSnapshotId");
+            case REOPEN -> {
+                if ("NORMAL_CLOSED".equals(snapshot.getBeforeLifecycleStatus())) {
+                    if (!"ACTIVE".equals(snapshot.getAfterLifecycleStatus()) || !"S0".equals(snapshot.getAfterStage())
+                            || snapshot.getRelatedSnapshotId() != null)
+                        throw new IllegalArgumentException("invalid template reopen snapshot");
+                    requireGuard(snapshot);
+                    requireText(snapshot.getBusinessBasis(), "businessBasis");
+                } else requireValue(snapshot.getRelatedSnapshotId(), "relatedSnapshotId");
+            }
             case STAGE_ADVANCE -> requireGuard(snapshot);
             case STAGE_ENTRY -> {
                 requireValue(snapshot.getTreeVersion(), "treeVersion");

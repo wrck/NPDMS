@@ -37,6 +37,13 @@ public class SatisfactionTaskBusinessObjectProvider implements TaskBusinessObjec
 
     @Override public String ownerContext() { return "ACC"; }
     @Override public String objectType() { return "SATISFACTION"; }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null) throw unavailable();
+        requireTenant(context.tenantId());
+        var row = tasks.selectById(id(objectId));
+        requireOwner(new OwnerContext(context.tenantId(), context.projectId()), row);
+        return row.getCreateTime();
+    }
     @Override public Set<String> completionFactCodes() { return Set.of(COMPLETE); }
     @Override public Map<String, String> completionFactLabels() {
         return Map.of(COMPLETE, "客户签字、评分达标且归档成功");

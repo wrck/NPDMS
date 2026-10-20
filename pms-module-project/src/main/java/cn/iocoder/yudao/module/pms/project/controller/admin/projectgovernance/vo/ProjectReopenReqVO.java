@@ -17,7 +17,8 @@ public class ProjectReopenReqVO {
     @NotBlank
     @Size(max = 1000)
     private String reasonDetail;
-    @NotNull
     @Positive
     private Long exceptionCloseSnapshotId;
+    @Positive
+    private Long targetTemplateRevisionId;
 }

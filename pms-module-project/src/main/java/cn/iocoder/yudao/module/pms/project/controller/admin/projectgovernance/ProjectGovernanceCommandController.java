@@ -135,7 +135,7 @@ public class ProjectGovernanceCommandController {
             String digest = digest(projectId, expectedVersion, request);
             return success(applicationService.reopen(new ReopenProjectCommand(
                     projectId, expectedVersion, request.getReasonCode(), request.getReasonDetail(),
-                    request.getExceptionCloseSnapshotId(), idempotencyKey, digest), actor()));
+                    request.getExceptionCloseSnapshotId(), idempotencyKey, digest, request.getTargetTemplateRevisionId()), actor()));
         });
     }
 

@@ -29,7 +29,8 @@ vi.mock('./StageBusinessPanel.vue', () => ({ default: defineComponent({
   setup(props, { expose }) { expose({ requestLeave: async () => true, isBusy: () => false, refresh: businessRefresh }); return () => h('div', { 'data-stage-readonly': String(props.readonly) }, '阶段绑定上下文') }
 }) }))
 vi.mock('./TaskStateActions.vue', () => ({ default: defineComponent({
-  setup(_, { expose, slots }) { expose({ isBusy: () => false }); return () => h('section', { 'aria-label': '任务状态操作' }, ['任务状态操作', slots.default?.()]) }
+  props: { workbench: { type: Object, required: true } },
+  setup(props, { expose, slots }) { expose({ isBusy: () => false }); return () => h('section', { 'aria-label': '任务状态操作', 'data-actions': props.workbench.allowedActions.join(',') }, ['任务状态操作', slots.default?.()]) }
 }) }))
 vi.mock('./TaskApprovalPanel.vue', () => ({ default: defineComponent({
   props: { readonly: Boolean },
@@ -99,6 +100,17 @@ const findTaskActions = (node: TestNode): TestNode | undefined =>
 const contactWorkbench = (version = 1, status = 'IN_PROGRESS') => ({
   task: { taskId: 10, name: '用户信息录入', version, status, progress: status === 'DONE' ? 100 : 0 },
   bindingType: 'PAGE', trustedTargetRef: '/customer-asset/customer-contact', allowedActions: status === 'DONE' ? [] : ['SUBMIT']
+})
+
+it('omits the empty action section for automatic tasks and keeps manual submit and progress', async () => {
+  api.getTaskWorkbench.mockResolvedValue({ ...contactWorkbench(), allowedActions: ['CANCEL', 'UPDATE'] })
+  const automatic = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(findTaskActions(automatic.root)).toBeUndefined()
+  expect(textOf(automatic.root)).not.toContain('任务资料与进度')
+  api.getTaskWorkbench.mockResolvedValue({ ...contactWorkbench(), allowedActions: ['SUBMIT', 'UPDATE_PROGRESS', 'CANCEL', 'UPDATE'] })
+  const manual = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
+  expect(findTaskActions(manual.root)?.props?.['data-actions']).toBe('SUBMIT,UPDATE_PROGRESS')
+  expect(textOf(manual.root)).toContain('任务资料与进度')
 })
 
 it.each(['保存联系人', '更新联系人'])('refreshes task actions and notifies the project after %s', async label => {
@@ -174,7 +186,7 @@ it('mounts approval handling in the shared delivery task panel and preserves its
   api.getTaskWorkbench.mockResolvedValue({ task: { taskId: 10, version: 1 }, bindingType: 'APPROVAL' })
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
   expect(textOf(view.root)).toContain('原BPM审批办理')
-  expect(textOf(view.root)).toContain('刷新审批结果')
+  expect(textOf(view.root)).toContain('刷新')
   expect(textOf(view.root)).not.toContain('Owner业务内容')
   expect(textOf(view.root)).not.toContain('尚未取得可用的任务业务绑定')
   expect(await view.exposed().requestLeave()).toBe(false)
@@ -288,17 +300,17 @@ it('places one refresh action in the bottom business bar and delegates to the gu
   expect(heading).toBeTruthy()
   expect(textOf(heading!)).toContain('任务业务办理')
   // 刷新入口统一收口在底部吸附栏业务操作区，不与业务标题同行
-  expect(find(heading!, node => node.type === 'button' && textOf(node) === '刷新业务结果')).toBeUndefined()
+  expect(find(heading!, node => node.type === 'button' && textOf(node) === '刷新')).toBeUndefined()
   const bar = find(view.root, node => String(node.props?.class || '').includes('flow-bar-business'))
   expect(bar).toBeTruthy()
-  const refresh = find(bar!, node => node.type === 'button' && textOf(node) === '刷新业务结果')
+  const refresh = find(bar!, node => node.type === 'button' && textOf(node) === '刷新')
   expect(refresh).toBeTruthy()
   await (refresh!.props!.onClick as () => unknown)()
   expect(businessRefresh).toHaveBeenCalledTimes(1)
   expect(api.getTaskWorkbench).toHaveBeenCalledTimes(1)
 })
 
-it('omits the task breadcrumb and description block and keeps task editing in the action group', async () => {
+it('omits the task breadcrumb, description block and unavailable editing action group', async () => {
   const view = render({ kind: 'task', stageCode: 'S2', taskId: 10 }); await flush()
   const find = (node: TestNode, predicate: (node: TestNode) => boolean): TestNode | undefined =>
     predicate(node) ? node : node.children.map(child => find(child, predicate)).find(Boolean)
@@ -308,7 +320,8 @@ it('omits the task breadcrumb and description block and keeps task editing in th
   expect(find(view.root, node => String(node.props?.class || '').includes('task-breadcrumb'))).toBeUndefined()
   expect(find(view.root, node => String(node.props?.class || '').includes('task-description-block'))).toBeUndefined()
   const actions = find(view.root, node => node.props?.['aria-label'] === '任务状态操作')
-  expect(textOf(actions!)).toContain('任务资料与进度')
+  expect(actions).toBeUndefined()
+  expect(text).not.toContain('任务资料与进度')
 })
 
 const pendingStageInstances = {
@@ -335,10 +348,10 @@ it('renders a not-yet-entered stage normally while hiding its operation entries'
   expect(text).not.toContain('只读预览')
   // 业务区以只读方式呈现（readonly 强制透传）
   expect(findNode(view.root, node => node.props?.['data-stage-readonly'] === 'true')).toBeTruthy()
-  // 办理/提交/推进入口全部隐藏；刷新业务结果为重读入口，保留
+  // 办理/提交/推进入口全部隐藏；刷新为重读入口，保留
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '提交与查看')).toBeUndefined()
   expect(text).not.toContain('推进至')
-  expect(text).toContain('刷新业务结果')
+  expect(text).toContain('刷新')
 })
 
 it('does not query advancement when viewing or refreshing a normally closed project', async () => {
@@ -372,7 +385,7 @@ it('keeps the stage advance button hidden while exit gates are unmet but still e
   expect(text).not.toContain('推进至 S3')
   expect(text).toContain('出口门禁 1/2 满足；全部通过后可推进。')
   // 当前阶段的业务操作区不受影响
-  expect(text).toContain('刷新业务结果')
+  expect(text).toContain('刷新')
 })
 
 it('shows the stage advance button only when every exit gate is satisfied', async () => {
@@ -398,10 +411,10 @@ it('renders tasks of a not-yet-entered stage normally without state actions', as
   // 业务内容照常渲染，以只读方式呈现（不附加状态横幅）
   expect(text).toContain('Owner业务内容')
   expect(findNode(view.root, node => node.props?.['data-task-readonly'] === 'true')).toBeTruthy()
-  // 状态操作与提交入口仍隐藏；刷新业务结果为重读入口，保留
+  // 状态操作与提交入口仍隐藏；刷新为重读入口，保留
   expect(text).not.toContain('任务状态操作')
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '提交与查看')).toBeUndefined()
-  expect(text).toContain('刷新业务结果')
+  expect(text).toContain('刷新')
 })
 
 it('renders an approval task of a not-yet-entered stage without its handling form', async () => {
@@ -423,8 +436,8 @@ it('renders the page-bound task of a not-yet-entered stage inline with its write
   expect(text).toContain('实施部署')
   expect(text).not.toContain('本任务通过专用页面办理业务')
   expect(findNode(view.root, node => node.props?.['data-embed-readonly'] === 'true')).toBeTruthy()
-  // 任务状态操作与跳转入口隐藏；刷新工作区为重读入口，保留（栏不空壳）
+  // 任务状态操作与跳转入口隐藏；刷新为重读入口，保留（栏不空壳）
   expect(findNode(view.root, node => node.props?.['aria-label'] === '任务状态操作')).toBeUndefined()
   expect(findNode(view.root, node => node.type === 'button' && textOf(node) === '打开页面')).toBeUndefined()
-  expect(text).toContain('刷新工作区')
+  expect(text).toContain('刷新')
 })

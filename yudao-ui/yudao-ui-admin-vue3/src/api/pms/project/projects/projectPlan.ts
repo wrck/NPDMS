@@ -7,6 +7,7 @@ export interface PlanDefinition {
   version: number
   basePlanVersionId?: string | number
   designer: TemplateDesignerDocument
+  templateBinding?: { templateId: string | number; revisionId: string | number; revisionNo: number; name: string } | null
 }
 export interface ProjectPlanState {
   effective: PlanDefinition

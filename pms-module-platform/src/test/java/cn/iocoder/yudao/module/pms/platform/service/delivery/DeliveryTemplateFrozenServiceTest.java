@@ -26,6 +26,50 @@ class DeliveryTemplateFrozenServiceTest {
     }
 
     @Test
+    void restartArchivesCurrentRootsWithoutChangingTheirResults() {
+        TenantContextHolder.setTenantId(1L);
+        var row = new DeliveryRequirementDO();
+        row.setId(10L);
+        row.setRequirementKind(DeliveryRequirementDO.KIND_TEMPLATE_FROZEN);
+        row.setTypeCode("D10");
+        row.setStatus(DeliveryRequirementDO.STATUS_CONFIRMED);
+        row.setConfirmedBy("9");
+        when(mapper.selectScopeForUpdate(any())).thenReturn(List.of(row));
+        when(mapper.updateById(row)).thenReturn(1);
+
+        service.archiveForProjectReopen(new cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.ProjectReopenArchive(
+                20L, 30L, List.of(10L)));
+
+        assertEquals(30L, row.getArchivedReopenSnapshotId());
+        assertEquals("D10", row.getTypeCode());
+        assertEquals(DeliveryRequirementDO.STATUS_CONFIRMED, row.getStatus());
+        assertEquals("9", row.getConfirmedBy());
+        verifyNoInteractions(requirements);
+    }
+
+    @Test
+    void changedRequirementSetRejectsRestartBeforeWriting() {
+        TenantContextHolder.setTenantId(1L);
+        when(mapper.selectScopeForUpdate(any())).thenReturn(List.of());
+        assertThrows(BusinessContractException.class, () -> service.archiveForProjectReopen(
+                new cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryRequirementApi.ProjectReopenArchive(
+                        20L, 30L, List.of(10L))));
+        verify(mapper, never()).updateById(any(DeliveryRequirementDO.class));
+    }
+
+    @Test
+    void archivedRequirementCannotBeChangedByOldId() {
+        TenantContextHolder.setTenantId(1L);
+        var row = new DeliveryRequirementDO();
+        row.setId(10L);
+        row.setRequirementKind(DeliveryRequirementDO.KIND_TEMPLATE_FROZEN);
+        row.setArchivedReopenSnapshotId(30L);
+        when(mapper.selectIdForUpdate(any())).thenReturn(row);
+        assertThrows(BusinessContractException.class, () -> service.stageTemplateFrozenCodes(List.of(10L)));
+        verify(mapper, never()).updateById(any(DeliveryRequirementDO.class));
+    }
+
+    @Test
     void stagedCodeIsReplacedWithFinalCodeUsingAdvancedVersion() {
         TenantContextHolder.setTenantId(1L);
         var row = new DeliveryRequirementDO();

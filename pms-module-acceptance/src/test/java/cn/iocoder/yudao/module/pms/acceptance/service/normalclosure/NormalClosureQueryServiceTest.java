@@ -13,8 +13,37 @@ import static org.mockito.Mockito.*;
 class NormalClosureQueryServiceTest {
     private final ProjectClosureContextApi contexts = mock(ProjectClosureContextApi.class);
     private final ProjectClosureCheckApi graph = mock(ProjectClosureCheckApi.class);
+    private final NormalClosureMapper mapper = mock(NormalClosureMapper.class);
+    private final PermissionApi permissions = mock(PermissionApi.class);
     private final NormalClosureQueryService service = new NormalClosureQueryService(contexts, graph,
-            mock(NormalClosureMapper.class), mock(PermissionApi.class));
+            mapper, permissions, query -> java.util.Optional.empty());
+
+    @Test void reopenedProjectRequiresNewCheckWithoutChangingApprovedHistory() {
+        context();
+        var opened = java.time.LocalDateTime.of(2026, 1, 1, 12, 0);
+        var application = new cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureApplicationDO();
+        application.setStatus("APPROVED");
+        application.setSubmittedAt(opened.minusDays(1));
+        var snapshot = new cn.iocoder.yudao.module.pms.acceptance.dal.dataobject.normalclosure.NormalClosureSnapshotDO();
+        snapshot.setCheckedAt(opened.minusDays(1));
+        snapshot.setPassed(true);
+        when(mapper.selectLatestApplication(any())).thenReturn(application);
+        when(mapper.selectLatestSnapshot(any())).thenReturn(snapshot);
+        when(permissions.hasAnyPermissions(anyLong(), anyString())).thenReturn(true);
+        when(graph.inspectGraph(7L, 9L)).thenReturn(new ProjectClosureCheckApi.GraphOverview(true, "SATISFIED", 10L, true));
+        var reopened = new NormalClosureQueryService(contexts, graph, mapper, permissions,
+                query -> java.util.Optional.of(new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Round(31L, opened)));
+        var view = reopened.get(9L, new NormalClosureApplicationService.Actor(7L, 1L, "test"));
+        assertNull(view.latestApplication());
+        assertNull(view.latestSnapshot());
+        assertEquals(List.of("CHECK"), view.allowedActions());
+        assertEquals("APPROVED", application.getStatus());
+        assertEquals(opened.minusDays(1), snapshot.getCheckedAt());
+        application.setStatus("IN_REVIEW");
+        var pending = reopened.get(9L, new NormalClosureApplicationService.Actor(7L, 1L, "test"));
+        assertSame(application, pending.latestApplication());
+        assertTrue(pending.allowedActions().isEmpty());
+    }
 
     private void context() {
         when(contexts.read(anyLong(), anyLong(), anyLong(), anyString())).thenReturn(

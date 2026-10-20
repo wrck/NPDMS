@@ -188,8 +188,40 @@ const requestLeave = async () => {
   }
 }
 const refresh = async () => {
+  if (loading.value) return
   const epoch = generation, taskId = props.taskId
-  if (await requestLeave() && currentTask(epoch, taskId)) await load()
+  if (!await requestLeave() || !currentTask(epoch, taskId)) return
+  const current = context.value
+  if (!props.readonly && current?.allowedActions.includes('REFRESH_RESULTS')) {
+    loading.value = true
+    error.value = ''
+    clearFactVersion()
+    try {
+      const result = await BusinessApi.refreshTaskBusinessResults({
+        taskId, expectedTaskVersion: props.taskVersion, expectedContractVersion: current.contractVersion
+      })
+      if (!currentTask(epoch, taskId)) return
+      await load()
+      if (!currentTask(epoch, taskId)) return
+      await hostRef.value?.refresh?.()
+      if (!currentTask(epoch, taskId)) return
+      emit('changed')
+      if (result.unknown) {
+        error.value = '业务完成依据暂不可用，任务未完成，请稍后刷新重试。'
+        clearFactVersion()
+      }
+    } catch {
+      if (currentTask(epoch, taskId)) {
+        error.value = '业务结果重新判定失败，请刷新任务后重试。'
+        clearFactVersion()
+      }
+    } finally {
+      if (currentTask(epoch, taskId)) loading.value = false
+    }
+    return
+  }
+  await load()
+  if (currentTask(epoch, taskId)) await hostRef.value?.refresh?.()
 }
 const ownerChanged = () => {
   // A retained old Host may finish an Owner request after the parent selected another task.

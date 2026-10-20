@@ -96,6 +96,15 @@ public class SolutionApprovalCompletionProvider implements TaskBusinessObjectPro
     }
 
     private record Snapshot(Long id, String name, String version, boolean completed) { }
+    @Override public java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) {
+        if (context == null) throw unavailable();
+        tenant(context.tenantId(), context.projectId());
+        var row = mapper.one(new SolutionCompletionQuery(context.tenantId(), context.projectId(), parse(objectId), null, 1, false));
+        if (row == null || !Objects.equals(row.getTenantId(), context.tenantId())
+                || !Objects.equals(row.getProjectId(), context.projectId()) || Boolean.TRUE.equals(row.getDeleted())
+                || !"IMPLEMENTATION".equals(row.getSolutionType())) throw unavailable();
+        return row.getCreateTime();
+    }
     private String version(Snapshot row) { return objectType() + ":v1:" + row.version() + ":" + row.completed(); }
     private BusinessObjectFact fact(Snapshot row) {
         return new BusinessObjectFact(row.id().toString(), row.name(), version(row), Set.of("QUERY"),

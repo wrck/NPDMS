@@ -35,6 +35,8 @@ public class DeliveryRequirementDO extends BaseBusinessEntity {
     private Long planVersionId;
     private Long sourceDefinitionId;
     private Long projectId;
+    /** 0=current; a positive restart ID retains the previous round as read-only history. */
+    private Long archivedReopenSnapshotId = 0L;
     /** TEMPLATE_FROZEN：冻结要求配置（数量/允许来源/自动来源/确认规则 JSON）。 */
     private String frozenConfigJson;
     private Boolean required;

@@ -83,9 +83,23 @@ class ProjectTaskBusinessServiceTest {
                 service.getContext(10L, 1L, 5L, "permission-denied").recoverableError());
     }
 
+    @Test void refreshActionRequiresExecutionPermissionCurrentRoundAndActiveTask() {
+        when(access.executable(any(), any(), any())).thenReturn(true);
+        assertEquals(Set.of("REFRESH_RESULTS"), service.getContext(10L, 1L, 5L, "refresh").allowedActions());
+        when(access.executable(any(), any(), any())).thenReturn(false);
+        assertTrue(service.getContext(10L, 1L, 5L, "refresh").allowedActions().isEmpty());
+        when(access.executable(any(), any(), any())).thenReturn(true);
+        when(executionApi.inspect(any())).thenReturn(execution(false));
+        assertTrue(service.getContext(10L, 1L, 5L, "refresh").allowedActions().isEmpty());
+        when(executionApi.inspect(any())).thenReturn(execution(true));
+        task.setStatus("DONE");
+        assertTrue(service.getContext(10L, 1L, 5L, "refresh").allowedActions().isEmpty());
+    }
+
     ProjectTaskBusinessService service(List<TaskBusinessObjectProvider> providers) {
         return new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(providers), links, tasks,
-                contracts, commands, audit, views, executionApi);
+                contracts, commands, audit, views, executionApi,
+                new ProjectReopenBusinessEvidence(query -> java.util.Optional.empty()));
     }
     cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution(boolean writable) {
         return new cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext(
@@ -113,6 +127,35 @@ class ProjectTaskBusinessServiceTest {
         return row;
     }
     LinkCommand command() { return new LinkCommand(10L, "x", 3, 2, "key"); }
+
+    private ProjectTaskBusinessLinkDO reopenAssignment() {
+        when(provider.ownerContext()).thenReturn("PROJ"); when(provider.objectType()).thenReturn("PROJECT_ASSIGNMENT");
+        contract.setTargetContextCode("PROJ"); contract.setTargetObjectType("PROJECT_ASSIGNMENT");
+        service = new ProjectTaskBusinessService(access, new TaskBusinessProviderRegistry(List.of(provider)), links, tasks,
+                contracts, commands, audit, views, executionApi, new ProjectReopenBusinessEvidence(query -> Optional.of(
+                        new cn.iocoder.yudao.module.pms.project.api.projectgovernance.ProjectReopenScopeApi.Round(90L, LocalDateTime.now().minusHours(1)))));
+        var link = row(51L, "20"); link.setOwnerContext("PROJ"); link.setObjectType("PROJECT_ASSIGNMENT");
+        link.setNodeExecutionId(61L); link.setLinkedBy(0L);
+        when(links.selectActiveForUpdate(any())).thenReturn(List.of(link));
+        return link;
+    }
+
+    @Test void reopenedAssignmentUsesCurrentOwnerCompletionWithoutConfirmationAndKeepsRoundGuard() {
+        var link = reopenAssignment();
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        when(provider.lockCompletionFact(any(), eq("20"))).thenReturn(
+                new CompletionFact("20", "current-owner-version", true, Map.of("COMPLETED", true)));
+        var result = service.lockCompletionFacts(1L, execution(true), contract);
+        assertTrue(result.hasCompletedHandling());
+        assertEquals(true, result.facts().links().getFirst().completionFacts().get("COMPLETED"));
+        when(provider.lockCompletionFact(any(), eq("20"))).thenReturn(
+                new CompletionFact("20", "changed-owner-version", false, Map.of("COMPLETED", false)));
+        assertFalse(service.lockCompletionFacts(1L, execution(true), contract).hasCompletedHandling());
+        link.setNodeExecutionId(60L);
+        assertThrows(RuntimeException.class, () -> service.lockCompletionFacts(1L, execution(true), contract));
+        verify(tasks, never()).incrementTaskVersionIfMatch(any());
+        verify(links, never()).insertLink(any());
+    }
 
     @Test void contextUsesOneOwnerInspectionAndRejectsMissingForeignOrDuplicateFacts() {
         when(links.selectActive(any())).thenReturn(List.of(row(51, "x")));

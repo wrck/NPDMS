@@ -76,6 +76,10 @@ public interface TaskBusinessObjectProvider {
     record AssociationContext(Long tenantId, Long projectId, String targetObjectKey, String bindingParameters) { }
     record AssociationCandidate(String objectId, String factVersion) { }
 
+    /** Creation time of the actual handling record (or current report revision for a unique root).
+     * Never return update time or approval time of an old record. Owner must check tenant/project. */
+    default java.time.LocalDateTime handlingCreatedAt(AssociationContext context, String objectId) { return null; }
+
     record CompletionContext(Long tenantId,
             cn.iocoder.yudao.module.pms.project.api.workbinding.dto.ProjectTaskExecutionContext execution) { }
 

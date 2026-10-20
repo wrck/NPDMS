@@ -37,6 +37,7 @@ public class ProjectTaskBusinessAssociationService {
     private final OperationAuditApi audit;
     private final cn.iocoder.yudao.module.pms.project.dal.mysql.projectplan.ProjectNodeExecutionMapper executions;
     private final ProjectRuntimeGraphMapper graph;
+    private final ProjectReopenBusinessEvidence reopenEvidence;
 
     @Transactional(rollbackFor = Exception.class)
     public void synchronize(Long projectId, Long taskId, String correlationId) {
@@ -116,9 +117,10 @@ public class ProjectTaskBusinessAssociationService {
             cursor = page.getLast().objectId();
         }
         var query = new TaskBusinessLinksQuery(tenantId, projectId, taskId, stageId);
+        candidates.entrySet().removeIf(entry -> !reopenEvidence.mayAssociate(provider, context, entry.getKey()));
         var current = links.selectActiveForUpdate(query);
         // New records receive the latest execution. Old-round associations are history, not new handling evidence.
-        if (!candidates.isEmpty()) {
+        if (!candidates.isEmpty() && !reopenEvidence.mayReuseProjectObject(provider, context)) {
             var previous = links.selectPreviouslyAssociatedObjectIds(new PreviousBusinessAssociationsQuery(tenantId,
                     projectId, taskId, executionId, receiver.ownerContext(), receiver.objectType(), Set.copyOf(candidates.keySet()), stageId));
             Set<String> currentInitialReferences = new HashSet<>();
