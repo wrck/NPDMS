@@ -5,7 +5,7 @@ package cn.iocoder.yudao.module.pms.engineering.service.deliverable;
  */
 public final class DeliverableSummaryCategories {
 
-    /** 到货签收单（5.1，自动归档在途：EXE-01 切片承接中） */
+    /** 到货签收单（5.1，签收附件及签收结果自动归集） */
     public static final String RECEIPT = "RECEIPT";
     /** 实施方案（4.1 审批通过自动归档） */
     public static final String SCHEME = "SCHEME";

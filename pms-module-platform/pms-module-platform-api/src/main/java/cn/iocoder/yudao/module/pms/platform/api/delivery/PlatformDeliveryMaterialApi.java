@@ -57,6 +57,8 @@ public interface PlatformDeliveryMaterialApi {
                                 Integer fileVersionNo, String fileSha256, String fileName,
                                 String businessObjectType, String businessObjectId, Long businessRevisionNo,
                                 String title, String sourceKind, String status, String archiveStatus,
-                                String creator, java.time.LocalDateTime createTime) {
+                                String creator, java.time.LocalDateTime createTime,
+                                String businessTypeCode, String sourceOwnerModule,
+                                String sourceEntityType, Long sourceEntityId) {
     }
 }

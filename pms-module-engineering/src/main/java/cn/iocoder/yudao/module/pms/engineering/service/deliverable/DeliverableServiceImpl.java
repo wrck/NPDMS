@@ -17,6 +17,8 @@ import org.springframework.validation.annotation.Validated;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static cn.iocoder.yudao.framework.common.exception.util.ServiceExceptionUtil.exception;
 import static cn.iocoder.yudao.module.pms.engineering.enums.ErrorCodeConstants.*;
@@ -60,22 +62,28 @@ public class DeliverableServiceImpl implements DeliverableService {
             throw exception(DELIVERABLE_NOT_EXISTS);
         }
         List<DeliverableSummaryItemVO> summary = new ArrayList<>();
+        var archiveFacts = projectDeliverableArchiveFactApi.listByProject(
+                TenantContextHolder.getRequiredTenantId(), projectId);
+        Map<Long, String> templateCategories = new HashMap<>();
+        archiveFacts.stream().filter(fact -> fact.sourceCategory() != null)
+                .forEach(fact -> templateCategories.put(fact.deliverableId(), fact.sourceCategory()));
         // 1. 统一交付件材料（P06R）：批准实施方案/确认培训为业务结果型，其余为项目手工或挂接材料
         for (DeliveryMaterialView material : deliveryMaterialApi.listByProject(projectId)) {
-            summary.add(toUnifiedSummaryItem(material));
+            summary.add(toUnifiedSummaryItem(material, templateCategories.get(material.requirementId())));
         }
         // 2. ACC 归档事实：初验/终验/满意度（ACC Owner 分类），未归档的交付件定义同样呈现
-        projectDeliverableArchiveFactApi.listByProject(TenantContextHolder.getRequiredTenantId(), projectId)
+        archiveFacts
                 .forEach(fact -> {
                     DeliverableSummaryItemVO item = new DeliverableSummaryItemVO();
                     item.setCategory(resolveAccCategory(fact.sourceCategory()));
                     item.setCode(fact.deliverableCode());
                     item.setName(fact.name());
-                    item.setSourceLabel(resolveAccSourceLabel(fact.sourceCategory()));
-                    item.setStatus(null);
+                    item.setSourceLabel("ProjectDeliverableSubmission".equals(fact.sourceObjectType())
+                            ? "模板交付件提交" : resolveAccSourceLabel(fact.sourceCategory()));
+                    item.setStatus("NOT_REQUIRED".equals(fact.archiveStatus()) ? 1 : null);
                     item.setRemark(fact.archiveStatus() == null ? "验收侧交付件定义尚未归档来源"
                             : (DeliverableSummaryCategories.PENDING_ARCHIVE.equals(fact.archiveStatus())
-                            ? "归档补偿处理中" : null));
+                            ? "归档补偿处理中" : "INVALID".equals(fact.archiveStatus()) ? "归档失败" : null));
                     summary.add(item);
                 });
         // 3. imp_eng_deliverable 历史行：P06R 前存量，不可变，标注"历史归集"
@@ -97,30 +105,61 @@ public class DeliverableServiceImpl implements DeliverableService {
         return summary;
     }
 
-    private DeliverableSummaryItemVO toUnifiedSummaryItem(DeliveryMaterialView material) {
+    private DeliverableSummaryItemVO toUnifiedSummaryItem(DeliveryMaterialView material, String templateCategory) {
         DeliverableSummaryItemVO item = new DeliverableSummaryItemVO();
         boolean solution = BUSINESS_TYPE_SOLUTION.equals(material.businessObjectType());
         boolean training = BUSINESS_TYPE_TRAINING.equals(material.businessObjectType());
-        item.setCategory(solution ? DeliverableSummaryCategories.SCHEME
+        String sourceCategory = resolveNativeCategory(material);
+        boolean templateSubmission = sourceCategory == null && templateCategory != null
+                && "ACC".equals(material.ownerModule()) && "project_deliverable".equals(material.entityType());
+        if (templateSubmission) sourceCategory = templateCategory;
+        item.setCategory(sourceCategory != null ? sourceCategory
+                : solution ? DeliverableSummaryCategories.SCHEME
                 : training ? DeliverableSummaryCategories.TRAINING
                 : DeliverableSummaryCategories.OTHER);
         // 统一模型不生成材料编码；历史编码仅存量 imp_eng_deliverable 行持有
         item.setCode(null);
         item.setName(material.title() != null ? material.title() : material.fileName());
-        item.setSourceLabel(solution ? "4.1 审批通过自动归档（统一交付件）"
+        item.setSourceLabel(templateSubmission ? "模板交付件自动归集"
+                : sourceCategory != null ? switch (sourceCategory) {
+                    case DeliverableSummaryCategories.RECEIPT -> "到货签收自动归集";
+                    case DeliverableSummaryCategories.PRELIMINARY -> "初验报告附件自动归集";
+                    case DeliverableSummaryCategories.FINAL -> "终验报告附件自动归集";
+                    default -> "统一交付件登记";
+                } : solution ? "4.1 审批通过自动归档（统一交付件）"
                 : training ? "6.1 现场培训客户确认自动归档（统一交付件）"
                 : "统一交付件登记");
         item.setStatus(PlatformDeliveryMaterialApi.STATUS_WITHDRAWN.equals(material.status())
                 ? EngStatusEnum.DELIVERABLE_VOID : EngStatusEnum.DELIVERABLE_ARCHIVED);
         item.setArchivedTime(material.createTime());
-        item.setSourceType(solution || training ? material.businessObjectType() : material.ownerModule());
+        item.setSourceType(material.sourceEntityType() != null ? material.sourceEntityType()
+                : solution || training ? material.businessObjectType() : material.ownerModule());
         // businessObjectId 仅实体式登记（solution/training/ACC 报告）为纯数字；
         // 模板冻结链登记的是复合身份串（type|objectId|resultId|formedAt），不可解析为 Long
-        item.setSourceId(material.businessObjectId() != null && material.businessObjectId().matches("\\d+")
+        item.setSourceId(material.sourceEntityId() != null ? material.sourceEntityId()
+                : material.businessObjectId() != null && material.businessObjectId().matches("\\d+")
                 ? Long.valueOf(material.businessObjectId()) : material.entityId());
         item.setRemark(PlatformDeliveryMaterialApi.STATUS_WITHDRAWN.equals(material.status())
                 ? "材料已撤回" : null);
         return item;
+    }
+
+    /** 使用 Owner 登记的来源身份分类，文件名和用户填写的标题不构成来源证据。 */
+    private String resolveNativeCategory(DeliveryMaterialView material) {
+        String owner = material.sourceOwnerModule() != null ? material.sourceOwnerModule() : material.ownerModule();
+        String entity = material.sourceEntityType() != null ? material.sourceEntityType() : material.entityType();
+        String type = material.businessTypeCode() != null ? material.businessTypeCode() : material.typeCode();
+        if ("IMP".equals(owner) && "arrival".equals(entity)
+                && ("IMP.ARRIVAL_SIGN_DOCUMENT".equals(type)
+                || ("RECEIPT".equals(material.typeCode())
+                && "arrival".equals(material.businessObjectType())))) {
+            return DeliverableSummaryCategories.RECEIPT;
+        }
+        if ("ACC".equals(owner) && "acceptanceActivity".equals(entity)) {
+            if ("ACC.PRELIMINARY_REPORT".equals(type)) return DeliverableSummaryCategories.PRELIMINARY;
+            if ("ACC.FINAL_REPORT".equals(type)) return DeliverableSummaryCategories.FINAL;
+        }
+        return null;
     }
 
     private String resolveEngCategory(String deliverableType) {
@@ -140,6 +179,7 @@ public class DeliverableServiceImpl implements DeliverableService {
             return DeliverableSummaryCategories.OTHER;
         }
         return switch (sourceCategory) {
+            case "RECEIPT" -> DeliverableSummaryCategories.RECEIPT;
             case "PRELIMINARY" -> DeliverableSummaryCategories.PRELIMINARY;
             case "FINAL" -> DeliverableSummaryCategories.FINAL;
             case "SATISFACTION" -> DeliverableSummaryCategories.SATISFACTION;
@@ -152,6 +192,7 @@ public class DeliverableServiceImpl implements DeliverableService {
             return "验收侧交付件清单";
         }
         return switch (sourceCategory) {
+            case "RECEIPT" -> "到货签收单归集";
             case "PRELIMINARY" -> "6.3 初验报告同步";
             case "FINAL" -> "6.3 终验报告同步";
             case "SATISFACTION" -> "6.2 满意度报告同步";

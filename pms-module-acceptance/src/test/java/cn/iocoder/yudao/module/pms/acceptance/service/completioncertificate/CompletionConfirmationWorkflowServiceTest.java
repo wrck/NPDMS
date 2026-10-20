@@ -211,7 +211,7 @@ class CompletionConfirmationWorkflowServiceTest {
     private cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView legacyPdf(Long id,Long artifact,LocalDateTime time,String digest) {
         return new cn.iocoder.yudao.module.pms.platform.api.delivery.PlatformDeliveryMaterialApi.DeliveryMaterialView(
             id,"ACC","completionCertificate",10L,"COMPLETION_CERTIFICATE","FILE",null,9L,artifact,1,digest,
-            "proof-COMPLETION.pdf",null,null,null,"proof","GENERATED","ACTIVE",null,"1",time);
+            "proof-COMPLETION.pdf",null,null,null,"proof","GENERATED","ACTIVE",null,"1",time,null,null,null,null);
     }
     @Test void latestEffectiveLegacyPdfBecomesBaselineWithoutGeneratingFile() {
         certificate.setCode("proof");
