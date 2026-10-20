@@ -73,7 +73,6 @@ vi.mock('../satisfaction/CompletionCertificateSheet.vue', () => ({
   default: { render: () => null }
 }))
 vi.mock('../satisfaction/TemplatePanel.vue', () => ({ default: { render: () => null } }))
-vi.mock('../satisfaction/TaskPanel.vue', () => ({ default: { render: () => null } }))
 vi.mock('@/components/BusinessEntity/DeliveryPanel.vue', () => ({
   default: { render: () => null }
 }))

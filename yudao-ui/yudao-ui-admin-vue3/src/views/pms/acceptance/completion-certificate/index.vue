@@ -5,13 +5,12 @@
         <div><h2>满意度调查</h2><p>先完善完工证明，再发起调查，客户一次签字确认完工内容与服务评价。</p></div>
         <div class="heading-actions">
           <el-button v-if="!props.readonly" v-hasPermi="['pms:acc-completion-certificate:create']" type="primary" @click="openForm()"><Icon icon="ep:plus" />新增完工证明</el-button>
-          <el-dropdown trigger="click">
-            <el-button>配置与历史<Icon icon="ep:arrow-down" /></el-button>
+          <el-dropdown v-if="!props.readonly && checkPermi(['pms:acceptance:satisfaction:manage', 'pms:dynamic-form-template:query'])" trigger="click">
+            <el-button>配置<Icon icon="ep:arrow-down" /></el-button>
             <template #dropdown><el-dropdown-menu>
               <el-dropdown-item v-if="!props.readonly" v-hasPermi="['pms:acceptance:satisfaction:manage']" @click="questionnaireTemplatesVisible = true">问卷模板</el-dropdown-item>
               <el-dropdown-item v-if="!props.readonly" v-hasPermi="['pms:dynamic-form-template:query']" @click="printTemplates?.open()">完工证明打印模板</el-dropdown-item>
               <el-dropdown-item v-if="!props.readonly" v-hasPermi="['pms:dynamic-form-template:query']" @click="satisfactionTemplates?.open()">满意度打印模板</el-dropdown-item>
-              <el-dropdown-item divided @click="legacyVisible = true">历史独立调查（只读）</el-dropdown-item>
             </el-dropdown-menu></template>
           </el-dropdown>
         </div>
@@ -102,7 +101,6 @@
   </Dialog>
 
   <Dialog v-model="questionnaireTemplatesVisible" title="满意度问卷模板" width="min(1100px, 96vw)"><TemplatePanel v-if="questionnaireTemplatesVisible" /></Dialog>
-  <Dialog v-model="legacyVisible" title="历史独立调查（只读）" width="min(1100px, 96vw)"><TaskPanel v-if="legacyVisible" :project-id="props.projectId || query.projectId" readonly /></Dialog>
   <el-drawer v-model="detailVisible" title="完工证明与满意度调查" size="min(1000px, 96vw)">
     <el-skeleton v-if="detailLoading" :rows="10" animated aria-label="正在加载完工证明" />
     <el-result v-else-if="detailError" icon="error" title="记录加载失败"
@@ -209,7 +207,6 @@ import ConfirmationLinkDialog from './ConfirmationLinkDialog.vue'
 import ConfirmationRecordActions, { type ConfirmationRecordAction, type ConfirmationRecordPrint } from './ConfirmationRecordActions.vue'
 import QuestionnaireTable from '../satisfaction/QuestionnaireTable.vue'
 import TemplatePanel from '../satisfaction/TemplatePanel.vue'
-import TaskPanel from '../satisfaction/TaskPanel.vue'
 import CompletionCertificateForm from './CompletionCertificateForm.vue'
 import CompletionCertificateSheet from '../satisfaction/CompletionCertificateSheet.vue'
 import ConfirmationPrintTemplates from './ConfirmationPrintTemplates.vue'
@@ -267,7 +264,6 @@ const formRef = ref<InstanceType<typeof CompletionCertificateForm>>()
 const printTemplates = ref<InstanceType<typeof ConfirmationPrintTemplates>>()
 const satisfactionTemplates = ref<InstanceType<typeof ConfirmationPrintTemplates>>()
 const questionnaireTemplatesVisible = ref(false)
-const legacyVisible = ref(false)
 const historyIndex = ref('')
 const answersFor = (record: CompletionCertificateApi.CompletionSurveyVO) => Object.fromEntries((JSON.parse(record.answerSnapshot || '{"answers":[]}').answers as { questionCode: string; value: string | string[] }[]).map(item => [item.questionCode, item.value]))
 const printPreview = ref<InstanceType<typeof ConfirmationPrintPreview>>()
@@ -746,7 +742,6 @@ watch(
     detailVisible.value = false
     detail.value = undefined
     issueDialog.value?.close()
-    legacyVisible.value = false
     questionnaireTemplatesVisible.value = false
     printPreview.value?.close()
     satisfactionPreview.value?.close()
