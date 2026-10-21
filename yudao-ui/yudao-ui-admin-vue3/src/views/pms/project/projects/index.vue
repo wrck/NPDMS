@@ -1171,6 +1171,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useRouter } from 'vue-router'
 import { useMessage } from '@/hooks/web/useMessage'
+import { hasPermission } from '@/directives/permission/hasPermi'
 import { DICT_TYPE, getStrDictOptions, getDictLabel } from '@/utils/dict'
 import { dateFormatter, formatDate } from '@/utils/formatTime'
 import * as ProjectsApi from '@/api/pms/project/projects'
@@ -1555,18 +1556,17 @@ const removeSiteRow = (index: number) => {
   if (primarySiteIndex.value >= createForm.sites.length) primarySiteIndex.value = 0
 }
 
-const loadOrganizationAndSites = async () => {
-  const [companyList, deptList, sitePage] = await Promise.all([
+const loadOrganizations = async () => {
+  const [companyList, deptList] = await Promise.all([
     CompanyApi.getSimpleCompanyList(),
-    DeptApi.getSimpleDeptList(),
-    LocationApi.getSitePage({ pageNo: 1, pageSize: 100 })
+    DeptApi.getSimpleDeptList()
   ])
   companies.value = companyList || []
   departments.value = deptList || []
-  availableSites.value = sitePage.list || []
 }
 
-const openWizard = () => {
+const openWizard = async () => {
+  if (!hasPermission(['pms:project:create'])) return
   wizardStep.value = 0
   Object.assign(createForm, {
     projectName: '',
@@ -1590,7 +1590,12 @@ const openWizard = () => {
   matchResult.value = null
   createErrorMessage.value = ''
   createIdempotency.reset()
+  availableSites.value = []
   wizardVisible.value = true
+  if (hasPermission(['pms:asset-location:query'])) {
+    const sitePage = await LocationApi.getSitePage({ pageNo: 1, pageSize: 100 })
+    availableSites.value = sitePage.list || []
+  }
 }
 
 const wizardNext0 = async () => {
@@ -1853,7 +1858,7 @@ const submitEdit = async () => {
 onMounted(() => {
   loadStats()
   load()
-  loadOrganizationAndSites()
+  loadOrganizations()
   UserApi.getSimpleUserList()
     .then((list) => (userOptions.value = list || []))
     .catch(() => {

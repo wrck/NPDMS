@@ -249,11 +249,14 @@ const saving = ref(false)
 const rows = ref<ConfigurationVO[]>([])
 const debuggerUsersError = ref('')
 const userStore = useUserStore()
-const queryDebuggerUsers = async (params: PageParam) => {
+const queryDebuggerUsers = async (params: PageParam & { nickname?: string }) => {
   try {
-    const result = await UserApi.getUserPage(params)
+    const users = await UserApi.getSimpleUserList()
+    const keyword = params.nickname?.trim().toLocaleLowerCase() || ''
+    const matches = users.filter((user) => user.nickname?.toLocaleLowerCase().includes(keyword))
+    const start = (params.pageNo - 1) * params.pageSize
     debuggerUsersError.value = ''
-    return result
+    return { list: matches.slice(start, start + params.pageSize), total: matches.length }
   } catch {
     debuggerUsersError.value = '其他人员暂时无法查询，可选择本人或保留已选人员；查询其他人员请重试或确认权限。'
     const self = userStore.getUser
@@ -317,7 +320,7 @@ const openForm = (row?: ConfigurationVO) => {
     projectId: props.projectId ?? 0,
     equipmentId: undefined,
     debugResult: '',
-    debuggerUserId: undefined,
+    debuggerUserId: row ? row.debuggerUserId : userStore.getUser.id,
     debugTime: undefined,
     remark: '',
     version: undefined,

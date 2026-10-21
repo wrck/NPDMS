@@ -6,7 +6,7 @@ import { mount, passthrough, tableColumn, type TestNode } from '@/views/pms/plat
 const api = vi.hoisted(() => ({ users: vi.fn(), page: vi.fn(), create: vi.fn(), update: vi.fn() }))
 vi.mock('@/store/modules/user', () => ({ useUserStore: () => ({ getUser: { id: 3, nickname: 'Self' } }) }))
 vi.mock('@/utils/permission', () => ({ checkPermi: (permissions: string[]) => !permissions.includes('system:user:query') }))
-vi.mock('@/api/system/user', () => ({ getUserPage: api.users }))
+vi.mock('@/api/system/user', () => ({ getSimpleUserList: api.users }))
 vi.mock('@/api/pms/engineering/configuration', () => ({ getConfigurationPage: api.page, createConfiguration: api.create, updateConfiguration: api.update }))
 vi.mock('@/api/pms/project/projects', () => ({ getProjectPage: vi.fn() }))
 vi.mock('@/api/pms/asset/device-log-archive', () => ({ download: vi.fn() }))
@@ -36,7 +36,7 @@ const render = () => {
   return { ...view, state: (view.vm as any).$.setupState }
 }
 const debuggerPicker = (root: TestNode) => nodes(root, 'entity-picker').find(node => node.props?.placeholder === '请选择调试人员')!
-beforeEach(() => { vi.resetAllMocks(); api.page.mockResolvedValue({ list: [], total: 0 }); api.users.mockResolvedValue({ list: [{ id: 3, nickname: 'Self' }], total: 1 }) })
+beforeEach(() => { vi.resetAllMocks(); api.page.mockResolvedValue({ list: [], total: 0 }); api.users.mockResolvedValue([{ id: 3, nickname: 'Self' }]) })
 afterEach(() => apps.splice(0).forEach(app => app.unmount()))
 
 it('queries the authorized user API despite a missing menu permission snapshot and saves the selected Self user', async () => {
@@ -45,8 +45,8 @@ it('queries the authorized user API despite a missing menu permission snapshot a
   expect(select).toBeDefined()
   const params = { pageNo: 1, pageSize: 20, nickname: 'Self' }
   await expect((select.props!.api as Function)(params)).resolves.toEqual({ list: [{ id: 3, nickname: 'Self' }], total: 1 })
-  expect(api.users).toHaveBeenCalledWith(params)
-  ;(select.props!.select as Function)(3)
+  expect(api.users).toHaveBeenCalledWith()
+  expect(select.props!.modelValue).toBe(3)
   Object.assign(view.state.form, { equipmentId: '123', code: 'CFG-USERS' })
   await view.state.save()
   expect(api.create).toHaveBeenCalledWith(expect.objectContaining({ debuggerUserId: 3, projectId: 1 }))
@@ -96,4 +96,21 @@ it('retains an existing non-Self debugger after personnel query failure', async 
   expect(view.state.form.debuggerUserId).toBe(9)
   await view.state.save()
   expect(api.update).toHaveBeenCalledWith(expect.objectContaining({ debuggerUserId: 9 }))
+})
+
+it('filters and pages the simple user list for the personnel picker', async () => {
+  api.users.mockResolvedValue([{ id: 3, nickname: 'Self' }, { id: 9, nickname: 'Other' }])
+  const view = render(); view.state.openForm(); await flush()
+  const query = debuggerPicker(view.root).props!.api as Function
+  await expect(query({ pageNo: 1, pageSize: 1, nickname: 'o' })).resolves.toEqual({ list: [{ id: 9, nickname: 'Other' }], total: 1 })
+  await expect(query({ pageNo: 2, pageSize: 1 })).resolves.toEqual({ list: [{ id: 9, nickname: 'Other' }], total: 2 })
+  await expect(query({ pageNo: 1, pageSize: 20, nickname: 'missing' })).resolves.toEqual({ list: [], total: 0 })
+})
+
+it('preserves an empty historical debugger and resets a new form to Self', async () => {
+  const view = render()
+  view.state.openForm({ id: 8, projectId: 1, status: 0, version: 3 }); await flush()
+  expect(view.state.form.debuggerUserId).toBeUndefined()
+  view.state.openForm(); await flush()
+  expect(view.state.form.debuggerUserId).toBe(3)
 })
