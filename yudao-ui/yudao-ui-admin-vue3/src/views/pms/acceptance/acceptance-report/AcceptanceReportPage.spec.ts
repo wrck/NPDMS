@@ -36,7 +36,7 @@ describe('F-ACC-001 acceptance report page contract', () => {
   })
 
   it('renders server states and responsive layouts without inventing business results', () => {
-    const sources = [read('./index.vue'), read('./detail.vue'), read('./ReportDraftEditor.vue')]
+    const sources = [read('./index.vue'), read('./detail.vue'), read('./ReportDraftEditor.vue'), read('./AcceptanceReportForm.vue')]
     expect(sources.join('\n')).toContain('PENDING_COMPENSATION')
     expect(sources.join('\n')).toContain('DRAFT')
     expect(sources.join('\n')).toContain('EFFECTIVE')

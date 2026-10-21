@@ -27,6 +27,7 @@ export interface BusinessViewResolvedContext {
   instanceId?: BusinessViewId
   businessObjectId?: BusinessViewId
   taskId?: BusinessViewId
+  taskCode?: string
   stageExecution?: StageExecutionContext
   stageCode?: string
   taskExecution?: TaskExecutionContext
@@ -163,7 +164,9 @@ const adapters: readonly Adapter[] = [
       registration.dynamicFormRevisionId == null &&
       positiveId(resolvedContext.project?.id) &&
       (resolvedContext.businessObjectId == null || positiveId(resolvedContext.businessObjectId))
-        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId }
+        ? { projectId: resolvedContext.project.id, objectId: resolvedContext.businessObjectId,
+          acceptanceType: resolvedContext.taskCode === 'ACCEPT_INITIAL' ? 'PRELIMINARY'
+            : resolvedContext.taskCode === 'ACCEPT_FINAL' ? 'FINAL' : undefined }
         : undefined
   },
   {
@@ -288,9 +291,9 @@ export const resolveBusinessView = (target: BusinessViewTarget) => {
     props: {
       ...context,
       readonly,
-      // Pending arrival tasks retain authorized reads in the embedded Owner panel.
+      // Readonly arrival/report tasks retain authorized reads in their embedded Owner panels.
       allowedActions: readonly
-        ? adapter.component === ProjectArrivalReceiptPanel && registration.status === 'PUBLISHED'
+        ? (adapter.component === ProjectArrivalReceiptPanel || adapter.component === AcceptanceReportPage) && registration.status === 'PUBLISHED'
           ? (target.allowedActions || []).filter((action) => action === 'QUERY') : []
         : [...(target.allowedActions || [])]
     }

@@ -1,40 +1,23 @@
 <template>
-  <el-drawer v-model="visible" :before-close="beforeClose" :title="activity ? `${typeLabel(activity.acceptanceType)}报告` : '验收报告'" :size="narrow ? '100%' : '720px'">
+  <Dialog :model-value="visible" :before-close="beforeClose" :title="activity ? `查看${typeLabel(activity.acceptanceType)}报告` : '查看验收报告'" width="min(640px, 95vw)" @update:model-value="onVisibilityChange">
     <el-skeleton v-if="loading" :rows="6" animated />
     <el-alert v-else-if="errorText" :title="errorText" type="error" :closable="false" />
-    <template v-else-if="activity">
-      <div class="detail-heading">
-        <div><h2>{{ typeLabel(activity.acceptanceType) }}交付件</h2></div>
-        <el-tag :type="activity.activityStatus === 'COMPLETED' ? 'success' : 'warning'">{{ activityStatusLabel(activity.activityStatus) }}</el-tag>
-      </div>
-      <el-descriptions :column="narrow ? 1 : 2" border class="facts">
-        <el-descriptions-item label="项目ID">{{ activity.projectId }}</el-descriptions-item>
-        <el-descriptions-item label="创建来源">{{ activity.originKind === 'DIRECT' ? '项目独立验收' : `任务 #${activity.projectTaskId}` }}</el-descriptions-item>
-        <el-descriptions-item label="活动版本">{{ activity.version }}</el-descriptions-item>
-        <el-descriptions-item label="当前报告">{{ current ? `V${current.reportVersionNo}` : '尚无有效版本' }}</el-descriptions-item>
-      </el-descriptions>
-      <el-alert v-if="current?.archiveStatus === 'PENDING_COMPENSATION'" title="报告已生效，交付件归档待补偿；历史下载保持可用" type="warning" show-icon :closable="false" />
-      <el-empty v-else-if="!current" description="尚未上传交付件" />
-      <section v-else class="current-report" aria-labelledby="current-report-title">
-        <div class="section-title"><h3 id="current-report-title">当前有效报告 V{{ current.reportVersionNo }}</h3><el-tag type="success">EFFECTIVE</el-tag></div>
-        <p v-if="current.conclusionCode">结论：{{ current.conclusionCode === 'PASS' ? '通过' : current.conclusionCode }}<span v-if="current.conclusionText"> · {{ current.conclusionText }}</span></p>
-        <div class="current-meta"><span>{{ current.conclusionCode ? `验收人：${current.acceptorName}` : `操作人：${current.uploaderUserId}` }}</span><span>验收时间：{{ current.acceptanceTime == null ? '未填写' : formatDate(new Date(current.acceptanceTime)) }}</span><span>附件：{{ current.attachments.length }}</span></div>
-      </section>
+    <AcceptanceReportForm v-else-if="activity" readonly :operator-name="recordedOperator" :completion-time="current?.acceptanceTime" :reports="fileReports" />
+    <template #footer>
       <div class="detail-actions">
-        <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ current ? '替换交付件' : '上传交付件' }}</el-button>
+        <el-button :disabled="isDirty()" @click="close">关闭</el-button>
         <el-button v-if="versions.length" v-hasPermi="['pms:acceptance:report:query']" @click="openHistory">查看版本历史</el-button>
+        <el-button v-if="canWrite('UPDATE')" type="primary" v-hasPermi="['pms:acceptance:report:write']" @click="openEditor">{{ draft ? '继续上传并保存' : '编辑' }}</el-button>
         <el-button v-if="current && canWrite('REVOKE')" type="danger" plain v-hasPermi="['pms:acceptance:report:write']" @click="revoke">撤销当前版本</el-button>
       </div>
     </template>
-  </el-drawer>
+  </Dialog>
   <ReportDraftEditor ref="editorRef" :readonly="readonly || !activityAllowsReportWrite(activity)" :allowed-actions="allowedActions" @changed="reload" @dirty-change="emit('dirty-change', $event)" />
   <ReportVersionHistoryDrawer ref="historyRef" :allowed-actions="allowedActions" />
 </template>
 <script setup lang="ts">
 import { generateUUID } from '@/utils'
 import { activityAllowsReportWrite } from './reportState'
-import { formatDate } from '@/utils/formatTime'
-import { useMediaQuery } from '@vueuse/core'
 import { useMessage } from '@/hooks/web/useMessage'
 import { checkPermi } from '@/utils/permission'
 import { isBusinessViewId, legacyOwnerId, sameBusinessViewId, type BusinessViewId } from '@/api/pms/platform/business-view/ids'
@@ -44,12 +27,12 @@ import { useOperationClient } from '@/components/BusinessView/operationHost'
 import type { OperationClient } from '@/components/BusinessView/operationClient'
 import ReportDraftEditor from './ReportDraftEditor.vue'
 import ReportVersionHistoryDrawer from './ReportVersionHistoryDrawer.vue'
+import AcceptanceReportForm from './AcceptanceReportForm.vue'
 const props = defineProps<{ readonly?: boolean; allowedActions?: string[] }>()
 const emit = defineEmits<{ changed: []; 'dirty-change': [value: boolean] }>()
 const executionClient = useOperationClient()
 let openedClient: OperationClient | undefined
 const message = useMessage()
-const narrow = useMediaQuery('(width <= 767px)')
 const visible = ref(false)
 const loading = ref(false)
 const errorText = ref('')
@@ -60,6 +43,11 @@ const historyRef = ref<InstanceType<typeof ReportVersionHistoryDrawer>>()
 const revokeKey = ref(generateUUID())
 const current = computed(() => versions.value.find(item => item.reportStatus === 'EFFECTIVE'))
 const draft = computed(() => versions.value.find(item => item.reportStatus === 'DRAFT'))
+const fileReports = computed(() => [current.value, draft.value].filter((report): report is AcceptanceReportVersionVO => !!report))
+const recordedOperator = computed(() => {
+  const report = current.value ?? draft.value
+  return report?.acceptorName || (report?.uploaderUserId == null ? undefined : String(report.uploaderUserId))
+})
 let sequence = 0
 let openSequence = 0
 let expectedProject: BusinessViewId | undefined
@@ -77,6 +65,8 @@ const discardChanges = () => {
   return true
 }
 const beforeClose = async (done: () => void) => { if (await requestLeave()) { if (discardChanges()) done() } }
+const close = async () => { if (await requestLeave()) discardChanges() }
+const onVisibilityChange = (value: boolean) => { if (!value && visible.value) void close() }
 const open = async (id: BusinessViewId, projectId?: BusinessViewId, upload = false) => {
   const opening = ++openSequence
   if (!isBusinessViewId(id) || (projectId !== undefined && !isBusinessViewId(projectId)) || !canQuery()) return false
@@ -108,7 +98,9 @@ const load = async (id: BusinessViewId, show = false) => {
 const reload = async () => { emit('changed'); if (activity.value && canQuery()) await load(activity.value.id) }
 const openEditor = async () => {
   if (!visible.value || !activity.value || !canWrite('UPDATE') || revoking.value) return false
-  return await editorRef.value?.open(activity.value, draft.value)
+  const opened = await editorRef.value?.open(activity.value, draft.value)
+  if (opened) visible.value = false
+  return opened
 }
 const openHistory = () => { if (activity.value && canQuery()) void historyRef.value?.open(activity.value.id) }
 const revoke = async () => {
@@ -126,17 +118,9 @@ const revoke = async () => {
 }
 onBeforeUnmount(() => { sequence++; openSequence++ })
 const typeLabel = (type: string) => (type === 'FINAL' ? '终验' : '初验')
-const activityStatusLabel = (status: string) => ({ PENDING: '待完成', COMPLETED: '已完成' } as Record<string, string>)[status] || status
 defineExpose({ open, requestLeave, discardChanges, isDirty })
 </script>
 <style scoped lang="scss">
-.detail-heading, .section-title, .current-meta, .detail-actions { display: flex; align-items: center; gap: 12px; }
-.detail-heading { align-items: flex-start; justify-content: space-between; }
-.detail-heading h2, .section-title h3 { margin: 0; color: var(--el-text-color-primary); }
-.detail-heading h2 { font-size: 20px; }.section-title h3 { font-size: 16px; }
-.facts, .current-report, .detail-actions { margin-top: 16px; }
-.current-report { padding: 16px; border: 1px solid var(--el-border-color-lighter); border-radius: var(--el-border-radius-base); }
-.current-meta { flex-wrap: wrap; font-size: 13px; color: var(--el-text-color-secondary); }
-.detail-actions { flex-wrap: wrap; }
-@media (width <= 767px) { .detail-heading, .detail-actions { align-items: stretch; flex-direction: column; } .detail-actions .el-button { width: 100%; margin-left: 0; } }
+.detail-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+@media (width <= 767px) { .detail-actions { align-items: stretch; flex-direction: column; } .detail-actions .el-button { width: 100%; margin-left: 0; } }
 </style>

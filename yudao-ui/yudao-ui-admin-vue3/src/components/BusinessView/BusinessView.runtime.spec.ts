@@ -856,3 +856,25 @@ describe('Satisfaction entity binding', () => {
       query: { projectId: '99' } } } as never).error).toBeTruthy()
   })
 })
+
+it('keeps only explicitly authorized report reads after task completion and never enables a disabled view', () => {
+  const source = target('PAGE')
+  Object.assign(source.registration, businessPageRoutes.ACC_ACCEPTANCE_REPORT)
+  source.resolvedContext = { project: { id: 7 }, businessObjectId: '12' }
+  source.readonly = true
+  source.allowedActions = ['QUERY', 'UPDATE', 'PUBLISH', 'FILE_WRITE']
+  expect(resolveBusinessView(source).props).toMatchObject({ projectId: 7, objectId: '12', readonly: true, allowedActions: ['QUERY'] })
+  source.allowedActions = ['UPDATE']
+  expect(resolveBusinessView(source).props?.allowedActions).toEqual([])
+  source.allowedActions = ['QUERY']
+  source.registration.status = 'DISABLED'
+  expect(resolveBusinessView(source).props?.allowedActions).toEqual([])
+})
+
+it.each([['ACCEPT_INITIAL', 'PRELIMINARY'], ['ACCEPT_FINAL', 'FINAL']])('passes the current %s task type to its report list without depending on a report already existing', (taskCode, acceptanceType) => {
+  const source = target('PAGE')
+  Object.assign(source.registration, businessPageRoutes.ACC_ACCEPTANCE_REPORT)
+  source.resolvedContext = { project: { id: 7 }, taskCode }
+  source.allowedActions = ['QUERY']
+  expect(resolveBusinessView(source).props).toMatchObject({ projectId: 7, acceptanceType })
+})
