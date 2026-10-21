@@ -97,6 +97,9 @@ class CutoverPlanSubmissionTest {
 
         injectStorage(service, plan, facts.snapshot());
         org.springframework.test.util.ReflectionTestUtils.setField(service, "generatedFiles", new CutoverPlanGeneratedFiles(generatedMapper));
+        var documentAttachments = mock(CutoverPlanDocumentAttachments.class);
+        when(documentAttachments.usesCurrentRendering(any())).thenReturn(true);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "documentAttachments", documentAttachments);
         if (boundRows == 0) {
             org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
                     new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-stale", "corr-download-stale")))
@@ -131,11 +134,18 @@ class CutoverPlanSubmissionTest {
         assertThat(repeated).isEqualTo(result);
         verify(filePort, times(1)).downloadDraft(any());
         verify(generatedMapper, times(1)).insertIfCurrentDraft(any());
+        when(documentAttachments.usesCurrentRendering(any())).thenReturn(false);
+        var upgraded = service.downloadDraft(new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-images", "corr-download-images"));
+        assertThat(upgraded.planVersion()).isEqualTo(result.planVersion());
+        var records = org.mockito.ArgumentCaptor.forClass(cn.iocoder.yudao.module.pms.cutover.dal.dataobject.plan.CutoverPlanGeneratedFileDO.class);
+        verify(generatedMapper, times(2)).insertIfCurrentDraft(records.capture());
+        assertThat(records.getAllValues().get(0).getId()).isNotEqualTo(records.getAllValues().get(1).getId());
+        verify(filePort, times(2)).downloadDraft(any());
         when(filePort.inspect(any())).thenReturn(null);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadDraft(
                 new DownloadCutoverPlanDraftCommand(1L, 8L, 50L, 3L, "download-unavailable", "corr-download-unavailable")))
                 .isInstanceOf(CutoverPlanApplicationException.class);
-        verify(filePort, times(1)).downloadDraft(any());
+        verify(filePort, times(2)).downloadDraft(any());
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -289,6 +299,9 @@ class CutoverPlanSubmissionTest {
         var storage = mock(CutoverPlanStorage.class);
         var body = JsonUtils.getObjectMapper().createObjectNode(); body.put("editMode", "ONLINE_TEMPLATE_SIMPLE_D"); body.put("scheduledTime", 1793498400000L);
         when(storage.source(plan)).thenReturn(source); when(storage.content(plan)).thenReturn(body);
+        var prefill = mock(CutoverPlanSurveyPrefill.class);
+        when(prefill.fill(any())).thenAnswer(invocation -> ((CutoverPlanSurveyPrefill.Query) invocation.getArgument(0)).content());
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "surveyPrefill", prefill);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
     }
 

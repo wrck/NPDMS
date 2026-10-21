@@ -1,13 +1,13 @@
 <template>
-  <section v-loading="loading" class="cut-card" aria-labelledby="cutover-project-context-title">
-    <header class="cut-card__header"><h3 id="cutover-project-context-title"><Icon icon="ep:location" />项目信息</h3><small>{{ sourceLabel }}带入</small></header>
+  <details open v-loading="loading" class="cut-card" aria-labelledby="cutover-project-context-title">
+    <summary class="cut-card__header"><h3 id="cutover-project-context-title"><Icon icon="ep:location" />项目信息</h3><small>{{ sourceLabel }}带入</small></summary>
     <div class="cut-card__body">
       <div class="cut-form-grid">
         <div v-for="field in fields" :key="field.label" class="cut-form-field"><label>{{ field.label }}</label><span class="cut-form-value">{{ field.value || '—' }}</span></div>
       </div>
       <p v-if="errorText" role="status" class="context-error">{{ errorText }}</p>
     </div>
-  </section>
+  </details>
 </template>
 <script setup lang="ts">
 import { getProject, getProjectMembers, type ProjectMasterVO, type ProjectMemberAssignmentVO } from '@/api/pms/project/projects'

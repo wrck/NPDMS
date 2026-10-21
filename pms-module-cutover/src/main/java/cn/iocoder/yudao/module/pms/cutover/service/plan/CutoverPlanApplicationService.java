@@ -110,6 +110,10 @@ public class CutoverPlanApplicationService {
     private CutoverPlanStorage storage;
     @jakarta.annotation.Resource
     private CutoverPlanGeneratedFiles generatedFiles;
+    @jakarta.annotation.Resource
+    private CutoverPlanDocumentAttachments documentAttachments;
+    @jakarta.annotation.Resource
+    private CutoverPlanSurveyPrefill surveyPrefill;
 
     public CutoverPlanApplicationService(CutoverTaskMapper taskMapper, CutoverPlanRevisionMapper planMapper,
                                          CutoverPlanStepMapper stepMapper,
@@ -390,10 +394,12 @@ public class CutoverPlanApplicationService {
                 command.tenantId(), plan.getId(), plan.getVersion()));
         if (existing != null) {
             var available = fileCall(() -> filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
-                    .tenantId(command.tenantId()).actorId(command.actorId()).projectId(task.getProjectId())
+                    .tenantId(command.tenantId()).actorId(command.actorId()).projectId(task.getProjectId()).taskId(command.taskId())
                     .handle(existing.fileArtifactFact().handle()).build()));
             if (available == null) throw fileOwnerCorrupted("PLT未返回初稿文件事实");
-            return new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), available, existing.downloadedAt());
+            if (documentAttachments.usesCurrentRendering(new CutoverPlanDocumentAttachments.GeneratedQuery(task.getId(), available))) {
+                return new DownloadCutoverPlanDraftResult(plan.getId(), plan.getVersion(), available, existing.downloadedAt());
+            }
         }
         CutoverPlanFilePort.FileFact file = fileCall(() -> filePort.downloadDraft(CutoverPlanFilePort.DraftQuery.builder()
                 .tenantId(command.tenantId())
@@ -593,6 +599,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanChildrenQuery children = new CutoverPlanChildrenQuery(command.tenantId(), plan.getId());
         stepMapper.selectListByPlanForUpdate(children);
         List<CutoverSupportArrangementDO> existingSupport = supportMapper.selectListByPlanForUpdate(children);
+        decoded = surveyPrefill.fill(new CutoverPlanSurveyPrefill.Query(command, task, plan, expectedFacts, decoded));
         LocalDateTime now = LocalDateTime.now(clock);
         contacts.validate(new cn.iocoder.yudao.module.pms.customer.api.contact.ProjectContactReferenceApi.Query(command.tenantId(), command.actorId(), task.getProjectId()), decoded, false);
         Long newVersion = command.expectedPlanVersion() + 1;
@@ -765,7 +772,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanFilePort.FileFact actual = fileCall(() -> filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(command.tenantId())
                 .actorId(command.actorId())
-                .projectId(task.getProjectId())
+                .projectId(task.getProjectId()).taskId(command.taskId())
                 .handle(command.expectedFileFact().handle())
                 .build()));
         if (actual == null) throw fileOwnerCorrupted("PLT返回空文件事实");
@@ -779,7 +786,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanFilePort.FileFact actual = fileCall(() -> filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(command.tenantId())
                 .actorId(command.actorId())
-                .projectId(task.getProjectId())
+                .projectId(task.getProjectId()).taskId(command.taskId())
                 .handle(decoded.fileFact().handle())
                 .build()));
         if (actual == null) throw fileOwnerCorrupted("PLT返回空文件事实");
@@ -793,7 +800,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanFilePort.FileFact locked = fileCall(() -> filePort.lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(command.tenantId())
                 .actorId(command.actorId())
-                .projectId(task.getProjectId())
+                .projectId(task.getProjectId()).taskId(command.taskId())
                 .handle(inspected.handle())
                 .build()));
         if (locked == null) throw fileOwnerCorrupted("PLT返回空文件事实");
@@ -808,7 +815,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanFilePort.FileFact locked = fileCall(() -> filePort.lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(command.tenantId())
                 .actorId(command.actorId())
-                .projectId(task.getProjectId())
+                .projectId(task.getProjectId()).taskId(command.taskId())
                 .handle(decoded.fileFact().handle())
                 .build()));
         if (locked == null) throw fileOwnerCorrupted("PLT返回空文件事实");
@@ -1153,7 +1160,7 @@ public class CutoverPlanApplicationService {
         CutoverPlanFilePort.FileFact current = fileCall(() -> filePort.lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(tenantId)
                 .actorId(actorId)
-                .projectId(projectId)
+                .projectId(projectId).taskId(command.taskId())
                 .handle(expected.handle())
                 .build()));
         if (current == null) throw fileOwnerCorrupted("PLT返回空文件事实");

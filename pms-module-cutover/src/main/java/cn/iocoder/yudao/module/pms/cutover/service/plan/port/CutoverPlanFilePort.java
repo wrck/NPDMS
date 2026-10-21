@@ -10,7 +10,7 @@ public interface CutoverPlanFilePort {
     FileFact downloadDraft(CutoverPlanFilePort.DraftQuery query);
 
     @Builder
-    record FileQuery(Long tenantId, Long actorId, Long projectId, FileHandle handle) { }
+    record FileQuery(Long tenantId, Long actorId, Long projectId, Long taskId, FileHandle handle) { }
     @Builder
     record DraftQuery(Long tenantId, Long actorId, Long projectId, Long planRevisionId) { }
 

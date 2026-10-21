@@ -1,6 +1,6 @@
 <template>
-  <section v-loading="loading" class="cut-card" aria-labelledby="cutover-devices-title" data-testid="cutover-task-devices">
-    <header class="cut-card__header"><h3 id="cutover-devices-title"><Icon icon="ep:monitor" />设备序列号表</h3><small>创建后设备范围只读</small></header>
+  <details open v-loading="loading" class="cut-card" aria-labelledby="cutover-devices-title" data-testid="cutover-task-devices">
+    <summary class="cut-card__header"><h3 id="cutover-devices-title"><Icon icon="ep:monitor" />设备序列号表</h3><small>创建后设备范围只读</small></summary>
     <div class="cut-card__body">
       <el-table :data="rows" row-key="deviceId" empty-text="暂无设备">
         <el-table-column type="index" label="序号" width="65" />
@@ -11,7 +11,7 @@
       </el-table>
       <p v-if="errorText" role="status" class="cut-help">{{ errorText }}</p>
     </div>
-  </section>
+  </details>
 </template>
 <script setup lang="ts">
 import { getDevice, type DeviceDetailVO } from '@/api/pms/asset/device'

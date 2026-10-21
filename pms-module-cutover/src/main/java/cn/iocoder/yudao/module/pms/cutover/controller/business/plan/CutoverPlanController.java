@@ -49,6 +49,20 @@ public class CutoverPlanController {
         return success(CutoverPlanResponses.View.from(view(trusted, taskId)));
     }
 
+    @GetMapping("/submitted-file")
+    @PreAuthorize("@ss.hasPermission('pms:cutover-task:download-plan')")
+    public ResponseEntity<byte[]> downloadSubmitted(@PathVariable Long taskId, @RequestHeader HttpHeaders headers) {
+        var trusted = trusted(taskId);
+        var result = queryService.downloadSubmitted(new CutoverPlanQueryService.SubmittedDownloadQuery(trusted, taskId,
+                codec.version(CutoverRequestHeaders.value(headers, "If-Match"), "If-Match")));
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store")
+                .header("X-Content-Type-Options", "nosniff")
+                .header(HttpHeaders.CONTENT_DISPOSITION, org.springframework.http.ContentDisposition.attachment()
+                        .filename(result.fileName(), java.nio.charset.StandardCharsets.UTF_8).build().toString())
+                .contentType(org.springframework.http.MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .body(result.content());
+    }
+
     @PostMapping("/actions/create-draft")
     @PreAuthorize("@ss.hasPermission('pms:cutover-task:save-plan')")
     public CommonResult<CutoverPlanResponses.View> createDraft(@PathVariable Long taskId,

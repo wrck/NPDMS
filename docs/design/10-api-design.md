@@ -327,6 +327,10 @@ PROJ继续拥有任务命令，ACC拥有验收业务命令与事实。修订018�
 
 方案 GET 的 `generatedDraft` 返回当前已保存正文对应的生成文件精确引用和生成时间（未生成时为 null），结构沿用 `DownloadCutoverPlanDraftResult`。生成成功同事务保存引用，不推进方案版本或审批状态；保存新正文后按新正文版本查询，无对应生成记录时返回 null；旧生成记录、平台文件及审计保留。重开页面恢复该事实，文件展示与下载仍走 PLT 的实时授权和可用性校验。
 
+在线方案渲染将拓扑/组网配置中的PNG、JPEG通过PLT `AuthenticatedFileContentApi`按原工件版本和正式DOWNLOAD权限有界读取（沿用50MiB平台上限），验证Owner完整业务键及原摘要后内嵌DOCX；非图片保留名称/版本引用。草稿生成与提交后导出使用同一附件解析器和渲染器。生成DOCX记录内部渲染格式属性；再次生成检查该属性，旧格式仅追加新生成引用，不修改旧文件、审计或正文版本，新的生成操作身份包含渲染格式以避免复用旧的幂等文件。前端“生成并下载”始终由后端确认格式，文件卡片仍可读取其精确历史版本。只读导出无业务写入，但图片读取需在普通事务中完成PLT既有文件授权锁定，不设置数据库只读事务。
+
+已提交在线方案下载使用 `GET /api/v1/pms/cutover-tasks/{taskId}/plan/submitted-file`，要求 `pms:cutover-task:download-plan`、既有任务可见范围及 `If-Match` 当前方案版本。返回DOCX附件（`Cache-Control: no-store`）；只读取已提交方案原始正文、步骤和保障安排，复用既有方案渲染器，不创建平台文件、不推进版本或审批状态，不重验后续变化的项目成员或前序提交条件。上传方案仍以冻结的工件和版本走PLT下载；草稿生成接口保持原契约。
+
 以上为真实物理前缀`/api/v1/pms`下的割接资源，不再叠加`/admin-api`。割接路径接入既有身份、租户、权限及访问日志链；其他模块的路径行为保持既有契约。HTTP响应由割接VO显式投影，Long和时间沿用Yudao序列化，错误携带稳定reasonCode/recoveryAction；版本冲突刷新，未确定结果以同一幂等键及原始载荷重试，刷新失败时暂停后续写入。旧任务、方案、风险接口已退役，不提供兼容读写入口。
 
 2026-10-15已确认的主动修订合同见`Q-CUTOVER-ACTIVE-REVISION-20261015`。`WITHDRAWN`为审批终止事实，单独保存撤回人、时间、原因；原已办意见及来源修订保持不变。重新提交创建新审批实例，沿方案来源修订找到前序审批并建立替代关系。修订失败时评估、清单、方案、审批和任务阶段在同一事务回滚；重复命令返回首次结果。
@@ -1140,10 +1144,15 @@ PROJ 复用 `actions/reopen` 命令与 `proj_project_stage_snapshot` 的 REOPEN 
 
 完整任务附件READ/PREVIEW/DOWNLOAD复用PLT业务引用校验及CUT逐次读取/锁定授权，保持精确工件、文件版本、引用和可用性校验；不授予文件写权限。历史审批及来源快照不回写。已实际办理人员的原审批FULL投影延续只读访问，不能因历史参与而重新办理已结束节点。
 
+
 ### 2026-10-20 受控Word方案在线预览（需求方批准保留分页、图片和版式）
 
 公共文件查询为可用Word版本投影PREVIEW动作。新增POST `/api/v1/pms/files/{artifactId}/preview-content`，使用原文件访问请求体（versionNo/operationCode=PREVIEW/ownerContext/objectType/objectId/purposeCode/referenceKey），须具备pms:file:preview且通过Owner精确版本读取、锁定及当前可用性校验。服务器有界读取不超过原50MiB平台上限；Word由本机LibreOffice无界面转换为PDF，原生PDF/图片/文本原样返回受控内容，转换不登记新工件/版本、不修改原件，不调用公共Office在线服务。每次转换独立临时目录及用户配置，禁用宏和链接更新，超时/失败关闭并清理；返回前重新校验授权。响应Content-Type对应派生内容、Cache-Control:no-store、nosniff，成功/失败追加FILE_PREVIEW审计；不公开存储位置或凭据。已有下载及原生格式短时访问票据保持原契约。CUT只接入既有公共文件组件，不实现独立方案预览页。
 
+
+### 割接方案复用调研附件（2026-10-20）
+
+PLT既有内部`FileArtifactApi.attachExistingVersions`增加受支持目标`CUT/CUTOVER_PLAN/FULL_PLAN`，保持UUID引用键、精确源版本重验、源不可变/目标可变策略、类型/大小、范围权限与同事务审计。CUT方案文件策略允许既有清单证据类别作为方案引用来源；不增加上传权限或匿名访问。方案保存仅从其冻结清单ID/版本中的现网拓扑绑定到空的割接前拓扑，源引用不改写。方案文件消费必须按当前任务完整业务键查询，不能将同一工件的最早引用当作唯一归属；公开文件接口及响应结构不变。
 
 ### 本机 DAC 服务发现（2026-10-21）
 

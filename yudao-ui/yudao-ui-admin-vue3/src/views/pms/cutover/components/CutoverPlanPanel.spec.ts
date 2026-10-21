@@ -6,7 +6,7 @@ import type { StandardCutoverPlanContent } from '@/api/pms/cutover'
 
 const api = vi.hoisted(() => ({ getCutoverPlan: vi.fn(), saveCutoverPlanDraft: vi.fn() }))
 vi.mock('@/api/pms/cutover', () => api)
-vi.mock('@/api/pms/platform/file/version-reference', () => ({}))
+vi.mock('@/api/pms/platform/file/version-reference', () => ({ getCurrentReference: vi.fn(async () => null) }))
 vi.mock('@/hooks/web/useMessage', () => ({ useMessage: () => ({ success: vi.fn(), warning: vi.fn() }) }))
 vi.mock('@/components/PmsFileArtifact', () => ({ PmsFileUploader: defineComponent({ render: () => null }) }))
 vi.mock('@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue', () => ({ default: defineComponent({

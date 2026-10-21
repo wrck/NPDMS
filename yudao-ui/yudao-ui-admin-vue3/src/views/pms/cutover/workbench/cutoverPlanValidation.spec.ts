@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { StandardCutoverPlanContent, CutoverPlanSupportArrangement } from '@/api/pms/cutover'
-import { planSupportValidationMessage } from '../shared/cutoverPlanValidation'
+import { focusPlanSupportValidation, planSupportValidationMessage } from '../shared/cutoverPlanValidation'
 
 const content = (supportArrangements: CutoverPlanSupportArrangement[]): StandardCutoverPlanContent => ({
   editMode: 'ONLINE_TEMPLATE_STANDARD', steps: [], riskMitigations: [], supportArrangements,
@@ -13,6 +13,18 @@ const completeRoles = (): CutoverPlanSupportArrangement[] =>
   }))
 
 describe('plan support rejection explanation', () => {
+  it('expands enclosing cards before scrolling and focusing a rejected support section', () => {
+    const outer = { open: false, parentElement: null }
+    const inner = { open: false, parentElement: { closest: () => outer } }
+    const root = { closest: () => inner, scrollIntoView: vi.fn(() => {
+      expect(inner.open).toBe(true)
+      expect(outer.open).toBe(true)
+    }), focus: vi.fn() }
+    focusPlanSupportValidation(root as unknown as HTMLElement)
+    expect(root.scrollIntoView).toHaveBeenCalledWith({ block: 'start' })
+    expect(root.focus).toHaveBeenCalledWith({ preventScroll: true })
+  })
+
   it('reports absent roles even when there are multiple customer rows', () => {
     const customer = completeRoles()[0]
     expect(planSupportValidationMessage(content([customer, customer])))

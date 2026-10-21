@@ -284,6 +284,9 @@ class CutoverPlanRevisionLifecycleTest {
         var contactPolicy = new CutoverPlanContactPolicy(contactApi,
                 supportMapper, changes, storage, mock(cn.iocoder.yudao.module.pms.platform.api.audit.OperationAuditApi.class), mock(CutoverSupportPersonPolicy.class));
         org.springframework.test.util.ReflectionTestUtils.setField(service, "contacts", contactPolicy);
+        var prefill = mock(CutoverPlanSurveyPrefill.class);
+        when(prefill.fill(any())).thenAnswer(invocation -> ((CutoverPlanSurveyPrefill.Query) invocation.getArgument(0)).content());
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "surveyPrefill", prefill);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
         return new Fixture(service, task, source, support, sourcePort, taskMapper, planMapper, stepMapper,
                 supportMapper, historyMapper, approval, derived, copiedSteps, copiedSupport, platform, contents, sources);

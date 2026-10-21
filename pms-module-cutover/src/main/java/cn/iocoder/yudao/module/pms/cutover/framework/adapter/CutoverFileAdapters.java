@@ -93,7 +93,8 @@ public class CutoverFileAdapters {
 
     @Bean
     CutoverPlanFilePort cutoverPlanFilePort(FileArtifactApi api, FileEvidenceApi evidence, NativeGeneratedFileApi generated,
-            CutoverTaskMapper tasks, CutoverPlanRevisionMapper plans, CutoverPlanStepMapper steps, CutoverSupportArrangementMapper supports, CutoverPlanStorage planStorage) {
+            CutoverTaskMapper tasks, CutoverPlanRevisionMapper plans, CutoverPlanStepMapper steps, CutoverSupportArrangementMapper supports, CutoverPlanStorage planStorage,
+            cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanDocumentAttachments attachments) {
         return new CutoverPlanFilePort() {
             public FileFact inspect(CutoverPlanFilePort.FileQuery query) {
                 return resolve(query, false);
@@ -104,18 +105,13 @@ public class CutoverFileAdapters {
             private FileFact resolve(CutoverPlanFilePort.FileQuery expected, boolean lock) {
                 requireIdentity(expected.tenantId(), expected.actorId());
                 var handle = expected.handle();
-                var document = evidence.inspectDocumentByArtifact(expected.tenantId(), handle.artifactId(), handle.versionNo());
-                if (document == null || !"CUT".equals(document.ownerContext()) || !"CUTOVER_PLAN".equals(document.objectType())
-                        || !"FULL_PLAN".equals(document.purposeCode()) || !Objects.equals(handle.referenceKey(), document.referenceKey())) {
-                    throw new IllegalArgumentException("方案附件业务归属不匹配");
-                }
-                var task = tasks.selectById(Long.valueOf(document.objectId()));
+                var task = expected.taskId() == null ? null : tasks.selectById(expected.taskId());
                 if (task == null || !Objects.equals(task.getTenantId(), expected.tenantId()) || !Objects.equals(task.getProjectId(), expected.projectId())) {
                     throw new IllegalArgumentException("方案附件不属于当前授权项目");
                 }
                 var version = handle.fileFactVersion();
                 var query = new FileArtifactVersionRevalidationQuery(handle.artifactId(), handle.versionNo(), "CUT", "CUTOVER_PLAN",
-                        document.objectId(), "FULL_PLAN", handle.referenceKey(), FileActionCodes.READ,
+                        task.getId().toString(), "FULL_PLAN", handle.referenceKey(), FileActionCodes.READ,
                         new cn.iocoder.yudao.module.pms.platform.api.file.dto.FileFactVersion(version.artifactVersion(), version.referenceVersion(), version.availabilityVersion()),
                         handle.scopeVersion());
                 return fact(lock ? api.lockAndRevalidate(query) : api.inspect(query.toInspectionQuery()));
@@ -134,6 +130,7 @@ public class CutoverFileAdapters {
                         .tenantId(tenant)
                         .actorId(actor)
                         .projectId(project)
+                        .taskId(task.getId())
                         .handle(FileHandle.builder()
                                 .artifactId(plan.getFileArtifactId())
                                 .versionNo(plan.getFileVersionNo())
@@ -147,15 +144,8 @@ public class CutoverFileAdapters {
                                 .task(task).plan(plan).content(planStorage.content(plan))
                                 .steps(steps.selectListByPlan(new CutoverPlanChildrenQuery(tenant, revisionId)))
                                 .supports(supports.selectListByPlan(new CutoverPlanChildrenQuery(tenant, revisionId)))
-                                .fileName(file -> {
-                            var reference = evidence.inspectDocumentByArtifact(tenant, Long.valueOf(file.path("artifactId").asText()), file.path("versionNo").asInt());
-                            if (reference == null || !reference.available() || !"CUT".equals(reference.ownerContext())
-                                    || !"CUTOVER_PLAN".equals(reference.objectType()) || !task.getId().toString().equals(reference.objectId())
-                                    || !Objects.equals(reference.referenceKey(), file.path("referenceKey").asText()))
-                                throw new IllegalArgumentException("方案引用附件版本不可用");
-                            return reference.name();
-                        }).build());
-                var registered = generated.create(new NativeGeneratedFileCommand(tenant, actor, "cutover-plan:" + revisionId + ":" + plan.getVersion(),
+                                .attachment(file -> attachments.resolve(new cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanDocumentAttachments.Query(tenant, task.getId(), file))).build());
+                var registered = generated.create(new NativeGeneratedFileCommand(tenant, actor, "cutover-plan:" + revisionId + ":" + plan.getVersion() + ":" + cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanDocumentRenderer.FORMAT_VERSION,
                         "CUT", "CUTOVER_PLAN", task.getId(), task.getVersion(), "FULL_PLAN", "CUTOVER_PLAN", "割接方案-v" + plan.getRevisionNo() + ".docx",
                         "application/vnd.openxmlformats-officedocument.wordprocessingml.document", bytes));
                 var document = evidence.inspectDocument(tenant, registered.referenceId());

@@ -19,6 +19,12 @@
       <div class="standard-file-grid">
         <div v-for="slot in standardFileSlots" :key="slot.field" class="file-slot">
           <label>{{ slot.label }}</label>
+          <template v-if="!modelValue.overview[slot.field] && slot.field === 'preTopologyFile' && surveyTopology">
+            <small class="cut-muted">来自调研，保存时带入方案</small>
+            <PmsFileVersionReferenceList
+              owner-context="CUT" object-type="CUTOVER_CHECKLIST_ITEM" :object-id="String(surveyTopology.itemId)"
+              purpose-code="MANUAL_EVIDENCE" :reference-key="surveyTopology.file.referenceKey" :artifact-id="surveyTopology.file.artifactId" :version-no="surveyTopology.file.versionNo" />
+          </template>
           <PmsFileUploader
 v-if="editable" ref="standardUploadRefs" :data-testid="'plan-file-' + slot.field" owner-context="CUT" object-type="CUTOVER_PLAN" :object-id="String(taskId)"
             :key="String(taskId) + ':' + (modelValue.overview[slot.field]?.referenceKey || slot.referenceSuffix)"
@@ -73,7 +79,18 @@ data-testid="plan-rollback-description" :model-value="modelValue.rollbackDescrip
           <el-table-column prop="stepNo" label="序号" width="68" />
           <el-table-column v-for="column in tableColumns[section.code]" :key="column.field" :label="column.label" :min-width="column.width">
             <template #default="{ row }">
+              <template v-if="isDateTimeColumn(section.code, column.field)">
+                <el-date-picker
+                  :data-testid="'plan-step-' + section.code + '-' + row.stepNo + '-' + column.field"
+                  :model-value="dateTimeValue(column.field === 'content' ? row.content : row.details?.operationTime)"
+                  :disabled="!editable" type="datetime" value-format="YYYY-MM-DD HH:mm:ss"
+                  @update:model-value="updateTableStep({ row, field: column.field, value: $event || '' })" />
+                <small v-if="(column.field === 'content' ? row.content : row.details?.operationTime) && !dateTimeValue(column.field === 'content' ? row.content : row.details?.operationTime)" class="cut-muted">
+                  原填写：{{ column.field === 'content' ? row.content : row.details?.operationTime }}
+                </small>
+              </template>
               <el-input
+                v-else
 :data-testid="'plan-step-' + section.code + '-' + row.stepNo + '-' + column.field"
                 :model-value="column.field === 'content' ? row.content : row.details?.[column.field] || ''" :disabled="!editable"
                 type="textarea" :autosize="{ minRows: 1, maxRows: 6 }"
@@ -126,27 +143,31 @@ import type {
   CutoverPlanStepDetails,
   StandardCutoverPlanContent,
   WireDateTime,
-  WireLong,
-  WritableCutoverPlanContent
+  WireLong
 } from '@/api/pms/cutover'
 import { PmsFileUploader } from '@/components/PmsFileArtifact'
 import PmsFileVersionReferenceList from '@/components/PmsFileArtifact/PmsFileVersionReferenceList.vue'
 import type { FileSelection } from '@/components/PmsFileArtifact'
+import type { CutoverPlanDraftContent } from '../shared/cutoverPlanDraft'
+import dayjs from 'dayjs'
 import CutoverSupportArrangements from './CutoverSupportArrangements.vue'
 import { focusPlanSupportValidation } from '../shared/cutoverPlanValidation'
+import { surveyPlanFile } from '../shared/cutoverPlanSurvey'
 
 // PLT 上传器的 ID 类型声明较窄；模板断言仅兼容声明，原样传递 Snowflake 字符串，不能转换为 Number。
 
 const props = defineProps<{
-  modelValue: WritableCutoverPlanContent
+  modelValue: CutoverPlanDraftContent
   sourceSnapshot: CutoverPlanSourceSnapshot | null
   taskId: string | number
   editable: boolean
   patchApproved?: boolean
   supportValidationMessage?: string
+  surveyItems?: import('@/api/pms/cutover').CutoverChecklistItem[]
 }>()
+const surveyTopology = computed(() => surveyPlanFile(props.surveyItems || [], 'SURVEY_CURRENT_TOPOLOGY'))
 const emit = defineEmits<{
-  'update:modelValue': [value: WritableCutoverPlanContent]
+  'update:modelValue': [value: CutoverPlanDraftContent]
   'patch-support': [value: StandardCutoverPlanContent['supportArrangements'][number]]
   'upload-pending': [pending: boolean]
   'file-state-pending': [pending: boolean]
@@ -196,6 +217,10 @@ const standardSections: Array<{ code: CutoverPlanSectionCode; label: string }> =
 ]
 const simpleSections = standardSections.filter((section) => ['OPERATION', 'ROLLBACK'].includes(section.code))
 type TableStepField = 'content' | keyof CutoverPlanStepDetails
+const isDateTimeColumn = (section: CutoverPlanSectionCode, field: TableStepField) => field === 'operationTime'
+  || section === 'POST_CUTOVER_SUPPORT' && field === 'content'
+const dateTimeValue = (value?: string) => value && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?$/.test(value)
+  && dayjs(value).isValid() ? value : null
 const tableColumns: Record<CutoverPlanSectionCode, Array<{ field: TableStepField; label: string; width: number }>> = {
   PRE_OPERATION: [
     { field: 'content', label: '操作项目', width: 280 },
@@ -207,7 +232,7 @@ const tableColumns: Record<CutoverPlanSectionCode, Array<{ field: TableStepField
     { field: 'content', label: '操作内容', width: 280 },
     { field: 'businessImpactTime', label: '业务影响时间', width: 160 },
     { field: 'operator', label: '实施人员', width: 140 },
-    { field: 'operationTime', label: '操作时间', width: 140 }
+    { field: 'operationTime', label: '操作时间', width: 250 }
   ],
   CLOSING_COLLECTION: [
     { field: 'content', label: '操作项目', width: 280 },
@@ -223,7 +248,7 @@ const tableColumns: Record<CutoverPlanSectionCode, Array<{ field: TableStepField
     { field: 'stepName', label: '回退步骤', width: 180 },
     { field: 'content', label: '操作内容', width: 320 },
     { field: 'operator', label: '实施人员', width: 140 },
-    { field: 'operationTime', label: '操作时间', width: 140 }
+    { field: 'operationTime', label: '操作时间', width: 250 }
   ],
   POST_CUTOVER_SUPPORT: [
     { field: 'operator', label: '责任人', width: 180 },
@@ -252,7 +277,7 @@ const updateDeviceDetail = (change: { deviceId: WireLong; field: Exclude<keyof C
   update({ ...props.modelValue, overview: { ...props.modelValue.overview, deviceDetails } })
 }
 
-const update = (value: WritableCutoverPlanContent) => emit('update:modelValue', value)
+const update = (value: CutoverPlanDraftContent) => emit('update:modelValue', value)
 const updateOverview = (field: 'projectDescription', value: string) => {
   if (props.modelValue.editMode !== 'ONLINE_TEMPLATE_STANDARD') return
   update({ ...props.modelValue, overview: { ...props.modelValue.overview, [field]: value } })
@@ -401,7 +426,7 @@ const completeUpload = async (selection: FileSelection) => {
   fileFactReads.value++
   try {
     const fact = await resolveFileFact(selection)
-    if (props.modelValue.editMode === 'FULL_FILE_UPLOAD') update({ editMode: 'FULL_FILE_UPLOAD', fileArtifactFact: fact, ownershipConfirmed: props.modelValue.ownershipConfirmed })
+    if (props.modelValue.editMode === 'FULL_FILE_UPLOAD') update({ ...props.modelValue, fileArtifactFact: fact, ownershipConfirmed: false })
   } finally { fileFactReads.value-- }
 }
 const completeStandardUpload = async (
@@ -440,14 +465,15 @@ const resolveFileFact = async (selection: Pick<CutoverPlanFileFact, 'artifactId'
   }
 }
 const updateOwnership = (value: boolean | string | number) => {
-  if (props.modelValue.editMode === 'FULL_FILE_UPLOAD' && Boolean(value)) {
-    update({ ...props.modelValue, ownershipConfirmed: true })
+  if (props.modelValue.editMode === 'FULL_FILE_UPLOAD') {
+    update({ ...props.modelValue, ownershipConfirmed: Boolean(value) })
   }
 }
 </script>
 
 <style scoped>
 .plan-editor { min-width: 0; }
+.plan-editor :deep(.el-date-editor.el-input) { max-width: 100%; }
 .support-validation { scroll-margin-block: 100px; }
 .support-validation.has-validation-error { outline: 2px solid var(--el-color-danger); outline-offset: 4px; }
 .validation-message { margin: 0 0 12px; color: var(--el-color-danger); }

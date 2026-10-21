@@ -32,6 +32,10 @@ export const downloadCutoverPlanDraft = (command: { taskId: WireLong; planVersio
     headers: { 'If-Match': String(command.planVersion), 'Idempotency-Key': command.idempotencyKey }
   })
 
+export const downloadSubmittedCutoverPlan = (query: { taskId: WireLong; planVersion: WireLong }) =>
+  request.download<Blob>({ url: `${baseUrl}/${query.taskId}/plan/submitted-file`,
+    silentError: true, headers: { 'If-Match': String(query.planVersion) } })
+
 export const submitCutoverPlan = (command: { taskId: WireLong; taskVersion: WireLong; planVersion: WireLong; idempotencyKey: string }) =>
   request.post<SubmitCutoverPlanResult>({
     url: `${baseUrl}/${command.taskId}/plan/actions/submit`,

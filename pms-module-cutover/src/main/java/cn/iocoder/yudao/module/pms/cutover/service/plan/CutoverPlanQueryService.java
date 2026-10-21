@@ -53,6 +53,8 @@ public class CutoverPlanQueryService {
     private CutoverPlanStorage storage;
     @Resource
     private CutoverPlanGeneratedFiles generatedFiles;
+    @Resource
+    private CutoverPlanDocumentAttachments documentAttachments;
 
     private final CutoverTaskMapper taskMapper;
     private final CutoverPlanRevisionMapper planMapper;
@@ -72,9 +74,13 @@ public class CutoverPlanQueryService {
         this.sourcePort = sourcePort; this.approvalFactApi = approvalFactApi; this.codec = codec;
     }
 
-    public CutoverPlanView detail(
-            CutoverPlanContext context,
-            Long taskId) {
+    public record ActionQuery(CutoverPlanContext context, Long taskId) { }
+    private record PlanAccess(CutoverTaskDO task, CutoverPlanRevisionDO plan, boolean projectRead, boolean editAllowed) { }
+    private static final java.util.Set<String> WORKBENCH_ACTIONS = java.util.Set.of("CREATE_DRAFT", "SAVE_DRAFT", "SUBMIT_PLAN", "REVISE_PLAN");
+
+    private PlanAccess readAccess(ActionQuery query) {
+        var context = query.context();
+        Long taskId = query.taskId();
         Long tenantId = context.tenantId(); Long actorId = context.actorId();
         CutoverTaskDO task = taskMapper.selectById(taskId);
         if (task == null || !Objects.equals(task.getTenantId(), tenantId)) throw notFound();
@@ -83,6 +89,33 @@ public class CutoverPlanQueryService {
         if (!projectRead && approvalAudience.inspectTask(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Query(tenantId, actorId, taskId, null)) == null) throw notFound();
         CutoverPlanRevisionDO plan = selectReadablePlan(tenantId, task);
         boolean editAllowed = projectRead && inspectEditAllowed(actorId, task);
+        return new PlanAccess(task, plan, projectRead, editAllowed);
+    }
+
+    /** Existence of CREATE/SAVE is independent of source/content completeness in the shared policy. */
+    public boolean hasWorkbenchAction(ActionQuery query) {
+        var access = readAccess(query);
+        if (!access.projectRead()) return false;
+        var context = query.context(); var task = access.task(); var plan = access.plan();
+        var approval = inspectApprovalFact(context.tenantId(), plan);
+        var candidate = new CutoverDashboardCandidate(task.getId(), task.getTaskOrigin(), task.getCurrentStage(),
+                task.getTaskStatus(), task.getOwnerUserId(), context.actorId(), task.getManualGrade());
+        var facts = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.ActionFacts.p4(
+                plan == null ? null : plan.getStatusCode(), plan == null ? null : plan.getCurrentMarker(),
+                approval == null || approval.status() == null ? null : approval.status().name(), access.editAllowed(), false, false, false);
+        var permissions = cn.iocoder.yudao.module.pms.cutover.service.dashboard.model.CutoverDashboardActionFacts.PermissionFacts
+                .p4(context.canCreate(), context.canSave(), context.canSubmit());
+        if (ACTION_POLICY.allowedActions(candidate, facts, permissions).stream().anyMatch(WORKBENCH_ACTIONS::contains)) return true;
+        // Submit/revision-only cases still resolve all their original source, approval and content facts.
+        return allowedActions(context, task, plan, approval, access.editAllowed())
+                .stream().anyMatch(WORKBENCH_ACTIONS::contains);
+    }
+
+    public CutoverPlanView detail(CutoverPlanContext context, Long taskId) {
+        var access = readAccess(new ActionQuery(context, taskId));
+        Long tenantId = context.tenantId();
+        var task = access.task(); var plan = access.plan();
+        boolean projectRead = access.projectRead(); boolean editAllowed = access.editAllowed();
         CutoverApprovalFact approval = inspectApprovalFact(tenantId, plan);
         List<String> actions = projectRead ? allowedActions(context, task, plan, approval, editAllowed) : List.of();
         if (plan == null) return new CutoverPlanView(taskId, task.getCurrentStage(), task.getVersion(), null, null, null, null, null, null, null, null, null, null, actions, null);
@@ -94,6 +127,38 @@ public class CutoverPlanQueryService {
     private DownloadCutoverPlanDraftResult generatedDraft(CutoverPlanRevisionDO plan) {
         return generatedFiles.find(new CutoverPlanGeneratedFileQuery(
                 plan.getTenantId(), plan.getId(), plan.getVersion()));
+    }
+
+    public record SubmittedDownloadQuery(CutoverPlanContext context, Long taskId, Long expectedPlanVersion) {}
+    public record SubmittedDocument(String fileName, byte[] content) {}
+
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
+    public SubmittedDocument downloadSubmitted(SubmittedDownloadQuery query) {
+        var context = query.context();
+        if (!context.canDownload()) throw new org.springframework.security.access.AccessDeniedException("无方案下载权限");
+        CutoverPlanView view = detail(context, query.taskId());
+        if (!"SUBMITTED".equals(view.status()) || view.content() == null
+                || !List.of("ONLINE_TEMPLATE_STANDARD", "ONLINE_TEMPLATE_SIMPLE_D").contains(view.content().path("editMode").asText())) {
+            throw new CutoverPlanApplicationException(CutoverPlanApplicationException.Code.STATE_CONFLICT, "当前不是已提交的在线方案");
+        }
+        if (!Objects.equals(view.planVersion(), query.expectedPlanVersion())) {
+            throw new CutoverPlanApplicationException(CutoverPlanApplicationException.Code.VERSION_CONFLICT, "方案版本已变化，请刷新后下载");
+        }
+        var plan = planMapper.selectById(view.planRevisionId());
+        var task = taskMapper.selectById(query.taskId());
+        if (plan == null || task == null || !Objects.equals(plan.getTenantId(), context.tenantId())
+                || !Objects.equals(task.getTenantId(), context.tenantId()) || !Objects.equals(plan.getCutoverTaskId(), task.getId())
+                || !Objects.equals(plan.getVersion(), query.expectedPlanVersion()) || !"SUBMITTED".equals(plan.getStatusCode())
+                || !Objects.equals(plan.getCurrentMarker(), 1)) {
+            throw new CutoverPlanApplicationException(CutoverPlanApplicationException.Code.VERSION_CONFLICT, "方案版本已变化，请刷新后下载");
+        }
+        var children = new CutoverPlanChildrenQuery(context.tenantId(), plan.getId());
+        byte[] bytes = CutoverPlanDocumentRenderer.render(CutoverPlanDocumentRenderer.RenderContext.builder()
+                .task(task).plan(plan).content(storage.content(plan)).steps(stepMapper.selectListByPlan(children))
+                // Approved-contact adjustments have their own append-only table; export the original submission rows.
+                .supports(supportMapper.selectListByPlan(children))
+                .attachment(file -> documentAttachments.resolve(new CutoverPlanDocumentAttachments.Query(context.tenantId(), task.getId(), file))).build());
+        return new SubmittedDocument("割接方案-v" + plan.getRevisionNo() + ".docx", bytes);
     }
 
     private CutoverPlanRevisionDO selectReadablePlan(Long tenantId, CutoverTaskDO task) {

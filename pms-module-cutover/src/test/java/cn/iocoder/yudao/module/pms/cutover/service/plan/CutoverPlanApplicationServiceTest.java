@@ -202,13 +202,13 @@ class CutoverPlanApplicationServiceTest {
         when(fixture.filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build())).thenReturn(file);
         when(fixture.filePort.lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build())).thenReturn(file);
 
@@ -220,13 +220,13 @@ class CutoverPlanApplicationServiceTest {
         verify(fixture.filePort).inspect(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build());
         verify(fixture.filePort).lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build());
         InOrder order = inOrder(fixture.projectPort, fixture.sourcePort, fixture.filePort,
@@ -241,7 +241,7 @@ class CutoverPlanApplicationServiceTest {
         order.verify(fixture.filePort).lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build());
         order.verify(fixture.taskMapper).selectForUpdate(any());
@@ -285,13 +285,13 @@ class CutoverPlanApplicationServiceTest {
         when(fixture.filePort.inspect(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build())).thenReturn(file);
         when(fixture.filePort.lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build())).thenReturn(file);
         fixture.service.createDraft(command("FULL_FILE_UPLOAD", file, true));
@@ -316,7 +316,7 @@ class CutoverPlanApplicationServiceTest {
         order.verify(fixture.filePort).lockAndRevalidate(CutoverPlanFilePort.FileQuery.builder()
                 .tenantId(1L)
                 .actorId(8L)
-                .projectId(70L)
+                .projectId(70L).taskId(50L)
                 .handle(file.handle())
                 .build());
         order.verify(fixture.taskMapper).selectForUpdate(any());
@@ -420,6 +420,9 @@ class CutoverPlanApplicationServiceTest {
         }).when(storage).replaceDraft(any());
         when(storage.content(any())).thenAnswer(invocation -> contents.get(((CutoverPlanRevisionDO) invocation.getArgument(0)).getId()));
         when(storage.source(any())).thenAnswer(invocation -> sources.get(((CutoverPlanRevisionDO) invocation.getArgument(0)).getId()));
+        var prefill = mock(CutoverPlanSurveyPrefill.class);
+        when(prefill.fill(any())).thenAnswer(invocation -> ((CutoverPlanSurveyPrefill.Query) invocation.getArgument(0)).content());
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "surveyPrefill", prefill);
         org.springframework.test.util.ReflectionTestUtils.setField(service, "storage", storage);
         return new Fixture(service, file, source, project, taskMapper, inserted, platform,
                 planMapper, stepMapper, supportMapper, contents);

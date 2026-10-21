@@ -21,6 +21,11 @@ export const planSupportValidationMessage = (content: WritableCutoverPlanContent
 }
 
 export const focusPlanSupportValidation = (root: HTMLElement) => {
+  let card = root.closest('details')
+  while (card) {
+    card.open = true
+    card = card.parentElement?.closest('details') || null
+  }
   root.scrollIntoView({ block: 'start' })
   root.focus({ preventScroll: true })
 }

@@ -32,6 +32,72 @@ import static org.mockito.Mockito.*;
 class CutoverPlanQueryServiceTest {
 
     @Test
+    void exportsSubmittedOnlinePlanWithoutChangingVersionsOrFollowingContactAdjustments() throws Exception {
+        var f = fixture();
+        f.source = mock(CutoverPlanSourcePort.class);
+        f.task.setCurrentStage("P5"); f.task.setTaskStatus("APPROVING"); f.task.setTaskName("提交后下载验收");
+        f.plan.setStatusCode("SUBMITTED"); f.plan.setGradeCode("A");
+        when(f.planMapper.selectById(80L)).thenReturn(f.plan);
+        when(f.stepMapper.selectListByPlan(any())).thenReturn(List.of(step(90L, "OPERATION", 1, "原提交操作")));
+        when(f.supportMapper.selectListByPlan(any())).thenReturn(List.of(support()));
+        var service = f.service(mock(CutoverApprovalFactApi.class));
+        var store = (CutoverPlanStorage) org.springframework.test.util.ReflectionTestUtils.getField(service, "storage");
+        var adjusted = support(); adjusted.setPersonName("后续改为的联系人");
+        when(store.currentSupport(any())).thenReturn(adjusted);
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "submitted-download", false, false, false, true);
+        var result = service.downloadSubmitted(new CutoverPlanQueryService.SubmittedDownloadQuery(context, 50L, 1L));
+        assertThat(result.fileName()).isEqualTo("割接方案-v1.docx");
+        try (var document = new org.apache.poi.xwpf.usermodel.XWPFDocument(new java.io.ByteArrayInputStream(result.content()))) {
+            String text = document.getParagraphs().stream().map(org.apache.poi.xwpf.usermodel.XWPFParagraph::getText).collect(java.util.stream.Collectors.joining("\n"))
+                    + document.getTables().stream().map(org.apache.poi.xwpf.usermodel.XWPFTable::getText).collect(java.util.stream.Collectors.joining("\n"));
+            assertThat(text).contains("原提交操作", "客户经理").doesNotContain("后续改为的联系人");
+        }
+        assertThat(f.plan.getVersion()).isEqualTo(1L);
+        assertThat(f.plan.getStatusCode()).isEqualTo("SUBMITTED");
+        verify(f.planMapper, never()).replaceDraftIfMatch(any());
+        verify(f.planMapper, never()).submitDraftIfMatch(any());
+        verify(f.source, never()).inspect(any(), any(), any());
+    }
+
+    @Test
+    void submittedDownloadRejectsMissingPermissionInvisibleScopeStaleVersionAndWrongState() {
+        for (String change : List.of("permission", "scope", "version", "state", "tenant")) {
+            var f = fixture(); f.task.setCurrentStage("P5"); f.task.setTaskStatus("APPROVING");
+            f.plan.setStatusCode("SUBMITTED");
+            when(f.planMapper.selectById(80L)).thenReturn(f.plan);
+            var service = f.service(mock(CutoverApprovalFactApi.class));
+            org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAudience",
+                    mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.class));
+            if (change.equals("scope")) when(f.projectScope.inspect(8L, 70L, "ACTION_VIEW")).thenReturn(null);
+            if (change.equals("state")) f.plan.setStatusCode("DRAFT");
+            if (change.equals("tenant")) f.task.setTenantId(2L);
+            var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "download-denied", false, false, false, !change.equals("permission"));
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadSubmitted(
+                    new CutoverPlanQueryService.SubmittedDownloadQuery(context, 50L, change.equals("version") ? 2L : 1L)))
+                    .as(change).isInstanceOfAny(CutoverPlanApplicationException.class, org.springframework.security.access.AccessDeniedException.class);
+            verify(f.planMapper, never()).replaceDraftIfMatch(any());
+        }
+    }
+
+    @Test
+    void submittedExportDoesNotExposeAttachmentNamesFromAnotherTask() {
+        var f = fixture(); f.task.setCurrentStage("P5"); f.task.setTaskStatus("APPROVING"); f.plan.setStatusCode("SUBMITTED");
+        when(f.planMapper.selectById(80L)).thenReturn(f.plan);
+        var service = f.service(mock(CutoverApprovalFactApi.class));
+        var store = (CutoverPlanStorage) org.springframework.test.util.ReflectionTestUtils.getField(service, "storage");
+        var body = (tools.jackson.databind.node.ObjectNode) store.content(f.plan);
+        body.withObject("/overview").set("preTopologyFile", JsonUtils.parseTree("{\"artifactId\":\"901\",\"versionNo\":1,\"referenceKey\":\"topology\"}"));
+        when(store.content(f.plan)).thenAnswer(ignored -> body.deepCopy());
+        var attachments = mock(CutoverPlanDocumentAttachments.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "documentAttachments", attachments);
+        when(attachments.resolve(any())).thenThrow(new CutoverPlanApplicationException(CutoverPlanApplicationException.Code.FILE_FACT_STALE, "方案引用附件版本不可用"));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "file-scope", false, false, false, true);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.downloadSubmitted(
+                new CutoverPlanQueryService.SubmittedDownloadQuery(context, 50L, 1L)))
+                .isInstanceOf(CutoverPlanApplicationException.class).hasMessage("方案引用附件版本不可用");
+    }
+
+    @Test
     void approvalTaskReadDoesNotGrantPlanSaveSubmitReviseOrContactWrites() {
         var f = fixture();
         when(f.projectScope.inspect(8L, 70L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, false));
@@ -166,6 +232,11 @@ class CutoverPlanQueryServiceTest {
         CutoverPlanView view = fixture.service(mock(CutoverApprovalFactApi.class)).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "query-test", true, true, true, true), 50L);
 
         assertThat(view.allowedActions()).contains("SUBMIT_PLAN");
+        var submitOnly = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "submit-only", false, false, true, false);
+        assertThat(fixture.service(mock(CutoverApprovalFactApi.class)).hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(submitOnly, 50L))).isTrue();
+        fixture.source = mock(CutoverPlanSourcePort.class);
+        when(fixture.source.inspect(any(), any(), any())).thenReturn(changedFacts());
+        assertThat(fixture.service(mock(CutoverApprovalFactApi.class)).hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(submitOnly, 50L))).isFalse();
     }
 
     @Test
@@ -180,6 +251,8 @@ class CutoverPlanQueryServiceTest {
         CutoverPlanView view = fixture.service(approval).detail(new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "query-test", true, true, true, true), 50L);
 
         assertThat(view.allowedActions()).containsExactly("REVISE_PLAN");
+        var revisionContext = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "revise-action", true, true, true, true);
+        assertThat(fixture.service(approval).hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(revisionContext, 50L))).isTrue();
         assertThat(view.approvalFact().status()).isEqualTo("REJECTED");
         assertThat(view.approvalFact().rejectionReason()).isEqualTo("请修订");
     }
@@ -201,6 +274,8 @@ class CutoverPlanQueryServiceTest {
 
         assertThat(view.planRevisionId()).isEqualTo(80L);
         assertThat(view.allowedActions()).containsExactly("REVISE_PLAN");
+        var revisionContext = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "revise-action", true, true, true, true);
+        assertThat(fixture.service(approval).hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(revisionContext, 50L))).isTrue();
     }
 
     @Test
@@ -217,6 +292,64 @@ class CutoverPlanQueryServiceTest {
 
         assertThat(view.allowedActions()).containsExactly("UPDATE_APPROVED_CONTACTS");
         assertThat(view.approvalFact().status()).isEqualTo("APPROVED");
+    }
+
+    @Test
+    void workbenchSaveDoesNotLoadSourceCompletenessOrDisplayChildren() {
+        var f = fixture();
+        f.source = mock(CutoverPlanSourcePort.class);
+        var service = f.service(mock(CutoverApprovalFactApi.class));
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "workbench", true, true, true, true);
+        assertThat(service.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context, 50L))).isTrue();
+        verifyNoInteractions(f.source, f.stepMapper, f.supportMapper);
+        verify(f.projectScope).inspect(8L, 70L, "ACTION_VIEW");
+        verify(f.projectScope).inspect(8L, 70L, "ACTION_EDIT");
+        var generated = (CutoverPlanGeneratedFiles) org.springframework.test.util.ReflectionTestUtils.getField(service, "generatedFiles");
+        verifyNoInteractions(generated);
+    }
+
+    @Test
+    void workbenchMembershipMatchesDetailAcrossPermissionsStatusesAndOwnership() {
+        var operations = java.util.Set.of("CREATE_DRAFT", "SAVE_DRAFT", "SUBMIT_PLAN", "REVISE_PLAN");
+        for (String status : List.of("NONE", "DRAFT", "SUBMITTED", "INVALIDATED")) {
+            for (int permissions = 0; permissions < 8; permissions++) {
+                for (boolean owner : List.of(true, false)) {
+                    var f = fixture();
+                    f.task.setOwnerUserId(owner ? 8L : 99L);
+                    if ("NONE".equals(status)) when(f.planMapper.selectCurrent(any())).thenReturn(null);
+                    else {
+                        f.plan.setStatusCode(status);
+                        if ("INVALIDATED".equals(status)) { f.plan.setCurrentMarker(null); f.plan.setInvalidationReasonCode("USER_REVISION"); }
+                    }
+                    var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "equivalence", (permissions & 1) != 0, (permissions & 2) != 0, (permissions & 4) != 0, true);
+                    var service = f.service(mock(CutoverApprovalFactApi.class));
+                    boolean expected = service.detail(context, 50L).allowedActions().stream().anyMatch(operations::contains);
+                    assertThat(service.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context, 50L)))
+                            .as("status=%s permissions=%s owner=%s", status, permissions, owner).isEqualTo(expected);
+                }
+            }
+        }
+    }
+
+    @Test
+    void workbenchRetainsTenantAndProjectAuthorizationAndEditScope() {
+        var f = fixture();
+        var service = f.service(mock(CutoverApprovalFactApi.class));
+        var audience = mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.class);
+        org.springframework.test.util.ReflectionTestUtils.setField(service, "approvalAudience", audience);
+        var context = new cn.iocoder.yudao.module.pms.cutover.service.plan.context.CutoverPlanContext(1L, 8L, "denied", true, true, true, true);
+        f.task.setTenantId(2L);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context, 50L)))
+                .isInstanceOf(CutoverPlanApplicationException.class);
+        f.task.setTenantId(1L);
+        when(f.projectScope.inspect(8L, 70L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(999L, 30L, true));
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context, 50L)))
+                .isInstanceOf(CutoverPlanApplicationException.class);
+        when(audience.inspectTask(any())).thenReturn(new cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverRoleApprovalAudience.Grant(90L, "{}"));
+        assertThat(service.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context, 50L))).isFalse();
+        when(f.projectScope.inspect(8L, 70L, "ACTION_VIEW")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, true));
+        when(f.projectScope.inspect(8L, 70L, "ACTION_EDIT")).thenReturn(new CutoverProjectScopePort.ProjectScopeFact(70L, 30L, false));
+        assertThat(service.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context, 50L))).isFalse();
     }
 
     private static Fixture fixture() {

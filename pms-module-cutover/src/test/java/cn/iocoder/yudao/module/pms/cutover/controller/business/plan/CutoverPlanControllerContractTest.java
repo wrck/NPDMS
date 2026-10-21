@@ -87,6 +87,24 @@ class CutoverPlanControllerContractTest {
     }
 
     @Test
+    void submittedDownloadUsesAuthenticatedVersionedReadAndReturnsPrivateAttachment() throws Exception {
+        when(query.downloadSubmitted(any())).thenReturn(new CutoverPlanQueryService.SubmittedDocument("割接方案-v1.docx", new byte[]{1, 2, 3}));
+        mvc.perform(get("/api/v1/pms/cutover-tasks/50/plan/submitted-file").header("If-Match", "2"))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("attachment")))
+                .andExpect(content().contentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .andExpect(content().bytes(new byte[]{1, 2, 3}));
+        verify(query).downloadSubmitted(new CutoverPlanQueryService.SubmittedDownloadQuery(
+                new CutoverPlanContext(1L, 8L, "corr-1", true, true, true, true), 50L, 2L));
+        mvc.perform(get("/api/v1/pms/cutover-tasks/50/plan/submitted-file")).andExpect(status().isBadRequest());
+        verifyNoInteractions(application);
+        var permission = CutoverPlanController.class.getMethod("downloadSubmitted", Long.class, org.springframework.http.HttpHeaders.class)
+                .getAnnotation(org.springframework.security.access.prepost.PreAuthorize.class);
+        org.assertj.core.api.Assertions.assertThat(permission.value()).contains("pms:cutover-task:download-plan");
+    }
+
+    @Test
     void returnsStableHttpErrorsForHeadersBindingAndStructuredApplicationFailures() throws Exception {
         mvc.perform(post("/api/v1/pms/cutover-tasks/50/plan/actions/create-draft")
                 .header("Idempotency-Key", "i1").contentType("application/json")
