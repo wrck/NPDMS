@@ -68,6 +68,12 @@ class CutoverClosureQueryServiceTest {
         assertThat(view.content().attachments()).extracting(value -> value.purposeCode().name())
                 .containsExactly("IMPLEMENTATION_COMMITMENT", "POST_COLLECTION_CHECKLIST");
         assertThat(view.allowedActions()).containsExactly("SAVE_CLOSURE", "REQUEST_COLLECTION", "SUBMIT_CLOSURE");
+        for (int permissions = 0; permissions < 8; permissions++) {
+            var context = new cn.iocoder.yudao.module.pms.cutover.service.closure.context.CutoverClosureContext(1L, 9L, "closure-equivalence",
+                    (permissions & 1) != 0, (permissions & 2) != 0, (permissions & 4) != 0);
+            assertThat(service.hasWorkbenchAction(new CutoverClosureQueryService.ActionQuery(context, 100L)))
+                    .isEqualTo(!service.detail(context, 100L).allowedActions().isEmpty());
+        }
     }
 
     private static CutoverClosureAttachmentDO attachment(long id, String purpose, String reference) {

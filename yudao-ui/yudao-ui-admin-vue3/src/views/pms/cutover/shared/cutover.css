@@ -23,6 +23,13 @@
 }
 .cutover-task-workbench .cut-card { min-width: 0; margin-bottom: 16px; border: 0; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 4%); }
 .cutover-task-workbench .cut-card__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 12px 20px; border-bottom: 1px solid var(--cut-border); }
+.cutover-task-workbench details.cut-card > summary { cursor: pointer; list-style: none; }
+.cutover-task-workbench details.cut-card > summary::-webkit-details-marker { display: none; }
+.cutover-task-workbench details.cut-card > summary::after { flex: 0 0 7px; width: 7px; height: 7px; margin-left: 4px; border-right: 2px solid var(--cut-muted); border-bottom: 2px solid var(--cut-muted); content: ''; transform: rotate(-45deg); }
+.cutover-task-workbench details.cut-card[open] > summary::after { transform: rotate(45deg); }
+.cutover-task-workbench details.cut-card > summary > :first-child { margin-right: auto; }
+.cutover-task-workbench details.cut-card:not([open]) > summary { border-bottom: 0; }
+.cutover-task-workbench details.cut-card > summary:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; border-radius: 8px; }
 .cutover-task-workbench .cut-card__header h2,
 .cutover-task-workbench .cut-card__header h3 { display: flex; align-items: center; gap: 8px; margin: 0; color: #1a2332; font-size: 14px; font-weight: 600; }
 .cutover-task-workbench .cut-card__header small,
@@ -39,6 +46,7 @@
 .cutover-task-workbench .cut-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: 16px 20px; background: #fff; }
 .cutover-task-workbench .cut-actions .el-button + .el-button { margin-left: 0; }
 .cutover-task-workbench .cut-actions--sticky { position: sticky; z-index: 8; bottom: 0; border-top: 1px solid var(--cut-border); box-shadow: 0 -3px 12px rgb(0 0 0 / 3%); }
+.cutover-task-workbench .cut-actions--embedded { padding: 0; background: transparent; }
 .cutover-task-workbench .cut-help { margin: 0 0 12px; color: var(--cut-muted); font-size: 12px; }
 .cutover-task-workbench .cut-required { color: var(--cut-future); }
 .cutover-task-workbench .el-alert { margin-bottom: 12px; padding: 8px 12px; border: 1px solid #bae0ff; border-radius: 4px; background: #e6f4ff; }

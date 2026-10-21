@@ -1,7 +1,6 @@
 import { defineComponent, h, nextTick, ref } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CutoverClosureContent } from '@/api/pms/cutover/types'
-import type { CutoverClosureContent } from '@/api/pms/cutover'
 import CutoverClosureEvidencePanel from '../components/CutoverClosureEvidencePanel.vue'
 import CutoverClosureForm from '../components/CutoverClosureForm.vue'
 import CutoverClosurePanel from '../components/CutoverClosurePanel.vue'
@@ -194,6 +193,13 @@ describe('F-CUT-006 mounted P6 closure workbench', () => {
     await flush()
     expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!.props?.disabled).toBe(true)
     expect(textOf(mounted.root)).toContain('当前材料引用读取失败')
+    const originalForm = findByTestId(mounted.root, 'closure-precheck-normal')
+    await click(mounted.root, 'closure-reference-retry-POST_COLLECTION_CHECKLIST')
+    await flush()
+    expect(findByTestId(mounted.root, 'closure-file-POST_COLLECTION_CHECKLIST')!.props?.disabled).toBe(false)
+    expect(textOf(mounted.root)).not.toContain('当前材料引用读取失败')
+    expect(findByTestId(mounted.root, 'closure-precheck-normal')).toBe(originalForm)
+    expect(api.saveCutoverClosure).not.toHaveBeenCalled()
     mounted.app.unmount()
   })
 

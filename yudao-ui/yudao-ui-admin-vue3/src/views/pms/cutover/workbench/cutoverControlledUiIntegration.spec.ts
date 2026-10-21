@@ -759,5 +759,6 @@ const update = async (testId: string, value: unknown, root: TestNode) => {
 }
 
 const flush = async () => {
+  await vi.dynamicImportSettled()
   for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() }
 }

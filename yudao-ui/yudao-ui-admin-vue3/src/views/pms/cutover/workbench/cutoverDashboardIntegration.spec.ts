@@ -1,6 +1,7 @@
 import { defineComponent, h, nextTick, reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import CutoverTaskWorkbench from './index.vue'
+import { getProject } from '@/api/pms/project/projects'
 const navigation = vi.hoisted(() => ({ route: undefined as any, push: vi.fn(), replace: vi.fn() }))
 vi.mock('vue-router', () => ({ useRoute: () => navigation.route, useRouter: () => navigation }))
 vi.mock('../task-create/index.vue', () => ({ default: defineComponent({
@@ -168,7 +169,51 @@ describe('CUT dashboard production page integration', () => {
     expect(api.getCutoverDashboardKpis).toHaveBeenCalledTimes(1)
     mounted.app.unmount()
   })
+
+  it('shows the self-created list while todos are still loading and does not fetch its unused manager details', async () => {
+    let resolveTodos!: (result: any) => void
+    api.getCutoverTaskPage.mockImplementation(query => query.listKind === 'TODO'
+      ? new Promise(resolve => { resolveTodos = resolve })
+      : Promise.resolve({ list: [listRow('101', 'self-project', '先显示自建任务')], total: 1 }))
+    const view = mount(CutoverTaskWorkbench, {}, controls)
+    try {
+      await flush()
+      expect(textOf(view.root)).toContain('先显示自建任务')
+      expect(getProject).not.toHaveBeenCalled()
+      resolveTodos({ list: [], total: 0 }); await flush()
+    } finally { view.app.unmount() }
+  })
+
+  it('shows todo rows before auxiliary manager details and only resolves managers used by that list', async () => {
+    let resolveProject!: (project: any) => void
+    vi.mocked(getProject).mockImplementationOnce(() => new Promise(resolve => { resolveProject = resolve }))
+    api.getCutoverTaskPage.mockImplementation(query => Promise.resolve({ list: [listRow(query.listKind, query.listKind === 'TODO' ? '1' : '2', query.listKind === 'TODO' ? '可立即办理' : '自建任务')], total: 1 }))
+    const view = mount(CutoverTaskWorkbench, {}, controls)
+    try {
+      await flush()
+      expect(textOf(view.root)).toContain('可立即办理')
+      expect(findByTestId(view.root, 'refresh-workbench')?.props?.loading).toBe(false)
+      expect(getProject).toHaveBeenCalledExactlyOnceWith('1')
+      resolveProject({ id: '1', managerName: '负责人' }); await flush()
+      expect(textOf(view.root)).toContain('负责人')
+    } finally { view.app.unmount() }
+  })
+
+  it('preserves the successful list when the other list fails', async () => {
+    api.getCutoverTaskPage.mockImplementation(query => query.listKind === 'TODO'
+      ? Promise.reject(new Error('todo unavailable'))
+      : Promise.resolve({ list: [listRow('101', '2', '仍可打开的自建任务')], total: 1 }))
+    const view = mount(CutoverTaskWorkbench, {}, controls)
+    try {
+      await flush()
+      expect(textOf(view.root)).toContain('割接任务加载失败：待办列表')
+      expect(textOf(view.root)).toContain('仍可打开的自建任务')
+    } finally { view.app.unmount() }
+  })
 })
+
+const listRow = (id: string, projectId: string, projectName: string) => ({ id, projectId, projectName,
+  taskName: projectName, currentStage: 'P3', taskStatus: 'SURVEYING', intakeSourceType: 'SELF_CREATED', generatedAt: 1788310800000 })
 
 const kpis = (todoCount: string, archivedCount: string, approvingCount: string,
   rejectedPendingModificationCount: string, generatedAt: number) => ({
@@ -180,6 +225,7 @@ const kpis = (todoCount: string, archivedCount: string, approvingCount: string,
 })
 
 const flush = async () => {
+  await vi.dynamicImportSettled()
   await Promise.resolve()
   await nextTick()
   await Promise.resolve()

@@ -47,7 +47,7 @@ ref="uploadRefs" v-if="editable && closureId !== null"
           :expected-reference-version="references[slot.purposeCode]?.referenceVersion ?? attachment(slot.purposeCode)?.fileFactVersion.referenceVersion"
           :disabled="referencesLoading || !!referenceErrors[slot.purposeCode]"
           category-code="CUTOVER_CLOSURE" @completed="completeUpload(slot.purposeCode, $event)" />
-        <p v-if="referenceErrors[slot.purposeCode]" class="cut-help" role="status">当前材料引用读取失败，请重试后上传。<el-button link type="primary" @click="readReferences">重试</el-button></p>
+        <p v-if="referenceErrors[slot.purposeCode]" class="cut-help" role="status">当前材料引用读取失败，请重试后上传。<el-button link type="primary" :data-testid="'closure-reference-retry-' + slot.purposeCode" @click="readReferences">重试</el-button></p>
         <p v-if="editable && closureId !== null" class="cut-help">支持PDF、Word、Excel及图片，单文件不超过50MB。</p>
         <PmsFileVersionReferenceList
 v-if="attachment(slot.purposeCode)" owner-context="CUT" object-type="CUTOVER_CLOSURE"

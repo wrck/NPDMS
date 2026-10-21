@@ -1,32 +1,26 @@
 <template>
   <section class="cutover-task-workbench full-detail" data-testid="cutover-task-detail">
     <header class="detail-topbar">
-      <el-button link data-testid="close-cutover-detail" @click="closeDetail"><Icon icon="ep:back" />返回任务列表</el-button>
       <div><strong>{{ approvalOnly ? '割接审批' : detail?.task.taskName || '割接任务' }}</strong><span>{{ approvalOnly ? '审批来源与方案只读' : detail?.task.taskNo }}</span></div>
+      <el-tag v-if="readonly" type="info" size="small">只读查看</el-tag>
       <el-tag v-if="detail" :type="detail.task.taskStatus === 'ARCHIVED' ? 'success' : 'primary'" size="small">{{ statusLabels[detail.task.taskStatus] }}</el-tag>
-      <el-button link data-testid="refresh-cutover-detail" :loading="detailLoading" @click="reloadDetail">刷新</el-button>
     </header>
     <div v-loading="detailLoading" class="detail-body">
       <el-alert v-if="detailError" :title="detailError" type="error" :closable="false" show-icon />
       <CutoverApprovalPanel
-        v-if="approvalOnly" :key="`${taskId}:${approvalReload}`" :readonly="readonly"
+        ref="approvalPanel" v-if="approvalOnly" :key="`${taskId}:${approvalReload}`" :readonly="readonly" :actions-target="stageActions"
         :task-id="taskId" complete-after-decision @changed="handleApprovalChanged" @decided="emit('close')" />
       <template v-else-if="detail">
         <el-alert
 v-if="detail.task.currentStage === 'P2' && detail.assessmentSubmissionBlockReason"
           :title="detail.assessmentSubmissionBlockReason" type="warning" :closable="false" show-icon />
         <CutoverWorkbenchSteps :steps="detail.workbenchSteps" :selected="selectedStage" @select="selectStage" />
-        <div v-if="revisionTarget && !readonly && !detailError" class="cut-actions">
-          <span class="cut-help">修订保留原版本，并使后续清单或方案失效；审批中会先撤回当前审批。</span>
-          <el-button data-testid="revise-current-step" type="warning" :loading="revising" @click="openRevision">
-            {{ detail.task.currentStage === 'P5' ? '撤回审批并修订此步骤' : '修订此步骤' }}
-          </el-button>
-        </div>
         <template v-if="activeStagePanel === 'ASSESSMENT'">
           <el-alert title="根据问卷填写评估信息，人工确定A/B/C/D等级。D级使用简易割接流程；已提交内容需通过修订创建新版本。" type="info" :closable="false" show-icon />
           <CutoverProjectContextCard :detail="detail" :approval-readonly="detail.approvalReadOnly" />
           <CutoverTaskDevices :detail="detail" />
           <CutoverAssessmentPanel
+            :actions-target="stageActions"
             :model="assessmentModel" :customer-service-level="assessmentCustomerLevel"
             :editable="!readonly && !detailError && detail.allowedActions.includes('SAVE_ASSESSMENT')"
             :submittable="!readonly && !detailError && (detail.allowedActions.includes('SUBMIT_ASSESSMENT') || (detail.allowedActions.includes('SAVE_ASSESSMENT') && checkPermi(['pms:cutover-task:submit-assessment'])))"
@@ -34,21 +28,35 @@ v-if="detail.task.currentStage === 'P2' && detail.assessmentSubmissionBlockReaso
         </template>
         <CutoverChecklistPanel
           ref="checklistPanel"
+          :actions-target="stageActions"
           v-else-if="activeStagePanel === 'CHECKLIST'" :detail="detail" :readonly="readonly || !!detailError"
           :refresh-workspace="refreshAfterChecklistSubmit" :refresh-draft="handleTaskChanged" @navigate="handleChecklistNavigation" />
         <CutoverPlanPanel
           ref="planPanel"
+          :actions-target="stageActions"
           v-else-if="activeStagePanel === 'PLAN'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
           :task-version="detail.task.version" :manual-grade="detail.task.manualGrade" @changed="handleTaskChanged" />
         <CutoverApprovalPanel
+          ref="approvalPanel" :actions-target="stageActions"
           v-else-if="activeStagePanel === 'APPROVAL'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
           @changed="handleApprovalChanged" @decided="emit('close')" />
         <CutoverClosurePanel
+          :actions-target="stageActions"
           v-else-if="activeStagePanel === 'CLOSURE'" :readonly="readonly || !!detailError" :task-id="detail.task.id"
           :devices="detail.devices" @changed="handleTaskChanged" />
         <el-empty v-else description="当前步骤暂无可查看的内容" />
       </template>
     </div>
+    <footer class="cut-actions cut-actions--sticky detail-actions" aria-label="割接任务操作" data-testid="cutover-detail-actions">
+      <div class="detail-navigation-actions">
+        <el-button data-testid="close-cutover-detail" @click="closeDetail"><Icon icon="ep:back" />返回</el-button>
+        <el-button data-testid="refresh-cutover-detail" :loading="detailLoading" @click="reloadDetail">刷新</el-button>
+      </div>
+      <el-button v-if="revisionTarget && !readonly && !detailError" data-testid="revise-current-step" type="warning" :loading="revising" @click="openRevision">
+        {{ detail?.task.currentStage === 'P5' ? '撤回审批并修订此步骤' : '修订此步骤' }}
+      </el-button>
+      <div ref="stageActions" class="detail-stage-actions"></div>
+    </footer>
     <el-dialog
       v-model="revisionVisible" title="创建修订" width="min(560px, 94vw)" append-to-body align-center
       :close-on-click-modal="!revising" :show-close="!revising">
@@ -93,17 +101,20 @@ import { activeCutoverStagePanel, createCutoverWriteCoordinator } from '../share
 import CutoverProjectContextCard from '../components/CutoverProjectContextCard.vue'
 import CutoverTaskDevices from '../components/CutoverTaskDevices.vue'
 import CutoverAssessmentPanel from '../components/CutoverAssessmentPanel.vue'
-import CutoverApprovalPanel from '../components/CutoverApprovalPanel.vue'
 import CutoverChecklistPanel from '../components/CutoverChecklistPanel.vue'
-import CutoverClosurePanel from '../components/CutoverClosurePanel.vue'
-import CutoverPlanPanel from '../components/CutoverPlanPanel.vue'
 import CutoverWorkbenchSteps from '../components/CutoverWorkbenchSteps.vue'
+
+const CutoverApprovalPanel = defineAsyncComponent(() => import('../components/CutoverApprovalPanel.vue').then(module => module.default))
+const CutoverClosurePanel = defineAsyncComponent(() => import('../components/CutoverClosurePanel.vue').then(module => module.default))
+const CutoverPlanPanel = defineAsyncComponent(() => import('../components/CutoverPlanPanel.vue').then(module => module.default))
 
 const props = defineProps<{ taskId: WireLong; projectId?: WireLong; readonly?: boolean; approvalOnly?: boolean }>()
 const emit = defineEmits<{ close: []; changed: [] }>()
 const message = useMessage()
 const planPanel = ref<InstanceType<typeof CutoverPlanPanel>>()
 const checklistPanel = ref<InstanceType<typeof CutoverChecklistPanel>>()
+const approvalPanel = ref<InstanceType<typeof CutoverApprovalPanel>>()
+const stageActions = shallowRef<HTMLElement>()
 const detail = ref<CutoverTaskDetail | null>(null)
 const readonly = computed(() => !!props.readonly || !!detail.value?.approvalReadOnly)
 const detailLoading = ref(false)
@@ -170,7 +181,10 @@ const refreshDetail = async () => {
 }
 const reloadDetail = async () => {
   if (!(await saveBeforeLeave())) return
-  try { await refreshDetail() } catch { /* 错误由详情页展示，历史数据不可继续办理。 */ }
+  try {
+    await refreshDetail()
+    if (!props.approvalOnly && activeStagePanel.value === 'APPROVAL') await approvalPanel.value?.refresh?.()
+  } catch { /* 错误由详情页展示，历史数据不可继续办理。 */ }
 }
 const refreshKeepingAssessment = async () => {
   const taskId = String(props.taskId)
@@ -328,5 +342,11 @@ onBeforeUnmount(() => { loadSequence++; window.removeEventListener('beforeunload
 .detail-topbar strong { overflow: hidden; color: #1a2332; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
 .detail-topbar span { color: #999; font-size: 12px; }
 .detail-body { min-height: 240px; }
+.detail-actions { margin-top: 16px; }
+.detail-navigation-actions { display: flex; align-items: center; gap: 8px; margin-right: auto; }
+.detail-navigation-actions :deep(.el-button + .el-button) { margin-left: 0; }
+.detail-stage-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; min-width: 0; }
+.detail-stage-actions:empty { display: none; }
+.detail-actions :deep(.el-button) { max-width: 100%; min-height: 32px; height: auto; white-space: normal; }
 @media (width <= 767px) { .detail-topbar { flex-wrap: wrap; padding: 12px 14px; } .detail-topbar > div { flex-basis: calc(100% - 140px); flex-wrap: wrap; gap: 2px; } }
 </style>

@@ -70,9 +70,14 @@ public class CutoverClosureQueryService {
         this.projectScopePort = projectScopePort;
     }
 
-    public CutoverClosureView detail(
-            CutoverClosureContext context,
-            Long taskId) {
+    public record ActionQuery(CutoverClosureContext context, Long taskId) { }
+    @lombok.Builder
+    private record ClosureRead(CutoverTaskDO task, CutoverClosureDO closure, CutoverPlanRevisionDO plan,
+                               CutoverApprovalInstanceDO approval, List<CutoverClosureAttachmentDO> attachments,
+                               List<CutoverCollectionEvidenceDO> evidence, boolean projectRead, boolean editAllowed) { }
+
+    private ClosureRead readActions(ActionQuery query) {
+        var context = query.context(); Long taskId = query.taskId();
         Long tenantId = context.tenantId(); Long actorId = context.actorId();
         if (tenantId == null || tenantId <= 0 || actorId == null || actorId <= 0 || taskId == null || taskId <= 0
                 || context == null) throw notFound();
@@ -98,6 +103,21 @@ public class CutoverClosureQueryService {
         List<CutoverCollectionEvidenceDO> evidence = closure == null ? List.of()
                 : evidenceMapper.selectListByClosure(new CutoverClosureChildrenQuery(tenantId, closure.getId()));
         boolean editAllowed = projectRead && inspectEdit(actorId, task.getProjectId());
+        return ClosureRead.builder().task(task).closure(closure).plan(plan).approval(approval)
+                .attachments(attachments).evidence(evidence).projectRead(projectRead).editAllowed(editAllowed).build();
+    }
+
+    public boolean hasWorkbenchAction(ActionQuery query) {
+        var read = readActions(query);
+        return read.projectRead() && !allowedActions(read.task(), read.closure(), read.attachments(), read.evidence(),
+                query.context(), read.editAllowed()).isEmpty();
+    }
+
+    public CutoverClosureView detail(CutoverClosureContext context, Long taskId) {
+        var read = readActions(new ActionQuery(context, taskId));
+        var task = read.task(); var closure = read.closure(); var plan = read.plan(); var approval = read.approval();
+        var attachments = read.attachments(); var evidence = read.evidence();
+        boolean projectRead = read.projectRead(); boolean editAllowed = read.editAllowed();
         List<String> actions = projectRead ? allowedActions(task, closure, attachments, evidence, context, editAllowed) : List.of();
         return new CutoverClosureView(taskId, task.getCurrentStage(), task.getTaskStatus(), task.getVersion(),
                 closure == null ? null : closure.getId(), closure == null ? null : closure.getVersion(),

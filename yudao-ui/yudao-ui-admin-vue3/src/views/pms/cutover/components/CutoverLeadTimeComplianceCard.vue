@@ -1,11 +1,12 @@
 <template>
-  <section
+  <details
+    open
     class="lead-time-card"
     :class="compliance.lateSubmission ? 'is-late' : 'is-compliant'"
     aria-labelledby="lead-time-heading"
     data-testid="lead-time-card"
   >
-    <header>
+    <summary>
       <div>
         <h3 id="lead-time-heading">P5 提前时间参考</h3>
         <p>按自然日口径，以方案提交时冻结的规则判断。</p>
@@ -13,7 +14,7 @@
       <strong role="status" data-testid="lead-time-status">
         {{ compliance.lateSubmission ? '迟交：是' : '迟交：否' }}
       </strong>
-    </header>
+    </summary>
     <dl>
       <div>
         <dt>计划操作时间</dt>
@@ -36,7 +37,7 @@
         <dd>{{ compliance.actualNaturalDays }} 个自然日</dd>
       </div>
     </dl>
-  </section>
+  </details>
 </template>
 
 <script setup lang="ts">
@@ -48,8 +49,6 @@ defineProps<{ compliance: CutoverLeadTimeCompliance }>()
 
 <style scoped>
 .lead-time-card {
-  display: grid;
-  gap: 16px;
   padding: 16px;
   border: 1px solid var(--el-border-color);
   border-left-width: 4px;
@@ -67,12 +66,19 @@ defineProps<{ compliance: CutoverLeadTimeCompliance }>()
   background: var(--el-color-success-light-9);
 }
 
-.lead-time-card header {
+.lead-time-card summary {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+  cursor: pointer;
+  list-style: none;
 }
+.lead-time-card summary::-webkit-details-marker { display: none; }
+.lead-time-card summary::after { flex: 0 0 7px; width: 7px; height: 7px; margin-top: 5px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; content: ''; transform: rotate(-45deg); }
+.lead-time-card[open] summary::after { transform: rotate(45deg); }
+.lead-time-card summary > div { margin-right: auto; }
+.lead-time-card summary:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 4px; }
 
 .lead-time-card h3,
 .lead-time-card p,
@@ -91,6 +97,7 @@ defineProps<{ compliance: CutoverLeadTimeCompliance }>()
 }
 
 .lead-time-card dl {
+  margin-top: 16px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
@@ -107,7 +114,7 @@ defineProps<{ compliance: CutoverLeadTimeCompliance }>()
 }
 
 @media (width <= 767px) {
-  .lead-time-card header {
+  .lead-time-card summary {
     flex-direction: column;
   }
 

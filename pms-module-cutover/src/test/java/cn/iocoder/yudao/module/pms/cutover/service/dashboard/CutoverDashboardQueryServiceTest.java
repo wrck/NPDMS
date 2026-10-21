@@ -7,11 +7,9 @@ import cn.iocoder.yudao.module.pms.cutover.service.approval.view.CutoverApproval
 import cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.dashboard.port.CutoverDashboardOwnerFactException;
 import cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService;
-import cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView;
 import cn.iocoder.yudao.module.pms.cutover.service.task.CutoverTaskQueryService;
 import cn.iocoder.yudao.module.pms.cutover.service.task.port.CutoverProjectScopePort;
 import cn.iocoder.yudao.module.pms.cutover.service.task.query.CutoverTaskListQuery.ListKind;
-import cn.iocoder.yudao.module.pms.cutover.service.task.view.CutoverTaskViews;
 import cn.iocoder.yudao.module.pms.cutover.support.CutoverTestContexts;
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
@@ -38,15 +36,9 @@ class CutoverDashboardQueryServiceTest {
         when(candidates.selectBatch(any())).thenReturn(List.of(row(1L, "P2", "GRADE_CONFIRMING", null),
                 row(2L, "P5", "APPROVING", "PENDING"), row(3L, "P4", "PLAN_DRAFTING", "REJECTED"),
                 row(4L, "P6", "ARCHIVED", "APPROVED"), row(5L, "P4", "PLAN_DRAFTING", "REJECTED")));
-        var task = mock(CutoverTaskViews.Detail.class);
-        when(task.allowedActions()).thenReturn(List.of("SAVE_ASSESSMENT"));
-        when(tasks.detail(context.task(), 1L)).thenReturn(task);
-        var editable = mock(CutoverPlanView.class);
-        when(editable.allowedActions()).thenReturn(List.of("REVISE_PLAN"));
-        when(plans.detail(context.plan(), 3L)).thenReturn(editable);
-        var readonly = mock(CutoverPlanView.class);
-        when(readonly.allowedActions()).thenReturn(List.of("DOWNLOAD_DRAFT"));
-        when(plans.detail(context.plan(), 5L)).thenReturn(readonly);
+        when(tasks.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context.task(), 1L))).thenReturn(true);
+        when(plans.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context.plan(), 3L))).thenReturn(true);
+        when(plans.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context.plan(), 5L))).thenReturn(false);
         LocalDateTime before = LocalDateTime.now();
         var result = service.statistics(context);
         assertThat(result.todoCount()).isEqualTo(3);

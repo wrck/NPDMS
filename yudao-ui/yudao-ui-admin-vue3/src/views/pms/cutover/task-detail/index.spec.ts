@@ -14,7 +14,7 @@ vi.mock('../components/CutoverClosurePanel.vue', () => ({ default: defineCompone
   props: ['taskId', 'readonly'], setup(props) { return () => h('section', { 'data-testid': 'closure', readonly: props.readonly }, `闭环:${props.taskId}`) }
 }) }))
 
-const flush = async () => { for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
+const flush = async () => { await vi.dynamicImportSettled(); for (let i = 0; i < 8; i++) { await Promise.resolve(); await nextTick() } }
 const task = (id = '9007199254740993', projectId = '201') => ({
   task: { id, projectId, taskName: `任务${id}`, taskNo: 'CUT-1', currentStage: 'P6', taskStatus: 'ARCHIVED', version: 1 },
   devices: [], allowedActions: [], workbenchSteps: [{ stage: 'P6', label: '闭环', state: 'CURRENT' }]
@@ -30,6 +30,15 @@ describe('共享割接任务详情', () => {
     expect(api.getCutoverTaskDetail).toHaveBeenCalledWith('9007199254740993')
     expect(textOf(page.root)).toContain('闭环:9007199254740993')
     expect(findByTestId(page.root, 'closure')?.props?.readonly).toBe(true)
+    page.app.unmount()
+  })
+
+  it('keeps the complete task readonly when access comes only from an approval', async () => {
+    api.getCutoverTaskDetail.mockResolvedValue({ ...task(), approvalReadOnly: true })
+    const page = mount(Detail, { taskId: '9007199254740993' })
+    await flush()
+    expect(findByTestId(page.root, 'closure')?.props?.readonly).toBe(true)
+    expect(api.saveCutoverAssessment).not.toHaveBeenCalled()
     page.app.unmount()
   })
 

@@ -117,10 +117,9 @@ public class CutoverDashboardQueryService {
     private boolean actionable(CutoverDashboardCandidateRow row, CutoverDashboardContext context) {
         if (row.getCurrentStage() == null) return false;
         return switch (row.getCurrentStage()) {
-            case "P2", "P3" -> !tasks.detail(context.task(), row.getTaskId()).allowedActions().isEmpty();
-            case "P4" -> plans.detail(context.plan(), row.getTaskId()).allowedActions().stream()
-                    .anyMatch(Set.of("CREATE_DRAFT", "SAVE_DRAFT", "SUBMIT_PLAN", "REVISE_PLAN")::contains);
-            case "P6" -> !closures.detail(context.closure(), row.getTaskId()).allowedActions().isEmpty();
+            case "P2", "P3" -> tasks.hasWorkbenchAction(new CutoverTaskQueryService.ActionQuery(context.task(), row.getTaskId()));
+            case "P4" -> plans.hasWorkbenchAction(new CutoverPlanQueryService.ActionQuery(context.plan(), row.getTaskId()));
+            case "P6" -> closures.hasWorkbenchAction(new CutoverClosureQueryService.ActionQuery(context.closure(), row.getTaskId()));
             default -> false;
         };
     }

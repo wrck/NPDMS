@@ -12,7 +12,8 @@
           <el-button link data-testid="refresh-workbench" :loading="loading" @click="refreshListAndKpis"><Icon icon="ep:refresh" />刷新</el-button>
         </div>
       </div>
-      <section v-if="filterVisible" class="cut-card filter-card">
+      <details v-if="filterVisible" open class="cut-card filter-card">
+        <summary class="cut-card__header"><h2>筛选任务</h2></summary>
         <el-form :model="query" inline class="filter-grid">
           <el-form-item v-if="checkPermi(['pms:project:query'])" label="项目">
             <el-select v-model="query.projectId" filterable remote clearable :remote-method="searchProjects" :loading="projectsLoading" placeholder="输入项目名称查找" class="!w-240px">
@@ -23,17 +24,17 @@
           <el-form-item label="任务状态"><el-select v-model="query.taskStatus" clearable class="!w-150px" @change="selectedCategory = ''"><el-option v-for="(label, status) in statusLabels" :key="status" :label="label" :value="status" /></el-select></el-form-item>
           <el-form-item><el-button type="primary" :loading="loading" @click="searchTasks">查询</el-button><el-button @click="resetQuery">重置</el-button></el-form-item>
         </el-form>
-      </section>
-      <el-alert v-if="listError" :title="listError" type="error" :closable="false" show-icon />
-      <section v-if="selectedCategory" class="cut-card">
-        <header class="cut-card__header"><h2><Icon icon="ep:document" />{{ categoryLabels[selectedCategory] }}割接任务</h2><small>共 {{ total }} 项</small></header>
+      </details>
+      <el-alert v-if="listError || workbenchTodoError || selfCreatedError" :title="listError || workbenchTodoError || selfCreatedError || ''" type="error" :closable="false" show-icon />
+      <details open v-if="selectedCategory" class="cut-card">
+        <summary class="cut-card__header"><h2><Icon icon="ep:document" />{{ categoryLabels[selectedCategory] }}割接任务</h2><small>共 {{ total }} 项</small></summary>
         <CutoverTaskTable :rows="rows" :loading="loading" :error="listError" @open="openDetail" />
         <Pagination class="workbench-pagination" v-model:page="query.pageNo" v-model:limit="query.pageSize" :total="total" @pagination="loadPage" />
-      </section>
+      </details>
       <template v-else>
-        <section class="cut-card" aria-labelledby="cutover-todo-list-title">
-          <header class="cut-card__header"><h2 id="cutover-todo-list-title"><Icon icon="ep:document" />割接任务待办</h2><small>共 {{ workbenchTodoTotal }} 项</small></header>
-          <el-table v-loading="loading" :data="workbenchTodos" :empty-text="listError ? '待办列表未加载成功' : '暂无需要办理的割接任务'" row-key="id" @row-dblclick="openDetail">
+        <details open class="cut-card" aria-labelledby="cutover-todo-list-title">
+          <summary class="cut-card__header"><h2 id="cutover-todo-list-title"><Icon icon="ep:document" />割接任务待办</h2><small>共 {{ workbenchTodoTotal }} 项</small></summary>
+          <el-table v-loading="workbenchTodoLoading" :data="workbenchTodos" :empty-text="workbenchTodoError ? '待办列表未加载成功' : '暂无需要办理的割接任务'" row-key="id" @row-dblclick="openDetail">
             <el-table-column label="项目名称" min-width="250"><template #default="{ row }"><button type="button" class="project-link" @click="openDetail(row)">{{ row.projectName }}</button><small v-if="row.taskName !== row.projectName" class="task-subtitle">{{ row.taskName }}</small></template></el-table-column>
             <el-table-column label="项目负责人" min-width="120"><template #default="{ row }">{{ row.projectManagerName || '—' }}</template></el-table-column>
             <el-table-column label="割接来源" width="110"><template #default="{ row }"><el-tag size="small" effect="light" :type="row.intakeSourceType === 'ITR' ? 'primary' : 'warning'">{{ sourceLabels[row.intakeSourceType] }}</el-tag></template></el-table-column>
@@ -42,13 +43,13 @@
             <el-table-column label="操作" width="88" fixed="right"><template #default="{ row }"><el-button size="small" type="primary" @click="openDetail(row)">办理</el-button></template></el-table-column>
           </el-table>
           <Pagination class="workbench-pagination" v-model:page="workbenchTodoQuery.pageNo" v-model:limit="workbenchTodoQuery.pageSize" :total="workbenchTodoTotal" @pagination="loadPage" />
-        </section>
-        <section class="cut-card" aria-labelledby="cutover-self-list-title">
-          <header class="cut-card__header">
+        </details>
+        <details open class="cut-card" aria-labelledby="cutover-self-list-title">
+          <summary class="cut-card__header">
             <h2 id="cutover-self-list-title"><Icon icon="ep:edit-pen" />自建割接任务</h2>
             <el-button data-testid="create-cutover-task" type="primary" v-hasPermi="['pms:cutover-task:create']" @click="openCreate"><Icon icon="ep:plus" />新增割接任务</el-button>
-          </header>
-          <el-table v-loading="loading" :data="selfCreatedTasks" :empty-text="listError ? '自建列表未加载成功' : '暂无自建割接任务，可新增任务'" row-key="id" @row-dblclick="openDetail">
+          </summary>
+          <el-table v-loading="selfCreatedLoading" :data="selfCreatedTasks" :empty-text="selfCreatedError ? '自建列表未加载成功' : '暂无自建割接任务，可新增任务'" row-key="id" @row-dblclick="openDetail">
             <el-table-column label="项目名称" min-width="270"><template #default="{ row }"><button type="button" class="project-link" @click="openDetail(row)">{{ row.projectName }}</button><small v-if="row.taskName !== row.projectName" class="task-subtitle">{{ row.taskName }}</small></template></el-table-column>
             <el-table-column label="创建人" min-width="120"><template #default="{ row }">{{ row.creatorName || '—' }}</template></el-table-column>
             <el-table-column label="创建时间" min-width="180"><template #default="{ row }">{{ formatWireDateTime(row.generatedAt) }}</template></el-table-column>
@@ -56,7 +57,7 @@
             <el-table-column label="操作" width="88" fixed="right"><template #default="{ row }"><el-button size="small" @click="openDetail(row)">{{ row.taskStatus === 'ARCHIVED' ? '查看' : '继续' }}</el-button></template></el-table-column>
           </el-table>
           <Pagination class="workbench-pagination" v-model:page="selfCreatedQuery.pageNo" v-model:limit="selfCreatedQuery.pageSize" :total="selfCreatedTotal" @pagination="loadPage" />
-        </section>
+        </details>
       </template>
 
     <el-dialog v-model="todoVisible" title="我的审批待办" width="min(920px, 94vw)" append-to-body>
@@ -134,15 +135,20 @@ import { getProject, getProjectPage, type ProjectMasterVO } from '@/api/pms/proj
 import * as CutoverApi from '@/api/pms/cutover'
 import type { CutoverDashboardKpiData } from '@/api/pms/cutover'
 import CutoverDashboardKpis from '../components/CutoverDashboardKpis.vue'
-import CutoverTaskCreate from '../task-create/index.vue'
 import CutoverTaskTable from '../components/CutoverTaskTable.vue'
 import { formatWireDateTime } from '../shared/cutoverTaskInteraction'
 import { sourceLabels, stageLabels, statusLabels } from '../shared/taskPresentation'
+
+const CutoverTaskCreate = defineAsyncComponent(() => import('../task-create/index.vue').then(module => module.default))
 
 defineOptions({ name: 'PmsCutoverWorkbench' })
 
 const loading = ref(false)
 const listError = ref<string | null>(null)
+const workbenchTodoLoading = ref(false)
+const selfCreatedLoading = ref(false)
+const workbenchTodoError = ref<string | null>(null)
+const selfCreatedError = ref<string | null>(null)
 const filterVisible = ref(false)
 const selectedCategory = ref('')
 const categoryLabels: Record<string, string> = { todo: '待办', archived: '已归档', approving: '审批中', rejected: '驳回待修改' }
@@ -199,10 +205,22 @@ const query = reactive({
 const todoQuery = reactive({ pageNo: 1, pageSize: 10 })
 const reassignmentQuery = reactive({ pageNo: 1, pageSize: 10 })
 let listSequence = 0
+const loadManagerNames = async ({ items, request }: { items: CutoverApi.CutoverTaskListItem[]; request: number }) => {
+  if (!checkPermi(['pms:project:query'])) return
+  const projectIds = [...new Set(items.filter(row => !row.approvalOnly && !row.projectManagerName).map(row => String(row.projectId)))]
+  const projects = await Promise.allSettled(projectIds.map(id => getProject(id)))
+  if (request !== listSequence) return
+  const managers = new Map(projects.flatMap(result => result.status === 'fulfilled' && result.value.id ? [[String(result.value.id), result.value.managerName] as const] : []))
+  for (const row of workbenchTodos.value) if (!row.projectManagerName) row.projectManagerName = managers.get(String(row.projectId)) || null
+}
 const loadPage = async () => {
   const request = ++listSequence
   loading.value = true
   listError.value = null
+  workbenchTodoError.value = null
+  selfCreatedError.value = null
+  workbenchTodoLoading.value = !selectedCategory.value
+  selfCreatedLoading.value = !selectedCategory.value
   try {
     if (selectedCategory.value) {
       const result = await CutoverApi.getCutoverTaskPage({ ...query, projectId: query.projectId || undefined, listKind: selectedCategory.value.toUpperCase() as CutoverApi.CutoverTaskListQuery['listKind'] })
@@ -211,21 +229,33 @@ const loadPage = async () => {
       total.value = Number(result.total)
     } else {
       const filters = { projectId: query.projectId || undefined, currentStage: query.currentStage, taskStatus: query.taskStatus }
-      const [todos, selfCreated] = await Promise.all([
-        CutoverApi.getCutoverTaskPage({ listKind: 'TODO', ...filters, ...workbenchTodoQuery }),
-        CutoverApi.getCutoverTaskPage({ listKind: 'SELF_CREATED', ...filters, ...selfCreatedQuery })
+      await Promise.all([
+        (async () => {
+          try {
+            const result = await CutoverApi.getCutoverTaskPage({ listKind: 'TODO', ...filters, ...workbenchTodoQuery })
+            if (request !== listSequence) return
+            workbenchTodos.value = result.list
+            workbenchTodoTotal.value = Number(result.total)
+            void loadManagerNames({ items: result.list, request })
+          } catch {
+            if (request !== listSequence) return
+            workbenchTodoError.value = '割接任务加载失败：待办列表，请重试。'
+            workbenchTodos.value = []; workbenchTodoTotal.value = 0
+          } finally { if (request === listSequence) workbenchTodoLoading.value = false }
+        })(),
+        (async () => {
+          try {
+            const result = await CutoverApi.getCutoverTaskPage({ listKind: 'SELF_CREATED', ...filters, ...selfCreatedQuery })
+            if (request !== listSequence) return
+            selfCreatedTasks.value = result.list
+            selfCreatedTotal.value = Number(result.total)
+          } catch {
+            if (request !== listSequence) return
+            selfCreatedError.value = '割接任务加载失败：自建任务列表，请重试。'
+            selfCreatedTasks.value = []; selfCreatedTotal.value = 0
+          } finally { if (request === listSequence) selfCreatedLoading.value = false }
+        })()
       ])
-      if (request !== listSequence) return
-      if (checkPermi(['pms:project:query'])) {
-        const projects = await Promise.allSettled([...new Set([...todos.list, ...selfCreated.list].filter(row => !row.approvalOnly).map(row => String(row.projectId)))].map(id => getProject(id)))
-        const managers = new Map(projects.flatMap(result => result.status === 'fulfilled' && result.value.id ? [[String(result.value.id), result.value.managerName] as const] : []))
-        for (const row of [...todos.list, ...selfCreated.list]) row.projectManagerName = managers.get(String(row.projectId)) || null
-      }
-      if (request !== listSequence) return
-      workbenchTodos.value = todos.list
-      workbenchTodoTotal.value = Number(todos.total)
-      selfCreatedTasks.value = selfCreated.list
-      selfCreatedTotal.value = Number(selfCreated.total)
     }
   } catch {
     if (request !== listSequence) return
@@ -329,7 +359,7 @@ const selectKpi = async (key: string) => {
 .home-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .home-toolbar__actions { display: flex; align-items: center; gap: 16px; }
 .home-toolbar__actions .el-button + .el-button { margin-left: 0; }
-.filter-card { padding: 16px 20px 0; }
+.filter-card .filter-grid { padding: 16px 20px 0; }
 .project-link { padding: 0; border: 0; background: transparent; color: #264d77; font: inherit; text-align: left; cursor: pointer; }
 .project-link:hover { color: #1677ff; text-decoration: underline; }
 .task-subtitle { display: block; overflow: hidden; color: #999; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }

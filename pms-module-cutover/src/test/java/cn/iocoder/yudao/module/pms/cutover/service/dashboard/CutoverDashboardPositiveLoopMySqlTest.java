@@ -220,18 +220,11 @@ class CutoverDashboardPositiveLoopMySqlTest {
             var plans = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService.class);
             var approvals = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.approval.CutoverApprovalQueryService.class);
             var closures = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.closure.CutoverClosureQueryService.class);
-            org.mockito.Mockito.when(tasks.detail(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong()))
+            org.mockito.Mockito.when(tasks.hasWorkbenchAction(org.mockito.ArgumentMatchers.any())).thenReturn(true);
+            org.mockito.Mockito.when(plans.hasWorkbenchAction(org.mockito.ArgumentMatchers.any()))
                     .thenAnswer(invocation -> {
-                        var detail = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.task.view.CutoverTaskViews.Detail.class);
-                        org.mockito.Mockito.when(detail.allowedActions()).thenReturn(List.of("SAVE_ASSESSMENT"));
-                        return detail;
-                    });
-            org.mockito.Mockito.when(plans.detail(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyLong()))
-                    .thenAnswer(invocation -> {
-                        long taskId = invocation.getArgument(1);
-                        var detail = org.mockito.Mockito.mock(cn.iocoder.yudao.module.pms.cutover.service.plan.view.CutoverPlanView.class);
-                        org.mockito.Mockito.when(detail.allowedActions()).thenReturn(taskId % 10 == 5 ? List.of() : List.of("REVISE_PLAN"));
-                        return detail;
+                        cn.iocoder.yudao.module.pms.cutover.service.plan.CutoverPlanQueryService.ActionQuery query = invocation.getArgument(0);
+                        return query.taskId() % 10 != 5;
                     });
             org.mockito.Mockito.when(approvals.myTodos(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
                     .thenAnswer(invocation -> {

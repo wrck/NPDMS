@@ -1,9 +1,9 @@
 <template>
-  <section v-loading="loading" class="closure-panel" v-hasPermi="['pms:cutover-task:query-closure']">
+  <section v-loading="loading" class="closure-panel" v-hasPermi="['pms:cutover-task:query-closure', 'pms:cutover-task:query-approval']">
     <el-alert title="由一线统一填写割接结果。提交后结束割接流程，归档记录及附件版本保留供历史查看。" type="info" :closable="false" show-icon />
     <template v-if="closure">
-      <section class="cut-card">
-        <header class="cut-card__header"><h3><Icon icon="ep:circle-check" />割接结果与闭环</h3><small>{{ closure.closureStatus === 'SUBMITTED' ? '已归档，只读' : '草稿，保存不推进流程' }}</small></header>
+      <details open class="cut-card">
+        <summary class="cut-card__header"><h3><Icon icon="ep:circle-check" />割接结果与闭环</h3><small>{{ closure.closureStatus === 'SUBMITTED' ? '已归档，只读' : '草稿，保存不推进流程' }}</small></summary>
         <div class="cut-card__body">
           <CutoverClosureForm ref="closureFormRef" v-model="content" :closure-id="closure.closureId" :editable="canSave && !writing"
             @upload-pending="attachmentPending = $event" @attachment-completed="onAttachmentCompleted" />
@@ -13,15 +13,17 @@
           </el-radio-group>
           <p class="cut-help result-help">成功与失败均可归档；项目、资产和外部系统的处理结果以实际回执为准。</p>
         </div>
-        <footer v-if="canSave || canAttemptSubmit" class="cut-actions cut-actions--sticky">
+        <Teleport :to="actionsTarget || 'body'" :disabled="!actionsTarget">
+        <footer v-if="canSave || canAttemptSubmit" class="cut-actions" :class="actionsTarget ? 'cut-actions--embedded' : 'cut-actions--sticky'">
           <el-button v-if="canSave" v-hasPermi="['pms:cutover-task:save-closure']" data-testid="save-closure"
             :loading="writing" :disabled="attachmentPending" @click="save">{{ closure.closureId === null ? '创建闭环草稿' : '保存' }}</el-button>
           <el-button v-if="canAttemptSubmit" v-hasPermi="['pms:cutover-task:submit-closure']" data-testid="submit-closure" type="primary"
             :loading="writing" :disabled="attachmentPending || !selectedResult" @click="submitSelected"><Icon icon="ep:upload" />提交（结束流程）</el-button>
         </footer>
-      </section>
-      <details v-if="closure.closureId !== null" class="cut-card collection-details">
-        <summary>采集记录与失败恢复<span class="cut-muted">{{ closure.collectionEvidence.length }} 条记录</span></summary>
+        </Teleport>
+      </details>
+      <details v-if="closure.closureId !== null" open class="cut-card collection-details">
+        <summary class="cut-card__header"><h3>采集记录与失败恢复</h3><span class="cut-muted">{{ closure.collectionEvidence.length }} 条记录</span></summary>
         <div class="cut-card__body">
           <CutoverClosureEvidencePanel :task-id="taskId" :closure-id="closure.closureId" :evidence="closure.collectionEvidence" :devices="devices"
             :can-request="!props.readonly && closure.allowedActions.includes('REQUEST_COLLECTION')"
@@ -58,7 +60,7 @@ import { createCutoverPlanIntentStore, createCutoverPlanWriteBarrier, cutoverPla
 import CutoverClosureEvidencePanel from './CutoverClosureEvidencePanel.vue'
 import CutoverClosureForm from './CutoverClosureForm.vue'
 
-const props = defineProps<{ taskId: WireLong; devices: DeviceScopeEntry[]; readonly?: boolean }>()
+const props = defineProps<{ taskId: WireLong; devices: DeviceScopeEntry[]; readonly?: boolean; actionsTarget?: HTMLElement }>()
 const emit = defineEmits<{ changed: [] }>()
 const message = useMessage()
 const loading = ref(false)
